@@ -4,10 +4,14 @@ const auth = require("../middleware/auth.middleware");
 const role = require("../middleware/role.middleware");
 const ctrl = require("../controllers/student.controller");
 
-router.post("/", auth, role("admin"), ctrl.createStudent);
+// Admin only: create student
+router.post("/", auth, role("Admin"), ctrl.createStudent);
+
+// Admin & Teacher: view students
 router.get("/", auth, ctrl.getStudents);
+
+// Get student by ID
 router.get("/:id", auth, ctrl.getStudentById);
-router.put("/:id", auth, role("admin"), ctrl.updateStudent);
-router.delete("/:id", auth, role("admin"), ctrl.deleteStudent);
 
 module.exports = router;
+

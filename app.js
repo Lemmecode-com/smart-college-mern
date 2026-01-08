@@ -27,7 +27,7 @@ app.use("/api/attendance", require("./src/routes/attendance.routes"));
 // ❗ Global Error Handler (MUST be last)
 app.use(require("./src/middleware/error.middleware"));
 
-const PORT = process.env.PORT || 7000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port http//:localhost/${PORT}`);
 });
