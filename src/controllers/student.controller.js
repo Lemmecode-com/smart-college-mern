@@ -12,8 +12,8 @@ exports.createStudent = async (req, res, next) => {
 exports.getStudents = async (req, res, next) => {
   try {
     const students = await Student.find()
-      .populate("department", "name")
-      .populate("course", "name code");
+      .populate("departmentId", "name")
+      .populate("courseId", "name code");
 
     res.json(students);
   } catch (err) {
@@ -24,8 +24,8 @@ exports.getStudents = async (req, res, next) => {
 exports.getStudentById = async (req, res, next) => {
   try {
     const student = await Student.findById(req.params.id)
-      .populate("department", "name")
-      .populate("course", "name code");
+      .populate("departmentId", "name")
+      .populate("courseId", "name code");
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
