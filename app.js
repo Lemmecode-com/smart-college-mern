@@ -30,4 +30,8 @@ app.use(require("./src/middleware/error.middleware"));
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port http//:localhost/${PORT}`);
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> b000c1780c989aad249ee8154d951835e0ab7c27
