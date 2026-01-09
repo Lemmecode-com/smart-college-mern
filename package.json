@@ -1,35 +1,15 @@
 {
-<<<<<<< HEAD
-  "name": "smart-college-mern",
-  "version": "1.0.0",
-  "description": "smart-college-mern intern testing",
-=======
   "name": "smtclgv1",
   "version": "1.0.0",
   "description": "",
->>>>>>> b000c1780c989aad249ee8154d951835e0ab7c27
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-<<<<<<< HEAD
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ChetanKaturde/smart-college-mern.git"
-  },
-=======
->>>>>>> b000c1780c989aad249ee8154d951835e0ab7c27
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-<<<<<<< HEAD
-  "bugs": {
-    "url": "https://github.com/ChetanKaturde/smart-college-mern/issues"
-  },
-  "homepage": "https://github.com/ChetanKaturde/smart-college-mern#readme",
-=======
->>>>>>> b000c1780c989aad249ee8154d951835e0ab7c27
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
