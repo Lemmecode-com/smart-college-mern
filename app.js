@@ -24,7 +24,6 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/attendance", require("./src/routes/attendance.routes"));
 
-// ❗ Global Error Handler (MUST be last)
 app.use(require("./src/middleware/error.middleware"));
 
 const PORT = process.env.PORT;
