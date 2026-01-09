@@ -1,7 +1,3 @@
-
-
-
-
 const Attendance = require("../models/attendance.model");
 
 exports.mark = async (req, res, next) => {
