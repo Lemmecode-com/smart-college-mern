@@ -5,7 +5,7 @@ const role = require("../middleware/role.middleware");
 const ctrl = require("../controllers/student.controller");
 
 // Admin only: create student
-router.post("/", auth, role("Admin"), ctrl.createStudent);
+router.post("/", auth, role("admin"), ctrl.createStudent);
 
 // Admin & Teacher: view students
 router.get("/", auth, ctrl.getStudents);
