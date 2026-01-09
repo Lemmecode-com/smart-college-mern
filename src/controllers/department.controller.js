@@ -1,9 +1,3 @@
-
-
-
-
-
-
 const Department = require("../models/department.model");
 
 exports.createDepartment = async (req, res, next) => {
