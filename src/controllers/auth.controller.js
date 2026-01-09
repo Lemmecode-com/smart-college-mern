@@ -66,6 +66,22 @@ exports.login = async (req, res, next) => {
   }
 };
 
+
+exports.logout = async (req, res) => {
+  try {
+    // JWT is stateless → nothing to destroy server-side
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Logout failed"
+    });
+  }
+};
+
 exports.me = async (req, res) => {
   res.json(req.user);
 };
