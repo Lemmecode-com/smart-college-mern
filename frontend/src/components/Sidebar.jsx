@@ -19,7 +19,7 @@ export default function Sidebar() {
         Dashboard
       </NavLink>
 
-      {/* ================= ADMIN ================= */}
+     
       {user.role === "admin" && (
         <>
           <hr className="text-secondary" />
