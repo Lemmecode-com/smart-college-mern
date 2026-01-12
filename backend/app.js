@@ -24,6 +24,7 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/attendance", require("./src/routes/attendance.routes"));
 app.use("/api/users", require("./src/routes/user.routes"));
+app.use("/api/admin", require("./src/routes/admin.routes"));
 
 // ❗ Global Error Handler (MUST be last)
 app.use(require("./src/middleware/error.middleware"));

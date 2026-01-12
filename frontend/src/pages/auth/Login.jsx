@@ -8,6 +8,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,47 +30,105 @@ export default function Login() {
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-      <div className="card shadow-sm p-4" style={{ width: "360px" }}>
-        <h4 className="text-center mb-3">Smart College Login</h4>
-
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        <form onSubmit={submitHandler}>
-          <div className="mb-3">
-            <label>Email</label>
-            <input
-              type="email"
-              className="form-control"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label>Password</label>
-            <input
-              type="password"
-              className="form-control"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button
-            className="btn btn-primary w-100"
-            disabled={loading}
+    <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-white">
+      <div className="row w-100 justify-content-center">
+        <div className="col-11 col-sm-8 col-md-6 col-lg-4">
+          <div
+            className="card shadow-lg border-0 rounded-3"
+            style={{ overflow: "hidden" }}
           >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            {/* HEADER */}
+            <div
+              className="text-white text-center py-4"
+              style={{
+                background: "linear-gradient(180deg, #0f3a4a, #134952)",
+              }}
+            >
+              <h3 className="fw-bold mb-1">Smart College</h3>
+              <p className="mb-0 small opacity-75">
+                Login Panel
+              </p>
+            </div>
 
-        <p className="text-center mt-3 mb-0">
-          Don’t have an account?{" "}
-          <Link to="/register">Register</Link>
-        </p>
+            {/* BODY */}
+            <div className="card-body px-4 py-4">
+              {error && (
+                <div className="alert alert-danger text-center py-2">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={submitHandler}>
+                {/* EMAIL */}
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="admin@college.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                {/* PASSWORD */}
+                <div className="mb-4">
+                  <label className="form-label fw-semibold">
+                    Password
+                  </label>
+
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control"
+                      placeholder="Enter password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() =>
+                        setShowPassword(!showPassword)
+                      }
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* LOGIN BUTTON */}
+                <button
+                  className="btn w-100 text-white fw-semibold"
+                  style={{
+                    backgroundColor: "#1f6f8b",
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Login"}
+                </button>
+              </form>
+            </div>
+
+            {/* FOOTER */}
+            <div className="card-footer bg-light text-center py-3">
+              <span className="text-muted small">
+                Don’t have an account?
+              </span>{" "}
+              <Link
+                to="/register"
+                className="fw-semibold text-decoration-none"
+                style={{ color: "#1f6f8b" }}
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
