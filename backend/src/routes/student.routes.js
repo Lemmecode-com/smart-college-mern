@@ -1,15 +1,41 @@
-const router = require("express").Router();
-const auth = require("../middleware/auth.middleware");
-const role = require("../middleware/role.middleware");
-const ctrl = require("../controllers/student.controller");
+// src/routes/student.routes.js
+const express = require("express");
+const router = express.Router();
 
-// Admin only: create student
-router.post("/", auth, role("admin"), ctrl.createStudent);
+const authMiddleware = require("../middleware/auth.middleware");
+const roleMiddleware = require("../middleware/role.middleware");
+const { createStudent, getAllStudents, assignParentToStudent, getStudentsByCourse } = require("../controllers/student.controller");
 
-// Admin & Teacher: view students (secure)
-router.get("/", auth, role("admin", "teacher"), ctrl.getStudents);
+// create student
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("admin", "collegeAdmin"),
+  createStudent
+);
 
-// Get student by ID
-router.get("/:id", auth, ctrl.getStudentById);
+// get all students
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("admin", "collegeAdmin"),
+  getAllStudents
+);
 
 module.exports = router;
+
+// get students course wise
+router.get(
+  "/course/:courseId",
+  authMiddleware,
+  roleMiddleware("admin", "collegeAdmin", "teacher"),
+  getStudentsByCourse
+);
+
+// assign parent
+router.post(
+  "/:studentId/assign-parent",
+  authMiddleware,
+  roleMiddleware("admin", "collegeAdmin", "student"),
+  assignParentToStudent
+);

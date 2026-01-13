@@ -1,5 +1,5 @@
 const User = require("../models/user.model");
-const Parent = require("../models/parent.model");
+const Parent = require("../models/parentStudent.model");
 const Student = require("../models/student.model");
 const bcrypt = require("bcryptjs");
 
@@ -31,7 +31,7 @@ exports.createParent = async (req, res) => {
 
     // 4️⃣ Create parent profile & link student
     await Parent.create({
-      userId: parentUser._id,
+      parentId: parentUser._id,
       occupation,
       phone,
       studentId: student._id,
@@ -43,25 +43,21 @@ exports.createParent = async (req, res) => {
   }
 };
 
-exports.getMyChild = async (req, res) => {
-  const parent = await Parent.findOne({ userId: req.user.id })
-    .populate({
-      path: "studentId",
-      populate: [
-        { path: "departmentId", select: "name code" },
-        { path: "courseId", select: "name code" },
-      ],
-    });
 
-  if (!parent) {
-    return res.status(404).json({ message: "Parent profile not found" });
-  }
+exports.getMyChildren = async (req, res) => {
+  const parentId = req.user.id;
+
+  const students = await Student.find({ parentId })
+    .populate("userId", "name email")
+    .populate("courseId", "name code")
+    .populate("departmentId", "name");
 
   res.json({
-    success: true,
-    data: parent.studentId,
+    count: students.length,
+    students
   });
 };
+
 
 exports.getChildAttendance = async (req, res) => {
   const parent = await Parent.findOne({ userId: req.user.id });
