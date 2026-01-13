@@ -3,13 +3,15 @@ const router = express.Router();
 
 const {
   markAttendance,
-  getAttendance,
+  getAttendance
 } = require("../controllers/attendance.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-// TEACHER → Mark attendance
+/**
+ * Teacher → Mark attendance
+ */
 router.post(
   "/",
   authMiddleware,
@@ -17,12 +19,14 @@ router.post(
   markAttendance
 );
 
-// ADMIN / TEACHER / STUDENT → View attendance
+/**
+ * View attendance (role-filtered)
+ */
 router.get(
   "/",
   authMiddleware,
-  roleMiddleware("admin", "teacher", "student"),
   getAttendance
 );
 
 module.exports = router;
+
