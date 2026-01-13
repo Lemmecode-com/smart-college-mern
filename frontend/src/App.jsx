@@ -30,6 +30,9 @@ import StudentList from "./pages/students/StudentList";
 import MarkAttendance from "./pages/attendance/MarkAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
 import MyAttendance from "./pages/attendance/MyAttendance";
+import ParentDashboard from "./pages/dashboard/ParentDashboard";
+import AddParent from "./pages/students/AddParent";
+import ChildAttendance from "./pages/attendance/ChildAttendance";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -50,9 +53,7 @@ export default function App() {
                 {/* Root Redirect */}
                 <Route
                   path="/"
-                  element={
-                    <Navigate to={user ? "/dashboard" : "/login"} />
-                  }
+                  element={<Navigate to={user ? "/dashboard" : "/login"} />}
                 />
 
                 {/* Public Routes */}
@@ -149,12 +150,39 @@ export default function App() {
                   }
                 />
 
-                {/* Student */}
+                {/*========== Student ===========*/}
                 <Route
                   path="/my-attendance"
                   element={
                     <ProtectedRoute>
                       <MyAttendance />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/add-parent"
+                  element={
+                    <ProtectedRoute roles={["student"]}>
+                      <AddParent />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* PARENT ROUTES */}
+                <Route
+                  path="/parent/dashboard"
+                  element={
+                    <ProtectedRoute roles={["parent"]}>
+                      <ParentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/parent/attendance"
+                  element={
+                    <ProtectedRoute roles={["parent"]}>
+                      <ChildAttendance />
                     </ProtectedRoute>
                   }
                 />

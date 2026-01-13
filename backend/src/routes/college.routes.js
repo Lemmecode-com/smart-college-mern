@@ -2,31 +2,26 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  markAttendance,
-  getAttendance
-} = require("../controllers/attendance.controller");
+  upsertCollege,
+  getCollege
+} = require("../controllers/college.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-/**
- * Teacher → Mark attendance
- */
+// 🔐 Only Admin / CollegeAdmin
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware("teacher"),
-  markAttendance
+  roleMiddleware("admin", "collegeAdmin"),
+  upsertCollege
 );
 
-/**
- * View attendance (role-filtered)
- */
+// 🔓 Any logged-in user
 router.get(
   "/",
   authMiddleware,
-  getAttendance
+  getCollege
 );
 
 module.exports = router;
-
