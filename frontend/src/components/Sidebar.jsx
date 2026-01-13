@@ -85,6 +85,13 @@ export default function Sidebar() {
           </NavLink>
         </>
       )}
+
+      {/* ================= PARENT ================= */}
+      {user.role === "parent" && (
+        <>
+          <NavLink to="/parent/attendance">Child Attendance</NavLink>
+        </>
+      )}
     </div>
   );
 }
