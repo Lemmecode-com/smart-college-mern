@@ -205,6 +205,9 @@ import MyAttendance from "./pages/attendance/MyAttendance";
 /* 🔹 PLACEHOLDERS */
 import AttendanceList from "./pages/attendance/AttendanceList";
 import ComingSoon from "./common/ComingSoon";
+import CollegeProfile from "./pages/college/CollegeProfile";
+import SubjectList from "./pages/Subjects/SubjectList";
+import AddSubject from "./pages/Subjects/AddSubject";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -331,7 +334,7 @@ export default function App() {
                   path="/college/profile"
                   element={
                     <ProtectedRoute>
-                      <ComingSoon title="College Profile" />
+                      <CollegeProfile title="College Profile" />
                     </ProtectedRoute>
                   }
                 />
@@ -339,7 +342,7 @@ export default function App() {
                   path="/subjects"
                   element={
                     <ProtectedRoute>
-                      <ComingSoon title="Subjects" />
+                      <SubjectList title="Subjects" />
                     </ProtectedRoute>
                   }
                 />
@@ -347,7 +350,7 @@ export default function App() {
                   path="/subjects/add"
                   element={
                     <ProtectedRoute>
-                      <ComingSoon title="Add Subject" />
+                      <AddSubject title="Add Subject" />
                     </ProtectedRoute>
                   }
                 />
