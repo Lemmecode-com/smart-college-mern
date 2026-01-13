@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const studentSchema = new mongoose.Schema(
+const teacherSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -9,15 +9,9 @@ const studentSchema = new mongoose.Schema(
       unique: true
     },
     name: { type: String, required: true },
-    rollNo: { type: String, required: true },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true
-    },
-    courseId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
       required: true
     },
     status: {
@@ -29,4 +23,4 @@ const studentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Student", studentSchema);
+module.exports = mongoose.model("Teacher", teacherSchema);
