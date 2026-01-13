@@ -11,125 +11,191 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [forgotMode, setForgotMode] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    if (!email || (!forgotMode && !password)) {
+      return setError("All fields are required");
+    }
+
     setLoading(true);
     setError("");
+    setSuccessMsg("");
 
     try {
-      await login({ email, password });
-      navigate("/dashboard");
+      if (forgotMode) {
+        // Simulated forgot password success
+        setSuccessMsg("Password reset link sent to your email.");
+      } else {
+        await login({ email, password });
+        navigate("/dashboard");
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Invalid email or password"
-      );
+      setError(err.response?.data?.message || "Something went wrong");
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-white">
-      <div className="row w-100 justify-content-center">
-        <div className="col-11 col-sm-8 col-md-6 col-lg-4">
+    <div
+      className="container-fluid min-vh-100 d-flex align-items-center justify-content-center px-3"
+      style={{ background: "#ffffff" }}
+    >
+      <div
+        className="card shadow-lg border-0 rounded-4 overflow-hidden w-100"
+        style={{ maxWidth: "900px", animation: "fadeIn 0.6s ease" }}
+      >
+        <div className="row g-0">
+
+          {/* LEFT PANEL */}
           <div
-            className="card shadow-lg border-0 rounded-3"
-            style={{ overflow: "hidden" }}
+            className="col-md-5 d-none d-md-flex flex-column justify-content-center text-white p-5"
+            style={{ background: "linear-gradient(180deg, #0f3a4a, #134952)" }}
           >
-            {/* HEADER */}
-            <div
-              className="text-white text-center py-4"
-              style={{
-                background: "linear-gradient(180deg, #0f3a4a, #134952)",
-              }}
-            >
-              <h3 className="fw-bold mb-1">Smart College</h3>
-              <p className="mb-0 small opacity-75">
-                Login Panel
-              </p>
+            <h2 className="fw-bold">
+              {forgotMode ? "Reset Password" : "Welcome Back"}
+            </h2>
+            <p className="opacity-75">
+              {forgotMode
+                ? "Enter your email to reset your password"
+                : "Login to access your Smart College dashboard"}
+            </p>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="col-md-7 bg-white p-4 p-md-5">
+
+            <div className="text-center mb-4">
+              <div
+                className="rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                style={{ width: 70, height: 70, background: "#e6f3f7" }}
+              >
+                {forgotMode ? "🔐" : "👤"}
+              </div>
+              <h4 className="fw-bold">
+                {forgotMode ? "FORGOT PASSWORD" : "LOGIN"}
+              </h4>
             </div>
 
-            {/* BODY */}
-            <div className="card-body px-4 py-4">
-              {error && (
-                <div className="alert alert-danger text-center py-2">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="alert alert-danger py-2 text-center">
+                {error}
+              </div>
+            )}
 
-              <form onSubmit={submitHandler}>
-                {/* EMAIL */}
+            {successMsg && (
+              <div className="alert alert-success py-2 text-center">
+                {successMsg}
+              </div>
+            )}
+
+            <form onSubmit={submitHandler}>
+
+              {/* EMAIL */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Email</label>
+                <input
+                  type="email"
+                  className="form-control border-0 border-bottom rounded-0"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              {/* PASSWORD (Only for Login) */}
+              {!forgotMode && (
                 <div className="mb-3">
-                  <label className="form-label fw-semibold">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="admin@college.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                {/* PASSWORD */}
-                <div className="mb-4">
-                  <label className="form-label fw-semibold">
-                    Password
-                  </label>
-
+                  <label className="form-label fw-semibold">Password</label>
                   <div className="input-group">
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control border-0 border-bottom rounded-0"
                       placeholder="Enter password"
-                      required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
                     <button
                       type="button"
                       className="btn btn-outline-secondary"
-                      onClick={() =>
-                        setShowPassword(!showPassword)
-                      }
+                      onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
+              )}
 
-                {/* LOGIN BUTTON */}
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                {!forgotMode ? (
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none"
+                    onClick={() => {
+                      setForgotMode(true);
+                      setError("");
+                      setSuccessMsg("");
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none"
+                    onClick={() => {
+                      setForgotMode(false);
+                      setError("");
+                      setSuccessMsg("");
+                    }}
+                  >
+                    Back to Login
+                  </button>
+                )}
+
                 <button
-                  className="btn w-100 text-white fw-semibold"
-                  style={{
-                    backgroundColor: "#1f6f8b",
-                  }}
+                  className="btn text-white px-4 rounded-pill"
+                  style={{ backgroundColor: "#1f6f8b" }}
                   disabled={loading}
                 >
-                  {loading ? "Logging in..." : "Login"}
+                  {loading
+                    ? "Processing..."
+                    : forgotMode
+                    ? "SEND LINK"
+                    : "LOGIN"}
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
 
-            {/* FOOTER */}
-            <div className="card-footer bg-light text-center py-3">
-              <span className="text-muted small">
-                Don’t have an account?
-              </span>{" "}
-              <Link
-                to="/register"
-                className="fw-semibold text-decoration-none"
-                style={{ color: "#1f6f8b" }}
-              >
-                Register
-              </Link>
-            </div>
+            {!forgotMode && (
+              <div className="text-center">
+                <span className="text-muted small">
+                  Don’t have an account?
+                </span>{" "}
+                <Link
+                  to="/register"
+                  className="fw-semibold text-decoration-none"
+                  style={{ color: "#1f6f8b" }}
+                >
+                  Register
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Animation */}
+      <style>
+        {`@keyframes fadeIn {
+          from {opacity:0; transform: translateY(20px)}
+          to {opacity:1; transform: translateY(0)}
+        }`}
+      </style>
     </div>
   );
 }
