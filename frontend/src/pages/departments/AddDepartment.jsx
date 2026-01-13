@@ -49,7 +49,7 @@ export default function AddDepartment() {
             <input className="form-control" value={code} disabled />
           </div>
 
-          <button className="btn btn-primary" disabled={loading}>
+          <button className="btn" style={{backgroundColor:"background:#134952)"}} disabled={loading}>
             {loading ? "Saving..." : "Create"}
           </button>
         </form>
