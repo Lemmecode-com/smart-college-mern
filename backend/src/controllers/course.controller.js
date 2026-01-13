@@ -50,17 +50,36 @@ exports.getCourses = async (req, res) => {
   }
 };
 
-// Teacher: Get assigned courses
+// // Teacher: Get assigned courses
+// exports.getMyCourses = async (req, res) => {
+//   try {
+//     const courses = await Course.find({ teacherId: req.user.id }).populate(
+//       "departmentId",
+//       "name"
+//     );
+
+//     res.json(courses);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+// Teacher: Get my courses
 exports.getMyCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ teacherId: req.user.id }).populate(
-      "departmentId",
-      "name"
-    );
+    const courses = await Course.find({
+      teacherId: req.user.id,
+      status: "Active",
+    })
+      .populate("departmentId", "name code")
+      .populate("teacherId", "name email");
 
-    res.json(courses);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json({
+      success: true,
+      data: courses,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -79,17 +98,17 @@ exports.assignTeacher = async (req, res) => {
   });
 };
 
-exports.getMyCourses = async (req, res) => {
-  const courses = await Course.find({
-    teacherId: req.user.id,
-    status: "Active",
-  });
+// exports.getMyCourses = async (req, res) => {
+//   const courses = await Course.find({
+//     teacherId: req.user.id,
+//     status: "Active",
+//   });
 
-  res.json({
-    success: true,
-    data: courses,
-  });
-};
+//   res.json({
+//     success: true,
+//     data: courses,
+//   });
+// };
 
 
 

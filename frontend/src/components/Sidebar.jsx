@@ -99,13 +99,25 @@ export default function Sidebar() {
 
   if (!user) return null;
 
-  const linkClass = ({ isActive }) =>
-    `nav-link text-white d-flex align-items-center px-3 py-2 rounded mb-1 sidebar-link ${
-      isActive ? "fw-bold bg-secondary" : ""
-    }`;
+const linkClass = ({ isActive }) =>
+  `nav-link text-white d-flex align-items-center px-3  py-2 rounded mb-1 sidebar-link  ${
+    isActive ? "fw-bold active-link" : ""
+  }`;
+
 
   return (
+
+    
     <div className="col-md-3 col-lg-2  min-vh-100 p-3 d-flex flex-column sidebar" style={{background: "linear-gradient(180deg, #0f3a4a, #134952)"}}>
+
+      <style>
+{`
+  .active-link {
+    background-color: #1d515a !important;
+  }
+`}
+</style>
+
       <h5 className="text-center text-white mb-4 fw-bold">
         Smart College
       </h5>
