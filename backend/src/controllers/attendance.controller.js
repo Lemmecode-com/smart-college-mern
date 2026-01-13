@@ -109,12 +109,13 @@ exports.markAttendance = async (req, res) => {
 
     res.json({ message: "Attendance marked successfully" });
   } catch (err) {
+    // Duplicate attendance error
     if (err.code === 11000) {
       return res
         .status(400)
         .json({ message: "Attendance already marked for this date" });
     }
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -138,7 +139,7 @@ exports.getMyAttendance = async (req, res) => {
 
     res.json(attendance);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 

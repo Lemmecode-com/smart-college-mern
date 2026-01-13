@@ -198,6 +198,13 @@ const linkClass = ({ isActive }) =>
           </NavLink>
         </>
       )}
+
+      {/* ================= PARENT ================= */}
+      {user.role === "parent" && (
+        <>
+          <NavLink to="/parent/attendance">Child Attendance</NavLink>
+        </>
+      )}
     </div>
   );
 }
