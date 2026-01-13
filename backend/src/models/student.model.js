@@ -2,21 +2,23 @@ const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    rollNo: { type: String, required: true, unique: true },
-    courseId: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
-      required: true
+      ref: "User",
+      required: true,
+      unique: true
     },
+    name: { type: String, required: true },
+    rollNo: { type: String, required: true },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: true
     },
-    parentId: {
+    courseId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
+      ref: "Course",
+      required: true
     },
     status: {
       type: String,
