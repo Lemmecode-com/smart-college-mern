@@ -43,7 +43,7 @@ export default function Login() {
   return (
     <div
       className="container-fluid min-vh-100 d-flex align-items-center justify-content-center px-3"
-      style={{ background: "#5b0f2e" }}
+      style={{ background: "#f5eef1" }}
     >
       <div
         className="card shadow-lg border-0 rounded-4 overflow-hidden w-100"
