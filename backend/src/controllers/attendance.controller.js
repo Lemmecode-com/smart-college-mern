@@ -1,87 +1,104 @@
 const Attendance = require("../models/attendance.model");
-const Course = require("../models/course.model");
+const TeacherSubject = require("../models/teacherSubject.model");
+const Subject = require("../models/subject.model");
+const Student = require("../models/student.model");
 
 /**
- * ==========================
- * TEACHER → MARK ATTENDANCE
- * ==========================
+ * MARK ATTENDANCE (Teacher only)
  */
-exports.markAttendance = async (req, res) => {
+exports.markAttendance = async (req, res, next) => {
   try {
-    const { courseId, date, records } = req.body;
+    const { subjectId, date, records } = req.body;
+    const userId = req.user.id;
 
-    if (!courseId || !date || !records?.length) {
-      return res.status(400).json({ message: "Invalid data" });
+    if (!subjectId || !date || !records || !records.length) {
+      return res.status(400).json({
+        message: "Subject, date and records are required"
+      });
     }
 
-    // ✅ Ensure teacher owns the course
-    const course = await Course.findOne({
-      _id: courseId,
-      teacherId: req.user.id,
+    /**
+     * Verify teacher is assigned to subject
+     */
+    const assignment = await TeacherSubject.findOne({
+      subjectId,
+      teacherId: userId
     });
 
-    if (!course) {
-      return res.status(403).json({ message: "Not allowed" });
+    if (!assignment) {
+      return res.status(403).json({
+        message: "You are not assigned to this subject"
+      });
     }
 
-    const docs = records.map((r) => ({
+    /**
+     * Validate subject
+     */
+    const subject = await Subject.findById(subjectId);
+    if (!subject) {
+      return res.status(400).json({ message: "Invalid subject" });
+    }
+
+    /**
+     * Prepare attendance records
+     */
+    const attendanceDocs = records.map((r) => ({
       studentId: r.studentId,
-      courseId,
-      markedBy: req.user.id,
+      subjectId,
+      teacherId: userId,
       date,
-      status: r.status,
+      status: r.status
     }));
 
-    await Attendance.insertMany(docs, { ordered: false });
+    await Attendance.insertMany(attendanceDocs);
 
     res.status(201).json({
       success: true,
-      message: "Attendance marked successfully",
+      message: "Attendance marked successfully"
     });
   } catch (err) {
+    // Duplicate attendance error
     if (err.code === 11000) {
-      return res.status(409).json({
-        message: "Attendance already marked for this date",
+      return res.status(400).json({
+        message: "Attendance already marked for this date and subject"
       });
     }
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 /**
- * ==================================
- * VIEW ATTENDANCE (ROLE BASED)
- * ==================================
+ * GET ATTENDANCE (Role-based)
  */
-exports.getAttendance = async (req, res) => {
+exports.getAttendance = async (req, res, next) => {
   try {
-    const { date, courseId } = req.query;
+    const { date, studentId, subjectId } = req.query;
+    const role = req.user.role;
 
-    const filter = {};
+    let filter = {};
 
-    if (date) filter.date = date;
-    if (courseId) filter.courseId = courseId;
-
-    // 🔒 ROLE-BASED FILTERING (CRITICAL FIX)
-    if (req.user.role === "teacher") {
-      filter.markedBy = req.user.id;
-    }
-
-    if (req.user.role === "student") {
+    // Student → only own data
+    if (role === "student") {
       filter.studentId = req.user.id;
     }
 
-    const records = await Attendance.find(filter)
+    // Parent → only linked students (handled in parent dashboard later)
+
+    if (studentId) filter.studentId = studentId;
+    if (subjectId) filter.subjectId = subjectId;
+    if (date) filter.date = date;
+
+    const attendance = await Attendance.find(filter)
       .populate("studentId", "name rollNo")
-      .populate("courseId", "name")
-      .populate("markedBy", "name role")
+      .populate("subjectId", "name code")
+      .populate("teacherId", "name")
       .sort({ date: -1 });
 
     res.json({
       success: true,
-      data: records,
+      data: attendance
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };

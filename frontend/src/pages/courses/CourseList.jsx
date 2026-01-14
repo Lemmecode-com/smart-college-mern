@@ -10,7 +10,9 @@ export default function CourseList() {
     const fetchCourses = async () => {
       try {
         const res = await api.get("/courses");
-        setCourses(res.data || []);
+
+        // ✅ ALWAYS extract array safely
+        setCourses(Array.isArray(res.data?.data) ? res.data.data : []);
       } catch (err) {
         setError("Failed to load courses");
       } finally {
@@ -26,14 +28,11 @@ export default function CourseList() {
       className="container-fluid py-2"
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #ffffff, #ffffff)"
+        background: "#ffffff"
       }}
     >
       <div className="container">
-        <div
-          className="card shadow-lg border-0"
-          style={{ borderRadius: "16px" }}
-        >
+        <div className="card shadow-lg border-0" style={{ borderRadius: "16px" }}>
           <div className="card-body p-4 p-md-5">
             <h4 className="mb-4 fw-bold text-dark">
               Courses
@@ -54,6 +53,7 @@ export default function CourseList() {
                       <th>Status</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {courses.length === 0 && (
                       <tr>
@@ -66,7 +66,7 @@ export default function CourseList() {
                     {courses.map((c) => (
                       <tr key={c._id}>
                         <td className="fw-semibold">{c.name}</td>
-                        <td>{c.code}</td>
+                        <td>{c.code || "-"}</td>
                         <td>{c.departmentId?.name || "-"}</td>
                         <td>{c.teacherId?.name || "-"}</td>
                         <td>
@@ -83,6 +83,7 @@ export default function CourseList() {
                       </tr>
                     ))}
                   </tbody>
+
                 </table>
               </div>
             )}
