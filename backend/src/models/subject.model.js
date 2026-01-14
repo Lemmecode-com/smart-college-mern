@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const courseSchema = new mongoose.Schema(
+const subjectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -12,13 +12,15 @@ const courseSchema = new mongoose.Schema(
       required: true,
       uppercase: true
     },
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true
+    },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: true
-    },
-    duration: {
-      type: String // e.g. "3 Years", "6 Sem"
     },
     status: {
       type: String,
@@ -29,10 +31,10 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate course names inside same department
-courseSchema.index(
-  { name: 1, departmentId: 1 },
+// Prevent duplicate subjects per course
+subjectSchema.index(
+  { name: 1, courseId: 1 },
   { unique: true }
 );
 
-module.exports = mongoose.model("Course", courseSchema);
+module.exports = mongoose.model("Subject", subjectSchema);
