@@ -3,7 +3,8 @@ const router = express.Router();
 
 const {
   upsertCollege,
-  getCollege
+  getCollege,
+  getCollegeProfile
 } = require("../controllers/college.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -21,7 +22,7 @@ router.post(
 router.get(
   "/",
   authMiddleware,
-  getCollege
+  getCollegeProfile,
 );
 
 module.exports = router;

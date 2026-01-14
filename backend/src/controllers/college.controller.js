@@ -42,15 +42,21 @@ exports.upsertCollege = async (req, res) => {
   });
 };
 
-/**
- * GET college profile
- */
-exports.getCollege = async (req, res) => {
-  const college = await College.findOne();
+/* =========================
+   GET COLLEGE PROFILE
+   (ALL ROLES)
+========================= */
+exports.getCollegeProfile = async (req, res) => {
+  const college = await College.findOne({ isActive: true });
 
   if (!college) {
-    return res.status(404).json({ message: "College not found" });
+    return res.status(404).json({
+      message: "College profile not found"
+    });
   }
 
-  res.json(college);
+  res.json({
+    success: true,
+    data: college
+  });
 };
