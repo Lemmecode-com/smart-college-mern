@@ -201,6 +201,9 @@ import StudentList from "./pages/students/StudentList";
 /* Attendance */
 import MarkAttendance from "./pages/attendance/MarkAttendance";
 import MyAttendance from "./pages/attendance/MyAttendance";
+import ParentDashboard from "./pages/dashboard/ParentDashboard";
+import AddParent from "./pages/students/AddParent";
+import ChildAttendance from "./pages/attendance/ChildAttendance";
 
 /* 🔹 PLACEHOLDERS */
 import AttendanceList from "./pages/attendance/AttendanceList";
@@ -208,6 +211,8 @@ import ComingSoon from "./common/ComingSoon";
 import CollegeProfile from "./pages/college/CollegeProfile";
 import SubjectList from "./pages/Subjects/SubjectList";
 import AddSubject from "./pages/Subjects/AddSubject";
+import TeachersList from "./pages/Teachers/TeachersList";
+import AddTeacher from "./pages/Teachers/AddTeacher";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -358,7 +363,7 @@ export default function App() {
                   path="/teachers"
                   element={
                     <ProtectedRoute>
-                      <ComingSoon title="Teachers" />
+                      <TeachersList title="Teachers" />
                     </ProtectedRoute>
                   }
                 />
@@ -366,7 +371,7 @@ export default function App() {
                   path="/teachers/assign-subjects"
                   element={
                     <ProtectedRoute>
-                      <ComingSoon title="Assign Subjects" />
+                      <AddTeacher title="Assign Subjects" />
                     </ProtectedRoute>
                   }
                 />

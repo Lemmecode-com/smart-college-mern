@@ -22,7 +22,8 @@ export default function CollegeProfile() {
   useEffect(() => {
     const fetchCollege = async () => {
       try {
-        const res = await api.get("/college");
+        const res = await api.get("/admin/college");
+
         if (res.data) {
           setCollegeId(res.data._id);
           setForm({
@@ -36,7 +37,7 @@ export default function CollegeProfile() {
             logo: res.data.logo || ""
           });
         }
-      } catch {
+      } catch (err) {
         console.log("College profile not found");
       } finally {
         setLoading(false);
@@ -53,26 +54,45 @@ export default function CollegeProfile() {
 
   /* ================= SAVE COLLEGE ================= */
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  e.preventDefault();
+  setSaving(true);
 
-    try {
-      if (collegeId) {
-        await api.put(`/college/${collegeId}`, form);
-        alert("College profile updated successfully");
-      } else {
-        const res = await api.post("/college", form);
-        setCollegeId(res.data._id);
-        alert("College profile created successfully");
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Something went wrong");
-    } finally {
-      setSaving(false);
+  try {
+    let res;
+
+    if (collegeId) {
+      res = await api.post("/admin/college", form);
+      alert("College profile updated successfully");
+    } else {
+      res = await api.post("/admin/college", form);
+      alert("College profile created successfully");
     }
-  };
 
-  if (loading) return <p className="text-center mt-4">Loading college profile...</p>;
+    // ✅ IMPORTANT FIX
+    const college = res.data.data;
+
+    setCollegeId(college._id);
+    setForm({
+      name: college.name || "",
+      address: college.address || "",
+      city: college.city || "",
+      state: college.state || "",
+      country: college.country || "",
+      phone: college.phone || "",
+      email: college.email || "",
+      logo: college.logo || ""
+    });
+
+  } catch (err) {
+    alert(err.response?.data?.message || "Something went wrong");
+  } finally {
+    setSaving(false);
+  }
+};
+
+
+  if (loading)
+    return <p className="text-center mt-4">Loading college profile...</p>;
 
   return (
     <div
@@ -124,11 +144,8 @@ export default function CollegeProfile() {
               </div>
 
               <div className="row">
-                {/* City */}
                 <div className="col-md-4 mb-3">
-                  <label className="form-label fw-semibold">
-                    City *
-                  </label>
+                  <label className="form-label fw-semibold">City *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -139,11 +156,8 @@ export default function CollegeProfile() {
                   />
                 </div>
 
-                {/* State */}
                 <div className="col-md-4 mb-3">
-                  <label className="form-label fw-semibold">
-                    State *
-                  </label>
+                  <label className="form-label fw-semibold">State *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -154,11 +168,8 @@ export default function CollegeProfile() {
                   />
                 </div>
 
-                {/* Country */}
                 <div className="col-md-4 mb-3">
-                  <label className="form-label fw-semibold">
-                    Country *
-                  </label>
+                  <label className="form-label fw-semibold">Country *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -171,11 +182,8 @@ export default function CollegeProfile() {
               </div>
 
               <div className="row">
-                {/* Phone */}
                 <div className="col-md-6 mb-3">
-                  <label className="form-label fw-semibold">
-                    Phone *
-                  </label>
+                  <label className="form-label fw-semibold">Phone *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -186,11 +194,8 @@ export default function CollegeProfile() {
                   />
                 </div>
 
-                {/* Email */}
                 <div className="col-md-6 mb-3">
-                  <label className="form-label fw-semibold">
-                    Email *
-                  </label>
+                  <label className="form-label fw-semibold">Email *</label>
                   <input
                     type="email"
                     className="form-control"
@@ -202,7 +207,6 @@ export default function CollegeProfile() {
                 </div>
               </div>
 
-              {/* Logo */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">
                   College Logo URL

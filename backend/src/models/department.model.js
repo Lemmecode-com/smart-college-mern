@@ -2,8 +2,21 @@ const mongoose = require("mongoose");
 
 const departmentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    code: { type: String, required: true, unique: true },
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    code: {
+      type: String,
+      required: true,
+      uppercase: true
+    },
+    collegeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      required: true
+    },
     status: {
       type: String,
       enum: ["Active", "Inactive"],
@@ -13,5 +26,10 @@ const departmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Department", departmentSchema);
+// 🔒 Prevent duplicate department names per college
+departmentSchema.index(
+  { name: 1, collegeId: 1 },
+  { unique: true }
+);
 
+module.exports = mongoose.model("Department", departmentSchema);
