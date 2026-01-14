@@ -1,63 +1,93 @@
+// src/controllers/student.controller.js
 const Student = require("../models/student.model");
-const Course = require("../models/course.model");
+const User = require("../models/user.model");
+const bcrypt = require("bcryptjs");
 
-exports.createStudent = async (req, res, next) => {
-  try {
-    const student = await Student.create(req.body);
-    res.status(201).json(student);
-  } catch (err) {
-    next(err);
+exports.createStudent = async (req, res) => {
+  const {
+    name,
+    email,
+    password,
+    rollNo,
+    departmentId,
+    courseId
+  } = req.body;
+
+  // 1️⃣ Check if user exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ message: "User already exists" });
   }
+
+  // 2️⃣ Create user with role student
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    role: "student"
+  });
+
+  // 3️⃣ Create student profile
+  const student = await Student.create({
+    userId: user._id,
+    rollNo,
+    departmentId,
+    courseId
+  });
+
+  res.status(201).json({
+    message: "Student created successfully",
+    student
+  });
 };
 
-exports.getStudents = async (req, res, next) => {
-  try {
-    const { courseId } = req.query;
-    const filter = {};
 
-    // If courseId is passed
-    if (courseId) {
-      // 🔒 TEACHER ACCESS CONTROL
-      if (req.user.role === "teacher") {
-        const course = await Course.findOne({
-          _id: courseId,
-          teacherId: req.user.id,
-        });
+exports.getAllStudents = async (req, res) => {
+  const students = await Student.find()
+    .populate("userId", "name email")
+    .populate("departmentId", "name")
+    .populate("courseId", "name code");
 
-        if (!course) {
-          return res.status(403).json({
-            message: "You are not allowed to access this course",
-          });
-        }
-      }
-
-      filter.courseId = courseId;
-    }
-
-    const students = await Student.find(filter)
-      .populate("courseId", "name duration status")
-      .populate("departmentId", "name code status")
-      .populate("parentId", "name email role");
-
-    res.json(students);
-  } catch (err) {
-    next(err);
-  }
+  res.json({
+    count: students.length,
+    students
+  });
 };
 
-exports.getStudentById = async (req, res, next) => {
-  try {
-    const student = await Student.findById(req.params.id)
-      .populate("courseId", "name duration status")
-      .populate("departmentId", "name code status")
-      .populate("parentId", "name email role");
+exports.getStudentsByCourse = async (req, res) => {
+  const { courseId } = req.params;
 
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
-    }
+  const students = await Student.find({ courseId })
+    .populate("userId", "name email")
+    .populate("departmentId", "name")
+    .populate("courseId", "name code");
 
-    res.json(student);
-  } catch (err) {
-    next(err);
+  res.json({
+    count: students.length,
+    students
+  });
+};
+
+exports.assignParentToStudent = async (req, res) => {
+  const { studentId } = req.params;
+  const { parentId } = req.body;
+
+  const parent = await User.findById(parentId);
+  if (!parent || parent.role !== "parent") {
+    return res.status(400).json({ message: "Invalid parent user" });
   }
-};  
+
+  const student = await Student.findById(studentId);
+  if (!student) {
+    return res.status(404).json({ message: "Student not found" });
+  }
+
+  student.parentId = parentId;
+  await student.save();
+
+  res.json({
+    message: "Parent assigned to student successfully"
+  });
+};
