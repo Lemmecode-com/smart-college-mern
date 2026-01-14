@@ -4,9 +4,12 @@ const parentStudentSchema = new mongoose.Schema(
   {
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Parent",
+      ref: "User",
       required: true
     },
+    occupation: String,
+    phone: String,
+
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Student",

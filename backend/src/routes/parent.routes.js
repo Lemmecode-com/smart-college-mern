@@ -1,15 +1,16 @@
+// routes/parent.routes.js
 const express = require("express");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
-const { createParent } = require("../controllers/parent.controller");
+const { getMyChildren } = require("../controllers/parent.controller");
 
-router.post(
-  "/",
+router.get(
+  "/students",
   authMiddleware,
-  roleMiddleware("student"),
-  createParent
+  roleMiddleware("parent"),
+  getMyChildren
 );
 
 module.exports = router;
