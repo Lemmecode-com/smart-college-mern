@@ -18,7 +18,8 @@ exports.createTeacher = async (req, res) => {
   const teacher = await Teacher.create({
     userId,
     name: user.name,
-    departmentId
+    departmentId,
+    collegeId: req.user.collegeId
   });
 
   res.status(201).json(teacher);
