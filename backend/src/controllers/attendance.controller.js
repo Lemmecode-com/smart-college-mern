@@ -1,104 +1,123 @@
 const Attendance = require("../models/attendance.model");
-const TeacherSubject = require("../models/teacherSubject.model");
-const Subject = require("../models/subject.model");
 const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
 
-/**
- * MARK ATTENDANCE (Teacher only)
- */
-exports.markAttendance = async (req, res, next) => {
+/* =========================
+   MARK ATTENDANCE (TEACHER)
+========================= */
+exports.markAttendance = async (req, res) => {
   try {
     const { subjectId, date, records } = req.body;
-    const userId = req.user.id;
+    // records = [{ studentId, status }]
 
-    if (!subjectId || !date || !records || !records.length) {
+    if (!subjectId || !date || !records?.length) {
       return res.status(400).json({
-        message: "Subject, date and records are required"
+        message: "subjectId, date and records are required"
       });
     }
 
-    /**
-     * Verify teacher is assigned to subject
-     */
-    const assignment = await TeacherSubject.findOne({
-      subjectId,
-      teacherId: userId
-    });
+    /* 🔒 FUTURE DATE VALIDATION */
+    const attendanceDate = new Date(date);
+    attendanceDate.setHours(0, 0, 0, 0);
 
-    if (!assignment) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (attendanceDate > today) {
+      return res.status(400).json({
+        message: "Cannot mark attendance for a future date"
+      });
+    }
+
+    /* 🔐 TEACHER VALIDATION */
+    const teacher = await Teacher.findOne({ userId: req.user.id });
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found"
+      });
+    }
+
+    /* 🔐 SUBJECT ASSIGNMENT CHECK */
+    if (!teacher.subjectIds.includes(subjectId)) {
       return res.status(403).json({
         message: "You are not assigned to this subject"
       });
     }
 
-    /**
-     * Validate subject
-     */
-    const subject = await Subject.findById(subjectId);
-    if (!subject) {
-      return res.status(400).json({ message: "Invalid subject" });
-    }
-
-    /**
-     * Prepare attendance records
-     */
+    /* 🧾 PREPARE ATTENDANCE RECORDS */
     const attendanceDocs = records.map((r) => ({
       studentId: r.studentId,
       subjectId,
-      teacherId: userId,
+      teacherId: teacher._id,
       date,
       status: r.status
     }));
 
+    /* 💾 SAVE (UNIQUE INDEX PREVENTS DUPLICATES) */
     await Attendance.insertMany(attendanceDocs);
 
     res.status(201).json({
-      success: true,
       message: "Attendance marked successfully"
     });
   } catch (err) {
-    // Duplicate attendance error
     if (err.code === 11000) {
-      return res.status(400).json({
-        message: "Attendance already marked for this date and subject"
+      return res.status(409).json({
+        message: "Attendance already marked for this date"
       });
     }
-    next(err);
+
+    res.status(500).json({
+      message: "Failed to mark attendance",
+      error: err.message
+    });
   }
 };
 
-/**
- * GET ATTENDANCE (Role-based)
- */
-exports.getAttendance = async (req, res, next) => {
-  try {
-    const { date, studentId, subjectId } = req.query;
-    const role = req.user.role;
+/* =========================
+   STUDENT: VIEW OWN
+========================= */
+exports.getMyAttendance = async (req, res) => {
+  const attendance = await Attendance.find({
+    studentId: req.user.studentId
+  })
+    .populate("subjectId", "name")
+    .sort({ date: -1 });
 
-    let filter = {};
+  res.json(attendance);
+};
 
-    // Student → only own data
-    if (role === "student") {
-      filter.studentId = req.user.id;
-    }
+/* =========================
+   PARENT: VIEW CHILD
+========================= */
+exports.getChildAttendance = async (req, res) => {
+  const students = await Student.find({
+    parentId: req.user.parentId
+  }).select("_id");
 
-    // Parent → only linked students (handled in parent dashboard later)
+  const attendance = await Attendance.find({
+    studentId: { $in: students.map(s => s._id) }
+  })
+    .populate("studentId", "name rollNo")
+    .populate("subjectId", "name")
+    .sort({ date: -1 });
 
-    if (studentId) filter.studentId = studentId;
-    if (subjectId) filter.subjectId = subjectId;
-    if (date) filter.date = date;
+  res.json(attendance);
+};
 
-    const attendance = await Attendance.find(filter)
-      .populate("studentId", "name rollNo")
-      .populate("subjectId", "name code")
-      .populate("teacherId", "name")
-      .sort({ date: -1 });
+/* =========================
+   ADMIN / COLLEGE ADMIN
+========================= */
+exports.getAttendanceReport = async (req, res) => {
+  const { date, subjectId } = req.query;
 
-    res.json({
-      success: true,
-      data: attendance
-    });
-  } catch (err) {
-    next(err);
-  }
+  const filter = {};
+  if (date) filter.date = date;
+  if (subjectId) filter.subjectId = subjectId;
+
+  const attendance = await Attendance.find(filter)
+    .populate("studentId", "name rollNo")
+    .populate("subjectId", "name")
+    .populate("teacherId", "name");
+
+  res.json(attendance);
 };
