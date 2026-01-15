@@ -1,32 +1,40 @@
 const express = require("express");
 const router = express.Router();
 
-const {
-  markAttendance,
-  getAttendance
-} = require("../controllers/attendance.controller");
+const auth = require("../middleware/auth.middleware");
+const role = require("../middleware/role.middleware");
+const attendanceCtrl = require("../controllers/attendance.controller");
 
-const authMiddleware = require("../middleware/auth.middleware");
-const roleMiddleware = require("../middleware/role.middleware");
-
-/**
- * Teacher → Mark attendance
- */
+// Teacher
 router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware("teacher"),
-  markAttendance
+  "/mark",
+  auth,
+  role("teacher"),
+  attendanceCtrl.markAttendance
 );
 
-/**
- * View attendance (role-filtered)
- */
+// Student
 router.get(
-  "/",
-  authMiddleware,
-  getAttendance
+  "/my",
+  auth,
+  role("student"),
+  attendanceCtrl.getMyAttendance
+);
+
+// Parent
+router.get(
+  "/child",
+  auth,
+  role("parent"),
+  attendanceCtrl.getChildAttendance
+);
+
+// Admin / CollegeAdmin
+router.get(
+  "/report",
+  auth,
+  role("admin", "collegeAdmin"),
+  attendanceCtrl.getAttendanceReport
 );
 
 module.exports = router;
-
