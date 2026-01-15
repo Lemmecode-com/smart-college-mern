@@ -1,17 +1,32 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import api from "../../api/axios";
+import { AuthContext } from "../../auth/AuthContext";
 
 export default function TeachersList() {
+  const { user } = useContext(AuthContext);
+
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  /* ================= ROLE GUARD ================= */
+  if (!user || !["admin", "collegeAdmin"].includes(user.role)) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  /* ================= FETCH TEACHERS ================= */
   useEffect(() => {
     api
       .get("/users/teachers")
-      .then((res) => setTeachers(res.data.data || []))
+      .then((res) => {
+        setTeachers(Array.isArray(res.data?.data) ? res.data.data : []);
+      })
+      .catch(() => setError("Failed to load teachers"))
       .finally(() => setLoading(false));
   }, []);
 
+  /* ================= UI ================= */
   return (
     <div className="container-fluid mt-4">
       {/* Header */}
@@ -20,7 +35,7 @@ export default function TeachersList() {
         style={{
           background: "linear-gradient(180deg, #0f3a4a, #134952)",
           borderRadius: "12px",
-          color: "white",
+          color: "white"
         }}
       >
         <h5 className="mb-1">Teachers</h5>
@@ -33,16 +48,26 @@ export default function TeachersList() {
         style={{ borderRadius: "12px", backgroundColor: "white" }}
       >
         <div className="card-body">
-          {loading ? (
-            <p className="text-center text-muted">Loading teachers...</p>
-          ) : (
+          {loading && (
+            <p className="text-center text-muted">
+              Loading teachers...
+            </p>
+          )}
+
+          {error && (
+            <p className="text-center text-danger fw-semibold">
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && (
             <div className="table-responsive">
               <table className="table table-bordered align-middle">
                 <thead
                   style={{
                     background:
                       "linear-gradient(180deg, #0f3a4a, #134952)",
-                    color: "white",
+                    color: "white"
                   }}
                 >
                   <tr>
@@ -56,7 +81,10 @@ export default function TeachersList() {
                 <tbody>
                   {teachers.length === 0 && (
                     <tr>
-                      <td colSpan="4" className="text-center text-muted">
+                      <td
+                        colSpan="4"
+                        className="text-center text-muted"
+                      >
                         No teachers found
                       </td>
                     </tr>
@@ -65,19 +93,22 @@ export default function TeachersList() {
                   {teachers.map((t, index) => (
                     <tr key={t._id}>
                       <td>{index + 1}</td>
-                      <td>{t.name}</td>
+                      <td className="fw-semibold">{t.name}</td>
                       <td>{t.email}</td>
                       <td>
                         <span
                           className="badge"
                           style={{
-                            backgroundColor: "#198754",
+                            backgroundColor:
+                              t.status === "Inactive"
+                                ? "#6c757d"
+                                : "#198754",
                             color: "white",
                             padding: "6px 12px",
-                            borderRadius: "20px",
+                            borderRadius: "20px"
                           }}
                         >
-                          Active
+                          {t.status || "Active"}
                         </span>
                       </td>
                     </tr>
@@ -91,3 +122,4 @@ export default function TeachersList() {
     </div>
   );
 }
+  

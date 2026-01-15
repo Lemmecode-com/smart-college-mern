@@ -231,8 +231,6 @@
 //   );
 // }
 
-
-
 import { NavLink } from "react-router-dom";
 import { useContext, useState } from "react";
 import { AuthContext } from "../auth/AuthContext";
@@ -247,7 +245,7 @@ import {
   FaUsers,
   FaClipboardList,
   FaLink,
-  FaChevronDown
+  FaChevronDown,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -259,13 +257,12 @@ export default function Sidebar() {
     subjects: true,
     teachers: true,
     students: true,
-    parents: true
+    parents: true,
   });
 
   if (!user) return null;
 
-  const toggle = (key) =>
-    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const navLink = ({ isActive }) => ({
     display: "flex",
@@ -278,7 +275,7 @@ export default function Sidebar() {
     textDecoration: "none",
     color: isActive ? "#0f3a4a" : "#e6f2f5",
     background: isActive ? "#ffffff" : "transparent",
-    transition: "all 0.3s ease"
+    transition: "all 0.3s ease",
   });
 
   const sectionTitle = {
@@ -291,14 +288,14 @@ export default function Sidebar() {
     fontWeight: 600,
     fontSize: "13px",
     cursor: "pointer",
-    userSelect: "none"
+    userSelect: "none",
   };
 
   const sectionBody = (isOpen) => ({
     maxHeight: isOpen ? "500px" : "0px",
     overflow: "hidden",
     transition: "max-height 0.4s ease",
-    marginLeft: "10px"
+    marginLeft: "10px",
   });
 
   return (
@@ -311,7 +308,7 @@ export default function Sidebar() {
         top: 0,
         background: "linear-gradient(180deg, #0f3a4a, #134952)",
         padding: "20px 14px",
-        overflowY: "auto"
+        overflowY: "auto",
       }}
     >
       {/* Logo */}
@@ -321,7 +318,7 @@ export default function Sidebar() {
           fontSize: "20px",
           fontWeight: 700,
           color: "#ffffff",
-          marginBottom: "24px"
+          marginBottom: "24px",
         }}
       >
         Smart College
@@ -337,7 +334,13 @@ export default function Sidebar() {
         <>
           {/* College */}
           <div style={sectionTitle} onClick={() => toggle("college")}>
-            College <FaChevronDown style={{ transform: open.college ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            College{" "}
+            <FaChevronDown
+              style={{
+                transform: open.college ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.college)}>
             <NavLink to="/college/profile" style={navLink}>
@@ -347,7 +350,13 @@ export default function Sidebar() {
 
           {/* Departments */}
           <div style={sectionTitle} onClick={() => toggle("departments")}>
-            Departments <FaChevronDown style={{ transform: open.departments ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Departments{" "}
+            <FaChevronDown
+              style={{
+                transform: open.departments ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.departments)}>
             <NavLink to="/departments" style={navLink}>
@@ -360,7 +369,13 @@ export default function Sidebar() {
 
           {/* Courses */}
           <div style={sectionTitle} onClick={() => toggle("courses")}>
-            Courses <FaChevronDown style={{ transform: open.courses ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Courses{" "}
+            <FaChevronDown
+              style={{
+                transform: open.courses ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.courses)}>
             <NavLink to="/courses" style={navLink}>
@@ -373,7 +388,13 @@ export default function Sidebar() {
 
           {/* Subjects */}
           <div style={sectionTitle} onClick={() => toggle("subjects")}>
-            Subjects <FaChevronDown style={{ transform: open.subjects ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Subjects{" "}
+            <FaChevronDown
+              style={{
+                transform: open.subjects ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.subjects)}>
             <NavLink to="/subjects" style={navLink}>
@@ -386,20 +407,34 @@ export default function Sidebar() {
 
           {/* Teachers */}
           <div style={sectionTitle} onClick={() => toggle("teachers")}>
-            Teachers <FaChevronDown style={{ transform: open.teachers ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Teachers{" "}
+            <FaChevronDown
+              style={{
+                transform: open.teachers ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.teachers)}>
             <NavLink to="/teachers" style={navLink}>
               <FaChalkboardTeacher /> Teachers List
             </NavLink>
-            <NavLink to="/teachers/assign-subjects" style={navLink}>
-              <FaLink /> Assign Subjects
+            <NavLink to="/teachers/add-teacher" style={navLink}>
+              <FaLink /> Add Teacher
             </NavLink>
+
+            <NavLink to="/teachers/assign-subjects">Assign Subjects</NavLink>
           </div>
 
           {/* Students */}
           <div style={sectionTitle} onClick={() => toggle("students")}>
-            Students <FaChevronDown style={{ transform: open.students ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Students{" "}
+            <FaChevronDown
+              style={{
+                transform: open.students ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.students)}>
             <NavLink to="/students" style={navLink}>
@@ -415,7 +450,13 @@ export default function Sidebar() {
 
           {/* Parents */}
           <div style={sectionTitle} onClick={() => toggle("parents")}>
-            Parents <FaChevronDown style={{ transform: open.parents ? "rotate(180deg)" : "rotate(0deg)", transition: "0.3s" }} />
+            Parents{" "}
+            <FaChevronDown
+              style={{
+                transform: open.parents ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "0.3s",
+              }}
+            />
           </div>
           <div style={sectionBody(open.parents)}>
             <NavLink to="/parents" style={navLink}>
@@ -466,7 +507,7 @@ export default function Sidebar() {
           marginTop: "30px",
           textAlign: "center",
           fontSize: "12px",
-          color: "#cfe8ef"
+          color: "#cfe8ef",
         }}
       >
         © 2026 Smart College
