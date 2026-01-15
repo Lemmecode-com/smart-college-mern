@@ -3,14 +3,13 @@ const router = express.Router();
 
 const {
   upsertCollege,
-  getCollege,
   getCollegeProfile
 } = require("../controllers/college.controller");
 
 const authMiddleware = require("../middleware/auth.middleware");
 const roleMiddleware = require("../middleware/role.middleware");
 
-// 🔐 Only Admin / CollegeAdmin
+// 🔐 Only Admin / CollegeAdmin for create college
 router.post(
   "/",
   authMiddleware,
@@ -18,11 +17,11 @@ router.post(
   upsertCollege
 );
 
-// 🔓 Any logged-in user
+// 🔓 Any logged-in user view college profile
 router.get(
   "/",
   authMiddleware,
-  getCollegeProfile,
+  getCollegeProfile
 );
 
 module.exports = router;

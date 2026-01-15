@@ -6,7 +6,7 @@ const Department = require("../models/department.model");
  */
 exports.createCourse = async (req, res, next) => {
   try {
-    const { name, code, departmentId, duration } = req.body;
+    const { name, code, departmentId, duration, collegeId } = req.body;
 
     if (!name || !code || !departmentId) {
       return res.status(400).json({
@@ -25,7 +25,8 @@ exports.createCourse = async (req, res, next) => {
       name,
       code,
       departmentId,
-      duration
+      duration,
+      collegeId
     });
 
     res.status(201).json({
