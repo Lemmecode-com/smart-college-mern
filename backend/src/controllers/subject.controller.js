@@ -25,7 +25,8 @@ exports.createSubject = async (req, res, next) => {
       name,
       code,
       courseId,
-      departmentId: course.departmentId
+      departmentId: course.departmentId,
+      collegeId: req.user.collegeId
     });
 
     res.status(201).json({
