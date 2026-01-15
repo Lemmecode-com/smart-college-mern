@@ -472,6 +472,8 @@ import SubjectList from "./pages/Subjects/SubjectList";
 import AddSubject from "./pages/Subjects/AddSubject";
 import TeachersList from "./pages/Teachers/TeachersList";
 import AddTeacher from "./pages/Teachers/AddTeacher";
+import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
+import AssignParent from "./pages/students/AssignParent";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -571,7 +573,7 @@ export default function App() {
                   path="/students/assign-parent"
                   element={
                     <ProtectedRoute>
-                      <AddParent />
+                      <AssignParent />
                     </ProtectedRoute>
                   }
                 />
@@ -644,13 +646,18 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/teachers/assign-subjects"
+                  path="/teachers/add-teacher"
                   element={
                     <ProtectedRoute>
                       <AddTeacher />
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/teachers/assign-subjects" element={
+                  <ProtectedRoute>
+                    <AssignTeacherSubjects />
+                  </ProtectedRoute>
+                } />
 
                 {/* Student / Parent */}
                 <Route
