@@ -1,33 +1,38 @@
 const mongoose = require("mongoose");
 
-const CourseSchema = new mongoose.Schema(
+const courseSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true
     },
     code: {
       type: String,
       required: true,
-      unique: true,
+      uppercase: true
     },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true,
+      required: true
     },
-    teacherId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    duration: {
+      type: String // e.g. "3 Years", "6 Sem"
     },
     status: {
       type: String,
       enum: ["Active", "Inactive"],
-      default: "Active",
-    },
+      default: "Active"
+    }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Course", CourseSchema);
+// Prevent duplicate course names inside same department
+courseSchema.index(
+  { name: 1, departmentId: 1 },
+  { unique: true }
+);
 
+module.exports = mongoose.model("Course", courseSchema);
