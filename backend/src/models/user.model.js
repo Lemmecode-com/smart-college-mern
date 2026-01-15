@@ -23,7 +23,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["Active", "Blocked"],
       default: "Active"
-    }
+    },
+
+    collegeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College"
+    },
   },
   { timestamps: true }
 );
