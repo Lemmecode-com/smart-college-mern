@@ -30,14 +30,10 @@ const attendanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/**
- * Prevent duplicate attendance
- * Same student + subject + date = only one record
- */
+// Prevent duplicate attendance
 attendanceSchema.index(
   { studentId: 1, subjectId: 1, date: 1 },
   { unique: true }
 );
 
 module.exports = mongoose.model("Attendance", attendanceSchema);
-
