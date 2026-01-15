@@ -22,6 +22,8 @@
 // export default api;
 
 
+
+
 import axios from "axios";
 
 const api = axios.create({
@@ -37,4 +39,6 @@ api.interceptors.request.use((req) => {
 });
 
 export default api;
+
+  
 
