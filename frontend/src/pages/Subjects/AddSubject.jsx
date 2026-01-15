@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import api from "../../api/axios";
+import { AuthContext } from "../../auth/AuthContext";
 
 export default function AddSubject() {
+  const { user } = useContext(AuthContext);
+
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
 
@@ -13,33 +17,64 @@ export default function AddSubject() {
   const [courseId, setCourseId] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  /* ---------------- FETCH MASTER DATA ---------------- */
+  /* ================= ROLE GUARD ================= */
+  if (!user || !["admin", "collegeAdmin"].includes(user.role)) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  /* ================= FETCH MASTER DATA ================= */
   useEffect(() => {
-    api.get("/departments").then((res) => setDepartments(res.data));
-    api.get("/courses").then((res) => setCourses(res.data));
+    Promise.all([
+      api.get("/departments"),
+      api.get("/courses")
+    ])
+      .then(([deptRes, courseRes]) => {
+        setDepartments(Array.isArray(deptRes.data?.data) ? deptRes.data.data : []);
+        setCourses(Array.isArray(courseRes.data?.data) ? courseRes.data.data : []);
+      })
+      .catch(() => setError("Failed to load departments or courses"))
+      .finally(() => setPageLoading(false));
   }, []);
 
-  /* ---------------- DEPARTMENT CHANGE ---------------- */
+  /* ================= DEPARTMENT CHANGE ================= */
   const handleDepartmentChange = (id) => {
     setDepartmentId(id);
     setCourseId("");
-    setFilteredCourses(
-      courses.filter(
-        (c) => c.departmentId === id || c.departmentId?._id === id
-      )
+    setName("");
+    setCode("");
+
+    const filtered = courses.filter(
+      (c) =>
+        c.departmentId === id ||
+        c.departmentId?._id === id
     );
+
+    setFilteredCourses(filtered);
   };
 
-  /* ---------------- AUTO CODE ---------------- */
+  /* ================= AUTO SUBJECT CODE ================= */
   const handleNameChange = (value) => {
     setName(value);
-    setCode(value.substring(0, 3).toUpperCase());
+
+    if (!courseId) return;
+
+    const prefix = value.substring(0, 3).toUpperCase();
+    const unique = Math.floor(1000 + Math.random() * 9000);
+    setCode(`${prefix}${unique}`);
   };
 
-  /* ---------------- SUBMIT ---------------- */
+  /* ================= SUBMIT ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    if (!departmentId || !courseId || !name) {
+      alert("All fields are required");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -48,10 +83,11 @@ export default function AddSubject() {
         code,
         departmentId,
         courseId,
-        status: "Active",
+        status: "Active"
       });
 
-      alert("Subject created successfully");
+      alert("✅ Subject created successfully");
+
       setName("");
       setCode("");
       setDepartmentId("");
@@ -59,23 +95,28 @@ export default function AddSubject() {
       setFilteredCourses([]);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to create subject");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
-  /* ---------------- UI ---------------- */
+  /* ================= UI ================= */
+  if (pageLoading) {
+    return <p className="text-center mt-5">Loading...</p>;
+  }
+
   return (
     <div className="container-fluid mt-4">
       <div className="row justify-content-center">
         <div className="col-12 col-md-8 col-lg-6">
+
           {/* Header */}
           <div
             className="p-3 mb-4 text-center"
             style={{
               background: "linear-gradient(180deg, #0f3a4a, #134952)",
               borderRadius: "12px",
-              color: "white",
+              color: "white"
             }}
           >
             <h5 className="mb-1">Add Subject</h5>
@@ -84,19 +125,22 @@ export default function AddSubject() {
             </small>
           </div>
 
+          {error && (
+            <div className="alert alert-danger text-center">
+              {error}
+            </div>
+          )}
+
           {/* Card */}
-          <div
-            className="card shadow-sm"
-            style={{
-              borderRadius: "12px",
-              backgroundColor: "white",
-            }}
-          >
+          <div className="card shadow-sm" style={{ borderRadius: "12px" }}>
             <div className="card-body">
               <form onSubmit={submitHandler}>
+
                 {/* Department */}
                 <div className="mb-3">
-                  <label className="form-label">Department</label>
+                  <label className="form-label fw-semibold">
+                    Department *
+                  </label>
                   <select
                     className="form-select"
                     value={departmentId}
@@ -116,13 +160,15 @@ export default function AddSubject() {
 
                 {/* Course */}
                 <div className="mb-3">
-                  <label className="form-label">Course</label>
+                  <label className="form-label fw-semibold">
+                    Course *
+                  </label>
                   <select
                     className="form-select"
                     value={courseId}
                     onChange={(e) => setCourseId(e.target.value)}
-                    required
                     disabled={!departmentId}
+                    required
                   >
                     <option value="">Select Course</option>
                     {filteredCourses.map((c) => (
@@ -135,7 +181,9 @@ export default function AddSubject() {
 
                 {/* Subject Name */}
                 <div className="mb-3">
-                  <label className="form-label">Subject Name</label>
+                  <label className="form-label fw-semibold">
+                    Subject Name *
+                  </label>
                   <input
                     type="text"
                     className="form-control"
@@ -143,13 +191,16 @@ export default function AddSubject() {
                     onChange={(e) =>
                       handleNameChange(e.target.value)
                     }
+                    disabled={!courseId}
                     required
                   />
                 </div>
 
                 {/* Subject Code */}
                 <div className="mb-4">
-                  <label className="form-label">Subject Code</label>
+                  <label className="form-label fw-semibold">
+                    Subject Code
+                  </label>
                   <input
                     type="text"
                     className="form-control"
@@ -158,7 +209,7 @@ export default function AddSubject() {
                   />
                 </div>
 
-                {/* Button */}
+                {/* Submit */}
                 <button
                   className="btn w-100"
                   disabled={loading}
@@ -167,7 +218,7 @@ export default function AddSubject() {
                       "linear-gradient(180deg, #0f3a4a, #134952)",
                     color: "white",
                     padding: "10px",
-                    borderRadius: "8px",
+                    borderRadius: "8px"
                   }}
                 >
                   {loading ? "Creating..." : "Create Subject"}
@@ -175,6 +226,7 @@ export default function AddSubject() {
               </form>
             </div>
           </div>
+
         </div>
       </div>
     </div>
