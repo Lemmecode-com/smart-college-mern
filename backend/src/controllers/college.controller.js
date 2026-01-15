@@ -1,92 +1,24 @@
-// const College = require("../models/college.model");
+const College = require("../models/college.model");
 
-// /**
-//  * CREATE or UPDATE college profile
-//  * Only CollegeAdmin / Admin
-//  */
-// exports.upsertCollege = async (req, res) => {
-//   const { name, address, contactEmail, contactPhone, logo } = req.body;
-
-//   if (!name || !address || !contactEmail || !contactPhone) {
-//     return res.status(400).json({ message: "All required fields must be filled" });
-//   }
-
-//   let college = await College.findOne();
-
-//   if (college) {
-//     college.name = name;
-//     college.address = address;
-//     college.contactEmail = contactEmail;
-//     college.contactPhone = contactPhone;
-//     college.logo = logo;
-
-//     await college.save();
-
-//     return res.json({
-//       message: "College profile updated",
-//       data: college
-//     });
-//   }
-
-//   college = await College.create({
-//     name,
-//     address,
-//     contactEmail,
-//     contactPhone,
-//     logo
-//   });
-
-//   res.status(201).json({
-//     message: "College profile created",
-//     data: college
-//   });
-// };
-
-// /**
-//  * GET college profile
-//  */
-// exports.getCollege = async (req, res) => {
-//   const college = await College.findOne();
-
-//   if (!college) {
-//     return res.status(404).json({ message: "College not found" });
-//   }
-
-//   res.json(college);
-// };
-
-
+/**
+ * CREATE or UPDATE college profile
+ * Only CollegeAdmin / Admin
+ */
 exports.upsertCollege = async (req, res) => {
-  const {
-    name,
-    address,
-    city,
-    state,
-    country,
-    phone,
-    email,
-    logo
-  } = req.body;
+  const { name, address, contactEmail, contactPhone, logo } = req.body;
 
-  if (!name || !address || !city || !state || !country || !phone || !email) {
-    return res.status(400).json({
-      message: "All required fields must be filled"
-    });
+  if (!name || !address || !contactEmail || !contactPhone) {
+    return res.status(400).json({ message: "All required fields must be filled" });
   }
 
   let college = await College.findOne();
 
   if (college) {
-    Object.assign(college, {
-      name,
-      address,
-      city,
-      state,
-      country,
-      phone,
-      email,
-      logo
-    });
+    college.name = name;
+    college.address = address;
+    college.contactEmail = contactEmail;
+    college.contactPhone = contactPhone;
+    college.logo = logo;
 
     await college.save();
 
@@ -99,11 +31,8 @@ exports.upsertCollege = async (req, res) => {
   college = await College.create({
     name,
     address,
-    city,
-    state,
-    country,
-    phone,
-    email,
+    contactEmail,
+    contactPhone,
     logo
   });
 
@@ -111,4 +40,17 @@ exports.upsertCollege = async (req, res) => {
     message: "College profile created",
     data: college
   });
+};
+
+/**
+ * GET college profile
+ */
+exports.getCollege = async (req, res) => {
+  const college = await College.findOne();
+
+  if (!college) {
+    return res.status(404).json({ message: "College not found" });
+  }
+
+  res.json(college);
 };
