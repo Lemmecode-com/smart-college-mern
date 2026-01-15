@@ -1,12 +1,16 @@
+// src/models/student.model.js
 const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    rollNo: { type: String, required: true, unique: true },
-    courseId: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
+      ref: "User",
+      required: true,
+      unique: true
+    },
+    rollNo: {
+      type: String,
       required: true
     },
     departmentId: {
@@ -14,9 +18,14 @@ const studentSchema = new mongoose.Schema(
       ref: "Department",
       required: true
     },
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true
+    },
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
+      ref: "User",
     },
     status: {
       type: String,
