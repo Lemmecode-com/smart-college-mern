@@ -60,3 +60,4 @@ exports.getCollegeProfile = async (req, res) => {
     data: college
   });
 };
+
