@@ -7,11 +7,6 @@ export default function AddCourse() {
   const { user } = useContext(AuthContext);
 
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-
-  const [departments, setDepartments] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-
   const [departmentId, setDepartmentId] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [loading, setLoading] = useState(false);
