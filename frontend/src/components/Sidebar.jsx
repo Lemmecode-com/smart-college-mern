@@ -487,6 +487,10 @@ export default function Sidebar() {
           <NavLink to="/my-attendance" style={navLink}>
             <FaClipboardList /> My Attendance
           </NavLink>
+
+          <NavLink to="/add-parent" className={linkClass}>
+            Add Parent
+          </NavLink>
         </>
       )}
 
