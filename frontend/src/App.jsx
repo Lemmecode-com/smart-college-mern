@@ -437,7 +437,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 
-/* Auth Pages */
+/* Auth */
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
@@ -446,15 +446,18 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import ParentDashboard from "./pages/dashboard/ParentDashboard";
 
-/* Admin – Departments */
+/* College */
+import CollegeProfile from "./pages/college/CollegeProfile";
+
+/* Departments */
 import AddDepartment from "./pages/departments/AddDepartment";
 import DepartmentList from "./pages/departments/DepartmentList";
 
-/* Admin – Courses */
+/* Courses */
 import AddCourse from "./pages/courses/AddCourse";
 import CourseList from "./pages/courses/CourseList";
 
-/* Admin – Students */
+/* Students */
 import AddStudent from "./pages/students/AddStudent";
 import StudentList from "./pages/students/StudentList";
 import AddParent from "./pages/students/AddParent";
@@ -467,7 +470,7 @@ import ChildAttendance from "./pages/attendance/ChildAttendance";
 
 /* Others */
 import ComingSoon from "./common/ComingSoon";
-import CollegeProfile from "./pages/college/CollegeProfile";
+// import CollegeProfile from "./pages/college/CollegeProfile";
 import SubjectList from "./pages/Subjects/SubjectList";
 import AddSubject from "./pages/Subjects/AddSubject";
 import TeachersList from "./pages/Teachers/TeachersList";
@@ -522,7 +525,7 @@ export default function App() {
                 <Route
                   path="/departments"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <DepartmentList />
                     </ProtectedRoute>
                   }
@@ -530,7 +533,7 @@ export default function App() {
                 <Route
                   path="/departments/add"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <AddDepartment />
                     </ProtectedRoute>
                   }
@@ -539,7 +542,7 @@ export default function App() {
                 <Route
                   path="/courses"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <CourseList />
                     </ProtectedRoute>
                   }
@@ -547,7 +550,7 @@ export default function App() {
                 <Route
                   path="/courses/add"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <AddCourse />
                     </ProtectedRoute>
                   }
@@ -556,7 +559,7 @@ export default function App() {
                 <Route
                   path="/students"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <StudentList />
                     </ProtectedRoute>
                   }
@@ -564,7 +567,7 @@ export default function App() {
                 <Route
                   path="/students/add"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
                       <AddStudent />
                     </ProtectedRoute>
                   }
@@ -582,7 +585,7 @@ export default function App() {
                 <Route
                   path="/attendance/mark"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["teacher"]}>
                       <MarkAttendance />
                     </ProtectedRoute>
                   }
@@ -590,7 +593,9 @@ export default function App() {
                 <Route
                   path="/attendance/report"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute
+                      roles={["admin", "collegeAdmin", "teacher"]}
+                    >
                       <AttendanceList />
                     </ProtectedRoute>
                   }
@@ -598,7 +603,7 @@ export default function App() {
                 <Route
                   path="/my-attendance"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute roles={["student"]}>
                       <MyAttendance />
                     </ProtectedRoute>
                   }
