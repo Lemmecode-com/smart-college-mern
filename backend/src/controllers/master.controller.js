@@ -1,6 +1,7 @@
 const College = require("../models/college.model");
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
+const { generateCollegeQR } = require("../utils/qrGenerator");
 
 exports.createCollege = async (req, res) => {
   try {
@@ -13,19 +14,23 @@ exports.createCollege = async (req, res) => {
       establishedYear,
       adminName,
       adminEmail,
-      adminPassword
+      adminPassword,
     } = req.body;
 
-    // Check college code
+    // 1️⃣ Check college code uniqueness
     const exists = await College.findOne({ code: collegeCode });
     if (exists) {
       return res.status(400).json({ message: "College code already exists" });
     }
 
-    // Logo file
+    // 2️⃣ Generate Registration URL + QR FIRST
+    const { registrationUrl, registrationQr } =
+      await generateCollegeQR(collegeCode);
+
+    // 3️⃣ Handle logo
     const logoPath = req.file ? req.file.path : null;
 
-    // 1️⃣ Create College
+    // 4️⃣ Create College WITH required fields
     const college = await College.create({
       name: collegeName,
       code: collegeCode,
@@ -33,10 +38,12 @@ exports.createCollege = async (req, res) => {
       contactNumber,
       address,
       establishedYear,
-      logo: logoPath
+      logo: logoPath,
+      registrationUrl,
+      registrationQr
     });
 
-    // 2️⃣ Create College Admin
+    // 5️⃣ Create College Admin
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     const collegeAdmin = await User.create({
@@ -44,21 +51,29 @@ exports.createCollege = async (req, res) => {
       email: adminEmail,
       password: hashedPassword,
       role: "COLLEGE_ADMIN",
-      college_id: college._id
+      college_id: college._id,
     });
 
     res.status(201).json({
       message: "College and College Admin created successfully",
-      college,
+      college: {
+        id: college._id,
+        name: college.name,
+        registrationUrl,
+        registrationQr
+      },
       collegeAdmin: {
         id: collegeAdmin._id,
         email: collegeAdmin.email
       }
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // SUPER ADMIN: View all colleges
 exports.getAllColleges = async (req, res) => {
