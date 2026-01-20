@@ -5,7 +5,7 @@ const upload = require("../config/multer");
 
 const { createCollege, getAllColleges } = require("../controllers/master.controller");
 
-/* create college */
+/* create college super admin only */
 router.post(
   "/create/college",
   auth,
