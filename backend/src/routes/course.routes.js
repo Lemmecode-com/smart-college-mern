@@ -1,107 +1,34 @@
-// // const express = require("express");
-// // const router = express.Router();
+const express = require("express");
+const router = express.Router();
 
-// // const {
-// //   createCourse,
-// //   getCourses,
-// //   updateCourse,
-// //   deleteCourse
-// // } = require("../controllers/course.controller");
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
 
-// // const auth = require("../middleware/auth.middleware");
-// // const authorize = require("../middleware/role.middleware");
-// // const authMiddleware = require("../middleware/auth.middleware");
-// // const roleMiddleware = require("../middleware/role.middleware");
+const {
+  createCourse,
+  getCoursesByDepartment,
+  getCourseById,
+  updateCourse,
+  deleteCourse
+} = require("../controllers/course.controller");
 
-// // // 🔐 Admin / CollegeAdmin
-// // router.post(
-// //   "/",
-// //   authMiddleware,
-// //   roleMiddleware("admin", "collegeAdmin"),
-// //   createCourse
-// // );
+// Apply middlewares to ALL course routes
+router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
 
-// // // 🔓 Any logged-in user
-// // router.get(
-// //   "/",
-// //   authMiddleware,
-// //   getCourses
-// // );
+// Create Course
+router.post("/", createCourse);
 
-// // // 🔐 Admin / CollegeAdmin
-// // router.put(
-// //   "/:id",
-// //   authMiddleware,
-// //   roleMiddleware("admin", "collegeAdmin"),
-// //   updateCourse
-// // );
+// Get Courses by Department
+router.get("/department/:departmentId", getCoursesByDepartment);
 
-// // // 🔐 Admin / CollegeAdmin
-// // router.delete(
-// //   "/:id",
-// //   authMiddleware,
-// //   roleMiddleware("admin", "collegeAdmin"),
-// //   deleteCourse
-// // );
+// Get Single Course
+router.get("/:id", getCourseById);
 
+// Update Course
+router.put("/:id", updateCourse);
 
-// // // Teacher only
-// // router.get(
-// //   "/my",
-// //   authMiddleware,
-// //   roleMiddleware("teacher"),
-// //   getMyCourses
-// // );
+// Delete Course
+router.delete("/:id", deleteCourse);
 
-
-// // module.exports = router;
-
-
-
-
-
-// const express = require("express");
-// const router = express.Router();
-
-// const {
-//   createCourse,
-//   getCourses,
-//   updateCourse,
-//   deleteCourse
-// } = require("../controllers/course.controller");
-
-// const authMiddleware = require("../middleware/auth.middleware");
-// const roleMiddleware = require("../middleware/role.middleware");
-
-// // 🔐 Admin / CollegeAdmin
-// router.post(
-//   "/",
-//   authMiddleware,
-//   roleMiddleware("admin", "collegeAdmin"),
-//   createCourse
-// );
-
-// // 🔓 Any logged-in user
-// router.get(
-//   "/",
-//   authMiddleware,
-//   getCourses
-// );
-
-// // 🔐 Admin / CollegeAdmin
-// router.put(
-//   "/:id",
-//   authMiddleware,
-//   roleMiddleware("admin", "collegeAdmin"),
-//   updateCourse 
-// );
-
-// // 🔐 Admin / CollegeAdmin
-// router.delete(
-//   "/:id",
-//   authMiddleware,
-//   roleMiddleware("admin", "collegeAdmin"),
-//   deleteCourse
-// );
-
-// module.exports = router;
+module.exports = router;
