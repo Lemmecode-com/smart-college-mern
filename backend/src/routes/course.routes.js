@@ -93,7 +93,7 @@
 //   "/:id",
 //   authMiddleware,
 //   roleMiddleware("admin", "collegeAdmin"),
-//   updateCourse
+//   updateCourse 
 // );
 
 // // 🔐 Admin / CollegeAdmin
