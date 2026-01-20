@@ -5,7 +5,7 @@ const collegeMiddleware = require("../middlewares/college.middleware");
 
 const { getMyCollege } = require("../controllers/master.controller");
 
-// 🏫 get single college by ONLY COLLEGE ADMIN
+// get single college by ONLY COLLEGE ADMIN
 router.get(
   "/my-college",
   auth,
