@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 import { Link } from "react-router-dom";
 
 export default function TeacherDashboard() {
@@ -7,11 +7,9 @@ export default function TeacherDashboard() {
   const [recent, setRecent] = useState([]);
 
   useEffect(() => {
-    api.get("/teachers/my-subjects")
-      .then(res => setSubjects(res.data));
+    api.get("/teachers/my-subjects").then((res) => setSubjects(res.data));
 
-    api.get("/attendance/recent")
-      .then(res => setRecent(res.data));
+    api.get("/attendance/recent").then((res) => setRecent(res.data));
   }, []);
 
   return (
@@ -19,7 +17,7 @@ export default function TeacherDashboard() {
       <h3 className="mb-4">Teacher Dashboard</h3>
 
       <div className="row mb-4">
-        {subjects.map(s => (
+        {subjects.map((s) => (
           <div key={s._id} className="col-md-4">
             <div className="card shadow-sm">
               <div className="card-body">
@@ -38,7 +36,7 @@ export default function TeacherDashboard() {
 
       <h5>Recent Attendance</h5>
       <ul className="list-group">
-        {recent.map(r => (
+        {recent.map((r) => (
           <li key={r._id} className="list-group-item">
             {r.subject?.name} – {r.date}
           </li>

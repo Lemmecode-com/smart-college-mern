@@ -1,3 +1,4 @@
+
 // import { useContext, useState } from "react";
 // import { useNavigate, Link } from "react-router-dom";
 // import { AuthContext } from "../../auth/AuthContext";
@@ -6,13 +7,19 @@
 //   const { login } = useContext(AuthContext);
 //   const navigate = useNavigate();
 
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [loading, setLoading] = useState(false);
+//   const [form, setForm] = useState({ email: "", password: "" });
 //   const [error, setError] = useState("");
 //   const [forgotMode, setForgotMode] = useState(false);
 //   const [successMsg, setSuccessMsg] = useState("");
+//   const [loading, setLoading] = useState(false);
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [email, setEmail] = useState("");
+//   const [password, setPassword] = useState("");
+
+//   const handleChange = (e) => {
+//     setForm({ ...form, [e.target.name]: e.target.value });
+//   };
+  
 
 //   const submitHandler = async (e) => {
 //     e.preventDefault();
@@ -30,14 +37,26 @@
 //         // Simulated forgot password success
 //         setSuccessMsg("Password reset link sent to your email.");
 //       } else {
-//         await login({ email, password });
+//         const res = await login({ email, password });
+
+//         // ✅ IMPORTANT FIX: Save token properly
+//         if (res?.accessToken) {
+//           localStorage.setItem("token", res.accessToken);
+//           localStorage.setItem("user", JSON.stringify(res.user));
+//         }
+
 //         navigate("/dashboard");
 //       }
 //     } catch (err) {
 //       setError(err.response?.data?.message || "Something went wrong");
 //     }
 
-//     setLoading(false);
+//     try {
+//       await login(form);
+//       navigate("/dashboard");
+//     } catch (err) {
+//       setError(err.response?.data?.message || "Login failed");
+//     }
 //   };
 
 //   return (
@@ -107,7 +126,7 @@
 //                 />
 //               </div>
 
-//               {/* PASSWORD (Only for Login) */}
+//               {/* PASSWORD */}
 //               {!forgotMode && (
 //                 <div className="mb-3">
 //                   <label className="form-label fw-semibold">Password</label>
@@ -201,7 +220,6 @@
 // }
 
 
-
 import { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
@@ -210,56 +228,49 @@ export default function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [forgotMode, setForgotMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  /* SINGLE SOURCE OF TRUTH */
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-  
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
     if (!email || (!forgotMode && !password)) {
-      return setError("All fields are required");
+      setError("All fields are required");
+      return;
     }
 
     setLoading(true);
     setError("");
     setSuccessMsg("");
 
-    try {
-      if (forgotMode) {
-        // Simulated forgot password success
+    /* ===== FORGOT PASSWORD (UI ONLY) ===== */
+    if (forgotMode) {
+      setTimeout(() => {
         setSuccessMsg("Password reset link sent to your email.");
-      } else {
-        const res = await login({ email, password });
-
-        // ✅ IMPORTANT FIX: Save token properly
-        if (res?.accessToken) {
-          localStorage.setItem("token", res.accessToken);
-          localStorage.setItem("user", JSON.stringify(res.user));
-        }
-
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+        setLoading(false);
+      }, 800);
+      return;
     }
 
-    try {
-      await login(form);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+    /* ===== LOGIN ===== */
+    const result = await login({ email, password });
+
+    if (!result.success) {
+      setError(result.message || "Login failed");
+      setLoading(false);
+      return;
     }
+
+    // ✅ role-based redirect handled centrally
+    navigate("/");
+    setLoading(false);
   };
 
   return (
@@ -272,7 +283,6 @@ export default function Login() {
         style={{ maxWidth: "900px", animation: "fadeIn 0.6s ease" }}
       >
         <div className="row g-0">
-
           {/* LEFT PANEL */}
           <div
             className="col-md-5 d-none d-md-flex flex-column justify-content-center text-white p-5"
@@ -290,7 +300,6 @@ export default function Login() {
 
           {/* RIGHT PANEL */}
           <div className="col-md-7 bg-white p-4 p-md-5">
-
             <div className="text-center mb-4">
               <div
                 className="rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
@@ -316,7 +325,6 @@ export default function Login() {
             )}
 
             <form onSubmit={submitHandler}>
-
               {/* EMAIL */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Email</label>
@@ -411,7 +419,6 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Animation */}
       <style>
         {`@keyframes fadeIn {
           from {opacity:0; transform: translateY(20px)}

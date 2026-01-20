@@ -1,434 +1,3 @@
-// import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-// import { useContext } from "react";
-
-// import { AuthContext } from "./auth/AuthContext";
-// import ProtectedRoute from "./components/ProtectedRoute";
-// import Sidebar from "./components/Sidebar";
-// import Navbar from "./components/Navbar";
-
-// /* Auth Pages */
-// import Login from "./pages/auth/Login";
-// import Register from "./pages/auth/Register";
-
-// /* Dashboards */
-// import Dashboard from "./pages/dashboard/Dashboard";
-// import StudentDashboard from "./pages/dashboard/StudentDashboard";
-
-// /* Admin – Departments */
-// import AddDepartment from "./pages/departments/AddDepartment";
-// import DepartmentList from "./pages/departments/DepartmentList";
-
-// /* Admin – Courses */
-// import AddCourse from "./pages/courses/AddCourse";
-// import CourseList from "./pages/courses/CourseList";
-
-// /* Admin – Students */
-// import AddStudent from "./pages/students/AddStudent";
-// import StudentList from "./pages/students/StudentList";
-
-// /* Attendance */
-// import MarkAttendance from "./pages/attendance/MarkAttendance";
-// import AttendanceList from "./pages/attendance/AttendanceList";
-// import MyAttendance from "./pages/attendance/MyAttendance";
-
-// export default function App() {
-//   const { user } = useContext(AuthContext);
-
-//   return (
-//     <BrowserRouter>
-//       <div className="container-fluid">
-//         <div className="row">
-//           {/* Sidebar only when logged in */}
-//           {user && <Sidebar />}
-
-//           <main className="col p-0">
-//             {/* Navbar only when logged in */}
-//             {user && <Navbar />}
-
-//             <div className="p-4">
-//               <Routes>
-//                 {/* Root Redirect */}
-//                 <Route
-//                   path="/"
-//                   element={
-//                     <Navigate to={user ? "/dashboard" : "/login"} />
-//                   }
-//                 />
-
-//                 {/* Public Routes */}
-//                 <Route path="/login" element={<Login />} />
-//                 <Route path="/register" element={<Register />} />
-
-//                 {/* Protected Routes */}
-//                 <Route
-//                   path="/dashboard"
-//                   element={
-//                     <ProtectedRoute>
-//                       {user?.role === "student" ? (
-//                         <StudentDashboard />
-//                       ) : (
-//                         <Dashboard />
-//                       )}
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* ================= ADMIN ROUTES ================= */}
-
-//                 {/* Departments */}
-//                 <Route
-//                   path="/departments"
-//                   element={
-//                     <ProtectedRoute>
-//                       <DepartmentList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/departments/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddDepartment />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Courses */}
-//                 <Route
-//                   path="/courses"
-//                   element={
-//                     <ProtectedRoute>
-//                       <CourseList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/courses/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddCourse />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Students */}
-//                 <Route
-//                   path="/students"
-//                   element={
-//                     <ProtectedRoute>
-//                       <StudentList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/students/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddStudent />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* ================= ATTENDANCE ROUTES ================= */}
-
-//                 {/* Teacher / Admin */}
-//                 <Route
-//                   path="/attendance"
-//                   element={
-//                     <ProtectedRoute>
-//                       <MarkAttendance />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/attendance/list"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AttendanceList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Student */}
-//                 <Route
-//                   path="/my-attendance"
-//                   element={
-//                     <ProtectedRoute>
-//                       <MyAttendance />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Fallback */}
-//                 <Route path="*" element={<Navigate to="/" />} />
-//               </Routes>
-//             </div>
-//           </main>
-//         </div>
-//       </div>
-//     </BrowserRouter>
-//   );
-// }
-
-// import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-// import { useContext } from "react";
-
-// import { AuthContext } from "./auth/AuthContext";
-// import ProtectedRoute from "./components/ProtectedRoute";
-// import Sidebar from "./components/Sidebar";
-// import Navbar from "./components/Navbar";
-
-// /* Auth Pages */
-// import Login from "./pages/auth/Login";
-// import Register from "./pages/auth/Register";
-
-// /* Dashboards */
-// import Dashboard from "./pages/dashboard/Dashboard";
-// import StudentDashboard from "./pages/dashboard/StudentDashboard";
-
-// /* Admin – Departments */
-// import AddDepartment from "./pages/departments/AddDepartment";
-// import DepartmentList from "./pages/departments/DepartmentList";
-
-// /* Admin – Courses */
-// import AddCourse from "./pages/courses/AddCourse";
-// import CourseList from "./pages/courses/CourseList";
-
-// /* Admin – Students */
-// import AddStudent from "./pages/students/AddStudent";
-// import StudentList from "./pages/students/StudentList";
-
-// /* Attendance */
-// import MarkAttendance from "./pages/attendance/MarkAttendance";
-// import MyAttendance from "./pages/attendance/MyAttendance";
-// import ParentDashboard from "./pages/dashboard/ParentDashboard";
-// import ChildAttendance from "./pages/attendance/ChildAttendance";
-
-// /* 🔹 PLACEHOLDERS */
-// import AttendanceList from "./pages/attendance/AttendanceList";
-// import ComingSoon from "./common/ComingSoon";
-// import CollegeProfile from "./pages/college/CollegeProfile";
-// import SubjectList from "./pages/Subjects/SubjectList";
-// import AddSubject from "./pages/Subjects/AddSubject";
-// import TeachersList from "./pages/Teachers/TeachersList";
-// import AddTeacher from "./pages/Teachers/AddTeacher";
-// import AddParent from "./pages/students/AddParent";
-
-// export default function App() {
-//   const { user } = useContext(AuthContext);
-
-//   return (
-//     <BrowserRouter>
-//       <div className="container-fluid">
-//         <div className="row">
-//           {user && <Sidebar />}
-
-//           {/* 🔹 FIXED OFFSET FOR SIDEBAR */}
-//           <main
-//             className="col p-0"
-//             style={{ marginLeft: user ? "260px" : "0" }}
-//           >
-//             {user && <Navbar />}
-
-//             <div className="p-4">
-//               <Routes>
-//                 {/* Root */}
-//                 <Route
-//                   path="/"
-//                   element={<Navigate to={user ? "/dashboard" : "/login"} />}
-//                 />
-
-//                 {/* Public */}
-//                 <Route path="/login" element={<Login />} />
-//                 <Route path="/register" element={<Register />} />
-
-//                 {/* Dashboard */}
-//                 <Route
-//                   path="/dashboard"
-//                   element={
-//                     <ProtectedRoute>
-//                       {user?.role === "student" ? (
-//                         <StudentDashboard />
-//                       ) : (
-//                         <Dashboard />
-//                       )}
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* ===== ADMIN ===== */}
-//                 <Route
-//                   path="/departments"
-//                   element={
-//                     <ProtectedRoute>
-//                       <DepartmentList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/departments/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddDepartment />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 <Route
-//                   path="/courses"
-//                   element={
-//                     <ProtectedRoute>
-//                       <CourseList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/courses/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddCourse />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 <Route
-//                   path="/students"
-//                   element={
-//                     <ProtectedRoute>
-//                       <StudentList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/students/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddStudent />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* ===== ATTENDANCE ===== */}
-//                 <Route
-//                   path="/attendance"
-//                   element={
-//                     <ProtectedRoute>
-//                       <MarkAttendance />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/attendance/list"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AttendanceList />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/my-attendance"
-//                   element={
-//                     <ProtectedRoute>
-//                       <MyAttendance />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* ===== NEW SIDEBAR ROUTES (PLACEHOLDER) ===== */}
-//                 <Route
-//                   path="/college/profile"
-//                   element={
-//                     <ProtectedRoute>
-//                       <CollegeProfile title="College Profile" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/subjects"
-//                   element={
-//                     <ProtectedRoute>
-//                       <SubjectList title="Subjects" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/subjects/add"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddSubject title="Add Subject" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/teachers"
-//                   element={
-//                     <ProtectedRoute>
-//                       <TeachersList title="Teachers" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/teachers/assign-subjects"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddTeacher title="Assign Subjects" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/parents"
-//                   element={
-//                     <ProtectedRoute>
-//                       <ComingSoon title="Parents" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/students/assign-parent"
-//                   element={
-//                     <ProtectedRoute>
-//                       <AddParent title="Assign Parent" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Student / Parent */}
-//                 <Route
-//                   path="/student/profile"
-//                   element={
-//                     <ProtectedRoute>
-//                       <ComingSoon title="Student Profile" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/parent/children"
-//                   element={
-//                     <ProtectedRoute>
-//                       <ComingSoon title="My Children" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-//                 <Route
-//                   path="/parent/attendance"
-//                   element={
-//                     <ProtectedRoute>
-//                       <ComingSoon title="Child Attendance" />
-//                     </ProtectedRoute>
-//                   }
-//                 />
-
-//                 {/* Fallback */}
-//                 <Route path="*" element={<Navigate to="/" />} />
-//               </Routes>
-//             </div>
-//           </main>
-//         </div>
-//       </div>
-//     </BrowserRouter>
-//   );
-// }
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 
@@ -437,46 +6,44 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 
-/* Auth */
+/* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
-/* Dashboards */
-import Dashboard from "./pages/dashboard/Dashboard";
-import StudentDashboard from "./pages/dashboard/StudentDashboard";
-import ParentDashboard from "./pages/dashboard/ParentDashboard";
+/* ================= DASHBOARDS ================= */
+import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
+import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
+import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
+import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
+import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
-/* College */
+/* ================= COLLEGE ================= */
 import CollegeProfile from "./pages/college/CollegeProfile";
 
-/* Departments */
+/* ================= DEPARTMENTS ================= */
 import AddDepartment from "./pages/departments/AddDepartment";
 import DepartmentList from "./pages/departments/DepartmentList";
 
-/* Courses */
+/* ================= COURSES ================= */
 import AddCourse from "./pages/courses/AddCourse";
 import CourseList from "./pages/courses/CourseList";
 
-/* Students */
+/* ================= STUDENTS ================= */
 import AddStudent from "./pages/students/AddStudent";
 import StudentList from "./pages/students/StudentList";
-import AddParent from "./pages/students/AddParent";
+import AssignParent from "./pages/students/AssignParent";
 
-/* Attendance */
+/* ================= ATTENDANCE ================= */
 import MarkAttendance from "./pages/attendance/MarkAttendance";
 import MyAttendance from "./pages/attendance/MyAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
-import ChildAttendance from "./pages/attendance/ChildAttendance";
 
-/* Others */
-import ComingSoon from "./common/ComingSoon";
-// import CollegeProfile from "./pages/college/CollegeProfile";
+/* ================= SUBJECTS / TEACHERS ================= */
 import SubjectList from "./pages/Subjects/SubjectList";
 import AddSubject from "./pages/Subjects/AddSubject";
 import TeachersList from "./pages/Teachers/TeachersList";
 import AddTeacher from "./pages/Teachers/AddTeacher";
 import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
-import AssignParent from "./pages/students/AssignParent";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -485,6 +52,8 @@ export default function App() {
     <BrowserRouter>
       <div className="container-fluid">
         <div className="row">
+
+          {/* ================= SIDEBAR ================= */}
           {user && <Sidebar />}
 
           <main
@@ -495,37 +64,85 @@ export default function App() {
 
             <div className="p-4">
               <Routes>
-                {/* Root */}
+
+                {/* ================= ROOT DECIDER ================= */}
                 <Route
                   path="/"
-                  element={<Navigate to={user ? "/dashboard" : "/login"} />}
+                  element={
+                    !user ? (
+                      <Navigate to="/login" />
+                    ) : user.role === "SUPER_ADMIN" ? (
+                      <Navigate to="/super-admin/dashboard" />
+                    ) : user.role === "COLLEGE_ADMIN" ? (
+                      <Navigate to="/dashboard" />
+                    ) : user.role === "TEACHER" ? (
+                      <Navigate to="/teacher/dashboard" />
+                    ) : user.role === "STUDENT" ? (
+                      <Navigate to="/student/dashboard" />
+                    ) : (
+                      <Navigate to="/login" />
+                    )
+                  }
                 />
 
-                {/* Public */}
+                {/* ================= PUBLIC ================= */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
-                {/* Dashboard */}
+                {/* ================= SUPER ADMIN ================= */}
                 <Route
-                  path="/dashboard"
+                  path="/super-admin/dashboard"
                   element={
-                    <ProtectedRoute>
-                      {user?.role === "student" ? (
-                        <StudentDashboard />
-                      ) : user?.role === "parent" ? (
-                        <ParentDashboard />
-                      ) : (
-                        <Dashboard />
-                      )}
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <SuperAdminDashboard />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* ADMIN */}
+                <Route
+                  path="/super-admin/create-college"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <CreateNewCollege />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ================= COLLEGE ADMIN ================= */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CollegeAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ================= TEACHER ================= */}
+                <Route
+                  path="/teacher/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <TeacherDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ================= STUDENT ================= */}
+                <Route
+                  path="/student/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ================= DEPARTMENTS ================= */}
                 <Route
                   path="/departments"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <DepartmentList />
                     </ProtectedRoute>
                   }
@@ -533,16 +150,17 @@ export default function App() {
                 <Route
                   path="/departments/add"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddDepartment />
                     </ProtectedRoute>
                   }
                 />
 
+                {/* ================= COURSES ================= */}
                 <Route
                   path="/courses"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CourseList />
                     </ProtectedRoute>
                   }
@@ -550,16 +168,17 @@ export default function App() {
                 <Route
                   path="/courses/add"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddCourse />
                     </ProtectedRoute>
                   }
                 />
 
+                {/* ================= STUDENTS ================= */}
                 <Route
                   path="/students"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <StudentList />
                     </ProtectedRoute>
                   }
@@ -567,7 +186,7 @@ export default function App() {
                 <Route
                   path="/students/add"
                   element={
-                    <ProtectedRoute roles={["admin", "collegeAdmin"]}>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddStudent />
                     </ProtectedRoute>
                   }
@@ -575,17 +194,17 @@ export default function App() {
                 <Route
                   path="/students/assign-parent"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AssignParent />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Attendance */}
+                {/* ================= ATTENDANCE ================= */}
                 <Route
                   path="/attendance/mark"
                   element={
-                    <ProtectedRoute roles={["teacher"]}>
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <MarkAttendance />
                     </ProtectedRoute>
                   }
@@ -593,9 +212,7 @@ export default function App() {
                 <Route
                   path="/attendance/report"
                   element={
-                    <ProtectedRoute
-                      roles={["admin", "collegeAdmin", "teacher"]}
-                    >
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
                       <AttendanceList />
                     </ProtectedRoute>
                   }
@@ -603,33 +220,27 @@ export default function App() {
                 <Route
                   path="/my-attendance"
                   element={
-                    <ProtectedRoute roles={["student"]}>
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <MyAttendance />
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/parent/attendance"
-                  element={
-                    <ProtectedRoute>
-                      <ChildAttendance />
-                    </ProtectedRoute>
-                  }
-                />
 
-                {/* College / Subjects / Teachers */}
+                {/* ================= COLLEGE ================= */}
                 <Route
                   path="/college/profile"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CollegeProfile />
                     </ProtectedRoute>
                   }
                 />
+
+                {/* ================= SUBJECTS ================= */}
                 <Route
                   path="/subjects"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <SubjectList />
                     </ProtectedRoute>
                   }
@@ -637,15 +248,17 @@ export default function App() {
                 <Route
                   path="/subjects/add"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddSubject />
                     </ProtectedRoute>
                   }
                 />
+
+                {/* ================= TEACHERS ================= */}
                 <Route
                   path="/teachers"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <TeachersList />
                     </ProtectedRoute>
                   }
@@ -653,37 +266,23 @@ export default function App() {
                 <Route
                   path="/teachers/add-teacher"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddTeacher />
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/teachers/assign-subjects" element={
-                  <ProtectedRoute>
-                    <AssignTeacherSubjects />
-                  </ProtectedRoute>
-                } />
-
-                {/* Student / Parent */}
                 <Route
-                  path="/student/profile"
+                  path="/teachers/assign-subjects"
                   element={
-                    <ProtectedRoute>
-                      <ComingSoon title="Student Profile" />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/parent/children"
-                  element={
-                    <ProtectedRoute>
-                      <ComingSoon title="My Children" />
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AssignTeacherSubjects />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Fallback */}
+                {/* ================= FALLBACK ================= */}
                 <Route path="*" element={<Navigate to="/" />} />
+
               </Routes>
             </div>
           </main>
