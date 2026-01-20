@@ -7,6 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", require("./src/routes/auth.routes"));
-app.use("/api/college", require("./routes/college.routes"));
+app.use("/api/college", require("./src/routes/college.routes"));
+app.use("/api/master", require("./src/routes/master.routes"));
 
 module.exports = app;
