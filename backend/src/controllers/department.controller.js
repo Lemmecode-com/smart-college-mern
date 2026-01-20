@@ -1,4 +1,5 @@
 const Department = require("../models/department.model");
+const Teacher = require("../models/teacher.model");
 
 /**
  * CREATE Department
@@ -90,4 +91,42 @@ exports.deleteDepartment = async (req, res) => {
   }
 
   res.json({ message: "Department deleted successfully" });
+};
+
+/**
+ * ASSIGN HOD TO DEPARTMENT
+ */
+exports.assignHOD = async (req, res) => {
+  const { teacher_id } = req.body;
+
+  // Check department
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!department) {
+    return res.status(404).json({ message: "Department not found" });
+  }
+
+  // Check teacher
+  const teacher = await Teacher.findOne({
+    _id: teacher_id,
+    college_id: req.college_id,
+    department_id: department._id
+  });
+
+  if (!teacher) {
+    return res.status(400).json({
+      message: "Teacher must belong to the same department"
+    });
+  }
+
+  department.hod_id = teacher._id;
+  await department.save();
+
+  res.json({
+    message: "HOD assigned successfully",
+    department
+  });
 };
