@@ -1,236 +1,3 @@
-// import { NavLink } from "react-router-dom";
-// import { useContext, useState } from "react";
-// import { AuthContext } from "../auth/AuthContext";
-
-// import {
-//   FaTachometerAlt,
-//   FaUniversity,
-//   FaBook,
-//   FaLayerGroup,
-//   FaUserGraduate,
-//   FaChalkboardTeacher,
-//   FaUsers,
-//   FaClipboardList,
-//   FaLink,
-//   FaChevronDown,
-//   FaChevronUp
-// } from "react-icons/fa";
-
-// export default function Sidebar() {
-//   const { user } = useContext(AuthContext);
-
-//   const [openCollege, setOpenCollege] = useState(true);
-//   const [openDepartments, setOpenDepartments] = useState(true);
-//   const [openCourses, setOpenCourses] = useState(true);
-//   const [openSubjects, setOpenSubjects] = useState(true);
-//   const [openStudents, setOpenStudents] = useState(true);
-//   const [openTeachers, setOpenTeachers] = useState(true);
-//   const [openParents, setOpenParents] = useState(true);
-
-//   if (!user) return null;
-
-//   const linkClass = ({ isActive }) => ({
-//     display: "flex",
-//     alignItems: "center",
-//     gap: "10px",
-//     padding: "10px 14px",
-//     borderRadius: "8px",
-//     textDecoration: "none",
-//     fontWeight: "500",
-//     color: isActive ? "#0f3a4a" : "#ffffff",
-//     background: isActive ? "#ffffff" : "transparent",
-//     marginBottom: "6px"
-//   });
-
-//   const dropdownTitle = {
-//     display: "flex",
-//     justifyContent: "space-between",
-//     alignItems: "center",
-//     padding: "10px 12px",
-//     color: "#ffffff",
-//     cursor: "pointer",
-//     fontWeight: "600",
-//     marginTop: "10px"
-//   };
-
-//   const dropdownContent = {
-//     marginLeft: "12px",
-//     display: "flex",
-//     flexDirection: "column"
-//   };
-
-//   return (
-//     <div
-//       style={{
-//         width: "260px",
-//         height: "100vh",
-//         background: "linear-gradient(180deg, #0f3a4a, #134952)",
-//         padding: "16px",
-//         position: "fixed",
-//         overflowY: "auto"
-//       }}
-//     >
-//       <h4 style={{ textAlign: "center", color: "#fff", marginBottom: "20px" }}>
-//         Smart College
-//       </h4>
-
-//       <NavLink to="/dashboard" style={linkClass}>
-//         <FaTachometerAlt /> Dashboard
-//       </NavLink>
-
-//       {(user.role === "admin" || user.role === "collegeAdmin") && (
-//         <>
-//           {/* College */}
-//           <div style={dropdownTitle} onClick={() => setOpenCollege(!openCollege)}>
-//             <span>College</span>
-//             {openCollege ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openCollege && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/college/profile" style={linkClass}>
-//                 <FaUniversity /> College Profile
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Departments */}
-//           <div style={dropdownTitle} onClick={() => setOpenDepartments(!openDepartments)}>
-//             <span>Departments</span>
-//             {openDepartments ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openDepartments && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/departments" style={linkClass}>
-//                 <FaBook /> View
-//               </NavLink>
-//               <NavLink to="/departments/add" style={linkClass}>
-//                 <FaBook /> Add
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Courses */}
-//           <div style={dropdownTitle} onClick={() => setOpenCourses(!openCourses)}>
-//             <span>Courses</span>
-//             {openCourses ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openCourses && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/courses" style={linkClass}>
-//                 <FaLayerGroup /> View
-//               </NavLink>
-//               <NavLink to="/courses/add" style={linkClass}>
-//                 <FaLayerGroup /> Add
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Subjects */}
-//           <div style={dropdownTitle} onClick={() => setOpenSubjects(!openSubjects)}>
-//             <span>Subjects</span>
-//             {openSubjects ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openSubjects && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/subjects" style={linkClass}>
-//                 <FaBook /> View
-//               </NavLink>
-//               <NavLink to="/subjects/add" style={linkClass}>
-//                 <FaBook /> Add
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Teachers */}
-//           <div style={dropdownTitle} onClick={() => setOpenTeachers(!openTeachers)}>
-//             <span>Teachers</span>
-//             {openTeachers ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openTeachers && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/teachers" style={linkClass}>
-//                 <FaChalkboardTeacher /> View
-//               </NavLink>
-//               <NavLink to="/teachers/assign-subjects" style={linkClass}>
-//                 <FaLink /> Assign Subjects
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Students */}
-//           <div style={dropdownTitle} onClick={() => setOpenStudents(!openStudents)}>
-//             <span>Students</span>
-//             {openStudents ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openStudents && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/students" style={linkClass}>
-//                 <FaUserGraduate /> View
-//               </NavLink>
-//               <NavLink to="/students/add" style={linkClass}>
-//                 <FaUserGraduate /> Add
-//               </NavLink>
-//               <NavLink to="/students/assign-parent" style={linkClass}>
-//                 <FaLink /> Assign Parent
-//               </NavLink>
-//             </div>
-//           )}
-
-//           {/* Parents */}
-//           <div style={dropdownTitle} onClick={() => setOpenParents(!openParents)}>
-//             <span>Parents</span>
-//             {openParents ? <FaChevronUp /> : <FaChevronDown />}
-//           </div>
-//           {openParents && (
-//             <div style={dropdownContent}>
-//               <NavLink to="/parents" style={linkClass}>
-//                 <FaUsers /> View
-//               </NavLink>
-//             </div>
-//           )}
-//         </>
-//       )}
-
-//       {user.role === "teacher" && (
-//         <>
-//           <NavLink to="/attendance/mark" style={linkClass}>
-//             <FaClipboardList /> Mark Attendance
-//           </NavLink>
-//           <NavLink to="/attendance/report" style={linkClass}>
-//             <FaClipboardList /> Attendance Report
-//           </NavLink>
-//         </>
-//       )}
-
-//       {user.role === "student" && (
-//         <>
-//           <NavLink to="/student/profile" style={linkClass}>
-//             <FaUserGraduate /> My Profile
-//           </NavLink>
-//           <NavLink to="/my-attendance" style={linkClass}>
-//             <FaClipboardList /> My Attendance
-//           </NavLink>
-//         </>
-//       )}
-
-//       {user.role === "parent" && (
-//         <>
-//           <NavLink to="/parent/children" style={linkClass}>
-//             <FaUsers /> My Children
-//           </NavLink>
-//           <NavLink to="/parent/attendance" style={linkClass}>
-//             <FaClipboardList /> Attendance
-//           </NavLink>
-//         </>
-//       )}
-
-//       <div style={{ marginTop: "20px", textAlign: "center", color: "#ccc" }}>
-//         © 2026 Smart College
-//       </div>
-//     </div>
-//   );
-// }
-
 import { NavLink } from "react-router-dom";
 import { useContext, useState } from "react";
 import { AuthContext } from "../auth/AuthContext";
@@ -241,29 +8,30 @@ import {
   FaBook,
   FaLayerGroup,
   FaUserGraduate,
-  FaChalkboardTeacher,
-  FaUsers,
   FaClipboardList,
   FaLink,
   FaChevronDown,
+  FaCog,
 } from "react-icons/fa";
 
 export default function Sidebar() {
   const { user } = useContext(AuthContext);
+
   const [open, setOpen] = useState({
     college: true,
     departments: true,
     courses: true,
-    subjects: true,
-    teachers: true,
     students: true,
-    parents: true,
   });
 
   if (!user) return null;
 
-  const toggle = (key) => setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  const role = user.role;
 
+  const toggle = (key) =>
+    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  /* ================= STYLES ================= */
   const navLink = ({ isActive }) => ({
     display: "flex",
     alignItems: "center",
@@ -275,7 +43,6 @@ export default function Sidebar() {
     textDecoration: "none",
     color: isActive ? "#0f3a4a" : "#e6f2f5",
     background: isActive ? "#ffffff" : "transparent",
-    transition: "all 0.3s ease",
   });
 
   const sectionTitle = {
@@ -288,7 +55,7 @@ export default function Sidebar() {
     fontWeight: 600,
     fontSize: "13px",
     cursor: "pointer",
-    userSelect: "none",
+    opacity: 0.9,
   };
 
   const sectionBody = (isOpen) => ({
@@ -311,7 +78,7 @@ export default function Sidebar() {
         overflowY: "auto",
       }}
     >
-      {/* Logo */}
+      {/* ================= LOGO ================= */}
       <div
         style={{
           textAlign: "center",
@@ -321,26 +88,44 @@ export default function Sidebar() {
           marginBottom: "24px",
         }}
       >
-        Smart College
+        Smart College ERP
       </div>
 
-      {/* Dashboard */}
-      <NavLink to="/dashboard" style={navLink}>
-        <FaTachometerAlt /> Dashboard
-      </NavLink>
-
-      {/* ADMIN / COLLEGE ADMIN */}
-      {(user.role === "admin" || user.role === "collegeAdmin") && (
+      {/* =====================================================
+            SUPER ADMIN MENU
+      ===================================================== */}
+      {role === "SUPER_ADMIN" && (
         <>
-          {/* College */}
+          <NavLink to="/super-admin/dashboard" style={navLink}>
+            <FaTachometerAlt /> Dashboard
+          </NavLink>
+
+          <NavLink to="/super-admin/colleges" style={navLink}>
+            <FaUniversity /> Manage Colleges
+          </NavLink>
+
+          <NavLink to="/super-admin/create-college" style={navLink}>
+            <FaUniversity /> Create New College
+          </NavLink>
+
+          <NavLink to="/super-admin/settings" style={navLink}>
+            <FaCog /> System Settings
+          </NavLink>
+        </>
+      )}
+
+      {/* =====================================================
+            COLLEGE ADMIN MENU
+      ===================================================== */}
+      {role === "COLLEGE_ADMIN" && (
+        <>
+          <NavLink to="/dashboard" style={navLink}>
+            <FaTachometerAlt /> Dashboard
+          </NavLink>
+
+          {/* COLLEGE */}
           <div style={sectionTitle} onClick={() => toggle("college")}>
-            College{" "}
-            <FaChevronDown
-              style={{
-                transform: open.college ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
+            College <FaChevronDown />
           </div>
           <div style={sectionBody(open.college)}>
             <NavLink to="/college/profile" style={navLink}>
@@ -348,97 +133,39 @@ export default function Sidebar() {
             </NavLink>
           </div>
 
-          {/* Departments */}
+          {/* DEPARTMENTS */}
           <div style={sectionTitle} onClick={() => toggle("departments")}>
-            Departments{" "}
-            <FaChevronDown
-              style={{
-                transform: open.departments ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
+            Departments <FaChevronDown />
           </div>
           <div style={sectionBody(open.departments)}>
             <NavLink to="/departments" style={navLink}>
-              <FaBook /> View Departments
+              <FaBook /> Department List
             </NavLink>
             <NavLink to="/departments/add" style={navLink}>
               <FaBook /> Add Department
             </NavLink>
           </div>
 
-          {/* Courses */}
+          {/* COURSES */}
           <div style={sectionTitle} onClick={() => toggle("courses")}>
-            Courses{" "}
-            <FaChevronDown
-              style={{
-                transform: open.courses ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
+            Courses <FaChevronDown />
           </div>
           <div style={sectionBody(open.courses)}>
             <NavLink to="/courses" style={navLink}>
-              <FaLayerGroup /> View Courses
+              <FaLayerGroup /> Course List
             </NavLink>
             <NavLink to="/courses/add" style={navLink}>
               <FaLayerGroup /> Add Course
             </NavLink>
           </div>
 
-          {/* Subjects */}
-          <div style={sectionTitle} onClick={() => toggle("subjects")}>
-            Subjects{" "}
-            <FaChevronDown
-              style={{
-                transform: open.subjects ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
-          </div>
-          <div style={sectionBody(open.subjects)}>
-            <NavLink to="/subjects" style={navLink}>
-              <FaBook /> View Subjects
-            </NavLink>
-            <NavLink to="/subjects/add" style={navLink}>
-              <FaBook /> Add Subject
-            </NavLink>
-          </div>
-
-          {/* Teachers */}
-          <div style={sectionTitle} onClick={() => toggle("teachers")}>
-            Teachers{" "}
-            <FaChevronDown
-              style={{
-                transform: open.teachers ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
-          </div>
-          <div style={sectionBody(open.teachers)}>
-            <NavLink to="/teachers" style={navLink}>
-              <FaChalkboardTeacher /> Teachers List
-            </NavLink>
-            <NavLink to="/teachers/add-teacher" style={navLink}>
-              <FaLink /> Add Teacher
-            </NavLink>
-
-            <NavLink to="/teachers/assign-subjects">Assign Subjects</NavLink>
-          </div>
-
-          {/* Students */}
+          {/* STUDENTS */}
           <div style={sectionTitle} onClick={() => toggle("students")}>
-            Students{" "}
-            <FaChevronDown
-              style={{
-                transform: open.students ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
+            Students <FaChevronDown />
           </div>
           <div style={sectionBody(open.students)}>
             <NavLink to="/students" style={navLink}>
-              <FaUserGraduate /> Students List
+              <FaUserGraduate /> Student List
             </NavLink>
             <NavLink to="/students/add" style={navLink}>
               <FaUserGraduate /> Add Student
@@ -447,75 +174,42 @@ export default function Sidebar() {
               <FaLink /> Assign Parent
             </NavLink>
           </div>
-
-          {/* Parents */}
-          <div style={sectionTitle} onClick={() => toggle("parents")}>
-            Parents{" "}
-            <FaChevronDown
-              style={{
-                transform: open.parents ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "0.3s",
-              }}
-            />
-          </div>
-          <div style={sectionBody(open.parents)}>
-            <NavLink to="/parents" style={navLink}>
-              <FaUsers /> Parents List
-            </NavLink>
-          </div>
         </>
       )}
 
-      {/* TEACHER */}
-      {user.role === "teacher" && (
+      {/* =====================================================
+            TEACHER MENU
+      ===================================================== */}
+      {role === "TEACHER" && (
         <>
+          <NavLink to="/teacher/dashboard" style={navLink}>
+            <FaTachometerAlt /> Dashboard
+          </NavLink>
+
           <NavLink to="/attendance/mark" style={navLink}>
             <FaClipboardList /> Mark Attendance
           </NavLink>
+
           <NavLink to="/attendance/report" style={navLink}>
             <FaClipboardList /> Attendance Report
           </NavLink>
         </>
       )}
 
-      {/* STUDENT */}
-      {user.role === "student" && (
+      {/* =====================================================
+            STUDENT MENU
+      ===================================================== */}
+      {role === "STUDENT" && (
         <>
-          <NavLink to="/student/profile" style={navLink}>
-            <FaUserGraduate /> My Profile
+          <NavLink to="/student/dashboard" style={navLink}>
+            <FaTachometerAlt /> Dashboard
           </NavLink>
+
           <NavLink to="/my-attendance" style={navLink}>
             <FaClipboardList /> My Attendance
           </NavLink>
-
-          <NavLink to="/add-parent" className={linkClass}>
-            Add Parent
-          </NavLink>
         </>
       )}
-
-      {/* PARENT */}
-      {user.role === "parent" && (
-        <>
-          <NavLink to="/parent/children" style={navLink}>
-            <FaUsers /> My Children
-          </NavLink>
-          <NavLink to="/parent/attendance" style={navLink}>
-            <FaClipboardList /> Attendance
-          </NavLink>
-        </>
-      )}
-
-      <div
-        style={{
-          marginTop: "30px",
-          textAlign: "center",
-          fontSize: "12px",
-          color: "#cfe8ef",
-        }}
-      >
-        © 2026 Smart College
-      </div>
     </aside>
   );
 }
