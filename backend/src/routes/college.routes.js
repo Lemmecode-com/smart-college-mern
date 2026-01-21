@@ -1,27 +1,17 @@
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
 
-const {
-  upsertCollege,
-  getCollegeProfile
-} = require("../controllers/college.controller");
+const { getMyCollege } = require("../controllers/master.controller");
 
-const authMiddleware = require("../middleware/auth.middleware");
-const roleMiddleware = require("../middleware/role.middleware");
-
-// 🔐 Only Admin / CollegeAdmin for create college
-router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware("admin", "collegeAdmin"),
-  upsertCollege
-);
-
-// 🔓 Any logged-in user view college profile
+// get single college by ONLY COLLEGE ADMIN
 router.get(
-  "/",
-  authMiddleware,
-  getCollegeProfile
+  "/my-college",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getMyCollege
 );
 
 module.exports = router;
