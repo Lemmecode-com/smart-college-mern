@@ -11,6 +11,7 @@ const {
   updateDepartment,
   deleteDepartment,
   getDepartmentById,
+  assignHOD,
 } = require("../controllers/department.controller");
 
 // Apply middlewares to ALL department routes
@@ -30,5 +31,8 @@ router.put("/:id", updateDepartment);
 
 // Delete Department
 router.delete("/:id", deleteDepartment);
+
+// Assign HOD
+router.put("/:id/assign-hod", assignHOD);
 
 module.exports = router;
