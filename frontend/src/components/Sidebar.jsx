@@ -100,12 +100,12 @@ export default function Sidebar() {
             <FaTachometerAlt /> Dashboard
           </NavLink>
 
-          <NavLink to="/super-admin/colleges" style={navLink}>
-            <FaUniversity /> Manage Colleges
+          <NavLink to="/super-admin/create-college" style={navLink}>
+            <FaUniversity /> Add New College
           </NavLink>
 
-          <NavLink to="/super-admin/create-college" style={navLink}>
-            <FaUniversity /> Create New College
+          <NavLink to="/super-admin/colleges-list" style={navLink}>
+            <FaUniversity /> Colleges-List
           </NavLink>
 
           <NavLink to="/super-admin/settings" style={navLink}>

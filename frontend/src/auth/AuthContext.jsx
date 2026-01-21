@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { jwtDecode } from "jwt-decode";
 
 export const AuthContext = createContext(null);
 
@@ -7,85 +8,47 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOGIN ================= */
+  /* ========== LOGIN ========== */
   const login = async (credentials) => {
     try {
       const res = await api.post("/auth/login", credentials);
 
-      const { accessToken, refreshToken, user } = res.data;
+      // backend returns: { token, role }
+      const { token, role } = res.data;
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("accessToken", token);
+      setUser({ role });
 
-      setUser(user);
       return { success: true };
     } catch (error) {
-      const message =
-        error?.response?.data?.message || "Login failed";
-      return { success: false, message };
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Login failed"
+      };
     }
   };
 
-  /* ================= LOGOUT ================= */
+  /* ========== LOGOUT ========== */
   const logout = () => {
-    // Backend logout is optional for UX
-    api.post("/auth/logout").catch(() => {});
-
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     setUser(null);
   };
 
-  /* ================= RESTORE SESSION ================= */
+  /* ========== RESTORE SESSION ========== */
   useEffect(() => {
-    let isMounted = true;
+    const token = localStorage.getItem("accessToken");
 
-    const restoreSession = async () => {
-      const token = localStorage.getItem("accessToken");
-      const refreshToken = localStorage.getItem("refreshToken");
-
-      if (!token) {
-        if (isMounted) setLoading(false);
-        return;
-      }
-
+    if (token) {
       try {
-        // Try current token
-        const res = await api.get("/auth/me");
-        if (isMounted) setUser(res.data);
+        const decoded = jwtDecode(token);
+        setUser({ role: decoded.role });
       } catch {
-        // Try refresh token
-        if (!refreshToken) {
-          localStorage.clear();
-          if (isMounted) setUser(null);
-        } else {
-          try {
-            const refreshRes = await api.post("/auth/refresh", {
-              refreshToken,
-            });
-
-            localStorage.setItem(
-              "accessToken",
-              refreshRes.data.accessToken
-            );
-
-            const meRes = await api.get("/auth/me");
-            if (isMounted) setUser(meRes.data);
-          } catch {
-            localStorage.clear();
-            if (isMounted) setUser(null);
-          }
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+        localStorage.removeItem("accessToken");
+        setUser(null);
       }
-    };
+    }
 
-    restoreSession();
-
-    return () => {
-      isMounted = false;
-    };
+    setLoading(false);
   }, []);
 
   return (

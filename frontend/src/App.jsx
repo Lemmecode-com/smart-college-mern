@@ -17,13 +17,9 @@ import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminD
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
-/* ================= COLLEGE ================= */
-import CollegeProfile from "./pages/college/CollegeProfile";
-
 /* ================= DEPARTMENTS ================= */
-import AddDepartment from "./pages/departments/AddDepartment";
-import DepartmentList from "./pages/departments/DepartmentList";
-
+import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
+import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 /* ================= COURSES ================= */
 import AddCourse from "./pages/courses/AddCourse";
 import CourseList from "./pages/courses/CourseList";
@@ -44,6 +40,8 @@ import AddSubject from "./pages/Subjects/AddSubject";
 import TeachersList from "./pages/Teachers/TeachersList";
 import AddTeacher from "./pages/Teachers/AddTeacher";
 import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
+import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
+import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -52,7 +50,6 @@ export default function App() {
     <BrowserRouter>
       <div className="container-fluid">
         <div className="row">
-
           {/* ================= SIDEBAR ================= */}
           {user && <Sidebar />}
 
@@ -64,7 +61,6 @@ export default function App() {
 
             <div className="p-4">
               <Routes>
-
                 {/* ================= ROOT DECIDER ================= */}
                 <Route
                   path="/"
@@ -108,12 +104,30 @@ export default function App() {
                   }
                 />
 
+                <Route
+                  path="/super-admin/colleges-list"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <CollegeList />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* ================= COLLEGE ADMIN ================= */}
                 <Route
                   path="/dashboard"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CollegeAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college/profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CollegeProfile />
                     </ProtectedRoute>
                   }
                 />
@@ -138,6 +152,7 @@ export default function App() {
                   }
                 />
 
+                
                 {/* ================= DEPARTMENTS ================= */}
                 <Route
                   path="/departments"
@@ -226,16 +241,6 @@ export default function App() {
                   }
                 />
 
-                {/* ================= COLLEGE ================= */}
-                <Route
-                  path="/college/profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CollegeProfile />
-                    </ProtectedRoute>
-                  }
-                />
-
                 {/* ================= SUBJECTS ================= */}
                 <Route
                   path="/subjects"
@@ -282,7 +287,6 @@ export default function App() {
 
                 {/* ================= FALLBACK ================= */}
                 <Route path="*" element={<Navigate to="/" />} />
-
               </Routes>
             </div>
           </main>
