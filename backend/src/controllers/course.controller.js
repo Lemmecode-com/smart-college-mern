@@ -4,109 +4,107 @@ const Department = require("../models/department.model");
 /**
  * CREATE Course
  */
-exports.createCourse = async (req, res, next) => {
-  try {
-    const { name, code, departmentId, duration, collegeId } = req.body;
+exports.createCourse = async (req, res) => {
+  const {
+    department_id,
+    name,
+    code,
+    type,
+    programLevel,
+    semester,
+    credits,
+    maxStudents
+  } = req.body;
 
-    if (!name || !code || !departmentId) {
-      return res.status(400).json({
-        message: "Name, code and department are required"
-      });
-    }
+  const department = await Department.findOne({
+    _id: department_id,
+    college_id: req.college_id
+  });
 
-    const department = await Department.findById(departmentId);
-    if (!department || department.status !== "Active") {
-      return res.status(400).json({
-        message: "Invalid department"
-      });
-    }
-
-    const course = await Course.create({
-      name,
-      code,
-      departmentId,
-      duration,
-      collegeId
-    });
-
-    res.status(201).json({
-      success: true,
-      data: course
-    });
-  } catch (err) {
-    next(err);
+  if (!department) {
+    return res.status(404).json({ message: "Invalid department" });
   }
+
+  const course = await Course.create({
+    college_id: req.college_id,
+    department_id,
+    name,
+    code,
+    type,
+    programLevel,
+    semester,
+    credits,
+    maxStudents,
+    createdBy: req.user.id
+  });
+
+  res.status(201).json(course);
 };
 
 /**
- * GET Courses (optionally by department)
+ * READ Courses by Department
  */
-exports.getCourses = async (req, res, next) => {
-  try {
-    const filter = { status: "Active" };
+exports.getCoursesByDepartment = async (req, res) => {
+  const courses = await Course.find({
+    department_id: req.params.departmentId,
+    college_id: req.college_id
+  });
 
-    if (req.query.departmentId) {
-      filter.departmentId = req.query.departmentId;
-    }
-
-    const courses = await Course.find(filter)
-      .populate("departmentId", "name code")
-      .sort({ name: 1 });
-
-    res.json({
-      success: true,
-      data: courses
-    });
-  } catch (err) {
-    next(err);
-  }
+  res.json(courses);
 };
+
+
+/**
+ * READ Single Course (by ID)
+ */
+exports.getCourseById = async (req, res) => {
+  const course = await Course.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!course) {
+    return res.status(404).json({
+      message: "Course not found"
+    });
+  }
+
+  res.json(course);
+};
+
 
 /**
  * UPDATE Course
  */
-exports.updateCourse = async (req, res, next) => {
-  try {
-    const course = await Course.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+exports.updateCourse = async (req, res) => {
+  const course = await Course.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      college_id: req.college_id
+    },
+    req.body,
+    { new: true }
+  );
 
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-
-    res.json({
-      success: true,
-      data: course
-    });
-  } catch (err) {
-    next(err);
+  if (!course) {
+    return res.status(404).json({ message: "Course not found" });
   }
+
+  res.json(course);
 };
 
 /**
- * SOFT DELETE Course
+ * DELETE Course
  */
-exports.deleteCourse = async (req, res, next) => {
-  try {
-    const course = await Course.findByIdAndUpdate(
-      req.params.id,
-      { status: "Inactive" },
-      { new: true }
-    );
+exports.deleteCourse = async (req, res) => {
+  const course = await Course.findOneAndDelete({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
 
-    if (!course) {
-      return res.status(404).json({ message: "Course not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "Course deactivated"
-    });
-  } catch (err) {
-    next(err);
+  if (!course) {
+    return res.status(404).json({ message: "Course not found" });
   }
-};
 
+  res.json({ message: "Course deleted successfully" });
+};
