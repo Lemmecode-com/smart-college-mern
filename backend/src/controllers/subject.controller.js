@@ -1,88 +1,98 @@
 const Subject = require("../models/subject.model");
 const Course = require("../models/course.model");
+const Teacher = require("../models/teacher.model");
 
 /**
- * CREATE Subject
+ * CREATE SUBJECT
  */
-exports.createSubject = async (req, res, next) => {
-  try {
-    const { name, code, courseId } = req.body;
+exports.createSubject = async (req, res) => {
+  const {
+    course_id,
+    name,
+    code,
+    semester,
+    credits,
+    teacher_id
+  } = req.body;
 
-    if (!name || !code || !courseId) {
-      return res.status(400).json({
-        message: "Name, code and course are required"
-      });
-    }
+  // Validate course
+  const course = await Course.findOne({
+    _id: course_id,
+    college_id: req.college_id
+  });
 
-    const course = await Course.findById(courseId);
-    if (!course || course.status !== "Active") {
-      return res.status(400).json({
-        message: "Invalid course"
-      });
-    }
-
-    const subject = await Subject.create({
-      name,
-      code,
-      courseId,
-      departmentId: course.departmentId,
-      collegeId: req.user.collegeId
-    });
-
-    res.status(201).json({
-      success: true,
-      data: subject
-    });
-  } catch (err) {
-    next(err);
+  if (!course) {
+    return res.status(404).json({ message: "Invalid course" });
   }
+
+  // Validate teacher
+  const teacher = await Teacher.findOne({
+    _id: teacher_id,
+    college_id: req.college_id
+  });
+
+  if (!teacher) {
+    return res.status(404).json({ message: "Invalid teacher" });
+  }
+
+  const subject = await Subject.create({
+    college_id: req.college_id,
+    course_id,
+    name,
+    code,
+    semester,
+    credits,
+    teacher_id,
+    createdBy: req.user.id
+  });
+
+  res.status(201).json(subject);
 };
 
 /**
- * GET Subjects (by course)
+ * GET SUBJECTS BY COURSE
  */
-exports.getSubjects = async (req, res, next) => {
-  try {
-    if (!req.query.courseId) {
-      return res.status(400).json({
-        message: "courseId is required"
-      });
-    }
+exports.getSubjectsByCourse = async (req, res) => {
+  const subjects = await Subject.find({
+    course_id: req.params.courseId,
+    college_id: req.college_id
+  }).populate("teacher_id", "name designation");
 
-    const subjects = await Subject.find({
-      courseId: req.query.courseId,
-      status: "Active"
-    }).sort({ name: 1 });
-
-    res.json({
-      success: true,
-      data: subjects
-    });
-  } catch (err) {
-    next(err);
-  }
+  res.json(subjects);
 };
 
 /**
- * SOFT DELETE Subject
+ * UPDATE SUBJECT
  */
-exports.deleteSubject = async (req, res, next) => {
-  try {
-    const subject = await Subject.findByIdAndUpdate(
-      req.params.id,
-      { status: "Inactive" },
-      { new: true }
-    );
+exports.updateSubject = async (req, res) => {
+  const subject = await Subject.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      college_id: req.college_id
+    },
+    req.body,
+    { new: true }
+  );
 
-    if (!subject) {
-      return res.status(404).json({ message: "Subject not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "Subject deactivated"
-    });
-  } catch (err) {
-    next(err);
+  if (!subject) {
+    return res.status(404).json({ message: "Subject not found" });
   }
+
+  res.json(subject);
+};
+
+/**
+ * DELETE SUBJECT
+ */
+exports.deleteSubject = async (req, res) => {
+  const subject = await Subject.findOneAndDelete({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!subject) {
+    return res.status(404).json({ message: "Subject not found" });
+  }
+
+  res.json({ message: "Subject deleted successfully" });
 };

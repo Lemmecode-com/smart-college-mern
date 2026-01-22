@@ -1,19 +1,10 @@
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
+const auth = require("../middlewares/auth.middleware");
+const { login, logout } = require("../controllers/auth.controller");
 
-const {
-  register,
-  login,
-  logout,
-  me
-} = require("../controllers/auth.controller");
-
-const authMiddleware = require("../middleware/auth.middleware");
-
-router.post("/register", register);
 router.post("/login", login);
-router.post("/logout", authMiddleware, logout);
-router.get("/me", authMiddleware, me);
+
+// 🔐 Protected logout
+router.post("/logout", auth, logout);
 
 module.exports = router;
-

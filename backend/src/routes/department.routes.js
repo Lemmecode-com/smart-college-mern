@@ -1,52 +1,38 @@
 const express = require("express");
 const router = express.Router();
 
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
+
 const {
   createDepartment,
   getDepartments,
-  getDepartmentById,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
+  getDepartmentById,
+  assignHOD,
 } = require("../controllers/department.controller");
 
-const authMiddleware = require("../middleware/auth.middleware");
-const roleMiddleware = require("../middleware/role.middleware");
+// Apply middlewares to ALL department routes
+router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
 
-// 🔐 Admin / CollegeAdmin only
-router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware("admin", "collegeAdmin"),
-  createDepartment
-);
+// Create Department
+router.post("/", createDepartment);
 
-// 🔓 Any logged-in user can view
-router.get(
-  "/",
-  authMiddleware,
-  getDepartments
-);
+// Get All Departments (college-wise)
+router.get("/", getDepartments);
 
-router.get(
-  "/:id",
-  authMiddleware,
-  getDepartmentById
-);
+// Get Single Department
+router.get("/:id", getDepartmentById);
 
-// 🔐 Admin / CollegeAdmin only
-router.put(
-  "/:id",
-  authMiddleware,
-  roleMiddleware("admin", "collegeAdmin"),
-  updateDepartment
-);
+// Update Department
+router.put("/:id", updateDepartment);
 
-// 🔐 Admin / CollegeAdmin only (soft delete)
-router.delete(
-  "/:id",
-  authMiddleware,
-  roleMiddleware("admin", "collegeAdmin"),
-  deleteDepartment
-);
+// Delete Department
+router.delete("/:id", deleteDepartment);
+
+// Assign HOD
+router.put("/:id/assign-hod", assignHOD);
 
 module.exports = router;

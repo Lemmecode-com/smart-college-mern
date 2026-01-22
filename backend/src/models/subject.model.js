@@ -2,38 +2,63 @@ const mongoose = require("mongoose");
 
 const subjectSchema = new mongoose.Schema(
   {
+    college_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      required: true
+    },
+
+    course_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true
+    },
+
     name: {
       type: String,
-      required: true,
-      trim: true
+      required: true
     },
+
     code: {
       type: String,
       required: true,
       uppercase: true
     },
-    courseId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Course",
+
+    semester: {
+      type: Number,
       required: true
     },
-    departmentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
+
+    credits: {
+      type: Number,
       required: true
     },
+
+    teacher_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: true
+    },
+
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
-      default: "Active"
+      enum: ["ACTIVE", "INACTIVE"],
+      default: "ACTIVE"
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     }
   },
   { timestamps: true }
 );
 
-// Prevent duplicate subjects per course
+// Prevent duplicate subject per course & semester
 subjectSchema.index(
-  { name: 1, courseId: 1 },
+  { college_id: 1, course_id: 1, code: 1 },
   { unique: true }
 );
 
