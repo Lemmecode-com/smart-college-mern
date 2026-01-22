@@ -72,7 +72,7 @@ exports.registerStudent = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 5️⃣ Create student
-     const registeredStud=await Student.create({
+    const registeredStud = await Student.create({
       fullName,
       email,
       password: hashedPassword,
