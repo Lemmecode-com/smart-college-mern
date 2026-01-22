@@ -1,15 +1,11 @@
-const router = require("express").Router();
-const auth = require("../middleware/auth.middleware");
-const role = require("../middleware/role.middleware");
-const ctrl = require("../controllers/student.controller");
+const express = require("express");
+const router = express.Router();
 
-// Admin only: create student
-router.post("/", auth, role("admin"), ctrl.createStudent);
+const {
+  registerStudent
+} = require("../controllers/student.controller");
 
-// Admin & Teacher: view students (secure)
-router.get("/", auth, role("admin", "teacher"), ctrl.getStudents);
-
-// Get student by ID
-router.get("/:id", auth, ctrl.getStudentById);
+// 🌍 PUBLIC STUDENT REGISTRATION
+router.post("/register/:collegeCode", registerStudent);
 
 module.exports = router;

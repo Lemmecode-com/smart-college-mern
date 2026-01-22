@@ -1,50 +1,66 @@
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { jwtDecode } from "jwt-decode";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Login
+  /* ========== LOGIN ========== */
   const login = async (credentials) => {
-    const res = await api.post("/auth/login", credentials);
-    localStorage.setItem("token", res.data.token);
+    try {
+      const res = await api.post("/auth/login", credentials);
 
-    const me = await api.get("/auth/me");
-    setUser(me.data);
+      // backend returns: { token, role }
+      const { token, role } = res.data;
+
+      localStorage.setItem("accessToken", token);
+      setUser({ role });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Login failed"
+      };
+    }
   };
 
-  // Logout
-  const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (e) {}
-    localStorage.removeItem("token");
+  /* ========== LOGOUT ========== */
+  const logout = () => {
+    localStorage.removeItem("accessToken");
     setUser(null);
   };
 
-  // Restore session
+  /* ========== RESTORE SESSION ========== */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
+    const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setUser({ role: decoded.role });
+      } catch {
+        localStorage.removeItem("accessToken");
+        setUser(null);
+      }
     }
 
-    api
-      .get("/auth/me")
-      .then((res) => setUser(res.data))
-      .catch(() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    setLoading(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        isAuthenticated: Boolean(user),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
