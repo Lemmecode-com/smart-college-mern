@@ -15,35 +15,6 @@ export default function Login() {
   /* SINGLE SOURCE OF TRUTH */
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-<<<<<<< HEAD
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [forgotMode, setForgotMode] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
-
-  const submitHandler = async (e) => {
-    e.preventDefault();
-
-    if (!email || (!forgotMode && !password)) {
-      return setError("All fields are required");
-    }
-
-    setLoading(true);
-    setError("");
-    setSuccessMsg("");
-
-    try {
-      if (forgotMode) {
-        // Simulated forgot password success
-        setSuccessMsg("Password reset link sent to your email.");
-      } else {
-        await login({ email, password });
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
-=======
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -51,7 +22,6 @@ export default function Login() {
     if (!email || (!forgotMode && !password)) {
       setError("All fields are required");
       return;
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
     }
 
     setLoading(true);
@@ -84,21 +54,13 @@ export default function Login() {
   return (
     <div
       className="container-fluid min-vh-100 d-flex align-items-center justify-content-center px-3"
-<<<<<<< HEAD
-      style={{ background: "#f5eef1" }}
-=======
       style={{ background: "#ffffff" }}
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
     >
       <div
         className="card shadow-lg border-0 rounded-4 overflow-hidden w-100"
         style={{ maxWidth: "900px", animation: "fadeIn 0.6s ease" }}
       >
         <div className="row g-0">
-<<<<<<< HEAD
-
-=======
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
           {/* LEFT PANEL */}
           <div
             className="col-md-5 d-none d-md-flex flex-column justify-content-center text-white p-5"
@@ -116,10 +78,6 @@ export default function Login() {
 
           {/* RIGHT PANEL */}
           <div className="col-md-7 bg-white p-4 p-md-5">
-<<<<<<< HEAD
-
-=======
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
             <div className="text-center mb-4">
               <div
                 className="rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
@@ -145,10 +103,6 @@ export default function Login() {
             )}
 
             <form onSubmit={submitHandler}>
-<<<<<<< HEAD
-
-=======
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
               {/* EMAIL */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Email</label>
@@ -161,11 +115,7 @@ export default function Login() {
                 />
               </div>
 
-<<<<<<< HEAD
-              {/* PASSWORD (Only for Login) */}
-=======
               {/* PASSWORD */}
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
               {!forgotMode && (
                 <div className="mb-3">
                   <label className="form-label fw-semibold">Password</label>
@@ -234,32 +184,18 @@ export default function Login() {
                 <span className="text-muted small">
                   Don’t have an account?
                 </span>{" "}
-<<<<<<< HEAD
-                <Link
-                  to="/register"
-                  className="fw-semibold text-decoration-none"
-                  style={{ color: "#1f6f8b" }}
-                >
-                  Register
-                </Link>
-=======
                 <span
                   className="fw-semibold text-decoration-none"
                   style={{ color: "#1f6f8b" }}
                 >
                   Students use College QR / Link
                 </span>
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
               </div>
             )}
           </div>
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Animation */}
-=======
->>>>>>> e8041ac0f2bdfc57c2f7029757968c1f505df28b
       <style>
         {`@keyframes fadeIn {
           from {opacity:0; transform: translateY(20px)}
