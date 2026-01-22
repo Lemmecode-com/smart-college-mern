@@ -1,14 +1,35 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { Navigate } from "react-router-dom";
 import api from "../../api/axios";
+import { AuthContext } from "../../auth/AuthContext";
 
 export default function AddTeacher() {
+  const { user } = useContext(AuthContext);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  /* ================= ROLE GUARD ================= */
+  if (!user || !["admin", "collegeAdmin"].includes(user.role)) {
+    return <Navigate to="/dashboard" />;
+  }
+
+  /* ================= SUBMIT ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -16,21 +37,24 @@ export default function AddTeacher() {
         name,
         email,
         password,
-        role: "teacher",
+        role: "teacher"
       });
 
-      alert("Teacher created successfully");
+      setSuccess("Teacher created successfully 🎉");
 
       setName("");
       setEmail("");
       setPassword("");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create teacher");
+      setError(
+        err.response?.data?.message || "Failed to create teacher"
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
+  /* ================= UI ================= */
   return (
     <div className="container-fluid mt-4">
       <div className="row justify-content-center">
@@ -41,7 +65,7 @@ export default function AddTeacher() {
             style={{
               background: "linear-gradient(180deg, #0f3a4a, #134952)",
               borderRadius: "12px",
-              color: "white",
+              color: "white"
             }}
           >
             <h5 className="mb-1">Add Teacher</h5>
@@ -56,10 +80,25 @@ export default function AddTeacher() {
             style={{ borderRadius: "12px" }}
           >
             <div className="card-body">
+              {/* Alerts */}
+              {error && (
+                <div className="alert alert-danger text-center py-2">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="alert alert-success text-center py-2">
+                  {success}
+                </div>
+              )}
+
               <form onSubmit={submitHandler}>
                 {/* Name */}
                 <div className="mb-3">
-                  <label className="form-label">Full Name</label>
+                  <label className="form-label fw-semibold">
+                    Full Name
+                  </label>
                   <input
                     className="form-control"
                     value={name}
@@ -70,7 +109,9 @@ export default function AddTeacher() {
 
                 {/* Email */}
                 <div className="mb-3">
-                  <label className="form-label">Email</label>
+                  <label className="form-label fw-semibold">
+                    Email
+                  </label>
                   <input
                     type="email"
                     className="form-control"
@@ -82,26 +123,29 @@ export default function AddTeacher() {
 
                 {/* Password */}
                 <div className="mb-4">
-                  <label className="form-label">Password</label>
+                  <label className="form-label fw-semibold">
+                    Password
+                  </label>
                   <input
                     type="password"
                     className="form-control"
                     value={password}
                     required
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
                   />
                 </div>
 
                 {/* Button */}
                 <button
-                  className="btn w-100"
+                  className="btn w-100 fw-semibold"
                   disabled={loading}
                   style={{
                     background:
                       "linear-gradient(180deg, #0f3a4a, #134952)",
                     color: "white",
                     padding: "10px",
-                    borderRadius: "8px",
+                    borderRadius: "8px"
                   }}
                 >
                   {loading ? "Creating..." : "Create Teacher"}
