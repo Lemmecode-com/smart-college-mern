@@ -64,6 +64,7 @@ exports.createTeacher = async (req, res) => {
         name: teacher.name,
         email: teacher.email,
         designation: teacher.designation,
+        password: teacher.password,
         status: teacher.status,
       },
     });
