@@ -64,8 +64,9 @@ exports.createTeacher = async (req, res) => {
         name: teacher.name,
         email: teacher.email,
         designation: teacher.designation,
+        password: teacher.password,
         status: teacher.status,
-      },
+      }, 
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

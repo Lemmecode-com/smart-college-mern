@@ -13,7 +13,6 @@ app.use("/api/departments", require("./src/routes/department.routes"));
 app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
-app.use("/api/students", require("./src/routes/studentApproval.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 
 app.use("/uploads", express.static("uploads"));
