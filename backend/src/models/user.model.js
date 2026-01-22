@@ -1,36 +1,20 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true
-    },
-    password: { type: String, required: true },
-    role: {
-      type: String,
-      enum: ["admin", "collegeAdmin", "teacher", "student", "parent"],
-      required: true
-    },
-    refreshToken: {
-      type: String,
-      default: null
-    },
-    status: {
-      type: String,
-      enum: ["Active", "Blocked"],
-      default: "Active"
-    },
-
-    collegeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "College"
-    },
+const userSchema = new mongoose.Schema({
+  college_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "College",
+    required: function () {
+      return this.role !== "SUPER_ADMIN";
+    }
   },
-  { timestamps: true }
-);
+  name: String,
+  email: { type: String, unique: true },
+  password: String,
+  role: {
+    type: String,
+    enum: ["SUPER_ADMIN", "COLLEGE_ADMIN", "TEACHER", "STUDENT"]
+  }
+});
 
 module.exports = mongoose.model("User", userSchema);
