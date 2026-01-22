@@ -1,166 +1,64 @@
-
-
-// import { createContext, useEffect, useState } from "react";
-// import api from "../api/axios";
-
-// export const AuthContext = createContext();
-
-// export const AuthProvider = ({ children }) => {
-//   const [user, setUser] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   /* ================= LOGIN ================= */
-//   const login = async (credentials) => {
-//     const res = await api.post("/auth/login", credentials);
-
-//     const { accessToken, refreshToken, user } = res.data;
-
-//     // 🔥 STORE TOKENS CORRECTLY
-//     localStorage.setItem("accessToken", accessToken);
-//     localStorage.setItem("refreshToken", refreshToken);
-
-//     setUser(user);
-//   };
-
-//   /* ================= LOGOUT ================= */
-//   const logout = async () => {
-//     try {
-//       await api.post("/auth/logout");
-//     } catch (e) {}
-
-//     localStorage.removeItem("accessToken");
-//     localStorage.removeItem("refreshToken");
-//     setUser(null);
-//   };
-
-//   /* ================= RESTORE SESSION ================= */
-//   useEffect(() => {
-//     const token = localStorage.getItem("accessToken");
-
-//     if (!token) {
-//       setLoading(false);
-//       return;
-//     }
-
-//     api
-//       .get("/auth/me")
-//       .then((res) => setUser(res.data))
-//       .catch(() => {
-//         localStorage.removeItem("accessToken");
-//         localStorage.removeItem("refreshToken");
-//         setUser(null);
-//       })
-//       .finally(() => setLoading(false));
-//   }, []);
-
-//   return (
-//     <AuthContext.Provider
-//       value={{
-//         user,
-//         login,
-//         logout,
-//         loading,
-//         isAuthenticated: !!user
-//       }}
-//     >
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-
-
-
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { jwtDecode } from "jwt-decode";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ================= LOGIN ================= */
+  /* ========== LOGIN ========== */
   const login = async (credentials) => {
-    const res = await api.post("/auth/login", credentials);
+    try {
+      const res = await api.post("/auth/login", credentials);
 
-    const { accessToken, refreshToken, user } = res.data;
+      // backend returns: { token, role }
+      const { token, role } = res.data;
 
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("accessToken", token);
+      setUser({ role });
 
-    setUser(user);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Login failed"
+      };
+    }
   };
 
-  /* ================= LOGOUT ================= */
-  const logout = async () => {
-    try {
-      await api.post("/auth/logout", null, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      });
-    } catch (e) {
-      // ignore error
-    }
-
+  /* ========== LOGOUT ========== */
+  const logout = () => {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     setUser(null);
   };
 
-  /* ================= RESTORE SESSION ================= */
+  /* ========== RESTORE SESSION ========== */
   useEffect(() => {
-    const restoreSession = async () => {
-      const token = localStorage.getItem("accessToken");
-      const refreshToken = localStorage.getItem("refreshToken");
+    const token = localStorage.getItem("accessToken");
 
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
+    if (token) {
       try {
-        const res = await api.get("/auth/me");
-        setUser(res.data);
-      } catch (err) {
-        // 🔁 TRY REFRESH TOKEN
-        if (refreshToken) {
-          try {
-            const refreshRes = await api.post("/auth/refresh", {
-              refreshToken,
-            });
-
-            localStorage.setItem(
-              "accessToken",
-              refreshRes.data.accessToken
-            );
-
-            const meRes = await api.get("/auth/me");
-            setUser(meRes.data);
-          } catch {
-            localStorage.clear();
-            setUser(null);
-          }
-        } else {
-          localStorage.clear();
-          setUser(null);
-        }
-      } finally {
-        setLoading(false);
+        const decoded = jwtDecode(token);
+        setUser({ role: decoded.role });
+      } catch {
+        localStorage.removeItem("accessToken");
+        setUser(null);
       }
-    };
+    }
 
-    restoreSession();
+    setLoading(false);
   }, []);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         logout,
-        loading,
-        isAuthenticated: !!user,
+        isAuthenticated: Boolean(user),
       }}
     >
       {children}
