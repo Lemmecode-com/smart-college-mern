@@ -72,7 +72,7 @@ exports.registerStudent = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 5️⃣ Create student
-    await Student.create({
+     const registeredStud=await Student.create({
       fullName,
       email,
       password: hashedPassword,
@@ -98,7 +98,8 @@ exports.registerStudent = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Registration successful. Await college approval."
+      message: "Registration successful. Await college approval.",
+      registeredStud
     });
 
   } catch (error) {
