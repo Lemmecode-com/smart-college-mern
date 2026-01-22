@@ -97,8 +97,7 @@ const sendToken = (res, id, role, college_id) => {
 
   res.json({
     token,
-    role,
-    user
+    role
   });
 };
 
