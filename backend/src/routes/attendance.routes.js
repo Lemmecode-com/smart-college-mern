@@ -1,41 +1,38 @@
+const express = require("express");
+const router = express.Router();
 
-// const express = require("express");
-// const router = express.Router();
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
 
-// const auth = require("../middleware/auth.middleware");
-// const role = require("../middleware/role.middleware");
-// const attendanceCtrl = require("../controllers/attendance.controller");
+const {
+  getStudentsForAttendance,
+  markManualAttendance,
+  editAttendance
+} = require("../controllers/attendanceManual.controller");
 
-// // Teacher
-// router.post(
-//   "/mark",
-//   auth,
-//   role("teacher"),
-//   attendanceCtrl.markAttendance
-// );
+router.get(
+  "/students",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getStudentsForAttendance
+);
 
-// // Student
-// router.get(
-//   "/my",
-//   auth,
-//   role("student"),
-//   attendanceCtrl.getMyAttendance
-// );
+router.post(
+  "/sessions/:sessionId/manual",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  markManualAttendance
+);
 
-// // Parent
-// router.get(
-//   "/child",
-//   auth,
-//   role("parent"),
-//   attendanceCtrl.getChildAttendance
-// );
+router.put(
+  "/sessions/:sessionId/edit",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  editAttendance
+);
 
-// // Admin / CollegeAdmin
-// router.get(
-//   "/report",
-//   auth,
-//   role("admin", "collegeAdmin"),
-//   attendanceCtrl.getAttendanceReport
-// );
-
-// module.exports = router;
+module.exports = router;
