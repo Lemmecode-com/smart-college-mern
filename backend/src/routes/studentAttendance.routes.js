@@ -8,6 +8,7 @@ const collegeMiddleware = require("../middlewares/college.middleware");
 const {
   getStudentAttendanceSummary
 } = require("../controllers/studentAttendance.controller");
+const studentMiddleware = require("../middlewares/student.middleware");
 
 // 🎓 Student views own attendance
 router.get(
@@ -15,6 +16,7 @@ router.get(
   auth,
   role("STUDENT"),
   collegeMiddleware,
+  studentMiddleware,
   getStudentAttendanceSummary
 );
 
