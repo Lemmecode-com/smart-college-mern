@@ -1,135 +1,132 @@
 const Department = require("../models/department.model");
-const College = require("../models/college.model");
+const Teacher = require("../models/teacher.model");
 
 /**
  * CREATE Department
- * Only Admin / CollegeAdmin
- * Department must belong to existing college
  */
-exports.createDepartment = async (req, res, next) => {
-  try {
-    const { name, code } = req.body;
+exports.createDepartment = async (req, res) => {
+  const {
+    name,
+    code,
+    type,
+    status,
+    programsOffered,
+    startYear,
+    sanctionedFacultyCount,
+    sanctionedStudentIntake
+  } = req.body;
 
-    if (!name || !code) {
-      return res.status(400).json({
-        message: "Department name and code are required"
-      });
-    }
+  const department = await Department.create({
+    college_id: req.college_id,
+    name,
+    code,
+    type,
+    status,
+    programsOffered,
+    startYear,
+    sanctionedFacultyCount,
+    sanctionedStudentIntake,
+    createdBy: req.user.id
+  });
 
-    // There should be one active college
-    const college = await College.findOne({ status: "Active" });
-    if (!college) {
-      return res.status(400).json({
-        message: "College must be created before departments"
-      });
-    }
+  res.status(201).json(department);
+};
 
-    const department = await Department.create({
-      name,
-      code,
-      collegeId: college._id
-    });
+/* get department by ID */
+exports.getDepartmentById = async (req, res) => {
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
 
-    res.status(201).json({
-      success: true,
-      data: department
-    });
-  } catch (err) {
-    next(err);
+  if (!department) {
+    return res.status(404).json({ message: "Department not found" });
   }
+
+  res.json(department);
 };
 
 /**
- * GET All Departments (of current college)
+ * READ Departments
  */
-exports.getDepartments = async (req, res, next) => {
-  try {
-    const college = await College.findOne({ status: "Active" });
-    if (!college) {
-      return res.status(400).json({
-        message: "College not configured"
-      });
-    }
+exports.getDepartments = async (req, res) => {
+  const departments = await Department.find({
+    college_id: req.college_id
+  });
 
-    const departments = await Department.find({
-      collegeId: college._id,
-      status: "Active"
-    }).sort({ name: 1 });
-
-    res.json({
-      success: true,
-      data: departments
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/**
- * GET Department By ID
- */
-exports.getDepartmentById = async (req, res, next) => {
-  try {
-    const department = await Department.findById(req.params.id)
-      .populate("collegeId", "name");
-
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
-
-    res.json({
-      success: true,
-      data: department
-    });
-  } catch (err) {
-    next(err);
-  }
+  res.json(departments);
 };
 
 /**
  * UPDATE Department
  */
-exports.updateDepartment = async (req, res, next) => {
-  try {
-    const department = await Department.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+exports.updateDepartment = async (req, res) => {
+  const department = await Department.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      college_id: req.college_id
+    },
+    req.body,
+    { new: true }
+  );
 
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
-
-    res.json({
-      success: true,
-      data: department
-    });
-  } catch (err) {
-    next(err);
+  if (!department) {
+    return res.status(404).json({ message: "Department not found" });
   }
+
+  res.json(department);
 };
 
 /**
- * SOFT DELETE Department
+ * DELETE Department
  */
-exports.deleteDepartment = async (req, res, next) => {
-  try {
-    const department = await Department.findByIdAndUpdate(
-      req.params.id,
-      { status: "Inactive" },
-      { new: true }
-    );
+exports.deleteDepartment = async (req, res) => {
+  const department = await Department.findOneAndDelete({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
 
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
-
-    res.json({
-      success: true,
-      message: "Department deactivated successfully"
-    });
-  } catch (err) {
-    next(err);
+  if (!department) {
+    return res.status(404).json({ message: "Department not found" });
   }
+
+  res.json({ message: "Department deleted successfully" });
+};
+
+/**
+ * ASSIGN HOD TO DEPARTMENT
+ */
+exports.assignHOD = async (req, res) => {
+  const { teacher_id } = req.body;
+
+  // Check department
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!department) {
+    return res.status(404).json({ message: "Department not found" });
+  }
+
+  // Check teacher
+  const teacher = await Teacher.findOne({
+    _id: teacher_id,
+    college_id: req.college_id,
+    department_id: department._id
+  });
+
+  if (!teacher) {
+    return res.status(400).json({
+      message: "Teacher must belong to the same department"
+    });
+  }
+
+  department.hod_id = teacher._id;
+  await department.save();
+
+  res.json({
+    message: "HOD assigned successfully",
+    department
+  });
 };

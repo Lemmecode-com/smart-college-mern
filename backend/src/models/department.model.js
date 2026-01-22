@@ -2,33 +2,74 @@ const mongoose = require("mongoose");
 
 const departmentSchema = new mongoose.Schema(
   {
+    college_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      required: true
+    },
+
     name: {
       type: String,
       required: true,
       trim: true
     },
+
     code: {
       type: String,
       required: true,
       uppercase: true
     },
-    collegeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "College",
+
+    type: {
+      type: String,
+      enum: ["ACADEMIC", "ADMINISTRATIVE"],
       required: true
     },
+
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
-      default: "Active"
+      enum: ["ACTIVE", "INACTIVE"],
+      default: "ACTIVE"
+    },
+
+    hod_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null // assigned later
+    },
+
+    programsOffered: {
+      type: [String], // ["UG", "PG"]
+      required: true
+    },
+
+    startYear: {
+      type: Number,
+      required: true
+    },
+
+    sanctionedFacultyCount: {
+      type: Number,
+      required: true
+    },
+
+    sanctionedStudentIntake: {
+      type: Number,
+      required: true
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     }
   },
   { timestamps: true }
 );
 
-// 🔒 Prevent duplicate department names per college
+// Prevent duplicate department code per college
 departmentSchema.index(
-  { name: 1, collegeId: 1 },
+  { college_id: 1, code: 1 },
   { unique: true }
 );
 

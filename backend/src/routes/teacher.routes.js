@@ -1,36 +1,24 @@
 const express = require("express");
 const router = express.Router();
 
-const auth = require("../middleware/auth.middleware");
-const role = require("../middleware/role.middleware");
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
+
 const {
   createTeacher,
-  assignSubjects,
-  getTeacher
+  getTeachers,
+  getTeacherById,
+  updateTeacher,
+  deleteTeacher
 } = require("../controllers/teacher.controller");
 
-/* Create teacher profile */
-router.post(
-  "/",
-  auth,
-  role("admin", "collegeAdmin"),
-  createTeacher
-);
+router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
 
-/* Assign subjects */
-router.post(
-  "/:teacherId/assign-subjects",
-  auth,
-  role("admin", "collegeAdmin"),
-  assignSubjects
-);
-
-/* Get teacher */
-router.get(
-  "/:id",
-  auth,
-  role("admin", "collegeAdmin", "teacher"),
-  getTeacher
-);
+router.post("/", createTeacher);
+router.get("/", getTeachers);
+router.get("/:id", getTeacherById);
+router.put("/:id", updateTeacher);
+router.delete("/:id", deleteTeacher);
 
 module.exports = router;

@@ -1,93 +1,107 @@
-// src/controllers/student.controller.js
-const Student = require("../models/student.model");
-const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
+const College = require("../models/college.model");
+const Department = require("../models/department.model");
+const Course = require("../models/course.model");
+const Student = require("../models/student.model");
 
-exports.createStudent = async (req, res) => {
-  const {
-    name,
-    email,
-    password,
-    rollNo,
-    departmentId,
-    courseId
-  } = req.body;
+exports.registerStudent = async (req, res) => {
+  try {
+    const { collegeCode } = req.params;
 
-  // 1️⃣ Check if user exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    return res.status(400).json({ message: "User already exists" });
+    const {
+      fullName,
+      email,
+      password,
+      mobileNumber,
+      gender,
+      dateOfBirth,
+      addressLine,
+      city,
+      state,
+      pincode,
+      department_id,
+      course_id,
+      admissionYear,
+      currentSemester,
+      previousQualification,
+      previousInstitute,
+      category,
+      nationality,
+      bloodGroup,
+      alternateMobile
+    } = req.body;
+
+    // 1️⃣ Resolve college
+    const college = await College.findOne({ code: collegeCode });
+    if (!college) {
+      return res.status(404).json({ message: "Invalid college registration link" });
+    }
+
+    // 2️⃣ Validate department & course (same as before)
+
+
+    // Validate Department
+    const department = await Department.findOne({
+      _id: department_id,
+      college_id: college._id
+    });
+    if (!department) {
+      return res.status(400).json({ message: "Invalid department" });
+    }
+
+    // Validate course
+    const course = await Course.findOne({
+      _id: course_id,
+      department_id,
+      college_id: college._id
+    });
+    if (!course) {
+      return res.status(400).json({ message: "Invalid course" });
+    }
+
+    // 3️⃣ Prevent duplicate
+    const exists = await Student.findOne({
+      email,
+      college_id: college._id
+    });
+    if (exists) {
+      return res.status(400).json({ message: "Student already registered with this email" });
+    }
+
+    // 4️⃣ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 5️⃣ Create student
+    await Student.create({
+      fullName,
+      email,
+      password: hashedPassword,
+      mobileNumber,
+      gender,
+      dateOfBirth,
+      addressLine,
+      city,
+      state,
+      pincode,
+      college_id: college._id,
+      department_id,
+      course_id,
+      admissionYear,
+      currentSemester,
+      previousQualification,
+      previousInstitute,
+      category,
+      nationality,
+      bloodGroup,
+      alternateMobile,
+      status: "PENDING"
+    });
+
+    res.status(201).json({
+      message: "Registration successful. Await college approval."
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  // 2️⃣ Create user with role student
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    role: "student"
-  });
-
-  // 3️⃣ Create student profile
-  const student = await Student.create({
-    userId: user._id,
-    rollNo,
-    departmentId,
-    courseId
-  });
-
-  res.status(201).json({
-    message: "Student created successfully",
-    student
-  });
-};
-
-
-exports.getAllStudents = async (req, res) => {
-  const students = await Student.find()
-    .populate("userId", "name email")
-    .populate("departmentId", "name")
-    .populate("courseId", "name code");
-
-  res.json({
-    count: students.length,
-    students
-  });
-};
-
-exports.getStudentsByCourse = async (req, res) => {
-  const { courseId } = req.params;
-
-  const students = await Student.find({ courseId })
-    .populate("userId", "name email")
-    .populate("departmentId", "name")
-    .populate("courseId", "name code");
-
-  res.json({
-    count: students.length,
-    students
-  });
-};
-
-exports.assignParentToStudent = async (req, res) => {
-  const { studentId } = req.params;
-  const { parentId } = req.body;
-
-  const parent = await User.findById(parentId);
-  if (!parent || parent.role !== "parent") {
-    return res.status(400).json({ message: "Invalid parent user" });
-  }
-
-  const student = await Student.findById(studentId);
-  if (!student) {
-    return res.status(404).json({ message: "Student not found" });
-  }
-
-  student.parentId = parentId;
-  await student.save();
-
-  res.json({
-    message: "Parent assigned to student successfully"
-  });
 };
