@@ -21,9 +21,8 @@ import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
 import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 /* ================= COURSES ================= */
-import AddCourse from "./pages/courses/AddCourse";
-import CourseList from "./pages/courses/CourseList";
-
+import CourseList from "./pages/dashboard/College-Admin/CourseList";
+import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 /* ================= STUDENTS ================= */
 import AddStudent from "./pages/students/AddStudent";
 import StudentList from "./pages/students/StudentList";
@@ -42,6 +41,8 @@ import AddTeacher from "./pages/Teachers/AddTeacher";
 import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
+import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
+
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -185,6 +186,15 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddCourse />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditCourse />
                     </ProtectedRoute>
                   }
                 />
