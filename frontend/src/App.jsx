@@ -8,13 +8,13 @@ import Navbar from "./components/Navbar";
 
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
+import StudentRegister from "./pages/auth/StudentRegister";
 
 /* ================= DASHBOARDS ================= */
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
 import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
-import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
+import TeacherDashboard from "./pages/Teachers/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
 /* ================= DEPARTMENTS ================= */
@@ -34,15 +34,17 @@ import MyAttendance from "./pages/attendance/MyAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
 
 /* ================= SUBJECTS / TEACHERS ================= */
-import SubjectList from "./pages/Subjects/SubjectList";
-import AddSubject from "./pages/Subjects/AddSubject";
-import TeachersList from "./pages/Teachers/TeachersList";
-import AddTeacher from "./pages/Teachers/AddTeacher";
+import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
+import AddSubject from "./pages/dashboard/College-Admin/AddSubject";
 import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
 import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
-
+import AddTeacher from "./pages/dashboard/College-Admin/AddTeacher";
+import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
+import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
+import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
+import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -84,7 +86,8 @@ export default function App() {
 
                 {/* ================= PUBLIC ================= */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+                <Route path="/register/:collegeCode" element={<StudentRegister />} />
+
 
                 {/* ================= SUPER ADMIN ================= */}
                 <Route
@@ -153,7 +156,6 @@ export default function App() {
                   }
                 />
 
-                
                 {/* ================= DEPARTMENTS ================= */}
                 <Route
                   path="/departments"
@@ -168,6 +170,22 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddDepartment />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/departments/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditDepartment />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/departments/assign-hod/:departmentId"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AssignHod />
                     </ProtectedRoute>
                   }
                 />
@@ -253,7 +271,7 @@ export default function App() {
 
                 {/* ================= SUBJECTS ================= */}
                 <Route
-                  path="/subjects"
+                  path="/subjects/course/:courseId"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <SubjectList />
@@ -283,6 +301,14 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AddTeacher />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teachers/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditTeacher />
                     </ProtectedRoute>
                   }
                 />
