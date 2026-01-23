@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
@@ -7,17 +7,17 @@ import {
   FaBuilding,
   FaEdit,
   FaTrash,
-  FaPlusCircle,
-  FaSave,
-  FaTimes
+  FaUserTie,
+  FaSearch
 } from "react-icons/fa";
 
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const [editDept, setEditDept] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -43,27 +43,15 @@ export default function DepartmentList() {
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this department?")) return;
-
     await api.delete(`/departments/${id}`);
     fetchDepartments();
   };
 
-  /* ================= UPDATE ================= */
-  const handleUpdate = async () => {
-    await api.put(`/departments/${editDept._id}`, {
-      name: editDept.name,
-      code: editDept.code,
-      type: editDept.type,
-      status: editDept.status,
-      programsOffered: editDept.programsOffered,
-      startYear: editDept.startYear,
-      sanctionedFacultyCount: editDept.sanctionedFacultyCount,
-      sanctionedStudentIntake: editDept.sanctionedStudentIntake
-    });
-
-    setEditDept(null);
-    fetchDepartments();
-  };
+  /* ================= FILTER ================= */
+  const filteredDepartments = departments.filter((d) =>
+    d.name.toLowerCase().includes(search.toLowerCase()) ||
+    d.code.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -77,104 +65,100 @@ export default function DepartmentList() {
     <div className="container-fluid">
 
       {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4 d-flex justify-content-between">
+      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4 d-flex justify-content-between align-items-center">
         <h3>
           <FaBuilding className="blink me-2" />
-          Departments
+          Department Management
         </h3>
-      </div>
 
-      <div className="row g-4">
-        {departments.map((d) => (
-          <div className="col-md-4" key={d._id}>
-            <div className="card glass-card shadow-lg dept-card">
-              <div className="card-body">
-                <h5 className="fw-bold">{d.name}</h5>
-                <p>Code: {d.code}</p>
-                <p>Status: {d.status}</p>
-                <p>Programs: {d.programsOffered.join(", ")}</p>
-
-                <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => setEditDept(d)}
-                  >
-                    <FaEdit /> Edit
-                  </button>
-
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => handleDelete(d._id)}
-                  >
-                    <FaTrash /> Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ================= EDIT MODAL ================= */}
-      {editDept && (
-        <div className="modal-backdrop-custom">
-          <div className="modal-box">
-            <h5>Edit Department</h5>
-
-            <input
-              className="form-control mb-2"
-              value={editDept.name}
-              onChange={(e) =>
-                setEditDept({ ...editDept, name: e.target.value })
-              }
-            />
-
-            <input
-              className="form-control mb-2"
-              value={editDept.code}
-              onChange={(e) =>
-                setEditDept({ ...editDept, code: e.target.value })
-              }
-            />
-
-            <select
-              className="form-control mb-2"
-              value={editDept.status}
-              onChange={(e) =>
-                setEditDept({ ...editDept, status: e.target.value })
-              }
-            >
-              <option>ACTIVE</option>
-              <option>INACTIVE</option>
-            </select>
-
-            <input
-              className="form-control mb-2"
-              type="number"
-              value={editDept.startYear}
-              onChange={(e) =>
-                setEditDept({ ...editDept, startYear: e.target.value })
-              }
-            />
-
-            <div className="d-flex justify-content-end gap-2">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setEditDept(null)}
-              >
-                <FaTimes /> Cancel
-              </button>
-
-              <button
-                className="btn btn-success"
-                onClick={handleUpdate}
-              >
-                <FaSave /> Save
-              </button>
-            </div>
-          </div>
+        <div className="search-box">
+          <FaSearch className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search by name or code..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      )}
+      </div>
+
+      {/* TABLE */}
+      <div className="card glass-card shadow-lg">
+        <div className="card-body p-0">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="table-dark">
+              <tr>
+                <th>Sr.No</th>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Programs</th>
+                <th>Start Year</th>
+                <th>Faculty</th>
+                <th>Students</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredDepartments.map((d, index) => (
+                <tr key={d._id}>
+                  <td>{index + 1}</td>
+                  <td className="fw-semibold">{d.name}</td>
+                  <td>{d.code}</td>
+                  <td>{d.type}</td>
+                  <td>
+                    <span className={`badge ${d.status === "ACTIVE" ? "bg-success" : "bg-danger"}`}>
+                      {d.status}
+                    </span>
+                  </td>
+                  <td>{d.programsOffered.join(", ")}</td>
+                  <td>{d.startYear}</td>
+                  <td>{d.sanctionedFacultyCount}</td>
+                  <td>{d.sanctionedStudentIntake}</td>
+                  <td className="d-flex gap-2">
+
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() =>
+                        navigate(`/departments/edit/${d._id}`)
+                      }
+                    >
+                      <FaEdit />
+                    </button>
+
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDelete(d._id)}
+                    >
+                      <FaTrash />
+                    </button>
+
+                    <button
+                      className="btn btn-sm btn-success"
+                      onClick={() =>
+                        navigate(`/departments/assign-hod/${d._id}`)
+                      }
+                    >
+                      <FaUserTie />
+                    </button>
+
+                  </td>
+                </tr>
+              ))}
+
+              {filteredDepartments.length === 0 && (
+                <tr>
+                  <td colSpan="10" className="text-center text-muted py-4">
+                    No departments found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* ================= CSS ================= */}
       <style>{`
@@ -183,16 +167,8 @@ export default function DepartmentList() {
         }
 
         .glass-card {
-          background: rgba(255,255,255,0.9);
+          background: rgba(255,255,255,0.95);
           backdrop-filter: blur(10px);
-        }
-
-        .dept-card {
-          transition: all 0.3s ease;
-        }
-
-        .dept-card:hover {
-          transform: translateY(-6px);
         }
 
         .blink {
@@ -205,21 +181,35 @@ export default function DepartmentList() {
           100% {opacity:1}
         }
 
-        .modal-backdrop-custom {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.6);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 999;
+        .search-box {
+          position: relative;
         }
 
-        .modal-box {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          width: 400px;
+        .search-box input {
+          padding: 6px 12px 6px 32px;
+          border-radius: 20px;
+          border: none;
+          outline: none;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #555;
+        }
+
+        table th, table td {
+          vertical-align: middle;
+        }
+
+        .btn {
+          transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+          transform: scale(1.1);
         }
       `}</style>
     </div>
