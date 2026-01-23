@@ -76,7 +76,7 @@ const studentSchema = new mongoose.Schema(
 
     // 🎓 Academic Info
     admissionYear: {
-      type: Number,
+      type: Number, 
       required: true,
     },
 
