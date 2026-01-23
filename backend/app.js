@@ -19,6 +19,10 @@ app.use("/api/attendance", require("./src/routes/attendance.routes")); // Scan a
 app.use("/api/attendance", require("./src/routes/attendanceClose.routes")); // Close attendance session
 app.use("/api/attendance", require("./src/routes/studentAttendance.routes")); // View attendance summary for student
 app.use("/api/attendance", require("./src/routes/teacherAttendance.routes")); // View attendance report for logged in teacher only
+app.use(
+  "/api/attendance",
+  require("./src/routes/attendanceSession.routes")
+);
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
 
 app.use("/uploads", express.static("uploads"));
