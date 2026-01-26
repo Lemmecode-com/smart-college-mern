@@ -12,6 +12,7 @@ import {
   FaLink,
   FaChevronDown,
   FaCog,
+  FaCalendarAlt,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -178,6 +179,19 @@ export default function Sidebar() {
             </NavLink>
           </div>
 
+          {/* TIMETABLE */}
+          <div style={sectionTitle} onClick={() => toggle("timetable")}>
+            Timetable <FaChevronDown />
+          </div>
+          <div style={sectionBody(open.timetable)}>
+            <NavLink to="/timetable/create" style={navLink}>
+              <FaCalendarAlt /> Create Timetable
+            </NavLink>
+            <NavLink to="/timetable/view" style={navLink}>
+              <FaCalendarAlt /> View Timetable
+            </NavLink>
+          </div>
+
           {/* STUDENTS */}
           <div style={sectionTitle} onClick={() => toggle("students")}>
             Students <FaChevronDown />
@@ -185,12 +199,6 @@ export default function Sidebar() {
           <div style={sectionBody(open.students)}>
             <NavLink to="/students" style={navLink}>
               <FaUserGraduate /> Student List
-            </NavLink>
-            <NavLink to="/students/add" style={navLink}>
-              <FaUserGraduate /> Add Student
-            </NavLink>
-            <NavLink to="/students/assign-parent" style={navLink}>
-              <FaLink /> Assign Parent
             </NavLink>
           </div>
         </>
@@ -203,6 +211,10 @@ export default function Sidebar() {
         <>
           <NavLink to="/teacher/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
+          </NavLink>
+
+          <NavLink to="/sessions/create" style={navLink}>
+            <FaCalendarAlt /> Create Session
           </NavLink>
 
           <NavLink to="/attendance/mark" style={navLink}>
