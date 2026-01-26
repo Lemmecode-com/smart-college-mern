@@ -25,11 +25,11 @@ import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 /* ================= STUDENTS ================= */
 import AddStudent from "./pages/students/AddStudent";
-import StudentList from "./pages/students/StudentList";
+import StudentList from "./pages/dashboard/College-Admin/StudentList";
 import AssignParent from "./pages/students/AssignParent";
 
 /* ================= ATTENDANCE ================= */
-import MarkAttendance from "./pages/attendance/MarkAttendance";
+import MarkAttendance from "./pages/dashboard/Teacher/MarkAttendance";
 import MyAttendance from "./pages/attendance/MyAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
 
@@ -45,6 +45,11 @@ import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
+import CreateTimetable from "./pages/dashboard/College-Admin/CreateTimetable";
+import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
+import CreateSession from "./pages/dashboard/Teacher/CreateSession";
+import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
+import EditAttendance from "./pages/dashboard/Teacher/EditAttendance";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -86,8 +91,10 @@ export default function App() {
 
                 {/* ================= PUBLIC ================= */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register/:collegeCode" element={<StudentRegister />} />
-
+                <Route
+                  path="/register/:collegeCode"
+                  element={<StudentRegister />}
+                />
 
                 {/* ================= SUPER ADMIN ================= */}
                 <Route
@@ -268,6 +275,14 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/attendance/sessions/:sessionId/edit"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <EditAttendance />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* ================= SUBJECTS ================= */}
                 <Route
@@ -317,6 +332,40 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <AssignTeacherSubjects />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Sessions */}
+                <Route
+                  path="/sessions/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CreateSession />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* TIMETABLE */}
+                <Route
+                  path="/timetable/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/view"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditTimetable />
                     </ProtectedRoute>
                   }
                 />
