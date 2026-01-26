@@ -66,4 +66,8 @@ router.get(
   collegeMiddleware,
   getAdminTimetable
 );
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router;
+>>>>>>> 5c04ce579e0137f9f594e95a209de853615569e7
