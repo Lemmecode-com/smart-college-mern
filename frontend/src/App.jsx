@@ -30,7 +30,7 @@ import AssignParent from "./pages/students/AssignParent";
 
 /* ================= ATTENDANCE ================= */
 import MarkAttendance from "./pages/dashboard/Teacher/MarkAttendance";
-import MyAttendance from "./pages/attendance/MyAttendance";
+import MyAttendance from "./pages/dashboard/Student/MyAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
 
 /* ================= SUBJECTS / TEACHERS ================= */
@@ -50,6 +50,16 @@ import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import CreateSession from "./pages/dashboard/Teacher/CreateSession";
 import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
 import EditAttendance from "./pages/dashboard/Teacher/EditAttendance";
+import AttendanceReport from "./pages/dashboard/Teacher/AttendanceReport";
+import CloseSession from "./pages/dashboard/Teacher/CloseSession";
+import MyTimetable from "./pages/dashboard/Teacher/MyTimetable";
+import MySessions from "./pages/dashboard/Teacher/MySessions";
+import MyStudents from "./pages/dashboard/Teacher/MyStudents";
+import MyProfile from "./pages/dashboard/Teacher/MyProfile";
+import StudentProfile from "./pages/dashboard/Student/StudentProfile";
+import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
+import StudentFees from "./pages/dashboard/Student/StudentFees";
+import ChangePassword from "./pages/dashboard/Student/ChangePassword";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -162,6 +172,39 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/student/profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/timetable"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/fees"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentFees/>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/change-password"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <ChangePassword />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* ================= DEPARTMENTS ================= */}
                 <Route
@@ -263,23 +306,42 @@ export default function App() {
                   path="/attendance/report"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
+                      <AttendanceReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                   path="/session/close/:sessionId"
+                   element={
+                     <ProtectedRoute allowedRoles={["TEACHER"]}>
+                       <CloseSession />
+                     </ProtectedRoute>
+                   }
+                />
+                <Route 
+                  path="/attendance/sessions/:sessionId/edit"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <EditAttendance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/attendance/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
                       <AttendanceList />
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* ================= MY ATTENDANCE ================= */}
+
                 <Route
                   path="/my-attendance"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <MyAttendance />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/attendance/sessions/:sessionId/edit"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <EditAttendance />
                     </ProtectedRoute>
                   }
                 />
@@ -324,6 +386,38 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <EditTeacher />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/my-timetable"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MyTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sessions/my-sessions"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MySessions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/students/my-students"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MyStudents />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="profile/my-profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MyProfile />
                     </ProtectedRoute>
                   }
                 />
