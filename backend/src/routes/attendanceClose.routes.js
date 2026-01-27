@@ -11,7 +11,7 @@ const {
 
 // 🧑‍🏫 Teacher closes attendance session
 router.put(
-  "/sessions/:sessionId/close",
+  "/sessions/:sessionId/close-session",
   auth,
   role("TEACHER"),
   collegeMiddleware,
