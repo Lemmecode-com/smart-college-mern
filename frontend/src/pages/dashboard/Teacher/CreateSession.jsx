@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
@@ -12,10 +12,12 @@ import {
 
 export default function CreateSession() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [timetables, setTimetables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     timetable_id: "",
@@ -28,18 +30,25 @@ export default function CreateSession() {
   if (user.role !== "TEACHER")
     return <Navigate to="/teacher/dashboard" />;
 
-  /* ================= FETCH MY TIMETABLE ================= */
+  /* ================= FETCH TEACHER TIMETABLE ================= */
   useEffect(() => {
     const fetchMyTimetable = async () => {
       try {
-        // ✅ CORRECT ENDPOINT
         const res = await api.get("/timetable/teacher");
+        console.log("TIMETABLE RESPONSE:", res.data);
 
-        // ✅ CORRECT DATA PATH
-        setTimetables(res.data.timetable || []);
+        // Works with any backend response shape
+        const data =
+          res.data?.timetable ||
+          res.data?.timetables ||
+          res.data ||
+          [];
+
+        setTimetables(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error(err);
+        console.error("Timetable fetch error:", err);
         setTimetables([]);
+        setError("Failed to load timetable");
       } finally {
         setLoading(false);
       }
@@ -56,19 +65,26 @@ export default function CreateSession() {
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!form.timetable_id || !form.lectureDate || !form.lectureNumber) {
+      setError("All fields are required");
+      return;
+    }
+
     setSubmitting(true);
+    setError("");
 
     try {
-      await api.post("/attendance/sessions", form);
+      const res = await api.post("/attendance/sessions", form);
+
       alert("Attendance session created successfully");
 
-      setForm({
-        timetable_id: "",
-        lectureDate: "",
-        lectureNumber: ""
-      });
+      // Redirect to Mark Attendance
+      navigate(`/attendance/mark?sessionId=${res.data.session._id}`);
+
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create session");
+      console.error("Create session error:", err);
+      setError(err.response?.data?.message || "Failed to create session");
     } finally {
       setSubmitting(false);
     }
@@ -97,6 +113,13 @@ export default function CreateSession() {
         </p>
       </div>
 
+      {/* ================= ERROR ================= */}
+      {error && (
+        <div className="alert alert-danger text-center">
+          {error}
+        </div>
+      )}
+
       {/* ================= FORM ================= */}
       <div className="card shadow-lg border-0 rounded-4 glass-card">
         <div className="card-body p-4">
@@ -119,10 +142,16 @@ export default function CreateSession() {
                 >
                   <option value="">-- Select Lecture Slot --</option>
 
+                  {timetables.length === 0 && (
+                    <option disabled>
+                      No timetable slots assigned to you
+                    </option>
+                  )}
+
                   {timetables.map((t) => (
                     <option key={t._id} value={t._id}>
-                      {t.dayOfWeek} | {t.subject_id?.name} | 
-                      {t.startTime} - {t.endTime} | Room {t.room}
+                      {t.dayOfWeek} | {t.subject_id?.name || "Subject"} |{" "}
+                      {t.startTime} - {t.endTime} | Room {t.room || "N/A"}
                     </option>
                   ))}
                 </select>
@@ -157,6 +186,7 @@ export default function CreateSession() {
                   value={form.lectureNumber}
                   onChange={handleChange}
                   placeholder="Eg. 1, 2, 3"
+                  min="1"
                   required
                 />
               </div>
@@ -164,8 +194,9 @@ export default function CreateSession() {
             </div>
 
             <button
+              type="submit"
               className="btn btn-success w-100 mt-4"
-              disabled={submitting}
+              disabled={submitting || timetables.length === 0}
             >
               {submitting ? "Creating Session..." : "Create Attendance Session"}
             </button>
