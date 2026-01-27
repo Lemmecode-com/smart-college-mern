@@ -212,9 +212,23 @@ export default function Sidebar() {
           <NavLink to="/teacher/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
           </NavLink>
+          <NavLink to="/profile/my-profile" style={navLink}>
+            <FaCog /> My Profile
+          </NavLink>
+          <NavLink to="/timetable/my-timetable" style={navLink}>
+            <FaCalendarAlt /> My Timetable
+          </NavLink>
+
+          <NavLink to="/students/my-students" style={navLink}>
+            <FaUserGraduate /> My Students
+          </NavLink>
 
           <NavLink to="/sessions/create" style={navLink}>
             <FaCalendarAlt /> Create Session
+          </NavLink>
+
+          <NavLink to="/sessions/my-sessions" style={navLink}>
+            <FaCalendarAlt /> My Sessions
           </NavLink>
 
           <NavLink to="/attendance/mark" style={navLink}>
@@ -234,6 +248,21 @@ export default function Sidebar() {
         <>
           <NavLink to="/student/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
+          </NavLink>
+
+          <NavLink to="/student/profile" style={navLink}>
+            <FaCog />Profile
+          </NavLink>
+
+          <NavLink to="/student/timetable" style={navLink}>
+            <FaCalendarAlt /> Timetable
+          </NavLink>
+          <NavLink to="/student/fees" style={navLink}>
+            <FaLink /> Fees
+          </NavLink>
+
+          <NavLink to="/student/change-password" style={navLink}>
+            <FaCog /> Change Password
           </NavLink>
 
           <NavLink to="/my-attendance" style={navLink}>

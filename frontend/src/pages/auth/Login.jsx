@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 
 export default function Login() {
@@ -46,9 +46,13 @@ export default function Login() {
       return;
     }
 
-    // ✅ backend aligned redirect
-    navigate("/");
+    // cleanup
+    setPassword("");
+    setError("");
     setLoading(false);
+
+    // backend aligned redirect
+    navigate("/");
   };
 
   return (
@@ -166,6 +170,7 @@ export default function Login() {
                 )}
 
                 <button
+                  type="submit"
                   className="btn text-white px-4 rounded-pill"
                   style={{ backgroundColor: "#1f6f8b" }}
                   disabled={loading}

@@ -1,11 +1,23 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import api from "../../api/axios";
-import { FaUniversity, FaUserGraduate, FaSpinner } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import {
+  FaUniversity,
+  FaUserGraduate,
+  FaSpinner
+} from "react-icons/fa";
+
+// Public axios (NO TOKEN)
+const publicApi = axios.create({
+  baseURL: "http://localhost:5000/api"
+});
 
 export default function StudentRegister() {
   const { collegeCode } = useParams();
   const navigate = useNavigate();
+
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,20 +39,63 @@ export default function StudentRegister() {
     currentSemester: 1
   });
 
+  /* ================= LOAD DEPARTMENTS ================= */
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await publicApi.get("/departments");
+        // Your API returns ARRAY directly
+        setDepartments(res.data || []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load departments");
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  /* ================= LOAD COURSES BY DEPARTMENT ================= */
+  useEffect(() => {
+    if (!form.department_id) return;
+
+    const fetchCourses = async () => {
+      try {
+        const res = await publicApi.get(
+          `/courses/department/${form.department_id}`
+        );
+        // Your API returns ARRAY directly
+        setCourses(res.data || []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load courses");
+      }
+    };
+
+    fetchCourses();
+  }, [form.department_id]);
+
+  /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      await api.post(`/students/register/${collegeCode}`, form);
+      await publicApi.post(
+        `/students/register/${collegeCode}`,
+        form
+      );
+
       alert("🎉 Registration successful! Wait for college approval.");
       navigate("/login");
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
@@ -63,12 +118,14 @@ export default function StudentRegister() {
         background: "linear-gradient(180deg, #0f3a4a, #134952)"
       }}
     >
-      <div className="card shadow-lg p-4" style={{ width: "900px", borderRadius: "16px" }}>
-        
-        {/* Header */}
+      <div
+        className="card shadow-lg p-4"
+        style={{ width: "1000px", borderRadius: "16px" }}
+      >
+        {/* HEADER */}
         <div className="text-center mb-4">
-          <FaUniversity size={48} style={{ color: "#0f3a4a" }} className="mb-2 spin-slow" />
-          <h3 className="fw-bold text-dark">Smart College Portal</h3>
+          <FaUniversity size={48} className="mb-2" />
+          <h3 className="fw-bold">Smart College Admission Portal</h3>
           <p className="text-muted mb-1">Student Self Registration</p>
           <span className="badge bg-dark">{collegeCode}</span>
         </div>
@@ -79,76 +136,173 @@ export default function StudentRegister() {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
+          {/* PERSONAL */}
+          <h5 className="fw-bold mb-2">Personal Details</h5>
           <div className="row g-3">
             <div className="col-md-6">
-              <input className="form-control" name="fullName" placeholder="Full Name" onChange={handleChange} required />
+              <input
+                className="form-control"
+                name="fullName"
+                placeholder="Full Name"
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="col-md-6">
-              <input className="form-control" name="email" placeholder="Email" onChange={handleChange} required />
+              <input
+                className="form-control"
+                name="email"
+                placeholder="Email"
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="col-md-6">
-              <input type="password" className="form-control" name="password" placeholder="Password" onChange={handleChange} required />
+              <input
+                type="password"
+                className="form-control"
+                name="password"
+                placeholder="Password"
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="col-md-6">
-              <input className="form-control" name="mobileNumber" placeholder="Mobile Number" onChange={handleChange} required />
+              <input
+                className="form-control"
+                name="mobileNumber"
+                placeholder="Mobile Number"
+                onChange={handleChange}
+                required
+              />
             </div>
-
             <div className="col-md-6">
-              <select className="form-select" name="gender" onChange={handleChange}>
+              <select
+                className="form-select"
+                name="gender"
+                onChange={handleChange}
+              >
                 <option>Female</option>
                 <option>Male</option>
                 <option>Other</option>
               </select>
             </div>
             <div className="col-md-6">
-              <input type="date" className="form-control" name="dateOfBirth" onChange={handleChange} required />
-            </div>
-
-            <div className="col-md-12">
-              <input className="form-control" name="addressLine" placeholder="Address" onChange={handleChange} required />
-            </div>
-
-            <div className="col-md-4">
-              <input className="form-control" name="city" placeholder="City" onChange={handleChange} required />
-            </div>
-            <div className="col-md-4">
-              <input className="form-control" name="state" placeholder="State" onChange={handleChange} required />
-            </div>
-            <div className="col-md-4">
-              <input className="form-control" name="pincode" placeholder="Pincode" onChange={handleChange} required />
-            </div>
-
-            <div className="col-md-6">
-              <input className="form-control" name="department_id" placeholder="Department ID" onChange={handleChange} required />
-            </div>
-            <div className="col-md-6">
-              <input className="form-control" name="course_id" placeholder="Course ID" onChange={handleChange} required />
+              <input
+                type="date"
+                className="form-control"
+                name="dateOfBirth"
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
 
+          {/* ADDRESS */}
+          <h5 className="fw-bold mt-4 mb-2">Address</h5>
+          <div className="row g-3">
+            <div className="col-md-12">
+              <input
+                className="form-control"
+                name="addressLine"
+                placeholder="Address"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="col-md-4">
+              <input
+                className="form-control"
+                name="city"
+                placeholder="City"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="col-md-4">
+              <input
+                className="form-control"
+                name="state"
+                placeholder="State"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="col-md-4">
+              <input
+                className="form-control"
+                name="pincode"
+                placeholder="Pincode"
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          {/* ACADEMIC */}
+          <h5 className="fw-bold mt-4 mb-2">Academic Details</h5>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <select
+                className="form-select"
+                name="department_id"
+                value={form.department_id}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Department</option>
+                {departments.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-md-6">
+              <select
+                className="form-select"
+                name="course_id"
+                value={form.course_id}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Course</option>
+                {courses.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* SUBMIT */}
           <button
             className="btn btn-dark w-100 mt-4 d-flex align-items-center justify-content-center gap-2"
             disabled={loading}
           >
-            {loading ? <FaSpinner className="spin" /> : "Register Now"}
+            {loading ? (
+              <FaSpinner className="spin" />
+            ) : (
+              <>
+                <FaUserGraduate />
+                Register Now
+              </>
+            )}
           </button>
         </form>
 
         <div className="text-center mt-3 text-muted">
-          <FaUserGraduate /> After registration, wait for admin approval.
+          After registration, wait for college approval.
         </div>
       </div>
 
-      {/* Inline animations */}
       <style>
         {`
           .spin {
             animation: spin 1s linear infinite;
-          }
-          .spin-slow {
-            animation: spin 6s linear infinite;
           }
           @keyframes spin {
             from { transform: rotate(0deg); }
