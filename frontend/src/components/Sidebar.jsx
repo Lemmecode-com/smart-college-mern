@@ -261,6 +261,10 @@ export default function Sidebar() {
             <FaLink /> Fees
           </NavLink>
 
+          <NavLink to="/student/payment-history" style={navLink}>
+            <FaLink /> Payment History
+          </NavLink>
+
           <NavLink to="/student/change-password" style={navLink}>
             <FaCog /> Change Password
           </NavLink>

@@ -1,54 +1,84 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
+import api from "../../../api/axios";
 
 import {
   FaMoneyCheckAlt,
+  FaUniversity,
   FaCheckCircle,
   FaTimesCircle,
-  FaFileInvoice,
-  FaUniversity
+  FaCreditCard,
+  FaSpinner,
+  FaUserGraduate
 } from "react-icons/fa";
 
 export default function StudentFees() {
   const { user } = useContext(AuthContext);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
 
-  /* ================= STATIC FEES DATA ================= */
-  const feeData = {
-    studentName: "Sagar Kokare",
-    course: "Bachelor Of Arts",
-    academicYear: "2024-2025",
-    totalFees: 45000,
-    paidAmount: 30000,
-    pendingAmount: 15000,
-    status: "PARTIALLY_PAID",
-    installments: [
-      {
-        id: 1,
-        title: "Admission Fee",
-        amount: 15000,
-        status: "PAID",
-        paidOn: "2024-07-10"
-      },
-      {
-        id: 2,
-        title: "Semester 1 Fee",
-        amount: 15000,
-        status: "PAID",
-        paidOn: "2024-10-01"
-      },
-      {
-        id: 3,
-        title: "Semester 2 Fee",
-        amount: 15000,
-        status: "PENDING",
-        paidOn: null
-      }
-    ]
+  /* ================= STATIC DATA (BACKEND READY) =================
+     ⚠️ These values will come from backend later
+  */
+  const feeDetails = {
+    studentName: user.name || "Student",
+    courseName: "Bachelor of Arts",
+    academicYear: "2024 - 2025",
+
+    totalFees: 2500,
+    paidFees: 0,
+    pendingFees: 2500,
+
+    courseId: "TEMP_COURSE_ID", // backend requires this
+    caste: "OPEN"               // backend requires this
+  };
+
+  /* ================= INITIATE PAYMENT ================= */
+  const handlePayment = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await api.post("/payment/initiate", {
+        courseId: feeDetails.courseId,
+        caste: feeDetails.caste
+      });
+
+      const { orderId, amount, currency, keyId } = res.data;
+
+      const options = {
+        key: keyId,
+        amount: amount * 100,
+        currency,
+        order_id: orderId,
+        name: "Smart College ERP",
+        description: "College Fees Payment",
+        handler: function () {
+          setSuccess("🎉 Payment successful! Receipt will be available soon.");
+        },
+        theme: { color: "#0f3a4a" }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.response?.data?.message ||
+        "Unable to initiate payment"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,152 +87,131 @@ export default function StudentFees() {
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
-          <FaMoneyCheckAlt className="me-2 blink" />
-          My Fees
+          <FaMoneyCheckAlt className="me-2" />
+          Student Fees
         </h3>
         <p className="opacity-75 mb-0">
-          Fee details & payment history
+          View & pay your academic fees
         </p>
       </div>
 
-      {/* ================= SUMMARY CARDS ================= */}
-      <div className="row mb-4">
+      {/* ================= ALERTS ================= */}
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
-        <div className="col-md-4">
-          <div className="card shadow-lg border-0 rounded-4 glass-card text-center">
-            <div className="card-body">
-              <FaUniversity size={40} className="text-primary mb-2" />
-              <h6>Total Fees</h6>
-              <h3 className="fw-bold">₹{feeData.totalFees}</h3>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-4">
-          <div className="card shadow-lg border-0 rounded-4 glass-card text-center">
-            <div className="card-body">
-              <FaCheckCircle size={40} className="text-success mb-2" />
-              <h6>Paid</h6>
-              <h3 className="fw-bold text-success">
-                ₹{feeData.paidAmount}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-4">
-          <div className="card shadow-lg border-0 rounded-4 glass-card text-center">
-            <div className="card-body">
-              <FaTimesCircle size={40} className="text-danger mb-2" />
-              <h6>Pending</h6>
-              <h3 className="fw-bold text-danger">
-                ₹{feeData.pendingAmount}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ================= PAYMENT STATUS ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
-        <div className="card-body text-center">
-          <h5 className="fw-bold">Overall Status</h5>
-          {feeData.pendingAmount === 0 ? (
-            <span className="badge bg-success fs-6">
-              <FaCheckCircle className="me-1" />
-              Fully Paid
-            </span>
-          ) : (
-            <span className="badge bg-warning text-dark fs-6">
-              Partial Payment
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ================= INSTALLMENTS TABLE ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card">
+      {/* ================= STUDENT INFO ================= */}
+      <div className="card shadow-sm border-0 rounded-4 mb-4">
         <div className="card-body">
-
           <h5 className="fw-bold mb-3">
-            <FaFileInvoice className="me-2" />
-            Installment Details
+            <FaUserGraduate className="me-2" />
+            Student Information
           </h5>
 
-          <table className="table table-hover align-middle">
-            <thead className="table-dark">
-              <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Paid On</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {feeData.installments.map((i, index) => (
-                <tr key={i.id}>
-                  <td>{index + 1}</td>
-                  <td>{i.title}</td>
-                  <td>₹{i.amount}</td>
-                  <td>
-                    <span className={`badge ${
-                      i.status === "PAID"
-                        ? "bg-success"
-                        : "bg-danger"
-                    }`}>
-                      {i.status}
-                    </span>
-                  </td>
-                  <td>
-                    {i.paidOn
-                      ? new Date(i.paidOn).toDateString()
-                      : "-"}
-                  </td>
-                  <td>
-                    {i.status === "PENDING" ? (
-                      <button className="btn btn-sm btn-primary">
-                        Pay Now
-                      </button>
-                    ) : (
-                      <span className="text-success fw-bold">
-                        Paid
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="row">
+            <Info label="Student Name" value={feeDetails.studentName} />
+            <Info label="Course" value={feeDetails.courseName} />
+            <Info label="Academic Year" value={feeDetails.academicYear} />
+          </div>
+        </div>
+      </div>
 
+      {/* ================= FEES SUMMARY ================= */}
+      <div className="row mb-4">
+        <FeeCard
+          title="Total Fees"
+          amount={feeDetails.totalFees}
+          icon={<FaUniversity />}
+          color="primary"
+        />
+        <FeeCard
+          title="Paid"
+          amount={feeDetails.paidFees}
+          icon={<FaCheckCircle />}
+          color="success"
+        />
+        <FeeCard
+          title="Pending"
+          amount={feeDetails.pendingFees}
+          icon={<FaTimesCircle />}
+          color="danger"
+        />
+      </div>
+
+      {/* ================= PAYMENT ================= */}
+      <div className="card shadow-lg border-0 rounded-4">
+        <div className="card-body text-center">
+          <button
+            className="btn btn-success btn-lg px-5"
+            onClick={handlePayment}
+            disabled={loading || feeDetails.pendingFees === 0}
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="me-2 spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <FaCreditCard className="me-2" />
+                Pay Now
+              </>
+            )}
+          </button>
+
+          {feeDetails.pendingFees === 0 && (
+            <p className="text-success mt-3">
+              <FaCheckCircle className="me-1" />
+              Fees fully paid
+            </p>
+          )}
         </div>
       </div>
 
       {/* ================= CSS ================= */}
       <style>
         {`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-        }
+          .gradient-header {
+            background: linear-gradient(180deg, #0f3a4a, #134952);
+          }
 
-        .glass-card {
-          background: rgba(255,255,255,0.96);
-          backdrop-filter: blur(8px);
-        }
+          .spin {
+            animation: spin 1s linear infinite;
+          }
 
-        .blink {
-          animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
-        }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
         `}
       </style>
+    </div>
+  );
+}
+
+/* ================= REUSABLE COMPONENTS ================= */
+
+function FeeCard({ title, amount, icon, color }) {
+  return (
+    <div className="col-md-4 mb-3">
+      <div className="card shadow-sm border-0 rounded-4 text-center">
+        <div className="card-body">
+          <div className={`fs-2 text-${color} mb-2`}>
+            {icon}
+          </div>
+          <h6 className="text-muted">{title}</h6>
+          <h3 className="fw-bold">₹ {amount}</h3>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div className="col-md-4 mb-2">
+      <strong>{label}:</strong>
+      <br />
+      {value || "N/A"}
     </div>
   );
 }
