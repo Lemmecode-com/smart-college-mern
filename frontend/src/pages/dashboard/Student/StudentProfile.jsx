@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
@@ -11,11 +11,13 @@ import {
   FaCalendarAlt,
   FaBook,
   FaCheckCircle,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaEdit
 } from "react-icons/fa";
 
 export default function StudentProfile() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,6 @@ export default function StudentProfile() {
       try {
         const res = await api.get("/students/my-profile");
 
-        // SAFETY: validate shape
         if (!res.data || !res.data.student) {
           throw new Error("Invalid profile response");
         }
@@ -86,14 +87,25 @@ export default function StudentProfile() {
     <div className="container-fluid">
 
       {/* ================= HEADER ================= */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
-        <h3 className="fw-bold mb-1">
-          <FaUserGraduate className="me-2 blink" />
-          My Profile
-        </h3>
-        <p className="opacity-75 mb-0">
-          Personal & Academic Information
-        </p>
+      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4 d-flex justify-content-between align-items-center">
+        <div>
+          <h3 className="fw-bold mb-1">
+            <FaUserGraduate className="me-2 blink" />
+            My Profile
+          </h3>
+          <p className="opacity-75 mb-0">
+            Personal & Academic Information
+          </p>
+        </div>
+
+        {/* EDIT BUTTON */}
+        <button
+          className="btn btn-light fw-bold"
+          onClick={() => navigate("/student/edit-profile")}
+        >
+          <FaEdit className="me-2" />
+          Edit Profile
+        </button>
       </div>
 
       {/* ================= TOP PROFILE ================= */}
@@ -104,8 +116,14 @@ export default function StudentProfile() {
             <div className="card-body">
               <FaUserGraduate size={80} className="text-primary mb-3" />
               <h4 className="fw-bold">{student.fullName}</h4>
-              <p className="text-muted mb-1">{student.email}</p>
-              <p className="text-muted mb-1">{student.mobileNumber}</p>
+              <p className="text-muted mb-1">
+                <FaEnvelope className="me-1" />
+                {student.email}
+              </p>
+              <p className="text-muted mb-1">
+                <FaPhoneAlt className="me-1" />
+                {student.mobileNumber}
+              </p>
 
               <span className="badge bg-success px-3 py-2">
                 <FaCheckCircle className="me-1" />
