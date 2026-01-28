@@ -20,7 +20,7 @@ router.get(
 );
 
 router.post(
-  "/sessions/:sessionId/manual",
+  "/sessions/:sessionId/mark-attendance",
   auth,
   role("TEACHER"),
   collegeMiddleware,
@@ -28,7 +28,7 @@ router.post(
 );
 
 router.put(
-  "/sessions/:sessionId/edit",
+  "/sessions/:sessionId/edit-attendance",
   auth,
   role("TEACHER"),
   collegeMiddleware,
