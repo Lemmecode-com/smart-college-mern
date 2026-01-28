@@ -6,11 +6,12 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 
-const { registerStudent } = require("../controllers/student.controller");
+const { registerStudent, getMyFullProfile, updateMyProfile, updateStudentByAdmin, deleteStudent } = require("../controllers/student.controller");
 const {
   approveStudent,
   rejectStudent
 } = require("../controllers/studentApproval.controller");
+const studentMiddleware = require("../middlewares/student.middleware");
 
 const {
   getRegisteredStudents
@@ -44,5 +45,48 @@ router.put(
   collegeMiddleware,
   rejectStudent
 );
+
+
+// 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
+router.get(
+  "/my-profile",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getMyFullProfile
+);
+
+
+// 🎓 STUDENT: Update own profile
+router.put(
+  "/update-my-profile",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  updateMyProfile
+);
+
+
+// 🏛️ ADMIN: Update student
+router.put(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  updateStudentByAdmin
+);
+
+
+// 🏛️ ADMIN: Delete student
+router.delete(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deleteStudent
+);
+
 
 module.exports = router;
