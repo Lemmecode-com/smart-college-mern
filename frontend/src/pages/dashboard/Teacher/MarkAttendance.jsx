@@ -20,7 +20,7 @@ export default function MarkAttendance() {
   const [selectedSession, setSelectedSession] = useState("");
   const [attendance, setAttendance] = useState({});
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   /* ================= SECURITY ================= */
@@ -45,10 +45,17 @@ export default function MarkAttendance() {
     fetchSessions();
   }, []);
 
-  /* ================= LOAD STUDENTS ================= */
+  /* ================= LOAD STUDENTS (BY COURSE ID) ================= */
   const loadStudents = async (sessionId) => {
+    setError("");
+    setStudents([]);
+    setAttendance({});
+
     const session = sessions.find((s) => s._id === sessionId);
-    if (!session) return;
+    if (!session || !session.course_id) {
+      setError("Invalid session selected");
+      return;
+    }
 
     try {
       const res = await api.get(
@@ -58,63 +65,70 @@ export default function MarkAttendance() {
       const studentList = res.data || [];
       setStudents(studentList);
 
-      // Default all ABSENT
-      const initial = {};
+      // default all ABSENT
+      const initialAttendance = {};
       studentList.forEach((s) => {
-        initial[s._id] = "ABSENT";
+        initialAttendance[s._id] = "ABSENT";
       });
-      setAttendance(initial);
+      setAttendance(initialAttendance);
 
     } catch (err) {
       console.error(err);
-      setError("Failed to load students");
+      setError("Failed to load students for this session");
     }
   };
 
-  /* ================= HANDLE CHANGE ================= */
+  /* ================= MARK PRESENT / ABSENT ================= */
   const handleStatusChange = (studentId, status) => {
-    setAttendance({ ...attendance, [studentId]: status });
+    setAttendance((prev) => ({
+      ...prev,
+      [studentId]: status
+    }));
   };
 
   /* ================= SAVE ATTENDANCE ================= */
-  const handleSubmit = async () => {
+  const handleSaveAttendance = async () => {
     if (!selectedSession) {
-      setError("Please select a session first");
+      setError("Please select a session");
       return;
     }
 
-    setSubmitting(true);
+    setSaving(true);
     setError("");
 
     const payload = {
-      attendance: Object.keys(attendance).map((id) => ({
-        student_id: id,
-        status: attendance[id]
-      }))
+      attendance: Object.entries(attendance).map(
+        ([student_id, status]) => ({
+          student_id,
+          status
+        })
+      )
     };
 
     try {
       await api.post(
-        `/attendance/sessions/${selectedSession}/manual`,
+        `/attendance/sessions/${selectedSession}/mark-attendance`,
         payload
       );
-      alert("Attendance saved successfully");
+
+      alert("✅ Attendance saved successfully");
+
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Failed to mark attendance");
+      setError(
+        err.response?.data?.message || "Failed to save attendance"
+      );
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  /* ================= CLOSE SESSION (CORRECT FLOW) ================= */
+  /* ================= CLOSE SESSION ================= */
   const handleCloseSession = () => {
     if (!selectedSession) {
-      setError("Please select a session first");
+      setError("Please select a session");
       return;
     }
-
-    // 👉 Just navigate, do NOT call API here
     navigate(`/session/close/${selectedSession}`);
   };
 
@@ -137,7 +151,7 @@ export default function MarkAttendance() {
           Mark Attendance
         </h3>
         <p className="opacity-75 mb-0">
-          Mark student attendance for lecture
+          Select session → students auto load → mark → save
         </p>
       </div>
 
@@ -158,8 +172,9 @@ export default function MarkAttendance() {
             className="form-select"
             value={selectedSession}
             onChange={(e) => {
-              setSelectedSession(e.target.value);
-              loadStudents(e.target.value);
+              const sessionId = e.target.value;
+              setSelectedSession(sessionId);
+              if (sessionId) loadStudents(sessionId);
             }}
           >
             <option value="">-- Select Session --</option>
@@ -223,11 +238,11 @@ export default function MarkAttendance() {
             <div className="d-flex gap-2 mt-3">
               <button
                 className="btn btn-success w-100"
-                onClick={handleSubmit}
-                disabled={submitting}
+                onClick={handleSaveAttendance}
+                disabled={saving}
               >
                 <FaSave className="me-2" />
-                {submitting ? "Saving..." : "Save Attendance"}
+                {saving ? "Saving..." : "Save Attendance"}
               </button>
 
               <button
@@ -235,7 +250,6 @@ export default function MarkAttendance() {
                 onClick={() =>
                   navigate(`/attendance/sessions/${selectedSession}/edit`)
                 }
-                disabled={!selectedSession}
               >
                 <FaEdit className="me-2" />
                 Edit
@@ -244,7 +258,6 @@ export default function MarkAttendance() {
               <button
                 className="btn btn-danger w-100"
                 onClick={handleCloseSession}
-                disabled={!selectedSession}
               >
                 <FaLock className="me-2" />
                 Close Session
@@ -261,16 +274,13 @@ export default function MarkAttendance() {
         .gradient-header {
           background: linear-gradient(180deg, #0f3a4a, #134952);
         }
-
         .glass-card {
           background: rgba(255,255,255,0.95);
           backdrop-filter: blur(8px);
         }
-
         .blink {
           animation: blink 1.5s infinite;
         }
-
         @keyframes blink {
           0% {opacity:1}
           50% {opacity:0.4}

@@ -60,6 +60,9 @@ import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 import StudentFees from "./pages/dashboard/Student/StudentFees";
 import ChangePassword from "./pages/dashboard/Student/ChangePassword";
+import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
+import PaymentHistory from "./pages/dashboard/Student/PaymentHistory";
+import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -181,6 +184,15 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="/student/edit-profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      {/* EditStudentProfile Component to be created */}
+                      <EditStudentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/student/timetable"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
@@ -192,7 +204,7 @@ export default function App() {
                   path="/student/fees"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentFees/>
+                      <StudentFees />
                     </ProtectedRoute>
                   }
                 />
@@ -202,6 +214,23 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <ChangePassword />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/payment-history"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <PaymentHistory />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/fee-receipt/:paymentId"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <FeeReceipt />
                     </ProtectedRoute>
                   }
                 />
@@ -311,14 +340,14 @@ export default function App() {
                   }
                 />
                 <Route
-                   path="/session/close/:sessionId"
-                   element={
-                     <ProtectedRoute allowedRoles={["TEACHER"]}>
-                       <CloseSession />
-                     </ProtectedRoute>
-                   }
+                  path="/session/close/:sessionId"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CloseSession />
+                    </ProtectedRoute>
+                  }
                 />
-                <Route 
+                <Route
                   path="/attendance/sessions/:sessionId/edit"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
@@ -334,7 +363,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                
+
                 {/* ================= MY ATTENDANCE ================= */}
 
                 <Route
