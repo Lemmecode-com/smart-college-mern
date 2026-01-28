@@ -11,7 +11,7 @@ const {
 
 // 🧑‍🏫 Teacher attendance report
 router.get(
-  "/teacher/report",
+  "/teacher/attendance-report",
   auth,
   role("TEACHER"),
   collegeMiddleware,
