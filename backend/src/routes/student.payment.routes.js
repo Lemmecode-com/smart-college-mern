@@ -1,16 +1,45 @@
 const express = require("express");
 const router = express.Router();
 
-const { initiatePayment } = require("../controllers/student.payment.controller");
 const auth = require("../middlewares/auth.middleware");
-const tenant = require("../middlewares/college.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
+const studentMiddleware = require("../middlewares/student.middleware");
 
-// Student initiates payment
+const {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  getStudentFeeDashboard
+} = require("../controllers/student.payment.controller");
+
+// 💳 STUDENT: Create payment order
 router.post(
-  "/payment/initiate",
+  "/create-order",
   auth,
-  tenant,
-  initiatePayment
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  createRazorpayOrder
+);
+
+// 💳 STUDENT: Verify payment
+router.post(
+  "/verify",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  verifyRazorpayPayment
+);
+
+// 💳 STUDENT: Fee dashboard
+router.get(
+  "/dashboard",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentFeeDashboard
 );
 
 module.exports = router;
