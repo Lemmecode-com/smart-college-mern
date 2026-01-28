@@ -14,16 +14,11 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
-
-/* ✅ ADD THIS LINE */
-app.use("/api/students", require("./src/routes/student.payment.routes"));
-
-app.use("/api/attendance", require("./src/routes/attendanceSession.routes"));
-app.use("/api/attendance", require("./src/routes/attendance.routes"));
-app.use("/api/attendance", require("./src/routes/attendanceClose.routes"));
-app.use("/api/attendance", require("./src/routes/studentAttendance.routes"));
-app.use("/api/attendance", require("./src/routes/teacherAttendance.routes"));
-
+app.use("/api/attendance", require("./src/routes/attendanceSession.routes")); // Create new attendance session
+app.use("/api/attendance", require("./src/routes/attendance.routes")); // Mark manual attendance
+app.use("/api/attendance", require("./src/routes/attendanceClose.routes")); // Close attendance session
+app.use("/api/attendance", require("./src/routes/studentAttendance.routes")); // View attendance summary for student
+app.use("/api/attendance", require("./src/routes/teacherAttendance.routes")); // View attendance report for logged in teacher only
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
 
 app.use("/uploads", express.static("uploads"));
