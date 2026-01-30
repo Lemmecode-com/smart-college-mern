@@ -1,54 +1,128 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
-import { useParams, useNavigate } from "react-router-dom";
 
 export default function AssignParent() {
-  const { id } = useParams(); // studentId
-  const navigate = useNavigate();
-
+  const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
+
+  const [studentId, setStudentId] = useState("");
   const [parentId, setParentId] = useState("");
 
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  /* ================= FETCH DATA ================= */
   useEffect(() => {
-    api.get("/users?role=parent").then((res) => setParents(res.data));
+    const fetchData = async () => {
+      try {
+        const [studentRes, parentRes] = await Promise.all([
+          api.get("/students"),
+          api.get("/users/parents")
+        ]);
+
+        setStudents(studentRes.data.data || []);
+        setParents(parentRes.data.data || []);
+      } catch {
+        setMessage("Failed to load students or parents");
+      }
+    };
+
+    fetchData();
   }, []);
 
+  /* ================= ASSIGN HANDLER ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    await api.post(`/students/${id}/assign-parent`, {
-      parentId,
-    });
+    if (!studentId || !parentId) {
+      setMessage("Please Select Student and Parent");
+      return;
+    }
 
-    alert("Parent assigned successfully");
-    navigate("/students");
+    setLoading(true);
+    setMessage("");
+
+    try {
+      await api.post(
+        `/students/${studentId}/assign-parent`,
+        { parentId }
+      );
+
+      setMessage("Parent successfully assigned 🎉");
+      setStudentId("");
+      setParentId("");
+    } catch {
+      setMessage("Assignment failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  /* ================= UI ================= */
   return (
-    <div className="card shadow-sm">
-      <div className="card-body">
-        <h4>Assign Parent</h4>
+    <div style={{ padding: "40px", maxWidth: "500px", margin: "auto" }}>
+      <h3 style={{ marginBottom: "20px" }}>Assign Parent to Student</h3>
 
-        <form onSubmit={submitHandler}>
-          <div className="mb-3">
-            <label>Select Parent</label>
-            <select
-              className="form-select"
-              required
-              onChange={(e) => setParentId(e.target.value)}
-            >
-              <option value="">Select Parent</option>
-              {parents.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name} ({p.email})
-                </option>
-              ))}
-            </select>
-          </div>
+      {message && (
+        <div style={{ marginBottom: "15px", color: "#b71c1c" }}>
+          {message}
+        </div>
+      )}
 
-          <button className="btn btn-primary">Assign</button>
-        </form>
-      </div>
+      <form onSubmit={submitHandler}>
+        {/* Student */}
+        <select
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
+          required
+          style={input}
+        >
+          <option value="">Select Student</option>
+          {students.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Parent */}
+        <select
+          value={parentId}
+          onChange={(e) => setParentId(e.target.value)}
+          required
+          style={input}
+        >
+          <option value="">Select Parent</option>
+          {parents.map((p) => (
+            <option key={p._id} value={p._id}>
+              {p.name} ({p.email})
+            </option>
+          ))}
+        </select>
+
+        <button disabled={loading} style={btn}>
+          {loading ? "Assigning..." : "Assign Parent"}
+        </button>
+      </form>
     </div>
   );
 }
+
+/* ================= STYLES ================= */
+const input = {
+  width: "100%",
+  padding: "10px",
+  marginBottom: "12px",
+  borderRadius: "8px",
+  border: "1px solid #ccc"
+};
+
+const btn = {
+  width: "100%",
+  padding: "12px",
+  background: "#0f3a4a",
+  color: "#fff",
+  borderRadius: "8px",
+  border: "none",
+  fontWeight: "600"
+};
