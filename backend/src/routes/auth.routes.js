@@ -1,10 +1,10 @@
 const router = require("express").Router();
-const authCtrl = require("../controllers/auth.controller");
-const auth = require("../middleware/auth.middleware");
+const auth = require("../middlewares/auth.middleware");
+const { login, logout } = require("../controllers/auth.controller");
 
-router.post("/register", authCtrl.register);
-router.post("/login", authCtrl.login);
-router.get("/me", auth, authCtrl.me);
-router.post("/logout", auth, authCtrl.logout); // ✅ NEW
+router.post("/login", login);
+
+// 🔐 Protected logout
+router.post("/logout", auth, logout);
 
 module.exports = router;

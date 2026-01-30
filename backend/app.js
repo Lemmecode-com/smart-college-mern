@@ -1,35 +1,30 @@
 const express = require("express");
-const dotenv = require("dotenv");
 const cors = require("cors");
-const morgan = require("morgan");
-
-dotenv.config();
-
-const connectDB = require("./src/config/db");
+const crypto = require("crypto");
 
 const app = express();
 
-// Database connection
-connectDB();
-
-// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(morgan("dev"));
 
-// Routes
 app.use("/api/auth", require("./src/routes/auth.routes"));
+app.use("/api/college", require("./src/routes/college.routes"));
+app.use("/api/master", require("./src/routes/master.routes"));
 app.use("/api/departments", require("./src/routes/department.routes"));
 app.use("/api/courses", require("./src/routes/course.routes"));
+app.use("/api/teachers", require("./src/routes/teacher.routes"));
+app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
-app.use("/api/attendance", require("./src/routes/attendance.routes"));
-app.use("/api/users", require("./src/routes/user.routes"));
-app.use("/api/admin", require("./src/routes/admin.routes"));
+app.use("/api/attendance", require("./src/routes/attendanceSession.routes")); // Create new attendance session
+app.use("/api/attendance", require("./src/routes/attendance.routes")); // Mark manual attendance
+app.use("/api/attendance", require("./src/routes/attendanceClose.routes")); // Close attendance session
+app.use("/api/attendance", require("./src/routes/studentAttendance.routes")); // View attendance summary for student
+app.use("/api/attendance", require("./src/routes/teacherAttendance.routes")); // View attendance report for logged in teacher only
+app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/student/payments", require("./src/routes/student.payment.routes"));
+app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
-// ❗ Global Error Handler (MUST be last)
-app.use(require("./src/middleware/error.middleware"));
+app.use("/uploads", express.static("uploads"));
 
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-  console.log(`Server running on port http//:localhost/${PORT}`);
-});
+module.exports = app;
