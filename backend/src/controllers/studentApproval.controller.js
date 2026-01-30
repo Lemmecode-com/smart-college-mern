@@ -1,7 +1,7 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
-const FeeStructure = require ("../models/feeStructure.model");
-const StudentFee = require("../models/user.model")
+const FeeStructure = require("../models/feeStructure.model");
+const StudentFee = require("../models/studentFee.model");
 
 exports.approveStudent = async (req, res) => {
   try {
