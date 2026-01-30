@@ -59,6 +59,7 @@ router.get(
   studentMiddleware,
   getStudentTimetable,
 );
+
 router.get(
   "/admin",
   auth,
