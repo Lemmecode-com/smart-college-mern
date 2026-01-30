@@ -6,16 +6,16 @@ const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 
 const {
-  getTeacherAttendanceReport
-} = require("../controllers/teacherAttendance.controller");
+  getCollegePaymentReport
+} = require("../controllers/admin.payment.controller");
 
-// 🧑‍🏫 Teacher attendance report
+// 🏛️ ADMIN: Payment report
 router.get(
-  "/teacher/attendance-report",
+  "/report",
   auth,
-  role("TEACHER"),
+  role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getTeacherAttendanceReport
+  getCollegePaymentReport
 );
 
 module.exports = router;

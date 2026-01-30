@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const crypto = require("crypto");
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/attendance", require("./src/routes/attendanceSession.routes")); // Create new attendance session
-app.use("/api/attendance", require("./src/routes/attendance.routes")); // Scan actual qr to attendance for student
+app.use("/api/attendance", require("./src/routes/attendance.routes")); // Mark manual attendance
 app.use("/api/attendance", require("./src/routes/attendanceClose.routes")); // Close attendance session
 app.use("/api/attendance", require("./src/routes/studentAttendance.routes")); // View attendance summary for student
 app.use("/api/attendance", require("./src/routes/teacherAttendance.routes")); // View attendance report for logged in teacher only
@@ -24,6 +25,9 @@ app.use(
   require("./src/routes/attendanceSession.routes")
 );
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/student/payments", require("./src/routes/student.payment.routes"));
+app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
 app.use("/uploads", express.static("uploads"));
 

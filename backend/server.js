@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./src/cron/paymentReminder.cron");
 const app = require("./app");
 const connectDB = require("./src/config/db");
 const seedSuperAdmin = require("./src/utils/seedSuperAdmin");
