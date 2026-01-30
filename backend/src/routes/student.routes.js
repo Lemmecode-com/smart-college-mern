@@ -6,10 +6,20 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 
-const { registerStudent, getMyFullProfile, updateMyProfile, updateStudentByAdmin, deleteStudent } = require("../controllers/student.controller");
+const {
+  registerStudent,
+  getMyFullProfile,
+  updateMyProfile,
+  updateStudentByAdmin,
+  deleteStudent,
+  getApprovedStudents,
+  getStudentById,
+  getRegisteredStudents,
+  getRegisteredStudentById,
+} = require("../controllers/student.controller");
 const {
   approveStudent,
-  rejectStudent
+  rejectStudent,
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 
@@ -35,7 +45,7 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  approveStudent
+  approveStudent,
 );
 
 router.put(
@@ -43,9 +53,8 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  rejectStudent
+  rejectStudent,
 );
-
 
 // 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
 router.get(
@@ -54,9 +63,8 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  getMyFullProfile
+  getMyFullProfile,
 );
-
 
 // 🎓 STUDENT: Update own profile
 router.put(
@@ -65,9 +73,8 @@ router.put(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  updateMyProfile
+  updateMyProfile,
 );
-
 
 // 🏛️ ADMIN: Update student
 router.put(
@@ -75,9 +82,8 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  updateStudentByAdmin
+  updateStudentByAdmin,
 );
-
 
 // 🏛️ ADMIN: Delete student
 router.delete(
@@ -85,8 +91,42 @@ router.delete(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  deleteStudent
+  deleteStudent,
 );
 
+//ADMIN : GETS approved students
+router.get(
+  "/approved-students",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getApprovedStudents,
+);
 
+//ADMIN : GET individual approved student
+router.get(
+  "/approved-stud/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getStudentById,
+);
+
+//ADMIN : GETS registered students
+router.get(
+  "/registered",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getRegisteredStudents,
+);
+
+//ADMIN : GET individual registered student
+router.get(
+  "/registered/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getRegisteredStudentById,
+);
 module.exports = router;

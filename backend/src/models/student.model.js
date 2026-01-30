@@ -92,7 +92,7 @@ const studentSchema = new mongoose.Schema(
     category: {
       type: String,
       enum: ["GEN", "OBC", "SC", "ST", "OTHER"],
-      required :true,
+      required: true,
     },
 
     nationality: {
