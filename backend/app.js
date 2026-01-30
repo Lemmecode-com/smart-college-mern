@@ -24,7 +24,6 @@ app.use("/api/timetable", require("./src/routes/timetable.routes"));
 app.use("/api/student/payments", require("./src/routes/student.payment.routes"));
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
-
 app.use("/uploads", express.static("uploads"));
 
 module.exports = app;

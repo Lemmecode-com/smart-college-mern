@@ -70,6 +70,7 @@ import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
 import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
 import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
 import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
+import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -188,25 +189,39 @@ export default function App() {
                       <ViewApproveStudent />
                     </ProtectedRoute>
                   }
-                /> 
-                <Route
-                  path="/fee-structure/view-teacher/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CreateFeeStructure />
-                    </ProtectedRoute>
-                  }
                 />
+                <Route 
+                path="/fees/create"
+                element={
+                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                    <CreateFeeStructure />
+                  </ProtectedRoute>
+                } />
+                                                                                                                                     
+              
+
                 <Route
-                  path="/fee-structure/view/:id"
+                  path="/fees/view/:id" 
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <ViewFeeStructure />
                     </ProtectedRoute>
                   }
                 />
-                <Route 
-                  path="/fee-structure/list"
+
+                  
+                <Route
+                  path="/fees/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditFeeStructure />
+                    </ProtectedRoute>
+                  }
+                />
+
+                  
+                <Route
+                  path="/fees/list"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <FeeStructureList />
