@@ -170,12 +170,14 @@ exports.deleteFeeStructure = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}; 
+};
+
 
 /**
- * GET Single Fee Structure
+ * GET Fee Structure BY ID
+ * COLLEGE ADMIN only
  */
-exports.getFeeStructureById= async (req, res) => {
+exports.getFeeStructureById = async (req, res) => {
   try {
     const { feeStructureId } = req.params;
 

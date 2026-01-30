@@ -48,24 +48,18 @@ const attendanceSessionSchema = new mongoose.Schema(
       required: true,
     },
 
-    totalStudents: {
-      type: Number,
-      required: true,
-    },
-
     status: {
       type: String,
       enum: ["OPEN", "CLOSED"],
       default: "OPEN",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Prevent duplicate lecture attendance
 attendanceSessionSchema.index(
   { college_id: 1, subject_id: 1, lectureDate: 1, lectureNumber: 1 },
-  { unique: true }
+  { unique: true },
 );
 
 module.exports = mongoose.model("AttendanceSession", attendanceSessionSchema);
