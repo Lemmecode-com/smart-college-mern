@@ -6,11 +6,8 @@ const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
 
-const {
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-  getStudentFeeDashboard
-} = require("../controllers/student.payment.controller");
+const { createPhonePeOrder, getStudentFeeDashboard } = require("../controllers/student.payment.controller");
+const { mockPaymentSuccess } = require("../controllers/Mock payment success flow  ✔ Help you prepare manager demo");
 
 // 💳 STUDENT: Create payment order
 router.post(
@@ -19,22 +16,12 @@ router.post(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  createRazorpayOrder
-);
-
-// 💳 STUDENT: Verify payment
-router.post(
-  "/verify",
-  auth,
-  role("STUDENT"),
-  collegeMiddleware,
-  studentMiddleware,
-  verifyRazorpayPayment
+  createPhonePeOrder
 );
 
 // 💳 STUDENT: Fee dashboard
 router.get(
-  "/dashboard",
+  "/my-fee-dashboard",
   auth,
   role("STUDENT"),
   collegeMiddleware,
@@ -42,4 +29,10 @@ router.get(
   getStudentFeeDashboard
 );
 
+// MOCK PAYMENT (DEV ONLY)
+router.post(
+  "/mock-success",
+  auth,
+  mockPaymentSuccess
+);
 module.exports = router;
