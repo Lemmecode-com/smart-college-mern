@@ -9,7 +9,8 @@ import {
   FaUsers,
   FaPlus,
   FaTrash,
-  FaSave
+  FaSave,
+  FaUniversity
 } from "react-icons/fa";
 
 export default function EditFeeStructure() {
@@ -17,7 +18,10 @@ export default function EditFeeStructure() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+
+  const [department_id, setDepartmentId] = useState("");
   const [course_id, setCourseId] = useState("");
   const [category, setCategory] = useState("");
   const [totalFee, setTotalFee] = useState("");
@@ -32,59 +36,71 @@ export default function EditFeeStructure() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
-  /* ================= LOAD DATA ================= */
+  /* ================= LOAD ================= */
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
     try {
-      const [structureRes, courseRes] = await Promise.all([
-        api.get("/fees/structure"),
-        api.get("/courses")
+      const [feeRes, deptRes] = await Promise.all([
+        api.get(`/fees/structure/${id}`),
+        api.get("/departments"),
       ]);
 
-      const found = structureRes.data.find((f) => f._id === id);
-      if (!found) {
-        setError("Fee structure not found");
-        return;
+      const fee = feeRes.data;
+
+      setCategory(fee.category);
+      setTotalFee(fee.totalFee);
+      setInstallments(fee.installments);
+
+      setDepartmentId(fee.course_id?.department_id);
+      setCourseId(fee.course_id?._id);
+
+      setDepartments(deptRes.data || []);
+
+      // load courses of department
+      if (fee.course_id?.department_id) {
+        loadCourses(fee.course_id.department_id);
       }
 
-      setCourseId(found.course_id?._id);
-      setCategory(found.category);
-      setTotalFee(found.totalFee);
-      setInstallments(found.installments);
-      setCourses(courseRes.data || []);
-
     } catch (err) {
-      setError("Failed to load data");
+      console.error(err);
+      setError("Failed to load fee structure");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= INSTALLMENTS ================= */
-  const addInstallment = () => {
+  /* ================= LOAD COURSES ================= */
+  const loadCourses = async (deptId) => {
+    try {
+      const res = await api.get(`/courses/department/${deptId}`);
+      setCourses(res.data || []);
+    } catch {
+      setCourses([]);
+    }
+  };
+
+  /* ================= HANDLERS ================= */
+  const addInstallment = () =>
     setInstallments([...installments, { name: "", amount: "", dueDate: "" }]);
-  };
 
-  const removeInstallment = (index) => {
-    setInstallments(installments.filter((_, i) => i !== index));
-  };
+  const removeInstallment = (i) =>
+    setInstallments(installments.filter((_, index) => index !== i));
 
-  const handleInstallmentChange = (index, field, value) => {
+  const handleInstallmentChange = (i, field, value) => {
     const updated = [...installments];
-    updated[index][field] = value;
+    updated[i][field] = value;
     setInstallments(updated);
   };
 
-  /* ================= TOTAL CHECK ================= */
   const installmentSum = installments.reduce(
     (sum, i) => sum + Number(i.amount || 0),
     0
   );
 
-  /* ================= SAVE ================= */
+  /* ================= UPDATE ================= */
   const handleSubmit = async () => {
     setError("");
     setSuccess("");
@@ -95,7 +111,7 @@ export default function EditFeeStructure() {
     }
 
     if (installmentSum !== Number(totalFee)) {
-      setError("Installments total must match Total Fee");
+      setError("Installment total must match total fee");
       return;
     }
 
@@ -106,15 +122,11 @@ export default function EditFeeStructure() {
         course_id,
         category,
         totalFee: Number(totalFee),
-        installments: installments.map((i) => ({
-          name: i.name,
-          amount: Number(i.amount),
-          dueDate: i.dueDate
-        }))
+        installments,
       });
 
       setSuccess("Fee structure updated successfully");
-      setTimeout(() => navigate("/fee-structure/list"), 1200);
+      setTimeout(() => navigate("/fees/list"), 1200);
 
     } catch (err) {
       setError(err.response?.data?.message || "Update failed");
@@ -123,37 +135,47 @@ export default function EditFeeStructure() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Fee Structure...</h5>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center mt-5">Loading...</div>;
 
   return (
     <div className="container-fluid">
 
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
-        <h3 className="fw-bold mb-1">
+      <div className="gradient-header p-4 rounded-4 text-white mb-4">
+        <h3 className="fw-bold">
           <FaMoneyBillWave className="me-2 blink" />
           Edit Fee Structure
         </h3>
-        <p className="opacity-75 mb-0">
-          Modify course & category based fee plans
-        </p>
       </div>
 
-      {error && <div className="alert alert-danger text-center">{error}</div>}
-      {success && <div className="alert alert-success text-center">{success}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
-      {/* FORM */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card">
-        <div className="card-body p-4">
+      <div className="card shadow-lg rounded-4 glass-card">
+        <div className="card-body">
 
-          {/* BASIC */}
-          <div className="row g-3 mb-4">
+          {/* Department */}
+          <div className="row g-3 mb-3">
+            <div className="col-md-4">
+              <label className="fw-semibold">
+                <FaUniversity className="me-2" /> Department
+              </label>
+              <select
+                className="form-select"
+                value={department_id}
+                onChange={(e) => {
+                  setDepartmentId(e.target.value);
+                  setCourseId("");
+                  loadCourses(e.target.value);
+                }}
+              >
+                <option value="">-- Select Department --</option>
+                {departments.map((d) => (
+                  <option key={d._id} value={d._id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Course */}
             <div className="col-md-4">
               <label className="fw-semibold">
                 <FaLayerGroup className="me-2" /> Course
@@ -170,6 +192,7 @@ export default function EditFeeStructure() {
               </select>
             </div>
 
+            {/* Category */}
             <div className="col-md-4">
               <label className="fw-semibold">
                 <FaUsers className="me-2" /> Category
@@ -179,123 +202,63 @@ export default function EditFeeStructure() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="">-- Select Category --</option>
                 <option>GEN</option>
                 <option>OBC</option>
                 <option>SC</option>
                 <option>ST</option>
               </select>
             </div>
-
-            <div className="col-md-4">
-              <label className="fw-semibold">Total Fee</label>
-              <input
-                type="number"
-                className="form-control"
-                value={totalFee}
-                onChange={(e) => setTotalFee(e.target.value)}
-              />
-            </div>
           </div>
 
-          {/* INSTALLMENTS */}
-          <h5 className="fw-bold mb-3">Installments</h5>
+          {/* Total */}
+          <input
+            type="number"
+            className="form-control mb-3"
+            placeholder="Total Fee"
+            value={totalFee}
+            onChange={(e) => setTotalFee(e.target.value)}
+          />
 
-          {installments.map((i, index) => (
-            <div className="row g-2 mb-2" key={index}>
+          <h6 className="fw-bold">Installments</h6>
+
+          {installments.map((i, idx) => (
+            <div className="row g-2 mb-2" key={idx}>
               <div className="col-md-4">
-                <input
-                  className="form-control"
-                  placeholder="Installment Name"
-                  value={i.name}
-                  onChange={(e) =>
-                    handleInstallmentChange(index, "name", e.target.value)
-                  }
-                />
+                <input className="form-control" value={i.name}
+                  onChange={(e) => handleInstallmentChange(idx, "name", e.target.value)} />
               </div>
-
               <div className="col-md-3">
-                <input
-                  type="number"
-                  className="form-control"
-                  placeholder="Amount"
-                  value={i.amount}
-                  onChange={(e) =>
-                    handleInstallmentChange(index, "amount", e.target.value)
-                  }
-                />
+                <input type="number" className="form-control" value={i.amount}
+                  onChange={(e) => handleInstallmentChange(idx, "amount", e.target.value)} />
               </div>
-
               <div className="col-md-3">
-                <input
-                  type="date"
-                  className="form-control"
-                  value={i.dueDate?.substring(0,10)}
-                  onChange={(e) =>
-                    handleInstallmentChange(index, "dueDate", e.target.value)
-                  }
-                />
+                <input type="date" className="form-control"
+                  value={i.dueDate?.substring(0, 10)}
+                  onChange={(e) => handleInstallmentChange(idx, "dueDate", e.target.value)} />
               </div>
-
-              <div className="col-md-2 text-center">
-                {installments.length > 1 && (
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => removeInstallment(index)}
-                  >
-                    <FaTrash />
-                  </button>
-                )}
+              <div className="col-md-2">
+                <button className="btn btn-danger" onClick={() => removeInstallment(idx)}>
+                  <FaTrash />
+                </button>
               </div>
             </div>
           ))}
 
-          <button className="btn btn-outline-primary mt-3" onClick={addInstallment}>
-            <FaPlus className="me-2" />
-            Add Installment
+          <button className="btn btn-outline-primary mt-2" onClick={addInstallment}>
+            <FaPlus /> Add Installment
           </button>
 
           <hr />
 
-          <div className="d-flex justify-content-between align-items-center">
-            <h6>
-              Installment Total: ₹ {installmentSum}
-            </h6>
-
-            <button
-              className="btn btn-success px-4"
-              onClick={handleSubmit}
-              disabled={saving}
-            >
-              <FaSave className="me-2" />
-              {saving ? "Saving..." : "Update Structure"}
+          <div className="d-flex justify-content-between">
+            <strong>Total: ₹ {installmentSum}</strong>
+            <button className="btn btn-success" onClick={handleSubmit}>
+              <FaSave /> Update
             </button>
           </div>
 
         </div>
       </div>
-
-      {/* CSS */}
-      <style>
-        {`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-        }
-        .glass-card {
-          background: rgba(255,255,255,0.96);
-          backdrop-filter: blur(10px);
-        }
-        .blink {
-          animation: blink 1.5s infinite;
-        }
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
-        }
-        `}
-      </style>
-
     </div>
   );
 }
