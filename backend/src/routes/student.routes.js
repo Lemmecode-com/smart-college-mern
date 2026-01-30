@@ -23,9 +23,6 @@ const {
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 
-const {
-  getRegisteredStudents
-} = require("../controllers/studentList.controller");
 
 // 🌍 PUBLIC STUDENT REGISTRATION
 router.post("/register/:collegeCode", registerStudent);
