@@ -20,18 +20,16 @@
 //   );
 // }
 
-
-
-
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 export default function StudentDashboard() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    api.get("/attendance/my/summary")
-      .then(res => setStats(res.data))
+    api
+      .get("/attendance/my/summary")
+      .then((res) => setStats(res.data))
       .catch(() => {});
   }, []);
 
