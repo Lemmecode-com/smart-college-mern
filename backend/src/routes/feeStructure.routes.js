@@ -4,10 +4,8 @@ const router = express.Router();
 const {
   createFeeStructure,
   getFeeStructures,
-  getFeeStructureById,
   updateFeeStructure,
   deleteFeeStructure,
-  updateFeeStructure,
   getFeeStructureById
 } = require("../controllers/feeStructure.controller");
 
