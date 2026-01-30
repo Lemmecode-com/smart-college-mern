@@ -313,3 +313,66 @@ exports.deleteStudent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+// GET APPROVED STUDENTS FOR COLLEGE ADMIN
+exports.getApprovedStudents = async (req, res) => {
+  const students = await Student.find({
+    college_id: req.college_id,
+    status: "APPROVED"
+  })
+    .populate("department_id", "name code")
+    .populate("course_id", "name");
+
+  res.json(students);
+};
+
+
+//GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN 
+exports.getStudentById = async (req, res) => {
+  const student = await Student.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  })
+    .populate("college_id", "name code")
+    .populate("department_id", "name")
+    .populate("course_id", "name");
+
+  if (!student) {
+    return res.status(404).json({ message: "Student not found" });
+  }
+
+  res.json(student);
+};
+
+// REGISTERED (PENDING) STUDENTS
+exports.getRegisteredStudents = async (req, res) => {
+  const students = await Student.find({
+    college_id: req.college_id,
+    status: "PENDING"
+  })
+    .populate("department_id", "name code")
+    .populate("course_id", "name");
+
+  res.json(students);
+};
+
+// ADMIN GETS REGISTERED (PENDING) INDIVUDUAL STUDENT
+exports.getRegisteredStudentById = async (req, res) => {
+  const student = await Student.findOne({
+    _id: req.params.id,
+    college_id: req.college_id,
+    status: "PENDING"
+  })
+    .populate("college_id", "name code")
+    .populate("department_id", "name")
+    .populate("course_id", "name");
+
+  if (!student) {
+    return res.status(404).json({
+      message: "Registered student not found"
+    });
+  }
+
+  res.json(student);
+};

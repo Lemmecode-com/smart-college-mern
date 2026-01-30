@@ -5,7 +5,8 @@ const {
   createFeeStructure,
   getFeeStructures,
   deleteFeeStructure,
-  updateFeeStructure
+  updateFeeStructure,
+  getFeeStructureById
 } = require("../controllers/feeStructure.controller");
 
 const auth = require("../middlewares/auth.middleware");
@@ -45,6 +46,15 @@ router.delete(
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   deleteFeeStructure
+);
+
+//GET SINGLE FEE STRUCTURE BY ID
+router.get(
+  "/:feeStructureId",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getFeeStructureById
 );
 
 module.exports = router;
