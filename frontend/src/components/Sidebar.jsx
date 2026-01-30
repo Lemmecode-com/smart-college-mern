@@ -13,6 +13,8 @@ import {
   FaChevronDown,
   FaCog,
   FaCalendarAlt,
+  FaMoneyBillWave,
+  FaMoneyBillWaveAlt,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -199,6 +201,23 @@ export default function Sidebar() {
           <div style={sectionBody(open.students)}>
             <NavLink to="/students" style={navLink}>
               <FaUserGraduate /> Student List
+            </NavLink>
+
+            <NavLink to="/students/approve" style={navLink}>
+              <FaUserGraduate /> Approve Students
+            </NavLink>
+          </div>
+
+          {/* FEE STRUCTURE */}
+          <div style={sectionTitle} onClick={() => toggle("fee-structure")}>
+            System Settings <FaChevronDown />
+          </div>
+          <div style={sectionBody(open["fee-structure"])}>
+            <NavLink to="/fee-structure/view-teacher/:id" style={navLink}>
+              <FaMoneyBillWave /> Create Fee Structure
+            </NavLink>
+            <NavLink to="/fee-structure/list" style={navLink}>
+              <FaMoneyBillWaveAlt /> Fee Structures List
             </NavLink>
           </div>
         </>

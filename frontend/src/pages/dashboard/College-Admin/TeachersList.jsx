@@ -7,7 +7,8 @@ import {
   FaChalkboardTeacher,
   FaEdit,
   FaTrash,
-  FaPlus
+  FaPlus,
+  FaEye
 } from "react-icons/fa";
 
 export default function TeachersList() {
@@ -31,7 +32,7 @@ export default function TeachersList() {
   const fetchTeachers = async () => {
     try {
       const res = await api.get("/teachers");
-      setTeachers(res.data);
+      setTeachers(res.data || []);
     } catch {
       setTeachers([]);
     } finally {
@@ -66,7 +67,7 @@ export default function TeachersList() {
     <div className="container-fluid">
 
       {/* ================= HEADER ================= */}
-      <div className="d-flex justify-content-between align-items-center mb-4 gradient-header p-4 rounded-4 text-white">
+      <div className="d-flex justify-content-between align-items-center mb-4 gradient-header p-4 rounded-4 text-white shadow-lg">
         <h4 className="fw-bold mb-0">
           <FaChalkboardTeacher className="blink me-2" />
           Teachers Management
@@ -86,15 +87,12 @@ export default function TeachersList() {
         <div className="card-body p-0">
 
           <table className="table table-hover align-middle mb-0">
-            <thead className="table-light">
+            <thead className="table-dark">
               <tr>
                 <th>#</th>
                 <th>Name</th>
-                <th>Employee ID</th>
                 <th>Email</th>
-                <th>Department</th>
                 <th>Designation</th>
-                <th>Experience</th>
                 <th>Status</th>
                 <th className="text-center">Actions</th>
               </tr>
@@ -103,7 +101,7 @@ export default function TeachersList() {
             <tbody>
               {teachers.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="text-center text-muted py-4">
+                  <td colSpan="6" className="text-center text-muted py-4">
                     No teachers found
                   </td>
                 </tr>
@@ -113,13 +111,8 @@ export default function TeachersList() {
                 <tr key={t._id}>
                   <td>{index + 1}</td>
                   <td className="fw-semibold">{t.name}</td>
-                  <td>{t.employeeId}</td>
                   <td>{t.email}</td>
-                  <td>
-                    {t.department_id?.name} ({t.department_id?.code})
-                  </td>
                   <td>{t.designation}</td>
-                  <td>{t.experienceYears} yrs</td>
                   <td>
                     <span
                       className={`badge ${
@@ -131,8 +124,18 @@ export default function TeachersList() {
                       {t.status}
                     </span>
                   </td>
-                  <td className="text-center">
 
+                  {/* ACTIONS */}
+                  <td className="text-center">
+                    {/* VIEW */}
+                    <Link
+                      to={`/teachers/view/${t._id}`}
+                      className="btn btn-sm btn-outline-info me-2"
+                    >
+                      <FaEye />
+                    </Link>
+
+                    {/* EDIT */}
                     <Link
                       to={`/teachers/edit/${t._id}`}
                       className="btn btn-sm btn-outline-primary me-2"
@@ -140,13 +143,13 @@ export default function TeachersList() {
                       <FaEdit />
                     </Link>
 
+                    {/* DELETE */}
                     <button
                       className="btn btn-sm btn-outline-danger"
                       onClick={() => deleteTeacher(t._id)}
                     >
                       <FaTrash />
                     </button>
-
                   </td>
                 </tr>
               ))}
@@ -164,8 +167,8 @@ export default function TeachersList() {
         }
 
         .glass-card {
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(10px);
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: blur(8px);
         }
 
         .blink {
