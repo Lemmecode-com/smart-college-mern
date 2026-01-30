@@ -170,4 +170,28 @@ exports.deleteFeeStructure = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+}; 
+
+/**
+ * GET Single Fee Structure
+ */
+exports.getFeeStructureById= async (req, res) => {
+  try {
+    const { feeStructureId } = req.params;
+
+    const feeStructure = await FeeStructure.findOne({
+      _id: feeStructureId,
+      college_id: req.college_id,
+    }).populate("course_id", "name");
+
+    if (!feeStructure) {
+      return res.status(404).json({
+        message: "Fee structure not found",
+      });
+    }
+
+    res.json(feeStructure);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
