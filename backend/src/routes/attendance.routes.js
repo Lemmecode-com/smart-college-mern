@@ -7,12 +7,9 @@ const collegeMiddleware = require("../middlewares/college.middleware");
 
 const {
   getStudentsForAttendance,
-  markManualAttendance
-} = require("../controllers/attendanceManual.controller");
-
-const {
+  markManualAttendance,
   editAttendance
-} = require("../controllers/attendanceEdit.controller");
+} = require("../controllers/attendanceManual.controller");
 
 router.get(
   "/students",
