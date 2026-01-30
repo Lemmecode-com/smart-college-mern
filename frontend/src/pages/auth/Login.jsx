@@ -1,144 +1,4 @@
-// import { useContext, useState } from "react";
-// import { useNavigate, Link } from "react-router-dom";
-// import { AuthContext } from "../../auth/AuthContext";
-
-// export default function Login() {
-//   const { login } = useContext(AuthContext);
-//   const navigate = useNavigate();
-
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState("");
-
-//   const submitHandler = async (e) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     setError("");
-
-//     try {
-//       await login({ email, password });
-//       navigate("/dashboard");
-//     } catch (err) {
-//       setError(
-//         err.response?.data?.message || "Invalid email or password"
-//       );
-//     }
-
-//     setLoading(false);
-//   };
-
-//   return (
-//     <div className="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-white">
-//       <div className="row w-100 justify-content-center">
-//         <div className="col-11 col-sm-8 col-md-6 col-lg-4">
-//           <div
-//             className="card shadow-lg border-0 rounded-3"
-//             style={{ overflow: "hidden" }}
-//           >
-//             {/* HEADER */}
-//             <div
-//               className="text-white text-center py-4"
-//               style={{
-//                 background: "linear-gradient(180deg, #0f3a4a, #134952)",
-//               }}
-//             >
-//               <h3 className="fw-bold mb-1">Smart College</h3>
-//               <p className="mb-0 small opacity-75">
-//                 Login Panel
-//               </p>
-//             </div>
-
-//             {/* BODY */}
-//             <div className="card-body px-4 py-4">
-//               {error && (
-//                 <div className="alert alert-danger text-center py-2">
-//                   {error}
-//                 </div>
-//               )}
-
-//               <form onSubmit={submitHandler}>
-//                 {/* EMAIL */}
-//                 <div className="mb-3">
-//                   <label className="form-label fw-semibold">
-//                     Email
-//                   </label>
-//                   <input
-//                     type="email"
-//                     className="form-control"
-//                     placeholder="admin@college.com"
-//                     required
-//                     value={email}
-//                     onChange={(e) => setEmail(e.target.value)}
-//                   />
-//                 </div>
-
-//                 {/* PASSWORD */}
-//                 <div className="mb-4">
-//                   <label className="form-label fw-semibold">
-//                     Password
-//                   </label>
-
-//                   <div className="input-group">
-//                     <input
-//                       type={showPassword ? "text" : "password"}
-//                       className="form-control"
-//                       placeholder="Enter password"
-//                       required
-//                       value={password}
-//                       onChange={(e) => setPassword(e.target.value)}
-//                     />
-//                     <button
-//                       type="button"
-//                       className="btn btn-outline-secondary"
-//                       onClick={() =>
-//                         setShowPassword(!showPassword)
-//                       }
-//                     >
-//                       {showPassword ? "Hide" : "Show"}
-//                     </button>
-//                   </div>
-//                 </div>
-
-//                 {/* LOGIN BUTTON */}
-//                 <button
-//                   className="btn w-100 text-white fw-semibold"
-//                   style={{
-//                     backgroundColor: "#1f6f8b",
-//                   }}
-//                   disabled={loading}
-//                 >
-//                   {loading ? "Logging in..." : "Login"}
-//                 </button>
-//               </form>
-//             </div>
-
-//             {/* FOOTER */}
-//             <div className="card-footer bg-light text-center py-3">
-//               <span className="text-muted small">
-//                 Don’t have an account?
-//               </span>{" "}
-//               <Link
-//                 to="/register"
-//                 className="fw-semibold text-decoration-none"
-//                 style={{ color: "#1f6f8b" }}
-//               >
-//                 Register
-//               </Link>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-
-import { useState, useContext } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 
@@ -146,51 +6,207 @@ export default function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [forgotMode, setForgotMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e) => {
+  /* SINGLE SOURCE OF TRUTH */
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const submitHandler = async (e) => {
     e.preventDefault();
+
+    if (!email || (!forgotMode && !password)) {
+      setError("All fields are required");
+      return;
+    }
+
+    setLoading(true);
     setError("");
     setSuccessMsg("");
 
-    if (!form.email || !form.password) {
-      return setError("All fields are required");
+    /* ===== FORGOT PASSWORD (UI ONLY) ===== */
+    if (forgotMode) {
+      setTimeout(() => {
+        setSuccessMsg("Password reset link sent to your email.");
+        setLoading(false);
+      }, 800);
+      return;
     }
 
-    try {
-      await login(form);
-      navigate("/dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+    /* ===== LOGIN ===== */
+    const result = await login({ email, password });
+
+    if (!result.success) {
+      setError(result.message || "Invalid credentials");
+      setLoading(false);
+      return;
     }
+
+    // cleanup
+    setPassword("");
+    setError("");
+    setLoading(false);
+
+    // backend aligned redirect
+    navigate("/");
   };
 
   return (
-    <div className="container mt-5 col-md-4">
-      <h3 className="text-center mb-3">Login</h3>
+    <div
+      className="container-fluid min-vh-100 d-flex align-items-center justify-content-center px-3"
+      style={{ background: "#ffffff" }}
+    >
+      <div
+        className="card shadow-lg border-0 rounded-4 overflow-hidden w-100"
+        style={{ maxWidth: "900px", animation: "fadeIn 0.6s ease" }}
+      >
+        <div className="row g-0">
+          {/* LEFT PANEL */}
+          <div
+            className="col-md-5 d-none d-md-flex flex-column justify-content-center text-white p-5"
+            style={{ background: "linear-gradient(180deg, #0f3a4a, #134952)" }}
+          >
+            <h2 className="fw-bold">
+              {forgotMode ? "Reset Password" : "Welcome Back"}
+            </h2>
+            <p className="opacity-75">
+              {forgotMode
+                ? "Enter your email to reset your password"
+                : "Login to access your Smart College dashboard"}
+            </p>
+          </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+          {/* RIGHT PANEL */}
+          <div className="col-md-7 bg-white p-4 p-md-5">
+            <div className="text-center mb-4">
+              <div
+                className="rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                style={{ width: 70, height: 70, background: "#e6f3f7" }}
+              >
+                {forgotMode ? "🔐" : "👤"}
+              </div>
+              <h4 className="fw-bold">
+                {forgotMode ? "FORGOT PASSWORD" : "LOGIN"}
+              </h4>
+            </div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          className="form-control mb-2"
-          placeholder="Email"
-          type="email"
-          onChange={(e) => setForm({ ...form, email: e.target.value })}
-        />
+            {error && (
+              <div className="alert alert-danger py-2 text-center">
+                {error}
+              </div>
+            )}
 
-        <input
-          className="form-control mb-3"
-          placeholder="Password"
-          type="password"
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-        />
+            {successMsg && (
+              <div className="alert alert-success py-2 text-center">
+                {successMsg}
+              </div>
+            )}
 
-        <button className="btn btn-primary w-100">Login</button>
-      </form>
+            <form onSubmit={submitHandler}>
+              {/* EMAIL */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Email</label>
+                <input
+                  type="email"
+                  className="form-control border-0 border-bottom rounded-0"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              {/* PASSWORD */}
+              {!forgotMode && (
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Password</label>
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control border-0 border-bottom rounded-0"
+                      placeholder="Enter password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                {!forgotMode ? (
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none"
+                    onClick={() => {
+                      setForgotMode(true);
+                      setError("");
+                      setSuccessMsg("");
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-decoration-none"
+                    onClick={() => {
+                      setForgotMode(false);
+                      setError("");
+                      setSuccessMsg("");
+                    }}
+                  >
+                    Back to Login
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn text-white px-4 rounded-pill"
+                  style={{ backgroundColor: "#1f6f8b" }}
+                  disabled={loading}
+                >
+                  {loading
+                    ? "Processing..."
+                    : forgotMode
+                    ? "SEND LINK"
+                    : "LOGIN"}
+                </button>
+              </div>
+            </form>
+
+            {!forgotMode && (
+              <div className="text-center">
+                <span className="text-muted small">
+                  Don’t have an account?
+                </span>{" "}
+                <span
+                  className="fw-semibold text-decoration-none"
+                  style={{ color: "#1f6f8b" }}
+                >
+                  Students use College QR / Link
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <style>
+        {`@keyframes fadeIn {
+          from {opacity:0; transform: translateY(20px)}
+          to {opacity:1; transform: translateY(0)}
+        }`}
+      </style>
     </div>
   );
 }
