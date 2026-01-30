@@ -4,28 +4,38 @@ const feeStructureSchema = new mongoose.Schema({
   college_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "College",
-    required: true
+    required: true,
   },
   course_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Course",
-    required: true
+    required: true,
   },
   category: {
     type: String,
     enum: ["GENERAL", "OBC", "SC", "ST"],
-    required: true
+    required: true,
   },
   totalFee: {
     type: Number,
-    required: true
+    required: true,
   },
   installments: [
     {
-      name: String,
-      amount: Number
-    }
-  ]
+      name: {
+        type: String,
+        required: true,
+      },
+      amount: {
+        type: Number,
+        required: true,
+      },
+      dueDate: {
+        type: Date,
+        required: true,
+      },
+    },
+  ],
 });
 
 module.exports = mongoose.model("FeeStructure", feeStructureSchema);
