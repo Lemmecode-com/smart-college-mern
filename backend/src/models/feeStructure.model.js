@@ -13,7 +13,7 @@ const feeStructureSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["GENERAL", "OBC", "SC", "ST"],
+    enum: ["GEN", "OBC", "SC", "ST"],
     required: true,
   },
   totalFee: {
