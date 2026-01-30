@@ -1,71 +1,7 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
-
-/**
- * APPROVE STUDENT
- */
-/* exports.approveStudent = async (req, res) => {
-  const { studentId } = req.params;
-
-  const student = await Student.findOne({
-    _id: studentId,
-    college_id: req.college_id,
-    status: "PENDING",
-  });
-
-  if (!student) {
-    return res
-      .status(404)
-      .json({ message: "Student not found or already processed" });
-  }
-
-  // 🔢 Count approved students in course
-  const approvedCount = await Student.countDocuments({
-    course_id: student.course_id,
-    college_id: req.college_id,
-    status: "APPROVED",
-  });
-
-  const course = await Course.findById(student.course_id);
-
-  if (approvedCount >= course.maxStudents) {
-    return res.status(400).json({
-      message: "Admission capacity reached for this course",
-    });
-  }
-
-  // 1️⃣ Find fee structure
-  const feeStructure = await FeeStructure.findOne({
-    college_id: student.college_id,
-    course_id: student.course_id,
-    category: student.category,
-  });
-
-  if (!feeStructure) {
-    return res.status(400).json({
-      message: "Fee structure not configured for this course & category",
-    });
-  }
-
-  // 2️⃣ Create student fee record
-  await StudentFee.create({
-    student_id: student._id,
-    college_id: student.college_id,
-    course_id: student.course_id,
-    totalFee: feeStructure.totalFee,
-    installments: feeStructure.installments,
-  });
-
-  // ✅ Approve
-  student.status = "APPROVED";
-  student.approvedBy = req.user.id;
-  student.approvedAt = new Date();
-
-  await student.save();
-
-  res.json({ message: "Student approved successfully" });
-}; */
-
+const FeeStructure = require("../models/feeStructure.model");
+const StudentFee = require("../models/studentFee.model");
 
 exports.approveStudent = async (req, res) => {
   try {
