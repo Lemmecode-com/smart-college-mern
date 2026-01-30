@@ -48,7 +48,7 @@ router.delete(
   deleteFeeStructure
 );
 
-// GET BY ID
+//GET SINGLE FEE STRUCTURE BY ID
 router.get(
   "/:feeStructureId",
   auth,
