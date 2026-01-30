@@ -63,6 +63,13 @@ import ChangePassword from "./pages/dashboard/Student/ChangePassword";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
 import PaymentHistory from "./pages/dashboard/Student/PaymentHistory";
 import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
+import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
+import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
+import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
+import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
+import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
+import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
+import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -152,6 +159,57 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CollegeProfile />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college/view-student/:studentId"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewStudent />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/students/approve"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ApproveStudents />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college/view-approved-student/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewApproveStudent />
+                    </ProtectedRoute>
+                  }
+                /> 
+                <Route
+                  path="/fee-structure/view-teacher/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateFeeStructure />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/fee-structure/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewFeeStructure />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route 
+                  path="/fee-structure/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <FeeStructureList />
                     </ProtectedRoute>
                   }
                 />
@@ -399,6 +457,14 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <TeachersList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teachers/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewTeacher />
                     </ProtectedRoute>
                   }
                 />
