@@ -17,7 +17,6 @@ export default function FeeStructureList() {
 
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewData, setViewData] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -26,9 +25,10 @@ export default function FeeStructureList() {
   /* ================= FETCH ================= */
   const loadStructures = async () => {
     try {
-      const res = await api.get("/fee-structures");
+      const res = await api.get("/fees/structure"); // ✅ correct
       setStructures(res.data || []);
-    } catch {
+    } catch (err) {
+      console.error(err);
       setStructures([]);
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ export default function FeeStructureList() {
     if (!confirm) return;
 
     try {
-      await api.delete(`/fee-structures/${id}`);
+      await api.delete(`/fees/structure/${id}`); // ✅ correct
       loadStructures();
     } catch (err) {
       alert(err.response?.data?.message || "Delete failed");
@@ -123,13 +123,17 @@ export default function FeeStructureList() {
                   <td>{f.installments.length}</td>
                   <td className="text-center">
 
+                    {/* 👁 VIEW */}
                     <button
                       className="btn btn-sm btn-info me-2"
-                      onClick={() => setViewData(f)}
+                      onClick={() =>
+                        navigate(`/fees/view/:id`)
+                      }
                     >
                       <FaEye />
                     </button>
 
+                    {/* ✏️ EDIT */}
                     <button
                       className="btn btn-sm btn-primary me-2"
                       onClick={() =>
@@ -139,6 +143,7 @@ export default function FeeStructureList() {
                       <FaEdit />
                     </button>
 
+                    {/* 🗑 DELETE */}
                     <button
                       className="btn btn-sm btn-danger"
                       onClick={() => handleDelete(f._id)}
@@ -154,51 +159,6 @@ export default function FeeStructureList() {
 
         </div>
       </div>
-
-      {/* ================= VIEW MODAL ================= */}
-      {viewData && (
-        <div className="modal-backdrop-custom">
-          <div className="modal-card">
-
-            <h4 className="fw-bold mb-3">
-              {viewData.course_id?.name} ({viewData.category})
-            </h4>
-
-            <p>
-              <strong>Total Fee:</strong> ₹ {viewData.totalFee}
-            </p>
-
-            <table className="table table-bordered">
-              <thead>
-                <tr>
-                  <th>Installment</th>
-                  <th>Amount</th>
-                  <th>Due Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {viewData.installments.map((i) => (
-                  <tr key={i._id}>
-                    <td>{i.name}</td>
-                    <td>₹ {i.amount}</td>
-                    <td>
-                      {new Date(i.dueDate).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <button
-              className="btn btn-secondary w-100"
-              onClick={() => setViewData(null)}
-            >
-              Close
-            </button>
-
-          </div>
-        </div>
-      )}
 
       {/* ================= CSS ================= */}
       <style>
@@ -217,25 +177,6 @@ export default function FeeStructureList() {
           0% {opacity:1}
           50% {opacity:0.4}
           100% {opacity:1}
-        }
-        .modal-backdrop-custom {
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          width: 100vw;
-          background: rgba(0,0,0,0.4);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 999;
-        }
-        .modal-card {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          width: 450px;
-          max-width: 95%;
         }
         `}
       </style>
