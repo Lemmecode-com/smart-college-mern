@@ -180,17 +180,86 @@ import { useState } from "react";
 import api from "../../api/axios";
 
 export default function MarkAttendance() {
+  const [subjects, setSubjects] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [records, setRecords] = useState({});
   const [subjectId, setSubjectId] = useState("");
   const [date, setDate] = useState("");
 
-  const submit = async () => {
-    await api.post("/attendance/mark", {
+  /* ================= LOAD TEACHER SUBJECTS ================= */
+  useEffect(() => {
+    api
+      .get("/subjects")
+      .then((res) => {
+        const list = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        setSubjects(list);
+      })
+      .catch(() => setSubjects([]));
+  }, []);
+
+  /* ================= LOAD STUDENTS ================= */
+  const loadStudents = async (id) => {
+    if (!id) return;
+
+    setSubjectId(id);
+    setLoading(true);
+
+    try {
+      const res = await api.get("/students", {
+        params: { subjectId: id }
+      });
+
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data || [];
+
+      setStudents(list);
+
+      const map = {};
+      list.forEach((s) => (map[s._id] = "Present"));
+      setRecords(map);
+    } catch (err) {
+      console.error(err);
+      setStudents([]);
+      setRecords({});
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = (studentId, status) => {
+    setRecords((prev) => ({ ...prev, [studentId]: status }));
+  };
+
+  const submitHandler = async (e) => {
+    e.preventDefault();
+
+    if (!subjectId || !date || students.length === 0) {
+      alert("Select subject, date and students");
+      return;
+    }
+
+    const payload = {
       subjectId,
       date,
-      records: [],
-    });
+      records: Object.entries(records).map(([studentId, status]) => ({
+        studentId,
+        status
+      }))
+    };
 
-    alert("Attendance marked");
+    try {
+      await api.post("/attendance", payload);
+      alert("Attendance marked successfully");
+      setStudents([]);
+      setRecords({});
+      setSubjectId("");
+      setDate("");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to mark attendance");
+    }
   };
 
   return (
