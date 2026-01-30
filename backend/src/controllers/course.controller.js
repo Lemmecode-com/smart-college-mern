@@ -1,101 +1,112 @@
-// src/controllers/course.controller.js
 const Course = require("../models/course.model");
+const Department = require("../models/department.model");
 
-// Utility: Generate course code
-const generateCourseCode = (name) => {
-  return name
-    .replace(/[^a-zA-Z ]/g, "")
-    .split(" ")
-    .map(w => w.substring(0, 2))
-    .join("")
-    .toUpperCase();
-};
-
-// Admin: Create course
+/**
+ * CREATE Course
+ */
 exports.createCourse = async (req, res) => {
-  try {
-    const { name, code, departmentId, teacherId, duration } = req.body;
+  const {
+    department_id,
+    name,
+    code,
+    type,
+    programLevel,
+    semester,
+    credits,
+    maxStudents
+  } = req.body;
 
-    if (!name || !code || !departmentId) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+  const department = await Department.findOne({
+    _id: department_id,
+    college_id: req.college_id
+  });
 
-    const course = await Course.create({
-      name,
-      code,
-      departmentId,
-      teacherId,
-      duration,
-    });
-
-    res.status(201).json({
-      message: "Course created successfully",
-      data: course,
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  if (!department) {
+    return res.status(404).json({ message: "Invalid department" });
   }
+
+  const course = await Course.create({
+    college_id: req.college_id,
+    department_id,
+    name,
+    code,
+    type,
+    programLevel,
+    semester,
+    credits,
+    maxStudents,
+    createdBy: req.user.id
+  });
+
+  res.status(201).json(course);
 };
 
-// Admin: Get all courses
-exports.getCourses = async (req, res) => {
-  try {
-    const courses = await Course.find()
-      .populate("departmentId", "name")
-      .populate("teacherId", "name email");
+/**
+ * READ Courses by Department
+ */
+exports.getCoursesByDepartment = async (req, res) => {
+  const courses = await Course.find({
+    department_id: req.params.departmentId,
+    college_id: req.college_id
+  });
 
-    res.json(courses);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+  res.json(courses);
 };
 
-// // Teacher: Get assigned courses
-// exports.getMyCourses = async (req, res) => {
-//   try {
-//     const courses = await Course.find({ teacherId: req.user.id }).populate(
-//       "departmentId",
-//       "name"
-//     );
 
-//     res.json(courses);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
+/**
+ * READ Single Course (by ID)
+ */
+exports.getCourseById = async (req, res) => {
+  const course = await Course.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
 
-// Teacher: Get my courses
-exports.getMyCourses = async (req, res) => {
-  try {
-    const courses = await Course.find({
-      teacherId: req.user.id,
-      status: "Active",
-    })
-      .populate("departmentId", "name code")
-      .populate("teacherId", "name email");
-
-    res.json({
-      success: true,
-      data: courses,
+  if (!course) {
+    return res.status(404).json({
+      message: "Course not found"
     });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
   }
+
+  res.json(course);
 };
 
-exports.assignTeacher = async (req, res) => {
-  const { teacherId } = req.body;
 
-  const course = await Course.findByIdAndUpdate(
-    req.params.id,
-    { teacherId },
+/**
+ * UPDATE Course
+ */
+exports.updateCourse = async (req, res) => {
+  const course = await Course.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      college_id: req.college_id
+    },
+    req.body,
     { new: true }
   );
 
-  res.json({
-    success: true,
-    data: course,
+  if (!course) {
+    return res.status(404).json({ message: "Course not found" });
+  }
+
+  res.json(course);
+};
+
+/**
+ * DELETE Course
+ */
+exports.deleteCourse = async (req, res) => {
+  const course = await Course.findOneAndDelete({
+    _id: req.params.id,
+    college_id: req.college_id
   });
+
+  if (!course) {
+    return res.status(404).json({ message: "Course not found" });
+  }
+
+  res.json({ message: "Course deleted successfully" });
 };
 
 // exports.getMyCourses = async (req, res) => {

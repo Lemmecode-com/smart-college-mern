@@ -1,15 +1,118 @@
-const router = require("express").Router();
-const auth = require("../middleware/auth.middleware");
-const role = require("../middleware/role.middleware");
-const ctrl = require("../controllers/student.controller");
+const express = require("express");
+const router = express.Router();
 
-// Admin only: create student
-router.post("/", auth, role("admin"), ctrl.createStudent);
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
 
-// Admin & Teacher: view students (secure)
-router.get("/", auth, role("admin", "teacher"), ctrl.getStudents);
+const {
+  registerStudent,
+  getMyFullProfile,
+  updateMyProfile,
+  updateStudentByAdmin,
+  deleteStudent,
+  getApprovedStudents,
+  getStudentById,
+  getRegisteredStudents,
+  getRegisteredStudentById,
+} = require("../controllers/student.controller");
+const {
+  approveStudent,
+  rejectStudent,
+} = require("../controllers/studentApproval.controller");
+const studentMiddleware = require("../middlewares/student.middleware");
 
-// Get student by ID
-router.get("/:id", auth, ctrl.getStudentById);
+// 🌍 PUBLIC STUDENT REGISTRATION
+router.post("/register/:collegeCode", registerStudent);
 
+// 🔐 COLLEGE ADMIN → APPROVAL WORKFLOW
+router.put(
+  "/:studentId/approve",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  approveStudent,
+);
+
+router.put(
+  "/:studentId/reject",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  rejectStudent,
+);
+
+// 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
+router.get(
+  "/my-profile",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getMyFullProfile,
+);
+
+// 🎓 STUDENT: Update own profile
+router.put(
+  "/update-my-profile",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  updateMyProfile,
+);
+
+// 🏛️ ADMIN: Update student
+router.put(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  updateStudentByAdmin,
+);
+
+// 🏛️ ADMIN: Delete student
+router.delete(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deleteStudent,
+);
+
+//ADMIN : GETS approved students
+router.get(
+  "/approved-students",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getApprovedStudents,
+);
+
+//ADMIN : GET individual approved student
+router.get(
+  "/approved-stud/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getStudentById,
+);
+
+//ADMIN : GETS registered students
+router.get(
+  "/registered",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getRegisteredStudents,
+);
+
+//ADMIN : GET individual registered student
+router.get(
+  "/registered/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getRegisteredStudentById,
+);
 module.exports = router;
