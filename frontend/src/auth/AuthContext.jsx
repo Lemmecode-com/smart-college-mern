@@ -14,10 +14,18 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post("/auth/login", credentials);
 
       // backend returns: { token, role }
-      const { token, role } = res.data;
+      const { token } = res.data;
+
+      const decoded = jwtDecode(token);
 
       localStorage.setItem("accessToken", token);
-      setUser({ role });
+
+      // ✅ STORE FULL USER
+      setUser({
+        id: decoded.id,
+        role: decoded.role,
+        college_id: decoded.college_id || null
+      });
 
       return { success: true };
     } catch (error) {
@@ -41,7 +49,13 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        setUser({ role: decoded.role });
+
+        // ✅ RESTORE FULL USER
+        setUser({
+          id: decoded.id,
+          role: decoded.role,
+          college_id: decoded.college_id || null
+        });
       } catch {
         localStorage.removeItem("accessToken");
         setUser(null);
