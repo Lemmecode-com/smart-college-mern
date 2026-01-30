@@ -213,10 +213,10 @@ export default function Sidebar() {
             System Settings <FaChevronDown />
           </div>
           <div style={sectionBody(open["fee-structure"])}>
-            <NavLink to="/fee-structure/view-teacher/:id" style={navLink}>
+            <NavLink to="/fees/create" style={navLink}>
               <FaMoneyBillWave /> Create Fee Structure
             </NavLink>
-            <NavLink to="/fee-structure/list" style={navLink}>
+            <NavLink to="/fees/list" style={navLink}>
               <FaMoneyBillWaveAlt /> Fee Structures List
             </NavLink>
           </div>
