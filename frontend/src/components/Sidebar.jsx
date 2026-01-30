@@ -157,25 +157,6 @@ export default function Sidebar() {
             <NavLink to="/courses/add" style={navLink}>
               <FaLayerGroup /> Add Course
             </NavLink>
-            <NavLink to="/subjects/course/:courseId" style={navLink}>
-              <FaLayerGroup /> Subject List
-            </NavLink>
-            <NavLink to="/subjects/add" style={navLink}>
-              <FaLayerGroup /> Add Subject
-            </NavLink>
-          </div>
-
-          {/* Teachers */}
-          <div style={sectionTitle} onClick={() => toggle("teachers")}>
-            Teachers <FaChevronDown />
-          </div>
-          <div style={sectionBody(open.teachers)}>
-            <NavLink to="/teachers" style={navLink}>
-              <FaUserGraduate /> Teacher List
-            </NavLink>
-            <NavLink to="/teachers/add-teacher" style={navLink}>
-              <FaUserGraduate /> Add Teacher
-            </NavLink>
           </div>
 
           {/* STUDENTS */}
