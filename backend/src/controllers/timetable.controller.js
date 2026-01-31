@@ -218,6 +218,9 @@ exports.updateTimetableSlot = async (req, res) => {
   }
 };
 
+
+
+
 /**
  * DELETE TIMETABLE SLOT (SOFT DELETE)
  */
@@ -239,6 +242,45 @@ exports.deleteTimetableSlot = async (req, res) => {
     res.json({
       message: "Timetable slot deleted successfully"
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};  
+
+exports.getAdminTimetable = async (req, res) => {
+  try {
+    const {
+      course_id,
+      teacher_id,
+      semester,
+      dayOfWeek
+    } = req.query;
+
+    // Base filter (VERY IMPORTANT)
+    const filter = {
+      college_id: req.college_id,
+      status: "ACTIVE"
+    };
+
+    // Optional filters
+    if (course_id) filter.course_id = course_id;
+    if (teacher_id) filter.teacher_id = teacher_id;
+    if (semester) filter.semester = Number(semester);
+    if (dayOfWeek) filter.dayOfWeek = dayOfWeek;
+
+    const timetable = await Timetable.find(filter)
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
+      .populate("course_id", "name")
+      .populate("department_id", "name")
+      .sort({ dayOfWeek: 1, startTime: 1 });
+
+    res.json({
+      message: "Timetable fetched successfully",
+      total: timetable.length,
+      timetable
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -24,16 +24,15 @@ export default function ViewTimetable() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
-  /* ================= FETCH ADMIN TIMETABLE ================= */
+  /* ================= FETCH ================= */
   const fetchTimetable = async () => {
     try {
       const res = await api.get("/timetable/admin");
-      setTimetable(res.data.timetable || []);
-    } catch (err) {
-      console.error(err);
+      setTimetable(res.data?.timetable || []);
+    } catch (error) {
+      console.error("Timetable fetch failed:", error);
       setTimetable([]);
     } finally {
       setLoading(false);
@@ -46,10 +45,10 @@ export default function ViewTimetable() {
 
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    const confirm = window.confirm(
+    const confirmDelete = window.confirm(
       "Are you sure you want to delete this timetable slot?"
     );
-    if (!confirm) return;
+    if (!confirmDelete) return;
 
     try {
       await api.delete(`/timetable/${id}`);
@@ -93,7 +92,7 @@ export default function ViewTimetable() {
         </button>
       </div>
 
-      {/* ================= CARD GRID ================= */}
+      {/* ================= GRID ================= */}
       {timetable.length === 0 ? (
         <div className="alert alert-info">
           No timetable slots created yet.
@@ -127,7 +126,7 @@ export default function ViewTimetable() {
 
                   <p className="mb-1">
                     <FaBook className="me-2 text-success" />
-                    {t.subject_id?.name}
+                    {t.subject_id?.name} ({t.subject_id?.code})
                   </p>
 
                   <p className="mb-1">
@@ -147,6 +146,10 @@ export default function ViewTimetable() {
 
                   <p className="mb-1">
                     Semester: <strong>{t.semester}</strong>
+                  </p>
+
+                  <p className="mb-1">
+                    Year: <strong>{t.academicYear}</strong>
                   </p>
 
                   <p className="mb-1">

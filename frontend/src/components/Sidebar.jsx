@@ -265,12 +265,12 @@ export default function Sidebar() {
       ===================================================== */}
       {role === "STUDENT" && (
         <>
-          <NavLink to="/student/dashboard" style={navLink}>
+          {/* <NavLink to="/student/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
-          </NavLink>
+          </NavLink> */}
 
           <NavLink to="/student/profile" style={navLink}>
-            <FaCog />Profile
+            <FaCog />Dashboard
           </NavLink>
 
           <NavLink to="/student/timetable" style={navLink}>
