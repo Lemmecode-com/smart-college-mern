@@ -1,20 +1,29 @@
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const Subject = require("../models/subject.model");
+const Student = require("../models/student.model");
 
-/**
- * STUDENT ATTENDANCE SUMMARY
- */
 exports.getStudentAttendanceSummary = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    const studentId = req.user.id;     // ✅ Student._id
     const collegeId = req.college_id;
 
-    // Aggregate attendance data
+    // ✅ Ensure student exists
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: collegeId
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student not found"
+      });
+    }
+
     const summary = await AttendanceRecord.aggregate([
       {
         $match: {
-          student_id: studentId,
+          student_id: student._id,
           college_id: collegeId
         }
       },
@@ -50,22 +59,23 @@ exports.getStudentAttendanceSummary = async (req, res) => {
           present: 1,
           absent: { $subtract: ["$totalLectures", "$present"] },
           percentage: {
-            $multiply: [
-              { $divide: ["$present", "$totalLectures"] },
-              100
+            $round: [
+              {
+                $multiply: [
+                  { $divide: ["$present", "$totalLectures"] },
+                  100
+                ]
+              },
+              2
             ]
           }
         }
       }
     ]);
 
-    // Attach subject names + risk status
     const finalSummary = await Promise.all(
       summary.map(async (item) => {
-        const subject = await Subject.findById(item.subject_id)
-          .select("name code");
-
-        const percentage = Math.round(item.percentage);
+        const subject = await Subject.findById(item.subject_id).select("name code");
 
         return {
           subject: subject?.name || "Unknown",
@@ -73,18 +83,21 @@ exports.getStudentAttendanceSummary = async (req, res) => {
           totalLectures: item.totalLectures,
           present: item.present,
           absent: item.absent,
-          percentage,
-          status: percentage < 75 ? "AT_RISK" : "SAFE"
+          percentage: item.percentage,
+          status: item.percentage < 75 ? "AT_RISK" : "SAFE"
         };
       })
     );
 
     res.json({
-      studentId,
+      studentId: student._id,
       attendance: finalSummary
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Attendance summary error:", error);
+    res.status(500).json({
+      message: error.message
+    });
   }
 };
