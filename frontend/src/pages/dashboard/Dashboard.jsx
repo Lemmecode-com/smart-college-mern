@@ -171,6 +171,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { Card, Row, Col, Spinner, Alert } from "react-bootstrap";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({});
@@ -178,6 +179,8 @@ export default function Dashboard() {
   useEffect(() => {
     api.get("/admin/stats").then((res) => setStats(res.data));
   }, []);
+
+  if (user?.role !== "admin") return null;
 
   return (
     <div>
@@ -202,6 +205,34 @@ function StatCard({ title, value }) {
           <h3>{value || 0}</h3>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------------- STAT CARD ---------------- */
+function StatCard({ title, value, link }) {
+  return (
+    <div className="col-md-3">
+      <Link to={link} className="text-decoration-none">
+        <div className="card shadow-sm h-100 text-center hover-card">
+          <div className="card-body">
+            <h6 className="text-muted">{title}</h6>
+            <h3 className="fw-bold">{value}</h3>
+            <small className="text-primary">View details →</small>
+          </div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+/* ---------------- QUICK LINK BUTTON ---------------- */
+function QuickLink({ to, label }) {
+  return (
+    <div className="col-md-4">
+      <Link to={to} className="btn btn-outline-primary w-100">
+        {label}
+      </Link>
     </div>
   );
 }

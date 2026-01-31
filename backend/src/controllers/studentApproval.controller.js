@@ -56,27 +56,24 @@ exports.approveStudent = async (req, res) => {
       });
     }
 
-    // 5️⃣ Find fee structure
-    const feeStructure = await FeeStructure.findOne({
-      college_id: student.college_id,
-      course_id: student.course_id,
-      category: student.category,
-    });
+    // 1️⃣ Find fee structure
+const feeStructure = await FeeStructure.findOne({
+  college_id: student.college_id,
+  course_id: student.course_id,
+  category: student.category,
+});
 
-    if (!feeStructure) {
-      return res.status(400).json({
-        message: "Fee structure not configured for this course & category",
-      });
-    }
+if (!feeStructure) {
+  console.error("❌ FeeStructure not found", {
+    college_id: student.college_id,
+    course_id: student.course_id,
+    category: student.category,
+  });
 
-    // 6️⃣ Create student fee record
-    await StudentFee.create({
-      student_id: student._id,
-      college_id: student.college_id,
-      course_id: student.course_id,
-      totalFee: feeStructure.totalFee,
-      installments: feeStructure.installments,
-    });
+  return res.status(400).json({
+    message: "Fee structure not configured for this course & category",
+  });
+}
 
     // 7️⃣ Approve student
     student.status = "APPROVED";
