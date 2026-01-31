@@ -13,7 +13,6 @@ module.exports = (...allowedRoles) => {
         message: "Access denied: insufficient permissions"
       });
     }
-
     next();
   };
 };

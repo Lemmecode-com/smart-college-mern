@@ -73,6 +73,24 @@ exports.createTeacher = async (req, res) => {
   }
 };
 
+exports.getMyProfile = async (req, res) => {
+  try {
+    const teacher = await Teacher.findOne({
+      _id: req.user.id,
+      college_id: req.college_id,
+      status: "ACTIVE"
+    }).select("-password");
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    res.json(teacher);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 /**
  * READ Teachers (college-wise)
  */
