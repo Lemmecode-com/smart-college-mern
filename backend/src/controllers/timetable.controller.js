@@ -61,7 +61,6 @@ exports.createTimetableSlot = async (req, res) => {
   }
 };
 
-
 exports.getTeacherTimetable = async (req, res) => {
   const timetable = await Timetable.find({
     teacher_id: req.user.id,
@@ -88,7 +87,6 @@ exports.getStudentTimetable = async (req, res) => {
 
   res.json(timetable);
 };
-
 
 /**
  * UPDATE TIMETABLE SLOT (UPDATE)
@@ -164,8 +162,6 @@ exports.updateTimetableSlot = async (req, res) => {
   }
 };
 
-
-
 /**
  * DELETE TIMETABLE SLOT (SOFT DELETE)
  * College Admin only
@@ -198,7 +194,6 @@ exports.deleteTimetableSlot = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.getAdminTimetable = async (req, res) => {
   try {
