@@ -4,16 +4,16 @@ const router = express.Router();
 const {
   createFeeStructure,
   getFeeStructures,
+  getFeeStructureById,
   deleteFeeStructure,
   updateFeeStructure,
-  getFeeStructureById
 } = require("../controllers/feeStructure.controller");
 
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 
-// 🔐 COLLEGE ADMIN ONLY
+// CREATE
 router.post(
   "/",
   auth,
@@ -22,12 +22,22 @@ router.post(
   createFeeStructure
 );
 
+// GET ALL
 router.get(
   "/",
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   getFeeStructures
+);
+
+// ✅ GET BY ID (FIX)
+router.get(
+  "/:feeStructureId",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getFeeStructureById
 );
 
 // UPDATE
