@@ -185,7 +185,6 @@ exports.deleteFeeStructure = async (req, res) => {
   }
 };
 
-
 /**
  * GET Fee Structure BY ID
  * COLLEGE ADMIN only
