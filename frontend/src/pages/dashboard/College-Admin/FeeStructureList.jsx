@@ -127,7 +127,7 @@ export default function FeeStructureList() {
                     <button
                       className="btn btn-sm btn-info me-2"
                       onClick={() =>
-                        navigate(`/fees/view/:id`)
+                        navigate(`/fees/view/${f._id}`)
                       }
                     >
                       <FaEye />
