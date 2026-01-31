@@ -238,9 +238,9 @@ export default function Sidebar() {
             <FaCalendarAlt /> My Timetable
           </NavLink>
 
-          <NavLink to="/students/my-students" style={navLink}>
+          {/* <NavLink to="/students/my-students" style={navLink}>
             <FaUserGraduate /> My Students
-          </NavLink>
+          </NavLink> */}
 
           <NavLink to="/sessions/create" style={navLink}>
             <FaCalendarAlt /> Create Session
