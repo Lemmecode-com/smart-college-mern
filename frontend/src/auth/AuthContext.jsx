@@ -1,110 +1,80 @@
-// import { createContext, useEffect, useState } from "react";
-// import api from "../api/axios";
-
-// export const AuthContext = createContext();
-
-// export const AuthProvider = ({ children }) => {
-//   const [user, setUser] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   // Login
-//   const login = async (credentials) => {
-//     const res = await api.post("/auth/login", credentials);
-//     localStorage.setItem("token", res.data.token);
-
-//     const me = await api.get("/auth/me");
-//     setUser(me.data);
-//   };
-
-//   // Logout
-//   const logout = async () => {
-//     try {
-//       await api.post("/auth/logout");
-//     } catch (e) {}
-//     localStorage.removeItem("token");
-//     setUser(null);
-//   };
-
-//   // Restore session
-//   useEffect(() => {
-//     const token = localStorage.getItem("token");
-//     if (!token) {
-//       setLoading(false);
-//       return;
-//     }
-
-//     api
-//       .get("/auth/me")
-//       .then((res) => setUser(res.data))
-//       .catch(() => {
-//         localStorage.removeItem("token");
-//         setUser(null);
-//       })
-//       .finally(() => setLoading(false));
-//   }, []);
-
-//   return (
-//     <AuthContext.Provider value={{ user, login, logout, loading }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-
-
-
-
-
-
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { jwtDecode } from "jwt-decode";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // LOGIN
+  /* ========== LOGIN ========== */
   const login = async (credentials) => {
-    const res = await api.post("/auth/login", credentials);
+    try {
+      const res = await api.post("/auth/login", credentials);
 
-    localStorage.setItem("accessToken", res.data.accessToken);
-    localStorage.setItem("refreshToken", res.data.refreshToken);
+      // backend returns: { token, role }
+      const { token } = res.data;
 
-    setUser(res.data.user);
+      const decoded = jwtDecode(token);
+
+      localStorage.setItem("accessToken", token);
+
+      // ✅ STORE FULL USER
+      setUser({
+        id: decoded.id,
+        role: decoded.role,
+        college_id: decoded.college_id || null
+      });
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.response?.data?.message || "Login failed"
+      };
+    }
   };
 
-  // LOGOUT
-  const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (err) {}
-
+  /* ========== LOGOUT ========== */
+  const logout = () => {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     setUser(null);
   };
 
-  // RESTORE SESSION
+  /* ========== RESTORE SESSION ========== */
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setLoading(false);
-      return;
+
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+
+        // ✅ RESTORE FULL USER
+        setUser({
+          id: decoded.id,
+          role: decoded.role,
+          college_id: decoded.college_id || null
+        });
+      } catch {
+        localStorage.removeItem("accessToken");
+        setUser(null);
+      }
     }
 
-    api
-      .get("/auth/me")
-      .then((res) => setUser(res.data))
-      .catch(() => {
-        localStorage.clear();
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    setLoading(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        logout,
+        isAuthenticated: Boolean(user),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
