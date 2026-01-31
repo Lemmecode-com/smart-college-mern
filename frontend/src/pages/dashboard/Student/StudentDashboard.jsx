@@ -10,18 +10,17 @@ import {
   FaMoneyCheckAlt,
   FaBell,
   FaCheckCircle,
-  FaTimesCircle
+  FaTimesCircle,
+  FaChartLine
 } from "react-icons/fa";
 
 export default function StudentDashboard() {
   const { user } = useContext(AuthContext);
 
-  /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT")
-    return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
-  /* ================= STATIC DATA (FOR NOW) ================= */
+  /* ===== STATIC DATA ===== */
   const student = {
     fullName: "Sagar Kokare",
     email: "sagar@example.com",
@@ -46,9 +45,9 @@ export default function StudentDashboard() {
   };
 
   const notifications = [
-    "Mid-term exams start from 5th Feb",
-    "Fee payment last date: 10th Feb",
-    "New assignment uploaded in Data Structures"
+    "📢 Mid-term exams start from 5th Feb",
+    "💳 Fee payment last date: 10th Feb",
+    "📘 New assignment uploaded in Data Structures"
   ];
 
   const timetable = [
@@ -57,11 +56,14 @@ export default function StudentDashboard() {
     { day: "THU", subject: "Computer Networks", time: "09:00 - 10:00" }
   ];
 
-  return (
-    <div className="container-fluid">
+  const attendanceProgress = (attendance.present / attendance.totalLectures) * 100;
+  const feeProgress = (fees.paid / fees.total) * 100;
 
-      {/* ================= HEADER ================= */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
+  return (
+    <div className="container-fluid fade-in">
+
+      {/* HEADER */}
+      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4 glow">
         <h3 className="fw-bold mb-1">
           <FaUserGraduate className="me-2 blink" />
           Student Dashboard
@@ -71,15 +73,15 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      {/* ================= PROFILE ================= */}
+      {/* PROFILE + ACADEMIC */}
       <div className="row mb-4">
         <div className="col-md-4">
-          <div className="card shadow-lg border-0 rounded-4 glass-card h-100">
-            <div className="card-body text-center">
-              <FaUserGraduate size={70} className="text-primary mb-3" />
+          <div className="card glass-card shadow-lg rounded-4 text-center slide-up">
+            <div className="card-body">
+              <FaUserGraduate size={70} className="text-primary mb-3 pulse" />
               <h5 className="fw-bold">{student.fullName}</h5>
               <p className="text-muted">{student.email}</p>
-              <span className="badge bg-success px-3 py-2">
+              <span className="badge bg-success px-3 py-2 blink">
                 {student.status}
               </span>
             </div>
@@ -87,13 +89,12 @@ export default function StudentDashboard() {
         </div>
 
         <div className="col-md-8">
-          <div className="card shadow-lg border-0 rounded-4 glass-card h-100">
+          <div className="card glass-card shadow-lg rounded-4 slide-up h-100">
             <div className="card-body">
               <h5 className="fw-bold mb-3">
                 <FaUniversity className="me-2" />
                 Academic Information
               </h5>
-
               <div className="row">
                 <Info label="Department" value={student.department} />
                 <Info label="Course" value={student.course} />
@@ -105,7 +106,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ================= STATS ================= */}
+      {/* KPI STATS */}
       <div className="row mb-4">
 
         {/* Attendance */}
@@ -113,6 +114,7 @@ export default function StudentDashboard() {
           <StatCard
             icon={<FaCalendarAlt size={40} />}
             title="Attendance"
+            progress={attendanceProgress}
             content={
               <>
                 <p>Total: {attendance.totalLectures}</p>
@@ -129,6 +131,7 @@ export default function StudentDashboard() {
           <StatCard
             icon={<FaMoneyCheckAlt size={40} />}
             title="Fees"
+            progress={feeProgress}
             content={
               <>
                 <p>Total: ₹{fees.total}</p>
@@ -136,12 +139,12 @@ export default function StudentDashboard() {
                 <p className="text-danger">Pending: ₹{fees.pending}</p>
 
                 {fees.pending === 0 ? (
-                  <span className="badge bg-success">
+                  <span className="badge bg-success blink">
                     <FaCheckCircle className="me-1" />
                     Fully Paid
                   </span>
                 ) : (
-                  <span className="badge bg-danger">
+                  <span className="badge bg-danger pulse">
                     <FaTimesCircle className="me-1" />
                     Payment Due
                   </span>
@@ -156,6 +159,7 @@ export default function StudentDashboard() {
           <StatCard
             icon={<FaBook size={40} />}
             title="My Timetable"
+            progress={65}
             content={
               <ul className="list-unstyled">
                 {timetable.map((t, i) => (
@@ -172,17 +176,17 @@ export default function StudentDashboard() {
 
       </div>
 
-      {/* ================= NOTIFICATIONS ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card">
+      {/* NOTIFICATIONS */}
+      <div className="card glass-card shadow-lg rounded-4 slide-up">
         <div className="card-body">
           <h5 className="fw-bold mb-3">
-            <FaBell className="me-2 text-warning" />
+            <FaBell className="me-2 text-warning blink" />
             Notifications
           </h5>
 
           <ul className="list-group">
             {notifications.map((n, i) => (
-              <li key={i} className="list-group-item">
+              <li key={i} className="list-group-item pulse">
                 {n}
               </li>
             ))}
@@ -190,34 +194,26 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ================= CSS ================= */}
-      <style>
-        {`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-        }
-
-        .glass-card {
-          background: rgba(255,255,255,0.96);
-          backdrop-filter: blur(8px);
-        }
-
-        .blink {
-          animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
-        }
-        `}
-      </style>
+      {/* CSS */}
+      <style>{`
+        .gradient-header {background: linear-gradient(180deg, #0f3a4a, #134952);}
+        .glass-card {background: rgba(255,255,255,0.96); backdrop-filter: blur(10px);}
+        .fade-in {animation: fade 1s;}
+        .slide-up {animation: slideUp 0.6s;}
+        .blink {animation: blink 1.5s infinite;}
+        .pulse {animation: pulse 1.5s infinite;}
+        .glow {box-shadow: 0 0 20px rgba(15,58,74,0.6);}
+        .progress {height: 6px; border-radius: 10px;}
+        @keyframes blink {50%{opacity:0.4}}
+        @keyframes pulse {0%{transform:scale(1)}50%{transform:scale(1.05)}}
+        @keyframes fade {from{opacity:0}to{opacity:1}}
+        @keyframes slideUp {from{transform:translateY(20px)}to{transform:translateY(0)}}
+      `}</style>
     </div>
   );
 }
 
-/* ================= SMALL COMPONENTS ================= */
+/* ===== REUSABLE ===== */
 
 function Info({ label, value }) {
   return (
@@ -229,14 +225,18 @@ function Info({ label, value }) {
   );
 }
 
-function StatCard({ icon, title, content }) {
+function StatCard({ icon, title, content, progress }) {
   return (
-    <div className="card shadow-lg border-0 rounded-4 glass-card h-100 mb-3">
+    <div className="card glass-card shadow-lg rounded-4 h-100 mb-3 slide-up">
       <div className="card-body text-center">
-        <div className="text-info mb-2">
-          {icon}
-        </div>
+        <div className="text-info mb-2">{icon}</div>
         <h6 className="fw-bold">{title}</h6>
+        <div className="progress mb-2">
+          <div
+            className="progress-bar bg-success"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
         {content}
       </div>
     </div>
