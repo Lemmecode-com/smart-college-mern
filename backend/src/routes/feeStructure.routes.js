@@ -5,8 +5,8 @@ const {
   createFeeStructure,
   getFeeStructures,
   getFeeStructureById,
-  updateFeeStructure,
   deleteFeeStructure,
+  updateFeeStructure,
 } = require("../controllers/feeStructure.controller");
 
 const auth = require("../middlewares/auth.middleware");
