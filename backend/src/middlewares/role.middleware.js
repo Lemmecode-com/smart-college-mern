@@ -42,7 +42,6 @@ module.exports = (...allowedRoles) => {
         message: `Access denied: role ${req.user.role} not allowed`,
       });
     }
-
     next();
   };
 };

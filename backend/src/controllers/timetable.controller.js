@@ -286,7 +286,6 @@ exports.getAdminTimetable = async (req, res) => {
   }
 };
 
-
 exports.getAdminTimetable = async (req, res) => {
   try {
     const {
