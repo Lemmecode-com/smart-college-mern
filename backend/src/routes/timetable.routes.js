@@ -46,11 +46,10 @@ router.delete(
 router.get(
   "/teacher",
   auth,
-  role("TEACHER"),
+  role("TEACHER", "COLLEGE_ADMIN"),
   collegeMiddleware,
-  getTeacherTimetable,
+  getTeacherTimetable
 );
-
 // 🎓 Student
 router.get(
   "/student",

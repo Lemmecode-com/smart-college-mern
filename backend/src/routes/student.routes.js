@@ -1,3 +1,4 @@
+
 const express = require("express");
 const router = express.Router();
 
@@ -22,8 +23,18 @@ const {
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 
+
 // 🌍 PUBLIC STUDENT REGISTRATION
 router.post("/register/:collegeCode", registerStudent);
+
+// 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
+router.get(
+  "/registered",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getRegisteredStudents
+);
 
 // 🔐 COLLEGE ADMIN → APPROVAL WORKFLOW
 router.put(
