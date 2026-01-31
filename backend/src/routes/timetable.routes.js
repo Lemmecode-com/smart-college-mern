@@ -60,12 +60,13 @@ router.get(
   getStudentTimetable,
 );
 
+// Get timetable slots for college admin
 router.get(
   "/admin",
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getAdminTimetable,
+  getAdminTimetable
 );
 
 module.exports = router;
