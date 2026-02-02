@@ -11,7 +11,7 @@ const {
   deleteTimetableSlot,
   getTeacherTimetable,
   getStudentTimetable,
-  getAdminTimetable
+  getAdminTimetable,
 } = require("../controllers/timetable.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 
@@ -60,6 +60,7 @@ router.get(
   getStudentTimetable,
 );
 
+// Get timetable slots for college admin
 router.get(
   "/admin",
   auth,
@@ -67,4 +68,5 @@ router.get(
   collegeMiddleware,
   getAdminTimetable
 );
+
 module.exports = router;
