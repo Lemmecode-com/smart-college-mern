@@ -26,6 +26,7 @@ app.use("/api/student/payments", require("./src/routes/student.payment.routes"))
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
+app.use("/api/notifications", require("./src/routes/notification.routes"));
 
 app.use("/uploads", express.static("uploads"));
 
