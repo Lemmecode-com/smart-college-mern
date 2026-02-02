@@ -279,15 +279,7 @@ export default function Sidebar() {
           <NavLink to="/student/fees" style={navLink}>
             <FaLink /> Fees
           </NavLink>
-
-          <NavLink to="/student/payment-history" style={navLink}>
-            <FaLink /> Payment History
-          </NavLink>
-
-          <NavLink to="/student/change-password" style={navLink}>
-            <FaCog /> Change Password
-          </NavLink>
-
+          
           <NavLink to="/my-attendance" style={navLink}>
             <FaClipboardList /> My Attendance
           </NavLink>
