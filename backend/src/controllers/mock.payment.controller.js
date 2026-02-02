@@ -26,25 +26,16 @@ exports.mockPaymentSuccess = async (req, res) => {
       });
     }
 
-    // 1️⃣ Mark installment paid
+    // ✅ Mark installment paid
     installment.status = "PAID";
     installment.paidAt = new Date();
     installment.paymentGateway = "MOCK";
     installment.transactionId = `MOCK_TXN_${Date.now()}`;
 
-    // 2️⃣ Update fee totals
-    studentFee.paidAmount =
-      (studentFee.paidAmount || 0) + installment.amount;
-
-    studentFee.dueAmount =
-      studentFee.totalFee - studentFee.paidAmount;
-
-    // 3️⃣ Update overall fee status
-    if (studentFee.paidAmount >= studentFee.totalFee) {
-      studentFee.status = "PAID";
-    } else {
-      studentFee.status = "PARTIAL";
-    }
+    // ✅ Recalculate paid amount
+    studentFee.paidAmount = studentFee.installments
+      .filter(i => i.status === "PAID")
+      .reduce((sum, i) => sum + i.amount, 0);
 
     await studentFee.save();
 
@@ -52,10 +43,10 @@ exports.mockPaymentSuccess = async (req, res) => {
 
     res.json({
       message: "Mock payment successful",
+      totalFee: studentFee.totalFee,
       paidAmount: studentFee.paidAmount,
-      dueAmount: studentFee.dueAmount,
-      status: studentFee.status,
-      installment,
+      remainingAmount,
+      installment
     });
 
   } catch (err) {
