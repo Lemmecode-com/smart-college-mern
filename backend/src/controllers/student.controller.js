@@ -129,19 +129,6 @@ exports.getMyFullProfile = async (req, res) => {
     );
     const course = await Course.findById(student.course_id).select("name code");
 
-    // 3️⃣ Fee Details
-    // const fee = await StudentFee.findOne({ student_id: student._id });
-
-    // let feeSummary = null;
-    // if (fee) {
-    //   feeSummary = {
-    //     totalFee: fee.totalFee,
-    //     paidAmount: fee.paidAmount,
-    //     pendingAmount: fee.totalFee - fee.paidAmount,
-    //     installments: fee.installments
-    //   };
-    // }
-
     // 4️⃣ Attendance Summary
     const sessions = await AttendanceSession.find({
       course_id: student.course_id,
@@ -208,7 +195,6 @@ exports.getMyFullProfile = async (req, res) => {
       college,
       department,
       course,
-      // fees: feeSummary,
       attendance: attendanceSummary,
     });
   } catch (error) {

@@ -12,6 +12,9 @@ import {
   FaLink,
   FaChevronDown,
   FaCog,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaMoneyBillWaveAlt,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -157,6 +160,38 @@ export default function Sidebar() {
             <NavLink to="/courses/add" style={navLink}>
               <FaLayerGroup /> Add Course
             </NavLink>
+            <NavLink to="/subjects/course/:courseId" style={navLink}>
+              <FaLayerGroup /> Subject List
+            </NavLink>
+            <NavLink to="/subjects/add" style={navLink}>
+              <FaLayerGroup /> Add Subject
+            </NavLink>
+          </div>
+
+          {/* Teachers */}
+          <div style={sectionTitle} onClick={() => toggle("teachers")}>
+            Teachers <FaChevronDown />
+          </div>
+          <div style={sectionBody(open.teachers)}>
+            <NavLink to="/teachers" style={navLink}>
+              <FaUserGraduate /> Teacher List
+            </NavLink>
+            <NavLink to="/teachers/add-teacher" style={navLink}>
+              <FaUserGraduate /> Add Teacher
+            </NavLink>
+          </div>
+
+          {/* TIMETABLE */}
+          <div style={sectionTitle} onClick={() => toggle("timetable")}>
+            Timetable <FaChevronDown />
+          </div>
+          <div style={sectionBody(open.timetable)}>
+            <NavLink to="/timetable/create" style={navLink}>
+              <FaCalendarAlt /> Create Timetable
+            </NavLink>
+            <NavLink to="/timetable/view" style={navLink}>
+              <FaCalendarAlt /> View Timetable
+            </NavLink>
           </div>
 
           {/* STUDENTS */}
@@ -167,11 +202,22 @@ export default function Sidebar() {
             <NavLink to="/students" style={navLink}>
               <FaUserGraduate /> Student List
             </NavLink>
-            <NavLink to="/students/add" style={navLink}>
-              <FaUserGraduate /> Add Student
+
+            <NavLink to="/students/approve" style={navLink}>
+              <FaUserGraduate /> Approve Students
             </NavLink>
-            <NavLink to="/students/assign-parent" style={navLink}>
-              <FaLink /> Assign Parent
+          </div>
+
+          {/* FEE STRUCTURE */}
+          <div style={sectionTitle} onClick={() => toggle("fee-structure")}>
+            System Settings <FaChevronDown />
+          </div>
+          <div style={sectionBody(open["fee-structure"])}>
+            <NavLink to="/fees/create" style={navLink}>
+              <FaMoneyBillWave /> Create Fee Structure
+            </NavLink>
+            <NavLink to="/fees/list" style={navLink}>
+              <FaMoneyBillWaveAlt /> Fee Structures List
             </NavLink>
           </div>
         </>
@@ -184,6 +230,24 @@ export default function Sidebar() {
         <>
           <NavLink to="/teacher/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
+          </NavLink>
+          <NavLink to="/profile/my-profile" style={navLink}>
+            <FaCog /> My Profile
+          </NavLink>
+          <NavLink to="/timetable/my-timetable" style={navLink}>
+            <FaCalendarAlt /> My Timetable
+          </NavLink>
+
+          <NavLink to="/students/my-students" style={navLink}>
+            <FaUserGraduate /> My Students
+          </NavLink>
+
+          <NavLink to="/sessions/create" style={navLink}>
+            <FaCalendarAlt /> Create Session
+          </NavLink>
+
+          <NavLink to="/sessions/my-sessions" style={navLink}>
+            <FaCalendarAlt /> My Sessions
           </NavLink>
 
           <NavLink to="/attendance/mark" style={navLink}>
@@ -201,8 +265,27 @@ export default function Sidebar() {
       ===================================================== */}
       {role === "STUDENT" && (
         <>
-          <NavLink to="/student/dashboard" style={navLink}>
+          {/* <NavLink to="/student/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
+          </NavLink> */}
+
+          <NavLink to="/student/profile" style={navLink}>
+            <FaCog />Dashboard
+          </NavLink>
+
+          <NavLink to="/student/timetable" style={navLink}>
+            <FaCalendarAlt /> Timetable
+          </NavLink>
+          <NavLink to="/student/fees" style={navLink}>
+            <FaLink /> Fees
+          </NavLink>
+
+          <NavLink to="/student/payment-history" style={navLink}>
+            <FaLink /> Payment History
+          </NavLink>
+
+          <NavLink to="/student/change-password" style={navLink}>
+            <FaCog /> Change Password
           </NavLink>
 
           <NavLink to="/my-attendance" style={navLink}>

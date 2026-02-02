@@ -4,9 +4,9 @@ const router = express.Router();
 const {
   createFeeStructure,
   getFeeStructures,
-  updateFeeStructure,
+  getFeeStructureById,
   deleteFeeStructure,
-  getFeeStructureById
+  updateFeeStructure,
 } = require("../controllers/feeStructure.controller");
 
 const auth = require("../middlewares/auth.middleware");
