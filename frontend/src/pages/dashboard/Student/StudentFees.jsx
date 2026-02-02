@@ -1,7 +1,10 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaMoneyCheckAlt,
@@ -9,141 +12,141 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaCreditCard,
-  FaSpinner,
+  FaUserGraduate,
   FaCalendarAlt,
+  FaReceipt,
   FaBell
 } from "react-icons/fa";
 
 export default function StudentFees() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const [feeDash, setFeeDash] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(null);
   const [error, setError] = useState("");
 
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
 
-  /* ================= LOAD DASHBOARD ================= */
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  const loadDashboard = async () => {
+  const loadFees = async () => {
     try {
       const res = await api.get("/student/payments/my-fee-dashboard");
-      setFeeDash(res.data);
+      setDashboard(res.data);
     } catch (err) {
-      console.error("Fee dashboard error", err);
+      console.error(err);
+      toast.error("Unable to load fee dashboard");
       setError("Unable to load fee dashboard");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= PAY INSTALLMENT ================= */
-  const payInstallment = async (inst) => {
-    try {
-      setPaying(inst._id);
-
-      const res = await api.post(
-        "/student/payments/create-order",
-        { installmentName: inst.name }
-      );
-
-      // PhonePe redirect flow
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = res.data.paymentUrl;
-
-      const input1 = document.createElement("input");
-      input1.name = "request";
-      input1.value = res.data.payload;
-
-      const input2 = document.createElement("input");
-      input2.name = "checksum";
-      input2.value = res.data.checksum;
-
-      form.appendChild(input1);
-      form.appendChild(input2);
-
-      document.body.appendChild(form);
-      form.submit();
-
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed");
-    } finally {
-      setPaying(null);
-    }
-  };
+  useEffect(() => {
+    loadFees();
+  }, []);
 
   if (loading) {
     return (
-      <div className="vh-75 d-flex justify-content-center align-items-center">
-        <h5 className="text-muted">Loading Fee Dashboard...</h5>
+      <div className="d-flex justify-content-center align-items-center vh-75">
+        <h5 className="text-muted">Loading Fees...</h5>
       </div>
     );
   }
 
-  if (!feeDash)
-    return <div className="alert alert-danger text-center">{error}</div>;
+  if (error) return <div className="alert alert-danger text-center">{error}</div>;
+  if (!dashboard) return null;
 
-  const progress =
-    (feeDash.totalPaid / feeDash.totalFee) * 100;
+  const progress = Math.round(
+    (dashboard.totalPaid / dashboard.totalFee) * 100
+  );
+
+  const handleRedirectPayment = (installment) => {
+    if (!installment?.name) {
+      toast.warning("Invalid installment");
+      return;
+    }
+    navigate("/student/make-payment", {
+      state: { installmentName: installment.name }
+    });
+  };
+
+  const isNearDue = (date) => {
+    const diff = new Date(date) - new Date();
+    return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+  };
 
   return (
     <div className="container-fluid fade-in">
+      <ToastContainer position="top-right" autoClose={3000} />
 
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
+      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4 glow">
         <h3 className="fw-bold mb-1">
-          <FaMoneyCheckAlt className="me-2" />
-          Student Fees Dashboard
+          <FaMoneyCheckAlt className="me-2 blink" />
+          My Fees
         </h3>
         <p className="opacity-75 mb-0">
-          {feeDash.college.name} • {feeDash.course.name}
+          Track and manage your college fees
         </p>
+      </div>
+
+      {/* STUDENT INFO */}
+      <div className="card glass-card shadow mb-4">
+        <div className="card-body">
+          <h5 className="fw-bold mb-3">
+            <FaUserGraduate className="me-2" />
+            Student Fee Profile
+          </h5>
+          <div className="row">
+            <Info label="College" value={dashboard.college?.name} />
+            <Info label="Course" value={dashboard.course?.name} />
+            <Info label="Student ID" value={dashboard.studentId} />
+          </div>
+        </div>
       </div>
 
       {/* SUMMARY */}
       <div className="row mb-4">
-        <FeeCard title="Total Fees" amount={feeDash.totalFee} icon={<FaUniversity />} color="primary" />
-        <FeeCard title="Paid" amount={feeDash.totalPaid} icon={<FaCheckCircle />} color="success" />
-        <FeeCard title="Pending" amount={feeDash.totalDue} icon={<FaTimesCircle />} color="danger" />
+        <FeeCard title="Total Fee" amount={dashboard.totalFee} icon={<FaUniversity />} color="primary" />
+        <FeeCard title="Paid" amount={dashboard.totalPaid} icon={<FaCheckCircle />} color="success" />
+        <FeeCard title="Due" amount={dashboard.totalDue} icon={<FaTimesCircle />} color="danger" />
       </div>
 
       {/* PROGRESS */}
       <div className="progress mb-4">
         <div
-          className="progress-bar bg-success"
+          className="progress-bar bg-success progress-animate"
           style={{ width: `${progress}%` }}
         >
-          {progress.toFixed(0)}% Paid
+          {progress}% Paid
         </div>
       </div>
 
       {/* INSTALLMENTS */}
-      <div className="card shadow mb-4">
+      <div className="card glass-card shadow mb-4">
         <div className="card-body">
           <h5 className="fw-bold mb-3">
-            <FaCalendarAlt className="me-2" /> Installments
+            <FaCalendarAlt className="me-2" />
+            Installments
           </h5>
 
-          <table className="table table-bordered text-center">
+          <table className="table table-bordered text-center align-middle">
             <thead className="table-dark">
               <tr>
                 <th>Name</th>
                 <th>Amount</th>
-                <th>Due</th>
+                <th>Due Date</th>
                 <th>Status</th>
-                <th>Pay</th>
+                <th>Reminder</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {feeDash.installments.map((i) => (
-                <tr key={i._id}>
+              {dashboard.installments?.map((i) => (
+                <tr
+                  key={i._id}
+                  className={i.status === "PAID" ? "table-success" : ""}
+                >
                   <td>{i.name}</td>
                   <td>₹ {i.amount}</td>
                   <td>{new Date(i.dueDate).toLocaleDateString()}</td>
@@ -153,20 +156,24 @@ export default function StudentFees() {
                     </span>
                   </td>
                   <td>
+                    {i.status === "PENDING" && isNearDue(i.dueDate) && (
+                      <FaBell className="text-warning blink" />
+                    )}
+                  </td>
+                  <td>
                     {i.status === "PAID" ? (
-                      <span className="text-success">Paid</span>
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => navigate(`/student/fee-receipt/${i._id}`)}
+                      >
+                        <FaReceipt /> Receipt
+                      </button>
                     ) : (
                       <button
-                        className="btn btn-sm btn-success"
-                        onClick={() => payInstallment(i)}
-                        disabled={paying === i._id}
+                        className="btn btn-success btn-sm"
+                        onClick={() => handleRedirectPayment(i)}
                       >
-                        {paying === i._id ? (
-                          <FaSpinner className="spin" />
-                        ) : (
-                          <FaCreditCard />
-                        )}
-                        Pay
+                        <FaCreditCard /> Pay
                       </button>
                     )}
                   </td>
@@ -174,32 +181,44 @@ export default function StudentFees() {
               ))}
             </tbody>
           </table>
-
         </div>
       </div>
 
       <style>{`
         .gradient-header {background: linear-gradient(180deg, #0f3a4a, #134952);}
+        .glass-card {background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);}
         .fade-in {animation: fade 1s;}
-        .spin {animation: spin 1s linear infinite;}
-        @keyframes spin {to{transform:rotate(360deg)}}
+        .blink {animation: blink 1.5s infinite;}
+        .glow {box-shadow: 0 0 20px rgba(15,58,74,0.6);}
+        .progress-animate {animation: grow 1s;}
+        @keyframes blink {50%{opacity:0.4}}
         @keyframes fade {from{opacity:0}to{opacity:1}}
+        @keyframes grow {from{width:0}}
       `}</style>
     </div>
   );
 }
 
-/* ===== CARD ===== */
 function FeeCard({ title, amount, icon, color }) {
   return (
     <div className="col-md-4 mb-3">
-      <div className="card text-center shadow">
+      <div className="card glass-card shadow text-center">
         <div className="card-body">
           <div className={`fs-2 text-${color}`}>{icon}</div>
           <h6>{title}</h6>
-          <h3>₹ {amount}</h3>
+          <h3>₹ {amount?.toLocaleString()}</h3>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div className="col-md-4 mb-2">
+      <strong>{label}</strong>
+      <br />
+      {value || "-"}
     </div>
   );
 }
