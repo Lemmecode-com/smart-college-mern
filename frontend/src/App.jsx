@@ -68,6 +68,7 @@ import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
 import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
+import MakePayments from "./pages/dashboard/Student/MakePayments";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -275,6 +276,15 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <StudentFees />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/make-payment"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <MakePayments />
                     </ProtectedRoute>
                   }
                 />
