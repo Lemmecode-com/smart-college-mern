@@ -52,7 +52,7 @@ router.get(
 );
 // 🎓 Student
 router.get(
-  "/student",
+  "/student/my-timetable",
   auth,
   role("STUDENT"),
   collegeMiddleware,
