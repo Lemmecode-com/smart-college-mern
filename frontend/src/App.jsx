@@ -14,7 +14,7 @@ import StudentRegister from "./pages/auth/StudentRegister";
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
 import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
-import TeacherDashboard from "./pages/Teachers/TeacherDashboard";
+
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
 /* ================= DEPARTMENTS ================= */
@@ -57,7 +57,6 @@ import MyProfile from "./pages/dashboard/Teacher/MyProfile";
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 import StudentFees from "./pages/dashboard/Student/StudentFees";
-import ChangePassword from "./pages/dashboard/Student/ChangePassword";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
 import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
@@ -68,6 +67,7 @@ import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructu
 import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
 import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
+import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -279,16 +279,9 @@ export default function App() {
                   }
                 />
 
-                <Route
-                  path="/student/change-password"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <ChangePassword />
-                    </ProtectedRoute>
-                  }
-                />
+      
 
-                <Route
+          <Route
                   path="/student/fee-receipt/:paymentId"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
