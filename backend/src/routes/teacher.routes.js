@@ -10,15 +10,46 @@ const {
   getTeachers,
   getTeacherById,
   updateTeacher,
-  deleteTeacher
+  deleteTeacher,
+  getMyProfile,
 } = require("../controllers/teacher.controller");
+const teacherMiddleware = require("../middlewares/teacher.middleware");
 
-router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
+// 👤 Teacher – My Profile (ALWAYS keep before :id)
+router.get(
+  "/my-profile",
+  auth,
+  teacherMiddleware,
+  getMyProfile
+);
 
-router.post("/", createTeacher);
-router.get("/", getTeachers);
-router.get("/:id", getTeacherById);
-router.put("/:id", updateTeacher);
-router.delete("/:id", deleteTeacher);
+// Admin routes
+router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createTeacher);
+
+router.get("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, getTeachers);
+
+router.get(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getTeacherById
+);
+
+router.put(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  updateTeacher
+);
+
+router.delete(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deleteTeacher
+);
 
 module.exports = router;
