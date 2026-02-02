@@ -56,36 +56,63 @@ exports.approveStudent = async (req, res) => {
       });
     }
 
-    // 1️⃣ Find fee structure
-const feeStructure = await FeeStructure.findOne({
-  college_id: student.college_id,
-  course_id: student.course_id,
-  category: student.category,
-});
+    // 5️⃣ Find fee structure (correct)
+    const feeStructure = await FeeStructure.findOne({
+      college_id: student.college_id,
+      course_id: student.course_id,
+      category: student.category,
+    });
 
-if (!feeStructure) {
-  console.error("❌ FeeStructure not found", {
-    college_id: student.college_id,
-    course_id: student.course_id,
-    category: student.category,
-  });
+    if (!feeStructure) {
+      return res.status(400).json({
+        message: "Fee structure not configured for this course & category",
+      });
+    }
 
-  return res.status(400).json({
-    message: "Fee structure not configured for this course & category",
-  });
-}
+    // ✅ Create student fee
+    const installments = feeStructure.installments.map((inst) => ({
+      name: inst.name,
+      amount: inst.amount,
+      dueDate: inst.dueDate,
+      status: "PENDING",
+    }));
 
-    // 7️⃣ Approve student
+    const studentFee = await StudentFee.create({
+      student_id: student._id,
+      college_id: student.college_id,
+      course_id: student.course_id,
+      totalFee: feeStructure.totalFee,
+      paidAmount: 0,
+      installments,
+    });
+
+    // 7️⃣ Approve student (AFTER fee allocation)
     student.status = "APPROVED";
     student.approvedBy = req.user.id;
     student.approvedAt = new Date();
-
     await student.save();
 
     res.json({
-      message: "Student approved successfully",
-    });
+      message: "Student approved and fee allocated successfully",
 
+      student: {
+        id: student._id,
+        fullName: student.fullName,
+        email: student.email,
+        category: student.category,
+        admissionYear: student.admissionYear,
+        status: student.status,
+        course: student.course_id,
+        department: student.department_id,
+        approvedAt: student.approvedAt,
+      },
+
+      fee: {
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        installments: studentFee.installments,
+      },
+    });
   } catch (error) {
     console.error("Approve student error:", error);
     res.status(500).json({
@@ -93,7 +120,6 @@ if (!feeStructure) {
     });
   }
 };
-
 
 /**
  * REJECT STUDENT
