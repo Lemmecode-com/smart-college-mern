@@ -238,9 +238,9 @@ export default function Sidebar() {
             <FaCalendarAlt /> My Timetable
           </NavLink>
 
-          <NavLink to="/students/my-students" style={navLink}>
+          {/* <NavLink to="/students/my-students" style={navLink}>
             <FaUserGraduate /> My Students
-          </NavLink>
+          </NavLink> */}
 
           <NavLink to="/sessions/create" style={navLink}>
             <FaCalendarAlt /> Create Session
@@ -265,12 +265,12 @@ export default function Sidebar() {
       ===================================================== */}
       {role === "STUDENT" && (
         <>
-          {/* <NavLink to="/student/dashboard" style={navLink}>
+          <NavLink to="/student/dashboard" style={navLink}>
             <FaTachometerAlt /> Dashboard
-          </NavLink> */}
+          </NavLink>
 
           <NavLink to="/student/profile" style={navLink}>
-            <FaCog />Dashboard
+            <FaCog /> My Profile
           </NavLink>
 
           <NavLink to="/student/timetable" style={navLink}>

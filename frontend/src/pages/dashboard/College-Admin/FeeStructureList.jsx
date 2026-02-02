@@ -94,7 +94,7 @@ export default function FeeStructureList() {
           <table className="table table-hover align-middle">
             <thead className="table-dark">
               <tr>
-                <th>#</th>
+                <th>Sr.No</th>
                 <th>Course</th>
                 <th>Category</th>
                 <th>Total Fee</th>
