@@ -1,6 +1,7 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
+import api from "../../../api/axios";
 
 import {
   FaUserGraduate,
@@ -10,38 +11,76 @@ import {
   FaMoneyCheckAlt,
   FaBell,
   FaCheckCircle,
-  FaTimesCircle,
-  FaChartLine
+  FaTimesCircle
 } from "react-icons/fa";
 
 export default function StudentDashboard() {
   const { user } = useContext(AuthContext);
 
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
 
-  /* ===== STATIC DATA ===== */
+  /* ================= LOAD DASHBOARD ================= */
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const res = await api.get("/dashboard/student");
+        setDashboard(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDashboard();
+  }, []);
+
+  if (loading)
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-75">
+        <h5 className="text-muted">Loading dashboard...</h5>
+      </div>
+    );
+
+  if (error)
+    return <div className="alert alert-danger text-center">{error}</div>;
+
+  const attendance = dashboard?.attendanceSummary || {
+    total: 0,
+    present: 0,
+    absent: 0
+  };
+
+  const fees = dashboard?.feeSummary || {
+    totalFee: 0,
+    paid: 0,
+    due: 0
+  };
+
+  const attendancePercent =
+    attendance.total > 0
+      ? Math.round((attendance.present / attendance.total) * 100)
+      : 0;
+
+  const feeProgress =
+    fees.totalFee > 0
+      ? Math.round((fees.paid / fees.totalFee) * 100)
+      : 0;
+
+  /* ===== STATIC EXTRA UI DATA ===== */
   const student = {
-    fullName: "Sagar Kokare",
-    email: "sagar@example.com",
+    fullName: user.name || "Student",
+    email: user.email,
     department: "Masters of Computer Application",
     course: "MCA",
     semester: 3,
     admissionYear: 2024,
     status: "APPROVED"
-  };
-
-  const attendance = {
-    totalLectures: 42,
-    present: 34,
-    absent: 8,
-    percentage: 81
-  };
-
-  const fees = {
-    total: 55000,
-    paid: 30000,
-    pending: 25000
   };
 
   const notifications = [
@@ -55,9 +94,6 @@ export default function StudentDashboard() {
     { day: "TUE", subject: "Operating System", time: "11:00 - 12:00" },
     { day: "THU", subject: "Computer Networks", time: "09:00 - 10:00" }
   ];
-
-  const attendanceProgress = (attendance.present / attendance.totalLectures) * 100;
-  const feeProgress = (fees.paid / fees.total) * 100;
 
   return (
     <div className="container-fluid fade-in">
@@ -73,39 +109,6 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      {/* PROFILE + ACADEMIC */}
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="card glass-card shadow-lg rounded-4 text-center slide-up">
-            <div className="card-body">
-              <FaUserGraduate size={70} className="text-primary mb-3 pulse" />
-              <h5 className="fw-bold">{student.fullName}</h5>
-              <p className="text-muted">{student.email}</p>
-              <span className="badge bg-success px-3 py-2 blink">
-                {student.status}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-md-8">
-          <div className="card glass-card shadow-lg rounded-4 slide-up h-100">
-            <div className="card-body">
-              <h5 className="fw-bold mb-3">
-                <FaUniversity className="me-2" />
-                Academic Information
-              </h5>
-              <div className="row">
-                <Info label="Department" value={student.department} />
-                <Info label="Course" value={student.course} />
-                <Info label="Semester" value={student.semester} />
-                <Info label="Admission Year" value={student.admissionYear} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* KPI STATS */}
       <div className="row mb-4">
 
@@ -114,13 +117,13 @@ export default function StudentDashboard() {
           <StatCard
             icon={<FaCalendarAlt size={40} />}
             title="Attendance"
-            progress={attendanceProgress}
+            progress={attendancePercent}
             content={
               <>
-                <p>Total: {attendance.totalLectures}</p>
+                <p>Total: {attendance.total}</p>
                 <p className="text-success">Present: {attendance.present}</p>
                 <p className="text-danger">Absent: {attendance.absent}</p>
-                <h4 className="fw-bold">{attendance.percentage}%</h4>
+                <h4 className="fw-bold">{attendancePercent}%</h4>
               </>
             }
           />
@@ -134,11 +137,11 @@ export default function StudentDashboard() {
             progress={feeProgress}
             content={
               <>
-                <p>Total: ₹{fees.total}</p>
+                <p>Total: ₹{fees.totalFee}</p>
                 <p className="text-success">Paid: ₹{fees.paid}</p>
-                <p className="text-danger">Pending: ₹{fees.pending}</p>
+                <p className="text-danger">Due: ₹{fees.due}</p>
 
-                {fees.pending === 0 ? (
+                {fees.due === 0 ? (
                   <span className="badge bg-success blink">
                     <FaCheckCircle className="me-1" />
                     Fully Paid
@@ -214,16 +217,6 @@ export default function StudentDashboard() {
 }
 
 /* ===== REUSABLE ===== */
-
-function Info({ label, value }) {
-  return (
-    <div className="col-md-6 mb-2">
-      <strong>{label}:</strong>
-      <br />
-      {value}
-    </div>
-  );
-}
 
 function StatCard({ icon, title, content, progress }) {
   return (
