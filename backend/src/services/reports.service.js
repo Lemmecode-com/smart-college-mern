@@ -176,42 +176,20 @@ exports.admissionSummaryAll = async () => {
   };
 };
 
-/**
- * COURSE-WISE ADMISSIONS (ALL COLLEGES)
- */
-exports.courseWiseAdmissionsAll = async () => {
-  return Student.aggregate([
-    { $match: { status: "APPROVED" } },
-    {
-      $group: {
-        _id: "$course_id",
-        totalStudents: { $sum: 1 }
-      }
-    },
-    {
-      $lookup: {
-        from: "courses",
-        localField: "_id",
-        foreignField: "_id",
-        as: "course"
-      }
-    },
-    { $unwind: "$course" },
-    {
-      $project: {
-        _id: 0,
-        courseName: "$course.name",
-        totalStudents: 1
-      }
-    }
-  ]);
-};
+
+
 
 /**
  * PAYMENT SUMMARY (ALL COLLEGES)
  */
-exports.paymentSummaryAll = async () => {
+
+exports.paymentSummary = async (college_id) => {
   const result = await StudentFee.aggregate([
+    {
+      $match: {
+        college_id: new mongoose.Types.ObjectId(college_id)
+      }
+    },
     {
       $group: {
         _id: null,
@@ -230,6 +208,7 @@ exports.paymentSummaryAll = async () => {
   };
 };
 
+
 /**
  * STUDENT PAYMENT STATUS (ALL COLLEGES)
  */
@@ -245,27 +224,43 @@ exports.studentPaymentStatusAll = async (status) => {
 /**
  * ATTENDANCE SUMMARY (ALL COLLEGES)
  */
-exports.attendanceSummaryAll = async () => {
-  const result = await AttendanceRecord.aggregate([
+const mongoose = require("mongoose");
+
+exports.attendanceSummary = async (college_id) => {
+  return AttendanceRecord.aggregate([
+    {
+      $match: {
+        college_id: new mongoose.Types.ObjectId(college_id)
+      }
+    },
     {
       $group: {
         _id: null,
         total: { $sum: 1 },
         present: {
           $sum: {
-            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0]
+            $cond: [
+              { $in: ["$status", ["PRESENT", "Present", "present"]] },
+              1,
+              0
+            ]
           }
+        }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalRecords: "$total",
+        averageAttendance: {
+          $cond: [
+            { $eq: ["$total", 0] },
+            0,
+            { $round: [{ $multiply: [{ $divide: ["$present", "$total"] }, 100] }, 0] }
+          ]
         }
       }
     }
   ]);
-
-  const data = result[0] || { total: 0, present: 0 };
-
-  return {
-    totalRecords: data.total,
-    averageAttendance: data.total
-      ? Math.round((data.present / data.total) * 100)
-      : 0
-  };
 };
+

@@ -30,28 +30,25 @@ exports.admissionSummary = async (req, res) => {
 /**
  * COURSE-WISE ADMISSIONS
  */
-exports.admissionSummary = async (req, res) => {
+exports.courseWiseAdmissions = async (req, res) => {
   try {
     const { role, college_id } = req.user;
 
-    let data;
-
     if (role === "SUPER_ADMIN") {
-      data = await reportsService.admissionSummaryAll();
-    } 
-    else if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
-      data = await reportsService.admissionSummary(college_id);
-    } 
-    else {
-      return res.status(403).json({ message: "Access denied" });
+      return res.json(await reportsService.courseWiseAdmissionsAll());
     }
 
-    res.json(data);
+    if (role === "COLLEGE_ADMIN") {
+      return res.json(await reportsService.courseWiseAdmissions(college_id));
+    }
+
+    res.status(403).json({ message: "Access denied" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to fetch admission summary" });
+    res.status(500).json({ message: "Failed to fetch course-wise admissions" });
   }
 };
+
 
 
 /**
