@@ -24,9 +24,7 @@ import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 /* ================= STUDENTS ================= */
-import AddStudent from "./pages/students/AddStudent";
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
-import AssignParent from "./pages/students/AssignParent";
 
 /* ================= ATTENDANCE ================= */
 import MarkAttendance from "./pages/dashboard/Teacher/MarkAttendance";
@@ -61,7 +59,6 @@ import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 import StudentFees from "./pages/dashboard/Student/StudentFees";
 import ChangePassword from "./pages/dashboard/Student/ChangePassword";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
-import PaymentHistory from "./pages/dashboard/Student/PaymentHistory";
 import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
@@ -290,14 +287,6 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/student/payment-history"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <PaymentHistory />
-                    </ProtectedRoute>
-                  }
-                />
 
                 <Route
                   path="/student/fee-receipt/:paymentId"
@@ -378,22 +367,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/students/add"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddStudent />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/students/assign-parent"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AssignParent />
-                    </ProtectedRoute>
-                  }
-                />
+      
 
                 {/* ================= ATTENDANCE ================= */}
                 <Route
