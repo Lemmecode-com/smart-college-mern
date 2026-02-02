@@ -4,7 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
-const { admissionSummaryAll, courseWiseAdmissionsAll, paymentSummaryAll, studentPaymentStatusAll, attendanceSummaryAll, } = require("../services/reports.service");
+const { admissionSummary, paymentSummary, studentPaymentStatus, attendanceSummary, courseWiseAdmissions } = require("../controllers/reports.controller");
 
 
 /**
@@ -18,21 +18,21 @@ const { admissionSummaryAll, courseWiseAdmissionsAll, paymentSummaryAll, student
 /* ===============================
    ADMISSIONS
 ================================ */
-router.get("/admissions/super-summary", auth, role("SUPER_ADMIN"), admissionSummaryAll);
-router.get("/admissions/college-admin-summary", auth, role("COLLEGE_ADMIN"), collegeMiddleware, admissionSummaryAll);
+router.get("/admissions/super-summary", auth, role("SUPER_ADMIN"), admissionSummary);
+router.get("/admissions/college-admin-summary", auth, role("COLLEGE_ADMIN"), collegeMiddleware, admissionSummary);
 
 
-router.get("/admissions/course-wise", auth,role("COLLEGE_ADMIN"),collegeMiddleware,courseWiseAdmissionsAll);
+router.get("/admissions/course-wise", auth,role("COLLEGE_ADMIN"),collegeMiddleware,courseWiseAdmissions);
 
 // /* ===============================
 //    PAYMENTS
 // ================================ */
-router.get("/payments/summary", auth,role("COLLEGE_ADMIN"),collegeMiddleware,paymentSummaryAll);
-router.get("/payments/students",  auth,role("COLLEGE_ADMIN"),collegeMiddleware,studentPaymentStatusAll);
+router.get("/payments/summary", auth,role("COLLEGE_ADMIN"),collegeMiddleware,paymentSummary);
+router.get("/payments/students",  auth,role("COLLEGE_ADMIN"),collegeMiddleware,studentPaymentStatus);
 
 // /* ===============================
 //    ATTENDANCE
 // ================================ */
-router.get("/attendance/summary", auth,role("COLLEGE_ADMIN"),collegeMiddleware,attendanceSummaryAll);
+router.get("/attendance/summary", auth,role("COLLEGE_ADMIN"),collegeMiddleware,attendanceSummary);
 
 module.exports = router;
