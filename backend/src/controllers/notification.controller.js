@@ -264,113 +264,6 @@ exports.deleteNotification = async (req, res) => {
 };
 
 
-/**
- * ================================
- * NOTIFICATION COUNTS
- * ================================
- */
-// exports.getAdminNotificationCount = async (req, res) => {
-//   try {
-//     const expiryCondition = getValidExpiryCondition();
-
-//     const notifications = await Notification.find({
-//       college_id: req.college_id,
-//       isActive: true,
-//       ...expiryCondition
-//     });
-
-//     let myCount = 0;
-//     let staffCount = 0;
-
-//     notifications.forEach((n) => {
-//       if (
-//         n.createdByRole === "COLLEGE_ADMIN" &&
-//         n.createdBy.toString() === req.user.id
-//       ) {
-//         myCount++;
-//       } else if (n.createdByRole === "TEACHER") {
-//         staffCount++;
-//       }
-//     });
-
-//     res.json({
-//       myCount,
-//       staffCount,
-//       total: myCount + staffCount
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// exports.getTeacherNotificationCount = async (req, res) => {
-//   try {
-//     const expiryCondition = getValidExpiryCondition();
-
-//     const notifications = await Notification.find({
-//       college_id: req.college_id,
-//       isActive: true,
-//       ...expiryCondition,
-//       $or: [
-//         { createdByRole: "COLLEGE_ADMIN" },
-//         { createdBy: req.user.id }
-//       ]
-//     });
-
-//     let myCount = 0;
-//     let adminCount = 0;
-
-//     notifications.forEach((n) => {
-//       if (
-//         n.createdByRole === "TEACHER" &&
-//         n.createdBy.toString() === req.user.id
-//       ) {
-//         myCount++;
-//       } else if (n.createdByRole === "COLLEGE_ADMIN") {
-//         adminCount++;
-//       }
-//     });
-
-//     res.json({
-//       myCount,
-//       adminCount,
-//       total: myCount + adminCount
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// exports.getStudentNotificationCount = async (req, res) => {
-//   try {
-//     const expiryCondition = getValidExpiryCondition();
-
-//     const notifications = await Notification.find({
-//       college_id: req.college_id,
-//       isActive: true,
-//       ...expiryCondition,
-//       createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] }
-//     });
-
-//     let adminCount = 0;
-//     let teacherCount = 0;
-
-//     notifications.forEach((n) => {
-//       if (n.createdByRole === "COLLEGE_ADMIN") adminCount++;
-//       if (n.createdByRole === "TEACHER") teacherCount++;
-//     });
-
-//     res.json({
-//       adminCount,
-//       teacherCount,
-//       total: adminCount + teacherCount
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-
 exports.getStudentNotificationCount = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -476,6 +369,36 @@ exports.getAdminNotificationCount = async (req, res) => {
   }
 };
 
+exports.getUnreadForBell = async (req, res) => {
+  try {
+    const readIds = await getReadNotificationIds(req.user.id);
+
+    let query = {
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds }
+    };
+
+    if (req.user.role === "STUDENT") {
+      query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
+    }
+
+    if (req.user.role === "TEACHER") {
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: req.user.id }
+      ];
+    }
+
+    const unread = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .limit(6);
+
+    res.json(unread);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 exports.markAsRead = async (req, res) => {
   try {
