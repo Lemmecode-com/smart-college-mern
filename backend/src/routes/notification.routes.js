@@ -16,6 +16,7 @@ const {
   getTeacherNotificationCount,
   getStudentNotificationCount,
   markAsRead,
+  getUnreadForBell,
 } = require("../controllers/notification.controller");
 
 router.post(
@@ -64,7 +65,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getAdminNotificationCount
+  getAdminNotificationCount,
 );
 
 // Teacher
@@ -73,7 +74,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getTeacherNotificationCount
+  getTeacherNotificationCount,
 );
 
 // Student
@@ -82,14 +83,12 @@ router.get(
   auth,
   role("STUDENT"),
   collegeMiddleware,
-  getStudentNotificationCount
+  getStudentNotificationCount,
 );
 
-router.post(
-  "/:notificationId/read",
-  auth,
-  markAsRead
-);
+router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
+
+router.post("/:notificationId/read", auth, markAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);
