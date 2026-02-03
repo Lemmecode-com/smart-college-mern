@@ -1,4 +1,5 @@
 const Notification = require("../models/notification.model");
+const NotificationRead = require("../models/notificationRead.model");
 
 const getValidExpiryCondition = () => ({
   $or: [
@@ -6,6 +7,22 @@ const getValidExpiryCondition = () => ({
     { expiresAt: { $gte: new Date() } }
   ]
 });
+
+const unreadFilter = async (userId) => {
+  const reads = await NotificationRead.find({ user_id: userId })
+    .select("notification_id");
+  return reads.map(r => r.notification_id);
+};
+
+/**
+ * Get all notification IDs already read by this user
+ */
+const getReadNotificationIds = async (userId) => {
+  const reads = await NotificationRead.find({ user_id: userId })
+    .select("notification_id");
+
+  return reads.map(r => r.notification_id);
+};
 
 /**
  * ================================
@@ -252,23 +269,196 @@ exports.deleteNotification = async (req, res) => {
  * NOTIFICATION COUNTS
  * ================================
  */
-exports.getAdminNotificationCount = async (req, res) => {
+// exports.getAdminNotificationCount = async (req, res) => {
+//   try {
+//     const expiryCondition = getValidExpiryCondition();
+
+//     const notifications = await Notification.find({
+//       college_id: req.college_id,
+//       isActive: true,
+//       ...expiryCondition
+//     });
+
+//     let myCount = 0;
+//     let staffCount = 0;
+
+//     notifications.forEach((n) => {
+//       if (
+//         n.createdByRole === "COLLEGE_ADMIN" &&
+//         n.createdBy.toString() === req.user.id
+//       ) {
+//         myCount++;
+//       } else if (n.createdByRole === "TEACHER") {
+//         staffCount++;
+//       }
+//     });
+
+//     res.json({
+//       myCount,
+//       staffCount,
+//       total: myCount + staffCount
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+// exports.getTeacherNotificationCount = async (req, res) => {
+//   try {
+//     const expiryCondition = getValidExpiryCondition();
+
+//     const notifications = await Notification.find({
+//       college_id: req.college_id,
+//       isActive: true,
+//       ...expiryCondition,
+//       $or: [
+//         { createdByRole: "COLLEGE_ADMIN" },
+//         { createdBy: req.user.id }
+//       ]
+//     });
+
+//     let myCount = 0;
+//     let adminCount = 0;
+
+//     notifications.forEach((n) => {
+//       if (
+//         n.createdByRole === "TEACHER" &&
+//         n.createdBy.toString() === req.user.id
+//       ) {
+//         myCount++;
+//       } else if (n.createdByRole === "COLLEGE_ADMIN") {
+//         adminCount++;
+//       }
+//     });
+
+//     res.json({
+//       myCount,
+//       adminCount,
+//       total: myCount + adminCount
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+// exports.getStudentNotificationCount = async (req, res) => {
+//   try {
+//     const expiryCondition = getValidExpiryCondition();
+
+//     const notifications = await Notification.find({
+//       college_id: req.college_id,
+//       isActive: true,
+//       ...expiryCondition,
+//       createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] }
+//     });
+
+//     let adminCount = 0;
+//     let teacherCount = 0;
+
+//     notifications.forEach((n) => {
+//       if (n.createdByRole === "COLLEGE_ADMIN") adminCount++;
+//       if (n.createdByRole === "TEACHER") teacherCount++;
+//     });
+
+//     res.json({
+//       adminCount,
+//       teacherCount,
+//       total: adminCount + teacherCount
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+
+exports.getStudentNotificationCount = async (req, res) => {
   try {
-    const expiryCondition = getValidExpiryCondition();
+    const userId = req.user.id;
+    const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
       college_id: req.college_id,
       isActive: true,
-      ...expiryCondition
+      _id: { $nin: readIds },
+      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] }
+    });
+
+    let adminCount = 0;
+    let teacherCount = 0;
+
+    notifications.forEach(n => {
+      if (n.createdByRole === "COLLEGE_ADMIN") adminCount++;
+      if (n.createdByRole === "TEACHER") teacherCount++;
+    });
+
+    res.json({
+      adminCount,
+      teacherCount,
+      total: adminCount + teacherCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getTeacherNotificationCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const readIds = await getReadNotificationIds(userId);
+
+    const notifications = await Notification.find({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      $or: [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: userId }
+      ]
+    });
+
+    let myCount = 0;
+    let adminCount = 0;
+
+    notifications.forEach(n => {
+      if (n.createdByRole === "COLLEGE_ADMIN") {
+        adminCount++;
+      } else if (
+        n.createdByRole === "TEACHER" &&
+        n.createdBy.toString() === userId
+      ) {
+        myCount++;
+      }
+    });
+
+    res.json({
+      myCount,
+      adminCount,
+      total: myCount + adminCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+exports.getAdminNotificationCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const readIds = await getReadNotificationIds(userId);
+
+    const notifications = await Notification.find({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds }
     });
 
     let myCount = 0;
     let staffCount = 0;
 
-    notifications.forEach((n) => {
+    notifications.forEach(n => {
       if (
         n.createdByRole === "COLLEGE_ADMIN" &&
-        n.createdBy.toString() === req.user.id
+        n.createdBy.toString() === userId
       ) {
         myCount++;
       } else if (n.createdByRole === "TEACHER") {
@@ -286,69 +476,29 @@ exports.getAdminNotificationCount = async (req, res) => {
   }
 };
 
-exports.getTeacherNotificationCount = async (req, res) => {
+
+exports.markAsRead = async (req, res) => {
   try {
-    const expiryCondition = getValidExpiryCondition();
+    const { notificationId } = req.params;
+    const { id: userId, role } = req.user;
 
-    const notifications = await Notification.find({
-      college_id: req.college_id,
-      isActive: true,
-      ...expiryCondition,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdBy: req.user.id }
-      ]
-    });
+    await NotificationRead.findOneAndUpdate(
+      {
+        notification_id: notificationId,
+        user_id: userId
+      },
+      {
+        notification_id: notificationId,
+        user_id: userId,
+        role,
+        readAt: new Date()
+      },
+      { upsert: true }
+    );
 
-    let myCount = 0;
-    let adminCount = 0;
-
-    notifications.forEach((n) => {
-      if (
-        n.createdByRole === "TEACHER" &&
-        n.createdBy.toString() === req.user.id
-      ) {
-        myCount++;
-      } else if (n.createdByRole === "COLLEGE_ADMIN") {
-        adminCount++;
-      }
-    });
-
-    res.json({
-      myCount,
-      adminCount,
-      total: myCount + adminCount
-    });
+    res.json({ message: "Notification marked as read" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-exports.getStudentNotificationCount = async (req, res) => {
-  try {
-    const expiryCondition = getValidExpiryCondition();
-
-    const notifications = await Notification.find({
-      college_id: req.college_id,
-      isActive: true,
-      ...expiryCondition,
-      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] }
-    });
-
-    let adminCount = 0;
-    let teacherCount = 0;
-
-    notifications.forEach((n) => {
-      if (n.createdByRole === "COLLEGE_ADMIN") adminCount++;
-      if (n.createdByRole === "TEACHER") teacherCount++;
-    });
-
-    res.json({
-      adminCount,
-      teacherCount,
-      total: adminCount + teacherCount
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};

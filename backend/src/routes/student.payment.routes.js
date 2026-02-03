@@ -6,8 +6,8 @@ const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
 
-const { createPhonePeOrder, getStudentFeeDashboard } = require("../controllers/student.payment.controller");
 const { mockPaymentSuccess } = require("../controllers/mock.payment.controller");
+const { getStudentFeeDashboard } = require("../controllers/student.payment.controller");
 
 // 💳 STUDENT: Create payment order
 router.post(
@@ -16,7 +16,6 @@ router.post(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  createPhonePeOrder
 );
 
 // 💳 STUDENT: Fee dashboard
