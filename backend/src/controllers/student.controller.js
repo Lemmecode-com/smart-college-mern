@@ -5,6 +5,7 @@ const Course = require("../models/course.model");
 const Student = require("../models/student.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
+const StudentFee = require("../models/studentFee.model");
 
 exports.registerStudent = async (req, res) => {
   try {
@@ -300,36 +301,68 @@ exports.deleteStudent = async (req, res) => {
   }
 };
 
-
-// GET APPROVED STUDENTS FOR COLLEGE ADMIN
+// GET APPROVED STUDENTS FOR COLLEGE ADMIN (WITH FEES)
 exports.getApprovedStudents = async (req, res) => {
-  const students = await Student.find({
-    college_id: req.college_id,
-    status: "APPROVED"
-  })
-    .populate("department_id", "name code")
-    .populate("course_id", "name");
+  try {
+    const students = await Student.find({
+      college_id: req.college_id,
+      status: "APPROVED"
+    })
+      .populate("department_id", "name code")
+      .populate("course_id", "name");
 
-  res.json(students);
-};
+    // Attach fee info for each student
+    const studentsWithFee = await Promise.all(
+      students.map(async (student) => {
+        const fee = await StudentFee.findOne({
+          student_id: student._id
+        }).select("totalFee paidAmount installments");
 
+        return {
+          ...student.toObject(),
+          fee: fee || null
+        };
+      })
+    );
 
-//GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN 
-exports.getStudentById = async (req, res) => {
-  const student = await Student.findOne({
-    _id: req.params.id,
-    college_id: req.college_id
-  })
-    .populate("college_id", "name code")
-    .populate("department_id", "name")
-    .populate("course_id", "name");
-
-  if (!student) {
-    return res.status(404).json({ message: "Student not found" });
+    res.json(studentsWithFee);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(student);
 };
+
+// GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN (WITH FEES)
+exports.getStudentById = async (req, res) => {
+  try {
+    const student = await Student.findOne({
+      _id: req.params.id,
+      college_id: req.college_id
+    })
+      .populate("college_id", "name code")
+      .populate("department_id", "name")
+      .populate("course_id", "name");
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const fee = await StudentFee.findOne({
+      student_id: student._id
+    }).select("totalFee paidAmount installments");
+
+    res.json({
+      ...student.toObject(),
+      fee: fee || {
+        totalFee: 0,
+        paidAmount: 0,
+        installments: []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 // REGISTERED (PENDING) STUDENTS
 exports.getRegisteredStudents = async (req, res) => {
