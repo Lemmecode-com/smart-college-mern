@@ -75,6 +75,10 @@ app.use("/api/reports", require("./src/routes/reports.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
 app.use("/api/notifications", require("./src/routes/notification.routes"));
 
+
+app.use("/api/stripe", require("./src/routes/stripe.routes"));
+
+
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));
 
