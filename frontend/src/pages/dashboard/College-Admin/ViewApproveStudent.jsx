@@ -2,7 +2,6 @@ import { useContext, useEffect, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -13,7 +12,6 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaClock,
-  FaMoneyBillWave
 } from "react-icons/fa";
 
 export default function ViewApproveStudent() {
@@ -22,7 +20,6 @@ export default function ViewApproveStudent() {
   const navigate = useNavigate();
 
   const [student, setStudent] = useState(null);
-  const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -30,21 +27,19 @@ export default function ViewApproveStudent() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
-  /* ================= FETCH APPROVED STUDENT ================= */
+  /* ================= FETCH STUDENT ================= */
   useEffect(() => {
     const fetchStudent = async () => {
       try {
-        const res = await api.put(`/students/${id}/approve`);
-        setStudent(res.data.student);
-        setFee(res.data.fee);
+        const res = await api.get(`/students/approved-stud/${id}`);
+        setStudent(res.data);
       } catch (err) {
         console.error(err);
-        setError("Failed to load approved student details");
+        setError("Failed to load approved student");
       } finally {
         setLoading(false);
       }
     };
-
     fetchStudent();
   }, [id]);
 
@@ -52,7 +47,7 @@ export default function ViewApproveStudent() {
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Approving & loading student...</h5>
+        <h5 className="text-muted">Loading Student...</h5>
       </div>
     );
   }
@@ -70,17 +65,15 @@ export default function ViewApproveStudent() {
   }
 
   return (
-    <div className="container-fluid fade-in">
-
+    <div className="container-fluid">
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4 d-flex justify-content-between align-items-center">
         <div>
           <h3 className="fw-bold mb-1">
-            <FaUserGraduate className="me-2" />
-            Student Approved
+            <FaUserGraduate className="me-2" /> Approved Student Profile
           </h3>
           <p className="opacity-75 mb-0">
-            Fee allocated successfully 🎉
+            Complete personal & academic details
           </p>
         </div>
         <button className="btn btn-light" onClick={() => navigate(-1)}>
@@ -88,90 +81,80 @@ export default function ViewApproveStudent() {
         </button>
       </div>
 
-      {/* ================= STUDENT PROFILE ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+      {/* ================= PROFILE CARD ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card">
         <div className="card-body p-4">
-
+          {/* ===== TOP ===== */}
           <div className="text-center mb-4">
             <FaUserGraduate className="fs-1 text-success" />
             <h4 className="fw-bold mt-2">{student.fullName}</h4>
-            <span className="badge bg-success px-3 py-2">
+            <span className="badge bg-success">
               <FaCheckCircle className="me-1" /> APPROVED
             </span>
           </div>
 
-          <div className="row g-3 text-center">
+          {/* ===== BASIC ===== */}
+          <div className="row g-4 text-center mb-4">
             <Info label="Email" value={student.email} icon={<FaEnvelope />} />
-            <Info label="Category" value={student.category} icon={<FaUserGraduate />} />
-            <Info label="Admission Year" value={student.admissionYear} icon={<FaCalendarAlt />} />
             <Info
-              label="Approved At"
-              value={new Date(student.approvedAt).toLocaleString()}
-              icon={<FaClock />}
+              label="Mobile"
+              value={student.mobileNumber}
+              icon={<FaPhone />}
+            />
+            <Info
+              label="Gender"
+              value={student.gender}
+              icon={<FaUserGraduate />}
+            />
+            <Info
+              label="DOB"
+              value={new Date(student.dateOfBirth).toDateString()}
+              icon={<FaCalendarAlt />}
             />
           </div>
 
-          <hr />
+          {/* ===== ADDRESS ===== */}
+          <h5 className="fw-bold mb-3">
+            <FaMapMarkerAlt className="me-2" /> Address
+          </h5>
+          <div className="row g-3 mb-4">
+            <Info label="Address" value={student.addressLine} />
+            <Info label="City" value={student.city} />
+            <Info label="State" value={student.state} />
+            <Info label="Pincode" value={student.pincode} />
+          </div>
 
-          <div className="row g-3 text-center">
-            <Info label="Department ID" value={student.department} icon={<FaUniversity />} />
-            <Info label="Course ID" value={student.course} icon={<FaUniversity />} />
-            <Info label="Status" value={student.status} icon={<FaCheckCircle />} />
+          {/* ===== ACADEMIC ===== */}
+          <h5 className="fw-bold mb-3">
+            <FaUniversity className="me-2" /> Academic Details
+          </h5>
+          <div className="row g-3 mb-4">
+            <Info label="College" value={student.college_id?.name} />
+            <Info label="College Code" value={student.college_id?.code} />
+            <Info label="Department" value={student.department_id?.name} />
+            <Info label="Course" value={student.course_id?.name} />
+            <Info label="Admission Year" value={student.admissionYear} />
+            <Info label="Semester" value={student.currentSemester} />
+          </div>
+
+          {/* ===== META ===== */}
+          <h5 className="fw-bold mb-3">
+            <FaClock className="me-2" /> System Info
+          </h5>
+          <div className="row g-3">
+            <Info label="Status" value={student.status} />
+            <Info label="Registered Via" value={student.registeredVia} />
+            <Info
+              label="Approved At"
+              value={new Date(student.approvedAt).toDateString()}
+            />
+            <Info
+              label="Created At"
+              value={new Date(student.createdAt).toDateString()}
+            />
           </div>
         </div>
       </div>
-
-      {/* ================= FEE STRUCTURE ================= */}
-      {fee && (
-        <div className="card shadow-lg border-0 rounded-4 glass-card slide-up">
-          <div className="card-body p-4">
-
-            <h5 className="fw-bold mb-3">
-              <FaMoneyBillWave className="me-2 text-success" />
-              Fee Allocation
-            </h5>
-
-            <div className="row mb-3">
-              <Info label="Total Fee" value={`₹ ${fee.totalFee}`} />
-              <Info label="Paid Amount" value={`₹ ${fee.paidAmount}`} />
-            </div>
-
-            <div className="table-responsive">
-              <table className="table table-bordered align-middle text-center">
-                <thead className="table-dark">
-                  <tr>
-                    <th>Installment</th>
-                    <th>Amount</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fee.installments.map((i) => (
-                    <tr key={i._id}>
-                      <td>{i.name}</td>
-                      <td>₹ {i.amount}</td>
-                      <td>{new Date(i.dueDate).toLocaleDateString()}</td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            i.status === "PAID"
-                              ? "bg-success"
-                              : "bg-warning text-dark"
-                          }`}
-                        >
-                          {i.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* ================= CSS ================= */}
       <style>{`
@@ -179,19 +162,15 @@ export default function ViewApproveStudent() {
           background: linear-gradient(180deg, #0f3a4a, #134952);
         }
         .glass-card {
-          background: rgba(255,255,255,0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(8px);
         }
-        .fade-in {animation: fade 1s;}
-        .slide-up {animation: slideUp 0.6s;}
-        @keyframes fade {from{opacity:0}to{opacity:1}}
-        @keyframes slideUp {from{transform:translateY(20px)}to{transform:translateY(0)}}
       `}</style>
     </div>
   );
 }
 
-/* ================= REUSABLE ================= */
+/* ================= REUSABLE INFO ================= */
 function Info({ label, value, icon }) {
   return (
     <div className="col-md-3 col-sm-6 text-center">
