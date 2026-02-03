@@ -69,6 +69,13 @@ import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import MakePayments from "./pages/dashboard/Student/MakePayments";
+import CreateNotification from "./pages/dashboard/College-Admin/CreateNotification";
+import NotificationList from "./pages/dashboard/College-Admin/NotificationList";
+import UpdateNotifications from "./pages/dashboard/College-Admin/UpdateNotifications";
+import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
+import CreateNotifications from "./pages/dashboard/Teacher/CreateNotifications";
+import Notifications from "./pages/dashboard/Teacher/Notifications";
+import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -188,18 +195,17 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route 
-                path="/fees/create"
-                element={
-                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                    <CreateFeeStructure />
-                  </ProtectedRoute>
-                } />
-                                                                                                                                     
-              
+                <Route
+                  path="/fees/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateFeeStructure />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
-                  path="/fees/view/:id" 
+                  path="/fees/view/:id"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <ViewFeeStructure />
@@ -207,7 +213,6 @@ export default function App() {
                   }
                 />
 
-                  
                 <Route
                   path="/fees/edit/:id"
                   element={
@@ -217,12 +222,45 @@ export default function App() {
                   }
                 />
 
-                  
                 <Route
                   path="/fees/list"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <FeeStructureList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/notification/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateNotification />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/notification/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <NotificationList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notification/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <UpdateNotifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notification/student"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentNotificationList />
                     </ProtectedRoute>
                   }
                 />
@@ -233,6 +271,30 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <TeacherDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/notifications/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CreateNotifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/notifications/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER", "COLLEGE_ADMIN"]}>
+                      <EditNotifications />
                     </ProtectedRoute>
                   }
                 />
@@ -289,9 +351,7 @@ export default function App() {
                   }
                 />
 
-      
-
-          <Route
+                <Route
                   path="/student/fee-receipt/:paymentId"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
@@ -370,7 +430,6 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-      
 
                 {/* ================= ATTENDANCE ================= */}
                 <Route

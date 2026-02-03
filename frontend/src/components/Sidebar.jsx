@@ -18,14 +18,15 @@ import {
   FaMoneyBillWaveAlt,
   FaBars,
   FaTimes,
+  FaBell,
   FaHome,
-  FaSignOutAlt
+  FaSignOutAlt,
 } from "react-icons/fa";
 
 export default function Sidebar() {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
-  
+
   // Mobile sidebar state
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openSections, setOpenSections] = useState({
@@ -49,16 +50,16 @@ export default function Sidebar() {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isMobileOpen && window.innerWidth < 768) {
-        const sidebar = document.querySelector('.sidebar-container');
+        const sidebar = document.querySelector(".sidebar-container");
         if (sidebar && !sidebar.contains(event.target)) {
           setIsMobileOpen(false);
         }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMobileOpen]);
 
@@ -68,14 +69,14 @@ export default function Sidebar() {
   const isAdmin = role === "COLLEGE_ADMIN" || role === "SUPER_ADMIN";
 
   const toggleSection = (section) => {
-    setOpenSections(prev => ({
+    setOpenSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
   const toggleMobileSidebar = () => {
-    setIsMobileOpen(prev => !prev);
+    setIsMobileOpen((prev) => !prev);
   };
 
   const handleLogout = async () => {
@@ -107,7 +108,7 @@ export default function Sidebar() {
     background: "#ffffff",
     borderLeft: "3px solid #1a4b6d",
     fontWeight: 600,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
   };
 
   const sectionTitleStyle = {
@@ -136,26 +137,26 @@ export default function Sidebar() {
     <>
       {/* MOBILE SIDEBAR TOGGLE BUTTON */}
       {window.innerWidth < 768 && (
-        <button 
+        <button
           onClick={toggleMobileSidebar}
           className="mobile-menu-toggle"
           aria-label="Toggle menu"
           style={{
-            position: 'fixed',
-            top: '15px',
-            left: '15px',
+            position: "fixed",
+            top: "15px",
+            left: "15px",
             zIndex: 1050,
-            width: '45px',
-            height: '45px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)',
-            border: 'none',
-            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease'
+            width: "45px",
+            height: "45px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+            border: "none",
+            boxShadow: "0 4px 15px rgba(26, 75, 109, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
           }}
         >
           {isMobileOpen ? (
@@ -167,34 +168,37 @@ export default function Sidebar() {
       )}
 
       {/* SIDEBAR CONTAINER */}
-      <div 
-        className={`sidebar-container ${isMobileOpen ? 'mobile-open' : ''}`}
+      <div
+        className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}
         style={{
-          position: 'fixed',
+          position: "fixed",
           top: 0,
           left: 0,
-          height: '100vh',
-          width: '100%',
-          maxWidth: '280px',
-          backgroundColor: 'transparent',
+          height: "100vh",
+          width: "100%",
+          maxWidth: "280px",
+          backgroundColor: "transparent",
           zIndex: 1040,
-          display: 'flex',
-          transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isMobileOpen || window.innerWidth >= 768 ? 'translateX(0)' : 'translateX(-100%)',
+          display: "flex",
+          transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform:
+            isMobileOpen || window.innerWidth >= 768
+              ? "translateX(0)"
+              : "translateX(-100%)",
         }}
       >
         {/* SIDEBAR BACKDROP FOR MOBILE */}
         {isMobileOpen && window.innerWidth < 768 && (
-          <div 
+          <div
             className="sidebar-backdrop"
             onClick={() => setIsMobileOpen(false)}
             style={{
-              position: 'fixed',
+              position: "fixed",
               top: 0,
               left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              width: "100%",
+              height: "100%",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
               zIndex: -1,
             }}
           />
@@ -203,13 +207,13 @@ export default function Sidebar() {
         {/* SIDEBAR CONTENT */}
         <aside
           style={{
-            width: '100%',
-            height: '100vh',
-            background: 'linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%)',
-            padding: '20px 14px',
-            overflowY: 'auto',
-            boxShadow: '4px 0 20px rgba(0, 0, 0, 0.3)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+            width: "100%",
+            height: "100vh",
+            background: "linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%)",
+            padding: "20px 14px",
+            overflowY: "auto",
+            boxShadow: "4px 0 20px rgba(0, 0, 0, 0.3)",
+            borderRight: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
           {/* LOGO SECTION */}
@@ -221,32 +225,44 @@ export default function Sidebar() {
               marginBottom: "20px",
             }}
           >
-            <div style={{ 
-              fontSize: "18px", 
-              fontWeight: 700, 
-              color: "#ffffff",
-              letterSpacing: "-0.5px",
-              textShadow: "0 2px 10px rgba(0,0,0,0.3)"
-            }}>
+            <div
+              style={{
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "#ffffff",
+                letterSpacing: "-0.5px",
+                textShadow: "0 2px 10px rgba(0,0,0,0.3)",
+              }}
+            >
               NOVAA
             </div>
-            <div style={{ 
-              fontSize: "12px", 
-              color: "rgba(255,255,255,0.7)", 
-              marginTop: "4px",
-              fontWeight: 500
-            }}>
-              {role.replace('_', ' ')}
+            <div
+              style={{
+                fontSize: "12px",
+                color: "rgba(255,255,255,0.7)",
+                marginTop: "4px",
+                fontWeight: 500,
+              }}
+            >
+              {role.replace("_", " ")}
             </div>
           </div>
 
           {/* NAVIGATION LINKS */}
           <nav>
             {/* DASHBOARD LINK */}
-            <NavLink 
-              to={role === "SUPER_ADMIN" ? "/super-admin/dashboard" : role === "COLLEGE_ADMIN" ? "/dashboard" : role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard"} 
+            <NavLink
+              to={
+                role === "SUPER_ADMIN"
+                  ? "/super-admin/dashboard"
+                  : role === "COLLEGE_ADMIN"
+                    ? "/dashboard"
+                    : role === "TEACHER"
+                      ? "/teacher/dashboard"
+                      : "/student/dashboard"
+              }
               style={getNavLinkStyle}
-              className={({ isActive }) => isActive ? "active-link" : ""}
+              className={({ isActive }) => (isActive ? "active-link" : "")}
             >
               <FaTachometerAlt /> Dashboard
             </NavLink>
@@ -254,10 +270,16 @@ export default function Sidebar() {
             {/* ROLE-BASED MENUS */}
             {role === "SUPER_ADMIN" && (
               <>
-                <NavLink to="/super-admin/create-college" style={getNavLinkStyle}>
+                <NavLink
+                  to="/super-admin/create-college"
+                  style={getNavLinkStyle}
+                >
                   <FaUniversity /> Add New College
                 </NavLink>
-                <NavLink to="/super-admin/colleges-list" style={getNavLinkStyle}>
+                <NavLink
+                  to="/super-admin/colleges-list"
+                  style={getNavLinkStyle}
+                >
                   <FaUniversity /> Colleges List
                 </NavLink>
                 <NavLink to="/super-admin/settings" style={getNavLinkStyle}>
@@ -269,14 +291,24 @@ export default function Sidebar() {
             {role === "COLLEGE_ADMIN" && (
               <>
                 {/* COLLEGE SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("college")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaUniversity /> College
                   </div>
-                  {openSections.college ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.college ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.college)}>
                   <NavLink to="/college/profile" style={getNavLinkStyle}>
@@ -285,14 +317,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* DEPARTMENTS SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("departments")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaBook /> Departments
                   </div>
-                  {openSections.departments ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.departments ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.departments)}>
                   <NavLink to="/departments" style={getNavLinkStyle}>
@@ -304,14 +346,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* COURSES SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("courses")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaLayerGroup /> Courses
                   </div>
-                  {openSections.courses ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.courses ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.courses)}>
                   <NavLink to="/courses" style={getNavLinkStyle}>
@@ -320,7 +372,10 @@ export default function Sidebar() {
                   <NavLink to="/courses/add" style={getNavLinkStyle}>
                     <FaLayerGroup /> Add Course
                   </NavLink>
-                  <NavLink to="/subjects/course/:courseId" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/subjects/course/:courseId"
+                    style={getNavLinkStyle}
+                  >
                     <FaLayerGroup /> Subject List
                   </NavLink>
                   <NavLink to="/subjects/add" style={getNavLinkStyle}>
@@ -329,14 +384,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* TEACHERS SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("teachers")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaUserGraduate /> Teachers
                   </div>
-                  {openSections.teachers ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.teachers ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.teachers)}>
                   <NavLink to="/teachers" style={getNavLinkStyle}>
@@ -348,14 +413,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* TIMETABLE SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("timetable")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaCalendarAlt /> Timetable
                   </div>
-                  {openSections.timetable ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.timetable ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.timetable)}>
                   <NavLink to="/timetable/create" style={getNavLinkStyle}>
@@ -367,14 +442,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* STUDENTS SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("students")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaUserGraduate /> Students
                   </div>
-                  {openSections.students ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections.students ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections.students)}>
                   <NavLink to="/students" style={getNavLinkStyle}>
@@ -386,14 +471,24 @@ export default function Sidebar() {
                 </div>
 
                 {/* FEE STRUCTURE SECTION */}
-                <div 
+                <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("fee-structure")}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
                     <FaMoneyBillWave /> Fee Management
                   </div>
-                  {openSections["fee-structure"] ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+                  {openSections["fee-structure"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
                 </div>
                 <div style={sectionBodyStyle(openSections["fee-structure"])}>
                   <NavLink to="/fees/create" style={getNavLinkStyle}>
@@ -401,6 +496,36 @@ export default function Sidebar() {
                   </NavLink>
                   <NavLink to="/fees/list" style={getNavLinkStyle}>
                     <FaMoneyBillWaveAlt /> Fee Structures List
+                  </NavLink>
+                </div>
+
+                {/* Notifications */}
+
+                <div
+                  style={sectionTitleStyle}
+                  onClick={() => toggleSection("Notifications")}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaBell/> Notifications
+                  </div>
+                  {openSections["Notifications"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["Notifications"])}>
+                  <NavLink to="/notification/create" style={getNavLinkStyle}>
+                    <FaLink /> Create Notification
+                  </NavLink>
+                  <NavLink to="/notification/list" style={getNavLinkStyle}>
+                    <FaLink /> Notification List
                   </NavLink>
                 </div>
               </>
@@ -426,6 +551,13 @@ export default function Sidebar() {
                 <NavLink to="/attendance/report" style={getNavLinkStyle}>
                   <FaClipboardList /> Attendance Report
                 </NavLink>
+                <NavLink to="/teacher/notifications/create" style={getNavLinkStyle}>
+                  <FaBell /> Create Notification
+                </NavLink>
+                <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
+                  <FaBell /> Notifications
+                </NavLink>
+
               </>
             )}
 
@@ -442,6 +574,9 @@ export default function Sidebar() {
                 </NavLink>
                 <NavLink to="/my-attendance" style={getNavLinkStyle}>
                   <FaClipboardList /> My Attendance
+                </NavLink>
+                <NavLink to="/notification/student" style={getNavLinkStyle}>
+                  <FaBell /> Notifications
                 </NavLink>
               </>
             )}
@@ -461,13 +596,13 @@ export default function Sidebar() {
           z-index: 1040;
           transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         @media (min-width: 768px) {
           .sidebar-container {
             transform: translateX(0) !important;
           }
         }
-        
+
         .mobile-menu-toggle {
           position: fixed;
           top: 15px;
@@ -485,21 +620,21 @@ export default function Sidebar() {
           cursor: pointer;
           transition: all 0.3s ease;
         }
-        
+
         @media (min-width: 768px) {
           .mobile-menu-toggle {
             display: none !important;
           }
         }
-        
+
         .active-link {
           color: #0f3a4a !important;
           background: #ffffff !important;
           border-left: 3px solid #1a4b6d !important;
           font-weight: 600 !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
         }
-        
+
         .sidebar-backdrop {
           position: fixed;
           top: 0;
@@ -509,23 +644,29 @@ export default function Sidebar() {
           background-color: rgba(0, 0, 0, 0.5);
           z-index: 1039;
         }
-        
+
         @media (max-width: 767px) {
           .sidebar-container.mobile-open {
             transform: translateX(0);
           }
-          
+
           .sidebar-container {
             transform: translateX(-100%);
           }
         }
-        
+
         /* Animation for section collapse */
         @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        
+
         .sidebar-container nav > div[style*="maxHeight"] {
           animation: slideDown 0.3s ease forwards;
         }
