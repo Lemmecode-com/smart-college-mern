@@ -12,13 +12,13 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState([]);
   const [toast, setToast] = useState(null);
-  const prevCount = useRef(0);
 
+  const prevCount = useRef(0);
   const dropdownRef = useRef();
 
   if (!user) return null;
 
-  /* ================= FETCH COUNTS ================= */
+  /* ================= FETCH COUNT (UNREAD ONLY) ================= */
   const fetchCount = async () => {
     try {
       let res;
@@ -32,6 +32,7 @@ export default function Navbar() {
 
       const total = res?.data?.total || 0;
 
+      // Toast for new notifications
       if (prevCount.current && total > prevCount.current) {
         setToast("🔔 New notification received!");
         setTimeout(() => setToast(null), 3000);
@@ -40,44 +41,39 @@ export default function Navbar() {
       prevCount.current = total;
       setCount(total);
     } catch (err) {
-      console.error("Count error", err);
+      console.error("Notification count error", err);
     }
   };
 
-  /* ================= FETCH DROPDOWN DATA ================= */
+  /* ================= FETCH UNREAD FOR BELL ================= */
   const fetchNotes = async () => {
     try {
-      let res;
-
-      if (user.role === "COLLEGE_ADMIN")
-        res = await api.get("/notifications/admin/read");
-      if (user.role === "TEACHER")
-        res = await api.get("/notifications/teacher/read");
-      if (user.role === "STUDENT")
-        res = await api.get("/notifications/student/read");
-
-      let data = [];
-      if (user.role === "COLLEGE_ADMIN")
-        data = [...res.data.myNotifications, ...res.data.staffNotifications];
-      if (user.role === "TEACHER")
-        data = [...res.data.myNotifications, ...res.data.adminNotifications];
-      if (user.role === "STUDENT")
-        data = [...res.data.adminNotifications, ...res.data.teacherNotifications];
-
-      setNotes(data.slice(0, 6));
+      const res = await api.get("/notifications/unread/bell");
+      setNotes(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Bell fetch error", err);
     }
   };
 
-  /* ================= EFFECT ================= */
+  /* ================= MARK AS READ ================= */
+  const markAsRead = async (id) => {
+    try {
+      await api.post(`/notifications/${id}/read`);
+      fetchNotes();
+      fetchCount();
+    } catch (err) {
+      console.error("Mark read failed", err);
+    }
+  };
+
+  /* ================= INITIAL ================= */
   useEffect(() => {
     fetchCount();
     const interval = setInterval(fetchCount, 15000);
     return () => clearInterval(interval);
   }, [user]);
 
-  /* ================= CLICK OUTSIDE ================= */
+  /* ================= CLOSE DROPDOWN ON OUTSIDE ================= */
   useEffect(() => {
     const handleClick = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -111,7 +107,9 @@ export default function Navbar() {
         {/* LEFT */}
         <div className="d-flex align-items-center gap-3">
           <h5 className="mb-0 fw-bold text-primary">NOVAA</h5>
-          <span className="badge bg-dark">{user.role.replace("_", " ")}</span>
+          <span className="badge bg-dark">
+            {user.role.replace("_", " ")}
+          </span>
         </div>
 
         {/* RIGHT */}
@@ -122,10 +120,13 @@ export default function Navbar() {
             ref={dropdownRef}
             style={{ cursor: "pointer" }}
           >
-            <FaBell size={20} onClick={() => {
-              setOpen(!open);
-              fetchNotes();
-            }} />
+            <FaBell
+              size={20}
+              onClick={() => {
+                setOpen(!open);
+                fetchNotes();
+              }}
+            />
 
             {count > 0 && (
               <span
@@ -148,39 +149,33 @@ export default function Navbar() {
                 style={{ width: 320, zIndex: 2000 }}
               >
                 <div className="card-body p-2">
-                  <h6 className="fw-bold text-center">Notifications</h6>
+                  <h6 className="fw-bold text-center">
+                    Unread Notifications
+                  </h6>
+
                   {notes.length === 0 && (
                     <p className="text-muted small text-center">
-                      No notifications
+                      No new notifications
                     </p>
                   )}
 
                   {notes.map((n) => (
                     <div
                       key={n._id}
-                      className={`p-2 rounded mb-1 small ${
-                        n.isRead ? "bg-light" : "bg-warning bg-opacity-25"
-                      }`}
+                      className="p-2 rounded mb-1 small bg-warning bg-opacity-25"
                     >
                       <strong>{n.title}</strong>
-                      <div className="text-muted small">{n.message}</div>
-                      <div className="d-flex justify-content-end">
-                        {!n.isRead && (
-                          <button
-                            className="btn btn-sm btn-link text-success p-0"
-                            onClick={() =>
-                              setNotes((prev) =>
-                                prev.map((x) =>
-                                  x._id === n._id
-                                    ? { ...x, isRead: true }
-                                    : x
-                                )
-                              )
-                            }
-                          >
-                            <FaCheck /> Mark read
-                          </button>
-                        )}
+                      <div className="text-muted small">
+                        {n.message}
+                      </div>
+
+                      <div className="text-end">
+                        <button
+                          className="btn btn-sm btn-link text-success p-0"
+                          onClick={() => markAsRead(n._id)}
+                        >
+                          <FaCheck /> Mark read
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -199,9 +194,7 @@ export default function Navbar() {
           </div>
 
           {/* USER EMAIL */}
-          <span className="text-muted small">
-            {user.email}
-          </span>
+          <span className="text-muted small">{user.email}</span>
 
           {/* LOGOUT */}
           <button
