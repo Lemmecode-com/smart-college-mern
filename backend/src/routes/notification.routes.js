@@ -15,6 +15,7 @@ const {
   getAdminNotificationCount,
   getTeacherNotificationCount,
   getStudentNotificationCount,
+  markAsRead,
 } = require("../controllers/notification.controller");
 
 router.post(
@@ -82,6 +83,12 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   getStudentNotificationCount
+);
+
+router.post(
+  "/:notificationId/read",
+  auth,
+  markAsRead
 );
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
