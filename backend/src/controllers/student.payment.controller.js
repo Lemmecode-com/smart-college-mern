@@ -1,43 +1,4 @@
 const StudentFee = require("../models/studentFee.model");
-const { createPhonePePayload } = require("../services/phonepe.service");
-
-exports.createPhonePeOrder = async (req, res) => {
-  try {
-    const { installmentName } = req.body;
-    const studentId = req.user.id;
-
-    const studentFee = await StudentFee.findOne({ student_id: studentId });
-    if (!studentFee) {
-      return res.status(404).json({ message: "Student fee record not found" });
-    }
-
-    const installment = studentFee.installments.find(
-      (i) => i.name === installmentName && i.status !== "PAID"
-    );
-
-    if (!installment) {
-      return res.status(400).json({ message: "Invalid installment" });
-    }
-
-    const transactionId = `TXN_${Date.now()}`;
-
-    const { base64Payload, checksum } = createPhonePePayload({
-      transactionId,
-      amount: installment.amount,
-      redirectUrl: "http://localhost:3000/payment-success",
-    });
-
-    res.json({
-      paymentUrl: `${process.env.PHONEPE_BASE_URL}/pg/v1/pay`,
-      payload: base64Payload,
-      checksum,
-    });
-  } catch (err) {
-    console.error("PhonePe order error:", err);
-    res.status(500).json({ message: "Failed to create PhonePe order" });
-  }
-};
-
 
 exports.getStudentFeeDashboard = async (req, res) => {
   try {
