@@ -144,12 +144,6 @@ export default function CollegeProfile() {
 
         <div className="d-flex gap-2">
           <button 
-            className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            onClick={() => window.print()}
-          >
-            <FaPrint /> Print
-          </button>
-          <button 
             className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 hover-lift pulse-button"
           >
             <FaEdit /> Edit Profile
@@ -364,9 +358,6 @@ export default function CollegeProfile() {
                 <button className="btn btn-outline-success w-100 mb-2 d-flex align-items-center justify-content-center gap-2 py-2">
                   <FaFileInvoice /> Generate Fee Report (Excel)
                 </button>
-                <button className="btn btn-outline-info w-100 d-flex align-items-center justify-content-center gap-2 py-2">
-                  <FaPrint /> Print College Profile
-                </button>
               </div>
             </div>
           </div>
@@ -380,8 +371,7 @@ export default function CollegeProfile() {
             <div>
               <p className="mb-1">
                 <small className="text-muted">
-                  <FaInfoCircle className="me-2" />
-                  College ID: <strong>{college._id}</strong> | 
+                  <FaInfoCircle className="me-2" /> 
                   System Version: <strong>v2.1.0</strong>
                 </small>
               </p>
