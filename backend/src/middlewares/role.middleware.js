@@ -19,6 +19,34 @@
 // };
 
 
+// module.exports = (...allowedRoles) => {
+//   return (req, res, next) => {
+//     if (!req.user) {
+//       return res.status(401).json({
+//         message: "Unauthorized: user not authenticated",
+//       });
+//     }
+
+//     if (!req.user.role) {
+//       return res.status(401).json({
+//         message: "Unauthorized: user role missing",
+//       });
+//     }
+
+//     // 🔍 TEMP DEBUG (remove after testing)
+//     console.log("ROLE FROM TOKEN:", req.user.role);
+//     console.log("ALLOWED ROLES:", allowedRoles);
+
+//     if (!allowedRoles.includes(req.user.role)) {
+//       return res.status(403).json({
+//         message: `Access denied: role ${req.user.role} not allowed`,
+//       });
+//     }
+//     next();
+//   };
+// };
+
+
 module.exports = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -33,15 +61,15 @@ module.exports = (...allowedRoles) => {
       });
     }
 
-    // 🔍 TEMP DEBUG (remove after testing)
-    console.log("ROLE FROM TOKEN:", req.user.role);
-    console.log("ALLOWED ROLES:", allowedRoles);
+    // Normalize role comparison
+    const userRole = req.user.role.toUpperCase();
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.map(r => r.toUpperCase()).includes(userRole)) {
       return res.status(403).json({
         message: `Access denied: role ${req.user.role} not allowed`,
       });
     }
+
     next();
   };
 };
