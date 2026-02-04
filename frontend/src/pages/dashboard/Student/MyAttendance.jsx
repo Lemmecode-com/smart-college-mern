@@ -377,7 +377,6 @@ export default function MyAttendance() {
             </div>
           </div>
         </div>
-
         <div className="card-body bg-light py-3">
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center text-center text-md-start">
             <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mb-2 mb-md-0">
@@ -474,7 +473,6 @@ export default function MyAttendance() {
                   {overallStats.totalLectures} Total
                 </div>
               </div>
-
               <div className="alert alert-info bg-info bg-opacity-10 mt-4 p-3 rounded-3">
                 <div className="d-flex align-items-start gap-2">
                   <FaBell className="mt-1 flex-shrink-0" />

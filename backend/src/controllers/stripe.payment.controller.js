@@ -12,11 +12,13 @@ exports.createCheckoutSession = async (req, res) => {
     }
 
     const installment = studentFee.installments.find(
-      (i) => i.name === installmentName && i.status === "PENDING"
+      (i) => i.name === installmentName && i.status === "PENDING",
     );
 
     if (!installment) {
-      return res.status(400).json({ message: "Invalid or already paid installment" });
+      return res
+        .status(400)
+        .json({ message: "Invalid or already paid installment" });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -34,8 +36,8 @@ exports.createCheckoutSession = async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      success_url: `${process.env.FRONTEND_URL}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/student/payment-cancel`,
       metadata: {
         studentId: studentId.toString(),
         installmentName,
@@ -43,12 +45,10 @@ exports.createCheckoutSession = async (req, res) => {
     });
 
     res.json({ checkoutUrl: session.url });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.confirmStripePayment = async (req, res) => {
   try {
@@ -69,7 +69,7 @@ exports.confirmStripePayment = async (req, res) => {
     }
 
     const installment = studentFee.installments.find(
-      (i) => i.name === installmentName
+      (i) => i.name === installmentName,
     );
 
     if (!installment || installment.status === "PAID") {
@@ -83,17 +83,29 @@ exports.confirmStripePayment = async (req, res) => {
 
     // 🔄 Recalculate paid amount
     studentFee.paidAmount = studentFee.installments
-      .filter(i => i.status === "PAID")
+      .filter((i) => i.status === "PAID")
       .reduce((sum, i) => sum + i.amount, 0);
 
     await studentFee.save();
 
-    res.json({
-      message: "Payment verified and installment updated",
-      paidAmount: studentFee.paidAmount,
-      remainingAmount: studentFee.totalFee - studentFee.paidAmount
-    });
+    // res.json({
+    //   message: "Payment verified and installment updated",
+    //   paidAmount: studentFee.paidAmount,
+    //   remainingAmount: studentFee.totalFee - studentFee.paidAmount
+    // });
 
+    return res.json({
+      installment: {
+        _id: installment._id,
+        name: installment.name,
+        amount: installment.amount,
+        paidAt: installment.paidAt,
+        status: installment.status,
+      },
+      totalFee: studentFee.totalFee,
+      paidAmount: studentFee.paidAmount,
+      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
