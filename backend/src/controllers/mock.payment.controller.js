@@ -63,7 +63,7 @@ exports.mockPaymentSuccess = async (req, res) => {
       return res.json({
         message: "Installment already paid",
         paidAmount: studentFee.paidAmount,
-        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount
       });
     }
 
@@ -75,7 +75,7 @@ exports.mockPaymentSuccess = async (req, res) => {
 
     // ✅ Recalculate paid amount
     studentFee.paidAmount = studentFee.installments
-      .filter((i) => i.status === "PAID")
+      .filter(i => i.status === "PAID")
       .reduce((sum, i) => sum + i.amount, 0);
 
     await studentFee.save();
@@ -87,10 +87,11 @@ exports.mockPaymentSuccess = async (req, res) => {
       totalFee: studentFee.totalFee,
       paidAmount: studentFee.paidAmount,
       remainingAmount,
-      installment,
+      installment
     });
   } catch (err) {
     console.error("Mock payment error:", err);
     res.status(500).json({ message: "Mock payment failed" });
   }
 };
+
