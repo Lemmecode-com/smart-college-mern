@@ -14,7 +14,7 @@ import StudentRegister from "./pages/auth/StudentRegister";
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
 import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
-import TeacherDashboard from "./pages/Teachers/TeacherDashboard";
+
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
 /* ================= DEPARTMENTS ================= */
@@ -24,9 +24,7 @@ import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 /* ================= STUDENTS ================= */
-import AddStudent from "./pages/students/AddStudent";
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
-import AssignParent from "./pages/students/AssignParent";
 
 /* ================= ATTENDANCE ================= */
 import MarkAttendance from "./pages/dashboard/Teacher/MarkAttendance";
@@ -59,9 +57,7 @@ import MyProfile from "./pages/dashboard/Teacher/MyProfile";
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 import StudentFees from "./pages/dashboard/Student/StudentFees";
-import ChangePassword from "./pages/dashboard/Student/ChangePassword";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
-import PaymentHistory from "./pages/dashboard/Student/PaymentHistory";
 import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
@@ -71,6 +67,17 @@ import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructu
 import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
 import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
+import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
+import MakePayments from "./pages/dashboard/Student/MakePayments";
+import CreateNotification from "./pages/dashboard/College-Admin/CreateNotification";
+import NotificationList from "./pages/dashboard/College-Admin/NotificationList";
+import UpdateNotifications from "./pages/dashboard/College-Admin/UpdateNotifications";
+import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
+import CreateNotifications from "./pages/dashboard/Teacher/CreateNotifications";
+import Notifications from "./pages/dashboard/Teacher/Notifications";
+import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
+import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
+import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -190,18 +197,17 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route 
-                path="/fees/create"
-                element={
-                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                    <CreateFeeStructure />
-                  </ProtectedRoute>
-                } />
-                                                                                                                                     
-              
+                <Route
+                  path="/fees/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateFeeStructure />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
-                  path="/fees/view/:id" 
+                  path="/fees/view/:id"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <ViewFeeStructure />
@@ -209,7 +215,6 @@ export default function App() {
                   }
                 />
 
-                  
                 <Route
                   path="/fees/edit/:id"
                   element={
@@ -219,12 +224,45 @@ export default function App() {
                   }
                 />
 
-                  
                 <Route
                   path="/fees/list"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <FeeStructureList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/notification/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateNotification />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/notification/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <NotificationList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notification/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <UpdateNotifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notification/student"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <StudentNotificationList />
                     </ProtectedRoute>
                   }
                 />
@@ -235,6 +273,30 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <TeacherDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/notifications/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CreateNotifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/teacher/notifications/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <Notifications />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/notifications/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER", "COLLEGE_ADMIN"]}>
+                      <EditNotifications />
                     </ProtectedRoute>
                   }
                 />
@@ -283,18 +345,10 @@ export default function App() {
                 />
 
                 <Route
-                  path="/student/change-password"
+                  path="/student/make-payment"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <ChangePassword />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/payment-history"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <PaymentHistory />
+                      <MakePayments />
                     </ProtectedRoute>
                   }
                 />
@@ -304,6 +358,24 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <FeeReceipt />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/payment-success"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <PaymentSuccess />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/payment-cancel"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <PaymentCancel />
                     </ProtectedRoute>
                   }
                 />
@@ -375,22 +447,6 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <StudentList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/students/add"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddStudent />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/students/assign-parent"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AssignParent />
                     </ProtectedRoute>
                   }
                 />
