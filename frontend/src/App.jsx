@@ -78,6 +78,7 @@ import Notifications from "./pages/dashboard/Teacher/Notifications";
 import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
 import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
 import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
+import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -167,6 +168,15 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CollegeProfile />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college/edit-profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditCollegeProfile />
                     </ProtectedRoute>
                   }
                 />
