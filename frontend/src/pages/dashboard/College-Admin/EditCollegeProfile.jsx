@@ -1,166 +1,117 @@
-import { useContext, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState } from "react";
 import api from "../../../api/axios";
-
 import {
-  FaBookOpen,
   FaUniversity,
-  FaChalkboardTeacher,
-  FaAward,
-  FaClock,
+  FaSave,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaIdBadge,
   FaArrowLeft,
+  FaSpinner,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaSyncAlt,
-  FaSave,
-  FaSpinner,
-  FaInfoCircle
+  FaInfoCircle,
+  FaUpload,
+  FaImage
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
-export default function AddSubject() {
-  const { user } = useContext(AuthContext);
+export default function EditCollegeProfile() {
   const navigate = useNavigate();
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
-
-  /* ================= STATE ================= */
-  const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [loadingDeps, setLoadingDeps] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  const [formData, setFormData] = useState({
-    department_id: "",
-    course_id: "",
-    teacher_id: "",
+  const [form, setForm] = useState({
     name: "",
     code: "",
-    semester: "",
-    credits: ""
+    email: "",
+    contactNumber: "",
+    address: "",
+    establishedYear: "",
+    logo: null
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [showCodePreview, setShowCodePreview] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
   const [formTouched, setFormTouched] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  /* ================= LOAD DEPARTMENTS & TEACHERS ================= */
+  /* ================= LOAD COLLEGE ================= */
   useEffect(() => {
-    const fetchInitial = async () => {
+    const fetchCollege = async () => {
       try {
-        const [deptRes, teacherRes] = await Promise.all([
-          api.get("/departments"),
-          api.get("/teachers")
-        ]);
-        setDepartments(deptRes.data);
-        setTeachers(teacherRes.data.filter(t => t.status === "ACTIVE"));
+        const res = await api.get("/college/my-college");
+        setForm({
+          name: res.data.name || "",
+          code: res.data.code || "",
+          email: res.data.email || "",
+          contactNumber: res.data.contactNumber || "",
+          address: res.data.address || "",
+          establishedYear: res.data.establishedYear || "",
+          logo: null
+        });
+        
+        // Set logo preview if exists in response
+        if (res.data.logoUrl) {
+          setLogoPreview(res.data.logoUrl);
+        }
       } catch (err) {
-        console.error("Failed to load initial data:", err);
-        setDepartments([]);
-        setTeachers([]);
+        setError("Failed to load college profile. Please try again.");
+        console.error("Error loading college profile:", err);
       } finally {
-        setLoadingDeps(false);
+        setLoading(false);
       }
     };
-    fetchInitial();
+
+    fetchCollege();
   }, []);
-
-  /* ================= LOAD COURSES BY DEPARTMENT ================= */
-  useEffect(() => {
-    if (!formData.department_id) {
-      setCourses([]);
-      setFormData(prev => ({ ...prev, course_id: "" }));
-      return;
-    }
-
-    const fetchCourses = async () => {
-      try {
-        const res = await api.get(`/courses/department/${formData.department_id}`);
-        setCourses(res.data);
-      } catch (err) {
-        console.error("Failed to load courses:", err);
-        setCourses([]);
-      }
-    };
-    fetchCourses();
-  }, [formData.department_id]);
-
-  /* ================= AUTO-GENERATE SUBJECT CODE ================= */
-  useEffect(() => {
-    // Only generate code if course and subject name are selected AND code is empty
-    if (formData.course_id && formData.name && !formData.code) {
-      const selectedCourse = courses.find(c => c._id === formData.course_id);
-      
-      if (selectedCourse) {
-        // Get first 2 letters of course name (cleaned)
-        const coursePrefix = selectedCourse.name
-          .replace(/\s+/g, "")
-          .substring(0, 2)
-          .toUpperCase() || "XX";
-        
-        // Get first 2 letters of subject name (cleaned)
-        const subjectPrefix = formData.name
-          .replace(/\s+/g, "")
-          .substring(0, 2)
-          .toUpperCase() || "XX";
-        
-        // Generate code: CRS-SUBJ
-        const generatedCode = `${coursePrefix}-${subjectPrefix}`;
-        
-        setFormData(prev => ({
-          ...prev,
-          code: generatedCode
-        }));
-        
-        setShowCodePreview(true);
-        setTimeout(() => setShowCodePreview(false), 1500);
-      }
-    }
-  }, [formData.course_id, formData.name, courses]); // ✅ CRITICAL: Removed formData.code from dependencies
 
   /* ================= VALIDATION ================= */
   const validateForm = () => {
     const errors = {};
     
-    if (!formData.department_id) errors.department_id = "Department is required";
-    if (!formData.course_id) errors.course_id = "Course is required";
-    if (!formData.teacher_id) errors.teacher_id = "Teacher is required";
-    if (!formData.name.trim()) {
-      errors.name = "Subject name is required";
-    } else if (formData.name.trim().length < 3) {
-      errors.name = "Subject name must be at least 3 characters";
+    if (!form.name.trim()) {
+      errors.name = "College name is required";
+    } else if (form.name.trim().length < 3) {
+      errors.name = "College name must be at least 3 characters";
     }
-    if (!formData.semester) {
-      errors.semester = "Semester is required";
-    } else if (formData.semester < 1 || formData.semester > 10) {
-      errors.semester = "Semester must be between 1 and 10";
+    
+    if (!form.code.trim()) {
+      errors.code = "College code is required";
+    } else if (form.code.trim().length < 2) {
+      errors.code = "College code must be at least 2 characters";
     }
-    if (!formData.credits) {
-      errors.credits = "Credits are required";
-    } else if (formData.credits < 1 || formData.credits > 10) {
-      errors.credits = "Credits must be between 1 and 10";
+    
+    if (!form.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      errors.email = "Invalid email format";
+    }
+    
+    if (!form.contactNumber.trim()) {
+      errors.contactNumber = "Contact number is required";
+    } else if (!/^\d{10,15}$/.test(form.contactNumber.replace(/\D/g, ''))) {
+      errors.contactNumber = "Invalid phone number format";
+    }
+    
+    if (!form.establishedYear) {
+      errors.establishedYear = "Established year is required";
+    } else if (form.establishedYear < 1800 || form.establishedYear > new Date().getFullYear()) {
+      errors.establishedYear = `Year must be between 1800 and ${new Date().getFullYear()}`;
     }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  /* ================= HANDLERS ================= */
+  /* ================= CHANGE ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
+    setForm((prev) => ({ ...prev, [name]: value }));
     setFormTouched(true);
     
     // Clear validation error for this field
@@ -171,73 +122,95 @@ export default function AddSubject() {
         return newErrors;
       });
     }
-    
-    // Reset code when course or subject name changes
-    if (name === "course_id" || name === "name") {
-      setFormData(prev => ({
-        ...prev,
-        code: ""
-      }));
-    }
   };
 
-  const handleDepartmentClick = () => {
-    setDropdownOpen(true);
-    setTimeout(() => setDropdownOpen(false), 500);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      setError("Please fix the errors before submitting");
-      return;
-    }
-    
-    setLoading(true);
-    setError("");
-    setSuccess(false);
-    
-    try {
-      await api.post("/subjects", {
-        course_id: formData.course_id,
-        name: formData.name.trim(),
-        code: formData.code,
-        semester: Number(formData.semester),
-        credits: Number(formData.credits),
-        teacher_id: formData.teacher_id
-      });
+  /* ================= LOGO HANDLER ================= */
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type and size
+      if (!file.type.startsWith('image/')) {
+        setError("Please upload a valid image file (JPG, PNG, GIF)");
+        return;
+      }
       
-      setSuccess(true);
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        setError("Logo size must be less than 2MB");
+        return;
+      }
+      
+      setForm(prev => ({ ...prev, logo: file }));
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      
       setError("");
-      
-      // Reset form
-      setFormData({
-        department_id: "",
-        course_id: "",
-        teacher_id: "",
-        name: "",
-        code: "",
-        semester: "",
-        credits: ""
-      });
-      
-      setTimeout(() => {
-        navigate("/subjects/course/" + formData.course_id);
-      }, 2000);
-    } catch (err) {
-      setError(
-        err.response?.data?.message || 
-        "Failed to create subject. Please try again."
-      );
-      setSuccess(false);
-    } finally {
-      setLoading(false);
     }
   };
 
-  /* ================= LOADING ================= */
-  if (loadingDeps) {
+
+ /* ================= SUBMIT ================= */
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    setError("Please fix the errors before submitting");
+    return;
+  }
+  
+  setSaving(true);
+  setError("");
+  setSuccess("");
+
+  try {
+    // Create FormData for file upload if logo is present
+    const payload = new FormData();
+    payload.append('name', form.name.trim());
+    payload.append('code', form.code.trim());
+    payload.append('email', form.email.trim());
+    payload.append('contactNumber', form.contactNumber.trim());
+    payload.append('address', form.address.trim());
+    payload.append('establishedYear', Number(form.establishedYear));
+    
+    if (form.logo) {
+      payload.append('logo', form.logo);
+    }
+
+    // ✅ FIXED ENDPOINT: Removed "/edit" from path
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    };
+
+    // ✅ CORRECT ENDPOINT PATH
+    const res = await api.put("/college/my-college", payload, config);
+
+    setSuccess(res.data.message || "Profile updated successfully!");
+    
+    // Reset form touched state after successful save
+    setFormTouched(false);
+    
+    // Refresh the page after 2 seconds to show updated logo
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  } catch (err) {
+    setError(
+      err.response?.data?.message || "Failed to update college profile. Please try again."
+    );
+    console.error("Error updating college profile:", err);
+  } finally {
+    setSaving(false);
+  }
+};
+
+  /* ================= LOADING STATE ================= */
+  if (loading) {
     return (
       <div className="erp-loading-container">
         <div className="erp-loading-spinner">
@@ -245,7 +218,10 @@ export default function AddSubject() {
           <div className="spinner-ring"></div>
           <div className="spinner-ring"></div>
         </div>
-        <h4 className="erp-loading-text">Loading departments and teachers...</h4>
+        <h4 className="erp-loading-text">Loading college profile...</h4>
+        <div className="loading-progress">
+          <div className="progress-bar"></div>
+        </div>
       </div>
     );
   }
@@ -256,8 +232,8 @@ export default function AddSubject() {
       <nav aria-label="breadcrumb" className="erp-breadcrumb">
         <ol className="breadcrumb">
           <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/subjects">Subjects</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Add Subject</li>
+          <li className="breadcrumb-item"><a href="/college/profile">College Profile</a></li>
+          <li className="breadcrumb-item active" aria-current="page">Edit Profile</li>
         </ol>
       </nav>
 
@@ -265,24 +241,23 @@ export default function AddSubject() {
       <div className="erp-page-header">
         <div className="erp-header-content">
           <div className="erp-header-icon">
-            <FaBookOpen />
+            <FaUniversity />
           </div>
           <div className="erp-header-text">
-            <h1 className="erp-page-title">Add New Subject</h1>
+            <h1 className="erp-page-title">Edit College Profile</h1>
             <p className="erp-page-subtitle">
-              Create academic subjects for courses
+              Update your institution's details and branding
             </p>
           </div>
         </div>
         <div className="erp-header-actions">
           <button
-            type="button"
             className="erp-btn erp-btn-secondary"
             onClick={() => navigate(-1)}
-            disabled={loading}
+            disabled={saving}
           >
             <FaArrowLeft className="erp-btn-icon" />
-            <span>Back</span>
+            <span>Back to Profile</span>
           </button>
         </div>
       </div>
@@ -312,7 +287,7 @@ export default function AddSubject() {
             <FaCheckCircle />
           </div>
           <div className="erp-alert-content">
-            <strong>Success!</strong> Subject created successfully. Redirecting...
+            <strong>Success!</strong> {success}
           </div>
         </div>
       )}
@@ -321,11 +296,11 @@ export default function AddSubject() {
       <div className="erp-form-card animate-fade-in">
         <div className="erp-form-header">
           <div className="erp-form-title">
-            <FaBookOpen className="erp-form-icon" />
-            <h3>Subject Details</h3>
+            <FaUniversity className="erp-form-icon" />
+            <h3>College Information</h3>
           </div>
           <div className="erp-form-subtitle">
-            Fill in all required fields marked with <span className="required">*</span>
+            Update your college details below. All fields marked with <span className="required">*</span> are required.
           </div>
         </div>
 
@@ -333,142 +308,24 @@ export default function AddSubject() {
           <div className="erp-form-section">
             <h4 className="erp-section-title">
               <FaUniversity className="erp-section-icon" />
-              Academic Hierarchy
+              Basic Information
             </h4>
             
             <div className="erp-row">
-              {/* DEPARTMENT */}
-              <div className="erp-col-6">
+              {/* COLLEGE NAME */}
+              <div className="erp-col-12">
                 <div className="erp-form-group">
                   <label className="erp-label">
                     <FaUniversity className="erp-label-icon" />
-                    Department <span className="required">*</span>
-                  </label>
-                  <div className={`erp-select-wrapper ${dropdownOpen ? 'erp-select-open' : ''}`}>
-                    <select
-                      className={`erp-select ${validationErrors.department_id ? 'erp-select-error' : ''}`}
-                      name="department_id"
-                      value={formData.department_id}
-                      onChange={handleChange}
-                      onClick={handleDepartmentClick}
-                      required
-                    >
-                      <option value="">-- Select Department --</option>
-                      {departments.map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name} {dept.code && `(${dept.code})`}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="erp-select-arrow">
-                      <FaChevronDown />
-                    </div>
-                  </div>
-                  {validationErrors.department_id && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.department_id}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Select the department offering this subject
-                  </div>
-                </div>
-              </div>
-              
-              {/* COURSE */}
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaAward className="erp-label-icon" />
-                    Course <span className="required">*</span>
-                  </label>
-                  <select
-                    className={`erp-select ${validationErrors.course_id ? 'erp-select-error' : ''}`}
-                    name="course_id"
-                    value={formData.course_id}
-                    onChange={handleChange}
-                    required
-                    disabled={!formData.department_id}
-                  >
-                    <option value="">-- Select Course --</option>
-                    {courses.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.name} ({course.code})
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.course_id && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.course_id}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Course must be selected before adding subjects
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="erp-form-section">
-            <h4 className="erp-section-title">
-              <FaChalkboardTeacher className="erp-section-icon" />
-              Subject Information
-            </h4>
-            
-            <div className="erp-row">
-              {/* TEACHER */}
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaChalkboardTeacher className="erp-label-icon" />
-                    Assigned Teacher <span className="required">*</span>
-                  </label>
-                  <select
-                    className={`erp-select ${validationErrors.teacher_id ? 'erp-select-error' : ''}`}
-                    name="teacher_id"
-                    value={formData.teacher_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Select Teacher --</option>
-                    {teachers.map((teacher) => (
-                      <option key={teacher._id} value={teacher._id}>
-                        {teacher.name} - {teacher.designation || "Faculty"}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.teacher_id && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.teacher_id}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Teacher responsible for this subject
-                  </div>
-                </div>
-              </div>
-              
-              {/* SUBJECT NAME */}
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaBookOpen className="erp-label-icon" />
-                    Subject Name <span className="required">*</span>
+                    College Name <span className="required">*</span>
                   </label>
                   <input
                     type="text"
-                    className={`erp-input ${validationErrors.name ? 'erp-input-error' : ''}`}
                     name="name"
-                    value={formData.name}
+                    className={`erp-input ${validationErrors.name ? 'erp-input-error' : ''}`}
+                    value={form.name}
                     onChange={handleChange}
-                    placeholder="e.g., Data Structures, Calculus"
+                    placeholder="e.g., Stanford University"
                     required
                   />
                   {validationErrors.name && (
@@ -479,92 +336,201 @@ export default function AddSubject() {
                   )}
                   <div className="erp-hint-text">
                     <FaInfoCircle className="erp-hint-icon" />
-                    Full name of the subject
+                    Official registered name of your institution
                   </div>
                 </div>
               </div>
               
-              {/* AUTO-GENERATED CODE */}
+              {/* COLLEGE CODE */}
               <div className="erp-col-6">
                 <div className="erp-form-group">
                   <label className="erp-label">
-                    <FaAward className="erp-label-icon" />
-                    Subject Code
+                    <FaIdBadge className="erp-label-icon" />
+                    College Code <span className="required">*</span>
                   </label>
-                  <div className={`erp-code-wrapper ${showCodePreview ? 'erp-code-animate' : ''}`}>
-                    <input
-                      type="text"
-                      className="erp-input erp-input-readonly"
-                      name="code"
-                      value={formData.code}
-                      readOnly
-                      placeholder="Auto-generated"
-                    />
-                    {formData.code && (
-                      <span className="erp-code-badge">
-                        <FaSyncAlt className="erp-badge-icon" />
-                        Auto
-                      </span>
-                    )}
-                  </div>
-                  <div className="erp-hint-text erp-hint-success">
-                    <FaCheckCircle className="erp-hint-icon" />
-                    Auto-generated from course and subject name (e.g., CS-DS)
+                  <input
+                    type="text"
+                    name="code"
+                    className={`erp-input ${validationErrors.code ? 'erp-input-error' : ''}`}
+                    value={form.code}
+                    onChange={handleChange}
+                    placeholder="e.g., STAN"
+                    required
+                  />
+                  {validationErrors.code && (
+                    <div className="erp-error-text">
+                      <FaExclamationTriangle className="erp-error-icon" />
+                      {validationErrors.code}
+                    </div>
+                  )}
+                  <div className="erp-hint-text">
+                    <FaInfoCircle className="erp-hint-icon" />
+                    Short unique identifier for your college
                   </div>
                 </div>
               </div>
               
-              {/* SEMESTER */}
-              <div className="erp-col-3">
+              {/* ESTABLISHED YEAR */}
+              <div className="erp-col-6">
                 <div className="erp-form-group">
                   <label className="erp-label">
-                    <FaClock className="erp-label-icon" />
-                    Semester <span className="required">*</span>
+                    <FaCalendarAlt className="erp-label-icon" />
+                    Established Year <span className="required">*</span>
                   </label>
                   <input
                     type="number"
-                    className={`erp-input ${validationErrors.semester ? 'erp-input-error' : ''}`}
-                    name="semester"
-                    value={formData.semester}
+                    name="establishedYear"
+                    className={`erp-input ${validationErrors.establishedYear ? 'erp-input-error' : ''}`}
+                    value={form.establishedYear}
                     onChange={handleChange}
-                    placeholder="1-10"
-                    min="1"
-                    max="10"
+                    placeholder={`e.g., ${new Date().getFullYear() - 50}`}
+                    min="1800"
+                    max={new Date().getFullYear()}
                     required
                   />
-                  {validationErrors.semester && (
+                  {validationErrors.establishedYear && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.semester}
+                      {validationErrors.establishedYear}
                     </div>
                   )}
+                  <div className="erp-hint-text">
+                    <FaInfoCircle className="erp-hint-icon" />
+                    Year your institution was founded
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="erp-form-section">
+            <h4 className="erp-section-title">
+              <FaEnvelope className="erp-section-icon" />
+              Contact Information
+            </h4>
+            
+            <div className="erp-row">
+              {/* EMAIL */}
+              <div className="erp-col-6">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaEnvelope className="erp-label-icon" />
+                    Official Email <span className="required">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    className={`erp-input ${validationErrors.email ? 'erp-input-error' : ''}`}
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="admissions@college.edu"
+                    required
+                  />
+                  {validationErrors.email && (
+                    <div className="erp-error-text">
+                      <FaExclamationTriangle className="erp-error-icon" />
+                      {validationErrors.email}
+                    </div>
+                  )}
+                  <div className="erp-hint-text">
+                    <FaInfoCircle className="erp-hint-icon" />
+                    Primary contact email for official communications
+                  </div>
                 </div>
               </div>
               
-              {/* CREDITS */}
-              <div className="erp-col-3">
+              {/* PHONE */}
+              <div className="erp-col-6">
                 <div className="erp-form-group">
                   <label className="erp-label">
-                    <FaAward className="erp-label-icon" />
-                    Credits <span className="required">*</span>
+                    <FaPhone className="erp-label-icon" />
+                    Contact Number <span className="required">*</span>
                   </label>
                   <input
-                    type="number"
-                    className={`erp-input ${validationErrors.credits ? 'erp-input-error' : ''}`}
-                    name="credits"
-                    value={formData.credits}
+                    type="tel"
+                    name="contactNumber"
+                    className={`erp-input ${validationErrors.contactNumber ? 'erp-input-error' : ''}`}
+                    value={form.contactNumber}
                     onChange={handleChange}
-                    placeholder="1-10"
-                    min="1"
-                    max="10"
+                    placeholder="+1 (555) 123-4567"
                     required
                   />
-                  {validationErrors.credits && (
+                  {validationErrors.contactNumber && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.credits}
+                      {validationErrors.contactNumber}
                     </div>
                   )}
+                  <div className="erp-hint-text">
+                    <FaInfoCircle className="erp-hint-icon" />
+                    Include country code for international numbers
+                  </div>
+                </div>
+              </div>
+              
+              {/* ADDRESS */}
+              <div className="erp-col-12">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaMapMarkerAlt className="erp-label-icon" />
+                    College Address
+                  </label>
+                  <textarea
+                    name="address"
+                    className="erp-textarea"
+                    value={form.address}
+                    onChange={handleChange}
+                    placeholder="123 University Avenue, City, State, ZIP, Country"
+                    rows="3"
+                  />
+                  <div className="erp-hint-text">
+                    <FaInfoCircle className="erp-hint-icon" />
+                    Full physical address of your main campus
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="erp-form-section">
+            <h4 className="erp-section-title">
+              <FaImage className="erp-section-icon" />
+              Branding
+            </h4>
+            
+            <div className="erp-row">
+              <div className="erp-col-12">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaUpload className="erp-label-icon" />
+                    College Logo
+                  </label>
+                  <div className="logo-upload-container">
+                    <div className="logo-preview">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="College logo preview" className="logo-image" />
+                      ) : (
+                        <div className="logo-placeholder">
+                          <FaUniversity size={48} />
+                          <p>No logo uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                    <label className="logo-upload-btn">
+                      <FaUpload className="me-2" />
+                      {form.logo ? "Change Logo" : "Upload Logo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="logo-input"
+                      />
+                    </label>
+                    <div className="erp-hint-text logo-hint">
+                      <FaInfoCircle className="erp-hint-icon" />
+                      Recommended size: 200x200px. Max size: 2MB. Formats: JPG, PNG, GIF
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -577,7 +543,7 @@ export default function AddSubject() {
                 type="button"
                 className="erp-btn erp-btn-secondary erp-btn-lg"
                 onClick={() => navigate(-1)}
-                disabled={loading}
+                disabled={saving}
               >
                 <FaArrowLeft className="erp-btn-icon" />
                 <span>Cancel</span>
@@ -587,17 +553,17 @@ export default function AddSubject() {
               <button
                 type="submit"
                 className="erp-btn erp-btn-primary erp-btn-lg erp-btn-shadow"
-                disabled={loading}
+                disabled={saving || !formTouched}
               >
-                {loading ? (
+                {saving ? (
                   <>
                     <FaSpinner className="erp-btn-icon erp-spin" />
-                    <span>Creating Subject...</span>
+                    <span>Saving Changes...</span>
                   </>
                 ) : (
                   <>
                     <FaSave className="erp-btn-icon" />
-                    <span>Create Subject</span>
+                    <span>Save Changes</span>
                   </>
                 )}
               </button>
@@ -814,12 +780,10 @@ export default function AddSubject() {
         
         .erp-col-12 { grid-column: span 12; }
         .erp-col-6 { grid-column: span 6; }
-        .erp-col-3 { grid-column: span 3; }
         
         @media (max-width: 768px) {
           .erp-col-12,
-          .erp-col-6,
-          .erp-col-3 {
+          .erp-col-6 {
             grid-column: span 12;
           }
         }
@@ -849,7 +813,7 @@ export default function AddSubject() {
         }
         
         .erp-input,
-        .erp-select {
+        .erp-textarea {
           width: 100%;
           padding: 0.875rem 1.25rem;
           border: 2px solid #e9ecef;
@@ -862,8 +826,13 @@ export default function AddSubject() {
           outline: none;
         }
         
+        .erp-textarea {
+          min-height: 100px;
+          resize: vertical;
+        }
+        
         .erp-input:focus,
-        .erp-select:focus {
+        .erp-textarea:focus {
           border-color: #1a4b6d;
           box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
           transform: translateY(-1px);
@@ -872,59 +841,6 @@ export default function AddSubject() {
         .erp-input-error {
           border-color: #F44336 !important;
           background: rgba(244, 67, 54, 0.05);
-        }
-        
-        .erp-input-readonly {
-          background: #f8f9fa;
-          cursor: not-allowed;
-        }
-        
-        .erp-select-wrapper {
-          position: relative;
-        }
-        
-        .erp-select-arrow {
-          position: absolute;
-          right: 1.25rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #666;
-          pointer-events: none;
-          transition: transform 0.3s ease;
-        }
-        
-        .erp-select-open .erp-select-arrow {
-          transform: translateY(-50%) rotate(180deg);
-        }
-        
-        .erp-code-wrapper {
-          position: relative;
-        }
-        
-        .erp-code-badge {
-          position: absolute;
-          top: -10px;
-          right: 10px;
-          background: linear-gradient(135deg, #28a745, #20c997);
-          color: white;
-          padding: 0.375rem 1rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          animation: float 2s ease-in-out infinite;
-        }
-        
-        .erp-code-animate {
-          animation: codePulse 0.5s ease;
-        }
-        
-        .erp-badge-icon {
-          font-size: 0.75rem;
-          animation: spin 2s linear infinite;
         }
         
         .erp-error-text {
@@ -956,13 +872,80 @@ export default function AddSubject() {
           border-left: 3px solid #1a4b6d;
         }
         
-        .erp-hint-success {
-          border-left-color: #4CAF50;
-          color: #4CAF50;
+        .logo-hint {
+          margin-top: 0.75rem;
+          background: #e3f2fd;
+          border-left-color: #2196F3;
         }
         
         .erp-hint-icon {
           font-size: 0.875rem;
+        }
+        
+        /* LOGO UPLOAD STYLES */
+        .logo-upload-container {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        
+        .logo-preview {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 150px;
+          border: 2px dashed #e9ecef;
+          border-radius: 12px;
+          background: #f8f9fa;
+          overflow: hidden;
+        }
+        
+        .logo-image {
+          max-width: 100%;
+          max-height: 150px;
+          object-fit: contain;
+          padding: 1rem;
+        }
+        
+        .logo-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: #6c757d;
+          text-align: center;
+          padding: 1rem;
+        }
+        
+        .logo-placeholder svg {
+          opacity: 0.3;
+          margin-bottom: 0.5rem;
+        }
+        
+        .logo-upload-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1.75rem;
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          width: fit-content;
+          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
+        }
+        
+        .logo-upload-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
+        }
+        
+        .logo-input {
+          display: none;
         }
         
         .erp-form-footer {
@@ -1036,6 +1019,11 @@ export default function AddSubject() {
           transform: none;
         }
         
+        .erp-spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        /* LOADING CONTAINER */
         .erp-loading-container {
           display: flex;
           flex-direction: column;
@@ -1077,6 +1065,22 @@ export default function AddSubject() {
           color: #1a4b6d;
         }
         
+        .loading-progress {
+          width: 250px;
+          height: 8px;
+          background: #e9ecef;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        
+        .progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #1a4b6d 0%, #0f3a4a 100%);
+          width: 35%;
+          animation: progressPulse 1.8s ease-in-out infinite;
+        }
+        
+        /* ANIMATIONS */
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -1097,18 +1101,9 @@ export default function AddSubject() {
           to { transform: rotate(360deg); }
         }
         
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
-        }
-        
-        @keyframes codePulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(26, 75, 109, 0); }
-          50% { box-shadow: 0 0 0 8px rgba(26, 75, 109, 0.15); }
-        }
-        
-        .erp-spin {
-          animation: spin 1s linear infinite;
+        @keyframes progressPulse {
+          0%, 100% { width: 35%; }
+          50% { width: 65%; }
         }
         
         .animate-fade-in {
@@ -1119,6 +1114,7 @@ export default function AddSubject() {
           animation: slideIn 0.5s ease;
         }
         
+        /* RESPONSIVE DESIGN */
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
@@ -1133,10 +1129,12 @@ export default function AddSubject() {
           
           .erp-header-actions {
             width: 100%;
+            margin-top: 0.5rem;
           }
           
           .erp-header-actions .erp-btn {
             width: 100%;
+            justify-content: center;
           }
           
           .erp-form-header,
@@ -1160,15 +1158,37 @@ export default function AddSubject() {
             width: 100%;
             justify-content: center;
           }
+          
+          .logo-preview {
+            min-height: 120px;
+          }
+          
+          .logo-image {
+            max-height: 120px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .erp-section-title {
+            font-size: 1.1rem;
+          }
+          
+          .erp-label {
+            font-size: 0.9rem;
+          }
+          
+          .erp-input,
+          .erp-textarea {
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+          }
+          
+          .erp-btn-lg {
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+          }
         }
       `}</style>
     </div>
   );
 }
-
-/* CUSTOM ICONS */
-const FaChevronDown = ({ size = 16, color = "#666" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-  </svg>
-);
