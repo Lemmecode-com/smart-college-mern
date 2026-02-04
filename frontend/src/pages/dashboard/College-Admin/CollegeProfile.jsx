@@ -139,44 +139,12 @@ export default function CollegeProfile() {
         <div className="d-flex gap-2">
           <button 
             className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 hover-lift pulse-button"
+            onClick={() => navigate("/college/edit-profile")}
           >
             <FaEdit /> Edit Profile
           </button>
         </div>
       </div>
-
-      {/* ================= STATS DASHBOARD ================= */}
-      <div className="row g-4 mb-4 animate-fade-in-up">
-        <StatCard 
-          title="Total Departments" 
-          value={stats.departments} 
-          icon={<FaLayerGroup />} 
-          color="primary"
-          trend="+12% this year"
-        />
-        <StatCard 
-          title="Active Courses" 
-          value={stats.courses} 
-          icon={<FaBook />} 
-          color="success"
-          trend="+8 courses"
-        />
-        <StatCard 
-          title="Enrolled Students" 
-          value={stats.students} 
-          icon={<FaUserGraduate />} 
-          color="info"
-          trend="+45 new"
-        />
-        <StatCard 
-          title="Faculty Members" 
-          value={stats.teachers} 
-          icon={<FaChalkboardTeacher />} 
-          color="warning"
-          trend="Stable"
-        />
-      </div>
-
       {/* ================= MAIN CONTENT GRID ================= */}
       <div className="row g-4">
         {/* LEFT COLUMN - PROFILE DETAILS */}
