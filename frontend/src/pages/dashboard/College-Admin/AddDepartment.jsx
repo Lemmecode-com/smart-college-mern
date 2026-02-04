@@ -192,14 +192,6 @@ export default function AddDepartment() {
       {/* ================= TOP NAVIGATION ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Back to Departments"
-          >
-            <FaArrowLeft size={16} /> Back
-          </button>
-          
           <div className="d-flex align-items-center gap-3">
             <div className="form-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
               <FaBuilding size={28} />
@@ -665,14 +657,6 @@ export default function AddDepartment() {
                   </span>
                 </small>
               </p>
-            </div>
-            <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button 
-                className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
-                onClick={() => setShowHelp(true)}
-              >
-                <FaInfoCircle size={12} /> Show Help
-              </button>
             </div>
           </div>
         </div>

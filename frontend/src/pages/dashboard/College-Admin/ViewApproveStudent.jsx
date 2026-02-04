@@ -12,6 +12,7 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaClock,
+  FaRupeeSign,
 } from "react-icons/fa";
 
 export default function ViewApproveStudent() {
@@ -58,11 +59,13 @@ export default function ViewApproveStudent() {
 
   if (!student) {
     return (
-      <div className="alert alert-warning text-center">
-        Student not found
-      </div>
+      <div className="alert alert-warning text-center">Student not found</div>
     );
   }
+
+  const fee = student.fee;
+  const pendingAmount =
+    fee?.totalFee - (fee?.paidAmount || 0);
 
   return (
     <div className="container-fluid">
@@ -73,7 +76,7 @@ export default function ViewApproveStudent() {
             <FaUserGraduate className="me-2" /> Approved Student Profile
           </h3>
           <p className="opacity-75 mb-0">
-            Complete personal & academic details
+            Complete personal, academic & fee details
           </p>
         </div>
         <button className="btn btn-light" onClick={() => navigate(-1)}>
@@ -88,24 +91,13 @@ export default function ViewApproveStudent() {
           <div className="text-center mb-4">
             <FaUserGraduate className="fs-1 text-success" />
             <h4 className="fw-bold mt-2">{student.fullName}</h4>
-            <span className="badge bg-success">
-              <FaCheckCircle className="me-1" /> APPROVED
-            </span>
           </div>
 
           {/* ===== BASIC ===== */}
           <div className="row g-4 text-center mb-4">
             <Info label="Email" value={student.email} icon={<FaEnvelope />} />
-            <Info
-              label="Mobile"
-              value={student.mobileNumber}
-              icon={<FaPhone />}
-            />
-            <Info
-              label="Gender"
-              value={student.gender}
-              icon={<FaUserGraduate />}
-            />
+            <Info label="Mobile" value={student.mobileNumber} icon={<FaPhone />} />
+            <Info label="Gender" value={student.gender} icon={<FaUserGraduate />} />
             <Info
               label="DOB"
               value={new Date(student.dateOfBirth).toDateString()}
@@ -137,8 +129,67 @@ export default function ViewApproveStudent() {
             <Info label="Semester" value={student.currentSemester} />
           </div>
 
-          {/* ===== META ===== */}
+          {/* ===== FEE SUMMARY ===== */}
           <h5 className="fw-bold mb-3">
+            <FaRupeeSign className="me-2" /> Fee Summary
+          </h5>
+
+          <div className="row g-3 mb-4">
+            <Info label="Total Fee" value={`₹ ${fee?.totalFee || 0}`} />
+            <Info label="Paid Amount" value={`₹ ${fee?.paidAmount || 0}`} />
+            <Info label="Pending Amount" value={`₹ ${pendingAmount || 0}`} />
+          </div>
+
+          {/* ===== INSTALLMENTS ===== */}
+          <h5 className="fw-bold mb-3">Installments</h5>
+
+          {fee?.installments?.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-bordered align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Reminder</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fee.installments.map((inst, index) => (
+                    <tr key={inst._id}>
+                      <td>{index + 1}</td>
+                      <td>{inst.name}</td>
+                      <td>₹ {inst.amount}</td>
+                      <td>
+                        {new Date(inst.dueDate).toLocaleDateString()}
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            inst.status === "PAID"
+                              ? "bg-success"
+                              : "bg-warning text-dark"
+                          }`}
+                        >
+                          {inst.status}
+                        </span>
+                      </td>
+                      <td>
+                        {inst.reminderSent ? "Sent" : "Not Sent"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-muted">No installments available</p>
+          )}
+
+          {/* ===== META ===== */}
+          <h5 className="fw-bold mt-4 mb-3">
             <FaClock className="me-2" /> System Info
           </h5>
           <div className="row g-3">
@@ -175,7 +226,7 @@ function Info({ label, value, icon }) {
   return (
     <div className="col-md-3 col-sm-6 text-center">
       <div className="border rounded-4 p-3 shadow-sm h-100">
-        <div className="text-success fs-5 mb-1">{icon}</div>
+        {icon && <div className="text-success fs-5 mb-1">{icon}</div>}
         <h6 className="text-muted">{label}</h6>
         <h5 className="fw-bold">{value || "-"}</h5>
       </div>
