@@ -287,8 +287,16 @@ export default function ViewApproveStudent() {
           {/* ===== BASIC ===== */}
           <div className="row g-4 text-center mb-4">
             <Info label="Email" value={student.email} icon={<FaEnvelope />} />
-            <Info label="Mobile" value={student.mobileNumber} icon={<FaPhone />} />
-            <Info label="Gender" value={student.gender} icon={<FaUserGraduate />} />
+            <Info
+              label="Mobile"
+              value={student.mobileNumber}
+              icon={<FaPhone />}
+            />
+            <Info
+              label="Gender"
+              value={student.gender}
+              icon={<FaUserGraduate />}
+            />
             <Info
               label="DOB"
               value={new Date(student.dateOfBirth).toDateString()}
