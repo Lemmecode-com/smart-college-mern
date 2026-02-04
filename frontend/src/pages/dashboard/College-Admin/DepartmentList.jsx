@@ -277,7 +277,6 @@ export default function DepartmentList() {
               </div>
             </div>
           </div>
-
           {/* ================= ACTIVE FILTERS BADGES ================= */}
           {(search || statusFilter !== "All" || typeFilter !== "All") && (
             <div className="mt-3 pt-3 border-top">
@@ -501,7 +500,6 @@ export default function DepartmentList() {
             </div>
           )}
         </div>
-
         {/* ================= TABLE FOOTER ================= */}
         {filteredDepartments.length > 0 && (
           <div className="card-footer bg-light py-3">

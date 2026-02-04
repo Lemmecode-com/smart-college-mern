@@ -1,10 +1,10 @@
 
-Frontend dependecies : 
+=============== Frontend dependecies =================== 
 npm install axios react-router-dom react-icons bootstrap
 npm install framer-motion
 npm install html2canvas
 
-backend required dependecies : 
+=============== Backend required dependecies ================== 
 npm install express
 npm install mongoose
 npm install dotenv
@@ -19,21 +19,3 @@ npm install multer
 npm install axios
 npm install cors
 npm install node-cron
-
-
-
-.env file must containe this code :
-
-PORT=5000
-MONGO_URI=mongodb+srv://sandeshpatil1511:sandeshpatil1511@cluster0.qgnwh.mongodb.net/newSmartCollege
-JWT_SECRET=supersecretjwtkey
-
-SUPER_ADMIN_EMAIL=superadmin@smartcollege.com
-SUPER_ADMIN_PASSWORD=Admin@1234
-FRONTEND_BASE_URL=http://localhost:5000
-
-RAZORPAY_KEY_ID=rzp_test_xxxxx
-RAZORPAY_SECRET=xxxxxxxx
-
-EMAIL_USER=smartcollege.erp@gmail.com
-EMAIL_PASS=app_password
