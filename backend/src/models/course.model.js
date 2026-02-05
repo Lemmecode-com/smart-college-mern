@@ -58,12 +58,6 @@ const courseSchema = new mongoose.Schema(
       required: true
     },
 
-    coordinator_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: false
-    },
-
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
