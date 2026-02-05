@@ -63,11 +63,6 @@ const teacherSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
-    password: {
-      type: String,
-      required: true,
-    },
   },
   { timestamps: true },
 );
