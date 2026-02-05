@@ -22,7 +22,7 @@ import {
   FaPrint,
   FaEye,
   FaArrowLeft,
-  FaTimes
+  FaTimes,
 } from "react-icons/fa";
 
 export default function DepartmentList() {
@@ -38,8 +38,7 @@ export default function DepartmentList() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
   /* ================= FETCH ================= */
   const fetchDepartments = async () => {
@@ -60,8 +59,13 @@ export default function DepartmentList() {
 
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this department? This action cannot be undone.")) return;
-    
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this department? This action cannot be undone.",
+      )
+    )
+      return;
+
     try {
       await api.delete(`/departments/${id}`);
       fetchDepartments();
@@ -72,19 +76,16 @@ export default function DepartmentList() {
 
   /* ================= FILTER LOGIC ================= */
   const filteredDepartments = departments.filter((d) => {
-    const matchesSearch = 
+    const matchesSearch =
       d.name?.toLowerCase().includes(search.toLowerCase()) ||
       d.code?.toLowerCase().includes(search.toLowerCase()) ||
       d.type?.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = 
-      statusFilter === "All" || 
-      d.status === statusFilter.toUpperCase();
-    
-    const matchesType = 
-      typeFilter === "All" || 
-      d.type === typeFilter;
-    
+
+    const matchesStatus =
+      statusFilter === "All" || d.status === statusFilter.toUpperCase();
+
+    const matchesType = typeFilter === "All" || d.type === typeFilter;
+
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -98,7 +99,7 @@ export default function DepartmentList() {
   /* ================= GET UNIQUE TYPES ================= */
   const getUniqueTypes = () => {
     const types = new Set();
-    departments.forEach(d => {
+    departments.forEach((d) => {
       if (d.type) types.add(d.type);
     });
     return Array.from(types);
@@ -112,11 +113,17 @@ export default function DepartmentList() {
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
               <div className="card-body p-5 text-center">
-                <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                <div
+                  className="spinner-border text-primary mb-3"
+                  role="status"
+                  style={{ width: "3rem", height: "3rem" }}
+                >
                   <span className="visually-hidden">Loading...</span>
                 </div>
                 <h5 className="text-muted">Loading Departments...</h5>
-                <p className="text-muted small">Fetching department data from server</p>
+                <p className="text-muted small">
+                  Fetching department data from server
+                </p>
               </div>
             </div>
           </div>
@@ -134,7 +141,9 @@ export default function DepartmentList() {
             <FaBuilding size={28} />
           </div>
           <div>
-            <h1 className="h4 h3-md fw-bold mb-1 text-dark">Department Management</h1>
+            <h1 className="h4 h3-md fw-bold mb-1 text-dark">
+              Department Management
+            </h1>
             <p className="text-muted mb-0 small">
               <FaGraduationCap className="me-1" />
               Manage academic departments and faculty assignments
@@ -143,23 +152,14 @@ export default function DepartmentList() {
         </div>
 
         <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
+          <button
             onClick={() => setShowHelp(!showHelp)}
             className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
             title="Department Management Help"
           >
             <FaInfoCircle size={16} /> Help
           </button>
-          
-          <button 
-            onClick={fetchDepartments}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Refresh Departments"
-          >
-            <FaSync className="spin-icon" size={16} /> Refresh
-          </button>
-          
-          <button 
+          <button
             onClick={() => navigate("/departments/add")}
             className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
           >
@@ -178,13 +178,18 @@ export default function DepartmentList() {
               <ul className="mb-0 small ps-3">
                 <li>Use search to find departments by name, code, or type</li>
                 <li>Filter by status (Active/Inactive) or department type</li>
-                <li>Click <FaEdit className="mx-1" size={12} /> to edit department details</li>
-                <li>Click <FaUserTie className="mx-1" size={12} /> to assign Head of Department (HOD)</li>
-                <li>Click <FaEye className="mx-1" size={12} /> to view department details</li>
+                <li>
+                  Click <FaEdit className="mx-1" size={12} /> to edit department
+                  details
+                </li>
+                <li>
+                  Click <FaUserTie className="mx-1" size={12} /> to assign Head
+                  of Department (HOD)
+                </li>
                 <li>Only departments with no students can be deleted</li>
               </ul>
-              <button 
-                onClick={() => setShowHelp(false)} 
+              <button
+                onClick={() => setShowHelp(false)}
                 className="btn btn-sm btn-outline-info mt-2 px-3"
               >
                 Got it!
@@ -195,11 +200,16 @@ export default function DepartmentList() {
       )}
 
       {/* ================= SEARCH & FILTER BAR ================= */}
-      <div className="card border-0 shadow-lg rounded-4 mb-3 mb-md-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 mb-3 mb-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.1s" }}
+      >
         <div className="card-body p-3 p-md-4">
           <div className="row g-3 align-items-end">
             <div className="col-md-6 col-lg-4">
-              <label className="form-label fw-semibold text-dark small">Search Departments</label>
+              <label className="form-label fw-semibold text-dark small">
+                Search Departments
+              </label>
               <div className="input-group search-container">
                 <span className="input-group-text bg-light border-end-0">
                   <FaSearch className="text-muted blink-slow" />
@@ -212,7 +222,7 @@ export default function DepartmentList() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
                 {search && (
-                  <button 
+                  <button
                     className="btn btn-sm btn-outline-secondary position-absolute end-0 me-3"
                     onClick={() => setSearch("")}
                     style={{ zIndex: 10 }}
@@ -222,10 +232,12 @@ export default function DepartmentList() {
                 )}
               </div>
             </div>
-            
+
             <div className="col-md-6 col-lg-3">
-              <label className="form-label fw-semibold text-dark small">Filter by Status</label>
-              <select 
+              <label className="form-label fw-semibold text-dark small">
+                Filter by Status
+              </label>
+              <select
                 className="form-select shadow-none"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -235,30 +247,28 @@ export default function DepartmentList() {
                 <option value="INACTIVE">Inactive</option>
               </select>
             </div>
-            
+
             <div className="col-md-6 col-lg-3">
-              <label className="form-label fw-semibold text-dark small">Filter by Type</label>
-              <select 
+              <label className="form-label fw-semibold text-dark small">
+                Filter by Type
+              </label>
+              <select
                 className="form-select shadow-none"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
               >
                 <option value="All">All Types</option>
                 {getUniqueTypes().map((type, idx) => (
-                  <option key={idx} value={type}>{type}</option>
+                  <option key={idx} value={type}>
+                    {type}
+                  </option>
                 ))}
               </select>
             </div>
-            
+
             <div className="col-md-6 col-lg-2 d-flex align-items-end">
               <div className="w-100 d-grid gap-2">
-                <button 
-                  className="btn btn-primary d-flex align-items-center justify-content-center gap-1 w-100"
-                  onClick={() => {}}
-                >
-                  <FaFilter size={14} /> Apply Filters
-                </button>
-                <button 
+                <button
                   className="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 w-100"
                   onClick={resetFilters}
                 >
@@ -267,7 +277,6 @@ export default function DepartmentList() {
               </div>
             </div>
           </div>
-          
           {/* ================= ACTIVE FILTERS BADGES ================= */}
           {(search || statusFilter !== "All" || typeFilter !== "All") && (
             <div className="mt-3 pt-3 border-top">
@@ -276,30 +285,30 @@ export default function DepartmentList() {
                 {search && (
                   <span className="badge bg-primary">
                     Search: "{search}"
-                    <button 
-                      onClick={() => setSearch("")} 
+                    <button
+                      onClick={() => setSearch("")}
                       className="ms-2 btn-close btn-close-white"
-                      style={{ fontSize: '0.6rem' }}
+                      style={{ fontSize: "0.6rem" }}
                     ></button>
                   </span>
                 )}
                 {statusFilter !== "All" && (
                   <span className="badge bg-success">
                     Status: {statusFilter}
-                    <button 
-                      onClick={() => setStatusFilter("All")} 
+                    <button
+                      onClick={() => setStatusFilter("All")}
                       className="ms-2 btn-close btn-close-white"
-                      style={{ fontSize: '0.6rem' }}
+                      style={{ fontSize: "0.6rem" }}
                     ></button>
                   </span>
                 )}
                 {typeFilter !== "All" && (
                   <span className="badge bg-info text-dark">
                     Type: {typeFilter}
-                    <button 
-                      onClick={() => setTypeFilter("All")} 
+                    <button
+                      onClick={() => setTypeFilter("All")}
                       className="ms-2 btn-close"
-                      style={{ fontSize: '0.6rem' }}
+                      style={{ fontSize: "0.6rem" }}
                     ></button>
                   </span>
                 )}
@@ -310,7 +319,10 @@ export default function DepartmentList() {
       </div>
 
       {/* ================= DEPARTMENTS TABLE ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up"
+        style={{ animationDelay: "0.2s" }}
+      >
         <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
           <div className="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3">
             <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
@@ -319,36 +331,28 @@ export default function DepartmentList() {
                 {filteredDepartments.length} of {departments.length} departments
               </span>
             </h2>
-            <div className="d-flex gap-2">
-              <button className="btn btn-sm btn-light d-flex align-items-center gap-1">
-                <FaPrint size={12} /> Print
-              </button>
-              <button className="btn btn-sm btn-light d-flex align-items-center gap-1">
-                <FaDownload size={12} /> Export PDF
-              </button>
-            </div>
           </div>
         </div>
-        
+
         <div className="card-body p-0">
           {filteredDepartments.length === 0 ? (
             <div className="text-center py-5 px-3">
               <FaBuilding className="text-muted mb-3" size={64} />
               <h5 className="text-muted mb-2">No Departments Found</h5>
               <p className="text-muted mb-4">
-                {search || statusFilter !== "All" || typeFilter !== "All" 
-                  ? "Try adjusting your filters or search criteria" 
+                {search || statusFilter !== "All" || typeFilter !== "All"
+                  ? "Try adjusting your filters or search criteria"
                   : "No departments available in the system"}
               </p>
               {(search || statusFilter !== "All" || typeFilter !== "All") && (
-                <button 
+                <button
                   onClick={resetFilters}
                   className="btn btn-outline-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto mb-3"
                 >
                   <FaTimes size={14} /> Clear Filters
                 </button>
               )}
-              <button 
+              <button
                 onClick={() => navigate("/departments/add")}
                 className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
               >
@@ -360,7 +364,9 @@ export default function DepartmentList() {
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th width="5%" className="ps-4">Sr.No</th>
+                    <th width="5%" className="ps-4">
+                      Sr.No
+                    </th>
                     <th width="20%">Department</th>
                     <th width="10%">Code</th>
                     <th width="10%">Type</th>
@@ -369,59 +375,86 @@ export default function DepartmentList() {
                     <th width="8%">Start Year</th>
                     <th width="8%">Faculty</th>
                     <th width="8%">Students</th>
-                    <th width="10%" className="text-center pe-4">Actions</th>
+                    <th width="10%" className="text-center pe-4">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDepartments.map((d, index) => (
-                    <tr 
-                      key={d._id} 
+                    <tr
+                      key={d._id}
                       className="animate-fade-in"
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <td className="ps-4 fw-medium">{index + 1}</td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
-                          <div className="department-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+                          <div
+                            className="department-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ width: "36px", height: "36px" }}
+                          >
                             <FaGraduationCap size={16} />
                           </div>
                           <div>
                             <div className="fw-bold">{d.name}</div>
-                            <div className="text-muted small">{d.establishedYear || 'N/A'}</div>
+                            <div className="text-muted small">
+                              {d.establishedYear}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="fw-medium">{d.code}</td>
                       <td>
-                        <span className="badge bg-info bg-opacity-25 text-info">{d.type || 'N/A'}</span>
+                        <span className="badge bg-info bg-opacity-25 text-info">
+                          {d.type}
+                        </span>
                       </td>
                       <td>
-                        <span className={`badge ${
-                          d.status === "ACTIVE" 
-                            ? "bg-success" 
-                            : d.status === "INACTIVE" 
-                              ? "bg-secondary" 
-                              : "bg-warning"
-                        }`}>
-                          {d.status === "ACTIVE" && <FaCheckCircle className="me-1" />}
-                          {d.status === "INACTIVE" && <FaTimesCircle className="me-1" />}
+                        <span
+                          className={`badge ${
+                            d.status === "ACTIVE"
+                              ? "bg-success"
+                              : d.status === "INACTIVE"
+                                ? "bg-secondary"
+                                : "bg-warning"
+                          }`}
+                        >
+                          {d.status === "ACTIVE" && (
+                            <FaCheckCircle className="me-1" />
+                          )}
+                          {d.status === "INACTIVE" && (
+                            <FaTimesCircle className="me-1" />
+                          )}
                           {d.status}
                         </span>
                       </td>
                       <td>
                         <div className="d-flex flex-wrap gap-1">
-                          {(d.programsOffered || []).slice(0, 2).map((prog, i) => (
-                            <span key={i} className="badge bg-light text-dark border">{prog}</span>
-                          ))}
+                          {(d.programsOffered || [])
+                            .slice(0, 2)
+                            .map((prog, i) => (
+                              <span
+                                key={i}
+                                className="badge bg-light text-dark border"
+                              >
+                                {prog}
+                              </span>
+                            ))}
                           {(d.programsOffered || []).length > 2 && (
-                            <span className="badge bg-secondary">+{(d.programsOffered || []).length - 2}</span>
+                            <span className="badge bg-secondary">
+                              +{(d.programsOffered || []).length - 2}
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td>{d.startYear || 'N/A'}</td>
+                      <td>{d.startYear || "N/A"}</td>
                       <td>
                         <div className="d-flex align-items-center gap-1">
-                          <FaChalkboardTeacher className="text-primary" size={14} />
+                          <FaChalkboardTeacher
+                            className="text-primary"
+                            size={14}
+                          />
                           <span>{d.sanctionedFacultyCount || 0}</span>
                         </div>
                       </td>
@@ -434,23 +467,20 @@ export default function DepartmentList() {
                       <td className="text-center pe-4">
                         <div className="d-flex justify-content-center gap-1">
                           <button
-                            className="btn btn-sm btn-outline-info hover-lift"
-                            title="View Details"
-                            onClick={() => navigate(`/departments/view/${d._id}`)}
-                          >
-                            <FaEye size={14} />
-                          </button>
-                          <button
                             className="btn btn-sm btn-outline-primary hover-lift"
                             title="Edit Department"
-                            onClick={() => navigate(`/departments/edit/${d._id}`)}
+                            onClick={() =>
+                              navigate(`/departments/edit/${d._id}`)
+                            }
                           >
                             <FaEdit size={14} />
                           </button>
                           <button
                             className="btn btn-sm btn-outline-warning hover-lift"
                             title="Assign HOD"
-                            onClick={() => navigate(`/departments/assign-hod/${d._id}`)}
+                            onClick={() =>
+                              navigate(`/departments/assign-hod/${d._id}`)
+                            }
                           >
                             <FaUserTie size={14} />
                           </button>
@@ -470,13 +500,13 @@ export default function DepartmentList() {
             </div>
           )}
         </div>
-        
         {/* ================= TABLE FOOTER ================= */}
         {filteredDepartments.length > 0 && (
           <div className="card-footer bg-light py-3">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
               <div className="text-muted small">
-                Showing <strong>{filteredDepartments.length}</strong> of <strong>{departments.length}</strong> departments
+                Showing <strong>{filteredDepartments.length}</strong> of{" "}
+                <strong>{departments.length}</strong> departments
               </div>
               <nav>
                 <ul className="pagination mb-0">
@@ -500,7 +530,10 @@ export default function DepartmentList() {
       </div>
 
       {/* ================= FOOTER ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.3s" }}
+      >
         <div className="card-body p-3 p-md-4 bg-light">
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div className="text-center text-md-start">
@@ -518,7 +551,7 @@ export default function DepartmentList() {
               </p>
             </div>
             <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button 
+              <button
                 className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                 onClick={() => navigate("/dashboard")}
               >
