@@ -557,7 +557,6 @@ export default function Sidebar() {
                 <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
                   <FaBell /> Notifications
                 </NavLink>
-
               </>
             )}
 
