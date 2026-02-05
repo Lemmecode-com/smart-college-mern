@@ -1,10 +1,9 @@
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
-const bcrypt = require("bcryptjs");
 const User = require("../models/user.model");
 
 /**
- * CREATE Teacher
+ * CREATE TEACHER (College Admin)
  */
 exports.createTeacher = async (req, res) => {
   try {
@@ -19,7 +18,7 @@ exports.createTeacher = async (req, res) => {
       password,
     } = req.body;
 
-    // 1️⃣ Validate department belongs to college
+    /* 1️⃣ Validate department */
     const department = await Department.findOne({
       _id: department_id,
       college_id: req.college_id,
@@ -29,31 +28,22 @@ exports.createTeacher = async (req, res) => {
       return res.status(404).json({ message: "Invalid department" });
     }
 
-    // 2️⃣ Check duplicate email
-    const emailExists = await Teacher.findOne({
-      email,
-      college_id: req.college_id,
-    });
-
-    if (emailExists) {
-      return res.status(400).json({
-        message: "Teacher email already exists in this college",
-      });
+    /* 2️⃣ Check duplicate user */
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
     }
 
-    // 3️⃣ Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 4️⃣ Create teacher's user
-
+    /* 3️⃣ Create User (password hashed by pre-save hook) */
     const user = await User.create({
+      name,
       email,
       password,
       role: "TEACHER",
       college_id: req.college_id,
     });
 
-    // 4️⃣ Create teacher
+    /* 4️⃣ Create Teacher (NO password here) */
     const teacher = await Teacher.create({
       college_id: req.college_id,
       user_id: user._id,
@@ -64,73 +54,81 @@ exports.createTeacher = async (req, res) => {
       designation,
       qualification,
       experienceYears,
-      password: hashedPassword,
       createdBy: req.user.id,
     });
 
     res.status(201).json({
       message: "Teacher created successfully",
-      teacher: {
-        id: teacher._id,
-        name: teacher.name,
-        email: teacher.email,
-        designation: teacher.designation,
-        password: teacher.password,
-        status: teacher.status,
-      },
+      teacher,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getMyProfile = async (req, res) => {
-  try {
-    const teacher = await Teacher.findOne({
-      _id: req.user.id,
-      college_id: req.college_id,
-      status: "ACTIVE",
-    }).select("-password");
-
-    if (!teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
-    }
-
-    res.json(teacher);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Create Teacher Error:", error);
+    res.status(500).json({ message: "Failed to create teacher" });
   }
 };
 
 /**
- * READ Teachers (college-wise)
+ * GET MY PROFILE (Teacher)
+ */
+exports.getMyProfile = async (req, res) => {
+  try {
+    const teacher = await Teacher.findOne({
+      user_id: req.user._id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    })
+      .populate("department_id", "name")
+      .select("-__v");
+
+    if (!teacher) {
+      return res.status(404).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    res.json(teacher);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch profile",
+    });
+  }
+};
+
+/**
+ * GET ALL TEACHERS (College Admin)
  */
 exports.getTeachers = async (req, res) => {
   const teachers = await Teacher.find({
     college_id: req.college_id,
-  }).populate("department_id", "name code");
+  })
+    .populate("department_id", "name code")
+    .select("-__v");
 
   res.json(teachers);
 };
 
 /**
- * READ Teacher by ID
+ * GET TEACHER BY ID
  */
 exports.getTeacherById = async (req, res) => {
   const teacher = await Teacher.findOne({
     _id: req.params.id,
     college_id: req.college_id,
-  });
+  })
+    .populate("department_id", "name")
+    .select("-__v");
 
   if (!teacher) {
-    return res.status(404).json({ message: "Teacher not found" });
+    return res.status(404).json({
+      message: "Teacher not found",
+    });
   }
 
   res.json(teacher);
 };
 
 /**
- * UPDATE Teacher
+ * UPDATE TEACHER
  */
 exports.updateTeacher = async (req, res) => {
   const teacher = await Teacher.findOneAndUpdate(
@@ -143,24 +141,37 @@ exports.updateTeacher = async (req, res) => {
   );
 
   if (!teacher) {
-    return res.status(404).json({ message: "Teacher not found" });
+    return res.status(404).json({
+      message: "Teacher not found",
+    });
   }
 
-  res.json(teacher);
+  res.json({
+    message: "Teacher updated successfully",
+    teacher,
+  });
 };
 
 /**
- * DELETE Teacher
+ * DELETE TEACHER
  */
 exports.deleteTeacher = async (req, res) => {
-  const teacher = await Teacher.findOneAndDelete({
+  const teacher = await Teacher.findOne({
     _id: req.params.id,
     college_id: req.college_id,
   });
 
   if (!teacher) {
-    return res.status(404).json({ message: "Teacher not found" });
+    return res.status(404).json({
+      message: "Teacher not found",
+    });
   }
 
-  res.json({ message: "Teacher deleted successfully" });
+  // delete linked user
+  await User.findByIdAndDelete(teacher.user_id);
+  await teacher.deleteOne();
+
+  res.json({
+    message: "Teacher deleted successfully",
+  });
 };
