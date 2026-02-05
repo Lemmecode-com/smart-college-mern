@@ -1,6 +1,7 @@
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const bcrypt = require("bcryptjs");
+const User = require("../models/user.model");
 
 /**
  * CREATE Teacher
@@ -43,9 +44,19 @@ exports.createTeacher = async (req, res) => {
     // 3️⃣ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 4️⃣ Create teacher's user
+
+    const user = await User.create({
+      email,
+      password,
+      role: "TEACHER",
+      college_id: req.college_id,
+    });
+
     // 4️⃣ Create teacher
     const teacher = await Teacher.create({
       college_id: req.college_id,
+      user_id: user._id,
       department_id,
       name,
       email,
@@ -66,7 +77,7 @@ exports.createTeacher = async (req, res) => {
         designation: teacher.designation,
         password: teacher.password,
         status: teacher.status,
-      }, 
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -78,7 +89,7 @@ exports.getMyProfile = async (req, res) => {
     const teacher = await Teacher.findOne({
       _id: req.user.id,
       college_id: req.college_id,
-      status: "ACTIVE"
+      status: "ACTIVE",
     }).select("-password");
 
     if (!teacher) {
