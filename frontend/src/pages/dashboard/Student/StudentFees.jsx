@@ -475,7 +475,7 @@ export default function StudentFees() {
                     <th width="15%">Due Date</th>
                     <th width="15%">Status</th>
                     <th width="20%">Payment Date</th>
-                    <th width="15%" className="text-center">Reminder</th>
+                    {/* <th width="15%" className="text-center">Reminder</th> */}
                     <th width="15%" className="text-center pe-4">Action</th>
                   </tr>
                 </thead>
@@ -519,14 +519,14 @@ export default function StudentFees() {
                           <span className="text-muted">Not paid yet</span>
                         )}
                       </td>
-                      <td className="text-center">
+                      {/* <td className="text-center">
                         {installment.status === "PENDING" && isNearDue(installment.dueDate) && (
                           <FaBell className="text-warning blink" title="Payment due soon" size={20} />
                         )}
                         {installment.status === "PENDING" && new Date(installment.dueDate) < new Date() && (
                           <FaExclamationTriangle className="text-danger blink" title="Payment overdue" size={20} />
                         )}
-                      </td>
+                      </td> */}
                       <td className="text-center pe-4">
                         {installment.status === "PAID" ? (
                           <button
