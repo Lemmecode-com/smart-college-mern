@@ -59,11 +59,7 @@ app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
 
 /* ================= ATTENDANCE ================= */
-app.use("/api/attendance", require("./src/routes/attendanceSession.routes")); // Create session
-app.use("/api/attendance", require("./src/routes/attendance.routes")); // Manual attendance
-app.use("/api/attendance", require("./src/routes/attendanceClose.routes")); // Close session
-app.use("/api/attendance", require("./src/routes/studentAttendance.routes")); // Student view
-app.use("/api/attendance", require("./src/routes/teacherAttendance.routes")); // Teacher view
+app.use("/api/attendance", require("./src/routes/attendance.routes"));
 
 /* ================= PAYMENTS & FEES ================= */
 app.use("/api/student/payments", require("./src/routes/student.payment.routes"));
