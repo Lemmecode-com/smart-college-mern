@@ -34,7 +34,7 @@ const departmentSchema = new mongoose.Schema(
 
     hod_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Teacher",
       default: null // assigned later
     },
 
