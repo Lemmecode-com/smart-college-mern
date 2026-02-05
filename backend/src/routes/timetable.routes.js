@@ -1,77 +1,3 @@
-// const express = require("express");
-// const router = express.Router();
-
-// const auth = require("../middlewares/auth.middleware");
-// const role = require("../middlewares/role.middleware");
-// const collegeMiddleware = require("../middlewares/college.middleware");
-
-// const {
-//   createTimetableSlot,
-//   updateTimetableSlot,
-//   deleteTimetableSlot,
-//   getTeacherTimetable,
-//   getStudentTimetable,
-//   getAdminTimetable,
-// } = require("../controllers/timetable.controller");
-// const studentMiddleware = require("../middlewares/student.middleware");
-
-// // 🏛️ College Admin creates timetable
-// router.post(
-//   "/",
-//   auth,
-//   role("COLLEGE_ADMIN"),
-//   collegeMiddleware,
-//   createTimetableSlot,
-// );
-
-// // UPDATE
-// router.put(
-//   "/:id",
-//   auth,
-//   role("COLLEGE_ADMIN"),
-//   collegeMiddleware,
-//   updateTimetableSlot,
-// );
-
-// // DELETE (soft)
-// router.delete(
-//   "/:id",
-//   auth,
-//   role("COLLEGE_ADMIN"),
-//   collegeMiddleware,
-//   deleteTimetableSlot,
-// );
-
-// // 👨‍🏫 Teacher
-// router.get(
-//   "/teacher",
-//   auth,
-//   role("TEACHER", "COLLEGE_ADMIN"),
-//   collegeMiddleware,
-//   getTeacherTimetable
-// );
-// // 🎓 Student
-// router.get(
-//   "/student/my-timetable",
-//   auth,
-//   role("STUDENT"),
-//   collegeMiddleware,
-//   studentMiddleware,
-//   getStudentTimetable,
-// );
-
-// // Get timetable slots for college admin
-// router.get(
-//   "/admin",
-//   auth,
-//   role("COLLEGE_ADMIN"),
-//   collegeMiddleware,
-//   getAdminTimetable
-// );
-
-// module.exports = router;
-
-
 const express = require("express");
 const router = express.Router();
 
@@ -82,45 +8,88 @@ const hod = require("../middlewares/hod.middleware");
 
 const {
   createTimetable,
-  addSlot,
   getWeeklyTimetable,
-  publishTimetable
+  publishTimetable,
+  getTimetableById,
+  deleteTimetable,
 } = require("../controllers/timetable.controller");
 
-// HOD ONLY
+const { 
+  addSlot, 
+  updateSlot, 
+  deleteTimetableSlot
+} = require("../controllers/timetableSlot.controller");
+
+//ADD NEW TIMETABLE - HOD ONLY
 router.post(
-  "/",
-  auth,
-  role("TEACHER"),
-  college,
-  hod,
+  "/", 
+  auth, 
+  role("TEACHER"), 
+  college, 
   createTimetable
 );
 
-router.post(
-  "/slot",
-  auth,
-  role("TEACHER"),
-  college,
-  hod,
-  addSlot
-);
-
+//PUBLISH TIMETABLE - HOD ONLY
 router.put(
   "/publish/:id",
   auth,
   role("TEACHER"),
   college,
   hod,
-  publishTimetable
+  publishTimetable,
 );
 
-// STUDENTS / TEACHERS
+//GET WEEKLY TIMETABLE FOR STUDENTS / TEACHERS
 router.get(
   "/:departmentId/:courseId/:semester",
   auth,
   college,
   getWeeklyTimetable
+);
+
+//GET TIMETABLE ID-WISE FOR ALL
+router.get(
+  "/:id", 
+  auth, 
+  college, 
+  getTimetableById
+);
+
+//DELETE TIMETABLE - HOD ONLY
+router.delete(
+  "/:id", 
+  auth, 
+  role("TEACHER"), 
+  college, 
+  hod, 
+  deleteTimetable
+);
+
+// ADD SLOTS FOR TIMETABLE - HOD ONLY
+router.post(
+  "/slot", 
+  auth, 
+  role("TEACHER"), 
+  college, 
+  hod, 
+  addSlot
+);
+
+//UPDATE TIMETABLE'S SLOT
+router.put(
+  "/slot/:slotId", 
+  auth, 
+  role("TEACHER"), 
+  college, 
+  hod,
+  updateSlot
+);
+
+//DELETE TIMETABLE'S SLOT
+router.delete(
+  "/slot/:slotId", 
+  auth, 
+  deleteTimetableSlot
 );
 
 module.exports = router;
