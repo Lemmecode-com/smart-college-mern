@@ -76,6 +76,8 @@ import StudentNotificationList from "./pages/dashboard/Student/StudentNotificati
 import CreateNotifications from "./pages/dashboard/Teacher/CreateNotifications";
 import Notifications from "./pages/dashboard/Teacher/Notifications";
 import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
+import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
+import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -356,6 +358,24 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <FeeReceipt />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/payment-success"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <PaymentSuccess />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/student/payment-cancel"
+                  element={
+                    <ProtectedRoute allowedRoles={["STUDENT"]}>
+                      <PaymentCancel />
                     </ProtectedRoute>
                   }
                 />

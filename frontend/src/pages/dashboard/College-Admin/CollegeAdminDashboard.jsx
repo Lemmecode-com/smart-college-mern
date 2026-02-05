@@ -108,26 +108,6 @@ export default function CollegeAdminDashboard() {
     attendance: "87%",
     feeCollection: "₹24,50,000",
     activeSessions: 3,
-    announcements: [
-      {
-        id: 1,
-        type: "info",
-        title: "New Feature",
-        message: "Fee structure management is now live!",
-      },
-      {
-        id: 2,
-        type: "warning",
-        title: "Reminder",
-        message: `Student approval pending for ${stats.pendingAdmissions} students`,
-      },
-      {
-        id: 3,
-        type: "success",
-        title: "Update",
-        message: "Timetable for next semester published",
-      },
-    ],
     quickActions: [
       {
         icon: <FaUniversity />,
@@ -455,7 +435,7 @@ export default function CollegeAdminDashboard() {
                           </td>
                           <td className="text-center">
                             <LinkButton
-                              to={`/students/view/${student._id}`}
+                              to={`/college/view-approved-student/${student._id}`}
                               label={<FaEye size={14} />}
                               small
                             />
@@ -562,56 +542,6 @@ export default function CollegeAdminDashboard() {
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* ================= ANNOUNCEMENTS CARD ================= */}
-            <div
-              className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="card-header bg-gradient-info text-white py-3">
-                <h2 className="h6 fw-bold mb-0 d-flex align-items-center gap-2">
-                  <FaBell /> Announcements
-                </h2>
-              </div>
-              <div className="card-body p-3">
-                {mockData.announcements.map((ann, idx) => (
-                  <div
-                    key={idx}
-                    className={`alert alert-${ann.type} border-0 mb-3 animate-fade-in`}
-                    style={{ animationDelay: `${idx * 0.1}s` }}
-                  >
-                    <div className="d-flex align-items-start gap-2">
-                      <div className="flex-shrink-0 mt-1">
-                        {ann.type === "info" && (
-                          <FaInfoCircle
-                            className={`text-${ann.type}`}
-                            size={18}
-                          />
-                        )}
-                        {ann.type === "warning" && (
-                          <FaExclamationTriangle
-                            className={`text-${ann.type}`}
-                            size={18}
-                          />
-                        )}
-                        {ann.type === "success" && (
-                          <FaCheckCircle
-                            className={`text-${ann.type}`}
-                            size={18}
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <h6 className={`fw-bold text-${ann.type} mb-1 small`}>
-                          {ann.title}
-                        </h6>
-                        <p className="mb-0 small">{ann.message}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
 

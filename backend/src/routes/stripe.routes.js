@@ -8,7 +8,7 @@ const {
 } = require("../controllers/stripe.payment.controller");
 
 router.post(
-  "/create-checkout",
+  "/create-checkout-session",
   auth,
   role("STUDENT"),
   createCheckoutSession

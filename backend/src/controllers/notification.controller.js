@@ -333,7 +333,6 @@ exports.getTeacherNotificationCount = async (req, res) => {
   }
 };
 
-
 exports.getAdminNotificationCount = async (req, res) => {
   try {
     const userId = req.user.id;

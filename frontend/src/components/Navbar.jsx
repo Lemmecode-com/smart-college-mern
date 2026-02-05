@@ -32,7 +32,6 @@ export default function Navbar() {
 
       const total = res?.data?.total || 0;
 
-      // Toast for new notifications
       if (prevCount.current && total > prevCount.current) {
         setToast("🔔 New notification received!");
         setTimeout(() => setToast(null), 3000);
@@ -66,6 +65,17 @@ export default function Navbar() {
     }
   };
 
+  /* ================= ROLE BASED VIEW ALL ================= */
+  const goToNotificationList = () => {
+    if (user.role === "COLLEGE_ADMIN") {
+      navigate("/notification/list");
+    } else if (user.role === "TEACHER") {
+      navigate("/teacher/notifications/list");
+    } else if (user.role === "STUDENT") {
+      navigate("/notification/student");
+    }
+  };
+
   /* ================= INITIAL ================= */
   useEffect(() => {
     fetchCount();
@@ -93,7 +103,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* TOAST */}
       {toast && (
         <div
           className="position-fixed top-0 end-0 m-3 alert alert-success shadow"
@@ -142,7 +151,6 @@ export default function Navbar() {
               </span>
             )}
 
-            {/* DROPDOWN */}
             {open && (
               <div
                 className="card shadow border-0 position-absolute end-0 mt-3"
@@ -183,7 +191,7 @@ export default function Navbar() {
                   <div className="text-center mt-2">
                     <button
                       className="btn btn-sm btn-primary"
-                      onClick={() => navigate("/notification/list")}
+                      onClick={goToNotificationList}
                     >
                       View All
                     </button>
