@@ -81,11 +81,3 @@ exports.getAllColleges = async (req, res) => {
   res.json(colleges);
 };
 
-// COLLEGE ADMIN: View own college only
-exports.getMyCollege = async (req, res) => {
-  const college = await College.findById(req.college_id);
-  if (!college) {
-    return res.status(404).json({ message: "College not found" });
-  }
-  res.json(college);
-};
