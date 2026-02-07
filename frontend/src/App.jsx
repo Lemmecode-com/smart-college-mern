@@ -83,7 +83,10 @@ import EditSlotModal from "./pages/dashboard/Teacher/Timetable/EditSlotModal";
 import CreateTimetable from "./pages/dashboard/Teacher/Timetable/CreateTimetable";
 import TimetableDetails from "./pages/dashboard/Teacher/Timetable/TimetableDetails";
 import WeeklyTimetableGrid from "./pages/dashboard/Teacher/Timetable/WeeklyTimetableGrid";
-
+import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
+import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
+import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
+import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -536,6 +539,43 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* ================= System settings ================= */}
+                <Route path="/system-settings/fees" element={<FeeSetting />} />
+                <Route
+                  path="/system-settings/general"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <GeneralSetting />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/system-settings/academic"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AcademicSetting />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* <Route
+                  path="/system-settings/fees"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <FeeSetting />
+                    </ProtectedRoute>
+                  }
+                /> */}
+
+                <Route
+                  path="/system-settings/notifications"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <NotificationSetting />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* ================= TEACHERS ================= */}
                 <Route
@@ -620,7 +660,6 @@ export default function App() {
                   }
                 />
 
-
                 {/* TIMETABLE
                 <Route
                   path="/timetable/create"
@@ -630,7 +669,6 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 /> */}
-
 
                 {/* <Route
                   path="/timetable/view"
@@ -649,8 +687,6 @@ export default function App() {
                   }
                 /> */}
 
-
-
                 {/* New Timetable created by teacher(hod) */}
 
                 <Route
@@ -662,7 +698,6 @@ export default function App() {
                   }
                 />
 
-
                 <Route
                   path="/timetable/edit-slot/:id"
                   element={
@@ -670,7 +705,7 @@ export default function App() {
                       <EditSlotModal />
                     </ProtectedRoute>
                   }
-                /> 
+                />
                 <Route
                   path="/timetable/details/:id"
                   element={
@@ -684,7 +719,7 @@ export default function App() {
                   path="/timetable/weekly-grid/:id"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <WeeklyTimetableGrid/>
+                      <WeeklyTimetableGrid />
                     </ProtectedRoute>
                   }
                 />

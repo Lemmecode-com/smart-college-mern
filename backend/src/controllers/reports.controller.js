@@ -97,7 +97,6 @@ exports.studentPaymentStatus = async (req, res) => {
   }
 };
 
-
 /**
  * ATTENDANCE SUMMARY
  */
