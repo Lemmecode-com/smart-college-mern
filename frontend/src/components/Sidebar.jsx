@@ -29,7 +29,8 @@ import {
   FaGraduationCap,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaInfoCircle
+  FaInfoCircle,
+  FaMoneyBill,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -51,7 +52,8 @@ export default function Sidebar() {
     "attendance-teacher": true,
     "notifications-teacher": true,
     "profile-teacher": true,
-    "students-teacher": true
+    "students-teacher": true,
+    "system-settings": true,
   });
 
   // Close mobile sidebar on route change
@@ -189,9 +191,7 @@ export default function Sidebar() {
       )}
 
       {/* SIDEBAR CONTAINER */}
-      <div
-        className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}
-      >
+      <div className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}>
         {/* SIDEBAR BACKDROP FOR MOBILE */}
         {isMobileOpen && window.innerWidth < 768 && (
           <div
@@ -216,10 +216,10 @@ export default function Sidebar() {
                 role === "SUPER_ADMIN"
                   ? "/super-admin/dashboard"
                   : role === "COLLEGE_ADMIN"
-                  ? "/dashboard"
-                  : role === "TEACHER"
-                  ? "/teacher/dashboard"
-                  : "/student/dashboard"
+                    ? "/dashboard"
+                    : role === "TEACHER"
+                      ? "/teacher/dashboard"
+                      : "/student/dashboard"
               }
               style={getNavLinkStyle}
               className={({ isActive }) => (isActive ? "active-link" : "")}
@@ -549,9 +549,7 @@ export default function Sidebar() {
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div
-                  style={sectionBodyStyle(openSections["sessions-teacher"])}
-                >
+                <div style={sectionBodyStyle(openSections["sessions-teacher"])}>
                   <NavLink
                     to="/sessions/create"
                     style={({ isActive }) => ({
@@ -643,7 +641,7 @@ export default function Sidebar() {
                 </div>
                 <div
                   style={sectionBodyStyle(
-                    openSections["notifications-teacher"]
+                    openSections["notifications-teacher"],
                   )}
                 >
                   <NavLink
@@ -689,9 +687,7 @@ export default function Sidebar() {
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div
-                  style={sectionBodyStyle(openSections["students-teacher"])}
-                >
+                <div style={sectionBodyStyle(openSections["students-teacher"])}>
                   <NavLink
                     to="/students/my-students"
                     style={({ isActive }) => ({
@@ -739,6 +735,47 @@ export default function Sidebar() {
                 </NavLink>
               </>
             )}
+
+            {/* SYSTEM SETTINGS SECTION */}
+            <div
+              style={sectionTitleStyle}
+              onClick={() => toggleSection("system-settings")}
+              className={`sidebar-section-title ${
+                openSections["system-settings"] ? "open" : ""
+              }`}
+            >
+              <div className="section-title-content">
+                <FaCog /> System Settings
+              </div>
+              {openSections["system-settings"] ? (
+                <FaChevronUp size={12} />
+              ) : (
+                <FaChevronDown size={12} />
+              )}
+            </div>
+
+            <div style={sectionBodyStyle(openSections["system-settings"])}>
+              <NavLink to="/system-settings/general" style={getNavLinkStyle}>
+                <FaCog /> General Settings
+              </NavLink>
+
+              <NavLink to="/system-settings/academic" style={getNavLinkStyle}>
+                <FaCog /> Academic Settings
+              </NavLink>
+
+              <div style={sectionBodyStyle(openSections["system-settings"])}>
+                <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
+                  <FaMoneyBill /> Fee Settings
+                </NavLink>
+              </div>
+
+              <NavLink
+                to="/system-settings/notifications"
+                style={getNavLinkStyle}
+              >
+                <FaCog /> Notification Settings
+              </NavLink>
+            </div>
 
             {/* LOGOUT BUTTON */}
             <div className="sidebar-logout">
@@ -890,7 +927,7 @@ export default function Sidebar() {
         .active-sublink {
           color: #0f3a4a !important;
           background: rgba(255, 255, 255, 0.15) !important;
-          border-left: 3px solid #4CAF50 !important;
+          border-left: 3px solid #4caf50 !important;
           font-weight: 600 !important;
           position: relative;
         }
