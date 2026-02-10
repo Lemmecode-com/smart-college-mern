@@ -20,7 +20,17 @@ import {
   FaTimes,
   FaBell,
   FaHome,
+  FaPlus,
+  FaListOl,
+  FaChartLine,
+  FaEnvelope,
   FaSignOutAlt,
+  FaUsers,
+  FaGraduationCap,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaMoneyBill,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -37,6 +47,13 @@ export default function Sidebar() {
     timetable: true,
     students: true,
     "fee-structure": true,
+    "timetable-teacher": true,
+    "sessions-teacher": true,
+    "attendance-teacher": true,
+    "notifications-teacher": true,
+    "profile-teacher": true,
+    "students-teacher": true,
+    "system-settings": true,
   });
 
   // Close mobile sidebar on route change
@@ -101,6 +118,8 @@ export default function Sidebar() {
     background: isActive ? "#ffffff" : "transparent",
     transition: "all 0.3s ease",
     borderLeft: isActive ? "3px solid #1a4b6d" : "3px solid transparent",
+    position: "relative",
+    overflow: "hidden",
   });
 
   const activeLinkStyle = {
@@ -124,6 +143,7 @@ export default function Sidebar() {
     borderRadius: "8px",
     transition: "all 0.2s ease",
     backgroundColor: "rgba(255,255,255,0.1)",
+    borderLeft: "3px solid transparent",
   };
 
   const sectionBodyStyle = (isOpen) => ({
@@ -133,6 +153,26 @@ export default function Sidebar() {
     paddingLeft: "10px",
   });
 
+  const subLinkStyle = {
+    padding: "10px 16px 10px 36px",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "#c3e0e5",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    borderRadius: "8px",
+    transition: "all 0.25s ease",
+    borderLeft: "3px solid transparent",
+  };
+
+  const activeSubLinkStyle = {
+    color: "#0f3a4a",
+    background: "rgba(255, 255, 255, 0.15)",
+    borderLeft: "3px solid #4CAF50",
+    fontWeight: 600,
+  };
+
   return (
     <>
       {/* MOBILE SIDEBAR TOGGLE BUTTON */}
@@ -141,23 +181,6 @@ export default function Sidebar() {
           onClick={toggleMobileSidebar}
           className="mobile-menu-toggle"
           aria-label="Toggle menu"
-          style={{
-            position: "fixed",
-            top: "15px",
-            left: "15px",
-            zIndex: 1050,
-            width: "45px",
-            height: "45px",
-            borderRadius: "12px",
-            background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
-            border: "none",
-            boxShadow: "0 4px 15px rgba(26, 75, 109, 0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-          }}
         >
           {isMobileOpen ? (
             <FaTimes size={24} color="white" />
@@ -168,88 +191,25 @@ export default function Sidebar() {
       )}
 
       {/* SIDEBAR CONTAINER */}
-      <div
-        className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          height: "100vh",
-          width: "100%",
-          maxWidth: "280px",
-          backgroundColor: "transparent",
-          zIndex: 1040,
-          display: "flex",
-          transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          transform:
-            isMobileOpen || window.innerWidth >= 768
-              ? "translateX(0)"
-              : "translateX(-100%)",
-        }}
-      >
+      <div className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}>
         {/* SIDEBAR BACKDROP FOR MOBILE */}
         {isMobileOpen && window.innerWidth < 768 && (
           <div
             className="sidebar-backdrop"
             onClick={() => setIsMobileOpen(false)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: -1,
-            }}
           />
         )}
 
         {/* SIDEBAR CONTENT */}
-        <aside
-          style={{
-            width: "100%",
-            height: "100vh",
-            background: "linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%)",
-            padding: "20px 14px",
-            overflowY: "auto",
-            boxShadow: "4px 0 20px rgba(0, 0, 0, 0.3)",
-            borderRight: "1px solid rgba(255, 255, 255, 0.1)",
-          }}
-        >
+        <aside className="sidebar-content">
           {/* LOGO SECTION */}
-          <div
-            style={{
-              textAlign: "center",
-              padding: "15px 0 25px",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-              marginBottom: "20px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "18px",
-                fontWeight: 700,
-                color: "#ffffff",
-                letterSpacing: "-0.5px",
-                textShadow: "0 2px 10px rgba(0,0,0,0.3)",
-              }}
-            >
-              NOVAA
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "rgba(255,255,255,0.7)",
-                marginTop: "4px",
-                fontWeight: 500,
-              }}
-            >
-              {role.replace("_", " ")}
-            </div>
+          <div className="sidebar-logo">
+            <div className="logo-text">NOVAA</div>
+            <div className="logo-role">{role.replace("_", " ")}</div>
           </div>
 
           {/* NAVIGATION LINKS */}
-          <nav>
+          <nav className="sidebar-nav">
             {/* DASHBOARD LINK */}
             <NavLink
               to={
@@ -294,14 +254,11 @@ export default function Sidebar() {
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("college")}
+                  className={`sidebar-section-title ${
+                    openSections.college ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaUniversity /> College
                   </div>
                   {openSections.college ? (
@@ -320,14 +277,11 @@ export default function Sidebar() {
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("departments")}
+                  className={`sidebar-section-title ${
+                    openSections.departments ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaBook /> Departments
                   </div>
                   {openSections.departments ? (
@@ -349,14 +303,11 @@ export default function Sidebar() {
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("courses")}
+                  className={`sidebar-section-title ${
+                    openSections.courses ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaLayerGroup /> Courses
                   </div>
                   {openSections.courses ? (
@@ -387,14 +338,11 @@ export default function Sidebar() {
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("teachers")}
+                  className={`sidebar-section-title ${
+                    openSections.teachers ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaUserGraduate /> Teachers
                   </div>
                   {openSections.teachers ? (
@@ -412,47 +360,15 @@ export default function Sidebar() {
                   </NavLink>
                 </div>
 
-                {/* TIMETABLE SECTION */}
-                <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("timetable")}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <FaCalendarAlt /> Timetable
-                  </div>
-                  {openSections.timetable ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections.timetable)}>
-                  <NavLink to="/timetable/create" style={getNavLinkStyle}>
-                    <FaCalendarAlt /> Create Timetable
-                  </NavLink>
-                  <NavLink to="/timetable/view" style={getNavLinkStyle}>
-                    <FaCalendarAlt /> View Timetable
-                  </NavLink>
-                </div>
-
                 {/* STUDENTS SECTION */}
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("students")}
+                  className={`sidebar-section-title ${
+                    openSections.students ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaUserGraduate /> Students
                   </div>
                   {openSections.students ? (
@@ -474,14 +390,11 @@ export default function Sidebar() {
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("fee-structure")}
+                  className={`sidebar-section-title ${
+                    openSections["fee-structure"] ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
+                  <div className="section-title-content">
                     <FaMoneyBillWave /> Fee Management
                   </div>
                   {openSections["fee-structure"] ? (
@@ -500,19 +413,15 @@ export default function Sidebar() {
                 </div>
 
                 {/* Notifications */}
-
                 <div
                   style={sectionTitleStyle}
                   onClick={() => toggleSection("Notifications")}
+                  className={`sidebar-section-title ${
+                    openSections["Notifications"] ? "open" : ""
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    <FaBell/> Notifications
+                  <div className="section-title-content">
+                    <FaBell /> Notifications
                   </div>
                   {openSections["Notifications"] ? (
                     <FaChevronUp size={12} />
@@ -588,6 +497,54 @@ export default function Sidebar() {
                 </NavLink>
               </>
             )}
+
+            {/* SYSTEM SETTINGS SECTION */}
+            <div
+              style={sectionTitleStyle}
+              onClick={() => toggleSection("system-settings")}
+              className={`sidebar-section-title ${
+                openSections["system-settings"] ? "open" : ""
+              }`}
+            >
+              <div className="section-title-content">
+                <FaCog /> System Settings
+              </div>
+              {openSections["system-settings"] ? (
+                <FaChevronUp size={12} />
+              ) : (
+                <FaChevronDown size={12} />
+              )}
+            </div>
+
+            <div style={sectionBodyStyle(openSections["system-settings"])}>
+              <NavLink to="/system-settings/general" style={getNavLinkStyle}>
+                <FaCog /> General Settings
+              </NavLink>
+
+              <NavLink to="/system-settings/academic" style={getNavLinkStyle}>
+                <FaCog /> Academic Settings
+              </NavLink>
+
+              <div style={sectionBodyStyle(openSections["system-settings"])}>
+                <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
+                  <FaMoneyBill /> Fee Settings
+                </NavLink>
+              </div>
+
+              <NavLink
+                to="/system-settings/notifications"
+                style={getNavLinkStyle}
+              >
+                <FaCog /> Notification Settings
+              </NavLink>
+            </div>
+
+            {/* LOGOUT BUTTON */}
+            <div className="sidebar-logout">
+              <button onClick={handleLogout} className="logout-btn">
+                <FaSignOutAlt /> Logout
+              </button>
+            </div>
           </nav>
         </aside>
       </div>
@@ -601,14 +558,188 @@ export default function Sidebar() {
           height: 100vh;
           width: 100%;
           max-width: 280px;
+          background: transparent;
           z-index: 1040;
+          display: flex;
           transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transform: ${isMobileOpen || window.innerWidth >= 768
+            ? "translateX(0)"
+            : "translateX(-100%)"};
         }
 
-        @media (min-width: 768px) {
-          .sidebar-container {
-            transform: translateX(0) !important;
-          }
+        .sidebar-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 1039;
+        }
+
+        .sidebar-content {
+          width: 100%;
+          height: 100vh;
+          background: linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%);
+          padding: 20px 14px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .sidebar-content::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+          border: 2px solid transparent;
+          background-clip: content-box;
+        }
+
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(255, 255, 255, 0.35);
+        }
+
+        .sidebar-logo {
+          text-align: center;
+          padding: 15px 0 25px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          margin-bottom: 20px;
+        }
+
+        .logo-text {
+          font-size: 24px;
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+          background: linear-gradient(45deg, #4fc3f7, #29b6f6, #0288d1);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .logo-role {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.7);
+          margin-top: 4px;
+          font-weight: 500;
+          letter-spacing: 0.5px;
+        }
+
+        .sidebar-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .sidebar-section-title {
+          background: rgba(255, 255, 255, 0.08);
+          border-left: 3px solid transparent;
+        }
+
+        .sidebar-section-title:hover {
+          background: rgba(255, 255, 255, 0.15);
+          border-left: 3px solid #1a4b6d;
+        }
+
+        .sidebar-section-title.open {
+          background: rgba(26, 75, 109, 0.3);
+          border-left: 3px solid #1a4b6d;
+        }
+
+        .section-title-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .active-link {
+          color: #0f3a4a !important;
+          background: #ffffff !important;
+          border-left: 3px solid #1a4b6d !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+          position: relative;
+        }
+
+        .active-link::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: linear-gradient(
+            to bottom,
+            rgba(26, 75, 109, 0.3),
+            rgba(26, 75, 109, 0.1)
+          );
+        }
+
+        .active-sublink {
+          color: #0f3a4a !important;
+          background: rgba(255, 255, 255, 0.15) !important;
+          border-left: 3px solid #4caf50 !important;
+          font-weight: 600 !important;
+          position: relative;
+        }
+
+        .active-sublink::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 3px;
+          height: 100%;
+          background: linear-gradient(
+            to bottom,
+            rgba(76, 175, 80, 0.3),
+            rgba(76, 175, 80, 0.1)
+          );
+        }
+
+        .sidebar-logout {
+          margin-top: auto;
+          padding: 15px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logout-btn {
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .logout-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(244, 67, 54, 0.55);
+          background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+        }
+
+        .logout-btn:active {
+          transform: translateY(0);
         }
 
         .mobile-menu-toggle {
@@ -635,24 +766,6 @@ export default function Sidebar() {
           }
         }
 
-        .active-link {
-          color: #0f3a4a !important;
-          background: #ffffff !important;
-          border-left: 3px solid #1a4b6d !important;
-          font-weight: 600 !important;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-        }
-
-        .sidebar-backdrop {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.5);
-          z-index: 1039;
-        }
-
         @media (max-width: 767px) {
           .sidebar-container.mobile-open {
             transform: translateX(0);
@@ -675,8 +788,58 @@ export default function Sidebar() {
           }
         }
 
-        .sidebar-container nav > div[style*="maxHeight"] {
-          animation: slideDown 0.3s ease forwards;
+        /* Subtle hover effects for all links */
+        a:hover,
+        button:hover {
+          transform: translateX(3px);
+        }
+
+        /* Smooth scroll behavior */
+        .sidebar-content {
+          scroll-behavior: smooth;
+        }
+
+        /* Section title animations */
+        .sidebar-section-title {
+          animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        /* Pulse animation for active section */
+        .sidebar-section-title.open {
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(26, 75, 109, 0.4);
+          }
+          70% {
+            box-shadow: 0 0 0 8px rgba(26, 75, 109, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(26, 75, 109, 0);
+          }
+        }
+
+        /* Subtle gradient on scrollbar thumb */
+        .sidebar-content::-webkit-scrollbar-thumb {
+          background-image: linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.3),
+            rgba(255, 255, 255, 0.1)
+          );
         }
       `}</style>
     </>

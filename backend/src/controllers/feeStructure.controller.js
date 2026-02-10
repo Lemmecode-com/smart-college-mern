@@ -1,5 +1,5 @@
-const FeeStructure = require("../models/feeStructure.model");
-const Course = require("../models/course.model");
+const FeeStructure = require("../../src/models/feeStructure.model");
+const Course = require("../../src/models/course.model");
 // const StudentFee = require("../models/studentFee.model"); // uncomment if exists
 
 /**
@@ -73,30 +73,6 @@ exports.getFeeStructures = async (req, res) => {
     }).populate("course_id", "name");
 
     res.json(fees);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-/**
- * GET Fee Structure BY ID ✅ FIXED
- */
-exports.getFeeStructureById = async (req, res) => {
-  try {
-    const { feeStructureId } = req.params;
-
-    const feeStructure = await FeeStructure.findOne({
-      _id: feeStructureId,
-      college_id: req.college_id,
-    }).populate("course_id", "name");
-
-    if (!feeStructure) {
-      return res.status(404).json({
-        message: "Fee structure not found",
-      });
-    }
-
-    res.json(feeStructure);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
