@@ -2,6 +2,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const Timetable = require("../models/timetable.model");
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
+const Subject = require("../models/subject.model");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -19,15 +20,75 @@ exports.addSlot = async (req, res) => {
       slotType,
     } = req.body;
 
-    // 1️⃣ Basic validation
+    const collegeId = req.college_id;
+
+    /* ================= REQUIRED FIELDS ================= */
+    if (
+      !timetable_id ||
+      !day ||
+      !startTime ||
+      !endTime ||
+      !subject_id ||
+      !teacher_id
+    ) {
+      return res.status(400).json({
+        message: "Required fields are missing",
+      });
+    }
+
     if (startTime >= endTime) {
       return res.status(400).json({
         message: "Start time must be before end time",
       });
     }
 
-    // 2️⃣ TIME CONFLICT (same timetable + same day)
+    /* ================= TIMETABLE ================= */
+    const timetable = await Timetable.findOne({
+      _id: timetable_id,
+      college_id: collegeId,
+    });
+
+    if (!timetable) {
+      return res.status(404).json({
+        message: "Timetable not found",
+      });
+    }
+
+    if (timetable.status === "PUBLISHED") {
+      return res.status(403).json({
+        message: "Published timetable cannot be modified",
+      });
+    }
+
+    /* ================= SUBJECT VALIDATION ================= */
+    const subject = await Subject.findOne({
+      _id: subject_id,
+      course_id: timetable.course_id,
+      college_id: collegeId,
+    });
+
+    if (!subject) {
+      return res.status(400).json({
+        message: "Subject does not belong to this course",
+      });
+    }
+
+    /* ================= TEACHER VALIDATION ================= */
+    const teacher = await Teacher.findOne({
+      _id: teacher_id,
+      college_id: collegeId,
+      department_id: timetable.department_id,
+    });
+
+    if (!teacher) {
+      return res.status(400).json({
+        message: "Teacher does not belong to this department",
+      });
+    }
+
+    /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
+      college_id: collegeId,
       timetable_id,
       day,
       $expr: {
@@ -40,14 +101,15 @@ exports.addSlot = async (req, res) => {
 
     if (timeConflict) {
       return res.status(409).json({
-        message: "Time slot conflict detected for this day",
+        message: "Time slot conflict detected",
       });
     }
 
-    // 3️⃣ TEACHER CONFLICT (same teacher same time)
+    /* ================= TEACHER DOUBLE BOOKING ================= */
     const teacherConflict = await TimetableSlot.findOne({
-      day,
+      college_id: collegeId,
       teacher_id,
+      day,
       $expr: {
         $and: [
           { $lt: ["$startTime", endTime] },
@@ -58,38 +120,21 @@ exports.addSlot = async (req, res) => {
 
     if (teacherConflict) {
       return res.status(409).json({
-        message: "Teacher is already assigned in this time slot",
+        message: "Teacher already assigned at this time",
       });
     }
 
-    // 4️⃣ ROOM CONFLICT (same room same time)
-    if (room) {
-      const roomConflict = await TimetableSlot.findOne({
-        day,
-        room,
-        $expr: {
-          $and: [
-            { $lt: ["$startTime", endTime] },
-            { $gt: ["$endTime", startTime] },
-          ],
-        },
-      });
-
-      if (roomConflict) {
-        return res.status(409).json({
-          message: "Room is already occupied in this time slot",
-        });
-      }
-    }
-
-    // 5️⃣ Create slot
+    /* ================= CREATE SLOT ================= */
     const slot = await TimetableSlot.create({
+      college_id: collegeId,
       timetable_id,
+      department_id: timetable.department_id,
+      course_id: timetable.course_id,
+      subject_id,
+      teacher_id,
       day,
       startTime,
       endTime,
-      subject_id,
-      teacher_id,
       room,
       slotType,
     });
@@ -99,9 +144,9 @@ exports.addSlot = async (req, res) => {
       slot,
     });
   } catch (error) {
-    console.error("Add slot error:", error);
+    console.error("Add Slot Error:", error.message);
     res.status(500).json({
-      message: "Failed to add slot",
+      message: "Failed to add timetable slot",
     });
   }
 };
@@ -115,6 +160,24 @@ exports.updateSlot = async (req, res) => {
     req.body,
     { new: true },
   );
+
+  /* ================= TIMETABLE ================= */
+  const timetable = await Timetable.findOne({
+    _id: timetable_id,
+    college_id: collegeId,
+  });
+
+  if (!timetable) {
+    return res.status(404).json({
+      message: "Timetable not found",
+    });
+  }
+
+  if (timetable.status === "PUBLISHED") {
+    return res.status(403).json({
+      message: "Cannot modify slots after timetable is published",
+    });
+  }
 
   if (!slot) {
     return res.status(404).json({ message: "Slot not found" });
@@ -148,6 +211,12 @@ exports.deleteTimetableSlot = async (req, res) => {
     const timetable = await Timetable.findById(slot.timetable_id);
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    if (timetable.status === "PUBLISHED") {
+      return res.status(403).json({
+        message: "Published timetable cannot be modified",
+      });
     }
 
     /* STEP 4: Find teacher profile */
