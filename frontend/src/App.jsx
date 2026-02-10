@@ -45,7 +45,7 @@ import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
 import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import CreateSession from "./pages/dashboard/Teacher/CreateSession";
-import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
+// import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
 import EditAttendance from "./pages/dashboard/Teacher/EditAttendance";
 import AttendanceReport from "./pages/dashboard/Teacher/AttendanceReport";
 import CloseSession from "./pages/dashboard/Teacher/CloseSession";
@@ -170,6 +170,15 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <CollegeProfile />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college/edit-profile"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditCollegeProfile />
                     </ProtectedRoute>
                   }
                 />
@@ -524,6 +533,43 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* ================= System settings ================= */}
+                <Route path="/system-settings/fees" element={<FeeSetting />} />
+                <Route
+                  path="/system-settings/general"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <GeneralSetting />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/system-settings/academic"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AcademicSetting />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* <Route
+                  path="/system-settings/fees"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <FeeSetting />
+                    </ProtectedRoute>
+                  }
+                /> */}
+
+                <Route
+                  path="/system-settings/notifications"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <NotificationSetting />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
                   path="/teachers"
@@ -661,6 +707,43 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <CreateSession />
+                    </ProtectedRoute>
+                  }
+                /> */}
+
+                {/* New Timetable created by teacher(hod) */}
+
+                <Route
+                  path="/timetable/create-timetable"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CreateTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/timetable/edit-slot/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <EditSlotModal />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/details/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <TimetableDetails />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/timetable/weekly-grid/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <WeeklyTimetableGrid />
                     </ProtectedRoute>
                   }
                 />

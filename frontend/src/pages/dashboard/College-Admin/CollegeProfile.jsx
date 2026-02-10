@@ -108,12 +108,6 @@ export default function CollegeProfile() {
       {/* ================= TOP NAVIGATION BAR ================= */}
       <div className="d-flex align-items-center justify-content-between mb-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3">
-          <button 
-            onClick={() => navigate("/dashboard")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-1 py-2 shadow-sm hover-lift"
-          >
-            <FaArrowLeft /> Back to Dashboard
-          </button>
           
           <div className="d-flex align-items-center gap-3">
             <div className="college-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
@@ -145,44 +139,12 @@ export default function CollegeProfile() {
         <div className="d-flex gap-2">
           <button 
             className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 hover-lift pulse-button"
+            onClick={() => navigate("/college/edit-profile")}
           >
             <FaEdit /> Edit Profile
           </button>
         </div>
       </div>
-
-      {/* ================= STATS DASHBOARD ================= */}
-      <div className="row g-4 mb-4 animate-fade-in-up">
-        <StatCard 
-          title="Total Departments" 
-          value={stats.departments} 
-          icon={<FaLayerGroup />} 
-          color="primary"
-          trend="+12% this year"
-        />
-        <StatCard 
-          title="Active Courses" 
-          value={stats.courses} 
-          icon={<FaBook />} 
-          color="success"
-          trend="+8 courses"
-        />
-        <StatCard 
-          title="Enrolled Students" 
-          value={stats.students} 
-          icon={<FaUserGraduate />} 
-          color="info"
-          trend="+45 new"
-        />
-        <StatCard 
-          title="Faculty Members" 
-          value={stats.teachers} 
-          icon={<FaChalkboardTeacher />} 
-          color="warning"
-          trend="Stable"
-        />
-      </div>
-
       {/* ================= MAIN CONTENT GRID ================= */}
       <div className="row g-4">
         {/* LEFT COLUMN - PROFILE DETAILS */}
@@ -266,39 +228,8 @@ export default function CollegeProfile() {
         {/* RIGHT COLUMN - SIDEBAR */}
         <div className="col-lg-4">
           <div className="sticky-top" style={{ top: "20px" }}>
-            {/* ================= COLLEGE BADGE ================= */}
-            <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
-              <div className="card-body p-4 text-center">
-                <div className="college-badge mb-3">
-                  <div className="college-initials">
-                    {college.name?.charAt(0) || 'C'}
-                  </div>
-                </div>
-                <h4 className="fw-bold text-dark mb-1">{college.name}</h4>
-                <p className="text-muted mb-3">{college.code}</p>
-                
-                <div className="d-flex justify-content-center gap-3 mb-3">
-                  <div className="text-center">
-                    <div className="fw-bold text-primary fs-4">{stats.departments}</div>
-                    <small className="text-muted">Departments</small>
-                  </div>
-                  <div className="vr"></div>
-                  <div className="text-center">
-                    <div className="fw-bold text-success fs-4">{stats.courses}</div>
-                    <small className="text-muted">Courses</small>
-                  </div>
-                </div>
 
-                <div className="alert alert-info bg-info bg-opacity-10 border-0 py-2 mb-0">
-                  <small className="text-muted">
-                    <FaInfoCircle className="me-1" />
-                    Profile last updated: {new Date().toLocaleDateString()}
-                  </small>
-                </div>
-              </div>
-            </div>
-
-            {/* ================= RECENT ACTIVITY ================= */}
+           {/* ================= RECENT ACTIVITY ================= */}
             <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
               <div className="card-header bg-gradient-info text-white py-3">
                 <h2 className="h6 fw-bold mb-0 d-flex align-items-center gap-2">
@@ -343,23 +274,6 @@ export default function CollegeProfile() {
                 </div>
               </div>
             </div>
-
-            {/* ================= DOWNLOAD SECTION ================= */}
-            <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-              <div className="card-header bg-gradient-dark text-white py-3">
-                <h2 className="h6 fw-bold mb-0 d-flex align-items-center gap-2">
-                  <FaDownload /> Export Options
-                </h2>
-              </div>
-              <div className="card-body p-3">
-                <button className="btn btn-outline-primary w-100 mb-2 d-flex align-items-center justify-content-center gap-2 py-2">
-                  <FaFileInvoice /> Export Student List (PDF)
-                </button>
-                <button className="btn btn-outline-success w-100 mb-2 d-flex align-items-center justify-content-center gap-2 py-2">
-                  <FaFileInvoice /> Generate Fee Report (Excel)
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -381,12 +295,23 @@ export default function CollegeProfile() {
                 </small>
               </p>
             </div>
-            <button 
+            <div justifyContent="flex-end" className="d-flex gap-2">
+              <div>
+              <button 
+            onClick={() => navigate("/dashboard")}
+            className="btn btn-outline-secondary d-flex me-2 gap-2 px-1 py-2 shadow-sm hover-lift" >
+           <FaArrowLeft /> Back to dashboard
+           </button>
+            </div>
+            <div>
+              <button 
               className="btn btn-outline-primary px-4 py-2 d-flex align-items-center gap-2 hover-lift"
               onClick={() => window.location.reload()}
             >
               <FaSync className="spin-icon" /> Refresh Data
             </button>
+            </div>
+            </div>
           </div>
         </div>
       </div>
