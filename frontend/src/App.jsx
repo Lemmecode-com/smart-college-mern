@@ -43,7 +43,6 @@ import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import CreateTimetable from "./pages/dashboard/College-Admin/CreateTimetable";
 import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import CreateSession from "./pages/dashboard/Teacher/CreateSession";
 import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
@@ -52,7 +51,6 @@ import AttendanceReport from "./pages/dashboard/Teacher/AttendanceReport";
 import CloseSession from "./pages/dashboard/Teacher/CloseSession";
 import MyTimetable from "./pages/dashboard/Teacher/MyTimetable";
 import MySessions from "./pages/dashboard/Teacher/MySessions";
-import MyStudents from "./pages/dashboard/Teacher/MyStudents";
 import MyProfile from "./pages/dashboard/Teacher/MyProfile";
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
@@ -78,6 +76,11 @@ import Notifications from "./pages/dashboard/Teacher/Notifications";
 import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
 import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
 import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
+import CreateTimetable from "./pages/dashboard/Teacher/CreateTimetable";
+import AddTimetableSlot from "./pages/dashboard/Teacher/AddTimetableSlot";
+import TimetableList from "./pages/dashboard/Teacher/TimetableList";
+import WeeklyTimetable from "./pages/dashboard/Teacher/WeeklyTimetable";
+import MySchedule from "./pages/dashboard/Teacher/MySchedule";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -522,7 +525,6 @@ export default function App() {
                   }
                 />
 
-                {/* ================= TEACHERS ================= */}
                 <Route
                   path="/teachers"
                   element={
@@ -555,6 +557,79 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+
+                <Route
+                  path="/teachers/assign-subjects"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AssignTeacherSubjects />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ================= TEACHERS ================= */}
+
+                {/* TIMETABLE */}
+                <Route
+                  path="/timetable/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <CreateTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/list"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <TimetableList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/timetable/add-slot"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <AddTimetableSlot />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/weekly-timetable"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MySchedule />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/timetable/:timetableId/weekly"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <WeeklyTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/timetable/view"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/timetable/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path="/timetable/my-timetable"
                   element={
@@ -572,14 +647,6 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/students/my-students"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MyStudents />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="profile/my-profile"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
@@ -587,45 +654,13 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/teachers/assign-subjects"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AssignTeacherSubjects />
-                    </ProtectedRoute>
-                  }
-                />
+
                 {/* Sessions */}
                 <Route
                   path="/sessions/create"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <CreateSession />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* TIMETABLE */}
-                <Route
-                  path="/timetable/create"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CreateTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/timetable/view"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/timetable/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditTimetable />
                     </ProtectedRoute>
                   }
                 />
