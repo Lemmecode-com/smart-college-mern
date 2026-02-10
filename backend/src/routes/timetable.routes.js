@@ -3,92 +3,103 @@ const router = express.Router();
 
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
-const college = require("../middlewares/college.middleware");
 const hod = require("../middlewares/hod.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
 
 const {
   createTimetable,
-  getWeeklyTimetable,
   publishTimetable,
   getTimetableById,
   deleteTimetable,
+  getTimetables,
+  getWeeklyTimetableById,
+  getWeeklyTimetableForTeacher,
 } = require("../controllers/timetable.controller");
 
-const { 
-  addSlot, 
-  updateSlot, 
-  deleteTimetableSlot
+const {
+  addSlot,
+  updateSlot,
+  deleteTimetableSlot,
 } = require("../controllers/timetableSlot.controller");
 
-//ADD NEW TIMETABLE - HOD ONLY
-router.post(
-  "/", 
-  auth, 
-  role("TEACHER"), 
-  college, 
-  createTimetable
+/* ================= CREATE ================= */
+router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
+
+/* ================= WEEKLY (STATIC FIRST) ================= */
+router.get(
+  "/weekly",
+  auth,
+  collegeMiddleware,
+  getWeeklyTimetableForTeacher
 );
 
-//PUBLISH TIMETABLE - HOD ONLY
-router.put(
-  "/publish/:id",
+/* ================= LIST ================= */
+router.get(
+  "/",
+  auth,
+  role("COLLEGE_ADMIN", "TEACHER"),
+  collegeMiddleware,
+  getTimetables
+);
+
+/* ================= SLOTS ================= */
+router.post(
+  "/slot",
   auth,
   role("TEACHER"),
-  college,
+  collegeMiddleware,
   hod,
-  publishTimetable,
-);
-
-//GET WEEKLY TIMETABLE FOR STUDENTS / TEACHERS
-router.get(
-  "/:departmentId/:courseId/:semester",
-  auth,
-  college,
-  getWeeklyTimetable
-);
-
-//GET TIMETABLE ID-WISE FOR ALL
-router.get(
-  "/:id", 
-  auth, 
-  college, 
-  getTimetableById
-);
-
-//DELETE TIMETABLE - HOD ONLY
-router.delete(
-  "/:id", 
-  auth, 
-  role("TEACHER"), 
-  college, 
-  hod, 
-  deleteTimetable
-);
-
-// ADD SLOTS FOR TIMETABLE - HOD ONLY
-router.post(
-  "/slot", 
-  auth, 
-  role("TEACHER"), 
-  college, 
-  hod, 
   addSlot
 );
 
-//UPDATE TIMETABLE'S SLOT
+router.get(
+  "/:timetableId/weekly",
+  auth,
+  collegeMiddleware,
+  getWeeklyTimetableById
+);
+
+/* ================= PUBLISH ================= */
 router.put(
-  "/slot/:slotId", 
-  auth, 
-  role("TEACHER"), 
-  college, 
+  "/:id/publish",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  hod,
+  publishTimetable
+);
+
+/* ================= GET BY ID (LAST) ================= */
+router.get(
+  "/:id",
+  auth,
+  collegeMiddleware,
+  getTimetableById
+);
+
+/* ================= DELETE ================= */
+router.delete(
+  "/:id",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  hod,
+  deleteTimetable
+);
+
+router.put(
+  "/slot/:slotId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
   hod,
   updateSlot
 );
 
-//DELETE TIMETABLE'S SLOT
 router.delete(
-  "/slot/:slotId", 
-  auth, 
+  "/slot/:slotId",
+  auth,
+  collegeMiddleware,
   deleteTimetableSlot
 );
 
