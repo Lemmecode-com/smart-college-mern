@@ -536,8 +536,17 @@ export default function Sidebar() {
                 <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
                   <FaCog /> My Profile
                 </NavLink>
-                <NavLink to="/timetable/my-timetable" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> My Timetable
+                <NavLink to="/timetable/create" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Create Timetable
+                </NavLink>
+                <NavLink to="/timetable/list" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> View Timetables
+                </NavLink>
+                <NavLink to="/timetable/add-slot" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Add Timetable Slot
+                </NavLink>
+                <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> My Shedule
                 </NavLink>
                 <NavLink to="/sessions/create" style={getNavLinkStyle}>
                   <FaCalendarAlt /> Create Session
