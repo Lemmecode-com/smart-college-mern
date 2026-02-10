@@ -58,13 +58,6 @@ router.delete(
   deleteFeeStructure
 );
 
-//GET SINGLE FEE STRUCTURE BY ID
-router.get(
-  "/:feeStructureId",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  getFeeStructureById
-);
+
 
 module.exports = router;
