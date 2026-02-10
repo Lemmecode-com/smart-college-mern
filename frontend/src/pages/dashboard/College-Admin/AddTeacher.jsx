@@ -12,23 +12,6 @@ import {
   FaUserTie,
   FaUpload,
   FaMapMarkerAlt,
-  FaVenusMars,
-  FaTint,
-  FaBriefcase,
-  FaEnvelope,
-  FaKey,
-  FaGraduationCap,
-  FaClock,
-  FaBuilding,
-  FaCity,
-  FaFileAlt,
-  FaImage,
-  FaSave,
-  FaSpinner,
-  FaInfoCircle,
-  FaEye,
-  FaEyeSlash,
-  FaSyncAlt
 } from "react-icons/fa";
 
 export default function AddTeacher() {
@@ -38,12 +21,15 @@ export default function AddTeacher() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
+  /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]); // ✅ NEW
+
   const [documents, setDocuments] = useState({
     aadhar: null,
     pan: null,
     degree: null,
-    photo: null
+    photo: null,
   });
   const [documentPreviews, setDocumentPreviews] = useState({
     aadhar: null,
@@ -60,13 +46,14 @@ export default function AddTeacher() {
     qualification: "",
     experienceYears: "",
     department_id: "",
+    course_id: "", // ✅ single course
     password: "",
     gender: "",
     bloodGroup: "",
     employmentType: "FULL_TIME",
     address: "",
     city: "",
-    state: ""
+    state: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -78,6 +65,7 @@ export default function AddTeacher() {
   const [activeSection, setActiveSection] = useState('basic');
   const [isGeneratingId, setIsGeneratingId] = useState(false);
 
+  /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -90,84 +78,21 @@ export default function AddTeacher() {
     fetchDepartments();
   }, []);
 
-  /* ================= AUTO-GENERATE EMPLOYEE ID ================= */
+  /* ================= LOAD COURSES BY DEPARTMENT ================= */
   useEffect(() => {
-    if (!formData.department_id || departments.length === 0) {
-      setFormData(prev => ({ ...prev, employeeId: "" }));
+    if (!formData.department_id) {
+      setCourses([]);
+      setFormData((p) => ({ ...p, course_id: "" }));
       return;
     }
 
-    // Generate ID only when department changes
-    const generateEmployeeId = () => {
-      setIsGeneratingId(true);
-      
-      try {
-        const dept = departments.find(d => d._id === formData.department_id);
-        if (!dept) {
-          setFormData(prev => ({ ...prev, employeeId: "" }));
-          return;
-        }
+    api
+      .get(`/courses/department/${formData.department_id}`)
+      .then((res) => setCourses(res.data))
+      .catch(() => setCourses([]));
+  }, [formData.department_id]);
 
-        // Clean and extract department code (prioritize official code)
-        const deptSource = dept.code || dept.name;
-        const cleanDept = deptSource
-          .replace(/[^a-zA-Z0-9]/g, '') // Remove non-alphanumeric
-          .substring(0, 3)                // Take first 3 characters
-          .toUpperCase() || 'DEP';        // Fallback
-
-        // Current year (last 2 digits)
-        const year = new Date().getFullYear().toString().slice(-2);
-        
-        // Generate pseudo-unique sequence using timestamp hash
-        const timestamp = Date.now();
-        const hash = Array.from(String(timestamp)).reduce((sum, char) => 
-          sum + char.charCodeAt(0), timestamp
-        );
-        const sequence = (Math.abs(hash) % 900 + 100).toString().padStart(3, '0');
-        
-        const newEmployeeId = `${cleanDept}-${year}-${sequence}`;
-        
-        setFormData(prev => ({ ...prev, employeeId: newEmployeeId }));
-      } finally {
-        setIsGeneratingId(false);
-      }
-    };
-
-    // Small delay for visual feedback
-    const timer = setTimeout(generateEmployeeId, 300);
-    return () => clearTimeout(timer);
-  }, [formData.department_id, departments]);
-
-  /* ================= VALIDATION ================= */
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.name.trim()) errors.name = "Full name is required";
-    if (!formData.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "Invalid email format";
-    }
-    if (!formData.employeeId.trim()) errors.employeeId = "Employee ID will auto-generate when department is selected";
-    if (!formData.designation.trim()) errors.designation = "Designation is required";
-    if (!formData.qualification.trim()) errors.qualification = "Qualification is required";
-    if (!formData.experienceYears) errors.experienceYears = "Experience is required";
-    if (!formData.password) {
-      errors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-    }
-    if (!formData.department_id) errors.department_id = "Department is required";
-    if (!formData.gender) errors.gender = "Gender is required";
-    if (!formData.bloodGroup) errors.bloodGroup = "Blood group is required";
-    if (!formData.address.trim()) errors.address = "Address is required";
-    if (!formData.city.trim()) errors.city = "City is required";
-    if (!formData.state.trim()) errors.state = "State is required";
-    
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
+  /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -187,6 +112,12 @@ export default function AddTeacher() {
     if (name === "department_id" && value === "") {
       setFormData(prev => ({ ...prev, employeeId: "" }));
     }
+  };
+
+  // ✅ MULTI COURSE SELECT HANDLER
+  const handleCourseChange = (e) => {
+    const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+    setFormData({ ...formData, courses: selected });
   };
 
   const handleFile = (e) => {
@@ -222,6 +153,7 @@ export default function AddTeacher() {
     }
   };
 
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -237,7 +169,7 @@ export default function AddTeacher() {
     try {
       await api.post("/teachers", {
         ...formData,
-        experienceYears: Number(formData.experienceYears)
+        experienceYears: Number(formData.experienceYears),
       });
 
       setSuccess(true);
@@ -296,16 +228,7 @@ export default function AddTeacher() {
   }
 
   return (
-    <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/teachers">Teachers</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Add Teacher</li>
-        </ol>
-      </nav>
-
+    <div className="container-fluid">
       {/* HEADER */}
       <div className="erp-page-header">
         <div className="erp-header-content">
@@ -362,661 +285,189 @@ export default function AddTeacher() {
         </div>
       )}
 
-      {/* FORM CARD */}
-      <div className="erp-form-card animate-fade-in">
-        <div className="erp-form-header">
-          <div className="erp-form-title">
-            <FaChalkboardTeacher className="erp-form-icon" />
-            <h3>Teacher Registration Form</h3>
-          </div>
-          <div className="erp-form-subtitle">
-            Fill in all required fields marked with <span className="required">*</span>. All information is confidential.
-          </div>
-        </div>
+      <form onSubmit={handleSubmit}>
+        <div className="card shadow-lg border-0 rounded-4 glass-card">
+          <div className="card-body p-4">
+            {/* BASIC INFO */}
+            <h5 className="fw-bold mb-3">
+              <FaUserTie className="me-2" /> Basic Info
+            </h5>
+            <div className="row g-3 mb-4">
+              <Input
+                label="Full Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+              />
+              <Input
+                label="Employee ID"
+                name="employeeId"
+                value={formData.employeeId}
+                onChange={handleChange}
+              />
+              <Input
+                label="Designation"
+                name="designation"
+                value={formData.designation}
+                onChange={handleChange}
+              />
+              <Input
+                label="Qualification"
+                name="qualification"
+                value={formData.qualification}
+                onChange={handleChange}
+              />
+              <Input
+                label="Experience (Years)"
+                name="experienceYears"
+                type="number"
+                value={formData.experienceYears}
+                onChange={handleChange}
+              />
+              <Input
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
 
-        <form onSubmit={handleSubmit} className="erp-form">
-          {/* FORM SECTIONS NAVIGATION */}
-          <div className="form-sections-nav">
+            {/* PERSONAL */}
+            <h5 className="fw-bold mb-3">
+              <FaIdCard className="me-2" /> Personal Info
+            </h5>
+            <div className="row g-3 mb-4">
+              <Select
+                label="Gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                options={["Male", "Female", "Other"]}
+              />
+              <Select
+                label="Blood Group"
+                name="bloodGroup"
+                value={formData.bloodGroup}
+                onChange={handleChange}
+                options={["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"]}
+              />
+              <Select
+                label="Employment Type"
+                name="employmentType"
+                value={formData.employmentType}
+                onChange={handleChange}
+                options={["FULL_TIME", "PART_TIME", "VISITING"]}
+              />
+            </div>
+          </div>
+
+            {/* ADDRESS */}
+            <h5 className="fw-bold mb-3">
+              <FaMapMarkerAlt className="me-2" /> Address
+            </h5>
+            <div className="row g-3 mb-4">
+              <Input
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+              />
+              <Input
+                label="City"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+              />
+              <Input
+                label="State"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+            {/* DOCUMENTS */}
+            <h5 className="fw-bold mb-3">
+              <FaUpload className="me-2" /> Upload Documents
+            </h5>
+            <div className="row g-3 mb-4">
+              <File label="Aadhar" name="aadhar" onChange={handleFile} />
+              <File label="PAN" name="pan" onChange={handleFile} />
+              <File
+                label="Degree Certificate"
+                name="degree"
+                onChange={handleFile}
+              />
+              <File label="Photo" name="photo" onChange={handleFile} />
+            </div>
+          </div>
+
+            {/* DEPARTMENT */}
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Department</label>
+                <select
+                  className="form-select"
+                  name="department_id"
+                  value={formData.department_id}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d._id} value={d._id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Course */}
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Course</label>
+                <select
+                  className="form-select"
+                  name="course_id"
+                  value={formData.course_id}
+                  onChange={handleChange}
+                  required
+                  disabled={!formData.department_id}
+                >
+                  <option value="">Select Course</option>
+                  {courses.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <div className="card-footer bg-white border-0 d-flex justify-content-between align-items-center p-3">
             <button
               type="button"
-              className={`section-nav-btn ${activeSection === 'basic' ? 'active' : ''}`}
-              onClick={() => setActiveSection('basic')}
+              className="btn btn-outline-secondary"
+              onClick={() => navigate("/teachers")}
             >
-              <FaUserTie className="nav-icon" />
-              <span>Basic Info</span>
+              <FaArrowLeft className="me-1" /> Back
             </button>
             <button
-              type="button"
-              className={`section-nav-btn ${activeSection === 'personal' ? 'active' : ''}`}
-              onClick={() => setActiveSection('personal')}
+              className="btn btn-success px-4 rounded-pill"
+              disabled={loading}
             >
-              <FaIdCard className="nav-icon" />
-              <span>Personal Info</span>
+              {loading ? "Creating..." : "Create Teacher"}
             </button>
-            <button
-              type="button"
-              className={`section-nav-btn ${activeSection === 'address' ? 'active' : ''}`}
-              onClick={() => setActiveSection('address')}
-            >
-              <FaMapMarkerAlt className="nav-icon" />
-              <span>Address</span>
-            </button>
-            <button
-              type="button"
-              className={`section-nav-btn ${activeSection === 'documents' ? 'active' : ''}`}
-              onClick={() => setActiveSection('documents')}
-            >
-              <FaFileAlt className="nav-icon" />
-              <span>Documents</span>
-            </button>
-          </div>
-
-          {/* BASIC INFO SECTION */}
-          <div className={`form-section ${activeSection === 'basic' ? 'active' : ''}`}>
-            <h4 className="erp-section-title">
-              <FaUserTie className="erp-section-icon" />
-              Basic Information
-            </h4>
-            
-            <div className="erp-row">
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaUserTie className="erp-label-icon" />
-                    Full Name <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    className={`erp-input ${validationErrors.name ? 'erp-input-error' : ''}`}
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter full name"
-                    required
-                  />
-                  {validationErrors.name && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.name}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    As per official records
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaEnvelope className="erp-label-icon" />
-                    Email Address <span className="required">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    className={`erp-input ${validationErrors.email ? 'erp-input-error' : ''}`}
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="teacher@college.edu"
-                    required
-                  />
-                  {validationErrors.email && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.email}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Will be used for login and communications
-                  </div>
-                </div>
-              </div>
-              
-              {/* AUTO-GENERATED EMPLOYEE ID FIELD */}
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaIdCard className="erp-label-icon" />
-                    Employee ID <span className="required">*</span>
-                  </label>
-                  <div className="employee-id-container">
-                    <div className={`employee-id-display ${validationErrors.employeeId ? 'error' : ''} ${isGeneratingId ? 'generating' : ''}`}>
-                      <div className="id-prefix">EMP</div>
-                      <input
-                        type="text"
-                        className="id-input"
-                        value={formData.employeeId}
-                        readOnly
-                        placeholder={formData.department_id ? "Auto-generating..." : "Select department first"}
-                      />
-                      {formData.employeeId && (
-                        <span className="auto-badge">
-                          <FaSyncAlt className="auto-icon" />
-                          Auto
-                        </span>
-                      )}
-                      {isGeneratingId && (
-                        <div className="generating-spinner">
-                          <FaSyncAlt className="spin-icon" />
-                        </div>
-                      )}
-                    </div>
-                    {validationErrors.employeeId && (
-                      <div className="erp-error-text employee-id-error">
-                        <FaExclamationTriangle className="erp-error-icon" />
-                        {validationErrors.employeeId}
-                      </div>
-                    )}
-                    <div className="erp-hint-text employee-id-hint">
-                      <FaInfoCircle className="erp-hint-icon" />
-                      <span>
-                        Auto-generated format: <strong>DEPT-YY-SEQ</strong> (e.g., CSE-24-127). 
-                        Generated when department is selected.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaBriefcase className="erp-label-icon" />
-                    Designation <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="designation"
-                    className={`erp-input ${validationErrors.designation ? 'erp-input-error' : ''}`}
-                    value={formData.designation}
-                    onChange={handleChange}
-                    placeholder="e.g., Professor, Assistant Professor"
-                    required
-                  />
-                  {validationErrors.designation && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.designation}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaGraduationCap className="erp-label-icon" />
-                    Qualification <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="qualification"
-                    className={`erp-input ${validationErrors.qualification ? 'erp-input-error' : ''}`}
-                    value={formData.qualification}
-                    onChange={handleChange}
-                    placeholder="e.g., Ph.D, M.Tech"
-                    required
-                  />
-                  {validationErrors.qualification && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.qualification}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaClock className="erp-label-icon" />
-                    Experience (Years) <span className="required">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="experienceYears"
-                    className={`erp-input ${validationErrors.experienceYears ? 'erp-input-error' : ''}`}
-                    value={formData.experienceYears}
-                    onChange={handleChange}
-                    placeholder="e.g., 5"
-                    min="0"
-                    required
-                  />
-                  {validationErrors.experienceYears && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.experienceYears}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaKey className="erp-label-icon" />
-                    Password <span className="required">*</span>
-                  </label>
-                  <div className="password-wrapper">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      className={`erp-input ${validationErrors.password ? 'erp-input-error' : ''}`}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Minimum 6 characters"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="toggle-password"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
-                  {validationErrors.password && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.password}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Minimum 6 characters required
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaBuilding className="erp-label-icon" />
-                    Department <span className="required">*</span>
-                  </label>
-                  <select
-                    className={`erp-select ${validationErrors.department_id ? 'erp-select-error' : ''}`}
-                    name="department_id"
-                    value={formData.department_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Select Department --</option>
-                    {departments.map((dept) => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name} {dept.code && `(${dept.code})`}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.department_id && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.department_id}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* PERSONAL INFO SECTION (unchanged) */}
-          <div className={`form-section ${activeSection === 'personal' ? 'active' : ''}`}>
-            <h4 className="erp-section-title">
-              <FaIdCard className="erp-section-icon" />
-              Personal Information
-            </h4>
-            
-            <div className="erp-row">
-              <div className="erp-col-4">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaVenusMars className="erp-label-icon" />
-                    Gender <span className="required">*</span>
-                  </label>
-                  <select
-                    className={`erp-select ${validationErrors.gender ? 'erp-select-error' : ''}`}
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Select Gender --</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  {validationErrors.gender && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.gender}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-4">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaTint className="erp-label-icon" />
-                    Blood Group <span className="required">*</span>
-                  </label>
-                  <select
-                    className={`erp-select ${validationErrors.bloodGroup ? 'erp-select-error' : ''}`}
-                    name="bloodGroup"
-                    value={formData.bloodGroup}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Select Blood Group --</option>
-                    {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map((group) => (
-                      <option key={group} value={group}>{group}</option>
-                    ))}
-                  </select>
-                  {validationErrors.bloodGroup && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.bloodGroup}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-4">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaBriefcase className="erp-label-icon" />
-                    Employment Type <span className="required">*</span>
-                  </label>
-                  <select
-                    className="erp-select"
-                    name="employmentType"
-                    value={formData.employmentType}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="FULL_TIME">Full Time</option>
-                    <option value="PART_TIME">Part Time</option>
-                    <option value="VISITING">Visiting Faculty</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ADDRESS SECTION (unchanged) */}
-          <div className={`form-section ${activeSection === 'address' ? 'active' : ''}`}>
-            <h4 className="erp-section-title">
-              <FaMapMarkerAlt className="erp-section-icon" />
-              Address Details
-            </h4>
-            
-            <div className="erp-row">
-              <div className="erp-col-12">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaMapMarkerAlt className="erp-label-icon" />
-                    Full Address <span className="required">*</span>
-                  </label>
-                  <textarea
-                    name="address"
-                    className={`erp-textarea ${validationErrors.address ? 'erp-input-error' : ''}`}
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="House No., Street, Locality"
-                    rows="3"
-                    required
-                  />
-                  {validationErrors.address && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.address}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaCity className="erp-label-icon" />
-                    City <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    className={`erp-input ${validationErrors.city ? 'erp-input-error' : ''}`}
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="e.g., Mumbai"
-                    required
-                  />
-                  {validationErrors.city && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.city}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaMapMarkerAlt className="erp-label-icon" />
-                    State <span className="required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    className={`erp-input ${validationErrors.state ? 'erp-input-error' : ''}`}
-                    value={formData.state}
-                    onChange={handleChange}
-                    placeholder="e.g., Maharashtra"
-                    required
-                  />
-                  {validationErrors.state && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {validationErrors.state}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* DOCUMENTS SECTION (unchanged) */}
-          <div className={`form-section ${activeSection === 'documents' ? 'active' : ''}`}>
-            <h4 className="erp-section-title">
-              <FaFileAlt className="erp-section-icon" />
-              Document Upload
-            </h4>
-            <p className="section-description">
-              Upload required documents. Maximum file size: 2MB per document. Supported formats: JPG, PNG, PDF
-            </p>
-            
-            <div className="erp-row">
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaFileAlt className="erp-label-icon" />
-                    Aadhar Card
-                  </label>
-                  <div className="document-upload">
-                    <input
-                      type="file"
-                      name="aadhar"
-                      className="document-input"
-                      onChange={handleFile}
-                      accept="image/*,.pdf"
-                    />
-                    <div className="document-preview">
-                      {documentPreviews.aadhar ? (
-                        typeof documentPreviews.aadhar === 'string' && documentPreviews.aadhar.startsWith('data:') ? (
-                          <img src={documentPreviews.aadhar} alt="Aadhar preview" className="preview-image" />
-                        ) : (
-                          <div className="file-name">{documentPreviews.aadhar}</div>
-                        )
-                      ) : (
-                        <div className="upload-placeholder">
-                          <FaUpload className="upload-icon" />
-                          <p>Click to upload Aadhar</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="erp-hint-text document-hint">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Government ID proof (PDF or image)
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaFileAlt className="erp-label-icon" />
-                    PAN Card
-                  </label>
-                  <div className="document-upload">
-                    <input
-                      type="file"
-                      name="pan"
-                      className="document-input"
-                      onChange={handleFile}
-                      accept="image/*,.pdf"
-                    />
-                    <div className="document-preview">
-                      {documentPreviews.pan ? (
-                        typeof documentPreviews.pan === 'string' && documentPreviews.pan.startsWith('data:') ? (
-                          <img src={documentPreviews.pan} alt="PAN preview" className="preview-image" />
-                        ) : (
-                          <div className="file-name">{documentPreviews.pan}</div>
-                        )
-                      ) : (
-                        <div className="upload-placeholder">
-                          <FaUpload className="upload-icon" />
-                          <p>Click to upload PAN</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="erp-hint-text document-hint">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Tax ID proof (PDF or image)
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaFileAlt className="erp-label-icon" />
-                    Degree Certificate
-                  </label>
-                  <div className="document-upload">
-                    <input
-                      type="file"
-                      name="degree"
-                      className="document-input"
-                      onChange={handleFile}
-                      accept=".pdf,.doc,.docx"
-                    />
-                    <div className="document-preview">
-                      {documentPreviews.degree ? (
-                        typeof documentPreviews.degree === 'string' && documentPreviews.degree.startsWith('data:') ? (
-                          <img src={documentPreviews.degree} alt="Degree preview" className="preview-image" />
-                        ) : (
-                          <div className="file-name">{documentPreviews.degree}</div>
-                        )
-                      ) : (
-                        <div className="upload-placeholder">
-                          <FaUpload className="upload-icon" />
-                          <p>Click to upload Degree</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="erp-hint-text document-hint">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Highest qualification certificate (PDF preferred)
-                  </div>
-                </div>
-              </div>
-              
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaImage className="erp-label-icon" />
-                    Passport Photo
-                  </label>
-                  <div className="document-upload">
-                    <input
-                      type="file"
-                      name="photo"
-                      className="document-input"
-                      onChange={handleFile}
-                      accept="image/*"
-                    />
-                    <div className="document-preview">
-                      {documentPreviews.photo ? (
-                        typeof documentPreviews.photo === 'string' && documentPreviews.photo.startsWith('data:') ? (
-                          <img src={documentPreviews.photo} alt="Photo preview" className="preview-image photo-preview" />
-                        ) : (
-                          <div className="file-name">{documentPreviews.photo}</div>
-                        )
-                      ) : (
-                        <div className="upload-placeholder">
-                          <FaUpload className="upload-icon" />
-                          <p>Click to upload Photo</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="erp-hint-text document-hint">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Recent passport size photograph (JPG/PNG)
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* FORM ACTIONS (unchanged) */}
-          <div className="erp-form-footer">
-            <div className="erp-footer-left">
-              <button
-                type="button"
-                className="erp-btn erp-btn-secondary erp-btn-lg"
-                onClick={() => navigate("/teachers")}
-                disabled={loading}
-              >
-                <FaArrowLeft className="erp-btn-icon" />
-                <span>Cancel</span>
-              </button>
-            </div>
-            <div className="erp-footer-right">
-              <button
-                type="submit"
-                className="erp-btn erp-btn-primary erp-btn-lg erp-btn-shadow"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="erp-btn-icon erp-spin" />
-                    <span>Creating Teacher...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaSave className="erp-btn-icon" />
-                    <span>Create Teacher</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
         </form>
       </div>
@@ -1865,6 +1316,40 @@ export default function AddTeacher() {
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+/* ================= REUSABLE INPUTS ================= */
+
+function Input({ label, ...props }) {
+  return (
+    <div className="col-md-6">
+      <label className="form-label fw-semibold">{label}</label>
+      <input className="form-control" {...props} required />
+    </div>
+  );
+}
+
+function Select({ label, options, ...props }) {
+  return (
+    <div className="col-md-4">
+      <label className="form-label fw-semibold">{label}</label>
+      <select className="form-select" {...props}>
+        <option value="">Select</option>
+        {options.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function File({ label, ...props }) {
+  return (
+    <div className="col-md-3">
+      <label className="form-label fw-semibold">{label}</label>
+      <input type="file" className="form-control" {...props} />
     </div>
   );
 }

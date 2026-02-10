@@ -30,6 +30,11 @@ const TimetableSchema = new mongoose.Schema(
       required: true
     },
 
+    name: {
+      type: String,
+      required: true, // human readable
+    },
+
     status: {
       type: String,
       enum: ["DRAFT", "PUBLISHED"],
@@ -43,5 +48,11 @@ const TimetableSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+TimetableSchema.index(
+  { college_id: 1, course_id: 1, semester: 1, academicYear: 1 },
+  { unique: true }
+);
+
 
 module.exports = mongoose.model("Timetable", TimetableSchema);
