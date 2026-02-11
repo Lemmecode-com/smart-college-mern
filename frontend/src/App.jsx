@@ -81,6 +81,11 @@ import AddTimetableSlot from "./pages/dashboard/Teacher/AddTimetableSlot";
 import TimetableList from "./pages/dashboard/Teacher/TimetableList";
 import WeeklyTimetable from "./pages/dashboard/Teacher/WeeklyTimetable";
 import MySchedule from "./pages/dashboard/Teacher/MySchedule";
+import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
+import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
+import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
+import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
+import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -667,15 +672,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/timetable/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-
+                
                 <Route
                   path="/timetable/my-timetable"
                   element={
@@ -709,7 +706,7 @@ export default function App() {
                       <CreateSession />
                     </ProtectedRoute>
                   }
-                /> */}
+                />
 
                 {/* New Timetable created by teacher(hod) */}
 
@@ -721,33 +718,6 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-
-                <Route
-                  path="/timetable/edit-slot/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <EditSlotModal />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/timetable/details/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <TimetableDetails />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/timetable/weekly-grid/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <WeeklyTimetableGrid />
-                    </ProtectedRoute>
-                  }
-                />
-
                 {/* ================= FALLBACK ================= */}
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
