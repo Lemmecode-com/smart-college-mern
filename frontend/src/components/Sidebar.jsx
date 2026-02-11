@@ -31,6 +31,9 @@ import {
   FaExclamationTriangle,
   FaInfoCircle,
   FaMoneyBill,
+  FaChartBar,
+  FaChartPie,
+  FaDownload
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -40,20 +43,28 @@ export default function Sidebar() {
   // Mobile sidebar state
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openSections, setOpenSections] = useState({
+    // College Admin sections
     college: true,
     departments: true,
     courses: true,
     teachers: true,
-    timetable: true,
     students: true,
     "fee-structure": true,
+    notifications: true,
+    reports: true,
+    
+    // Teacher sections
+    "profile-teacher": true,
     "timetable-teacher": true,
     "sessions-teacher": true,
     "attendance-teacher": true,
     "notifications-teacher": true,
-    "profile-teacher": true,
     "students-teacher": true,
-    "system-settings": true,
+    
+    // Super Admin sections
+    "super-colleges": true,
+    "super-reports": true,
+    "super-settings": true
   });
 
   // Close mobile sidebar on route change
@@ -83,7 +94,6 @@ export default function Sidebar() {
   if (!user) return null;
 
   const role = user.role;
-  const isAdmin = role === "COLLEGE_ADMIN" || role === "SUPER_ADMIN";
 
   const toggleSection = (section) => {
     setOpenSections((prev) => ({
@@ -122,13 +132,19 @@ export default function Sidebar() {
     overflow: "hidden",
   });
 
-  const activeLinkStyle = {
-    color: "#0f3a4a",
-    background: "#ffffff",
-    borderLeft: "3px solid #1a4b6d",
-    fontWeight: 600,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-  };
+  const subLinkStyle = ({ isActive }) => ({
+    padding: "10px 16px 10px 36px",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: isActive ? "#0f3a4a" : "#c3e0e5",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    borderRadius: "8px",
+    transition: "all 0.25s ease",
+    borderLeft: isActive ? "3px solid #4CAF50" : "3px solid transparent",
+    background: isActive ? "rgba(255, 255, 255, 0.15)" : "transparent",
+  });
 
   const sectionTitleStyle = {
     display: "flex",
@@ -142,7 +158,7 @@ export default function Sidebar() {
     cursor: "pointer",
     borderRadius: "8px",
     transition: "all 0.2s ease",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderLeft: "3px solid transparent",
   };
 
@@ -152,26 +168,6 @@ export default function Sidebar() {
     transition: "max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
     paddingLeft: "10px",
   });
-
-  const subLinkStyle = {
-    padding: "10px 16px 10px 36px",
-    fontSize: "13px",
-    fontWeight: 500,
-    color: "#c3e0e5",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    borderRadius: "8px",
-    transition: "all 0.25s ease",
-    borderLeft: "3px solid transparent",
-  };
-
-  const activeSubLinkStyle = {
-    color: "#0f3a4a",
-    background: "rgba(255, 255, 255, 0.15)",
-    borderLeft: "3px solid #4CAF50",
-    fontWeight: 600,
-  };
 
   return (
     <>
@@ -210,16 +206,16 @@ export default function Sidebar() {
 
           {/* NAVIGATION LINKS */}
           <nav className="sidebar-nav">
-            {/* DASHBOARD LINK */}
+            {/* DASHBOARD LINK - COMMON FOR ALL ROLES */}
             <NavLink
               to={
                 role === "SUPER_ADMIN"
                   ? "/super-admin/dashboard"
                   : role === "COLLEGE_ADMIN"
-                    ? "/dashboard"
-                    : role === "TEACHER"
-                      ? "/teacher/dashboard"
-                      : "/student/dashboard"
+                  ? "/dashboard"
+                  : role === "TEACHER"
+                  ? "/teacher/dashboard"
+                  : "/student/dashboard"
               }
               style={getNavLinkStyle}
               className={({ isActive }) => (isActive ? "active-link" : "")}
@@ -227,36 +223,102 @@ export default function Sidebar() {
               <FaTachometerAlt /> Dashboard
             </NavLink>
 
-            {/* ROLE-BASED MENUS */}
+            {/* ================= SUPER ADMIN MENU ================= */}
             {role === "SUPER_ADMIN" && (
               <>
-                <NavLink
-                  to="/super-admin/create-college"
-                  style={getNavLinkStyle}
+                {/* COLLEGE MANAGEMENT */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["super-colleges"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("super-colleges")}
+                  style={sectionTitleStyle}
                 >
-                  <FaUniversity /> Add New College
-                </NavLink>
-                <NavLink
-                  to="/super-admin/colleges-list"
-                  style={getNavLinkStyle}
+                  <div className="section-title-content">
+                    <FaUniversity /> College Management
+                  </div>
+                  {openSections["super-colleges"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["super-colleges"])}>
+                  <NavLink to="/super-admin/create-college" style={getNavLinkStyle}>
+                    <FaPlus /> Add New College
+                  </NavLink>
+                  <NavLink to="/super-admin/colleges-list" style={getNavLinkStyle}>
+                    <FaListOl /> Colleges List
+                  </NavLink>
+                </div>
+
+                {/* REPORTS */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["super-reports"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("super-reports")}
+                  style={sectionTitleStyle}
                 >
-                  <FaUniversity /> Colleges List
-                </NavLink>
-                <NavLink to="/super-admin/settings" style={getNavLinkStyle}>
-                  <FaCog /> System Settings
-                </NavLink>
+                  <div className="section-title-content">
+                    <FaChartPie /> Reports & Analytics
+                  </div>
+                  {openSections["super-reports"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["super-reports"])}>
+                  {/* <NavLink to="/super-admin/reports/admission" style={getNavLinkStyle}>
+                    <FaGraduationCap /> Admission Reports
+                  </NavLink> */}
+                  <NavLink to="/super-admin/reports" style={getNavLinkStyle}>
+                    <FaUniversity /> College Analytics
+                  </NavLink>
+                  {/* <NavLink to="/super-admin/reports/financial" style={getNavLinkStyle}>
+                    <FaMoneyBill /> Financial Reports
+                  </NavLink> */}
+                </div>
+
+                {/* SYSTEM SETTINGS */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["super-settings"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("super-settings")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaCog /> System Settings
+                  </div>
+                  {openSections["super-settings"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["super-settings"])}>
+                  <NavLink to="/super-admin/settings" style={getNavLinkStyle}>
+                    <FaCog /> General Settings
+                  </NavLink>
+                  <NavLink to="/super-admin/settings/users" style={getNavLinkStyle}>
+                    <FaUsers /> User Management
+                  </NavLink>
+                </div>
               </>
             )}
 
+            {/* ================= COLLEGE ADMIN MENU ================= */}
             {role === "COLLEGE_ADMIN" && (
               <>
                 {/* COLLEGE SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("college")}
                   className={`sidebar-section-title ${
                     openSections.college ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("college")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaUniversity /> College
@@ -275,11 +337,11 @@ export default function Sidebar() {
 
                 {/* DEPARTMENTS SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("departments")}
                   className={`sidebar-section-title ${
                     openSections.departments ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("departments")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaBook /> Departments
@@ -292,20 +354,20 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections.departments)}>
                   <NavLink to="/departments" style={getNavLinkStyle}>
-                    <FaBook /> Department List
+                    <FaListOl /> Department List
                   </NavLink>
                   <NavLink to="/departments/add" style={getNavLinkStyle}>
-                    <FaBook /> Add Department
+                    <FaPlus /> Add Department
                   </NavLink>
                 </div>
 
                 {/* COURSES SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("courses")}
                   className={`sidebar-section-title ${
                     openSections.courses ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("courses")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaLayerGroup /> Courses
@@ -318,29 +380,26 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections.courses)}>
                   <NavLink to="/courses" style={getNavLinkStyle}>
-                    <FaLayerGroup /> Course List
+                    <FaListOl /> Course List
                   </NavLink>
                   <NavLink to="/courses/add" style={getNavLinkStyle}>
-                    <FaLayerGroup /> Add Course
+                    <FaPlus /> Add Course
                   </NavLink>
-                  <NavLink
-                    to="/subjects/course/:courseId"
-                    style={getNavLinkStyle}
-                  >
-                    <FaLayerGroup /> Subject List
+                  <NavLink to="/subjects/course/:courseId" style={getNavLinkStyle}>
+                    <FaBook /> Subject List
                   </NavLink>
                   <NavLink to="/subjects/add" style={getNavLinkStyle}>
-                    <FaLayerGroup /> Add Subject
+                    <FaPlus /> Add Subject
                   </NavLink>
                 </div>
 
                 {/* TEACHERS SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("teachers")}
                   className={`sidebar-section-title ${
                     openSections.teachers ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("teachers")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaUserGraduate /> Teachers
@@ -353,20 +412,20 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections.teachers)}>
                   <NavLink to="/teachers" style={getNavLinkStyle}>
-                    <FaUserGraduate /> Teacher List
+                    <FaListOl /> Teacher List
                   </NavLink>
                   <NavLink to="/teachers/add-teacher" style={getNavLinkStyle}>
-                    <FaUserGraduate /> Add Teacher
+                    <FaPlus /> Add Teacher
                   </NavLink>
                 </div>
 
                 {/* STUDENTS SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("students")}
                   className={`sidebar-section-title ${
                     openSections.students ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("students")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaUserGraduate /> Students
@@ -379,20 +438,20 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections.students)}>
                   <NavLink to="/students" style={getNavLinkStyle}>
-                    <FaUserGraduate /> Student List
+                    <FaListOl /> Student List
                   </NavLink>
                   <NavLink to="/students/approve" style={getNavLinkStyle}>
-                    <FaUserGraduate /> Approve Students
+                    <FaCheckCircle /> Approve Students
                   </NavLink>
                 </div>
 
                 {/* FEE STRUCTURE SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("fee-structure")}
                   className={`sidebar-section-title ${
                     openSections["fee-structure"] ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("fee-structure")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaMoneyBillWave /> Fee Management
@@ -405,41 +464,119 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections["fee-structure"])}>
                   <NavLink to="/fees/create" style={getNavLinkStyle}>
-                    <FaMoneyBillWave /> Create Fee Structure
+                    <FaPlus /> Create Fee Structure
                   </NavLink>
                   <NavLink to="/fees/list" style={getNavLinkStyle}>
-                    <FaMoneyBillWaveAlt /> Fee Structures List
+                    <FaListOl /> Fee Structures List
                   </NavLink>
                 </div>
 
-                {/* Notifications */}
+                {/* NOTIFICATIONS SECTION */}
                 <div
-                  style={sectionTitleStyle}
-                  onClick={() => toggleSection("Notifications")}
                   className={`sidebar-section-title ${
-                    openSections["Notifications"] ? "open" : ""
+                    openSections.notifications ? "open" : ""
                   }`}
+                  onClick={() => toggleSection("notifications")}
+                  style={sectionTitleStyle}
                 >
                   <div className="section-title-content">
                     <FaBell /> Notifications
                   </div>
-                  {openSections["Notifications"] ? (
+                  {openSections.notifications ? (
                     <FaChevronUp size={12} />
                   ) : (
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div style={sectionBodyStyle(openSections["Notifications"])}>
+                <div style={sectionBodyStyle(openSections.notifications)}>
                   <NavLink to="/notification/create" style={getNavLinkStyle}>
-                    <FaLink /> Create Notification
+                    <FaPlus /> Create Notification
                   </NavLink>
                   <NavLink to="/notification/list" style={getNavLinkStyle}>
-                    <FaLink /> Notification List
+                    <FaListOl /> Notification List
                   </NavLink>
                 </div>
               </>
             )}
 
+           {/* REPORTS and Analytics */}
+             
+               {role === "COLLEGE_ADMIN" && (
+                <>
+                <div
+                  className={`sidebar-section-title ${
+                    openSections.reports ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("reports")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaChartPie /> Reports & Analytics
+                  </div>
+                  {openSections.reports ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+
+                 
+                <div style={sectionBodyStyle(openSections.reports)}>
+                  <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
+                    <FaGraduationCap /> Admission Reports
+                  </NavLink>
+                  <NavLink to="/college-admin/reports/course-wise" style={getNavLinkStyle}>
+                      <FaUserGraduate /> Course-wise Reports
+                    </NavLink>
+                  <NavLink to="/college-admin/reports/payment-summary" style={getNavLinkStyle}>
+                    <FaMoneyBillWave /> Payment Reports
+                  </NavLink>
+                  <NavLink to="/college-admin/reports/attendance" style={getNavLinkStyle}>
+                    <FaMoneyBill /> Attendance Reports
+                  </NavLink> 
+                </div>
+          
+                </>
+                
+              )}
+
+            {/* Admin System settings */}
+            {role === "COLLEGE_ADMIN" && (
+              <>
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["system-settings"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("system-settings")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaCog /> System Settings
+                  </div>
+                  {openSections["system-settings"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["system-settings"])}>
+                  <NavLink to="/system-settings/academic" style={getNavLinkStyle}>
+                    <FaGraduationCap /> Academic Settings
+                  </NavLink>
+                  <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
+                    <FaCog /> Fee Settings
+                  </NavLink>
+                  <NavLink to="/system-settings/general" style={getNavLinkStyle}>
+                    <FaEnvelope /> General Settings
+                  </NavLink>
+                  <NavLink to="/system-settings/notifications" style={getNavLinkStyle}>
+                    <FaBell /> Notification Settings
+                  </NavLink>
+                </div>
+              </>
+            )}
+
+            {/* ================= TEACHER MENU ================= */}
             {role === "TEACHER" && (
               <>
                 <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
@@ -477,7 +614,7 @@ export default function Sidebar() {
                 </NavLink>
               </>
             )}
-
+            {/* ================= STUDENT MENU ================= */}
             {role === "STUDENT" && (
               <>
                 <NavLink to="/student/profile" style={getNavLinkStyle}>
@@ -489,55 +626,17 @@ export default function Sidebar() {
                 <NavLink to="/student/fees" style={getNavLinkStyle}>
                   <FaMoneyBillWave /> Fees
                 </NavLink>
-                <NavLink to="/my-attendance" style={getNavLinkStyle}>
+                <NavLink to="/student/attendance" style={getNavLinkStyle}>
                   <FaClipboardList /> My Attendance
                 </NavLink>
-                <NavLink to="/notification/student" style={getNavLinkStyle}>
+                <NavLink to="/student/notifications" style={getNavLinkStyle}>
                   <FaBell /> Notifications
+                </NavLink>
+                <NavLink to="/student/grades" style={getNavLinkStyle}>
+                  <FaChartBar /> My Grades
                 </NavLink>
               </>
             )}
-
-            {/* SYSTEM SETTINGS SECTION */}
-            <div
-              style={sectionTitleStyle}
-              onClick={() => toggleSection("system-settings")}
-              className={`sidebar-section-title ${
-                openSections["system-settings"] ? "open" : ""
-              }`}
-            >
-              <div className="section-title-content">
-                <FaCog /> System Settings
-              </div>
-              {openSections["system-settings"] ? (
-                <FaChevronUp size={12} />
-              ) : (
-                <FaChevronDown size={12} />
-              )}
-            </div>
-
-            <div style={sectionBodyStyle(openSections["system-settings"])}>
-              <NavLink to="/system-settings/general" style={getNavLinkStyle}>
-                <FaCog /> General Settings
-              </NavLink>
-
-              <NavLink to="/system-settings/academic" style={getNavLinkStyle}>
-                <FaCog /> Academic Settings
-              </NavLink>
-
-              <div style={sectionBodyStyle(openSections["system-settings"])}>
-                <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
-                  <FaMoneyBill /> Fee Settings
-                </NavLink>
-              </div>
-
-              <NavLink
-                to="/system-settings/notifications"
-                style={getNavLinkStyle}
-              >
-                <FaCog /> Notification Settings
-              </NavLink>
-            </div>
 
             {/* LOGOUT BUTTON */}
             <div className="sidebar-logout">
@@ -655,6 +754,7 @@ export default function Sidebar() {
         .sidebar-section-title.open {
           background: rgba(26, 75, 109, 0.3);
           border-left: 3px solid #1a4b6d;
+          box-shadow: 0 0 15px rgba(26, 75, 109, 0.3);
         }
 
         .section-title-content {
@@ -689,7 +789,7 @@ export default function Sidebar() {
         .active-sublink {
           color: #0f3a4a !important;
           background: rgba(255, 255, 255, 0.15) !important;
-          border-left: 3px solid #4caf50 !important;
+          border-left: 3px solid #4CAF50 !important;
           font-weight: 600 !important;
           position: relative;
         }
@@ -774,6 +874,29 @@ export default function Sidebar() {
           .sidebar-container {
             transform: translateX(-100%);
           }
+          
+          .sidebar-content {
+            padding: 15px 10px;
+          }
+          
+          .sidebar-logo {
+            padding: 10px 0 15px;
+          }
+          
+          .logo-text {
+            font-size: 20px;
+          }
+          
+          .sidebar-section-title,
+          a[style*="padding: 12px 16px"] {
+            font-size: 13px;
+            padding: 10px 12px;
+          }
+          
+          a[style*="padding: 10px 16px 10px 36px"] {
+            font-size: 12px;
+            padding-left: 30px;
+          }
         }
 
         /* Animation for section collapse */
@@ -832,14 +955,17 @@ export default function Sidebar() {
           }
         }
 
-        /* Subtle gradient on scrollbar thumb */
-        .sidebar-content::-webkit-scrollbar-thumb {
-          background-image: linear-gradient(
-            to bottom,
-            rgba(255, 255, 255, 0.1),
-            rgba(255, 255, 255, 0.3),
-            rgba(255, 255, 255, 0.1)
-          );
+        /* Sub-link hover effects */
+        a[style*="padding: 10px 16px 10px 36px"]:hover {
+          background: rgba(255, 255, 255, 0.08) !important;
+          transform: translateX(5px) !important;
+        }
+
+        /* Ensure active sub-links have proper styling */
+        a.active-link + div a.active {
+          color: #0f3a4a !important;
+          background: rgba(255, 255, 255, 0.15) !important;
+          border-left: 3px solid #4CAF50 !important;
         }
       `}</style>
     </>

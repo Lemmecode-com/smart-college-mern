@@ -86,6 +86,13 @@ import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting
 import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
+import SuperAdminReports from "./pages/dashboard/Super-Admin/SuperAdminReports";
+import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
+import CourseReport from "./pages/dashboard/College-Admin/Reports/CourseReport";
+import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
+import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
+import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
+import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -156,6 +163,31 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
                       <CollegeList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/super-admin/college/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <ViewCollegeDetails />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/super-admin/college/:id/edit"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <EditCollege/>
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/super-admin/reports"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <SuperAdminReports />
                     </ProtectedRoute>
                   }
                 />
@@ -280,6 +312,42 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <StudentNotificationList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AdminReports />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/course-wise"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CourseReport />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/attendance"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AttendanceSummary />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/payment-summary"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <PaymentReports />
                     </ProtectedRoute>
                   }
                 />
@@ -539,7 +607,14 @@ export default function App() {
                   }
                 />
                 {/* ================= System settings ================= */}
-                <Route path="/system-settings/fees" element={<FeeSetting />} />
+                <Route
+                  path="/system-settings/fees"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <FeeSetting/>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/system-settings/general"
                   element={
