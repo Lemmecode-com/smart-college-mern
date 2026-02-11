@@ -1,0 +1,149 @@
+.weekly-container {
+  padding: 20px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 120px repeat(6, 1fr);
+  gap: 8px;
+  background: #f5f6f8;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.header {
+  font-weight: 600;
+  text-align: center;
+}
+
+.time {
+  font-weight: 500;
+}
+
+.cell {
+  background: #fff;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-btn {
+  border: none;
+  background: transparent;
+  color: #007bff;
+  cursor: pointer;
+}
+
+.slot-card {
+  width: 100%;
+  background: #eaf2ff;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.slot-card .teacher {
+  font-size: 13px;
+  color: #555;
+}
+
+.actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+}
+
+/* MODAL */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 380px;
+}
+
+.modal-box input,
+.modal-box select {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+
+
+.weekly-container {
+  padding: 24px;
+}
+
+.tt-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tt-grid {
+  border-radius: 12px;
+  background: #f9fafb;
+  padding: 12px;
+}
+
+.tt-row {
+  display: grid;
+  grid-template-columns: 120px repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tt-row.header {
+  font-weight: 600;
+}
+
+.cell {
+  background: #fff;
+  border: 1px dashed #e5e7eb;
+  min-height: 90px;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.empty {
+  color: #9ca3af;
+  text-align: center;
+  cursor: pointer;
+}
+
+.slot-card {
+  background: #eef2ff;
+  border-left: 4px solid;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
