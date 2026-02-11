@@ -35,7 +35,7 @@ export default function AddTeacher() {
     aadhar: null,
     pan: null,
     degree: null,
-    photo: null
+    photo: null,
   });
 
   const [formData, setFormData] = useState({
@@ -62,7 +62,7 @@ export default function AddTeacher() {
   const [showPassword, setShowPassword] = useState(false);
   const [formTouched, setFormTouched] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-  const [activeSection, setActiveSection] = useState('basic');
+  const [activeSection, setActiveSection] = useState("basic");
   const [isGeneratingId, setIsGeneratingId] = useState(false);
 
   /* ================= LOAD DEPARTMENTS ================= */
@@ -95,22 +95,22 @@ export default function AddTeacher() {
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData({ ...formData, [name]: value });
     setFormTouched(true);
-    
+
     // Clear validation error for this field
     if (validationErrors[name]) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
-    
+
     // Special handling: Clear employeeId when department changes
     if (name === "department_id" && value === "") {
-      setFormData(prev => ({ ...prev, employeeId: "" }));
+      setFormData((prev) => ({ ...prev, employeeId: "" }));
     }
   };
 
@@ -124,31 +124,32 @@ export default function AddTeacher() {
     const { name, files } = e.target;
     if (files.length > 0) {
       const file = files[0];
-      
+
       // Validate file type and size
-      if (!file.type.startsWith('image/') && name !== 'degree') {
+      if (!file.type.startsWith("image/") && name !== "degree") {
         setError("Please upload a valid image file (JPG, PNG, GIF)");
         return;
       }
-      
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+
+      if (file.size > 2 * 1024 * 1024) {
+        // 2MB limit
         setError("File size must be less than 2MB");
         return;
       }
-      
+
       setDocuments({ ...documents, [name]: file });
-      
+
       // Create preview for images
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setDocumentPreviews(prev => ({ ...prev, [name]: reader.result }));
+          setDocumentPreviews((prev) => ({ ...prev, [name]: reader.result }));
         };
         reader.readAsDataURL(file);
       } else {
-        setDocumentPreviews(prev => ({ ...prev, [name]: file.name }));
+        setDocumentPreviews((prev) => ({ ...prev, [name]: file.name }));
       }
-      
+
       setError("");
     }
   };
@@ -156,12 +157,12 @@ export default function AddTeacher() {
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setError("Please fix the errors before submitting");
       return;
     }
-    
+
     setLoading(true);
     setError("");
     setSuccess(false);
@@ -174,7 +175,7 @@ export default function AddTeacher() {
 
       setSuccess(true);
       setError("");
-      
+
       // Reset form
       setFormData({
         name: "",
@@ -190,24 +191,27 @@ export default function AddTeacher() {
         employmentType: "FULL_TIME",
         address: "",
         city: "",
-        state: ""
+        state: "",
       });
       setDocuments({
         aadhar: null,
         pan: null,
         degree: null,
-        photo: null
+        photo: null,
       });
       setDocumentPreviews({
         aadhar: null,
         pan: null,
         degree: null,
-        photo: null
+        photo: null,
       });
-      
+
       setTimeout(() => navigate("/teachers"), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create teacher. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to create teacher. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -280,7 +284,8 @@ export default function AddTeacher() {
             <FaCheckCircle />
           </div>
           <div className="erp-alert-content">
-            <strong>Success!</strong> Teacher created successfully. Redirecting to teachers list...
+            <strong>Success!</strong> Teacher created successfully. Redirecting
+            to teachers list...
           </div>
         </div>
       )}
@@ -369,6 +374,7 @@ export default function AddTeacher() {
             </div>
           </div>
 
+          <div>
             {/* ADDRESS */}
             <h5 className="fw-bold mb-3">
               <FaMapMarkerAlt className="me-2" /> Address
@@ -395,6 +401,7 @@ export default function AddTeacher() {
             </div>
           </div>
 
+          <div>
             {/* DOCUMENTS */}
             <h5 className="fw-bold mb-3">
               <FaUpload className="me-2" /> Upload Documents
@@ -411,6 +418,7 @@ export default function AddTeacher() {
             </div>
           </div>
 
+          <div>
             {/* DEPARTMENT */}
             <div className="row g-3">
               <div className="col-md-6">
@@ -469,8 +477,8 @@ export default function AddTeacher() {
               {loading ? "Creating..." : "Create Teacher"}
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
 
       {/* STYLES */}
       <style jsx>{`
@@ -481,29 +489,29 @@ export default function AddTeacher() {
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
+
         .erp-breadcrumb {
           background: transparent;
           padding: 0;
           margin-bottom: 1.5rem;
         }
-        
+
         .breadcrumb {
           background: white;
           padding: 0.75rem 1.5rem;
           border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        
+
         .breadcrumb-item a {
           color: #1a4b6d;
           text-decoration: none;
         }
-        
+
         .breadcrumb-item a:hover {
           text-decoration: underline;
         }
-        
+
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -516,13 +524,13 @@ export default function AddTeacher() {
           align-items: center;
           animation: slideDown 0.6s ease;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;
           gap: 1.25rem;
         }
-        
+
         .erp-header-icon {
           width: 56px;
           height: 56px;
@@ -533,19 +541,19 @@ export default function AddTeacher() {
           justify-content: center;
           font-size: 1.75rem;
         }
-        
+
         .erp-page-title {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
         }
-        
+
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
           opacity: 0.85;
           font-size: 1rem;
         }
-        
+
         .erp-header-actions .erp-btn {
           background: white;
           color: #1a4b6d;
@@ -556,12 +564,12 @@ export default function AddTeacher() {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
           transition: all 0.3s ease;
         }
-        
+
         .erp-header-actions .erp-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
-        
+
         .erp-alert {
           padding: 1rem 1.5rem;
           border-radius: 12px;
@@ -572,27 +580,27 @@ export default function AddTeacher() {
           position: relative;
           animation: slideIn 0.5s ease;
         }
-        
+
         .erp-alert-danger {
           background: rgba(244, 67, 54, 0.1);
-          border-left: 4px solid #F44336;
-          color: #F44336;
+          border-left: 4px solid #f44336;
+          color: #f44336;
         }
-        
+
         .erp-alert-success {
           background: rgba(76, 175, 80, 0.1);
-          border-left: 4px solid #4CAF50;
-          color: #4CAF50;
+          border-left: 4px solid #4caf50;
+          color: #4caf50;
         }
-        
+
         .erp-alert-icon {
           font-size: 1.5rem;
         }
-        
+
         .erp-alert-content {
           flex: 1;
         }
-        
+
         .erp-alert-close {
           background: none;
           border: none;
@@ -602,7 +610,7 @@ export default function AddTeacher() {
           padding: 0;
           color: inherit;
         }
-        
+
         .erp-form-card {
           background: white;
           border-radius: 16px;
@@ -610,41 +618,41 @@ export default function AddTeacher() {
           overflow: hidden;
           animation: fadeIn 0.6s ease;
         }
-        
+
         .erp-form-header {
           padding: 2rem;
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           border-bottom: 1px solid #e9ecef;
         }
-        
+
         .erp-form-title {
           display: flex;
           align-items: center;
           gap: 1rem;
           margin-bottom: 0.5rem;
         }
-        
+
         .erp-form-icon {
           color: #1a4b6d;
           font-size: 1.5rem;
         }
-        
+
         .erp-form-title h3 {
           margin: 0;
           font-size: 1.5rem;
           font-weight: 700;
           color: #1a4b6d;
         }
-        
+
         .erp-form-subtitle {
           font-size: 0.9rem;
           color: #666;
         }
-        
+
         .erp-form {
           padding: 0 2rem 2rem;
         }
-        
+
         /* FORM SECTIONS NAVIGATION */
         .form-sections-nav {
           display: flex;
@@ -653,7 +661,7 @@ export default function AddTeacher() {
           padding: 0 0 1rem;
           overflow-x: auto;
         }
-        
+
         .section-nav-btn {
           background: none;
           border: none;
@@ -669,33 +677,33 @@ export default function AddTeacher() {
           transition: all 0.3s ease;
           white-space: nowrap;
         }
-        
+
         .section-nav-btn:hover {
           color: #1a4b6d;
           background: #f8f9fa;
         }
-        
+
         .section-nav-btn.active {
           color: #1a4b6d;
           font-weight: 600;
           border-bottom-color: #1a4b6d;
           background: #f0f5ff;
         }
-        
+
         .nav-icon {
           font-size: 1.1rem;
         }
-        
+
         /* FORM SECTIONS */
         .form-section {
           display: none;
           animation: fadeIn 0.4s ease;
         }
-        
+
         .form-section.active {
           display: block;
         }
-        
+
         .erp-section-title {
           display: flex;
           align-items: center;
@@ -707,27 +715,33 @@ export default function AddTeacher() {
           padding-bottom: 0.75rem;
           border-bottom: 2px solid #f0f2f5;
         }
-        
+
         .erp-section-icon {
           color: #1a4b6d;
         }
-        
+
         .section-description {
           color: #666;
           margin-bottom: 1.5rem;
           line-height: 1.6;
         }
-        
+
         .erp-row {
           display: grid;
           grid-template-columns: repeat(12, 1fr);
           gap: 1.5rem;
         }
-        
-        .erp-col-12 { grid-column: span 12; }
-        .erp-col-6 { grid-column: span 6; }
-        .erp-col-4 { grid-column: span 4; }
-        
+
+        .erp-col-12 {
+          grid-column: span 12;
+        }
+        .erp-col-6 {
+          grid-column: span 6;
+        }
+        .erp-col-4 {
+          grid-column: span 4;
+        }
+
         @media (max-width: 768px) {
           .erp-col-12,
           .erp-col-6,
@@ -735,11 +749,11 @@ export default function AddTeacher() {
             grid-column: span 12;
           }
         }
-        
+
         .erp-form-group {
           margin-bottom: 1.5rem;
         }
-        
+
         .erp-label {
           display: flex;
           align-items: center;
@@ -749,17 +763,17 @@ export default function AddTeacher() {
           font-size: 0.95rem;
           margin-bottom: 0.75rem;
         }
-        
+
         .erp-label-icon {
           color: #1a4b6d;
           font-size: 1rem;
         }
-        
+
         .required {
-          color: #F44336;
+          color: #f44336;
           margin-left: 0.25rem;
         }
-        
+
         .erp-input,
         .erp-select,
         .erp-textarea {
@@ -774,12 +788,12 @@ export default function AddTeacher() {
           transition: all 0.3s ease;
           outline: none;
         }
-        
+
         .erp-textarea {
           min-height: 100px;
           resize: vertical;
         }
-        
+
         .erp-input:focus,
         .erp-select:focus,
         .erp-textarea:focus {
@@ -787,33 +801,35 @@ export default function AddTeacher() {
           box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
           transform: translateY(-1px);
         }
-        
+
         .erp-input-error {
-          border-color: #F44336 !important;
+          border-color: #f44336 !important;
           background: rgba(244, 67, 54, 0.05);
         }
-        
+
         .erp-select-error {
-          border-color: #F44336 !important;
-          background: rgba(244, 67, 54, 0.05) url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3e%3cpath fill='%23F44336' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e") no-repeat right 0.75rem center/8px 10px;
+          border-color: #f44336 !important;
+          background: rgba(244, 67, 54, 0.05)
+            url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3e%3cpath fill='%23F44336' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e")
+            no-repeat right 0.75rem center/8px 10px;
         }
-        
+
         .erp-error-text {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           font-size: 0.875rem;
-          color: #F44336;
+          color: #f44336;
           margin-top: 0.5rem;
           padding: 0.5rem 0.75rem;
           background: rgba(244, 67, 54, 0.05);
           border-radius: 6px;
         }
-        
+
         .erp-error-icon {
           font-size: 0.875rem;
         }
-        
+
         .erp-hint-text {
           display: flex;
           align-items: center;
@@ -826,21 +842,21 @@ export default function AddTeacher() {
           border-radius: 6px;
           border-left: 3px solid #1a4b6d;
         }
-        
+
         .document-hint {
           background: #e3f2fd;
-          border-left-color: #2196F3;
+          border-left-color: #2196f3;
         }
-        
+
         .erp-hint-icon {
           font-size: 0.875rem;
         }
-        
+
         /* PASSWORD FIELD */
         .password-wrapper {
           position: relative;
         }
-        
+
         .toggle-password {
           position: absolute;
           right: 15px;
@@ -859,11 +875,11 @@ export default function AddTeacher() {
           justify-content: center;
           transition: color 0.2s ease;
         }
-        
+
         .toggle-password:hover {
           color: #1a4b6d;
         }
-        
+
         /* DOCUMENT UPLOAD */
         .document-upload {
           border: 2px dashed #e9ecef;
@@ -875,12 +891,12 @@ export default function AddTeacher() {
           position: relative;
           overflow: hidden;
         }
-        
+
         .document-upload:hover {
           border-color: #1a4b6d;
           background: #f0f5ff;
         }
-        
+
         .document-input {
           position: absolute;
           width: 100%;
@@ -890,7 +906,7 @@ export default function AddTeacher() {
           opacity: 0;
           cursor: pointer;
         }
-        
+
         .document-preview {
           display: flex;
           justify-content: center;
@@ -899,19 +915,19 @@ export default function AddTeacher() {
           border-radius: 8px;
           overflow: hidden;
         }
-        
+
         .preview-image {
           max-width: 100%;
           max-height: 120px;
           object-fit: contain;
           border-radius: 8px;
         }
-        
+
         .photo-preview {
           border-radius: 50%;
           object-fit: cover;
         }
-        
+
         .file-name {
           font-size: 0.9rem;
           color: #1a4b6d;
@@ -919,7 +935,7 @@ export default function AddTeacher() {
           text-align: center;
           padding: 0.5rem;
         }
-        
+
         .upload-placeholder {
           display: flex;
           flex-direction: column;
@@ -929,18 +945,18 @@ export default function AddTeacher() {
           text-align: center;
           padding: 1rem;
         }
-        
+
         .upload-icon {
           font-size: 2.5rem;
           opacity: 0.3;
           margin-bottom: 0.5rem;
         }
-        
+
         .upload-placeholder p {
           font-size: 0.9rem;
           margin: 0;
         }
-        
+
         /* FORM FOOTER */
         .erp-form-footer {
           display: flex;
@@ -952,13 +968,13 @@ export default function AddTeacher() {
           margin-top: 2rem;
           border-radius: 0 0 16px 16px;
         }
-        
+
         .erp-footer-left,
         .erp-footer-right {
           display: flex;
           gap: 1rem;
         }
-        
+
         .erp-btn {
           display: inline-flex;
           align-items: center;
@@ -972,52 +988,52 @@ export default function AddTeacher() {
           transition: all 0.3s ease;
           text-decoration: none;
         }
-        
+
         .erp-btn-icon {
           font-size: 1.125rem;
         }
-        
+
         .erp-btn-primary {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           color: white;
         }
-        
+
         .erp-btn-primary:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(26, 75, 109, 0.4);
         }
-        
+
         .erp-btn-secondary {
           background: white;
           color: #1a4b6d;
           border: 2px solid #e9ecef;
         }
-        
+
         .erp-btn-secondary:hover {
           border-color: #1a4b6d;
           background: #f8f9fa;
           transform: translateY(-2px);
         }
-        
+
         .erp-btn-lg {
           padding: 1rem 2rem;
           font-size: 1.05rem;
         }
-        
+
         .erp-btn-shadow {
           box-shadow: 0 4px 16px rgba(26, 75, 109, 0.3);
         }
-        
+
         .erp-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
           transform: none;
         }
-        
+
         .erp-spin {
           animation: spin 1s linear infinite;
         }
-        
+
         /* LOADING CONTAINER */
         .erp-loading-container {
           display: flex;
@@ -1027,13 +1043,13 @@ export default function AddTeacher() {
           min-height: 60vh;
           gap: 2rem;
         }
-        
+
         .erp-loading-spinner {
           position: relative;
           width: 70px;
           height: 70px;
         }
-        
+
         .spinner-ring {
           position: absolute;
           width: 100%;
@@ -1043,28 +1059,28 @@ export default function AddTeacher() {
           border-top-color: #1a4b6d;
           animation: spin 1s linear infinite;
         }
-        
+
         .spinner-ring:nth-child(2) {
           border-top-color: #0f3a4a;
           animation-delay: 0.1s;
         }
-        
+
         .spinner-ring:nth-child(3) {
           border-top-color: rgba(26, 75, 109, 0.5);
           animation-delay: 0.2s;
         }
-        
+
         .erp-loading-text {
           font-size: 1.25rem;
           font-weight: 600;
           color: #1a4b6d;
         }
-        
+
         /* EMPLOYEE ID AUTO-GENERATION STYLES */
         .employee-id-container {
           position: relative;
         }
-        
+
         .employee-id-display {
           position: relative;
           display: flex;
@@ -1076,21 +1092,21 @@ export default function AddTeacher() {
           padding: 0.25rem;
           transition: all 0.3s ease;
         }
-        
+
         .employee-id-display.error {
-          border-color: #F44336 !important;
+          border-color: #f44336 !important;
           background: rgba(244, 67, 54, 0.05);
         }
-        
+
         .employee-id-display.generating {
-          border-color: #2196F3;
+          border-color: #2196f3;
           box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.2);
         }
-        
+
         .employee-id-display:hover {
           border-color: #1a4b6d;
         }
-        
+
         .id-prefix {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           color: white;
@@ -1102,7 +1118,7 @@ export default function AddTeacher() {
           flex-shrink: 0;
           box-shadow: 0 2px 6px rgba(26, 75, 109, 0.2);
         }
-        
+
         .id-input {
           flex: 1;
           background: white;
@@ -1117,13 +1133,13 @@ export default function AddTeacher() {
           border-radius: 8px;
           box-shadow: 0 2px 8px rgba(26, 75, 109, 0.08);
         }
-        
+
         .id-input::placeholder {
           color: #9e9e9e;
           font-weight: 500;
           letter-spacing: 0.5px;
         }
-        
+
         .auto-badge {
           position: absolute;
           top: -10px;
@@ -1140,177 +1156,204 @@ export default function AddTeacher() {
           gap: 0.375rem;
           animation: float 2s ease-in-out infinite;
         }
-        
+
         .auto-icon {
           font-size: 0.75rem;
           animation: spin 2s linear infinite;
         }
-        
+
         .generating-spinner {
           position: absolute;
           top: 50%;
           right: 15px;
           transform: translateY(-50%);
-          color: #2196F3;
+          color: #2196f3;
           font-size: 1.2rem;
           animation: spin 1s linear infinite;
         }
-        
+
         .employee-id-error {
           margin-top: 0.5rem;
         }
-        
+
         .employee-id-hint {
           background: #e8f5e9;
-          border-left-color: #4CAF50;
+          border-left-color: #4caf50;
           margin-top: 0.75rem;
         }
-        
+
         /* ANIMATIONS */
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        
+
         @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-30px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        
+
         @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
-        
+
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
-        
+
         @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-3px); }
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-3px);
+          }
         }
-        
+
         .animate-fade-in {
           animation: fadeIn 0.6s ease;
         }
-        
+
         .animate-slide-in {
           animation: slideIn 0.5s ease;
         }
-        
+
         /* RESPONSIVE DESIGN */
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
           }
-          
+
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
           }
-          
+
           .erp-header-actions {
             width: 100%;
             margin-top: 0.5rem;
           }
-          
+
           .erp-header-actions .erp-btn {
             width: 100%;
             justify-content: center;
           }
-          
+
           .erp-form-header,
           .erp-form {
             padding: 1.5rem;
           }
-          
+
           .erp-form-footer {
             flex-direction: column;
             gap: 1rem;
             padding: 1.5rem;
           }
-          
+
           .erp-footer-left,
           .erp-footer-right {
             width: 100%;
             justify-content: center;
           }
-          
+
           .erp-btn {
             width: 100%;
             justify-content: center;
           }
-          
+
           .form-sections-nav {
             flex-wrap: wrap;
           }
-          
+
           .section-nav-btn {
             padding: 0.75rem;
             font-size: 0.85rem;
           }
-          
+
           .document-preview {
             min-height: 100px;
           }
-          
+
           .preview-image {
             max-height: 100px;
           }
-          
+
           /* Employee ID responsive */
           .employee-id-display {
             flex-direction: column;
             padding: 0.75rem;
           }
-          
+
           .id-prefix {
             width: 100%;
             justify-content: center;
           }
-          
+
           .id-input {
             width: 100%;
             text-align: center;
           }
-          
+
           .auto-badge {
             position: static;
             margin-top: 0.5rem;
           }
-          
+
           .generating-spinner {
             position: static;
             transform: none;
             margin-top: 0.5rem;
           }
         }
-        
+
         @media (max-width: 480px) {
           .erp-section-title {
             font-size: 1.15rem;
           }
-          
+
           .erp-label {
             font-size: 0.9rem;
           }
-          
+
           .erp-input,
           .erp-select,
           .erp-textarea {
             padding: 0.75rem 1rem;
             font-size: 0.95rem;
           }
-          
+
           .erp-btn-lg {
             padding: 0.875rem 1.5rem;
             font-size: 1rem;
           }
-          
+
           .upload-icon {
             font-size: 2rem;
           }
