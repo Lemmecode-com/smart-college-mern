@@ -12,11 +12,9 @@ const {
   deleteSubject
 } = require("../controllers/subject.controller");
 
-router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
-
-router.post("/", createSubject);
-router.get("/course/:courseId", getSubjectsByCourse);
-router.put("/:id", updateSubject);
-router.delete("/:id", deleteSubject);
+router.post("/",auth, role("COLLEGE_ADMIN"), collegeMiddleware, createSubject);
+router.get("/course/:courseId",auth, role("COLLEGE_ADMIN", "TEACHER"), collegeMiddleware, getSubjectsByCourse);
+router.put("/:id",auth, role("COLLEGE_ADMIN"), collegeMiddleware, updateSubject);
+router.delete("/:id",auth, role("COLLEGE_ADMIN"), collegeMiddleware, deleteSubject);
 
 module.exports = router;
