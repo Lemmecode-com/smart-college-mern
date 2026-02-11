@@ -10,25 +10,46 @@ const {
   getCoursesByDepartment,
   getCourseById,
   updateCourse,
-  deleteCourse
+  deleteCourse,
 } = require("../controllers/course.controller");
 
-// Apply middlewares to ALL course routes
-router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
-
 // Create Course
-router.post("/", createCourse);
+router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createCourse);
 
 // Get Courses by Department
-router.get("/department/:departmentId", getCoursesByDepartment);
+router.get(
+  "/department/:departmentId",
+  auth,
+  role("COLLEGE_ADMIN", "TEACHER"),
+  collegeMiddleware,
+  getCoursesByDepartment,
+);
 
 // Get Single Course
-router.get("/:id", getCourseById);
+router.get(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getCourseById,
+);
 
 // Update Course
-router.put("/:id", updateCourse);
+router.put(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  updateCourse,
+);
 
 // Delete Course
-router.delete("/:id", deleteCourse);
+router.delete(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deleteCourse,
+);
 
 module.exports = router;
