@@ -14,6 +14,7 @@ const collegeSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    unique: true
   },
   contactNumber: {
     type: String,
@@ -42,7 +43,6 @@ const collegeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-
   registrationQr: {
     type: String, // file path of QR image
     required: true,
