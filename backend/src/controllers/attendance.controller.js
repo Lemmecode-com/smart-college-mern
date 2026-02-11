@@ -1,99 +1,132 @@
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
-const Timetable = require("../models/timetable.model");
+const TimetableSlot = require("../models/timetableSlot.model");
 const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
 
 /* =========================================================
-   CREATE ATTENDANCE SESSION (Teacher → Slot + Date)
-   POST /attendance/sessions
+   CREATE ATTENDANCE SESSION (Teacher)
 ========================================================= */
 exports.createAttendanceSession = async (req, res) => {
   try {
-    const { timetable_id, lectureDate, lectureNumber } = req.body;
+    const { slot_id, lectureDate, lectureNumber } = req.body;
+
+    if (!lectureNumber) {
+      return res.status(400).json({
+        message: "lectureNumber is required",
+      });
+    }
 
     const collegeId = req.college_id;
-    const teacherId = req.user.id;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
 
-    // 1️⃣ Validate timetable slot ownership
-    const slot = await Timetable.findOne({
-      _id: timetable_id,
+    // Resolve teacher
+    let teacher = await Teacher.findOne({ user_id: userId });
+    if (!teacher && userEmail) {
+      teacher = await Teacher.findOne({ email: userEmail });
+    }
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not linked with user",
+      });
+    }
+
+    // Validate slot
+    const slot = await TimetableSlot.findOne({
+      _id: slot_id,
+      teacher_id: teacher._id,
       college_id: collegeId,
-      teacher_id: teacherId,
-      status: "ACTIVE"
     });
 
     if (!slot) {
       return res.status(400).json({
-        message: "Invalid timetable slot for this teacher"
+        message: "Invalid timetable slot for this teacher",
       });
     }
 
-    // 2️⃣ Prevent duplicate session
-    const exists = await AttendanceSession.findOne({
-      timetable_id,
+    if (!slot.department_id || !slot.course_id) {
+      return res.status(500).json({
+        message: "Slot data incomplete. Please recreate slot.",
+      });
+    }
+
+    // Prevent duplicate
+    const existing = await AttendanceSession.findOne({
+      slot_id,
       lectureDate: new Date(lectureDate),
-      lectureNumber
+      lectureNumber,
     });
 
-    if (exists) {
+    if (existing) {
       return res.status(400).json({
-        message: "Attendance session already exists for this lecture"
+        message: "Attendance already created for this lecture",
       });
     }
 
-    // 3️⃣ Count students (course-wise)
+    // Count students
     const totalStudents = await Student.countDocuments({
       college_id: collegeId,
       course_id: slot.course_id,
-      status: "APPROVED"
+      status: "APPROVED",
     });
 
-    if (totalStudents === 0) {
-      return res.status(400).json({
-        message: "No approved students found for this course"
-      });
-    }
-
-    // 4️⃣ Create session
+    // Create session
     const session = await AttendanceSession.create({
       college_id: collegeId,
       department_id: slot.department_id,
       course_id: slot.course_id,
       subject_id: slot.subject_id,
-      teacher_id: teacherId,
-      timetable_id,
+      teacher_id: slot.teacher_id,
+      slot_id: slot._id,
       lectureDate: new Date(lectureDate),
       lectureNumber,
       totalStudents,
-      status: "OPEN"
+      status: "OPEN",
     });
 
     res.status(201).json({
       message: "Attendance session created successfully",
-      session
+      session,
     });
 
   } catch (error) {
+    console.error("Create Attendance Session Error:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
 
 /* =========================================================
-   GET ALL ATTENDANCE SESSIONS (Teacher)
+   GET ALL ATTENDANCE SESSIONS (Logged-in Teacher)
    GET /attendance/sessions
 ========================================================= */
 exports.getAttendanceSessions = async (req, res) => {
   try {
+    // 1️⃣ Resolve teacher from logged-in user
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found for this user",
+      });
+    }
+
+    // 2️⃣ Fetch sessions for this teacher
     const sessions = await AttendanceSession.find({
       college_id: req.college_id,
-      teacher_id: req.user.id
+      teacher_id: teacher._id,
     })
       .populate("subject_id", "name code")
       .populate("course_id", "name")
       .sort({ lectureDate: -1, lectureNumber: -1 });
 
-    res.json(sessions);
+    res.status(200).json(sessions);
   } catch (error) {
+    console.error("Get Attendance Sessions Error:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -124,132 +157,58 @@ exports.getAttendanceSessionById = async (req, res) => {
 };
 
 /* =========================================================
-   UPDATE ATTENDANCE SESSION (Only OPEN)
+   UPDATE ATTENDANCE SESSION (Only OPEN, Owner Teacher)
    PUT /attendance/sessions/:sessionId
 ========================================================= */
 exports.updateAttendanceSession = async (req, res) => {
   try {
     const { lectureDate, lectureNumber } = req.body;
+    const collegeId = req.college_id;
 
+    /* ================= Resolve Teacher ================= */
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    /* ================= Find Session ================= */
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
-      college_id: req.college_id,
-      teacher_id: req.user.id,
-      status: "OPEN"
+      college_id: collegeId,
+      teacher_id: teacher._id,   // ✅ FIX
+      status: "OPEN",
     });
 
     if (!session) {
       return res.status(400).json({
-        message: "Session not found or already closed"
+        message: "Session not found or already closed",
       });
     }
 
-    if (lectureDate) session.lectureDate = new Date(lectureDate);
-    if (lectureNumber) session.lectureNumber = lectureNumber;
+    /* ================= Update ================= */
+    if (lectureDate) {
+      session.lectureDate = new Date(lectureDate);
+    }
+
+    if (lectureNumber) {
+      session.lectureNumber = lectureNumber;
+    }
 
     await session.save();
 
-    res.json({
+    res.status(200).json({
       message: "Attendance session updated successfully",
-      session
+      session,
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-/* =========================================================
-   DELETE ATTENDANCE SESSION (Teacher only, OPEN only)
-   DELETE /attendance/sessions/:sessionId
-========================================================= */
-exports.deleteAttendanceSession = async (req, res) => {
-  try {
-    const session = await AttendanceSession.findOneAndDelete({
-      _id: req.params.sessionId,
-      college_id: req.college_id,
-      teacher_id: req.user.id,
-      status: "OPEN"
-    });
-
-    if (!session) {
-      return res.status(400).json({
-        message: "Cannot delete closed or invalid session"
-      });
-    }
-
-    await AttendanceRecord.deleteMany({
-      session_id: session._id
-    });
-
-    res.json({
-      message: "Attendance session deleted successfully"
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-/* =========================================================
-   CLOSE ATTENDANCE SESSION
-   PUT /attendance/sessions/:sessionId/close
-========================================================= */
-exports.closeAttendanceSession = async (req, res) => {
-  try {
-    const session = await AttendanceSession.findOne({
-      _id: req.params.sessionId,
-      college_id: req.college_id,
-      teacher_id: req.user.id,
-      status: "OPEN"
-    });
-
-    if (!session) {
-      return res.status(404).json({
-        message: "Session not found or already closed"
-      });
-    }
-
-    // Fetch all students
-    const students = await Student.find({
-      college_id: req.college_id,
-      course_id: session.course_id,
-      status: "APPROVED"
-    }).select("_id");
-
-    // Present students
-    const presentRecords = await AttendanceRecord.find({
-      session_id: session._id
-    });
-
-    const presentIds = presentRecords.map(r => r.student_id.toString());
-
-    // Mark ABSENT
-    const absentees = students
-      .filter(s => !presentIds.includes(s._id.toString()))
-      .map(s => ({
-        college_id: req.college_id,
-        session_id: session._id,
-        student_id: s._id,
-        status: "ABSENT",
-        markedBy: session.teacher_id
-      }));
-
-    if (absentees.length) {
-      await AttendanceRecord.insertMany(absentees);
-    }
-
-    session.status = "CLOSED";
-    await session.save();
-
-    res.json({
-      message: "Attendance session closed successfully",
-      totalStudents: students.length,
-      present: presentIds.length,
-      absent: absentees.length
-    });
-
-  } catch (error) {
+    console.error("Update Attendance Session Error:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -260,24 +219,42 @@ exports.closeAttendanceSession = async (req, res) => {
 ========================================================= */
 exports.getStudentsForAttendance = async (req, res) => {
   try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Validate session ownership
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
-      college_id: req.college_id
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
     });
 
     if (!session) {
       return res.status(404).json({
-        message: "Attendance session not found"
+        message: "Attendance session not found or access denied",
       });
     }
 
+    // Fetch students
     const students = await Student.find({
-      college_id: req.college_id,
+      college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED"
+      status: "APPROVED",
     }).select("_id fullName email");
 
-    res.json(students);
+    res.status(200).json(students);
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -291,31 +268,46 @@ exports.getStudentsForAttendance = async (req, res) => {
 exports.markAttendance = async (req, res) => {
   try {
     const { attendance } = req.body;
+    const collegeId = req.college_id;
 
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Validate session
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
-      college_id: req.college_id,
-      status: "OPEN"
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
     });
 
     if (!session) {
       return res.status(400).json({
-        message: "Attendance session not found or closed"
+        message: "Attendance session not found or closed",
       });
     }
 
     const records = attendance.map(item => ({
-      college_id: req.college_id,
+      college_id: collegeId,
       session_id: session._id,
       student_id: item.student_id,
       status: item.status,
-      markedBy: session.teacher_id
+      markedBy: teacher._id,
     }));
 
     await AttendanceRecord.insertMany(records);
 
-    res.json({
-      message: "Attendance marked successfully"
+    res.status(200).json({
+      message: "Attendance marked successfully",
     });
 
   } catch (error) {
@@ -330,17 +322,31 @@ exports.markAttendance = async (req, res) => {
 exports.editAttendance = async (req, res) => {
   try {
     const { attendance } = req.body;
+    const collegeId = req.college_id;
 
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Validate session
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
-      college_id: req.college_id,
-      teacher_id: req.user.id,
-      status: "OPEN"
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
     });
 
     if (!session) {
       return res.status(400).json({
-        message: "Session not found or already closed"
+        message: "Session not found or already closed",
       });
     }
 
@@ -351,11 +357,11 @@ exports.editAttendance = async (req, res) => {
         {
           session_id: session._id,
           student_id: item.student_id,
-          college_id: req.college_id
+          college_id: collegeId,
         },
         {
           status: item.status,
-          markedBy: req.user.id
+          markedBy: teacher._id,
         },
         { upsert: true, new: true }
       );
@@ -363,10 +369,136 @@ exports.editAttendance = async (req, res) => {
       updated.push(record);
     }
 
-    res.json({
+    res.status(200).json({
       message: "Attendance updated successfully",
       updatedCount: updated.length,
-      attendance: updated
+      attendance: updated,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   DELETE ATTENDANCE SESSION (Teacher only, OPEN only)
+   DELETE /attendance/sessions/:sessionId
+========================================================= */
+exports.deleteAttendanceSession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Delete only own OPEN session
+    const session = await AttendanceSession.findOneAndDelete({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,   // ✅ FIX
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(400).json({
+        message: "Cannot delete closed or invalid session",
+      });
+    }
+
+    // Remove related attendance records
+    await AttendanceRecord.deleteMany({
+      session_id: session._id,
+    });
+
+    res.status(200).json({
+      message: "Attendance session deleted successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   CLOSE ATTENDANCE SESSION (Teacher only, OPEN only)
+   PUT /attendance/sessions/:sessionId/close
+========================================================= */
+exports.closeAttendanceSession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Find OPEN session owned by teacher
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,   // ✅ FIX
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found or already closed",
+      });
+    }
+
+    // Fetch all students for the course
+    const students = await Student.find({
+      college_id: collegeId,
+      course_id: session.course_id,
+      status: "APPROVED",
+    }).select("_id");
+
+    // Find present students
+    const presentRecords = await AttendanceRecord.find({
+      session_id: session._id,
+    });
+
+    const presentIds = presentRecords.map(r => r.student_id.toString());
+
+    // Auto-mark ABSENT
+    const absentees = students
+      .filter(s => !presentIds.includes(s._id.toString()))
+      .map(s => ({
+        college_id: collegeId,
+        session_id: session._id,
+        student_id: s._id,
+        status: "ABSENT",
+        markedBy: teacher._id,
+      }));
+
+    if (absentees.length > 0) {
+      await AttendanceRecord.insertMany(absentees);
+    }
+
+    session.status = "CLOSED";
+    await session.save();
+
+    res.status(200).json({
+      message: "Attendance session closed successfully",
+      totalStudents: students.length,
+      present: presentIds.length,
+      absent: absentees.length,
     });
 
   } catch (error) {

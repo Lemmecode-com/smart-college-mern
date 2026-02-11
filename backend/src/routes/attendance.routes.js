@@ -26,10 +26,10 @@ router.post(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  createAttendanceSession,
+  createAttendanceSession
 );
 
-// 📋 Get all sessions (teacher-wise)
+// 📋 Get all sessions (teacher-wise also HOD can get all teacher's sessions)
 router.get(
   "/sessions",
   auth,
@@ -38,7 +38,7 @@ router.get(
   getAttendanceSessions,
 );
 
-// 📄 Get single session
+// 📄 Get single session using its ID
 router.get(
   "/sessions/:sessionId",
   auth,
