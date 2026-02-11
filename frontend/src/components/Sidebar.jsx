@@ -579,212 +579,41 @@ export default function Sidebar() {
             {/* ================= TEACHER MENU ================= */}
             {role === "TEACHER" && (
               <>
-                {/* PROFILE SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["profile-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("profile-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaCog /> My Profile
-                  </div>
-                  {openSections["profile-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["profile-teacher"])}>
-                  <NavLink
-                    to="/profile/my-profile"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaUserGraduate /> Personal Profile
-                  </NavLink>
-                  <NavLink
-                    to="/profile/settings"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaCog /> Account Settings
-                  </NavLink>
-                </div>
-
-                {/* TIMETABLE SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["timetable-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("timetable-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaCalendarAlt /> Timetable
-                  </div>
-                  {openSections["timetable-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["timetable-teacher"])}>
-                  <NavLink
-                    to="/timetable/create-timetable"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaPlus /> Create Timetable
-                  </NavLink>
-                  <NavLink
-                    to="/timetable/weekly-grid"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaCalendarAlt /> Weekly Timetable
-                  </NavLink>
-                </div>
-
-                {/* SESSIONS SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["sessions-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("sessions-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaGraduationCap /> Sessions
-                  </div>
-                  {openSections["sessions-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["sessions-teacher"])}>
-                  <NavLink
-                    to="/sessions/create"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaPlus /> Create Session
-                  </NavLink>
-                  <NavLink
-                    to="/sessions/my-sessions"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaUserGraduate /> My Sessions
-                  </NavLink>
-                </div>
-
-                {/* ATTENDANCE SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["attendance-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("attendance-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaClipboardList /> Attendance
-                  </div>
-                  {openSections["attendance-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["attendance-teacher"])}>
-                  <NavLink
-                    to="/attendance/mark"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaCheckCircle /> Mark Attendance
-                  </NavLink>
-                  <NavLink
-                    to="/attendance/report"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaChartLine /> Attendance Report
-                  </NavLink>
-                </div>
-
-                {/* NOTIFICATIONS SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["notifications-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("notifications-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaBell /> Notifications
-                  </div>
-                  {openSections["notifications-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["notifications-teacher"])}>
-                  <NavLink
-                    to="/teacher/notifications/create"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaBell /> Create Notification
-                  </NavLink>
-                  <NavLink
-                    to="/teacher/notifications/list"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaEnvelope /> My Notifications
-                  </NavLink>
-                </div>
-
-                {/* STUDENTS SECTION */}
-                <div
-                  className={`sidebar-section-title ${
-                    openSections["students-teacher"] ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("students-teacher")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaUsers /> My Students
-                  </div>
-                  {openSections["students-teacher"] ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-                <div style={sectionBodyStyle(openSections["students-teacher"])}>
-                  <NavLink
-                    to="/students/my-students"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaUserGraduate /> View Students
-                  </NavLink>
-                  <NavLink
-                    to="/students/attendance"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaClipboardList /> Student Attendance
-                  </NavLink>
-                </div>
+                <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
+                  <FaCog /> My Profile
+                </NavLink>
+                <NavLink to="/timetable/create" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Create Timetable
+                </NavLink>
+                <NavLink to="/timetable/list" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> View Timetables
+                </NavLink>
+                <NavLink to="/timetable/add-slot" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Add Timetable Slot
+                </NavLink>
+                <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> My Shedule
+                </NavLink>
+                <NavLink to="/sessions/create" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Create Session
+                </NavLink>
+                <NavLink to="/sessions/my-sessions" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> My Sessions
+                </NavLink>
+                <NavLink to="/attendance/mark" style={getNavLinkStyle}>
+                  <FaClipboardList /> Mark Attendance
+                </NavLink>
+                <NavLink to="/attendance/report" style={getNavLinkStyle}>
+                  <FaClipboardList /> Attendance Report
+                </NavLink>
+                <NavLink to="/teacher/notifications/create" style={getNavLinkStyle}>
+                  <FaBell /> Create Notification
+                </NavLink>
+                <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
+                  <FaBell /> Notifications
+                </NavLink>
               </>
             )}
-
             {/* ================= STUDENT MENU ================= */}
             {role === "STUDENT" && (
               <>
