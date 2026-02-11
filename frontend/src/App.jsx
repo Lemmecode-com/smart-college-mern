@@ -539,7 +539,14 @@ export default function App() {
                   }
                 />
                 {/* ================= System settings ================= */}
-                <Route path="/system-settings/fees" element={<FeeSetting />} />
+                <Route
+                  path="/system-settings/fees"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <FeeSetting/>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/system-settings/general"
                   element={
