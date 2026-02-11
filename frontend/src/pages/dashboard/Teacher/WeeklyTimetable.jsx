@@ -122,7 +122,7 @@ export default function WeeklyTimetable() {
       setShowModal(false);
       window.location.reload();
     } catch (err) {
-      alert(err.response?.data?.message || "Operation failed");
+      alert(err.response?.data?.message || "Cannot Modified Published Timetable or Only HOD Have Access for It.");
     }
   };
 

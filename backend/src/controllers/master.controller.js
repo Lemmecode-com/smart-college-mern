@@ -1,6 +1,5 @@
 const College = require("../models/college.model");
 const User = require("../models/user.model");
-const bcrypt = require("bcryptjs");
 const { generateCollegeQR } = require("../utils/qrGenerator");
 
 exports.createCollege = async (req, res) => {
@@ -43,13 +42,11 @@ exports.createCollege = async (req, res) => {
       registrationQr
     });
 
-    // 5️⃣ Create College Admin
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
+    // 5️⃣ Create College Admin (plain password — hashed in User schema)
     const collegeAdmin = await User.create({
       name: adminName,
       email: adminEmail,
-      password: hashedPassword,
+      password: adminPassword,
       role: "COLLEGE_ADMIN",
       college_id: college._id,
     });
@@ -74,10 +71,8 @@ exports.createCollege = async (req, res) => {
   }
 };
 
-
 // SUPER ADMIN: View all colleges
 exports.getAllColleges = async (req, res) => {
   const colleges = await College.find();
   res.json(colleges);
 };
-
