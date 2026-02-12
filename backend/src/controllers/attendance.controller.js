@@ -1,8 +1,12 @@
+const mongoose = require("mongoose");
+
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
+const Course = require("../models/course.model");
+const Subject = require("../models/subject.model");
 
 /* =========================================================
    CREATE ATTENDANCE SESSION (Teacher)
@@ -270,7 +274,6 @@ exports.markAttendance = async (req, res) => {
     const { attendance } = req.body;
     const collegeId = req.college_id;
 
-    // Resolve teacher
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
       college_id: collegeId,
@@ -282,7 +285,6 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // Validate session
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
       college_id: collegeId,
@@ -292,22 +294,29 @@ exports.markAttendance = async (req, res) => {
 
     if (!session) {
       return res.status(400).json({
-        message: "Attendance session not found or closed",
+        message: "Session not found or closed",
       });
     }
 
-    const records = attendance.map(item => ({
-      college_id: collegeId,
-      session_id: session._id,
-      student_id: item.student_id,
-      status: item.status,
-      markedBy: teacher._id,
-    }));
-
-    await AttendanceRecord.insertMany(records);
+    for (let item of attendance) {
+      await AttendanceRecord.findOneAndUpdate(
+        {
+          session_id: session._id,
+          student_id: item.student_id,
+        },
+        {
+          college_id: collegeId,
+          session_id: session._id,
+          student_id: item.student_id,
+          status: item.status,
+          markedBy: teacher._id,
+        },
+        { upsert: true, new: true }
+      );
+    }
 
     res.status(200).json({
-      message: "Attendance marked successfully",
+      message: "Attendance saved successfully",
     });
 
   } catch (error) {
@@ -491,6 +500,7 @@ exports.closeAttendanceSession = async (req, res) => {
       await AttendanceRecord.insertMany(absentees);
     }
 
+    session.totalStudents = students.length;
     session.status = "CLOSED";
     await session.save();
 
@@ -500,6 +510,193 @@ exports.closeAttendanceSession = async (req, res) => {
       present: presentIds.length,
       absent: absentees.length,
     });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET ATTENDANCE RECORDS OF A SESSION
+   GET /attendance/sessions/:sessionId/records
+========================================================= */
+exports.getAttendanceRecordsBySession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const records = await AttendanceRecord.find({
+      session_id: req.params.sessionId,
+      college_id: collegeId,
+    })
+      .populate("student_id", "fullName email")
+      .populate({
+        path: "markedBy",
+        select: "name"
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(records);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET TEACHER ATTENDANCE REPORT (PRODUCTION GRADE)
+   GET /attendance/report
+========================================================= */
+exports.getAttendanceReport = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+    const teacherId = req.teacher_id;
+
+    const { courseId, subjectId, startDate, endDate } = req.query;
+
+    /* ================= MATCH CONDITIONS ================= */
+    const match = {
+      college_id: new mongoose.Types.ObjectId(collegeId),
+      teacher_id: new mongoose.Types.ObjectId(teacherId),
+    };
+
+    if (courseId) {
+      match.course_id = new mongoose.Types.ObjectId(courseId);
+    }
+
+    if (subjectId) {
+      match.subject_id = new mongoose.Types.ObjectId(subjectId);
+    }
+
+    if (startDate && endDate) {
+      match.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    /* ================= FETCH SESSIONS ================= */
+    const sessions = await AttendanceSession.find(match)
+      .populate("subject_id", "name")
+      .sort({ lectureDate: -1 });
+
+    const sessionIds = sessions.map(s => s._id);
+
+    /* ================= FETCH RECORDS ================= */
+    const records = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+    });
+
+    /* ================= BUILD SESSION-WISE DATA ================= */
+    const sessionReport = sessions.map(session => {
+      const sessionRecords = records.filter(r =>
+        r.session_id.toString() === session._id.toString()
+      );
+
+      const total = sessionRecords.length;
+      const present = sessionRecords.filter(r => r.status === "PRESENT").length;
+      const absent = sessionRecords.filter(r => r.status === "ABSENT").length;
+
+      const percentage =
+        total > 0 ? (present / total) * 100 : 0;
+
+      return {
+        _id: session._id,
+        date: session.lectureDate,
+        subject: session.subject_id?.name || "N/A",
+        lectureNumber: session.lectureNumber,
+        present,
+        absent,
+        percentage,
+      };
+    });
+
+    /* ================= SUMMARY ================= */
+    const totalLectures = sessions.length;
+    const totalStudents = records.length;
+    const totalPresent = records.filter(r => r.status === "PRESENT").length;
+    const totalAbsent = records.filter(r => r.status === "ABSENT").length;
+
+    res.json({
+      summary: {
+        totalLectures,
+        totalStudents,
+        totalPresent,
+        totalAbsent,
+      },
+      sessions: sessionReport,
+    });
+
+  } catch (error) {
+    console.error("Attendance report error:", error);
+    res.status(500).json({
+      message: "Failed to load attendance report",
+    });
+  }
+};
+
+/* =========================================================
+  GET TEACHER'S COURSES FOR ATTENDANCE REPORT (PRODUCTION GRADE)
+========================================================= */
+exports.getTeacherCourses = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,   // ✅ FIXED
+      college_id: collegeId,  // ✅ VERY IMPORTANT
+    });
+
+    if (!teacher) {
+      return res.status(404).json({
+        message: "Teacher not found",
+      });
+    }
+
+    if (!teacher.courses || teacher.courses.length === 0) {
+      return res.json([]);
+    }
+
+    const courses = await Course.find({
+      _id: { $in: teacher.courses },
+      college_id: collegeId,
+    }).select("name");
+
+    res.status(200).json(courses);
+
+  } catch (error) {
+    console.error("Fetch courses error:", error);
+    res.status(500).json({
+      message: "Failed to fetch courses",
+    });
+  }
+};
+
+/* =========================================================
+  GET TEACHER'S SUBJECTS FOR ATTENDANCE REPORT (PRODUCTION GRADE)
+========================================================= */
+exports.getTeacherSubjectsByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher not found" });
+    }
+
+    // Fetch subjects directly from Subject collection
+    const subjects = await Subject.find({
+      college_id: collegeId,
+      course_id: courseId,
+      teacher_id: teacher._id,  // important
+      status: "ACTIVE"
+    }).select("_id name code");
+
+    res.json(subjects);
 
   } catch (error) {
     res.status(500).json({ message: error.message });
