@@ -2,15 +2,14 @@ const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    // Get token from cookie instead of header
+    const token = req.cookies.token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       return res.status(401).json({
         message: "Authorization token missing"
       });
     }
-
-    const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -23,8 +22,8 @@ module.exports = (req, res, next) => {
 
     next();
   } catch (error) {
-  error.statusCode = 401;
-  next(error);
-}
+    error.statusCode = 401;
+    next(error);
+  }
 };
 

@@ -27,7 +27,7 @@ export default function ViewFeeStructure() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get(`/fees/structure/${id}`); // ✅ fixed
+        const res = await api.get(`/api/fees/structure/${id}`); // ✅ fixed
         setFee(res.data);                                  // ✅ fixed
       } catch (err) {
         console.error(err);

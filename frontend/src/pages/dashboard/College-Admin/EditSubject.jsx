@@ -35,10 +35,8 @@ export default function EditSubject() {
           return;
         }
 
-        // 2️⃣ Get departmentId from subject's course
-        const departmentId =
-          subject.course_id?.department_id ||
-          subject.course_id?.department_id?._id;
+        // 2️⃣ Get departmentId from subject (department_id is stored directly in subject)
+        const departmentId = subject.department_id;
 
         // 3️⃣ Fetch courses + teachers
         const [courseRes, teacherRes] = await Promise.all([
@@ -184,7 +182,7 @@ export default function EditSubject() {
             <button
               type="button"
               className="btn btn-outline-secondary"
-              onClick={() => navigate(`/subjects/view/${id}`)}
+              onClick={() => navigate(`/subjects/course/${formData.course_id}`)}
             >
               <FaArrowLeft className="me-1" />
               Back
