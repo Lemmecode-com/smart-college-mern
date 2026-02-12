@@ -11,20 +11,20 @@ export const AuthProvider = ({ children }) => {
   /* ========== LOGIN ========== */
   const login = async (credentials) => {
     try {
+      // Note: With httpOnly cookies, the token will be stored in the cookie automatically
       const res = await api.post("/auth/login", credentials);
 
-      // backend returns: { token, role }
-      const { token } = res.data;
+      // With httpOnly cookies, we don't receive the token in the response
+      // The token is automatically sent with subsequent requests
+      
+      // Get user info from the response or make a separate call to get user details
+      const userInfo = res.data.user || { id: res.data.userId, role: res.data.role, college_id: res.data.college_id };
 
-      const decoded = jwtDecode(token);
-
-      localStorage.setItem("accessToken", token);
-
-      // ✅ STORE FULL USER
+      // Store user info (not the token) in state
       setUser({
-        id: decoded.id,
-        role: decoded.role,
-        college_id: decoded.college_id || null
+        id: userInfo.id,
+        role: userInfo.role,
+        college_id: userInfo.college_id || null
       });
 
       return { success: true };
@@ -37,32 +37,38 @@ export const AuthProvider = ({ children }) => {
   };
 
   /* ========== LOGOUT ========== */
-  const logout = () => {
-    localStorage.removeItem("accessToken");
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call logout endpoint to clear the httpOnly cookie
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear user info from state
+      setUser(null);
+    }
   };
 
   /* ========== RESTORE SESSION ========== */
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-
-    if (token) {
+    // With httpOnly cookies, we need to make an API call to verify if the user is authenticated
+    const checkAuthStatus = async () => {
       try {
-        const decoded = jwtDecode(token);
-
-        // ✅ RESTORE FULL USER
+        const res = await api.get("/auth/me");
         setUser({
-          id: decoded.id,
-          role: decoded.role,
-          college_id: decoded.college_id || null
+          id: res.data.id,
+          role: res.data.role,
+          college_id: res.data.college_id || null
         });
       } catch {
-        localStorage.removeItem("accessToken");
+        // If the request fails, the user is not authenticated
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    setLoading(false);
+    checkAuthStatus();
   }, []);
 
   return (
