@@ -4,6 +4,8 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const teacherMiddleware = require("../middlewares/teacher.middleware");
+
 const {
   editAttendance,
   markAttendance,
@@ -14,6 +16,10 @@ const {
   getAttendanceSessionById,
   getAttendanceSessions,
   createAttendanceSession,
+  getAttendanceRecordsBySession,
+  getAttendanceReport,
+  getTeacherCourses,
+  getTeacherSubjectsByCourse,
 } = require("../controllers/attendance.controller");
 
 /* =========================================================
@@ -36,6 +42,23 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getAttendanceSessions,
+);
+
+router.get(
+  "/report",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  teacherMiddleware,
+  getAttendanceReport
+);
+
+router.get(
+  "/report/courses",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherCourses
 );
 
 // 📄 Get single session using its ID
@@ -103,6 +126,22 @@ router.put(
   role("TEACHER"),
   collegeMiddleware,
   editAttendance,
+);
+
+router.get(
+  "/sessions/:sessionId/records",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceRecordsBySession
+);
+
+router.get(
+  "/report/subjects/:courseId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherSubjectsByCourse
 );
 
 module.exports = router;

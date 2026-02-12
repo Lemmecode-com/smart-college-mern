@@ -576,8 +576,32 @@ export default function Sidebar() {
               <>
                 {/* MY PROFILE SECTION */}
                 <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
-                  <FaUserCog /> My Profile
+                  <FaCog /> My Profile
                 </NavLink>
+                {/* <NavLink to="/timetable/create" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Create Timetable
+                </NavLink>
+                <NavLink to="/timetable/list" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> View Timetables
+                </NavLink>
+                <NavLink to="/timetable/add-slot" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> Add Timetable Slot
+                </NavLink>
+                <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> My Shedule
+                </NavLink>
+                <NavLink to="/attendance/my-sessions-list" style={getNavLinkStyle}>
+                  <FaCalendarAlt /> My Sessions
+                </NavLink>
+                <NavLink to="/attendance/report" style={getNavLinkStyle}>
+                  <FaClipboardList /> Attendance Report
+                </NavLink>
+                <NavLink to="/teacher/notifications/create" style={getNavLinkStyle}>
+                  <FaBell /> Create Notification
+                </NavLink>
+                <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
+                  <FaBell /> Notifications
+                </NavLink> */}
 
                 {/* TIMETABLE DROPDOWN */}
                 <div
@@ -619,7 +643,7 @@ export default function Sidebar() {
                     <FaPlus /> Add Timetable Slot
                   </NavLink>
                   <NavLink
-                    to="/timetable/weekly-grid"
+                    to="/timetable/weekly-timetable"
                     style={subLinkStyle}
                     className={({ isActive }) => (isActive ? "active-sublink" : "")}
                   >
@@ -646,14 +670,7 @@ export default function Sidebar() {
                 </div>
                 <div style={sectionBodyStyle(openSections["sessions-teacher"])}>
                   <NavLink
-                    to="/sessions/create"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaPlus /> Create Session
-                  </NavLink>
-                  <NavLink
-                    to="/sessions/my-sessions"
+                    to="/attendance/my-sessions-list"
                     style={subLinkStyle}
                     className={({ isActive }) => (isActive ? "active-sublink" : "")}
                   >
@@ -679,13 +696,6 @@ export default function Sidebar() {
                   )}
                 </div>
                 <div style={sectionBodyStyle(openSections["attendance-teacher"])}>
-                  <NavLink
-                    to="/attendance/mark"
-                    style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
-                  >
-                    <FaCheckCircle /> Mark Attendance
-                  </NavLink>
                   <NavLink
                     to="/attendance/report"
                     style={subLinkStyle}
@@ -766,7 +776,7 @@ export default function Sidebar() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .sidebar-container {
           position: fixed;
           top: 0;
