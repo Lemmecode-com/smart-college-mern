@@ -543,12 +543,7 @@ export default function DepartmentList() {
                   Department Management System | Smart College ERP
                 </small>
               </p>
-              <p className="mb-0">
-                <small className="text-muted">
-                  <FaSync className="spin-icon me-1" />
-                  Last Updated: <strong>{new Date().toLocaleString()}</strong>
-                </small>
-              </p>
+             
             </div>
             <div className="d-flex gap-2 flex-wrap justify-content-center">
               <button

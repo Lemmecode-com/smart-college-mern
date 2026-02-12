@@ -23,6 +23,7 @@ import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 /* ================= COURSES ================= */
 import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
+import ViewCourse from "./pages/dashboard/College-Admin/ViewCourse";
 /* ================= STUDENTS ================= */
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
 
@@ -548,6 +549,15 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                       <EditCourse />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewCourse />
                     </ProtectedRoute>
                   }
                 />

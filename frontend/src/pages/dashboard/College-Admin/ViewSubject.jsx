@@ -61,7 +61,7 @@ export default function ViewSubject() {
     return (
       <div className="erp-error-container">
         <h3>{error || "Subject not found"}</h3>
-        <button className="erp-btn" onClick={() => navigate(-1)}>
+        <button className="erp-btn" onClick={() => navigate('/subjects/course/' + (subject?.course_id?._id || subject?.course_id))}>
           <FaArrowLeft /> Go Back
         </button>
       </div>
@@ -83,7 +83,7 @@ export default function ViewSubject() {
         <div className="header-actions">
           <button
             className="erp-btn secondary"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/subjects/course/' + (subject.course_id?._id || subject.course_id))}
           >
             <FaArrowLeft /> Back
           </button>
