@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
 import {
   FaChartBar,
@@ -10,7 +10,7 @@ import {
   FaTimesCircle,
   FaCalendarAlt,
   FaBookOpen,
-  FaUniversity
+  FaUniversity,
 } from "react-icons/fa";
 
 export default function AttendanceReport() {
@@ -23,20 +23,16 @@ export default function AttendanceReport() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER")
-    return <Navigate to="/teacher/dashboard" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= FETCH REPORT ================= */
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await api.get(
-          "/attendance/teacher/attendance-report"
-        );
+        const res = await api.get("/attendance/teacher/attendance-report");
 
         setReportData(res.data.report || []);
         setTotalLectures(res.data.totalLectures || 0);
-
       } catch (err) {
         console.error(err);
         setError("Failed to load attendance report");
@@ -51,23 +47,15 @@ export default function AttendanceReport() {
   /* ================= ANALYTICS ================= */
   const totalStudents = reportData.reduce(
     (sum, r) => sum + (r.totalStudents || 0),
-    0
+    0,
   );
 
-  const totalPresent = reportData.reduce(
-    (sum, r) => sum + (r.present || 0),
-    0
-  );
+  const totalPresent = reportData.reduce((sum, r) => sum + (r.present || 0), 0);
 
-  const totalAbsent = reportData.reduce(
-    (sum, r) => sum + (r.absent || 0),
-    0
-  );
+  const totalAbsent = reportData.reduce((sum, r) => sum + (r.absent || 0), 0);
 
   const overallPercentage =
-    totalStudents > 0
-      ? Math.round((totalPresent / totalStudents) * 100)
-      : 0;
+    totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
 
   /* ================= LOADING ================= */
   if (loading) {
@@ -80,23 +68,16 @@ export default function AttendanceReport() {
 
   return (
     <div className="container-fluid">
-
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
           <FaChartBar className="me-2 blink" />
           Teacher Attendance Report
         </h3>
-        <p className="opacity-75 mb-0">
-          Lecture-wise attendance analytics
-        </p>
+        <p className="opacity-75 mb-0">Lecture-wise attendance analytics</p>
       </div>
 
-      {error && (
-        <div className="alert alert-danger text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-danger text-center">{error}</div>}
 
       {/* ================= STATS ================= */}
       <div className="row g-3 mb-4">
@@ -134,16 +115,21 @@ export default function AttendanceReport() {
       ) : (
         <div className="card shadow-lg border-0 rounded-4 glass-card">
           <div className="card-body">
-
             <table className="table table-hover align-middle">
               <thead className="table-dark">
                 <tr>
                   <th>#</th>
-                  <th><FaCalendarAlt /> Date</th>
+                  <th>
+                    <FaCalendarAlt /> Date
+                  </th>
                   <th>Lecture</th>
-                  <th><FaBookOpen /> Subject</th>
+                  <th>
+                    <FaBookOpen /> Subject
+                  </th>
                   <th>Code</th>
-                  <th><FaUniversity /> Course</th>
+                  <th>
+                    <FaUniversity /> Course
+                  </th>
                   <th>Department</th>
                   <th className="text-center">Total</th>
                   <th className="text-center text-success">Present</th>
@@ -171,7 +157,6 @@ export default function AttendanceReport() {
                 ))}
               </tbody>
             </table>
-
           </div>
         </div>
       )}
