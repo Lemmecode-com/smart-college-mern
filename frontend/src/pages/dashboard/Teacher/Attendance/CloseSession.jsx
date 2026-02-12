@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
 import {
   FaLock,
