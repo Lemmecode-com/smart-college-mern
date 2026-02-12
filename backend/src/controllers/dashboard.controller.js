@@ -104,7 +104,6 @@ exports.collegeAdminDashboard = async (req, res) => {
   }
 };
 
-
 /**
  * 🧑‍💼 SUPER ADMIN DASHBOARD
  */
