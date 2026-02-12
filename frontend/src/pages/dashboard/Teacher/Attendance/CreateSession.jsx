@@ -1,14 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
-import {
-  FaQrcode,
-  FaCalendarAlt,
-  FaClock,
-  FaBookOpen
-} from "react-icons/fa";
+import { FaQrcode, FaCalendarAlt, FaClock, FaBookOpen } from "react-icons/fa";
 
 export default function CreateSession() {
   const { user } = useContext(AuthContext);
@@ -22,13 +17,12 @@ export default function CreateSession() {
   const [form, setForm] = useState({
     timetable_id: "",
     lectureDate: "",
-    lectureNumber: ""
+    lectureNumber: "",
   });
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER")
-    return <Navigate to="/teacher/dashboard" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= FETCH TEACHER TIMETABLE ================= */
   useEffect(() => {
@@ -39,10 +33,7 @@ export default function CreateSession() {
 
         // Works with any backend response shape
         const data =
-          res.data?.timetable ||
-          res.data?.timetables ||
-          res.data ||
-          [];
+          res.data?.timetable || res.data?.timetables || res.data || [];
 
         setTimetables(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -81,7 +72,6 @@ export default function CreateSession() {
 
       // Redirect to Mark Attendance
       navigate(`/attendance/mark?sessionId=${res.data.session._id}`);
-
     } catch (err) {
       console.error("Create session error:", err);
       setError(err.response?.data?.message || "Failed to create session");
@@ -101,7 +91,6 @@ export default function CreateSession() {
 
   return (
     <div className="container-fluid">
-
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
@@ -114,19 +103,13 @@ export default function CreateSession() {
       </div>
 
       {/* ================= ERROR ================= */}
-      {error && (
-        <div className="alert alert-danger text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-danger text-center">{error}</div>}
 
       {/* ================= FORM ================= */}
       <div className="card shadow-lg border-0 rounded-4 glass-card">
         <div className="card-body p-4">
-
           <form onSubmit={handleSubmit}>
             <div className="row g-3">
-
               {/* Timetable */}
               <div className="col-md-12">
                 <label className="fw-semibold">
@@ -143,9 +126,7 @@ export default function CreateSession() {
                   <option value="">-- Select Lecture Slot --</option>
 
                   {timetables.length === 0 && (
-                    <option disabled>
-                      No timetable slots assigned to you
-                    </option>
+                    <option disabled>No timetable slots assigned to you</option>
                   )}
 
                   {timetables.map((t) => (
@@ -190,7 +171,6 @@ export default function CreateSession() {
                   required
                 />
               </div>
-
             </div>
 
             <button
@@ -200,7 +180,6 @@ export default function CreateSession() {
             >
               {submitting ? "Creating Session..." : "Create Attendance Session"}
             </button>
-
           </form>
         </div>
       </div>
