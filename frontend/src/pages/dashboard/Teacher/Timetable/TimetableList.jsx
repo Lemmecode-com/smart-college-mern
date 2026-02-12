@@ -1,14 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
-import {
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaTrash,
-  FaEye
-} from "react-icons/fa";
+import { FaCalendarAlt, FaCheckCircle, FaTrash, FaEye } from "react-icons/fa";
 
 export default function TimetableList() {
   const { user } = useContext(AuthContext);
@@ -66,7 +61,6 @@ export default function TimetableList() {
 
   return (
     <div className="container py-4">
-
       <h4 className="fw-bold mb-3">
         <FaCalendarAlt className="me-2" />
         Timetables
@@ -108,9 +102,7 @@ export default function TimetableList() {
                   {/* VIEW WEEKLY TIMETABLE */}
                   <button
                     className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() =>
-                      navigate(`/timetable/${t._id}/weekly`)
-                    }
+                    onClick={() => navigate(`/timetable/${t._id}/weekly`)}
                   >
                     <FaEye /> View
                   </button>
