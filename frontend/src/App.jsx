@@ -86,6 +86,11 @@ import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting
 import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
+import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessionsList";
+import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
+import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
+import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
+import CreateSessionModal from "./pages/dashboard/Teacher/CreateSessionModal";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -469,14 +474,52 @@ export default function App() {
                 />
 
                 {/* ================= ATTENDANCE ================= */}
+
                 <Route
-                  path="/attendance/mark"
+                  path="/attendance/create-session"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MarkAttendance />
+                      <CreateSessionModal />
                     </ProtectedRoute>
                   }
                 />
+
+                <Route
+                  path="/attendance/my-sessions-list"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <AttendanceSessionsList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/attendance/session/:sessionId"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <SessionDetails />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/attendance/session/:sessionId/mark"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <MarkAttendanceModal />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/attendance/session/:sessionId/edit"
+                  element={
+                    <ProtectedRoute allowedRoles={["TEACHER"]}>
+                      <EditAttendanceModal />
+                    </ProtectedRoute>
+                  }
+                />
+
                 <Route
                   path="/attendance/report"
                   element={
@@ -485,22 +528,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/session/close/:sessionId"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CloseSession />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/attendance/sessions/:sessionId/edit"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <EditAttendance />
-                    </ProtectedRoute>
-                  }
-                />
+              
                 <Route
                   path="/attendance/list"
                   element={
@@ -543,7 +571,7 @@ export default function App() {
                   path="/system-settings/fees"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <FeeSetting/>
+                      <FeeSetting />
                     </ProtectedRoute>
                   }
                 />
@@ -679,7 +707,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                
+
                 <Route
                   path="/timetable/my-timetable"
                   element={
