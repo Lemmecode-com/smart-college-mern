@@ -57,9 +57,6 @@ exports.teacherDashboard = async (req, res) => {
   });
 };
 
-/**
- * 🏫 COLLEGE ADMIN DASHBOARD
- */
 exports.collegeAdminDashboard = async (req, res) => {
   try {
     const collegeId = req.college_id;
