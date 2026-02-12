@@ -48,7 +48,7 @@ export default function EditFeeStructure() {
   const loadData = async () => {
     try {
       const [feeRes, deptRes] = await Promise.all([
-        api.get(`/fees/structure/${id}`),
+        api.get(`/api/fees/structure/${id}`),
         api.get("/departments"),
       ]);
 
@@ -121,7 +121,7 @@ export default function EditFeeStructure() {
     try {
       setSaving(true);
 
-      await api.put(`/fees/structure/${id}`, {
+      await api.put(`/api/fees/structure/${id}`, {
         course_id,
         category,
         totalFee: Number(totalFee),
