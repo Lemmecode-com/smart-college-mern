@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../../api/axios";
-import { AuthContext } from "../../../auth/AuthContext";
+import api from "../../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const TIMES = [

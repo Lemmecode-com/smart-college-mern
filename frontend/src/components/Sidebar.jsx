@@ -33,7 +33,15 @@ import {
   FaMoneyBill,
   FaChartBar,
   FaChartPie,
-  FaDownload
+  FaDownload,
+  FaUser,
+  FaUserCog,
+  FaClock,
+  FaFileAlt,
+  FaEye,
+  FaEdit,
+  FaToggleOff,
+  FaToggleOn
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -52,6 +60,7 @@ export default function Sidebar() {
     "fee-structure": true,
     notifications: true,
     reports: true,
+    "system-settings": true,
     
     // Teacher sections
     "profile-teacher": true,
@@ -200,7 +209,12 @@ export default function Sidebar() {
         <aside className="sidebar-content">
           {/* LOGO SECTION */}
           <div className="sidebar-logo">
-            <div className="logo-text">NOVAA</div>
+            <div className="logo-container">
+              <div className="logo-icon">
+                <FaGraduationCap size={24} />
+              </div>
+              <div className="logo-text">NOVAA</div>
+            </div>
             <div className="logo-role">{role.replace("_", " ")}</div>
           </div>
 
@@ -270,15 +284,9 @@ export default function Sidebar() {
                   )}
                 </div>
                 <div style={sectionBodyStyle(openSections["super-reports"])}>
-                  {/* <NavLink to="/super-admin/reports/admission" style={getNavLinkStyle}>
-                    <FaGraduationCap /> Admission Reports
-                  </NavLink> */}
                   <NavLink to="/super-admin/reports" style={getNavLinkStyle}>
                     <FaUniversity /> College Analytics
                   </NavLink>
-                  {/* <NavLink to="/super-admin/reports/financial" style={getNavLinkStyle}>
-                    <FaMoneyBill /> Financial Reports
-                  </NavLink> */}
                 </div>
 
                 {/* SYSTEM SETTINGS */}
@@ -471,6 +479,38 @@ export default function Sidebar() {
                   </NavLink>
                 </div>
 
+                {/* REPORTS SECTION */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections.reports ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("reports")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaChartPie /> Reports & Analytics
+                  </div>
+                  {openSections.reports ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections.reports)}>
+                  <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
+                    <FaGraduationCap /> Admission Reports
+                  </NavLink>
+                  <NavLink to="/college-admin/reports/course-wise" style={getNavLinkStyle}>
+                    <FaUserGraduate /> Course-wise Reports
+                  </NavLink>
+                  <NavLink to="/college-admin/reports/payment-summary" style={getNavLinkStyle}>
+                    <FaMoneyBillWave /> Payment Reports
+                  </NavLink>
+                  <NavLink to="/college-admin/reports/attendance" style={getNavLinkStyle}>
+                    <FaClipboardList /> Attendance Reports
+                  </NavLink>
+                </div>
+
                 {/* NOTIFICATIONS SECTION */}
                 <div
                   className={`sidebar-section-title ${
@@ -496,53 +536,8 @@ export default function Sidebar() {
                     <FaListOl /> Notification List
                   </NavLink>
                 </div>
-              </>
-            )}
 
-           {/* REPORTS and Analytics */}
-             
-               {role === "COLLEGE_ADMIN" && (
-                <>
-                <div
-                  className={`sidebar-section-title ${
-                    openSections.reports ? "open" : ""
-                  }`}
-                  onClick={() => toggleSection("reports")}
-                  style={sectionTitleStyle}
-                >
-                  <div className="section-title-content">
-                    <FaChartPie /> Reports & Analytics
-                  </div>
-                  {openSections.reports ? (
-                    <FaChevronUp size={12} />
-                  ) : (
-                    <FaChevronDown size={12} />
-                  )}
-                </div>
-
-                 
-                <div style={sectionBodyStyle(openSections.reports)}>
-                  <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
-                    <FaGraduationCap /> Admission Reports
-                  </NavLink>
-                  <NavLink to="/college-admin/reports/course-wise" style={getNavLinkStyle}>
-                      <FaUserGraduate /> Course-wise Reports
-                    </NavLink>
-                  <NavLink to="/college-admin/reports/payment-summary" style={getNavLinkStyle}>
-                    <FaMoneyBillWave /> Payment Reports
-                  </NavLink>
-                  <NavLink to="/college-admin/reports/attendance" style={getNavLinkStyle}>
-                    <FaMoneyBill /> Attendance Reports
-                  </NavLink> 
-                </div>
-          
-                </>
-                
-              )}
-
-            {/* Admin System settings */}
-            {role === "COLLEGE_ADMIN" && (
-              <>
+                {/* SYSTEM SETTINGS SECTION */}
                 <div
                   className={`sidebar-section-title ${
                     openSections["system-settings"] ? "open" : ""
@@ -564,10 +559,10 @@ export default function Sidebar() {
                     <FaGraduationCap /> Academic Settings
                   </NavLink>
                   <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
-                    <FaCog /> Fee Settings
+                    <FaMoneyBill /> Fee Settings
                   </NavLink>
                   <NavLink to="/system-settings/general" style={getNavLinkStyle}>
-                    <FaEnvelope /> General Settings
+                    <FaCog /> General Settings
                   </NavLink>
                   <NavLink to="/system-settings/notifications" style={getNavLinkStyle}>
                     <FaBell /> Notification Settings
@@ -579,41 +574,163 @@ export default function Sidebar() {
             {/* ================= TEACHER MENU ================= */}
             {role === "TEACHER" && (
               <>
+                {/* MY PROFILE SECTION */}
                 <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
-                  <FaCog /> My Profile
+                  <FaUserCog /> My Profile
                 </NavLink>
-                <NavLink to="/timetable/create" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> Create Timetable
-                </NavLink>
-                <NavLink to="/timetable/list" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> View Timetables
-                </NavLink>
-                <NavLink to="/timetable/add-slot" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> Add Timetable Slot
-                </NavLink>
-                <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> My Shedule
-                </NavLink>
-                <NavLink to="/sessions/create" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> Create Session
-                </NavLink>
-                <NavLink to="/sessions/my-sessions" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> My Sessions
-                </NavLink>
-                <NavLink to="/attendance/mark" style={getNavLinkStyle}>
-                  <FaClipboardList /> Mark Attendance
-                </NavLink>
-                <NavLink to="/attendance/report" style={getNavLinkStyle}>
-                  <FaClipboardList /> Attendance Report
-                </NavLink>
-                <NavLink to="/teacher/notifications/create" style={getNavLinkStyle}>
-                  <FaBell /> Create Notification
-                </NavLink>
-                <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
-                  <FaBell /> Notifications
-                </NavLink>
+
+                {/* TIMETABLE DROPDOWN */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["timetable-teacher"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("timetable-teacher")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaCalendarAlt /> Timetable
+                  </div>
+                  {openSections["timetable-teacher"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["timetable-teacher"])}>
+                  <NavLink
+                    to="/timetable/create-timetable"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaPlus /> Create Timetable
+                  </NavLink>
+                  <NavLink
+                    to="/timetable/list"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaListOl /> View Timetables
+                  </NavLink>
+                  <NavLink
+                    to="/timetable/add-slot"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaPlus /> Add Timetable Slot
+                  </NavLink>
+                  <NavLink
+                    to="/timetable/weekly-grid"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaCalendarAlt /> My Schedule
+                  </NavLink>
+                </div>
+
+                {/* SESSIONS DROPDOWN */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["sessions-teacher"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("sessions-teacher")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaGraduationCap /> Sessions
+                  </div>
+                  {openSections["sessions-teacher"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["sessions-teacher"])}>
+                  <NavLink
+                    to="/sessions/create"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaPlus /> Create Session
+                  </NavLink>
+                  <NavLink
+                    to="/sessions/my-sessions"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaUserGraduate /> My Sessions
+                  </NavLink>
+                </div>
+
+                {/* ATTENDANCE DROPDOWN */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["attendance-teacher"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("attendance-teacher")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaClipboardList /> Attendance
+                  </div>
+                  {openSections["attendance-teacher"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["attendance-teacher"])}>
+                  <NavLink
+                    to="/attendance/mark"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaCheckCircle /> Mark Attendance
+                  </NavLink>
+                  <NavLink
+                    to="/attendance/report"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaChartLine /> Attendance Report
+                  </NavLink>
+                </div>
+
+                {/* NOTIFICATIONS DROPDOWN */}
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["notifications-teacher"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("notifications-teacher")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaBell /> Notifications
+                  </div>
+                  {openSections["notifications-teacher"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["notifications-teacher"])}>
+                  <NavLink
+                    to="/teacher/notifications/create"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaBell /> Create Notification
+                  </NavLink>
+                  <NavLink
+                    to="/teacher/notifications/list"
+                    style={subLinkStyle}
+                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                  >
+                    <FaEnvelope /> All Notifications
+                  </NavLink>
+                </div>
               </>
             )}
+
             {/* ================= STUDENT MENU ================= */}
             {role === "STUDENT" && (
               <>
@@ -715,8 +832,30 @@ export default function Sidebar() {
           margin-bottom: 20px;
         }
 
+        .logo-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+
+        .logo-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          box-shadow: 0 4px 10px rgba(26, 75, 109, 0.4);
+          animation: float 3s ease-in-out infinite;
+        }
+
         .logo-text {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 800;
           color: #ffffff;
           letter-spacing: -0.5px;
@@ -725,6 +864,19 @@ export default function Sidebar() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          position: relative;
+        }
+
+        .logo-text::after {
+          content: "";
+          position: absolute;
+          bottom: -4px;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: linear-gradient(90deg, #4fc3f7, #29b6f6, #0288d1);
+          border-radius: 2px;
+          opacity: 0.8;
         }
 
         .logo-role {
@@ -884,6 +1036,12 @@ export default function Sidebar() {
           }
           
           .logo-text {
+            font-size: 24px;
+          }
+          
+          .logo-icon {
+            width: 36px;
+            height: 36px;
             font-size: 20px;
           }
           
@@ -896,6 +1054,11 @@ export default function Sidebar() {
           a[style*="padding: 10px 16px 10px 36px"] {
             font-size: 12px;
             padding-left: 30px;
+          }
+          
+          .logout-btn {
+            padding: 10px;
+            font-size: 13px;
           }
         }
 
@@ -955,6 +1118,16 @@ export default function Sidebar() {
           }
         }
 
+        /* Float animation for logo */
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
+
         /* Sub-link hover effects */
         a[style*="padding: 10px 16px 10px 36px"]:hover {
           background: rgba(255, 255, 255, 0.08) !important;
@@ -966,6 +1139,64 @@ export default function Sidebar() {
           color: #0f3a4a !important;
           background: rgba(255, 255, 255, 0.15) !important;
           border-left: 3px solid #4CAF50 !important;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .sidebar-container {
+            max-width: 100%;
+          }
+          
+          .sidebar-content {
+            padding: 15px 10px;
+          }
+          
+          .sidebar-logo {
+            padding: 10px 0 15px;
+          }
+          
+          .logo-text {
+            font-size: 24px;
+          }
+          
+          .sidebar-section-title,
+          a[style*="padding: 12px 16px"] {
+            font-size: 13px;
+            padding: 10px 12px;
+          }
+          
+          a[style*="padding: 10px 16px 10px 36px"] {
+            font-size: 12px;
+            padding-left: 30px;
+          }
+          
+          .logout-btn {
+            padding: 10px;
+            font-size: 13px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .logo-text {
+            font-size: 22px;
+          }
+          
+          .logo-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+          }
+          
+          .sidebar-section-title,
+          a[style*="padding: 12px 16px"] {
+            font-size: 12px;
+            padding: 8px 10px;
+          }
+          
+          a[style*="padding: 10px 16px 10px 36px"] {
+            font-size: 11px;
+            padding-left: 28px;
+          }
         }
       `}</style>
     </>

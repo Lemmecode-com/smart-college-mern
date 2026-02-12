@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../../api/axios";
+import api from "../../../../api/axios";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const TIMES = [
@@ -42,20 +42,20 @@ export default function MySchedule() {
           <thead className="table-light">
             <tr>
               <th>Time</th>
-              {DAYS.map(d => (
+              {DAYS.map((d) => (
                 <th key={d}>{d}</th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {TIMES.map(time => (
+            {TIMES.map((time) => (
               <tr key={time}>
                 <td className="fw-semibold">{time}</td>
 
-                {DAYS.map(day => {
+                {DAYS.map((day) => {
                   const slot = weekly?.[day]?.find(
-                    s => `${s.startTime} - ${s.endTime}` === time
+                    (s) => `${s.startTime} - ${s.endTime}` === time,
                   );
 
                   return (

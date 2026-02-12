@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../../../api/axios";
+import api from "../../../../api/axios";
 import { FaBell, FaPaperPlane } from "react-icons/fa";
 
 export default function CreateNotifications() {
@@ -7,7 +7,7 @@ export default function CreateNotifications() {
     title: "",
     message: "",
     type: "GENERAL",
-    priority: "NORMAL"
+    priority: "NORMAL",
   });
 
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function CreateNotifications() {
         title: form.title,
         message: form.message,
         type: form.type,
-        priority: form.priority
+        priority: form.priority,
       };
 
       await api.post("/notifications/teacher/create", payload);
@@ -47,13 +47,11 @@ export default function CreateNotifications() {
         title: "",
         message: "",
         type: "GENERAL",
-        priority: "NORMAL"
+        priority: "NORMAL",
       });
     } catch (err) {
       console.error(err);
-      setError(
-        err.response?.data?.message || "Failed to send notification"
-      );
+      setError(err.response?.data?.message || "Failed to send notification");
     } finally {
       setLoading(false);
     }
@@ -67,26 +65,19 @@ export default function CreateNotifications() {
           <FaBell className="me-2" />
           Create Notification
         </h4>
-        <p className="opacity-75 mb-0">
-          Send announcements to your students
-        </p>
+        <p className="opacity-75 mb-0">Send announcements to your students</p>
       </div>
 
       <div className="row justify-content-center">
         <div className="col-lg-7 col-md-10">
           <div className="card shadow border-0 rounded-4 glass-card">
             <div className="card-body p-4">
-
               {error && (
-                <div className="alert alert-danger text-center">
-                  {error}
-                </div>
+                <div className="alert alert-danger text-center">{error}</div>
               )}
 
               {success && (
-                <div className="alert alert-success text-center">
-                  {success}
-                </div>
+                <div className="alert alert-success text-center">{success}</div>
               )}
 
               <form onSubmit={handleSubmit}>
@@ -141,7 +132,9 @@ export default function CreateNotifications() {
                   className="btn btn-primary w-100 mt-3 rounded-pill"
                   disabled={loading}
                 >
-                  {loading ? "Sending..." : (
+                  {loading ? (
+                    "Sending..."
+                  ) : (
                     <>
                       <FaPaperPlane className="me-2" />
                       Send Notification
