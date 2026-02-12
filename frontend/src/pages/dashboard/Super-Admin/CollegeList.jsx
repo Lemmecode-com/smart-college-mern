@@ -11,7 +11,6 @@ import {
   FaPhone,
   FaSearch,
   FaEye,
-  FaEdit,
   FaToggleOff,
   FaToggleOn,
   FaSyncAlt,
@@ -401,14 +400,6 @@ export default function CollegeList() {
                             aria-label={`View details for ${college.name}`}
                           >
                             <FaEye />
-                          </button>
-                          <button
-                            className="action-btn edit-btn"
-                            title="Edit College"
-                            onClick={() => navigate(`/super-admin/college/${college._id}/edit`)}
-                            aria-label={`Edit ${college.name}`}
-                          >
-                            <FaEdit />
                           </button>
                           <button
                             className="action-btn toggle-btn"
@@ -969,10 +960,6 @@ export default function CollegeList() {
         
         .view-btn {
           background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-        }
-        
-        .edit-btn {
-          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
         }
         
         .toggle-btn {
