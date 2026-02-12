@@ -457,15 +457,15 @@ export default function Sidebar() {
                 <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
                   <FaCalendarAlt /> My Shedule
                 </NavLink>
-                <NavLink to="/sessions/create" style={getNavLinkStyle}>
+                {/* <NavLink to="/attendance/create-session" style={getNavLinkStyle}>
                   <FaCalendarAlt /> Create Session
-                </NavLink>
-                <NavLink to="/sessions/my-sessions" style={getNavLinkStyle}>
+                </NavLink> */}
+                <NavLink to="/attendance/my-sessions-list" style={getNavLinkStyle}>
                   <FaCalendarAlt /> My Sessions
                 </NavLink>
-                <NavLink to="/attendance/mark" style={getNavLinkStyle}>
+                {/* <NavLink to="/attendance/session/:sessionId/mark" style={getNavLinkStyle}>
                   <FaClipboardList /> Mark Attendance
-                </NavLink>
+                </NavLink> */}
                 <NavLink to="/attendance/report" style={getNavLinkStyle}>
                   <FaClipboardList /> Attendance Report
                 </NavLink>
@@ -550,7 +550,7 @@ export default function Sidebar() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .sidebar-container {
           position: fixed;
           top: 0;

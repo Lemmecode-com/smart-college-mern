@@ -6,16 +6,8 @@ import api from "../../../api/axios";
 import {
   FaBookOpen,
   FaUniversity,
-  FaChalkboardTeacher,
-  FaAward,
-  FaClock,
   FaArrowLeft,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaSyncAlt,
-  FaSave,
-  FaSpinner,
-  FaInfoCircle
+  FaCheckCircle
 } from "react-icons/fa";
 
 export default function AddSubject() {
@@ -28,8 +20,6 @@ export default function AddSubject() {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  const [loadingDeps, setLoadingDeps] = useState(true);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     department_id: "",
@@ -43,10 +33,7 @@ export default function AddSubject() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [showCodePreview, setShowCodePreview] = useState(false);
-  const [formTouched, setFormTouched] = useState(false);
-  const [validationErrors, setValidationErrors] = useState({});
+  const [success, setSuccess] = useState("");
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
@@ -81,54 +68,22 @@ export default function AddSubject() {
   }, [formData.course_id]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    setFormTouched(true);
-    
-    // Clear validation error for this field
-    if (validationErrors[name]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-    
-    // Reset code when course or subject name changes
-    if (name === "course_id" || name === "name") {
-      setFormData(prev => ({
-        ...prev,
-        code: ""
-      }));
-    }
-  };
-
-  const handleDepartmentClick = () => {
-    setDropdownOpen(true);
-    setTimeout(() => setDropdownOpen(false), 500);
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      setError("Please fix the errors before submitting");
-      return;
-    }
-    
     setLoading(true);
     setError("");
-    setSuccess(false);
-    
+    setSuccess("");
+
     try {
       await api.post("/subjects", {
         course_id: formData.course_id,
-        name: formData.name.trim(),
+        name: formData.name,
         code: formData.code,
         semester: Number(formData.semester),
         credits: Number(formData.credits),
@@ -144,32 +99,10 @@ export default function AddSubject() {
     }
   };
 
-  /* ================= LOADING ================= */
-  if (loadingDeps) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading departments and teachers...</h4>
-      </div>
-    );
-  }
-
   return (
-    <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/subjects">Subjects</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Add Subject</li>
-        </ol>
-      </nav>
+    <div className="container-fluid">
 
-      <div className="gradient-header mb-4 p-4 rounded-4 text-white" style={{background: "linear-gradient(180deg, #0f3a4a, #134952)"}}>
+      <div className="mb-4 p-4 rounded-4 text-white" style={{background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)"}}>
         <h3 className="fw-bold mb-1">
           <FaBookOpen className="blink me-2" />
           Add New Subject
