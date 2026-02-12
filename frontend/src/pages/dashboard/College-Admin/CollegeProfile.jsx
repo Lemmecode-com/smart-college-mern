@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -32,10 +32,106 @@ import {
   FaMoneyBillWave,
   FaFileInvoice,
   FaCogs,
-  FaSync, // ✅ ADDED: Replace FaSyncAlt with FaSync
-  FaBolt, // ✅ ADDED: For Quick Actions header
-  FaRedo // ✅ ADDED: Alternative refresh icon
+  FaSync,
+  FaBolt,
+  FaRedo,
+  FaSyncAlt
 } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Brand Color Palette
+const BRAND_COLORS = {
+  primary: {
+    main: '#1a4b6d',
+    dark: '#0f3a4a',
+    light: '#2a6b8d',
+    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+  },
+  success: {
+    main: '#1e6f5c',
+    dark: '#155447',
+    light: '#2a8f7c',
+    gradient: 'linear-gradient(135deg, #1e6f5c 0%, #155447 100%)'
+  },
+  info: {
+    main: '#17a2b8',
+    dark: '#138496',
+    light: '#37b2d8',
+    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+  },
+  warning: {
+    main: '#ffc107',
+    dark: '#e0a800',
+    light: '#ffce3d',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+  },
+  danger: {
+    main: '#dc3545',
+    dark: '#c82333',
+    light: '#e4606d',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+  },
+  secondary: {
+    main: '#6c757d',
+    dark: '#545b62',
+    light: '#868e96',
+    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
+  }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const floatVariants = {
+  initial: { y: 0 },
+  float: {
+    y: [-10, 10, -10],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
+};
 
 export default function CollegeProfile() {
   const { user } = useContext(AuthContext);
@@ -52,6 +148,7 @@ export default function CollegeProfile() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -61,12 +158,9 @@ export default function CollegeProfile() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ✅ FIXED: Only fetch college data (remove students/courses API calls)
         const collegeRes = await api.get("/college/my-college");
         setCollege(collegeRes.data);
         
-        // ✅ FIXED: Use placeholder stats or calculate from college data if available
-        // If your backend has different endpoints, update these accordingly
         setStats({
           departments: collegeRes.data?.departments?.length || 0,
           courses: collegeRes.data?.courses?.length || 0,
@@ -77,7 +171,6 @@ export default function CollegeProfile() {
       } catch (err) {
         console.error("Error loading college profile:", err);
         setError("Failed to load college profile data");
-        // ✅ FIXED: Don't crash - set empty college data
         setCollege(null);
       } finally {
         setLoading(false);
@@ -88,12 +181,12 @@ export default function CollegeProfile() {
 
   /* ================= QUICK ACTIONS ================= */
   const quickActions = [
-    { icon: <FaUsers />, label: "Students", path: "/students", color: "primary" },
-    { icon: <FaLayerGroup />, label: "Departments", path: "/departments", color: "success" },
-    { icon: <FaBook />, label: "Courses", path: "/courses", color: "info" },
-    { icon: <FaChalkboardTeacher />, label: "Teachers", path: "/teachers", color: "warning" },
-    { icon: <FaMoneyBillWave />, label: "Fee Structures", path: "/fees/list", color: "danger" },
-    { icon: <FaCogs />, label: "Settings", path: "/college/profile", color: "dark" }
+    { icon: <FaUsers />, label: "Students", path: "/students", color: "primary", gradient: BRAND_COLORS.primary.gradient },
+    { icon: <FaLayerGroup />, label: "Departments", path: "/departments", color: "success", gradient: BRAND_COLORS.success.gradient },
+    { icon: <FaBook />, label: "Courses", path: "/courses", color: "info", gradient: BRAND_COLORS.info.gradient },
+    { icon: <FaChalkboardTeacher />, label: "Teachers", path: "/teachers", color: "warning", gradient: BRAND_COLORS.warning.gradient },
+    { icon: <FaMoneyBillWave />, label: "Fee Structures", path: "/fees/list", color: "danger", gradient: BRAND_COLORS.danger.gradient },
+    { icon: <FaCogs />, label: "Settings", path: "/college/profile", color: "secondary", gradient: BRAND_COLORS.secondary.gradient }
   ];
 
   if (loading) {
@@ -104,444 +197,536 @@ export default function CollegeProfile() {
   if (!college) return <EmptyState onBack={() => navigate("/dashboard")} />;
 
   return (
-    <div className="container-fluid py-4 animate-fade-in">
-      {/* ================= TOP NAVIGATION BAR ================= */}
-      <div className="d-flex align-items-center justify-content-between mb-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3">
-          
-          <div className="d-flex align-items-center gap-3">
-            <div className="college-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaUniversity size={32} />
-            </div>
-            
-            <div>
-              <h1 className="h3 fw-bold mb-0 text-dark">{college.name}</h1>
-              <p className="text-muted mb-0">
-                <span className="badge bg-secondary me-2">{college.code}</span>
-                <span className={`badge ${
-                  college.isActive ? "bg-success blink" : "bg-danger"
-                }`}>
-                  {college.isActive ? (
-                    <>
-                      <FaCheckCircle className="me-1" /> Active
-                    </>
-                  ) : (
-                    <>
-                      <FaTimesCircle className="me-1" /> Inactive
-                    </>
-                  )}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="d-flex gap-2">
-          <button 
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 hover-lift pulse-button"
-            onClick={() => navigate("/college/edit-profile")}
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+          paddingTop: '1.5rem',
+          paddingBottom: '1.5rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem'
+        }}
+      >
+        {/* Success Toast Notification */}
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: '1rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: '#10b981',
+              color: 'white',
+              padding: '1rem 2rem',
+              borderRadius: '9999px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              maxWidth: '90%'
+            }}
           >
-            <FaEdit /> Edit Profile
-          </button>
-        </div>
-      </div>
-      {/* ================= MAIN CONTENT GRID ================= */}
-      <div className="row g-4">
-        {/* LEFT COLUMN - PROFILE DETAILS */}
-        <div className="col-lg-8">
-          {/* ================= BASIC INFO CARD ================= */}
-          <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-            <div className="card-header bg-gradient-primary text-white py-4">
-              <h2 className="h5 fw-bold mb-0 d-flex align-items-center gap-2">
-                <FaInfoCircle /> College Information
-              </h2>
-            </div>
-            <div className="card-body p-4">
-              <div className="row g-4">
-                <InfoItem 
-                  icon={<FaEnvelope className="text-primary" />} 
-                  label="Official Email" 
-                  value={college.email} 
-                  copyable 
-                />
-                <InfoItem 
-                  icon={<FaPhoneAlt className="text-success" />} 
-                  label="Contact Number" 
-                  value={college.contactNumber} 
-                  copyable 
-                />
-                <InfoItem 
-                  icon={<FaMapMarkerAlt className="text-danger" />} 
-                  label="Full Address" 
-                  value={college.address} 
-                  fullWidth 
-                />
-                <InfoItem 
-                  icon={<FaCalendarAlt className="text-warning" />} 
-                  label="Established Year" 
-                  value={college.establishedYear?.toString() || "N/A"} 
-                />
-                <InfoItem 
-                  icon={<FaShieldAlt className="text-info" />} 
-                  label="College Type" 
-                  value={college.collegeType || "Private"} 
-                />
-                <InfoItem 
-                  icon={<FaCalendarAlt className="text-secondary" />} 
-                  label="Member Since" 
-                  value={new Date(college.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })} 
-                />
-              </div>
-            </div>
-          </div>
+            <FaCheckCircle size={20} />
+            <span>Profile updated successfully!</span>
+          </motion.div>
+        )}
 
-          {/* ================= QUICK ACTIONS CARD ================= */}
-          <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-            <div className="card-header bg-gradient-success text-white py-4">
-              <h2 className="h5 fw-bold mb-0 d-flex align-items-center gap-2">
-                <FaBolt /> Quick Actions
-              </h2>
-            </div>
-            <div className="card-body p-4">
-              <div className="row g-3">
-                {quickActions.map((action, idx) => (
-                  <div className="col-md-4 col-sm-6" key={idx}>
-                    <button
-                      onClick={() => navigate(action.path)}
-                      className={`btn btn-outline-${action.color} w-100 d-flex flex-column align-items-center gap-2 py-3 rounded-3 shadow-sm hover-lift animate-fade-in`}
-                      style={{ animationDelay: `${idx * 0.05}s` }}
-                    >
-                      <div className={`fs-3 text-${action.color}`}>{action.icon}</div>
-                      <span className="fw-semibold">{action.label}</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN - SIDEBAR */}
-        <div className="col-lg-4">
-          <div className="sticky-top" style={{ top: "20px" }}>
-
-           {/* ================= RECENT ACTIVITY ================= */}
-            <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-              <div className="card-header bg-gradient-info text-white py-3">
-                <h2 className="h6 fw-bold mb-0 d-flex align-items-center gap-2">
-                  <FaBell /> Recent Activity
-                </h2>
-              </div>
-              <div className="card-body p-3">
-                <div className="activity-item mb-3 pb-3 border-bottom">
-                  <div className="d-flex align-items-start gap-2">
-                    <div className="activity-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
-                      <FaUserGraduate size={14} />
-                    </div>
-                    <div>
-                      <p className="mb-1 fw-medium">New student enrolled</p>
-                      <small className="text-muted">2 hours ago</small>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="activity-item mb-3 pb-3 border-bottom">
-                  <div className="d-flex align-items-start gap-2">
-                    <div className="activity-icon bg-success text-white rounded-circle d-flex align-items-center justify-content-center">
-                      <FaBook size={14} />
-                    </div>
-                    <div>
-                      <p className="mb-1 fw-medium">Course added</p>
-                      <small className="text-muted">Yesterday</small>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="activity-item">
-                  <div className="d-flex align-items-start gap-2">
-                    <div className="activity-icon bg-warning text-white rounded-circle d-flex align-items-center justify-content-center">
-                      <FaMoneyBillWave size={14} />
-                    </div>
-                    <div>
-                      <p className="mb-1 fw-medium">Fee structure updated</p>
-                      <small className="text-muted">2 days ago</small>
-                    </div>
-                  </div>
+        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+          {/* ================= TOP NAVIGATION BAR ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1.5rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+              <motion.div
+                variants={pulseVariants}
+                initial="initial"
+                animate="pulse"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  background: BRAND_COLORS.primary.gradient,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 10px 30px rgba(26, 75, 109, 0.4)',
+                  flexShrink: 0
+                }}
+              >
+                <FaUniversity size={36} style={{ color: 'white' }} />
+              </motion.div>
+              
+              <div style={{ flex: 1 }}>
+                <h1 style={{
+                  margin: 0,
+                  marginBottom: '0.25rem',
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  lineHeight: 1.2
+                }}>
+                  {college.name}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{
+                    backgroundColor: '#e2e8f0',
+                    color: '#4a5568',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}>
+                    {college.code}
+                  </span>
+                  <span style={{
+                    backgroundColor: college.isActive ? '#dcfce7' : '#fee2e2',
+                    color: college.isActive ? '#166534' : '#b91c1c',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}>
+                    {college.isActive ? (
+                      <>
+                        <FaCheckCircle /> Active
+                      </>
+                    ) : (
+                      <>
+                        <FaTimesCircle /> Inactive
+                      </>
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ================= FOOTER ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-        <div className="card-body p-4 bg-light">
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-              <p className="mb-1">
-                <small className="text-muted">
-                  <FaInfoCircle className="me-2" /> 
-                  System Version: <strong>v2.1.0</strong>
-                </small>
-              </p>
-              <p className="mb-0">
-                <small className="text-muted">
-                  Last Sync: <strong>{new Date().toLocaleTimeString()}</strong>
-                </small>
-              </p>
-            </div>
-            <div justifyContent="flex-end" className="d-flex gap-2">
-              <div>
-              <button 
-            onClick={() => navigate("/dashboard")}
-            className="btn btn-outline-secondary d-flex me-2 gap-2 px-1 py-2 shadow-sm hover-lift" >
-           <FaArrowLeft /> Back to dashboard
-           </button>
-            </div>
-            <div>
-              <button 
-              className="btn btn-outline-primary px-4 py-2 d-flex align-items-center gap-2 hover-lift"
-              onClick={() => window.location.reload()}
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.3)' }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/college/edit-profile")}
+              style={{
+                backgroundColor: BRAND_COLORS.primary.main,
+                color: 'white',
+                border: 'none',
+                padding: '0.875rem 1.75rem',
+                borderRadius: '0.75rem',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
             >
-              <FaSync className="spin-icon" /> Refresh Data
-            </button>
+              <FaEdit /> Edit Profile
+            </motion.button>
+          </motion.div>
+
+          {/* ================= MAIN CONTENT GRID ================= */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {/* LEFT COLUMN - PROFILE DETAILS */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                {/* ================= BASIC INFO CARD ================= */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={0}
+                  initial="hidden"
+                  animate="visible"
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '1.5rem',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                    marginBottom: '1.5rem',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      padding: '1.5rem',
+                      background: BRAND_COLORS.primary.gradient,
+                      color: 'white'
+                    }}>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaInfoCircle /> College Information
+                      </h2>
+                    </div>
+                    <div style={{ padding: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                        <InfoItem 
+                          icon={<FaEnvelope />} 
+                          label="Official Email" 
+                          value={college.email} 
+                          copyable 
+                          color={BRAND_COLORS.primary.main}
+                        />
+                        <InfoItem 
+                          icon={<FaPhoneAlt />} 
+                          label="Contact Number" 
+                          value={college.contactNumber} 
+                          copyable 
+                          color={BRAND_COLORS.success.main}
+                        />
+                        <InfoItem 
+                          icon={<FaMapMarkerAlt />} 
+                          label="Full Address" 
+                          value={college.address} 
+                          fullWidth 
+                          color={BRAND_COLORS.danger.main}
+                        />
+                        <InfoItem 
+                          icon={<FaCalendarAlt />} 
+                          label="Established Year" 
+                          value={college.establishedYear?.toString() || "N/A"} 
+                          color={BRAND_COLORS.warning.main}
+                        />
+                        <InfoItem 
+                          icon={<FaShieldAlt />} 
+                          label="College Type" 
+                          value={college.collegeType || "Private"} 
+                          color={BRAND_COLORS.info.main}
+                        />
+                        <InfoItem 
+                          icon={<FaCalendarAlt />} 
+                          label="Member Since" 
+                          value={new Date(college.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })} 
+                          color={BRAND_COLORS.secondary.main}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ================= QUICK ACTIONS CARD ================= */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={1}
+                  initial="hidden"
+                  animate="visible"
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '1.5rem',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      padding: '1.5rem',
+                      background: BRAND_COLORS.success.gradient,
+                      color: 'white'
+                    }}>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaBolt /> Quick Actions
+                      </h2>
+                    </div>
+                    <div style={{ padding: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        {quickActions.map((action, idx) => (
+                          <motion.div
+                            key={idx}
+                            whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{ gridColumn: 'span 1' }}
+                          >
+                            <button
+                              onClick={() => navigate(action.path)}
+                              style={{
+                                width: '100%',
+                                backgroundColor: 'white',
+                                border: `2px solid ${action.color}`,
+                                padding: '1.25rem 1rem',
+                                borderRadius: '1rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                color: action.color,
+                                fontWeight: 600,
+                                fontSize: '0.95rem'
+                              }}
+                            >
+                              <div style={{
+                                fontSize: '1.75rem',
+                                color: action.color
+                              }}>{action.icon}</div>
+                              <span>{action.label}</span>
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             </div>
+
+            {/* RIGHT COLUMN - SIDEBAR */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ position: 'sticky', top: '20px' }}>
+                {/* ================= RECENT ACTIVITY ================= */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={2}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '1.5rem',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                    marginBottom: '1.5rem',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      padding: '1.5rem',
+                      background: BRAND_COLORS.info.gradient,
+                      color: 'white'
+                    }}>
+                      <h2 style={{
+                        margin: 0,
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaBell /> Recent Activity
+                      </h2>
+                    </div>
+                    <div style={{ padding: '1rem' }}>
+                      <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: BRAND_COLORS.primary.main,
+                            color: 'white',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <FaUserGraduate size={16} />
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>New student enrolled</p>
+                            <small style={{ color: '#64748b' }}>2 hours ago</small>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: BRAND_COLORS.success.main,
+                            color: 'white',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <FaBook size={16} />
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>Course added</p>
+                            <small style={{ color: '#64748b' }}>Yesterday</small>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: BRAND_COLORS.warning.main,
+                            color: 'white',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <FaMoneyBillWave size={16} />
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>Fee structure updated</p>
+                            <small style={{ color: '#64748b' }}>2 days ago</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             </div>
           </div>
+
+          {/* ================= FOOTER ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={3}
+            initial="hidden"
+            animate="visible"
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '1.5rem',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+              marginTop: '1.5rem',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              padding: '1.5rem',
+              backgroundColor: '#f8fafc',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div>
+                <p style={{ margin: '0 0 0.25rem 0' }}>
+                  <small style={{ color: '#64748b' }}>
+                    <FaInfoCircle style={{ marginRight: '0.5rem', color: BRAND_COLORS.primary.main }} /> 
+                    System Version: <strong style={{ color: '#1e293b' }}>v2.1.0</strong>
+                  </small>
+                </p>
+                <p style={{ margin: 0 }}>
+                  <small style={{ color: '#64748b' }}>
+                    Last Sync: <strong style={{ color: '#1e293b' }}>{new Date().toLocaleTimeString()}</strong>
+                  </small>
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/dashboard")}
+                  style={{
+                    backgroundColor: 'white',
+                    color: '#64748b',
+                    border: '2px solid #e2e8f0',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <FaArrowLeft /> Back to Dashboard
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => window.location.reload()}
+                  style={{
+                    backgroundColor: BRAND_COLORS.primary.main,
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <motion.div variants={spinVariants} animate="animate">
+                    <FaSyncAlt />
+                  </motion.div>
+                  Refresh Data
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </div>
-
-      {/* ================= STYLES ================= */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0.4); }
-          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(26, 75, 109, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0); }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        @keyframes lift {
-          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
-        .animate-fade-in-up { animation: slideUp 0.6s ease-out forwards; }
-        .pulse-icon { animation: pulse 2s infinite; }
-        .blink { animation: blink 1.5s infinite; }
-        .hover-lift:hover { animation: lift 0.3s ease forwards; }
-        .spin-icon { animation: spin 1s linear infinite; }
-        .float-badge { animation: float 3s ease-in-out infinite; }
-
-        .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
-        }
-        .bg-gradient-success {
-          background: linear-gradient(135deg, #1e6f5c 0%, #155447 100%);
-        }
-        .bg-gradient-info {
-          background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        }
-        .bg-gradient-dark {
-          background: linear-gradient(135deg, #343a40 0%, #23272b 100%);
-        }
-
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .college-logo-container {
-          width: 70px;
-          height: 70px;
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.4);
-        }
-
-        .college-badge {
-          width: 120px;
-          height: 120px;
-          margin: 0 auto 15px;
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 10px 30px rgba(26, 75, 109, 0.5);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .college-badge::before {
-          content: '';
-          position: absolute;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-          animation: rotate 10s linear infinite;
-        }
-
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .college-initials {
-          font-size: 48px;
-          font-weight: bold;
-          color: white;
-          position: relative;
-          z-index: 1;
-          text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        .stat-card {
-          transition: all 0.3s ease;
-          border: 2px solid transparent;
-        }
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-          border-color: rgba(0,0,0,0.1);
-        }
-
-        .activity-icon {
-          width: 32px;
-          height: 32px;
-          font-size: 14px;
-        }
-
-        .info-item {
-          transition: all 0.3s ease;
-        }
-        .info-item:hover {
-          transform: translateX(5px);
-          background-color: rgba(0,0,0,0.02);
-        }
-
-        .pulse-button {
-          position: relative;
-          overflow: hidden;
-        }
-        .pulse-button::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 5px;
-          height: 5px;
-          background: rgba(255,255,255,0.5);
-          opacity: 0;
-          border-radius: 100%;
-          transform: scale(1, 1) translate(-50%);
-          transform-origin: 50% 50%;
-        }
-        .pulse-button:focus:not(:active)::after {
-          animation: ripple 1s ease-out;
-        }
-        @keyframes ripple {
-          0% { transform: scale(0, 0); opacity: 0.5; }
-          100% { transform: scale(100, 100); opacity: 0; }
-        }
-
-        @media (max-width: 992px) {
-          .sticky-top {
-            position: static !important;
-          }
-          .college-logo-container {
-            width: 50px;
-            height: 50px;
-          }
-        }
-
-        /* Loading Skeleton */
-        .skeleton {
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: loading 1.5s ease-in-out infinite;
-        }
-        @keyframes loading {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-
-        .copyable:hover {
-          background-color: rgba(0,123,255,0.1);
-          cursor: pointer;
-        }
-      `}</style>
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
 /* ================= LOADING SKELETON ================= */
 function LoadingSkeleton() {
   return (
-    <div className="container-fluid py-5">
-      <div className="row justify-content-center">
-        <div className="col-md-8">
-          <div className="d-flex align-items-center justify-content-center gap-3 mb-5">
-            <div className="skeleton rounded-circle" style={{ width: '80px', height: '80px' }}></div>
-            <div>
-              <div className="skeleton rounded" style={{ width: '300px', height: '30px' }}></div>
-              <div className="skeleton rounded mt-2" style={{ width: '150px', height: '20px' }}></div>
-            </div>
-          </div>
-
-          <div className="row g-4 mb-4">
-            {[1, 2, 3, 4].map(i => (
-              <div className="col-md-3" key={i}>
-                <div className="card border-0 shadow-sm">
-                  <div className="card-body p-4 text-center">
-                    <div className="skeleton rounded-circle mx-auto mb-3" style={{ width: '50px', height: '50px' }}></div>
-                    <div className="skeleton rounded mx-auto mb-2" style={{ width: '80px', height: '25px' }}></div>
-                    <div className="skeleton rounded mx-auto" style={{ width: '120px', height: '20px' }}></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body p-4">
-              <div className="skeleton rounded mb-4" style={{ width: '200px', height: '30px' }}></div>
-              <div className="row g-3">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div className="col-md-4" key={i}>
-                    <div className="skeleton rounded" style={{ width: '100%', height: '80px' }}></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)'
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1.5rem'
+      }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          style={{ color: '#1a4b6d', fontSize: '3rem' }}
+        >
+          <FaSyncAlt />
+        </motion.div>
+        <div style={{ fontSize: '1.25rem', color: '#64748b', fontWeight: 500 }}>
+          Loading college profile...
         </div>
       </div>
     </div>
@@ -551,88 +736,111 @@ function LoadingSkeleton() {
 /* ================= ERROR DISPLAY ================= */
 function ErrorDisplay({ message, onRetry }) {
   return (
-    <div className="container-fluid py-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card border-0 shadow-lg rounded-4">
-            <div className="card-body text-center p-5">
-              <div className="text-danger mb-3">
-                <FaTimesCircle size={64} />
-              </div>
-              <h4 className="fw-bold mb-2">Error Loading Profile</h4>
-              <p className="text-muted mb-4">{message}</p>
-              <button 
-                onClick={onRetry}
-                className="btn btn-primary px-4 py-2"
-              >
-                <FaSync className="me-2 spin-icon" /> Retry
-              </button>
-            </div>
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+      padding: '2rem'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '1.5rem',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+        maxWidth: '500px',
+        width: '100%',
+        padding: '2.5rem',
+        textAlign: 'center'
+      }}>
+        <div style={{ color: '#dc3545', marginBottom: '1rem', fontSize: '3rem' }}>
+          <FaTimesCircle />
+        </div>
+        <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#1e293b' }}>Error Loading Profile</h4>
+        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>{message}</p>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onRetry}
+          style={{
+            backgroundColor: '#1a4b6d',
+            color: 'white',
+            border: 'none',
+            padding: '0.875rem 2rem',
+            borderRadius: '0.75rem',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '0 auto',
+            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
+          }}
+        >
+          <FaSyncAlt style={{ animation: 'spin 1s linear infinite' }} /> Retry
+        </motion.button>
         </div>
       </div>
-    </div>
   );
 }
 
 /* ================= EMPTY STATE ================= */
 function EmptyState({ onBack }) {
   return (
-    <div className="container-fluid py-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card border-0 shadow-lg rounded-4">
-            <div className="card-body text-center p-5">
-              <div className="text-secondary mb-3">
-                <FaUniversity size={64} />
-              </div>
-              <h4 className="fw-bold mb-2">No College Data Found</h4>
-              <p className="text-muted mb-4">Please contact your system administrator to set up college profile.</p>
-              <button 
-                onClick={onBack}
-                className="btn btn-outline-secondary px-4 py-2"
-              >
-                <FaArrowLeft className="me-2" /> Go Back
-              </button>
-            </div>
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+      padding: '2rem'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '1.5rem',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+        maxWidth: '500px',
+        width: '100%',
+        padding: '2.5rem',
+        textAlign: 'center'
+      }}>
+        <div style={{ color: '#64748b', marginBottom: '1rem', fontSize: '3rem' }}>
+          <FaUniversity />
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* ================= STAT CARD ================= */
-function StatCard({ title, value, icon, color, trend }) {
-  return (
-    <div className="col-md-3 mb-3">
-      <div className={`card border-0 shadow-sm rounded-4 stat-card bg-light-${color}`}>
-        <div className="card-body p-4">
-          <div className="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <h6 className="text-muted mb-1">{title}</h6>
-              <h2 className={`fw-bold text-${color}`}>{value}</h2>
-            </div>
-            <div className={`fs-2 text-${color} opacity-50`}>{icon}</div>
-          </div>
-          {trend && (
-            <div className="d-flex align-items-center">
-              <small className={`fw-semibold ${
-                trend.includes('+') ? 'text-success' : trend.includes('-') ? 'text-danger' : 'text-muted'
-              }`}>
-                {trend}
-              </small>
-            </div>
-          )}
-        </div>
+        <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#1e293b' }}>No College Data Found</h4>
+        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
+          Please contact your system administrator to set up college profile.
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onBack}
+          style={{
+            backgroundColor: 'white',
+            color: '#64748b',
+            border: '2px solid #e2e8f0',
+            padding: '0.875rem 2rem',
+            borderRadius: '0.75rem',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '0 auto'
+          }}
+        >
+          <FaArrowLeft /> Go Back
+        </motion.button>
       </div>
     </div>
   );
 }
 
 /* ================= INFO ITEM ================= */
-function InfoItem({ icon, label, value, copyable = false, fullWidth = false }) {
-  const [copied, setCopied] = useState(false);
+function InfoItem({ icon, label, value, copyable = false, fullWidth = false, color }) {
+  const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
     if (copyable && value) {
@@ -643,39 +851,72 @@ function InfoItem({ icon, label, value, copyable = false, fullWidth = false }) {
   };
 
   return (
-    <div className={fullWidth ? "col-12" : "col-md-6"}>
-      <div 
-        className={`p-3 border rounded-3 shadow-sm h-100 info-item ${
-          copyable ? 'copyable' : ''
-        }`}
-        onClick={handleCopy}
-      >
-        <div className="d-flex align-items-start gap-3">
-          <div className="mt-1 flex-shrink-0">{icon}</div>
-          <div className="flex-grow-1">
-            <h6 className="text-muted mb-1 fw-normal small">{label}</h6>
-            <h5 className="fw-bold mb-0 text-dark">
-              {value || "-"}
-              {copyable && copied && (
-                <span className="ms-2 text-success small">
-                  <FaCheckCircle size={14} /> Copied!
-                </span>
-              )}
-            </h5>
-          </div>
+    <motion.div
+      whileHover={{ x: 5, backgroundColor: '#f8fafc' }}
+      style={{
+        gridColumn: fullWidth ? '1 / -1' : 'span 1',
+        padding: '1rem',
+        border: '1px solid #e2e8f0',
+        borderRadius: '1rem',
+        backgroundColor: 'white',
+        cursor: copyable ? 'pointer' : 'default',
+        transition: 'all 0.3s ease'
+      }}
+      onClick={handleCopy}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          backgroundColor: `${color}15`,
+          color: color,
+          borderRadius: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          {React.cloneElement(icon, { size: 18 })}
+        </div>
+        <div style={{ flex: 1 }}>
+          <h6 style={{
+            margin: 0,
+            marginBottom: '0.25rem',
+            color: '#64748b',
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>{label}</h6>
+          <h5 style={{
+            margin: 0,
+            fontWeight: 600,
+            color: '#1e293b',
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            {value || "-"}
+            {copyable && copied && (
+              <span style={{ color: '#10b981', fontSize: '0.75rem' }}>
+                <FaCheckCircle size={14} /> Copied!
+              </span>
+            )}
+          </h5>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
-}  
+}
 
+// Add this CSS to your global stylesheet or index.html
+/*
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-
-
-
-
-
-
-
-
-
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+*/

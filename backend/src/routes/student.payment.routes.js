@@ -8,6 +8,7 @@ const studentMiddleware = require("../middlewares/student.middleware");
 
 const { mockPaymentSuccess } = require("../controllers/mock.payment.controller");
 const { getStudentFeeDashboard } = require("../controllers/student.payment.controller");
+const { createCheckoutSession } = require("../controllers/stripe.payment.controller");
 
 // 💳 STUDENT: Create payment order
 router.post(
