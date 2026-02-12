@@ -267,7 +267,7 @@ exports.getStudentsForAttendance = async (req, res) => {
    MARK ATTENDANCE (Initial)
    POST /attendance/sessions/:sessionId/mark
 ========================================================= */
-exports.markAttendance = async (req, res) => {
+/* exports.markAttendance = async (req, res) => {
   try {
     const { attendance } = req.body;
     const collegeId = req.college_id;
@@ -310,6 +310,61 @@ exports.markAttendance = async (req, res) => {
 
     res.status(200).json({
       message: "Attendance marked successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; */
+
+exports.markAttendance = async (req, res) => {
+  try {
+    const { attendance } = req.body;
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(400).json({
+        message: "Session not found or closed",
+      });
+    }
+
+    for (let item of attendance) {
+      await AttendanceRecord.findOneAndUpdate(
+        {
+          session_id: session._id,
+          student_id: item.student_id,
+        },
+        {
+          college_id: collegeId,
+          session_id: session._id,
+          student_id: item.student_id,
+          status: item.status,
+          markedBy: teacher._id,
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    res.status(200).json({
+      message: "Attendance saved successfully",
     });
 
   } catch (error) {

@@ -14,7 +14,7 @@ import StudentRegister from "./pages/auth/StudentRegister";
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
 import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
-
+import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 
 /* ================= DEPARTMENTS ================= */
@@ -27,36 +27,54 @@ import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
 
 /* ================= ATTENDANCE ================= */
-import MarkAttendance from "./pages/dashboard/Teacher/MarkAttendance";
+import MarkAttendance from "./pages/dashboard/Teacher/Attendance/MarkAttendance";
+import EditAttendance from "./pages/dashboard/Teacher/Attendance/EditAttendance";
+import AttendanceReport from "./pages/dashboard/Teacher/Attendance/AttendanceReport";
+import MySessions from "./pages/dashboard/Teacher/Attendance/MySessions";
+import CloseSession from "./pages/dashboard/Teacher/Attendance/CloseSession";
+
+/* ================= MY ATTENDANCE ================= */
 import MyAttendance from "./pages/dashboard/Student/MyAttendance";
 import AttendanceList from "./pages/attendance/AttendanceList";
 
-/* ================= SUBJECTS / TEACHERS ================= */
-import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
-import AddSubject from "./pages/dashboard/College-Admin/AddSubject";
-import AssignTeacherSubjects from "./pages/Teachers/AssignTeacherSubjects";
-import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
-import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
-import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
-import AddTeacher from "./pages/dashboard/College-Admin/AddTeacher";
-import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
-import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
-import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
-import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
-import CreateSession from "./pages/dashboard/Teacher/CreateSession";
-// import EditTimetable from "./pages/dashboard/College-Admin/EditTimetable";
-import EditAttendance from "./pages/dashboard/Teacher/EditAttendance";
-import AttendanceReport from "./pages/dashboard/Teacher/AttendanceReport";
-import CloseSession from "./pages/dashboard/Teacher/CloseSession";
-import MyTimetable from "./pages/dashboard/Teacher/MyTimetable";
-import MySessions from "./pages/dashboard/Teacher/MySessions";
+// Notifications
+import CreateNotifications from "./pages/dashboard/Teacher/Notifications/CreateNotifications";
+import Notifications from "./pages/dashboard/Teacher/Notifications/Notifications";
+import EditNotifications from "./pages/dashboard/Teacher/Notifications/EditNotifications";
+import CreateNotification from "./pages/dashboard/College-Admin/Notification/CreateNotification";
+import NotificationList from "./pages/dashboard/College-Admin/Notification/NotificationList";
+import UpdateNotifications from "./pages/dashboard/College-Admin/Notification/UpdateNotifications";
+import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
+
+/* ================= REPORTS ================= */
+import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
+import CourseReport from "./pages/dashboard/College-Admin/Reports/CourseReport";
+import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
+import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
+import SuperAdminReports from "./pages/dashboard/Super-Admin/SuperAdminReports";
+
+/* ================= TIMETABLE ================= */
+import CreateTimetable from "./pages/dashboard/Teacher/Timetable/CreateTimetable";
+import AddTimetableSlot from "./pages/dashboard/Teacher/Timetable/AddTimetableSlot";
+import TimetableList from "./pages/dashboard/Teacher/Timetable/TimetableList";
+import WeeklyTimetable from "./pages/dashboard/Teacher/Timetable/WeeklyTimetable";
+import MySchedule from "./pages/dashboard/Teacher/Timetable/MySchedule";
+import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
+
+
+/* ================= PROFILES ================= */
 import MyProfile from "./pages/dashboard/Teacher/MyProfile";
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
-import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
-import StudentFees from "./pages/dashboard/Student/StudentFees";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
+
+/* ================= FEES ================= */
+import StudentFees from "./pages/dashboard/Student/StudentFees";
+import MakePayments from "./pages/dashboard/Student/MakePayments";
 import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
+import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
+import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
+
+/* ================= COLLEGE ADMIN ================= */
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
@@ -65,22 +83,6 @@ import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructu
 import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
 import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
-import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
-import MakePayments from "./pages/dashboard/Student/MakePayments";
-import CreateNotification from "./pages/dashboard/College-Admin/CreateNotification";
-import NotificationList from "./pages/dashboard/College-Admin/NotificationList";
-import UpdateNotifications from "./pages/dashboard/College-Admin/UpdateNotifications";
-import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
-import CreateNotifications from "./pages/dashboard/Teacher/CreateNotifications";
-import Notifications from "./pages/dashboard/Teacher/Notifications";
-import EditNotifications from "./pages/dashboard/Teacher/EditNotifications";
-import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
-import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
-import CreateTimetable from "./pages/dashboard/Teacher/CreateTimetable";
-import AddTimetableSlot from "./pages/dashboard/Teacher/AddTimetableSlot";
-import TimetableList from "./pages/dashboard/Teacher/TimetableList";
-import WeeklyTimetable from "./pages/dashboard/Teacher/WeeklyTimetable";
-import MySchedule from "./pages/dashboard/Teacher/MySchedule";
 import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
 import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
 import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
@@ -91,6 +93,29 @@ import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
 import CreateSessionModal from "./pages/dashboard/Teacher/CreateSessionModal";
+
+/* ================= SUPER ADMIN ================= */
+import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
+import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
+import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
+
+/* ================= SUBJECTS / TEACHERS ================= */
+import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
+import AddSubject from "./pages/dashboard/College-Admin/AddSubject";
+import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
+import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
+import AddTeacher from "./pages/dashboard/College-Admin/AddTeacher";
+import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
+import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
+import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
+import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
+import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
+import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
+
+/* ================= TEACHER ================= */
+import CreateSession from "./pages/dashboard/Teacher/Attendance/CreateSession";
+import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
+
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -161,6 +186,31 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
                       <CollegeList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/super-admin/college/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <ViewCollegeDetails />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/super-admin/college/:id/edit"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <EditCollege />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/super-admin/reports"
+                  element={
+                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                      <SuperAdminReports />
                     </ProtectedRoute>
                   }
                 />
@@ -285,6 +335,42 @@ export default function App() {
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <StudentNotificationList />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AdminReports />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/course-wise"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CourseReport />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/attendance"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <AttendanceSummary />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/college-admin/reports/payment-summary"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <PaymentReports />
                     </ProtectedRoute>
                   }
                 />

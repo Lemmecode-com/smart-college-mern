@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -21,7 +21,111 @@ import {
   FaCalendarAlt,
   FaGraduationCap,
   FaAward,
+  FaSyncAlt,
+  FaInfoCircle,
+  FaShieldAlt,
+  FaDatabase,
+  FaCogs,
+  FaChartLine,
+  FaEnvelope,
+  FaPhoneAlt,
+  FaMapMarkerAlt
 } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Brand Color Palette
+const BRAND_COLORS = {
+  primary: {
+    main: '#1a4b6d',
+    dark: '#0f3a4a',
+    light: '#2a6b8d',
+    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+  },
+  success: {
+    main: '#28a745',
+    dark: '#218838',
+    light: '#28a745',
+    gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)'
+  },
+  info: {
+    main: '#17a2b8',
+    dark: '#138496',
+    light: '#17a2b8',
+    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+  },
+  warning: {
+    main: '#ffc107',
+    dark: '#e0a800',
+    light: '#ffc107',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+  },
+  danger: {
+    main: '#dc3545',
+    dark: '#c82333',
+    light: '#dc3545',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+  },
+  secondary: {
+    main: '#6c757d',
+    dark: '#545b62',
+    light: '#868e96',
+    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
+  }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const floatVariants = {
+  initial: { y: 0 },
+  float: {
+    y: [-5, 5, -5],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
+};
 
 export default function CollegeAdminDashboard() {
   const { user } = useContext(AuthContext);
@@ -34,6 +138,7 @@ export default function CollegeAdminDashboard() {
   /* ================= STATE ================= */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [college, setCollege] = useState(null);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -43,7 +148,7 @@ export default function CollegeAdminDashboard() {
   });
   const [recentStudents, setRecentStudents] = useState([]);
   const [pendingAdmissions, setPendingAdmissions] = useState([]);
-  const [activeSection, setActiveSection] = useState("overview");
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   /* ================= QUICK ACTIONS ================= */
   const quickActions = [
@@ -52,44 +157,66 @@ export default function CollegeAdminDashboard() {
       icon: FaUsers,
       label: "Approve Students",
       path: "/students/approve",
-      color: "#4CAF50",
+      color: BRAND_COLORS.success.main,
+      gradient: BRAND_COLORS.success.gradient
     },
     {
       id: 2,
       icon: FaChalkboardTeacher,
       label: "Manage Teachers",
       path: "/teachers",
-      color: "#2196F3",
+      color: BRAND_COLORS.info.main,
+      gradient: BRAND_COLORS.info.gradient
     },
     {
       id: 3,
       icon: FaLayerGroup,
-      label: "Manage Courses",
-      path: "/courses",
-      color: "#FF9800",
+      label: "Manage Departments",
+      path: "/departments",
+      color: BRAND_COLORS.warning.main,
+      gradient: BRAND_COLORS.warning.gradient
     },
     {
       id: 4,
-      icon: FaCalendarAlt,
-      label: "Create Timetable",
-      path: "/timetable/create",
-      color: "#E91E63",
-    },
-    {
-      id: 5,
-      icon: FaBell,
-      label: "Send Notification",
-      path: "/notification/create",
-      color: "#607D8B",
+      icon: FaGraduationCap,
+      label: "Manage Courses",
+      path: "/courses",
+      color: BRAND_COLORS.primary.main,
+      gradient: BRAND_COLORS.primary.gradient
     },
     {
       id: 6,
+      icon: FaBell,
+      label: "Send Notification",
+      path: "/notification/create",
+      color: BRAND_COLORS.secondary.main,
+      gradient: BRAND_COLORS.secondary.gradient
+    },
+    {
+      id: 7,
       icon: FaFileAlt,
       label: "View Reports",
-      path: "/reports",
-      color: "#3F51B5",
+      path: "/college-admin/reports",
+      color: BRAND_COLORS.primary.main,
+      gradient: BRAND_COLORS.primary.gradient
     },
+    {
+      id: 8,
+      icon: FaCogs,
+      label: "System Settings",
+      path: "/system-settings/general",
+      color: BRAND_COLORS.info.main,
+      gradient: BRAND_COLORS.info.gradient
+    }
   ];
+
+  /* ================= UPDATE CURRENT TIME ================= */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   /* ================= LOAD DASHBOARD DATA ================= */
   useEffect(() => {
@@ -100,6 +227,9 @@ export default function CollegeAdminDashboard() {
 
         const res = await api.get("/dashboard/college-admin");
         const data = res.data;
+
+        // Set college data
+        setCollege(data.college);
 
         // Set statistics
         setStats({
@@ -119,7 +249,7 @@ export default function CollegeAdminDashboard() {
         console.error("Failed to load dashboard data:", err);
         setError(
           err.response?.data?.message ||
-            "Failed to load dashboard data. Please try again.",
+            "Failed to load dashboard data. Please try again."
         );
       } finally {
         setLoading(false);
@@ -134,1118 +264,980 @@ export default function CollegeAdminDashboard() {
     navigate(path);
   };
 
-  /* ================= STATS CARDS ================= */
-  const StatCard = ({ icon: Icon, label, value, color, subtitle }) => (
-    <div className="stat-card" style={{ borderColor: color }}>
-      <div className="stat-icon" style={{ background: color }}>
-        <Icon size={24} />
-      </div>
-      <div className="stat-content">
-        <div className="stat-label">{label}</div>
-        <div className="stat-value">{value}</div>
-        {subtitle && <div className="stat-subtitle">{subtitle}</div>}
-      </div>
-    </div>
-  );
-
-  /* ================= QUICK ACTION CARD ================= */
-  const QuickActionCard = ({ icon: Icon, label, color, path }) => (
-    <div
-      className="quick-action-card"
-      onClick={() => handleNavigate(path)}
-      style={{ borderColor: color }}
-    >
-      <div className="quick-action-icon" style={{ background: color }}>
-        <Icon size={22} />
-      </div>
-      <div className="quick-action-label">{label}</div>
-      <div className="quick-action-arrow">
-        <FaArrowRight size={14} />
-      </div>
-    </div>
-  );
-
-  /* ================= STUDENT ITEM ================= */
-  const StudentItem = ({ student, isPending = false }) => {
-    const getStatusColor = (status) => {
-      switch (status?.toUpperCase()) {
-        case "APPROVED":
-          return "#4CAF50";
-        case "REJECTED":
-          return "#F44336";
-        case "PENDING":
-          return "#FF9800";
-        default:
-          return "#9E9E9E";
-      }
-    };
-
-    const getStatusIcon = (status) => {
-      switch (status?.toUpperCase()) {
-        case "APPROVED":
-          return <FaCheckCircle />;
-        case "REJECTED":
-          return <FaExclamationTriangle />;
-        case "PENDING":
-          return <FaClock />;
-        default:
-          return <FaUserCheck />;
-      }
-    };
-
-    return (
-      <div className="student-item">
-        <div className="student-avatar">
-          {student.fullName.charAt(0).toUpperCase()}
-        </div>
-        <div className="student-details">
-          <div className="student-name">{student.fullName}</div>
-          <div className="student-meta">
-            {isPending ? (
-              <span className="status-badge pending">
-                <FaClock className="status-icon" />
-                Pending Admission
-              </span>
-            ) : (
-              <span
-                className="status-badge"
-                style={{
-                  background: `${getStatusColor(student.status)}15`,
-                  color: getStatusColor(student.status),
-                }}
-              >
-                {getStatusIcon(student.status)}
-                {student.status}
-              </span>
-            )}
-          </div>
-        </div>
-        <button
-          className="view-btn"
-          onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
-        >
-          <FaEye />
-        </button>
-      </div>
-    );
-  };
-
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <div className="error-container">
-        <div className="error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Dashboard Error</h3>
-        <p>{error}</p>
-        <button className="retry-btn" onClick={() => window.location.reload()}>
-          <FaSyncAlt className="me-2" />
-          Refresh Dashboard
-        </button>
-      </div>
+      <ErrorDisplay 
+        message={error} 
+        onRetry={() => window.location.reload()} 
+      />
     );
   }
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading college dashboard...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-      </div>
-    );
+    return <LoadingDisplay />;
   }
 
   return (
-    <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <a href="/dashboard">Dashboard</a>
-          </li>
-          <li className="breadcrumb-item active" aria-current="page">
-            Overview
-          </li>
-        </ol>
-      </nav>
-
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaUniversity />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">College Dashboard</h1>
-            <p className="erp-page-subtitle">
-              Real-time overview of your institution's key metrics
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/college/profile")}
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+          paddingTop: '1.5rem',
+          paddingBottom: '1.5rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem'
+        }}
+      >
+        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+          {/* ================= BREADCRUMB ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '1.5rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '0.75rem 1.5rem',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+            }}
           >
-            <FaEye className="erp-btn-icon" />
-            <span>View College Profile</span>
-          </button>
-        </div>
-      </div>
-
-      {/* STATISTICS GRID */}
-      <div className="stats-grid">
-        <StatCard
-          icon={FaUsers}
-          label="Total Students"
-          value={stats.totalStudents}
-          color="#4CAF50"
-          subtitle="Enrolled students"
-        />
-        <StatCard
-          icon={FaChalkboardTeacher}
-          label="Total Teachers"
-          value={stats.totalTeachers}
-          color="#2196F3"
-          subtitle="Active faculty members"
-        />
-        <StatCard
-          icon={FaLayerGroup}
-          label="Total Departments"
-          value={stats.totalDepartments}
-          color="#FF9800"
-          subtitle="Academic departments"
-        />
-        <StatCard
-          icon={FaGraduationCap}
-          label="Total Courses"
-          value={stats.totalCourses}
-          color="#9C27B0"
-          subtitle="Active courses"
-        />
-        <StatCard
-          icon={FaUserCheck}
-          label="Pending Admissions"
-          value={stats.pendingAdmissions}
-          color="#F44336"
-          subtitle="Awaiting approval"
-        />
-      </div>
-
-      {/* MAIN CONTENT GRID */}
-      <div className="main-content-grid">
-        {/* LEFT COLUMN - ACTIVITIES & ACTIONS */}
-        <div className="left-column">
-          {/* QUICK ACTIONS */}
-          <div className="section-card">
-            <div className="section-header">
-              <h3>
-                <FaArrowRight className="section-icon" />
-                Quick Actions
-              </h3>
-              <span className="section-subtitle">
-                Frequently used operations
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Dashboard</span>
+              <span style={{ color: '#94a3b8' }}>›</span>
+              <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '0.9rem' }}>Overview</span>
             </div>
-            <div className="quick-actions-grid">
-              {quickActions.map((action) => (
-                <QuickActionCard
-                  key={action.id}
-                  icon={action.icon}
-                  label={action.label}
-                  color={action.color}
-                  path={action.path}
-                />
-              ))}
-            </div>
-          </div>
+          </motion.div>
 
-          {/* RECENT STUDENT ACTIVITIES */}
-          <div className="section-card">
-            <div className="section-header">
-              <h3>
-                <FaClock className="section-icon" />
-                Recent Student Activities
-              </h3>
-              <span className="section-subtitle">
-                Latest student applications
-              </span>
-            </div>
-
-            <div className="activities-container">
-              {recentStudents.length > 0 ? (
-                recentStudents
-                  .slice(0, 5)
-                  .map((student) => (
-                    <StudentItem key={student._id} student={student} />
-                  ))
-              ) : (
-                <div className="empty-state">
-                  <FaUsers className="empty-icon" />
-                  <p>No recent student activities</p>
-                </div>
-              )}
-
-              {recentStudents.length > 5 && (
-                <button
-                  className="view-all-btn"
-                  onClick={() => navigate("/students")}
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '1.5rem',
+              backgroundColor: 'white',
+              borderRadius: '1.5rem',
+              overflow: 'hidden',
+              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
+            }}
+          >
+            <div style={{
+              padding: '1.75rem 2rem',
+              background: BRAND_COLORS.primary.gradient,
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  style={{
+                    width: '72px',
+                    height: '72px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2rem',
+                    flexShrink: 0
+                  }}
                 >
-                  View All Students
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN - PENDING ADMISSIONS */}
-        <div className="right-column">
-          {/* PENDING ADMISSIONS */}
-          <div className="section-card pending-admissions-card">
-            <div className="section-header">
-              <h3>
-                <FaUserCheck className="section-icon" />
-                Pending Admissions
-              </h3>
-              <span className="section-subtitle">
-                {pendingAdmissions.length} student
-                {pendingAdmissions.length !== 1 ? "s" : ""} awaiting approval
-              </span>
-            </div>
-            <div className="pending-container">
-              {pendingAdmissions.length > 0 ? (
-                <>
-                  <div className="pending-list">
-                    {pendingAdmissions.map((student) => (
-                      <StudentItem
-                        key={student._id}
-                        student={student}
-                        isPending={true}
-                      />
-                    ))}
+                  <FaUniversity />
+                </motion.div>
+                <div>
+                  <h1 style={{
+                    margin: 0,
+                    fontSize: '2rem',
+                    fontWeight: 700,
+                    lineHeight: 1.2
+                  }}>
+                    {college?.name || 'College Dashboard'}
+                  </h1>
+                  <p style={{
+                    margin: '0.5rem 0 0 0',
+                    opacity: 0.9,
+                    fontSize: '1.1rem'
+                  }}>
+                    Real-time overview of institution's key metrics
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: '0.25rem' }}>Current Time</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                    {currentTime.toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true 
+                    })}
                   </div>
-                  <button
-                    className="approve-btn"
-                    onClick={() => navigate("/students")}
-                  >
-                    <FaCheckCircle className="me-2" />
-                    Approve Pending Students
-                  </button>
-                </>
-              ) : (
-                <div className="empty-state">
-                  <FaCheckCircle className="empty-icon success" />
-                  <p className="success-text">No pending admissions</p>
-                  <p>All student applications have been processed</p>
                 </div>
-              )}
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/college/profile")}
+                  style={{
+                    backgroundColor: 'white',
+                    color: BRAND_COLORS.primary.main,
+                    border: 'none',
+                    padding: '0.875rem 1.75rem',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <FaEye /> View College Profile
+                </motion.button>
+              </div>
             </div>
-          </div>
+            
+            {/* College Info Bar */}
+            {college && (
+              <div style={{
+                padding: '1rem 2rem',
+                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FaEnvelope style={{ color: BRAND_COLORS.primary.main }} />
+                    <span style={{ color: '#4a5568', fontWeight: 500 }}>{college.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FaMapMarkerAlt style={{ color: BRAND_COLORS.primary.main }} />
+                    <span style={{ color: '#4a5568', fontWeight: 500 }}>Est. {college.establishedYear}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FaShieldAlt style={{ color: BRAND_COLORS.success.main }} />
+                    <span style={{ 
+                      backgroundColor: '#dcfce7', 
+                      color: '#166534', 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '9999px',
+                      fontWeight: 600,
+                      fontSize: '0.85rem'
+                    }}>
+                      Active Institution
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ 
+                    backgroundColor: '#dbeafe', 
+                    color: BRAND_COLORS.primary.main, 
+                    padding: '0.25rem 0.75rem', 
+                    borderRadius: '9999px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem'
+                  }}>
+                    Code: {college.code}
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.div>
 
-          {/* SYSTEM STATUS */}
-          <div className="section-card">
-            <div className="section-header">
-              <h3>
-                <FaAward className="section-icon" />
-                System Status
-              </h3>
+          {/* ================= STATISTICS GRID ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '1.5rem',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.25rem'
+            }}
+          >
+            <StatCard
+              icon={FaUsers}
+              label="Total Students"
+              value={stats.totalStudents}
+              color={BRAND_COLORS.success.main}
+              gradient={BRAND_COLORS.success.gradient}
+              subtitle="Enrolled students"
+            />
+            <StatCard
+              icon={FaChalkboardTeacher}
+              label="Total Teachers"
+              value={stats.totalTeachers}
+              color={BRAND_COLORS.info.main}
+              gradient={BRAND_COLORS.info.gradient}
+              subtitle="Active faculty members"
+            />
+            <StatCard
+              icon={FaLayerGroup}
+              label="Total Departments"
+              value={stats.totalDepartments}
+              color={BRAND_COLORS.warning.main}
+              gradient={BRAND_COLORS.warning.gradient}
+              subtitle="Academic departments"
+            />
+            <StatCard
+              icon={FaGraduationCap}
+              label="Total Courses"
+              value={stats.totalCourses}
+              color={BRAND_COLORS.primary.main}
+              gradient={BRAND_COLORS.primary.gradient}
+              subtitle="Active courses"
+            />
+            <StatCard
+              icon={FaUserCheck}
+              label="Pending Admissions"
+              value={stats.pendingAdmissions}
+              color={BRAND_COLORS.danger.main}
+              gradient={BRAND_COLORS.danger.gradient}
+              subtitle="Awaiting approval"
+            />
+          </motion.div>
+
+          {/* ================= MAIN CONTENT GRID ================= */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem'
+          }}>
+            {/* LEFT COLUMN - QUICK ACTIONS & RECENT ACTIVITIES */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                {/* QUICK ACTIONS */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={1}
+                  initial="hidden"
+                  animate="visible"
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  <SectionCard
+                    title="Quick Actions"
+                    icon={<FaArrowRight />}
+                    subtitle="Frequently used operations"
+                    color={BRAND_COLORS.primary.main}
+                  >
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                      gap: '1rem',
+                      padding: '1rem'
+                    }}>
+                      {quickActions.map((action, idx) => (
+                        <QuickActionCard
+                          key={action.id}
+                          icon={action.icon}
+                          label={action.label}
+                          color={action.color}
+                          gradient={action.gradient}
+                          path={action.path}
+                          delay={idx * 0.05}
+                        />
+                      ))}
+                    </div>
+                  </SectionCard>
+                </motion.div>
+
+                {/* RECENT STUDENT ACTIVITIES */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={2}
+                  initial="hidden"
+                  animate="visible"
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  <SectionCard
+                    title="Recent Student Activities"
+                    icon={<FaClock />}
+                    subtitle="Latest student applications"
+                    color={BRAND_COLORS.info.main}
+                  >
+                    <div style={{ padding: '1rem' }}>
+                      {recentStudents.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {recentStudents.slice(0, 5).map((student) => (
+                            <StudentItem 
+                              key={student._id} 
+                              student={student} 
+                              onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState 
+                          icon={<FaUsers />} 
+                          title="No recent activities" 
+                          message="No student activities to display at the moment."
+                        />
+                      )}
+                      
+                      {recentStudents.length > 5 && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate("/students")}
+                          style={{
+                            width: '100%',
+                            marginTop: '1rem',
+                            padding: '0.875rem',
+                            backgroundColor: BRAND_COLORS.primary.main,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          <FaEye /> View All Students
+                        </motion.button>
+                      )}
+                    </div>
+                  </SectionCard>
+                </motion.div>
+              </div>
             </div>
-            <div className="system-status">
-              <div className="status-item">
-                <div className="status-indicator online"></div>
-                <div className="status-info">
-                  <div className="status-title">Database</div>
-                  <div className="status-detail">Operational</div>
-                </div>
-              </div>
-              <div className="status-item">
-                <div className="status-indicator online"></div>
-                <div className="status-info">
-                  <div className="status-title">Authentication</div>
-                  <div className="status-detail">Secure & Active</div>
-                </div>
-              </div>
-              <div className="status-item">
-                <div className="status-indicator online"></div>
-                <div className="status-info">
-                  <div className="status-title">File Storage</div>
-                  <div className="status-detail">Available</div>
-                </div>
-              </div>
-              <div className="status-item">
-                <div className="status-indicator maintenance"></div>
-                <div className="status-info">
-                  <div className="status-title">Reports Module</div>
-                  <div className="status-detail">Scheduled maintenance</div>
-                </div>
+
+            {/* RIGHT COLUMN - PENDING ADMISSIONS & SYSTEM STATUS */}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* PENDING ADMISSIONS */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={3}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <SectionCard
+                    title="Pending Admissions"
+                    icon={<FaUserCheck />}
+                    subtitle={`${pendingAdmissions.length} student${pendingAdmissions.length !== 1 ? 's' : ''} awaiting approval`}
+                    color={BRAND_COLORS.warning.main}
+                  >
+                    <div style={{ padding: '1rem' }}>
+                      {pendingAdmissions.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {pendingAdmissions.map((student) => (
+                            <StudentItem 
+                              key={student._id} 
+                              student={{ ...student, status: 'PENDING' }} 
+                              isPending={true}
+                              onClick={() => navigate(`/students/approve`)}
+                            />
+                          ))}
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => navigate("/students/approve")}
+                            style={{
+                              width: '100%',
+                              marginTop: '1.25rem',
+                              padding: '0.875rem',
+                              backgroundColor: BRAND_COLORS.success.main,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              transition: 'all 0.3s ease',
+                              boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+                            }}
+                          >
+                            <FaCheckCircle /> Approve Pending Students
+                          </motion.button>
+                        </div>
+                      ) : (
+                        <EmptyState 
+                          icon={<FaCheckCircle style={{ color: BRAND_COLORS.success.main }} />} 
+                          title="No pending admissions" 
+                          message="All student applications have been processed."
+                          success={true}
+                        />
+                      )}
+                    </div>
+                  </SectionCard>
+                </motion.div>
+
+                {/* SYSTEM STATUS */}
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={4}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <SectionCard
+                    title="System Status"
+                    icon={<FaAward />}
+                    color={BRAND_COLORS.secondary.main}
+                  >
+                    <div style={{ padding: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <StatusItem
+                          title="Database"
+                          detail="Operational"
+                          status="online"
+                          icon={<FaDatabase />}
+                        />
+                        <StatusItem
+                          title="Authentication"
+                          detail="Secure & Active"
+                          status="online"
+                          icon={<FaShieldAlt />}
+                        />
+                        <StatusItem
+                          title="File Storage"
+                          detail="Available"
+                          status="online"
+                          icon={<FaCloudUploadAlt />}
+                        />
+                        <StatusItem
+                          title="Reports Module"
+                          detail="Scheduled maintenance"
+                          status="maintenance"
+                          icon={<FaCogs />}
+                        />
+                      </div>
+                    </div>
+                  </SectionCard>
+                </motion.div>
               </div>
             </div>
           </div>
         </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ================= LOADING DISPLAY ================= */
+function LoadingDisplay() {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+      padding: '2rem'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <motion.div
+          variants={spinVariants}
+          animate="animate"
+          style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
+        >
+          <FaSyncAlt />
+        </motion.div>
+        <h3 style={{ 
+          margin: '0 0 0.5rem 0', 
+          color: '#1e293b', 
+          fontWeight: 700,
+          fontSize: '1.5rem'
+        }}>
+          Loading Dashboard...
+        </h3>
+        <p style={{ color: '#64748b', margin: 0 }}>
+          Please wait while we fetch your college data
+        </p>
       </div>
-
-      {/* STYLES */}
-      <style jsx>{`
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
-
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-
-        .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
-
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-
-        /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          border-left: 4px solid;
-          transition: all 0.3s ease;
-          border-color: #e9ecef;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .stat-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          font-size: 1.5rem;
-        }
-
-        .stat-content {
-          flex: 1;
-        }
-
-        .stat-label {
-          font-size: 0.95rem;
-          color: #666;
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-        }
-
-        .stat-subtitle {
-          font-size: 0.85rem;
-          color: #777;
-          margin-top: 0.25rem;
-        }
-
-        /* MAIN CONTENT GRID */
-        .main-content-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 1.5rem;
-        }
-
-        .left-column,
-        .right-column {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-
-        .section-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-
-        .section-card:hover {
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-        }
-
-        .section-header {
-          padding: 1.5rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #eaeaea;
-        }
-
-        .section-header h3 {
-          margin: 0;
-          font-size: 1.35rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .section-icon {
-          color: #1a4b6d;
-          font-size: 1.25rem;
-        }
-
-        .section-subtitle {
-          font-size: 0.9rem;
-          color: #6c757d;
-          margin-left: 2.25rem;
-          margin-top: 0.25rem;
-          display: block;
-        }
-
-        /* QUICK ACTIONS */
-        .quick-actions-grid {
-          padding: 1.25rem 1.5rem;
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          gap: 1rem;
-        }
-
-        .quick-action-card {
-          background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-          padding: 1.1rem;
-          border-radius: 14px;
-          border: 2px solid transparent;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 0.75rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-height: 120px;
-        }
-
-        .quick-action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-          border-color: #1a4b6d;
-        }
-
-        .quick-action-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          font-size: 1.4rem;
-        }
-
-        .quick-action-label {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 0.95rem;
-          line-height: 1.3;
-        }
-
-        .quick-action-arrow {
-          color: #1a4b6d;
-          opacity: 0;
-          transition: all 0.3s ease;
-          margin-top: 0.25rem;
-        }
-
-        .quick-action-card:hover .quick-action-arrow {
-          opacity: 1;
-          transform: translateX(3px);
-        }
-
-        /* ACTIVITIES CONTAINER */
-        .activities-container,
-        .pending-container {
-          padding: 0 1.5rem 1.5rem;
-        }
-
-        .student-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-          border-radius: 12px;
-          background: #f9fafc;
-          margin-bottom: 0.75rem;
-          transition: all 0.25s ease;
-          border: 1px solid #edf0f5;
-        }
-
-        .student-item:hover {
-          background: #f0f5ff;
-          border-color: #d4e1ff;
-          transform: translateX(3px);
-        }
-
-        .student-avatar {
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 1.1rem;
-          flex-shrink: 0;
-        }
-
-        .student-details {
-          flex: 1;
-        }
-
-        .student-name {
-          font-weight: 600;
-          color: #1a4b6d;
-          margin-bottom: 0.25rem;
-          font-size: 0.95rem;
-        }
-
-        .student-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        .status-badge.pending {
-          background: rgba(255, 152, 0, 0.15);
-          color: #e68a00;
-        }
-
-        .status-icon {
-          font-size: 0.8rem;
-        }
-
-        .view-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-        }
-
-        .view-btn:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 10px rgba(26, 75, 109, 0.3);
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 2.5rem 1.5rem;
-          color: #777;
-        }
-
-        .empty-icon {
-          font-size: 3.5rem;
-          color: #e9ecef;
-          margin-bottom: 1rem;
-          opacity: 0.7;
-        }
-
-        .empty-icon.success {
-          color: #4caf50;
-          opacity: 0.9;
-        }
-
-        .success-text {
-          font-weight: 600;
-          color: #4caf50;
-          margin: 0.5rem 0;
-        }
-
-        .view-all-btn,
-        .approve-btn {
-          width: 100%;
-          padding: 0.85rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          font-weight: 600;
-          font-size: 1rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          margin-top: 1rem;
-        }
-
-        .view-all-btn:hover,
-        .approve-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(26, 75, 109, 0.4);
-        }
-
-        .approve-btn {
-          background: linear-gradient(135deg, #4caf50 0%, #43a047 100%);
-          margin-top: 1.5rem;
-        }
-
-        .approve-btn:hover {
-          box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-        }
-
-        /* PENDING ADMISSIONS CARD */
-        .pending-admissions-card {
-          grid-row: span 2;
-        }
-
-        .pending-list {
-          max-height: 300px;
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-
-        .pending-list::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .pending-list::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-
-        .pending-list::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 10px;
-        }
-
-        .pending-list::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
-        }
-
-        /* SYSTEM STATUS */
-        .system-status {
-          padding: 1.25rem 1.5rem;
-        }
-
-        .status-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.85rem 0;
-          border-bottom: 1px solid #f0f2f5;
-        }
-
-        .status-item:last-child {
-          border-bottom: none;
-        }
-
-        .status-indicator {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .status-indicator.online {
-          background: #4caf50;
-          box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
-        }
-
-        .status-indicator.maintenance {
-          background: #ff9800;
-          box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
-        }
-
-        .status-info {
-          flex: 1;
-        }
-
-        .status-title {
-          font-weight: 600;
-          color: #2c3e50;
-          font-size: 0.95rem;
-        }
-
-        .status-detail {
-          font-size: 0.85rem;
-          color: #6c757d;
-        }
-
-        /* ERROR CONTAINER */
-        .error-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          text-align: center;
-          padding: 2rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin: 2rem;
-        }
-
-        .error-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 1.5rem;
-          color: #f44336;
-          font-size: 3rem;
-        }
-
-        .error-container h3 {
-          font-size: 1.8rem;
-          color: #1a4b6d;
-          margin-bottom: 1rem;
-        }
-
-        .error-container p {
-          color: #666;
-          font-size: 1.1rem;
-          max-width: 600px;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-        }
-
-        .retry-btn {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          padding: 0.85rem 2rem;
-          border-radius: 12px;
-          font-size: 1.05rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.75rem;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.4);
-        }
-
-        .retry-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.5);
-        }
-
-        /* LOADING CONTAINER */
-        .erp-loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-        }
-
-        .erp-loading-spinner {
-          position: relative;
-          width: 70px;
-          height: 70px;
-        }
-
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
-          animation-delay: 0.1s;
-        }
-
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
-          animation-delay: 0.2s;
-        }
-
-        .erp-loading-text {
-          font-size: 1.35rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-
-        .loading-progress {
-          width: 250px;
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d 0%, #0f3a4a 100%);
-          width: 35%;
-          animation: progressPulse 1.8s ease-in-out infinite;
-        }
-
-        /* ANIMATIONS */
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes progressPulse {
-          0%,
-          100% {
-            width: 35%;
-          }
-          50% {
-            width: 65%;
-          }
-        }
-
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 1100px) {
-          .main-content-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .pending-admissions-card {
-            grid-row: auto;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          }
-
-          .stat-value {
-            font-size: 1.75rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-          }
-
-          .quick-action-card {
-            min-height: 100px;
-            padding: 0.85rem;
-          }
-
-          .section-header h3 {
-            font-size: 1.25rem;
-          }
-
-          .section-subtitle {
-            font-size: 0.85rem;
-            margin-left: 2rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .student-item {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 1rem;
-          }
-
-          .student-meta {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .view-btn {
-            align-self: flex-end;
-            margin-top: 0.5rem;
-          }
-        }
-      `}</style>
     </div>
   );
 }
 
-/* CUSTOM ICONS */
-const FaSyncAlt = ({ size = 16, color = "#1a4b6d" }) => (
+/* ================= ERROR DISPLAY ================= */
+function ErrorDisplay({ message, onRetry }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+      padding: '2rem'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '1.5rem',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+        maxWidth: '500px',
+        width: '100%',
+        padding: '2.5rem',
+        textAlign: 'center'
+      }}>
+        <div style={{ 
+          width: '80px',
+          height: '80px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(220, 53, 69, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1.5rem',
+          color: BRAND_COLORS.danger.main,
+          fontSize: '3rem'
+        }}>
+          <FaExclamationTriangle />
+        </div>
+        <h3 style={{ 
+          margin: '0 0 0.5rem 0', 
+          fontWeight: 700, 
+          color: '#1e293b',
+          fontSize: '1.75rem'
+        }}>
+          Dashboard Error
+        </h3>
+        <p style={{ 
+          color: '#64748b', 
+          marginBottom: '1.5rem',
+          lineHeight: 1.6
+        }}>
+          {message}
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onRetry}
+          style={{
+            backgroundColor: BRAND_COLORS.primary.main,
+            color: 'white',
+            border: 'none',
+            padding: '0.875rem 2rem',
+            borderRadius: '12px',
+            fontSize: '1rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            margin: '0 auto',
+            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
+          }}
+        >
+          <motion.div variants={spinVariants} animate="animate">
+            <FaSyncAlt />
+          </motion.div>
+          Refresh Dashboard
+        </motion.button>
+      </div>
+    </div>
+  );
+}
+
+/* ================= STAT CARD ================= */
+function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
+  return (
+    <motion.div
+      whileHover={{ y: -5, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
+      whileTap={{ scale: 0.98 }}
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1.25rem',
+        borderLeft: `4px solid ${color}`,
+        transition: 'all 0.3s ease',
+        cursor: 'default'
+      }}
+    >
+      <div style={{
+        width: '56px',
+        height: '56px',
+        borderRadius: '14px',
+        background: gradient,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        flexShrink: 0,
+        fontSize: '1.75rem'
+      }}>
+        <Icon />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{
+          fontSize: '0.9rem',
+          color: '#64748b',
+          fontWeight: 600,
+          marginBottom: '0.25rem'
+        }}>{label}</div>
+        <div style={{
+          fontSize: '2rem',
+          fontWeight: 800,
+          color: '#1e293b',
+          lineHeight: 1
+        }}>{value}</div>
+        {subtitle && (
+          <div style={{
+            fontSize: '0.85rem',
+            color: '#94a3b8',
+            marginTop: '0.25rem'
+          }}>{subtitle}</div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= SECTION CARD ================= */
+function SectionCard({ title, icon, subtitle, color, children }) {
+  return (
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '16px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+      overflow: 'hidden',
+      transition: 'all 0.3s ease'
+    }}>
+      <div style={{
+        padding: '1.25rem 1.5rem',
+        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+        borderBottom: '1px solid #eaeaea'
+      }}>
+        <h3 style={{
+          margin: 0,
+          fontSize: '1.25rem',
+          fontWeight: 700,
+          color: '#1e293b',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <span style={{ color: color, fontSize: '1.2rem' }}>{icon}</span>
+          {title}
+        </h3>
+        {subtitle && (
+          <span style={{
+            fontSize: '0.875rem',
+            color: '#64748b',
+            marginLeft: '1.9rem',
+            display: 'block',
+            marginTop: '0.25rem'
+          }}>
+            {subtitle}
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ================= QUICK ACTION CARD ================= */
+function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }) {
+  const navigate = useNavigate();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay, duration: 0.5 }}
+      whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)', borderColor: color }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => navigate(path)}
+      style={{
+        backgroundColor: 'white',
+        border: '2px solid transparent',
+        borderRadius: '14px',
+        padding: '1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: '0.75rem',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        minHeight: '130px'
+      }}
+    >
+      <div style={{
+        width: '52px',
+        height: '52px',
+        borderRadius: '14px',
+        background: gradient,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontSize: '1.5rem',
+        flexShrink: 0
+      }}>
+        <Icon />
+      </div>
+      <div style={{
+        fontWeight: 600,
+        color: '#1e293b',
+        fontSize: '0.95rem',
+        lineHeight: 1.4
+      }}>
+        {label}
+      </div>
+      <div style={{
+        color: color,
+        opacity: 0,
+        transition: 'all 0.3s ease',
+        marginTop: '0.25rem'
+      }}>
+        <FaArrowRight />
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= STUDENT ITEM ================= */
+function StudentItem({ student, isPending = false, onClick }) {
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case "APPROVED":
+        return BRAND_COLORS.success.main;
+      case "REJECTED":
+        return BRAND_COLORS.danger.main;
+      case "PENDING":
+        return BRAND_COLORS.warning.main;
+      default:
+        return BRAND_COLORS.secondary.main;
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toUpperCase()) {
+      case "APPROVED":
+        return <FaCheckCircle />;
+      case "REJECTED":
+        return <FaExclamationTriangle />;
+      case "PENDING":
+        return <FaClock />;
+      default:
+        return <FaUserCheck />;
+    }
+  };
+
+  return (
+    <motion.div
+      whileHover={{ x: 5, backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }}
+      whileTap={{ scale: 0.99 }}
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        padding: '1rem',
+        borderRadius: '12px',
+        backgroundColor: 'white',
+        border: '1px solid #e2e8f0',
+        cursor: 'pointer',
+        transition: 'all 0.25s ease'
+      }}
+    >
+      <div style={{
+        width: '44px',
+        height: '44px',
+        borderRadius: '50%',
+        background: BRAND_COLORS.primary.gradient,
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 600,
+        fontSize: '1.1rem',
+        flexShrink: 0
+      }}>
+        {student.fullName.charAt(0).toUpperCase()}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{
+          fontWeight: 600,
+          color: '#1e293b',
+          fontSize: '0.95rem',
+          marginBottom: '0.25rem'
+        }}>
+          {student.fullName}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {isPending ? (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.25rem 0.75rem',
+              borderRadius: '20px',
+              backgroundColor: `${BRAND_COLORS.warning.main}15`,
+              color: BRAND_COLORS.warning.main,
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}>
+              <FaClock /> Pending Admission
+            </span>
+          ) : (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.25rem 0.75rem',
+              borderRadius: '20px',
+              backgroundColor: `${getStatusColor(student.status)}15`,
+              color: getStatusColor(student.status),
+              fontSize: '0.85rem',
+              fontWeight: 600
+            }}>
+              {getStatusIcon(student.status)}
+              {student.status}
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{
+        width: '38px',
+        height: '38px',
+        borderRadius: '10px',
+        background: BRAND_COLORS.primary.gradient,
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        transition: 'all 0.2s ease'
+      }}>
+        <FaEye size={16} />
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= EMPTY STATE ================= */
+function EmptyState({ icon, title, message, success = false }) {
+  return (
+    <div style={{
+      textAlign: 'center',
+      padding: '2.5rem 1.5rem',
+      color: '#64748b'
+    }}>
+      <div style={{
+        fontSize: '3.5rem',
+        marginBottom: '1rem',
+        opacity: success ? 0.9 : 0.6,
+        color: success ? BRAND_COLORS.success.main : '#e2e8f0'
+      }}>
+        {icon}
+      </div>
+      <h4 style={{
+        margin: '0 0 0.5rem 0',
+        color: '#1e293b',
+        fontWeight: 600,
+        fontSize: '1.25rem'
+      }}>
+        {title}
+      </h4>
+      <p style={{ margin: 0, fontSize: '0.95rem' }}>
+        {message}
+      </p>
+    </div>
+  );
+}
+
+/* ================= STATUS ITEM ================= */
+function StatusItem({ title, detail, status, icon }) {
+  const statusColors = {
+    online: { bg: '#4caf50', shadow: 'rgba(76, 175, 80, 0.6)' },
+    maintenance: { bg: '#ffc107', shadow: 'rgba(255, 193, 7, 0.6)' },
+    offline: { bg: '#dc3545', shadow: 'rgba(220, 53, 69, 0.6)' }
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1rem',
+      padding: '0.875rem 0',
+      borderBottom: '1px solid #f1f5f9'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '10px',
+          backgroundColor: `${statusColors[status]?.bg || '#6c757d'}15`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: statusColors[status]?.bg || '#6c757d',
+          fontSize: '1.1rem',
+          flexShrink: 0
+        }}>
+          {icon}
+        </div>
+        <div>
+          <div style={{
+            fontWeight: 600,
+            color: '#1e293b',
+            fontSize: '0.95rem',
+            marginBottom: '0.125rem'
+          }}>
+            {title}
+          </div>
+          <div style={{
+            fontSize: '0.85rem',
+            color: '#64748b'
+          }}>
+            {detail}
+          </div>
+        </div>
+      </div>
+      <div style={{
+        width: '12px',
+        height: '12px',
+        borderRadius: '50%',
+        backgroundColor: statusColors[status]?.bg || '#6c757d',
+        boxShadow: `0 0 8px ${statusColors[status]?.shadow || 'rgba(108, 117, 125, 0.6)'}`,
+        flexShrink: 0
+      }} />
+    </div>
+  );
+}
+
+// Custom Cloud Upload Icon
+const FaCloudUploadAlt = ({ size = 16, color = "#17a2b8" }) => (
   <svg
     width={size}
     height={size}
@@ -1257,7 +1249,7 @@ const FaSyncAlt = ({ size = 16, color = "#1a4b6d" }) => (
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
-      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l3-3m-3 3h12"
     />
   </svg>
 );
