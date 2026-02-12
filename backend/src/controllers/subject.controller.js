@@ -79,6 +79,27 @@ exports.updateSubject = async (req, res) => {
 };
 
 /**
+ * GET SUBJECT BY ID
+ */
+exports.getSubjectById = async (req, res) => {
+  try {
+    const subject = await Subject.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    }).populate("teacher_id", "name designation")
+      .populate("course_id", "name code");
+
+    if (!subject) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+
+    res.json(subject);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+/**
  * DELETE SUBJECT
  */
 exports.deleteSubject = async (req, res) => {

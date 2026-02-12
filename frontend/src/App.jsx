@@ -23,6 +23,7 @@ import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
 /* ================= COURSES ================= */
 import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
+import ViewCourse from "./pages/dashboard/College-Admin/ViewCourse";
 /* ================= STUDENTS ================= */
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
 
@@ -98,6 +99,9 @@ import CreateSessionModal from "./pages/dashboard/Teacher/CreateSessionModal";
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
 import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
+import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
+import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
+import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
 
 /* ================= SUBJECTS / TEACHERS ================= */
 import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
@@ -549,6 +553,15 @@ export default function App() {
                   }
                 />
 
+                <Route
+                  path="/courses/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewCourse />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* ================= STUDENTS ================= */}
                 <Route
                   path="/students"
@@ -652,6 +665,23 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/subjects/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewSubject />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subjects/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditSubject />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* ================= System settings ================= */}
                 <Route
                   path="/system-settings/fees"
