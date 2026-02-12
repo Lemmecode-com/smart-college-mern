@@ -7,9 +7,9 @@ import {
   FaSpinner
 } from "react-icons/fa";
 
-// Public axios (NO TOKEN)
+/* ================= PUBLIC AXIOS (NO TOKEN) ================= */
 const publicApi = axios.create({
-  baseURL: "http://localhost:5000/api"
+  baseURL: import.meta.env.VITE_API_BASE_URL
 });
 
 export default function StudentRegister() {
@@ -18,7 +18,6 @@ export default function StudentRegister() {
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,7 +43,6 @@ export default function StudentRegister() {
     const fetchDepartments = async () => {
       try {
         const res = await publicApi.get("/departments");
-        // Your API returns ARRAY directly
         setDepartments(res.data || []);
       } catch (err) {
         console.error(err);
@@ -55,7 +53,7 @@ export default function StudentRegister() {
     fetchDepartments();
   }, []);
 
-  /* ================= LOAD COURSES BY DEPARTMENT ================= */
+  /* ================= LOAD COURSES ================= */
   useEffect(() => {
     if (!form.department_id) return;
 
@@ -64,7 +62,6 @@ export default function StudentRegister() {
         const res = await publicApi.get(
           `/courses/department/${form.department_id}`
         );
-        // Your API returns ARRAY directly
         setCourses(res.data || []);
       } catch (err) {
         console.error(err);
@@ -122,7 +119,6 @@ export default function StudentRegister() {
         className="card shadow-lg p-4"
         style={{ width: "1000px", borderRadius: "16px" }}
       >
-        {/* HEADER */}
         <div className="text-center mb-4">
           <FaUniversity size={48} className="mb-2" />
           <h3 className="fw-bold">Smart College Admission Portal</h3>
@@ -137,148 +133,69 @@ export default function StudentRegister() {
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* PERSONAL */}
           <h5 className="fw-bold mb-2">Personal Details</h5>
           <div className="row g-3">
             <div className="col-md-6">
-              <input
-                className="form-control"
-                name="fullName"
-                placeholder="Full Name"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="fullName" placeholder="Full Name" onChange={handleChange} required />
             </div>
             <div className="col-md-6">
-              <input
-                className="form-control"
-                name="email"
-                placeholder="Email"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="email" placeholder="Email" onChange={handleChange} required />
             </div>
             <div className="col-md-6">
-              <input
-                type="password"
-                className="form-control"
-                name="password"
-                placeholder="Password"
-                onChange={handleChange}
-                required
-              />
+              <input type="password" className="form-control" name="password" placeholder="Password" onChange={handleChange} required />
             </div>
             <div className="col-md-6">
-              <input
-                className="form-control"
-                name="mobileNumber"
-                placeholder="Mobile Number"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="mobileNumber" placeholder="Mobile Number" onChange={handleChange} required />
             </div>
             <div className="col-md-6">
-              <select
-                className="form-select"
-                name="gender"
-                onChange={handleChange}
-              >
+              <select className="form-select" name="gender" onChange={handleChange}>
                 <option>Female</option>
                 <option>Male</option>
                 <option>Other</option>
               </select>
             </div>
             <div className="col-md-6">
-              <input
-                type="date"
-                className="form-control"
-                name="dateOfBirth"
-                onChange={handleChange}
-                required
-              />
+              <input type="date" className="form-control" name="dateOfBirth" onChange={handleChange} required />
             </div>
           </div>
 
-          {/* ADDRESS */}
           <h5 className="fw-bold mt-4 mb-2">Address</h5>
           <div className="row g-3">
             <div className="col-md-12">
-              <input
-                className="form-control"
-                name="addressLine"
-                placeholder="Address"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="addressLine" placeholder="Address" onChange={handleChange} required />
             </div>
             <div className="col-md-4">
-              <input
-                className="form-control"
-                name="city"
-                placeholder="City"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="city" placeholder="City" onChange={handleChange} required />
             </div>
             <div className="col-md-4">
-              <input
-                className="form-control"
-                name="state"
-                placeholder="State"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="state" placeholder="State" onChange={handleChange} required />
             </div>
             <div className="col-md-4">
-              <input
-                className="form-control"
-                name="pincode"
-                placeholder="Pincode"
-                onChange={handleChange}
-                required
-              />
+              <input className="form-control" name="pincode" placeholder="Pincode" onChange={handleChange} required />
             </div>
           </div>
 
-          {/* ACADEMIC */}
           <h5 className="fw-bold mt-4 mb-2">Academic Details</h5>
           <div className="row g-3">
             <div className="col-md-6">
-              <select
-                className="form-select"
-                name="department_id"
-                value={form.department_id}
-                onChange={handleChange}
-                required
-              >
+              <select className="form-select" name="department_id" value={form.department_id} onChange={handleChange} required>
                 <option value="">Select Department</option>
                 {departments.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.name}
-                  </option>
+                  <option key={d._id} value={d._id}>{d.name}</option>
                 ))}
               </select>
             </div>
 
             <div className="col-md-6">
-              <select
-                className="form-select"
-                name="course_id"
-                value={form.course_id}
-                onChange={handleChange}
-                required
-              >
+              <select className="form-select" name="course_id" value={form.course_id} onChange={handleChange} required>
                 <option value="">Select Course</option>
                 {courses.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
+                  <option key={c._id} value={c._id}>{c.name}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* SUBMIT */}
           <button
             className="btn btn-dark w-100 mt-4 d-flex align-items-center justify-content-center gap-2"
             disabled={loading}
@@ -299,17 +216,15 @@ export default function StudentRegister() {
         </div>
       </div>
 
-      <style>
-        {`
-          .spin {
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+      <style>{`
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
