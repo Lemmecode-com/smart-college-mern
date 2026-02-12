@@ -14,6 +14,10 @@ const {
   getAttendanceSessionById,
   getAttendanceSessions,
   createAttendanceSession,
+  getAttendanceRecordsBySession,
+  getAttendanceReport,
+  getTeacherCourses,
+  getTeacherSubjectsByCourse,
 } = require("../controllers/attendance.controller");
 
 /* =========================================================
@@ -36,6 +40,22 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getAttendanceSessions,
+);
+
+router.get(
+  "/report",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceReport
+);
+
+router.get(
+  "/report/courses",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherCourses
 );
 
 // 📄 Get single session using its ID
@@ -103,6 +123,22 @@ router.put(
   role("TEACHER"),
   collegeMiddleware,
   editAttendance,
+);
+
+router.get(
+  "/sessions/:sessionId/records",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceRecordsBySession
+);
+
+router.get(
+  "/report/subjects/:courseId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherSubjectsByCourse
 );
 
 module.exports = router;

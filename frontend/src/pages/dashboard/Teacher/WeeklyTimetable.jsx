@@ -8,11 +8,11 @@ const TIMES = [
   { start: "09:00", end: "10:00" },
   { start: "10:00", end: "11:00" },
   { start: "11:00", end: "12:00" },
-  { start: "12:00", end: "13:00" },
-  { start: "13:00", end: "14:00" },
-  { start: "14:00", end: "15:00" },
-  { start: "15:00", end: "16:00" },
-  { start: "16:00", end: "17:00" },
+  { start: "12:00", end: "01:00" },
+  { start: "01:00", end: "02:00" },
+  { start: "02:00", end: "03:00" },
+  { start: "03:00", end: "04:00" },
+  { start: "04:00", end: "05:00" },
 ];
 
 export default function WeeklyTimetable() {
