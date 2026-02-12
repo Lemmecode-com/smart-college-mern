@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
 import { FaEdit, FaSave } from "react-icons/fa";
 

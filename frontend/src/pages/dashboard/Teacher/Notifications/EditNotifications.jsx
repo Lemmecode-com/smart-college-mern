@@ -1,8 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../../api/axios";
+import api from "../../../../api/axios";
 import { FaBell, FaSave, FaArrowLeft } from "react-icons/fa";
-import { AuthContext } from "../../../auth/AuthContext";
+import { AuthContext } from "../../../../auth/AuthContext";
 
 export default function EditNotifications() {
   const { id } = useParams(); 
