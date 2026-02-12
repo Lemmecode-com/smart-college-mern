@@ -1,5 +1,13 @@
+const mongoose = require("mongoose");
+
 const College = require("../models/college.model");
 const User = require("../models/user.model");
+const Department = require("../models/department.model");
+const Course = require("../models/course.model");
+const Teacher = require("../models/teacher.model");
+const Student = require("../models/student.model");
+const Timetable = require("../models/timetable.model");
+const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
 
 exports.createCollege = async (req, res) => {
@@ -75,4 +83,84 @@ exports.createCollege = async (req, res) => {
 exports.getAllColleges = async (req, res) => {
   const colleges = await College.find();
   res.json(colleges);
+};
+
+/* =========================================================
+   SUPER ADMIN: Get Single College with Full Stats
+========================================================= */
+exports.getCollegeById = async (req, res) => {
+  try {
+    const { collegeId } = req.params;
+
+    // 1️⃣ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
+      return res.status(400).json({
+        message: "Invalid college ID",
+      });
+    }
+
+    // 2️⃣ Get College
+    const college = await College.findById(collegeId);
+
+    if (!college) {
+      return res.status(404).json({
+        message: "College not found",
+      });
+    }
+
+    // 3️⃣ Collect Stats (Parallel for performance)
+    const [
+      totalDepartments,
+      totalCourses,
+      totalTeachers,
+      totalStudents,
+      approvedStudents,
+      totalTimetables,
+      totalAttendanceSessions,
+    ] = await Promise.all([
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      Teacher.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({
+        college_id: collegeId,
+        status: "APPROVED",
+      }),
+      Timetable.countDocuments({ college_id: collegeId }),
+      AttendanceSession.countDocuments({ college_id: collegeId }),
+    ]);
+
+    // 4️⃣ Response
+    res.json({
+      message: "College details fetched successfully",
+      college: {
+        id: college._id,
+        name: college.name,
+        code: college.code,
+        email: college.email,
+        contactNumber: college.contactNumber,
+        address: college.address,
+        establishedYear: college.establishedYear,
+        logo: college.logo,
+        registrationUrl: college.registrationUrl,
+        registrationQr: college.registrationQr,
+        createdAt: college.createdAt,
+      },
+      stats: {
+        totalDepartments,
+        totalCourses,
+        totalTeachers,
+        totalStudents,
+        approvedStudents,
+        totalTimetables,
+        totalAttendanceSessions,
+      },
+    });
+
+  } catch (error) {
+    console.error("Get College By ID Error:", error);
+    res.status(500).json({
+      message: "Failed to fetch college details",
+    });
+  }
 };
