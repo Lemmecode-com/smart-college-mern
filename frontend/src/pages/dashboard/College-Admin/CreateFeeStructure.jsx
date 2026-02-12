@@ -111,7 +111,7 @@ export default function CreateFeeStructure() {
     try {
       setLoading(true);
 
-      await api.post("/fees/structure", {
+      await api.post("/api/fees/structure", {
         course_id,
         category,
         totalFee: Number(totalFee),

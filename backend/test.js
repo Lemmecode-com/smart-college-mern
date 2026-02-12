@@ -2,7 +2,7 @@
 // Smart College API Test (Node.js)
 // ===============================
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
 
 async function api(method, url, body = null, token = null) {
   const options = {

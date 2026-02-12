@@ -395,3 +395,52 @@ exports.getRegisteredStudentById = async (req, res) => {
 
   res.json(student);
 };
+
+/**
+ * TEACHER: Get students for the logged-in teacher
+ * GET /students/teacher
+ */
+exports.getStudentsForTeacher = async (req, res) => {
+  try {
+    // First, get the teacher's profile to find their assigned subjects
+    const teacher = await require("../models/teacher.model").findOne({
+      user_id: req.user.id,
+      college_id: req.college_id
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher profile not found" });
+    }
+
+    // Get subjects taught by this teacher
+    const subjects = await require("../models/subject.model").find({
+      teacher_id: teacher._id,
+      college_id: req.college_id
+    }).select("course_id");
+
+    if (!subjects || subjects.length === 0) {
+      return res.json({ students: [] });
+    }
+
+    // Extract course IDs from subjects
+    const courseIds = subjects.map(subject => subject.course_id);
+
+    // Get students enrolled in those courses
+    const students = await Student.find({
+      course_id: { $in: courseIds },
+      college_id: req.college_id,
+      status: "APPROVED"
+    }).select("fullName email course_id status");
+
+    // Populate course names
+    const populatedStudents = await Student.populate(students, {
+      path: "course_id",
+      select: "name"
+    });
+
+    res.json({ students: populatedStudents });
+  } catch (error) {
+    console.error("Get Students For Teacher Error:", error);
+    res.status(500).json({ message: "Failed to fetch students", error: error.message });
+  }
+};

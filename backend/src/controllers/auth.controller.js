@@ -53,6 +53,13 @@ exports.login = async (req, res) => {
  * LOGOUT
  */
 exports.logout = async (req, res) => {
+  // Clear the token cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  
   res.json({ message: "Logout successful" });
 };
 
@@ -66,5 +73,17 @@ const sendToken = (res, id, role, college_id) => {
     { expiresIn: "1d" }
   );
 
-  res.json({ token, role });
+  // Set httpOnly cookie with the token
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: 'strict' // Prevent CSRF
+  });
+
+  // Send user info in the response (not the token)
+  res.json({ 
+    user: { id, role, college_id },
+    success: true 
+  });
 };
