@@ -93,6 +93,9 @@ import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentRepor
 import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
 import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
 import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
+import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
+import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
+import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -178,7 +181,7 @@ export default function App() {
                   path="/super-admin/college/:id/edit"
                   element={
                     <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <EditCollege/>
+                      <EditCollege />
                     </ProtectedRoute>
                   }
                 />
@@ -606,12 +609,29 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/subjects/view/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <ViewSubject />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/subjects/edit/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <EditSubject />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* ================= System settings ================= */}
                 <Route
                   path="/system-settings/fees"
                   element={
                     <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <FeeSetting/>
+                      <FeeSetting />
                     </ProtectedRoute>
                   }
                 />
@@ -747,7 +767,7 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
-                
+
                 <Route
                   path="/timetable/my-timetable"
                   element={
