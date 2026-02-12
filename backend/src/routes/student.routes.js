@@ -15,6 +15,7 @@ const {
   getStudentById,
   getRegisteredStudents,
   getRegisteredStudentById,
+  getStudentsForTeacher,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -125,4 +126,14 @@ router.get(
   collegeMiddleware,
   getRegisteredStudentById,
 );
+
+// TEACHER: Get students for the logged-in teacher
+router.get(
+  "/teacher",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getStudentsForTeacher
+);
+
 module.exports = router;
