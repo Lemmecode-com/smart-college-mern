@@ -3,6 +3,8 @@ const AttendanceRecord = require("../models/attendanceRecord.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
+const Course = require("../models/course.model");
+const Subject = require("../models/subject.model");
 
 /* =========================================================
    CREATE ATTENDANCE SESSION (Teacher)
@@ -491,6 +493,7 @@ exports.closeAttendanceSession = async (req, res) => {
       await AttendanceRecord.insertMany(absentees);
     }
 
+    session.totalStudents = students.length;
     session.status = "CLOSED";
     await session.save();
 
@@ -500,6 +503,235 @@ exports.closeAttendanceSession = async (req, res) => {
       present: presentIds.length,
       absent: absentees.length,
     });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET ATTENDANCE RECORDS OF A SESSION
+   GET /attendance/sessions/:sessionId/records
+========================================================= */
+exports.getAttendanceRecordsBySession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const records = await AttendanceRecord.find({
+      session_id: req.params.sessionId,
+      college_id: collegeId,
+    })
+      .populate("student_id", "fullName email")
+      .populate({
+        path: "markedBy",
+        select: "name"
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(records);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET TEACHER ATTENDANCE REPORT (PRODUCTION GRADE)
+   GET /attendance/report
+========================================================= */
+exports.getAttendanceReport = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+    const { subjectId, courseId, startDate, endDate } = req.query;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher not found" });
+    }
+
+    // Dynamic match stage
+    let match = {
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "CLOSED", // Only closed sessions for report
+    };
+
+    if (subjectId)
+      match.subject_id = new mongoose.Types.ObjectId(subjectId);
+
+    if (courseId)
+      match.course_id = new mongoose.Types.ObjectId(courseId);
+
+    if (startDate && endDate) {
+      match.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    const sessions = await AttendanceSession.aggregate([
+      { $match: match },
+
+      {
+        $lookup: {
+          from: "attendancerecords",
+          localField: "_id",
+          foreignField: "session_id",
+          as: "records",
+        },
+      },
+
+      {
+        $addFields: {
+          present: {
+            $size: {
+              $filter: {
+                input: "$records",
+                as: "r",
+                cond: { $eq: ["$$r.status", "PRESENT"] },
+              },
+            },
+          },
+          absent: {
+            $size: {
+              $filter: {
+                input: "$records",
+                as: "r",
+                cond: { $eq: ["$$r.status", "ABSENT"] },
+              },
+            },
+          },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "subjects",
+          localField: "subject_id",
+          foreignField: "_id",
+          as: "subject",
+        },
+      },
+      { $unwind: "$subject" },
+
+      {
+        $project: {
+          date: "$lectureDate",
+          subject: "$subject.name",
+          lectureNumber: 1,
+          present: 1,
+          absent: 1,
+          percentage: {
+            $cond: [
+              { $eq: [{ $add: ["$present", "$absent"] }, 0] },
+              0,
+              {
+                $multiply: [
+                  {
+                    $divide: [
+                      "$present",
+                      { $add: ["$present", "$absent"] },
+                    ],
+                  },
+                  100,
+                ],
+              },
+            ],
+          },
+        },
+      },
+
+      { $sort: { date: -1 } },
+    ]);
+
+    // Summary calculation
+    const summary = sessions.reduce(
+      (acc, s) => {
+        acc.totalLectures += 1;
+        acc.totalPresent += s.present;
+        acc.totalAbsent += s.absent;
+        acc.totalStudents += s.present + s.absent;
+        return acc;
+      },
+      {
+        totalLectures: 0,
+        totalStudents: 0,
+        totalPresent: 0,
+        totalAbsent: 0,
+      }
+    );
+
+    res.json({ summary, sessions });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getTeacherCourses = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher not found" });
+    }
+
+    // Get courses from timetable slots
+    const slots = await TimetableSlot.find({
+      teacher_id: teacher._id,
+      college_id: collegeId,
+    }).select("course_id");
+
+    const courseIds = [...new Set(slots.map(s => s.course_id.toString()))];
+
+    const courses = await Course.find({
+      _id: { $in: courseIds },
+    }).select("_id name");
+
+    res.json(courses);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getTeacherSubjectsByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher not found" });
+    }
+
+    // Get subjects from timetable slots
+    const slots = await TimetableSlot.find({
+      teacher_id: teacher._id,
+      college_id: collegeId,
+      course_id: courseId,
+    }).select("subject_id");
+
+    const subjectIds = [...new Set(slots.map(s => s.subject_id.toString()))];
+
+    const subjects = await Subject.find({
+      _id: { $in: subjectIds },
+    }).select("_id name code");
+
+    res.json(subjects);
 
   } catch (error) {
     res.status(500).json({ message: error.message });

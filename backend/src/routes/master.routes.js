@@ -3,7 +3,7 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const upload = require("../config/multer");
 
-const { createCollege, getAllColleges } = require("../controllers/master.controller");
+const { createCollege, getAllColleges, getCollegeById } = require("../controllers/master.controller");
 
 /* create college super admin only */
 router.post(
@@ -20,6 +20,14 @@ router.get(
   auth,
   role("SUPER_ADMIN"),
   getAllColleges
+);
+
+// view a single colleges ONLY SUPER ADMIN
+router.get(
+  "/:collegeId",
+  auth,
+  role("SUPER_ADMIN"),
+  getCollegeById
 );
 
 

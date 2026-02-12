@@ -1,205 +1,210 @@
-import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState } from "react";
 import api from "../../../api/axios";
 
-import {
-  FaChartBar,
-  FaUsers,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaCalendarAlt,
-  FaBookOpen,
-  FaUniversity
-} from "react-icons/fa";
-
 export default function AttendanceReport() {
-  const { user } = useContext(AuthContext);
+  const [report, setReport] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
 
-  const [reportData, setReportData] = useState([]);
-  const [totalLectures, setTotalLectures] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [filters, setFilters] = useState({
+    courseId: "",
+    subjectId: "",
+    startDate: "",
+    endDate: "",
+  });
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER")
-    return <Navigate to="/teacher/dashboard" />;
+  /* ================= FETCH COURSES ================= */
+  const fetchCourses = async () => {
+    const res = await api.get("/attendance/report/courses");
+    setCourses(res.data);
+  };
+
+  /* ================= FETCH SUBJECTS ================= */
+  const fetchSubjects = async (courseId) => {
+    if (!courseId) return;
+    const res = await api.get(`/attendance/report/subjects/${courseId}`);
+    setSubjects(res.data);
+  };
 
   /* ================= FETCH REPORT ================= */
+  const fetchReport = async () => {
+    const res = await api.get("/attendance/report", {
+      params: filters,
+    });
+    setReport(res.data);
+  };
+
   useEffect(() => {
-    const fetchReport = async () => {
-      try {
-        const res = await api.get(
-          "/attendance/teacher/attendance-report"
-        );
-
-        setReportData(res.data.report || []);
-        setTotalLectures(res.data.totalLectures || 0);
-
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load attendance report");
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    fetchCourses();
     fetchReport();
   }, []);
 
-  /* ================= ANALYTICS ================= */
-  const totalStudents = reportData.reduce(
-    (sum, r) => sum + (r.totalStudents || 0),
-    0
-  );
+  const handleCourseChange = (e) => {
+    const courseId = e.target.value;
+    setFilters({
+      ...filters,
+      courseId,
+      subjectId: "", // reset subject
+    });
+    fetchSubjects(courseId);
+  };
 
-  const totalPresent = reportData.reduce(
-    (sum, r) => sum + (r.present || 0),
-    0
-  );
+  const handleChange = (e) => {
+    setFilters({
+      ...filters,
+      [e.target.name]: e.target.value,
+    });
+  };
 
-  const totalAbsent = reportData.reduce(
-    (sum, r) => sum + (r.absent || 0),
-    0
-  );
+  if (!report) return <p className="text-center mt-4">Loading...</p>;
 
-  const overallPercentage =
-    totalStudents > 0
-      ? Math.round((totalPresent / totalStudents) * 100)
-      : 0;
-
-  /* ================= LOADING ================= */
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Attendance Report...</h5>
-      </div>
-    );
-  }
+  const { summary, sessions } = report;
 
   return (
-    <div className="container-fluid">
-
-      {/* ================= HEADER ================= */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
-        <h3 className="fw-bold mb-1">
-          <FaChartBar className="me-2 blink" />
-          Teacher Attendance Report
-        </h3>
-        <p className="opacity-75 mb-0">
-          Lecture-wise attendance analytics
-        </p>
+    <div className="container py-4">
+      {/* HEADER */}
+      <div
+        className="mb-4 p-4 rounded-4 text-white shadow"
+        style={{ background: "linear-gradient(180deg,#0f3a4a,#134952)" }}
+      >
+        <h4 className="fw-bold mb-1">📊 Teacher Attendance Report</h4>
       </div>
 
-      {error && (
-        <div className="alert alert-danger text-center">
-          {error}
-        </div>
-      )}
+      {/* FILTER SECTION */}
+      <div className="card p-3 mb-4 shadow-sm">
+        <div className="row g-3">
+          {/* Course Dropdown */}
+          <div className="col-md-3">
+            <select
+              className="form-select"
+              value={filters.courseId}
+              onChange={handleCourseChange}
+            >
+              <option value="">Select Course</option>
+              {courses.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* ================= STATS ================= */}
-      <div className="row g-3 mb-4">
-        <div className="col-md-3">
-          <div className="stat-card">
-            <h6>Total Lectures</h6>
-            <h3>{totalLectures}</h3>
+          {/* Subject Dropdown */}
+          <div className="col-md-3">
+            <select
+              className="form-select"
+              name="subjectId"
+              value={filters.subjectId}
+              onChange={handleChange}
+              disabled={!filters.courseId}
+            >
+              <option value="">Select Subject</option>
+              {subjects.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.name} ({s.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-md-3">
+            <input
+              type="date"
+              name="startDate"
+              className="form-control"
+              value={filters.startDate}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="col-md-3">
+            <input
+              type="date"
+              name="endDate"
+              className="form-control"
+              value={filters.endDate}
+              onChange={handleChange}
+            />
           </div>
         </div>
-        <div className="col-md-3">
-          <div className="stat-card">
-            <h6>Total Students</h6>
-            <h3>{totalStudents}</h3>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="stat-card text-success">
-            <h6>Total Present</h6>
-            <h3>{totalPresent}</h3>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="stat-card text-danger">
-            <h6>Total Absent</h6>
-            <h3>{totalAbsent}</h3>
-          </div>
+
+        <div className="mt-3 text-end">
+          <button className="btn btn-primary" onClick={fetchReport}>
+            Apply Filters
+          </button>
         </div>
       </div>
 
-      {/* ================= TABLE ================= */}
-      {reportData.length === 0 ? (
-        <div className="alert alert-warning text-center">
-          No attendance records found.
-        </div>
-      ) : (
-        <div className="card shadow-lg border-0 rounded-4 glass-card">
-          <div className="card-body">
+      {/* SUMMARY CARDS */}
+      <div className="row text-center mb-4">
+        <Summary title="Total Lectures" value={summary.totalLectures} />
+        <Summary title="Total Students" value={summary.totalStudents} />
+        <Summary
+          title="Total Present"
+          value={summary.totalPresent}
+          className="text-success"
+        />
+        <Summary
+          title="Total Absent"
+          value={summary.totalAbsent}
+          className="text-danger"
+        />
+      </div>
 
-            <table className="table table-hover align-middle">
-              <thead className="table-dark">
+      {/* SESSION TABLE */}
+      <div className="card shadow-sm">
+        <div className="card-body">
+          <h5>Session-wise Report</h5>
+
+          <table className="table table-bordered">
+            <thead className="table-dark">
+              <tr>
+                <th>Date</th>
+                <th>Subject</th>
+                <th>Lecture</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.length === 0 && (
                 <tr>
-                  <th>#</th>
-                  <th><FaCalendarAlt /> Date</th>
-                  <th>Lecture</th>
-                  <th><FaBookOpen /> Subject</th>
-                  <th>Code</th>
-                  <th><FaUniversity /> Course</th>
-                  <th>Department</th>
-                  <th className="text-center">Total</th>
-                  <th className="text-center text-success">Present</th>
-                  <th className="text-center text-danger">Absent</th>
-                  <th className="text-center">%</th>
+                  <td colSpan="6" className="text-center text-muted">
+                    No attendance records found.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {reportData.map((r, i) => (
-                  <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{new Date(r.lectureDate).toLocaleDateString()}</td>
-                    <td>{r.lectureNumber}</td>
-                    <td>{r.subject}</td>
-                    <td>{r.subjectCode}</td>
-                    <td>{r.course}</td>
-                    <td>{r.department}</td>
-                    <td className="text-center">{r.totalStudents}</td>
-                    <td className="text-center text-success">{r.present}</td>
-                    <td className="text-center text-danger">{r.absent}</td>
-                    <td className="text-center fw-bold">
-                      {r.attendancePercentage}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              )}
 
-          </div>
+              {sessions.map((s, i) => (
+                <tr key={i}>
+                  <td>{new Date(s.date).toLocaleDateString()}</td>
+                  <td>{s.subject}</td>
+                  <td>{s.lectureNumber}</td>
+                  <td className="text-success">{s.present}</td>
+                  <td className="text-danger">{s.absent}</td>
+                  <td>
+                    <span className="badge bg-primary">
+                      {(s.percentage ?? 0).toFixed(2)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      {/* ================= CSS ================= */}
-      <style>{`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-        }
-        .glass-card {
-          background: rgba(255,255,255,0.96);
-          backdrop-filter: blur(10px);
-        }
-        .stat-card {
-          background: white;
-          border-radius: 14px;
-          padding: 20px;
-          text-align: center;
-        }
-        .blink {
-          animation: blink 1.5s infinite;
-        }
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
-        }
-      `}</style>
+function Summary({ title, value, className }) {
+  return (
+    <div className="col-md-3">
+      <div className={`card p-3 shadow-sm ${className || ""}`}>
+        <h6>{title}</h6>
+        <h3>{value}</h3>
+      </div>
     </div>
   );
 }
