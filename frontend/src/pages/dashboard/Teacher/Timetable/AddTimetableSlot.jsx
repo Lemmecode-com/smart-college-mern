@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
-import api from "../../../api/axios";
+import api from "../../../../api/axios";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 

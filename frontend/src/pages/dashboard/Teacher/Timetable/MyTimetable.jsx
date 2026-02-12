@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios";
+import { AuthContext } from "../../../../auth/AuthContext";
+import api from "../../../../api/axios";
 
 import {
   FaCalendarAlt,
