@@ -4,6 +4,8 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const teacherMiddleware = require("../middlewares/teacher.middleware");
+
 const {
   editAttendance,
   markAttendance,
@@ -47,6 +49,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
+  teacherMiddleware,
   getAttendanceReport
 );
 
