@@ -130,7 +130,7 @@ export default function AttendanceReport() {
 
         <div className="mt-3 text-end">
           <button className="btn btn-primary" onClick={fetchReport}>
-            Apply Filters
+            VIEW REPORT
           </button>
         </div>
       </div>
