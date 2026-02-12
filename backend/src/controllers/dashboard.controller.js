@@ -57,39 +57,52 @@ exports.teacherDashboard = async (req, res) => {
   });
 };
 
-/**
- * 🏫 COLLEGE ADMIN DASHBOARD
- */
 exports.collegeAdminDashboard = async (req, res) => {
-  const collegeId = req.college_id;
+  try {
+    const collegeId = req.college_id;
 
-  const [
-    students,
-    teachers,
-    departments,
-    courses,
-    pendingAdmissions,
-  ] = await Promise.all([
-    Student.find({ college_id: collegeId }).select("fullName status"),
-    Teacher.find({ college_id: collegeId }).select("fullName email"),
-    Department.find({ college_id: collegeId }),
-    Course.find({ college_id: collegeId }),
-    Student.find({ college_id: collegeId, status: "PENDING" }).select("fullName"),
-  ]);
+    const [
+      college,
+      students,
+      teachers,
+      departments,
+      courses,
+      pendingAdmissions,
+    ] = await Promise.all([
+      College.findById(collegeId).select("name code email establishedYear logo"),
+      Student.find({ college_id: collegeId }).select("fullName status"),
+      Teacher.find({ college_id: collegeId }).select("fullName email"),
+      Department.find({ college_id: collegeId }),
+      Course.find({ college_id: collegeId }),
+      Student.find({ college_id: collegeId, status: "PENDING" }).select("fullName"),
+    ]);
 
-  res.json({
-    stats: {
-      totalStudents: students.length,
-      totalTeachers: teachers.length,
-      totalDepartments: departments.length,
-      totalCourses: courses.length,
-      pendingAdmissions: pendingAdmissions.length,
-    },
-    recentStudents: students.slice(-5),
-    pendingAdmissions,
-  });
+    res.json({
+      college: {
+        id: college?._id,
+        name: college?.name,
+        code: college?.code,
+        email: college?.email,
+        establishedYear: college?.establishedYear,
+        logo: college?.logo,
+      },
+
+      stats: {
+        totalStudents: students.length,
+        totalTeachers: teachers.length,
+        totalDepartments: departments.length,
+        totalCourses: courses.length,
+        pendingAdmissions: pendingAdmissions.length,
+      },
+
+      recentStudents: students.slice(-5),
+      pendingAdmissions,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
-
 
 /**
  * 🧑‍💼 SUPER ADMIN DASHBOARD
