@@ -17,6 +17,7 @@ router.post(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
+  createCheckoutSession
 );
 
 // 💳 STUDENT: Fee dashboard
