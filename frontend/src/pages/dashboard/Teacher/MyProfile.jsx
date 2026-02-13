@@ -1,4 +1,4 @@
-  import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -10,7 +10,8 @@ import {
   FaIdBadge,
   FaGraduationCap,
   FaBriefcase,
-  FaCheckCircle
+  FaCheckCircle,
+  FaBuilding
 } from "react-icons/fa";
 
 export default function MyProfile() {
@@ -18,13 +19,10 @@ export default function MyProfile() {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/dashboard" />;
 
-  /* ================= FETCH PROFILE ================= */
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -32,7 +30,6 @@ export default function MyProfile() {
         setProfile(res.data);
       } catch (err) {
         console.error(err);
-        setError("Unable to load teacher profile");
       } finally {
         setLoading(false);
       }
@@ -41,165 +38,98 @@ export default function MyProfile() {
     fetchProfile();
   }, []);
 
-  /* ================= STATES ================= */
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" />
-          <p className="text-muted">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading)
+    return <div className="text-center mt-5">Loading profile...</div>;
 
-  if (!profile) {
+  if (!profile)
     return (
-      <div className="alert alert-warning text-center">
+      <div className="alert alert-warning text-center mt-4">
         Profile data not found
       </div>
     );
-  }
 
   return (
     <div className="container-fluid px-4">
 
-      {/* ================= HEADER ================= */}
-      <div className="profile-header shadow-sm rounded-4 p-4 mb-4 text-white">
-        <h3 className="fw-bold mb-1">
-          <FaUserTie className="me-2" />
-          Teacher Profile
-        </h3>
-        <p className="mb-0 opacity-75">
-          Personal & academic information
-        </p>
+      {/* HEADER */}
+      <div className="enterprise-header p-4 rounded-4 mb-4 text-white shadow">
+        <h3 className="fw-bold mb-1">{profile.name}</h3>
+        <p className="mb-0 opacity-75">{profile.designation}</p>
       </div>
 
-      {error && (
-        <div className="alert alert-danger text-center">{error}</div>
-      )}
+      <div className="row g-4">
 
-      {/* ================= PROFILE CARD ================= */}
-      <div className="row justify-content-center">
-        <div className="col-lg-6 col-md-8">
-
-          <div className="card profile-card border-0 shadow-lg rounded-4">
+        {/* LEFT CARD */}
+        <div className="col-lg-6">
+          <div className="card shadow-lg border-0 rounded-4">
             <div className="card-body p-4">
 
-              {/* Avatar + Name */}
-              <div className="text-center mb-4">
-                <div className="avatar mx-auto mb-3">
-                  👨‍🏫
-                </div>
+              <SectionTitle title="Personal Information" />
 
-                <h4 className="fw-bold mb-0">{profile.name}</h4>
-                <small className="text-muted">
-                  {profile.designation}
-                </small>
-              </div>
-
-              <hr />
-
-              {/* DETAILS */}
-              <div className="profile-info">
-
-                <ProfileRow
-                  icon={<FaIdBadge />}
-                  label="Employee ID"
-                  value={profile.employeeId}
-                />
-
-                <ProfileRow
-                  icon={<FaEnvelope />}
-                  label="Email"
-                  value={profile.email}
-                />
-
-                <ProfileRow
-                  icon={<FaUniversity />}
-                  label="Department"
-                  value={profile.department_id?.name || "N/A"}
-                />
-
-                <ProfileRow
-                  icon={<FaGraduationCap />}
-                  label="Qualification"
-                  value={profile.qualification}
-                />
-
-                <ProfileRow
-                  icon={<FaBriefcase />}
-                  label="Experience"
-                  value={`${profile.experienceYears} years`}
-                />
-
-                <ProfileRow
-                  icon={<FaCheckCircle />}
-                  label="Status"
-                  value={
-                    <span
-                      className={`badge ${
-                        profile.status === "ACTIVE"
-                          ? "bg-success"
-                          : "bg-secondary"
-                      }`}
-                    >
-                      {profile.status}
-                    </span>
-                  }
-                />
-
-              </div>
+              <ProfileRow icon={<FaIdBadge />} label="Employee ID" value={profile.employeeId} />
+              <ProfileRow icon={<FaEnvelope />} label="Email" value={profile.email} />
+              <ProfileRow icon={<FaUniversity />} label="Department" value={profile.department_id?.name || "N/A"} />
+              <ProfileRow icon={<FaBuilding />} label="College" value={profile.college_id?.name || "N/A"} />
+              <ProfileRow icon={<FaGraduationCap />} label="Qualification" value={profile.qualification} />
+              <ProfileRow icon={<FaBriefcase />} label="Experience" value={`${profile.experienceYears} years`} />
+              <ProfileRow
+                icon={<FaCheckCircle />}
+                label="Status"
+                value={
+                  <span className="badge bg-success">
+                    {profile.status}
+                  </span>
+                }
+              />
 
             </div>
           </div>
-
         </div>
+
+        {/* RIGHT CARD - COURSES */}
+        <div className="col-lg-6">
+          <div className="card shadow-lg border-0 rounded-4">
+            <div className="card-body p-4">
+
+              <SectionTitle title="Assigned Courses" />
+
+              {profile.courses?.length === 0 ? (
+                <p className="text-muted">No courses assigned</p>
+              ) : (
+                <ul className="list-group">
+                  {profile.courses.map((course) => (
+                    <li
+                      key={course._id}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      {course.name}
+                      <span className="badge bg-primary">
+                        {course.code}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* ================= STYLES ================= */}
+      {/* STYLES */}
       <style>{`
-        .profile-header {
+        .enterprise-header {
           background: linear-gradient(135deg, #0f3a4a, #134952);
         }
 
-        .profile-card {
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(10px);
+        .card {
+          transition: 0.3s ease;
         }
 
-        .avatar {
-          width: 110px;
-          height: 110px;
-          background: linear-gradient(135deg, #e0f4f7, #c2e9ef);
-          border-radius: 50%;
-          font-size: 46px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-
-        .profile-info p {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 0;
-          border-bottom: 1px dashed #e6e6e6;
-          margin-bottom: 0;
-        }
-
-        .profile-info p:last-child {
-          border-bottom: none;
-        }
-
-        .profile-info span {
-          font-weight: 600;
-        }
-
-        .icon {
-          color: #0f3a4a;
-          margin-right: 10px;
+        .card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 25px rgba(0,0,0,0.15);
         }
       `}</style>
 
@@ -207,15 +137,23 @@ export default function MyProfile() {
   );
 }
 
-/* ================= REUSABLE ROW ================= */
+/* ===== COMPONENTS ===== */
+
+function SectionTitle({ title }) {
+  return (
+    <h5 className="fw-bold mb-4 border-bottom pb-2">
+      {title}
+    </h5>
+  );
+}
+
 function ProfileRow({ icon, label, value }) {
   return (
-    <p>
+    <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
       <span>
-        <span className="icon">{icon}</span>
-        {label}
+        {icon} {label}
       </span>
-      <span>{value}</span>
-    </p>
+      <span className="fw-semibold">{value}</span>
+    </div>
   );
 }
