@@ -109,7 +109,7 @@ export default function EditCollegeProfile() {
         <div>
           <h4 className="fw-bold">
             <FaUniversity className="blink me-2" />
-            Edit College Profile
+            Edit Institute Profile
           </h4>
           <p className="opacity-75 mb-0">
             Update your institute details

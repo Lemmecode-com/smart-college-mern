@@ -1,6 +1,6 @@
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
-const Course = require("../models/course.model"); // ✅ NEW
+const Course = require("../models/course.model");
 const User = require("../models/user.model");
 
 /* =========================================================
@@ -96,7 +96,6 @@ exports.createTeacher = async (req, res) => {
   }
 };
 
-
 /* =========================================================
    GET MY PROFILE (Logged-in Teacher)
    GET /teachers/my-profile
@@ -109,7 +108,8 @@ exports.getMyProfile = async (req, res) => {
       status: "ACTIVE",
     })
       .populate("department_id", "name")
-      .populate("courses", "name code") // ✅ NEW
+      .populate("courses", "name code")
+      .populate("college_id", "name code") // ✅ Added but still same object
       .select("-__v");
 
     if (!teacher) {
@@ -118,8 +118,9 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    res.json(teacher);
+    res.json(teacher); // ✅ SAME RESPONSE STRUCTURE
   } catch (error) {
+    console.error("PROFILE ERROR:", error);
     res.status(500).json({
       message: "Failed to fetch profile",
     });
