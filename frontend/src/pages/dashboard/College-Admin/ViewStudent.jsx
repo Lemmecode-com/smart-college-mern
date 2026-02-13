@@ -133,6 +133,7 @@ export default function ViewStudent() {
               value={new Date(student.dateOfBirth).toDateString()}
             />
             <Info label="Nationality" value={student.nationality} />
+            <Info label="Category" value={student.category} />
           </div>
         </div>
       </div>
