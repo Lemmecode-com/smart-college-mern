@@ -378,7 +378,7 @@ export default function CollegeProfile() {
                         alignItems: 'center',
                         gap: '0.5rem'
                       }}>
-                        <FaInfoCircle /> College Information
+                        <FaInfoCircle /> Institute Information
                       </h2>
                     </div>
                     <div style={{ padding: '1.5rem' }}>
