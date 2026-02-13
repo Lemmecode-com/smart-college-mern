@@ -36,26 +36,78 @@ exports.studentDashboard = async (req, res) => {
  * 👩‍🏫 TEACHER DASHBOARD
  */
 exports.teacherDashboard = async (req, res) => {
-  const teacherId = req.user.id;
-  const collegeId = req.college_id;
+  try {
+    const userId = req.user.id;
+    const collegeId = req.college_id;
 
-  const sessions = await AttendanceSession.find({
-    teacher_id: teacherId,
-    college_id: collegeId,
-  });
+    // 🔹 Get Teacher Info
+    const teacher = await Teacher.findOne({
+      user_id: userId,
+      college_id: collegeId,
+    }).select("name email employeeId");
 
-  const attendanceCount = await AttendanceRecord.countDocuments({
-    markedBy: teacherId,
-  });
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
 
-  res.json({
-    stats: {
-      totalLecturesTaken: sessions.length,
-      attendanceMarked: attendanceCount,
-    },
-    recentLectures: sessions.slice(-5),
-  });
+    // 🔹 Get Sessions
+    const sessions = await AttendanceSession.find({
+      teacher_id: teacher._id,
+      college_id: collegeId,
+    })
+      .populate("course_id", "name code")
+      .populate("subject_id", "name code")
+      .sort({ createdAt: -1 });
+
+    // 🔹 Attendance Records
+    const records = await AttendanceRecord.find({
+      markedBy: teacher._id,
+    });
+
+    // 🔹 Stats Calculations
+    const totalLecturesTaken = sessions.length;
+    const openSessions = sessions.filter(s => s.status === "OPEN").length;
+    const closedSessions = sessions.filter(s => s.status === "CLOSED").length;
+
+    const totalPresent = records.filter(r => r.status === "PRESENT").length;
+    const totalAbsent = records.filter(r => r.status === "ABSENT").length;
+
+    const attendanceMarked = records.length;
+
+    const attendancePercentage =
+      attendanceMarked > 0
+        ? ((totalPresent / attendanceMarked) * 100).toFixed(2)
+        : 0;
+
+    const totalStudentsHandled = sessions.reduce(
+      (sum, s) => sum + (s.totalStudents || 0),
+      0
+    );
+
+    res.json({
+      teacher: {
+        name: teacher.name,
+        email: teacher.email,
+        employeeId: teacher.employeeId,
+      },
+      stats: {
+        totalLecturesTaken,
+        openSessions,
+        closedSessions,
+        attendanceMarked,
+        totalStudentsHandled,
+        totalPresent,
+        totalAbsent,
+        attendancePercentage,
+      },
+      recentLectures: sessions.slice(0, 5),
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
+
 
 exports.collegeAdminDashboard = async (req, res) => {
   try {
