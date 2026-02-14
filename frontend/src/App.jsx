@@ -773,7 +773,7 @@ export default function App() {
 
                 {/* TIMETABLE */}
                 <Route
-                  path="/timetable/create"
+                  path="/timetable/create-timetable"
                   element={
                     <ProtectedRoute allowedRoles={["TEACHER"]}>
                       <CreateTimetable />
