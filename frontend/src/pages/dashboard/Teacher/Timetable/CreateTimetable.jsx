@@ -13,6 +13,7 @@ export default function CreateTimetable() {
   });
 
   const [previewName, setPreviewName] = useState("");
+  const [availableSemesters, setAvailableSemesters] = useState([]); // ⭐ NEW
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -21,7 +22,7 @@ export default function CreateTimetable() {
     const loadProfile = async () => {
       try {
         const res = await api.get("/teachers/my-profile");
-        setDepartment(res.data.department_id); // OBJECT
+        setDepartment(res.data.department_id);
       } catch {
         setError("Failed to load department");
       } finally {
@@ -48,6 +49,32 @@ export default function CreateTimetable() {
     loadCourses();
   }, [department]);
 
+  /* ⭐ GENERATE SEMESTERS BASED ON SELECTED COURSE */
+  useEffect(() => {
+    if (!form.course_id) {
+      setAvailableSemesters([]);
+      return;
+    }
+
+    const selectedCourse = courses.find(
+      (c) => c._id === form.course_id
+    );
+
+    if (!selectedCourse?.semester) {
+      setAvailableSemesters([]);
+      return;
+    }
+
+    const totalSem = selectedCourse.semester;
+
+    const semArray = Array.from(
+      { length: totalSem },
+      (_, i) => i + 1
+    );
+
+    setAvailableSemesters(semArray);
+  }, [form.course_id, courses]);
+
   /* AUTO NAME */
   useEffect(() => {
     if (!form.course_id || !form.semester || !form.academicYear) {
@@ -59,7 +86,7 @@ export default function CreateTimetable() {
     if (!course) return;
 
     setPreviewName(
-      `${course.name} - Sem ${form.semester} (${form.academicYear})`,
+      `${course.name} - Sem ${form.semester} (${form.academicYear})`
     );
   }, [form, courses]);
 
@@ -80,6 +107,7 @@ export default function CreateTimetable() {
       setSuccess("Timetable created successfully");
       setForm({ course_id: "", semester: "", academicYear: "" });
       setPreviewName("");
+      setAvailableSemesters([]);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create timetable");
     }
@@ -96,6 +124,7 @@ export default function CreateTimetable() {
           {error && <div className="alert alert-danger">{error}</div>}
           {success && <div className="alert alert-success">{success}</div>}
 
+          {/* Department */}
           <div className="mb-3">
             <label className="form-label">Department</label>
             <input
@@ -105,12 +134,15 @@ export default function CreateTimetable() {
             />
           </div>
 
+          {/* Course */}
           <div className="mb-3">
             <label className="form-label">Course</label>
             <select
               className="form-select"
               value={form.course_id}
-              onChange={(e) => setForm({ ...form, course_id: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, course_id: e.target.value, semester: "" })
+              }
               required
             >
               <option value="">Select course</option>
@@ -122,16 +154,20 @@ export default function CreateTimetable() {
             </select>
           </div>
 
+          {/* ⭐ Semester (Dynamic) */}
           <div className="mb-3">
             <label className="form-label">Semester</label>
             <select
               className="form-select"
               value={form.semester}
-              onChange={(e) => setForm({ ...form, semester: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, semester: e.target.value })
+              }
               required
+              disabled={!availableSemesters.length}
             >
               <option value="">Select semester</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+              {availableSemesters.map((s) => (
                 <option key={s} value={s}>
                   Semester {s}
                 </option>
@@ -139,6 +175,7 @@ export default function CreateTimetable() {
             </select>
           </div>
 
+          {/* Academic Year */}
           <div className="mb-3">
             <label className="form-label">Academic Year</label>
             <select
@@ -155,6 +192,7 @@ export default function CreateTimetable() {
             </select>
           </div>
 
+          {/* Preview Name */}
           <div className="mb-4">
             <label className="form-label">Timetable Name (auto)</label>
             <input className="form-control" value={previewName} readOnly />
