@@ -41,7 +41,7 @@ import {
   FaEye,
   FaEdit,
   FaToggleOff,
-  FaToggleOn
+  FaToggleOn,
 } from "react-icons/fa";
 
 export default function Sidebar() {
@@ -61,7 +61,7 @@ export default function Sidebar() {
     notifications: true,
     reports: true,
     "system-settings": true,
-    
+
     // Teacher sections
     "profile-teacher": true,
     "timetable-teacher": true,
@@ -69,11 +69,11 @@ export default function Sidebar() {
     "attendance-teacher": true,
     "notifications-teacher": true,
     "students-teacher": true,
-    
+
     // Super Admin sections
     "super-colleges": true,
     "super-reports": true,
-    "super-settings": true
+    "super-settings": true,
   });
 
   // Close mobile sidebar on route change
@@ -226,10 +226,10 @@ export default function Sidebar() {
                 role === "SUPER_ADMIN"
                   ? "/super-admin/dashboard"
                   : role === "COLLEGE_ADMIN"
-                  ? "/dashboard"
-                  : role === "TEACHER"
-                  ? "/teacher/dashboard"
-                  : "/student/dashboard"
+                    ? "/dashboard"
+                    : role === "TEACHER"
+                      ? "/teacher/dashboard"
+                      : "/student/dashboard"
               }
               style={getNavLinkStyle}
               className={({ isActive }) => (isActive ? "active-link" : "")}
@@ -258,10 +258,16 @@ export default function Sidebar() {
                   )}
                 </div>
                 <div style={sectionBodyStyle(openSections["super-colleges"])}>
-                  <NavLink to="/super-admin/create-college" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/super-admin/create-college"
+                    style={getNavLinkStyle}
+                  >
                     <FaPlus /> Add New College
                   </NavLink>
-                  <NavLink to="/super-admin/colleges-list" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/super-admin/colleges-list"
+                    style={getNavLinkStyle}
+                  >
                     <FaListOl /> Colleges List
                   </NavLink>
                 </div>
@@ -310,7 +316,10 @@ export default function Sidebar() {
                   <NavLink to="/super-admin/settings" style={getNavLinkStyle}>
                     <FaCog /> General Settings
                   </NavLink>
-                  <NavLink to="/super-admin/settings/users" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/super-admin/settings/users"
+                    style={getNavLinkStyle}
+                  >
                     <FaUsers /> User Management
                   </NavLink>
                 </div>
@@ -393,7 +402,10 @@ export default function Sidebar() {
                   <NavLink to="/courses/add" style={getNavLinkStyle}>
                     <FaPlus /> Add Course
                   </NavLink>
-                  <NavLink to="/subjects/course/:courseId" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/subjects/course/:courseId"
+                    style={getNavLinkStyle}
+                  >
                     <FaBook /> Subject List
                   </NavLink>
                   <NavLink to="/subjects/add" style={getNavLinkStyle}>
@@ -500,13 +512,22 @@ export default function Sidebar() {
                   <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
                     <FaGraduationCap /> Admission Reports
                   </NavLink>
-                  <NavLink to="/college-admin/reports/course-wise" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/college-admin/reports/course-wise"
+                    style={getNavLinkStyle}
+                  >
                     <FaUserGraduate /> Course-wise Reports
                   </NavLink>
-                  <NavLink to="/college-admin/reports/payment-summary" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/college-admin/reports/payment-summary"
+                    style={getNavLinkStyle}
+                  >
                     <FaMoneyBillWave /> Payment Reports
                   </NavLink>
-                  <NavLink to="/college-admin/reports/attendance" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/college-admin/reports/attendance"
+                    style={getNavLinkStyle}
+                  >
                     <FaClipboardList /> Attendance Reports
                   </NavLink>
                 </div>
@@ -555,16 +576,25 @@ export default function Sidebar() {
                   )}
                 </div>
                 <div style={sectionBodyStyle(openSections["system-settings"])}>
-                  <NavLink to="/system-settings/academic" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/system-settings/academic"
+                    style={getNavLinkStyle}
+                  >
                     <FaGraduationCap /> Academic Settings
                   </NavLink>
                   <NavLink to="/system-settings/fees" style={getNavLinkStyle}>
                     <FaMoneyBill /> Fee Settings
                   </NavLink>
-                  <NavLink to="/system-settings/general" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/system-settings/general"
+                    style={getNavLinkStyle}
+                  >
                     <FaCog /> General Settings
                   </NavLink>
-                  <NavLink to="/system-settings/notifications" style={getNavLinkStyle}>
+                  <NavLink
+                    to="/system-settings/notifications"
+                    style={getNavLinkStyle}
+                  >
                     <FaBell /> Notification Settings
                   </NavLink>
                 </div>
@@ -595,32 +625,42 @@ export default function Sidebar() {
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div style={sectionBodyStyle(openSections["timetable-teacher"])}>
+                <div
+                  style={sectionBodyStyle(openSections["timetable-teacher"])}
+                >
                   <NavLink
                     to="/timetable/create-timetable"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaPlus /> Create Timetable
                   </NavLink>
                   <NavLink
                     to="/timetable/list"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaListOl /> View Timetables
                   </NavLink>
                   <NavLink
                     to="/timetable/add-slot"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaPlus /> Add Timetable Slot
                   </NavLink>
                   <NavLink
                     to="/timetable/weekly-timetable"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaCalendarAlt /> My Schedule
                   </NavLink>
@@ -647,7 +687,9 @@ export default function Sidebar() {
                   <NavLink
                     to="/attendance/my-sessions-list"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaUserGraduate /> My Sessions
                   </NavLink>
@@ -670,11 +712,15 @@ export default function Sidebar() {
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div style={sectionBodyStyle(openSections["attendance-teacher"])}>
+                <div
+                  style={sectionBodyStyle(openSections["attendance-teacher"])}
+                >
                   <NavLink
                     to="/attendance/report"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaChartLine /> Attendance Report
                   </NavLink>
@@ -697,18 +743,26 @@ export default function Sidebar() {
                     <FaChevronDown size={12} />
                   )}
                 </div>
-                <div style={sectionBodyStyle(openSections["notifications-teacher"])}>
+                <div
+                  style={sectionBodyStyle(
+                    openSections["notifications-teacher"],
+                  )}
+                >
                   <NavLink
                     to="/teacher/notifications/create"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaBell /> Create Notification
                   </NavLink>
                   <NavLink
                     to="/teacher/notifications/list"
                     style={subLinkStyle}
-                    className={({ isActive }) => (isActive ? "active-sublink" : "")}
+                    className={({ isActive }) =>
+                      isActive ? "active-sublink" : ""
+                    }
                   >
                     <FaEnvelope /> All Notifications
                   </NavLink>
@@ -728,7 +782,7 @@ export default function Sidebar() {
                 <NavLink to="/student/fees" style={getNavLinkStyle}>
                   <FaMoneyBillWave /> Fees
                 </NavLink>
-                <NavLink to="my-attendance" style={getNavLinkStyle}>
+                <NavLink to="/student/my-attendance" style={getNavLinkStyle}>
                   <FaClipboardList /> My Attendance
                 </NavLink>
                 <NavLink to="/notification/student" style={getNavLinkStyle}>
@@ -760,9 +814,11 @@ export default function Sidebar() {
           z-index: 1040;
           display: flex;
           transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          transform: ${isMobileOpen || window.innerWidth >= 768
-            ? "translateX(0)"
-            : "translateX(-100%)"};
+          transform: ${
+            isMobileOpen || window.innerWidth >= 768
+              ? "translateX(0)"
+              : "translateX(-100%)"
+          };
         }
 
         .sidebar-backdrop {
