@@ -640,7 +640,7 @@ export default function App() {
                 {/* ================= MY ATTENDANCE ================= */}
 
                 <Route
-                  path="/my-attendance"
+                  path="/student/my-attendance"
                   element={
                     <ProtectedRoute allowedRoles={["STUDENT"]}>
                       <MyAttendance />
