@@ -234,7 +234,43 @@ exports.getWeeklyTimetableById = async (req, res) => {
    DELETE TIMETABLE (HOD)
 ========================================================= */
 exports.deleteTimetable = async (req, res) => {
-  await TimetableSlot.deleteMany({ timetable_id: req.params.id });
-  await Timetable.findByIdAndDelete(req.params.id);
-  res.json({ message: "Timetable deleted successfully" });
+  try {
+    const { id } = req.params;
+
+    // 1️⃣ Find timetable
+    const timetable = await Timetable.findById(id);
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // 2️⃣ Find teacher profile
+    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher profile not found" });
+    }
+
+    // 3️⃣ Verify HOD of that department
+    const department = await Department.findOne({
+      _id: timetable.department_id,
+      hod_id: teacher._id,
+    });
+
+    if (!department) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can delete timetable",
+      });
+    }
+
+    // 4️⃣ Delete slots first
+    await TimetableSlot.deleteMany({ timetable_id: id });
+
+    // 5️⃣ Delete timetable
+    await Timetable.findByIdAndDelete(id);
+
+    res.json({ message: "Timetable deleted successfully" });
+
+  } catch (error) {
+    console.error("Delete Timetable Error:", error);
+    res.status(500).json({ message: "Failed to delete timetable" });
+  }
 };
