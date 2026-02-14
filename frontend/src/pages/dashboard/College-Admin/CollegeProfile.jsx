@@ -507,7 +507,7 @@ export default function CollegeProfile() {
             {/* RIGHT COLUMN - SIDEBAR */}
             <div style={{ gridColumn: '1 / -1' }}>
               <div style={{ position: 'sticky', top: '20px' }}>
-                {/* ================= RECENT ACTIVITY ================= */}
+                {/* ================= RECENT ACTIVITY =================
                 <motion.div
                   variants={fadeInVariants}
                   custom={2}
@@ -605,13 +605,13 @@ export default function CollegeProfile() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </motion.div> */}
               </div>
             </div>
           </div>
 
           {/* ================= FOOTER ================= */}
-          <motion.div
+          {/* <motion.div
             variants={fadeInVariants}
             custom={3}
             initial="hidden"
@@ -695,7 +695,7 @@ export default function CollegeProfile() {
                 </motion.button>
               </div>
             </div>
-          </motion.div>
+          </motion.div> */}
         </div>
       </motion.div>
     </AnimatePresence>
