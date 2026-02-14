@@ -11,18 +11,36 @@ import {
   FaArrowLeft,
   FaUniversity,
   FaEdit,
-  FaInfoCircle
+  FaInfoCircle,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Brand Color Palette
 const BRAND_COLORS = {
-  primary: { main: '#1a4b6d', gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)' },
-  success: { main: '#28a745', gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)' },
-  info: { main: '#17a2b8', gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' },
-  warning: { main: '#ffc107', gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)' },
-  danger: { main: '#dc3545', gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' },
-  secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' }
+  primary: {
+    main: "#1a4b6d",
+    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+  },
+  success: {
+    main: "#28a745",
+    gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)",
+  },
+  info: {
+    main: "#17a2b8",
+    gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)",
+  },
+  warning: {
+    main: "#ffc107",
+    gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
+  },
+  danger: {
+    main: "#dc3545",
+    gradient: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+  },
+  secondary: {
+    main: "#6c757d",
+    gradient: "linear-gradient(135deg, #6c757d 0%, #545b62 100%)",
+  },
 };
 
 // Animation Variants
@@ -31,8 +49,8 @@ const fadeInVariants = {
   visible: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
-  })
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" },
+  }),
 };
 
 const slideDownVariants = {
@@ -40,23 +58,23 @@ const slideDownVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
 };
 
 const pulseVariants = {
   initial: { scale: 1 },
   pulse: {
     scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+  },
 };
 
 const spinVariants = {
   animate: {
     rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  }
+    transition: { duration: 1, repeat: Infinity, ease: "linear" },
+  },
 };
 
 export default function CreateTimetable() {
@@ -112,9 +130,7 @@ export default function CreateTimetable() {
       return;
     }
 
-    const selectedCourse = courses.find(
-      (c) => c._id === form.course_id
-    );
+    const selectedCourse = courses.find((c) => c._id === form.course_id);
 
     if (!selectedCourse?.semester) {
       setAvailableSemesters([]);
@@ -123,10 +139,7 @@ export default function CreateTimetable() {
 
     const totalSem = selectedCourse.semester;
 
-    const semArray = Array.from(
-      { length: totalSem },
-      (_, i) => i + 1
-    );
+    const semArray = Array.from({ length: totalSem }, (_, i) => i + 1);
 
     setAvailableSemesters(semArray);
   }, [form.course_id, courses]);
@@ -139,7 +152,10 @@ export default function CreateTimetable() {
     }
     const course = courses.find((c) => c._id === form.course_id);
     if (!course) return;
-    setPreviewName(`${course.name} - Sem ${form.semester} (${form.academicYear})`);
+
+    setPreviewName(
+      `${course.name} - Sem ${form.semester} (${form.academicYear})`,
+    );
   }, [form, courses]);
 
   /* SUBMIT */
@@ -159,7 +175,7 @@ export default function CreateTimetable() {
       setSuccess("Timetable created successfully!");
       setForm({ course_id: "", semester: "", academicYear: "" });
       setPreviewName("");
-      setTimeout(() => setSuccess(""), 5000);
+      setAvailableSemesters([]);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create timetable");
     } finally {
@@ -169,17 +185,19 @@ export default function CreateTimetable() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)'
-      }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
+        }}
+      >
         <motion.div
           variants={spinVariants}
           animate="animate"
-          style={{ color: BRAND_COLORS.primary.main, fontSize: '3rem' }}
+          style={{ color: BRAND_COLORS.primary.main, fontSize: "3rem" }}
         >
           <FaSyncAlt />
         </motion.div>
@@ -188,440 +206,253 @@ export default function CreateTimetable() {
   }
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '2rem',
-          paddingBottom: '2rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem'
-        }}
-      >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Breadcrumb */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.history.back()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer'
-              }}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600 }}>Create Timetable</span>
-          </motion.div>
+    <AnimatePresence>
+      <div className="container py-4">
+        <div className="card shadow border-0 mx-auto" style={{ maxWidth: 600 }}>
+          <div className="card-body p-4">
+            {/* Header Section */}
+            <div className="d-flex align-items-center mb-4">
+              <div 
+                className="d-flex align-items-center justify-content-center me-3"
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  backgroundColor: `${BRAND_COLORS.primary.main}10`,
+                  color: BRAND_COLORS.primary.main,
+                }}
+              >
+                <FaCalendarAlt size={20} />
+              </div>
+              <div>
+                <h4 className="fw-bold mb-0">Create Timetable</h4>
+                <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+                  Fill in the details to create a new timetable
+                </p>
+              </div>
+            </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            {/* Form Card */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              style={{ gridColumn: '1 / -1' }}
-            >
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '20px',
-                boxShadow: '0 10px 40px rgba(26, 75, 109, 0.12)',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '2rem',
-                  background: BRAND_COLORS.primary.gradient,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1.5rem'
-                }}>
-                  <motion.div
-                    variants={pulseVariants}
-                    initial="initial"
-                    animate="pulse"
+            {/* Status Messages */}
+            {error && (
+              <div className="alert alert-danger d-flex align-items-center" role="alert">
+                <FaTimesCircle className="me-2" />
+                <div>{error}</div>
+              </div>
+            )}
+            {success && (
+              <div className="alert alert-success d-flex align-items-center" role="alert">
+                <FaCheckCircle className="me-2" />
+                <div>{success}</div>
+              </div>
+            )}
+
+            {/* Form Section */}
+            <form onSubmit={submitHandler}>
+              {/* Department Field */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaUniversity className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Department
+                </label>
+                <input
+                  className="form-control form-control-lg"
+                  value={department?.name || ""}
+                  disabled
+                  style={{ 
+                    backgroundColor: "#f8f9fa",
+                    borderColor: "#dee2e6"
+                  }}
+                />
+              </div>
+
+              {/* Course Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaGraduationCap className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Course
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.course_id}
+                  onChange={(e) =>
+                    setForm({ ...form, course_id: e.target.value, semester: "" })
+                  }
+                  required
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Semester Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaLayerGroup className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Semester
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.semester}
+                  onChange={(e) => setForm({ ...form, semester: e.target.value })}
+                  required
+                  disabled={!availableSemesters.length}
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select semester</option>
+                  {availableSemesters.map((s) => (
+                    <option key={s} value={s}>
+                      Semester {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Academic Year Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaCalendarAlt className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Academic Year
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.academicYear}
+                  onChange={(e) =>
+                    setForm({ ...form, academicYear: e.target.value })
+                  }
+                  required
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select academic year</option>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const currentYear = new Date().getFullYear();
+                    const year = currentYear + i;
+                    return (
+                      <option key={year} value={`${year}-${year + 1}`}>
+                        {year}-{year + 1}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Timetable Preview Card */}
+              <div 
+                className="card border-0 shadow-sm mb-4"
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  className="p-4 d-flex align-items-center"
+                  style={{
+                    background: BRAND_COLORS.info.gradient,
+                    color: "white",
+                  }}
+                >
+                  <div
+                    className="d-flex align-items-center justify-content-center me-3"
                     style={{
-                      width: '64px',
-                      height: '64px',
-                      borderRadius: '16px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '2rem',
-                      flexShrink: 0
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "12px",
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      fontSize: "1.5rem",
+                      flexShrink: 0,
                     }}
                   >
-                    <FaCalendarAlt />
-                  </motion.div>
-                  <div>
-                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700 }}>Create New Timetable</h1>
-                    <p style={{ margin: '0.5rem 0 0 0', opacity: 0.9, fontSize: '1.05rem' }}>
-                      Set up academic schedule for your course
-                    </p>
-                  </div>
-                </div>
-                
-                <div style={{ padding: '2rem' }}>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                        border: `1px solid ${BRAND_COLORS.danger.main}`,
-                        color: BRAND_COLORS.danger.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <FaTimesCircle size={20} />
-                      <span>{error}</span>
-                    </motion.div>
-                  )}
-                  
-                  {success && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: `${BRAND_COLORS.success.main}0a`,
-                        border: `1px solid ${BRAND_COLORS.success.main}`,
-                        color: BRAND_COLORS.success.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <FaCheckCircle size={20} />
-                      <span>{success}</span>
-                    </motion.div>
-                  )}
-
-                  <form onSubmit={submitHandler}>
-                    <FormField
-                      icon={<FaUniversity />}
-                      label="Department"
-                      required
-                    >
-                      <input
-                        type="text"
-                        value={department?.name || "Loading..."}
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '1rem',
-                          backgroundColor: '#f8fafc',
-                          color: '#4a5568',
-                          fontWeight: 500
-                        }}
-                      />
-                    </FormField>
-
-                    <FormField
-                      icon={<FaGraduationCap />}
-                      label="Course"
-                      required
-                      error={!form.course_id && form.course_id !== ""}
-                    >
-                      <select
-                        value={form.course_id}
-                        onChange={(e) => setForm({ ...form, course_id: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: `1px solid ${(!form.course_id && form.course_id !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
-                          fontSize: '1rem',
-                          backgroundColor: 'white',
-                          color: '#1e293b',
-                          fontWeight: 500,
-                          appearance: 'none',
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 1rem center',
-                          backgroundSize: '16px'
-                        }}
-                      >
-                        <option value="">Select course</option>
-                        {courses.map((c) => (
-                          <option key={c._id} value={c._id}>
-                            {c.name} ({c.code})
-                          </option>
-                        ))}
-                      </select>
-                    </FormField>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                      <FormField
-                        icon={<FaLayerGroup />}
-                        label="Semester"
-                        required
-                        error={!form.semester && form.semester !== ""}
-                      >
-                        <select
-                          value={form.semester}
-                          onChange={(e) => setForm({ ...form, semester: e.target.value })}
-                          style={{
-                            width: '100%',
-                            padding: '0.875rem 1.25rem',
-                            borderRadius: '12px',
-                            border: `1px solid ${(!form.semester && form.semester !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
-                            fontSize: '1rem',
-                            backgroundColor: 'white',
-                            color: '#1e293b',
-                            fontWeight: 500,
-                            appearance: 'none',
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 1rem center',
-                            backgroundSize: '16px'
-                          }}
-                        >
-                          <option value="">Select semester</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                            <option key={s} value={s}>Semester {s}</option>
-                          ))}
-                        </select>
-                      </FormField>
-
-                      <FormField
-                        icon={<FaClock />}
-                        label="Academic Year"
-                        required
-                        error={!form.academicYear && form.academicYear !== ""}
-                      >
-                        <select
-                          value={form.academicYear}
-                          onChange={(e) => setForm({ ...form, academicYear: e.target.value })}
-                          style={{
-                            width: '100%',
-                            padding: '0.875rem 1.25rem',
-                            borderRadius: '12px',
-                            border: `1px solid ${(!form.academicYear && form.academicYear !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
-                            fontSize: '1rem',
-                            backgroundColor: 'white',
-                            color: '#1e293b',
-                            fontWeight: 500,
-                            appearance: 'none',
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 1rem center',
-                            backgroundSize: '16px'
-                          }}
-                        >
-                          <option value="">Select academic year</option>
-                          <option value="2024-2025">2024–2025</option>
-                          <option value="2025-2026">2025–2026</option>
-                          <option value="2026-2027">2026–2027</option>
-                          <option value="2027-2028">2027–2028</option>
-                        </select>
-                      </FormField>
-                    </div>
-
-                    <FormField
-                      icon={<FaEdit />}
-                      label="Timetable Name (Preview)"
-                    >
-                      <input
-                        type="text"
-                        value={previewName || "Complete form to generate preview"}
-                        readOnly
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '1rem',
-                          backgroundColor: '#f8fafc',
-                          color: previewName ? BRAND_COLORS.primary.main : '#94a3b8',
-                          fontWeight: previewName ? 600 : 400,
-                          fontStyle: previewName ? 'normal' : 'italic'
-                        }}
-                      />
-                    </FormField>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      disabled={submitting || !previewName}
-                      style={{
-                        width: '100%',
-                        padding: '1.125rem',
-                        borderRadius: '14px',
-                        border: 'none',
-                        backgroundColor: (!previewName || submitting) ? '#cbd5e1' : BRAND_COLORS.primary.main,
-                        color: 'white',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        cursor: (!previewName || submitting) ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.75rem',
-                        marginTop: '1rem',
-                        boxShadow: (!previewName || submitting) ? 'none' : '0 4px 15px rgba(26, 75, 109, 0.3)',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      {submitting ? (
-                        <>
-                          <motion.div variants={spinVariants} animate="animate">
-                            <FaSyncAlt />
-                          </motion.div>
-                          Creating Timetable...
-                        </>
-                      ) : (
-                        <>
-                          <FaCalendarAlt /> Create Timetable
-                        </>
-                      )}
-                    </motion.button>
-                  </form>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Preview Card */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              style={{ gridColumn: '1 / -1' }}
-            >
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '20px',
-                boxShadow: '0 10px 40px rgba(26, 75, 109, 0.12)',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '1.75rem',
-                  background: BRAND_COLORS.info.gradient,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem'
-                }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    flexShrink: 0
-                  }}>
                     <FaInfoCircle />
                   </div>
-                  <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>Timetable Preview</h2>
+                  <h5 className="mb-0 fw-bold">Timetable Preview</h5>
                 </div>
-                
-                <div style={{ padding: '2rem', textAlign: 'center' }}>
-                  <div style={{
-                    border: `2px dashed ${previewName ? BRAND_COLORS.primary.main : '#cbd5e1'}`,
-                    borderRadius: '16px',
-                    padding: '2.5rem',
-                    backgroundColor: previewName ? `${BRAND_COLORS.primary.main}05` : '#f8fafc',
-                    transition: 'all 0.3s ease'
-                  }}>
+
+                <div className="p-4 text-center">
+                  <div
+                    className={`border-2 rounded-3 p-4 ${previewName ? 'border-primary' : 'border-light'}`}
+                    style={{
+                      borderStyle: 'dashed',
+                      backgroundColor: previewName ? `${BRAND_COLORS.primary.main}05` : "#f8fafc",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
                     {previewName ? (
                       <>
-                        <div style={{
-                          fontSize: '4rem',
-                          marginBottom: '1.5rem',
-                          color: BRAND_COLORS.primary.main,
-                          opacity: 0.2
-                        }}>
+                        <div
+                          className="mx-auto mb-4"
+                          style={{
+                            fontSize: "4rem",
+                            color: BRAND_COLORS.primary.main,
+                            opacity: 0.2,
+                          }}
+                        >
                           <FaCalendarAlt />
                         </div>
-                        <h3 style={{
-                          margin: '0 0 1rem 0',
-                          fontSize: '1.75rem',
-                          fontWeight: 700,
-                          color: '#1e293b'
-                        }}>
+                        <h5
+                          className="mb-3"
+                          style={{
+                            fontWeight: 700,
+                            color: "#1e293b",
+                          }}
+                        >
                           {previewName}
-                        </h3>
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          marginTop: '1.5rem'
-                        }}>
-                          <div style={{
-                            padding: '0.5rem 1.5rem',
-                            borderRadius: '20px',
-                            backgroundColor: `${BRAND_COLORS.success.main}15`,
-                            color: BRAND_COLORS.success.main,
-                            fontWeight: 600,
-                            fontSize: '0.95rem'
-                          }}>
+                        </h5>
+                        <div className="d-flex flex-column align-items-center">
+                          <div
+                            className="py-2 px-4 rounded-pill mb-3"
+                            style={{
+                              backgroundColor: `${BRAND_COLORS.success.main}15`,
+                              color: BRAND_COLORS.success.main,
+                              fontWeight: 600,
+                              fontSize: "0.95rem",
+                            }}
+                          >
                             Ready to Create
                           </div>
-                          <p style={{ color: '#64748b', margin: 0, maxWidth: '80%' }}>
+                          <p
+                            className="mb-0"
+                            style={{
+                              color: "#64748b",
+                              maxWidth: "80%",
+                            }}
+                          >
                             This timetable will be created for your department. You can add time slots after creation.
                           </p>
                         </div>
                       </>
                     ) : (
                       <>
-                        <div style={{
-                          fontSize: '4rem',
-                          marginBottom: '1.5rem',
-                          color: '#cbd5e1',
-                          opacity: 0.3
-                        }}>
+                        <div
+                          className="mx-auto mb-4"
+                          style={{
+                            fontSize: "4rem",
+                            color: "#cbd5e1",
+                            opacity: 0.3,
+                          }}
+                        >
                           <FaCalendarAlt />
                         </div>
-                        <h3 style={{
-                          margin: '0 0 1rem 0',
-                          fontSize: '1.75rem',
-                          fontWeight: 600,
-                          color: '#64748b'
-                        }}>
+                        <h5
+                          className="mb-3"
+                          style={{
+                            fontWeight: 600,
+                            color: "#64748b",
+                          }}
+                        >
                           Complete Form to Preview
-                        </h3>
-                        <p style={{ color: '#94a3b8', margin: 0, maxWidth: '80%' }}>
+                          </h5>
+                        <p
+                          className="mb-0"
+                          style={{
+                            color: "#94a3b8",
+                            maxWidth: "80%",
+                          }}
+                        >
                           Select course, semester, and academic year to see timetable preview
                         </p>
                       </>
@@ -629,59 +460,35 @@ export default function CreateTimetable() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+
+              {/* Submit Button */}
+              <div className="d-grid">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary btn-lg"
+                  disabled={submitting || !previewName}
+                  style={{
+                    background: BRAND_COLORS.primary.gradient,
+                    border: 'none',
+                    padding: '12px 0',
+                    fontWeight: 600,
+                    fontSize: '1.1rem'
+                  }}
+                >
+                  {submitting ? (
+                    <span className="d-flex align-items-center justify-content-center">
+                      <FaSyncAlt className="me-2" spin />
+                      Creating Timetable...
+                    </span>
+                  ) : (
+                    "Create Timetable"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-/* ================= FORM FIELD COMPONENT ================= */
-function FormField({ icon, label, children, required = false, error = false }) {
-  return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <label style={{
-        display: 'block',
-        marginBottom: '0.5rem',
-        fontWeight: 600,
-        color: '#1e293b',
-        fontSize: '0.95rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem'
-      }}>
-        <span style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '24px',
-          height: '24px',
-          borderRadius: '6px',
-          backgroundColor: `${BRAND_COLORS.primary.main}10`,
-          color: BRAND_COLORS.primary.main,
-          fontSize: '0.85rem'
-        }}>
-          {icon}
-        </span>
-        {label}
-        {required && <span style={{ color: BRAND_COLORS.danger.main }}>*</span>}
-      </label>
-      <div style={{ position: 'relative' }}>
-        {children}
-        {error && (
-          <div style={{
-            position: 'absolute',
-            right: '0.75rem',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: BRAND_COLORS.danger.main,
-            fontSize: '1.25rem'
-          }}>
-            <FaTimesCircle />
-          </div>
-        )}
       </div>
-    </div>
+    </AnimatePresence>
   );
 }
