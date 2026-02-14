@@ -12,11 +12,48 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState([]);
   const [toast, setToast] = useState(null);
+  const [college, setCollege] = useState(null); // State to store college information
 
   const prevCount = useRef(0);
   const dropdownRef = useRef();
 
   if (!user) return null;
+
+  // Fetch college information when user is available
+  useEffect(() => {
+    const fetchCollegeInfo = async () => {
+      if (user.college_id) {
+        try {
+          let response;
+
+          if (user.role === "COLLEGE_ADMIN") {
+            // College admins can access the direct college endpoint
+            response = await api.get("/college/my-college");
+            setCollege(response.data);
+          } else if (user.role === "TEACHER") {
+            // Teachers can get their profile which includes college info
+            response = await api.get("/teachers/my-profile");
+            // Teacher profile has college info in the populated college_id field
+            if (response.data && response.data.college_id) {
+              setCollege(response.data.college_id);
+            }
+          } else if (user.role === "STUDENT") {
+            // Students can get their profile which includes college info
+            response = await api.get("/students/my-profile");
+            // Student profile has college info in a separate college field
+            if (response.data && response.data.college) {
+              setCollege(response.data.college);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching college info:", error);
+          console.error("Error details:", error.response?.data || error.message);
+        }
+      }
+    };
+
+    fetchCollegeInfo();
+  }, [user.college_id, user.role]);
 
   /* ================= FETCH COUNT (UNREAD ONLY) ================= */
   const fetchCount = async () => {
@@ -115,10 +152,17 @@ export default function Navbar() {
       <nav className="navbar navbar-light bg-white px-4 shadow-sm d-flex justify-content-between align-items-center">
         {/* LEFT */}
         <div className="d-flex align-items-center gap-3">
-          <h5 className="mb-0 fw-bold text-primary">NOVAA</h5>
-          <span className="badge bg-dark">
-            {user.role.replace("_", " ")}
-          </span>
+          {college ? (
+            <h5 className="mb-0 fw-bold text-primary">{college.name}</h5>
+          ) : (
+            <h5 className="mb-0 fw-bold text-primary">NOVAA</h5>
+          )}
+
+          <div className="d-flex flex-wrap gap-2">
+            <span className="badge bg-dark">
+              {user.role.replace("_", " ")}
+            </span>
+          </div>
         </div>
 
         {/* RIGHT */}

@@ -578,31 +578,6 @@ export default function Sidebar() {
                 <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
                   <FaCog /> My Profile
                 </NavLink>
-                {/* <NavLink to="/timetable/create" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> Create Timetable
-                </NavLink>
-                <NavLink to="/timetable/list" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> View Timetables
-                </NavLink>
-                <NavLink to="/timetable/add-slot" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> Add Timetable Slot
-                </NavLink>
-                <NavLink to="/timetable/weekly-timetable" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> My Shedule
-                </NavLink>
-                <NavLink to="/attendance/my-sessions-list" style={getNavLinkStyle}>
-                  <FaCalendarAlt /> My Sessions
-                </NavLink>
-                <NavLink to="/attendance/report" style={getNavLinkStyle}>
-                  <FaClipboardList /> Attendance Report
-                </NavLink>
-                <NavLink to="/teacher/notifications/create" style={getNavLinkStyle}>
-                  <FaBell /> Create Notification
-                </NavLink>
-                <NavLink to="/teacher/notifications/list" style={getNavLinkStyle}>
-                  <FaBell /> Notifications
-                </NavLink> */}
-
                 {/* TIMETABLE DROPDOWN */}
                 <div
                   className={`sidebar-section-title ${
@@ -753,10 +728,10 @@ export default function Sidebar() {
                 <NavLink to="/student/fees" style={getNavLinkStyle}>
                   <FaMoneyBillWave /> Fees
                 </NavLink>
-                <NavLink to="/student/attendance" style={getNavLinkStyle}>
+                <NavLink to="my-attendance" style={getNavLinkStyle}>
                   <FaClipboardList /> My Attendance
                 </NavLink>
-                <NavLink to="/student/notifications" style={getNavLinkStyle}>
+                <NavLink to="/notification/student" style={getNavLinkStyle}>
                   <FaBell /> Notifications
                 </NavLink>
                 <NavLink to="/student/grades" style={getNavLinkStyle}>
