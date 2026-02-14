@@ -18,9 +18,6 @@ export default function AddTeacher() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
-
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]); // ✅ NEW
@@ -31,7 +28,7 @@ export default function AddTeacher() {
     degree: null,
     photo: null,
   });
-  const [documentPreviews, setDocumentPreviews] = useState({
+  const [documentPreviews, setDocumentPreviews] = useState({ // eslint-disable-line no-unused-vars
     aadhar: null,
     pan: null,
     degree: null,
@@ -59,11 +56,8 @@ export default function AddTeacher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formTouched, setFormTouched] = useState(false);
+  const [formTouched, setFormTouched] = useState(false); // eslint-disable-line no-unused-vars
   const [validationErrors, setValidationErrors] = useState({});
-  const [activeSection, setActiveSection] = useState("basic");
-  const [isGeneratingId, setIsGeneratingId] = useState(false);
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
@@ -92,6 +86,10 @@ export default function AddTeacher() {
       .catch(() => setCourses([]));
   }, [formData.department_id]);
 
+  // Check authentication after state initialization
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,11 +112,6 @@ export default function AddTeacher() {
     }
   };
 
-  // ✅ MULTI COURSE SELECT HANDLER
-  const handleCourseChange = (e) => {
-    const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setFormData({ ...formData, courses: selected });
-  };
 
   const handleFile = (e) => {
     const { name, files } = e.target;
@@ -152,6 +145,76 @@ export default function AddTeacher() {
 
       setError("");
     }
+  };
+
+  /* ================= VALIDATION ================= */
+  const validateForm = () => {
+    const errors = {};
+
+    // Basic info validations
+    if (!formData.name.trim()) {
+      errors.name = "Name is required";
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Email is invalid";
+    }
+
+    if (!formData.employeeId.trim()) {
+      errors.employeeId = "Employee ID is required";
+    }
+
+    if (!formData.designation.trim()) {
+      errors.designation = "Designation is required";
+    }
+
+    if (!formData.qualification.trim()) {
+      errors.qualification = "Qualification is required";
+    }
+
+    if (!formData.experienceYears || formData.experienceYears < 0) {
+      errors.experienceYears = "Valid experience is required";
+    }
+
+    if (!formData.password || formData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    // Personal info validations
+    if (!formData.gender) {
+      errors.gender = "Gender is required";
+    }
+
+    if (!formData.bloodGroup) {
+      errors.bloodGroup = "Blood group is required";
+    }
+
+    // Address validations
+    if (!formData.address.trim()) {
+      errors.address = "Address is required";
+    }
+
+    if (!formData.city.trim()) {
+      errors.city = "City is required";
+    }
+
+    if (!formData.state.trim()) {
+      errors.state = "State is required";
+    }
+
+    // Department and course validations
+    if (!formData.department_id) {
+      errors.department_id = "Department is required";
+    }
+
+    if (!formData.course_id) {
+      errors.course_id = "Course is required";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   /* ================= SUBMIT ================= */
@@ -1361,38 +1424,61 @@ export default function AddTeacher() {
       `}</style>
     </div>
   );
-}
 
-/* ================= REUSABLE INPUTS ================= */
+  /* ================= REUSABLE INPUTS ================= */
 
-function Input({ label, ...props }) {
-  return (
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">{label}</label>
-      <input className="form-control" {...props} required />
-    </div>
-  );
-}
+  function Input({ label, name, ...props }) {
+    return (
+      <div className="col-md-6">
+        <label className="form-label fw-semibold">{label}</label>
+        <input
+          className={`form-control ${validationErrors[name] ? 'is-invalid' : ''}`}
+          name={name}
+          {...props}
+          required
+        />
+        {validationErrors[name] && (
+          <div className="invalid-feedback">{validationErrors[name]}</div>
+        )}
+      </div>
+    );
+  }
 
-function Select({ label, options, ...props }) {
-  return (
-    <div className="col-md-4">
-      <label className="form-label fw-semibold">{label}</label>
-      <select className="form-select" {...props}>
-        <option value="">Select</option>
-        {options.map((o) => (
-          <option key={o}>{o}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
+  function Select({ label, name, options, ...props }) {
+    return (
+      <div className="col-md-4">
+        <label className="form-label fw-semibold">{label}</label>
+        <select
+          className={`form-select ${validationErrors[name] ? 'is-invalid' : ''}`}
+          name={name}
+          {...props}
+        >
+          <option value="">Select</option>
+          {options.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        {validationErrors[name] && (
+          <div className="invalid-feedback">{validationErrors[name]}</div>
+        )}
+      </div>
+    );
+  }
 
-function File({ label, ...props }) {
-  return (
-    <div className="col-md-3">
-      <label className="form-label fw-semibold">{label}</label>
-      <input type="file" className="form-control" {...props} />
-    </div>
-  );
+  function File({ label, name, ...props }) {
+    return (
+      <div className="col-md-3">
+        <label className="form-label fw-semibold">{label}</label>
+        <input
+          type="file"
+          className={`form-control ${validationErrors[name] ? 'is-invalid' : ''}`}
+          name={name}
+          {...props}
+        />
+        {validationErrors[name] && (
+          <div className="invalid-feedback">{validationErrors[name]}</div>
+        )}
+      </div>
+    );
+  }
 }
