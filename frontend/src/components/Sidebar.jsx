@@ -734,9 +734,6 @@ export default function Sidebar() {
                 <NavLink to="/notification/student" style={getNavLinkStyle}>
                   <FaBell /> Notifications
                 </NavLink>
-                <NavLink to="/student/grades" style={getNavLinkStyle}>
-                  <FaChartBar /> My Grades
-                </NavLink>
               </>
             )}
 

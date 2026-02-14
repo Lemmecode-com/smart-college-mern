@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
+const studentMiddleware = require("../middlewares/student.middleware");
 
 const {
   editAttendance,
@@ -20,6 +21,7 @@ const {
   getAttendanceReport,
   getTeacherCourses,
   getTeacherSubjectsByCourse,
+  getStudentAttendanceReport,
 } = require("../controllers/attendance.controller");
 
 /* =========================================================
@@ -51,6 +53,15 @@ router.get(
   collegeMiddleware,
   teacherMiddleware,
   getAttendanceReport
+);
+
+router.get(
+  "/student",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentAttendanceReport
 );
 
 router.get(
