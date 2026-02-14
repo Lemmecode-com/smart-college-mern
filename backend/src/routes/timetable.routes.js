@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const hod = require("../middlewares/hod.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const studentMiddleware = require("../middlewares/student.middleware");
 
 const {
   createTimetable,
@@ -14,6 +15,7 @@ const {
   getTimetables,
   getWeeklyTimetableById,
   getWeeklyTimetableForTeacher,
+  getStudentTimetable,
 } = require("../controllers/timetable.controller");
 
 const {
@@ -26,12 +28,7 @@ const {
 router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
-router.get(
-  "/weekly",
-  auth,
-  collegeMiddleware,
-  getWeeklyTimetableForTeacher
-);
+router.get("/weekly", auth, collegeMiddleware, getWeeklyTimetableForTeacher);
 
 /* ================= LIST ================= */
 router.get(
@@ -39,24 +36,26 @@ router.get(
   auth,
   role("COLLEGE_ADMIN", "TEACHER"),
   collegeMiddleware,
-  getTimetables
+  getTimetables,
 );
 
 /* ================= SLOTS ================= */
-router.post(
-  "/slot",
+router.post("/slot", auth, role("TEACHER"), collegeMiddleware, hod, addSlot);
+
+router.get(
+  "/student",
   auth,
-  role("TEACHER"),
+  role("STUDENT"),
   collegeMiddleware,
-  hod,
-  addSlot
+  studentMiddleware,
+  getStudentTimetable,
 );
 
 router.get(
   "/:timetableId/weekly",
   auth,
   collegeMiddleware,
-  getWeeklyTimetableById
+  getWeeklyTimetableById,
 );
 
 /* ================= PUBLISH ================= */
@@ -66,16 +65,11 @@ router.put(
   role("TEACHER"),
   collegeMiddleware,
   hod,
-  publishTimetable
+  publishTimetable,
 );
 
 /* ================= GET BY ID (LAST) ================= */
-router.get(
-  "/:id",
-  auth,
-  collegeMiddleware,
-  getTimetableById
-);
+router.get("/:id", auth, collegeMiddleware, getTimetableById);
 
 /* ================= DELETE ================= */
 router.delete(
@@ -84,7 +78,7 @@ router.delete(
   role("TEACHER"),
   collegeMiddleware,
   hod,
-  deleteTimetable
+  deleteTimetable,
 );
 
 router.put(
@@ -93,14 +87,9 @@ router.put(
   role("TEACHER"),
   collegeMiddleware,
   hod,
-  updateSlot
+  updateSlot,
 );
 
-router.delete(
-  "/slot/:slotId",
-  auth,
-  collegeMiddleware,
-  deleteTimetableSlot
-);
+router.delete("/slot/:slotId", auth, collegeMiddleware, deleteTimetableSlot);
 
 module.exports = router;
