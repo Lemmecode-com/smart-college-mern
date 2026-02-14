@@ -169,6 +169,41 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
   }
 };
 
+/* =========================================================
+   WEEKLY TIMETABLE — STUDENTS (OWN SCHEDULE)
+========================================================= */
+exports.getStudentTimetable = async (req, res) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const slots = await TimetableSlot.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+    })
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
+      .populate("course_id", "name code")
+      .populate({
+        path: "timetable_id",
+        select: "semester academicYear status",
+        match: { status: "PUBLISHED" },
+      })
+      .sort({ day: 1, startTime: 1 });
+
+    const filteredSlots = slots.filter(slot => slot.timetable_id);
+
+    res.json(filteredSlots);
+
+  } catch (error) {
+    console.error("Student timetable error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 /* =========================================================
    WEEKLY TIMETABLE — HOD (FULL VIEW)
