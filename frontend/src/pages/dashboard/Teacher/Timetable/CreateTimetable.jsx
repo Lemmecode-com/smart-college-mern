@@ -208,290 +208,287 @@ export default function CreateTimetable() {
   return (
     <AnimatePresence>
       <div className="container py-4">
-        <div className="card shadow border-0 mx-auto" style={{ maxWidth: 480 }}>
-          <div className="card-body">
-            <h4 className="fw-bold mb-3">Create Timetable</h4>
-
-            {error && <div className="alert alert-danger">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
-
-            {/* Department */}
-            <div className="mb-3">
-              <label className="form-label">Department</label>
-              <input
-                className="form-control"
-                value={department?.name || ""}
-                disabled
-              />
+        <div className="card shadow border-0 mx-auto" style={{ maxWidth: 600 }}>
+          <div className="card-body p-4">
+            {/* Header Section */}
+            <div className="d-flex align-items-center mb-4">
+              <div 
+                className="d-flex align-items-center justify-content-center me-3"
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  backgroundColor: `${BRAND_COLORS.primary.main}10`,
+                  color: BRAND_COLORS.primary.main,
+                }}
+              >
+                <FaCalendarAlt size={20} />
+              </div>
+              <div>
+                <h4 className="fw-bold mb-0">Create Timetable</h4>
+                <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+                  Fill in the details to create a new timetable
+                </p>
+              </div>
             </div>
 
-            {/* Course */}
-            <motion.div className="mb-3">
-              <label className="form-label">Course</label>
-              <select
-                className="form-select"
-                value={form.course_id}
-                onChange={(e) =>
-                  setForm({ ...form, course_id: e.target.value, semester: "" })
-                }
-                required
-              ></select>
-              <motion.button>
-                <FaArrowLeft /> Back
-              </motion.button>
-              <span style={{ color: "#94a3b8" }}>›</span>
-              <span
-                style={{ color: BRAND_COLORS.primary.main, fontWeight: 600 }}
-              >
-                Create Timetable
-              </span>
-            </motion.div>
+            {/* Status Messages */}
+            {error && (
+              <div className="alert alert-danger d-flex align-items-center" role="alert">
+                <FaTimesCircle className="me-2" />
+                <div>{error}</div>
+              </div>
+            )}
+            {success && (
+              <div className="alert alert-success d-flex align-items-center" role="alert">
+                <FaCheckCircle className="me-2" />
+                <div>{success}</div>
+              </div>
+            )}
 
-            {/* ⭐ Semester (Dynamic) */}
-            <div className="mb-3">
-              <label className="form-label">Semester</label>
-              <select
-                className="form-select"
-                value={form.semester}
-                onChange={(e) => setForm({ ...form, semester: e.target.value })}
-                required
-                disabled={!availableSemesters.length}
-              >
-                <option value="">Select semester</option>
-                {availableSemesters.map((s) => (
-                  <option key={s} value={s}>
-                    Semester {s}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Form Section */}
+            <form onSubmit={submitHandler}>
+              {/* Department Field */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaUniversity className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Department
+                </label>
+                <input
+                  className="form-control form-control-lg"
+                  value={department?.name || ""}
+                  disabled
+                  style={{ 
+                    backgroundColor: "#f8f9fa",
+                    borderColor: "#dee2e6"
+                  }}
+                />
+              </div>
 
-            {/* Academic Year */}
-            <div className="mb-3">
-              <label className="form-label">Academic Year</label>
-              <select
-                className="form-select"
-                value={form.academicYear}
-                onChange={(e) =>
-                  setForm({ ...form, academicYear: e.target.value })
-                }
-                required
-              ></select>
-              <motion.div>
+              {/* Course Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaGraduationCap className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Course
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.course_id}
+                  onChange={(e) =>
+                    setForm({ ...form, course_id: e.target.value, semester: "" })
+                  }
+                  required
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select a course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Semester Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaLayerGroup className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Semester
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.semester}
+                  onChange={(e) => setForm({ ...form, semester: e.target.value })}
+                  required
+                  disabled={!availableSemesters.length}
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select semester</option>
+                  {availableSemesters.map((s) => (
+                    <option key={s} value={s}>
+                      Semester {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Academic Year Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold mb-2">
+                  <FaCalendarAlt className="me-2" style={{ color: BRAND_COLORS.primary.main }} />
+                  Academic Year
+                </label>
+                <select
+                  className="form-select form-select-lg"
+                  value={form.academicYear}
+                  onChange={(e) =>
+                    setForm({ ...form, academicYear: e.target.value })
+                  }
+                  required
+                  style={{ borderColor: "#dee2e6" }}
+                >
+                  <option value="">Select academic year</option>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const currentYear = new Date().getFullYear();
+                    const year = currentYear + i;
+                    return (
+                      <option key={year} value={`${year}-${year + 1}`}>
+                        {year}-{year + 1}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Timetable Preview Card */}
+              <div 
+                className="card border-0 shadow-sm mb-4"
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                }}
+              >
                 <div
+                  className="p-4 d-flex align-items-center"
                   style={{
-                    backgroundColor: "white",
-                    borderRadius: "20px",
-                    boxShadow: "0 10px 40px rgba(26, 75, 109, 0.12)",
-                    overflow: "hidden",
+                    background: BRAND_COLORS.info.gradient,
+                    color: "white",
                   }}
                 >
                   <div
+                    className="d-flex align-items-center justify-content-center me-3"
                     style={{
-                      padding: "1.75rem",
-                      background: BRAND_COLORS.info.gradient,
-                      color: "white",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "1rem",
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "12px",
+                      backgroundColor: "rgba(255, 255, 255, 0.15)",
+                      fontSize: "1.5rem",
+                      flexShrink: 0,
                     }}
                   >
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "12px",
-                        backgroundColor: "rgba(255, 255, 255, 0.15)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "1.5rem",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <FaInfoCircle />
-                    </div>
-                    <h2
-                      style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700 }}
-                    >
-                      Timetable Preview
-                    </h2>
+                    <FaInfoCircle />
                   </div>
+                  <h5 className="mb-0 fw-bold">Timetable Preview</h5>
+                </div>
 
-                  <div style={{ padding: "2rem", textAlign: "center" }}>
-                    <div
-                      style={{
-                        border: `2px dashed ${previewName ? BRAND_COLORS.primary.main : "#cbd5e1"}`,
-                        borderRadius: "16px",
-                        padding: "2.5rem",
-                        backgroundColor: previewName
-                          ? `${BRAND_COLORS.primary.main}05`
-                          : "#f8fafc",
-                        transition: "all 0.3s ease",
-                      }}
-                    >
-                      {previewName ? (
-                        <>
+                <div className="p-4 text-center">
+                  <div
+                    className={`border-2 rounded-3 p-4 ${previewName ? 'border-primary' : 'border-light'}`}
+                    style={{
+                      borderStyle: 'dashed',
+                      backgroundColor: previewName ? `${BRAND_COLORS.primary.main}05` : "#f8fafc",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    {previewName ? (
+                      <>
+                        <div
+                          className="mx-auto mb-4"
+                          style={{
+                            fontSize: "4rem",
+                            color: BRAND_COLORS.primary.main,
+                            opacity: 0.2,
+                          }}
+                        >
+                          <FaCalendarAlt />
+                        </div>
+                        <h5
+                          className="mb-3"
+                          style={{
+                            fontWeight: 700,
+                            color: "#1e293b",
+                          }}
+                        >
+                          {previewName}
+                        </h5>
+                        <div className="d-flex flex-column align-items-center">
                           <div
+                            className="py-2 px-4 rounded-pill mb-3"
                             style={{
-                              fontSize: "4rem",
-                              marginBottom: "1.5rem",
-                              color: BRAND_COLORS.primary.main,
-                              opacity: 0.2,
-                            }}
-                          >
-                            <FaCalendarAlt />
-                          </div>
-                          <h3
-                            style={{
-                              margin: "0 0 1rem 0",
-                              fontSize: "1.75rem",
-                              fontWeight: 700,
-                              color: "#1e293b",
-                            }}
-                          >
-                            {previewName}
-                          </h3>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "0.75rem",
-                              marginTop: "1.5rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                padding: "0.5rem 1.5rem",
-                                borderRadius: "20px",
-                                backgroundColor: `${BRAND_COLORS.success.main}15`,
-                                color: BRAND_COLORS.success.main,
-                                fontWeight: 600,
-                                fontSize: "0.95rem",
-                              }}
-                            >
-                              Ready to Create
-                            </div>
-                            <p
-                              style={{
-                                color: "#64748b",
-                                margin: 0,
-                                maxWidth: "80%",
-                              }}
-                            >
-                              This timetable will be created for your
-                              department. You can add time slots after creation.
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div
-                            style={{
-                              fontSize: "4rem",
-                              marginBottom: "1.5rem",
-                              color: "#cbd5e1",
-                              opacity: 0.3,
-                            }}
-                          >
-                            <FaCalendarAlt />
-                          </div>
-                          <h3
-                            style={{
-                              margin: "0 0 1rem 0",
-                              fontSize: "1.75rem",
+                              backgroundColor: `${BRAND_COLORS.success.main}15`,
+                              color: BRAND_COLORS.success.main,
                               fontWeight: 600,
-                              color: "#64748b",
+                              fontSize: "0.95rem",
                             }}
                           >
-                            Complete Form to Preview
-                          </h3>
+                            Ready to Create
+                          </div>
                           <p
+                            className="mb-0"
                             style={{
-                              color: "#94a3b8",
-                              margin: 0,
+                              color: "#64748b",
                               maxWidth: "80%",
                             }}
                           >
-                            Select course, semester, and academic year to see
-                            timetable preview
+                            This timetable will be created for your department. You can add time slots after creation.
                           </p>
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className="mx-auto mb-4"
+                          style={{
+                            fontSize: "4rem",
+                            color: "#cbd5e1",
+                            opacity: 0.3,
+                          }}
+                        >
+                          <FaCalendarAlt />
+                        </div>
+                        <h5
+                          className="mb-3"
+                          style={{
+                            fontWeight: 600,
+                            color: "#64748b",
+                          }}
+                        >
+                          Complete Form to Preview
+                          </h5>
+                        <p
+                          className="mb-0"
+                          style={{
+                            color: "#94a3b8",
+                            maxWidth: "80%",
+                          }}
+                        >
+                          Select course, semester, and academic year to see timetable preview
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
-              </motion.div>
-            </div>
+              </div>
 
-            {/* Preview Name */}
-            <div className="mb-4">
-              <label className="form-label">Timetable Name (auto)</label>
-              <input className="form-control" value={previewName} readOnly />
-            </div>
-
-            <button className="btn btn-primary w-100" onClick={submitHandler}>
-              Create Timetable
-            </button>
+              {/* Submit Button */}
+              <div className="d-grid">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary btn-lg"
+                  disabled={submitting || !previewName}
+                  style={{
+                    background: BRAND_COLORS.primary.gradient,
+                    border: 'none',
+                    padding: '12px 0',
+                    fontWeight: 600,
+                    fontSize: '1.1rem'
+                  }}
+                >
+                  {submitting ? (
+                    <span className="d-flex align-items-center justify-content-center">
+                      <FaSyncAlt className="me-2" spin />
+                      Creating Timetable...
+                    </span>
+                  ) : (
+                    "Create Timetable"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
     </AnimatePresence>
-  );
-}
-
-/* ================= FORM FIELD COMPONENT ================= */
-function FormField({ icon, label, children, required = false, error = false }) {
-  return (
-    <div style={{ marginBottom: "1.5rem" }}>
-      <label
-        style={{
-          display: "block",
-          marginBottom: "0.5rem",
-          fontWeight: 600,
-          color: "#1e293b",
-          fontSize: "0.95rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-        }}
-      >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "24px",
-            height: "24px",
-            borderRadius: "6px",
-            backgroundColor: `${BRAND_COLORS.primary.main}10`,
-            color: BRAND_COLORS.primary.main,
-            fontSize: "0.85rem",
-          }}
-        >
-          {icon}
-        </span>
-        {label}
-        {required && <span style={{ color: BRAND_COLORS.danger.main }}>*</span>}
-      </label>
-      <div style={{ position: "relative" }}>
-        {children}
-        {error && (
-          <div
-            style={{
-              position: "absolute",
-              right: "0.75rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: BRAND_COLORS.danger.main,
-              fontSize: "1.25rem",
-            }}
-          >
-            <FaTimesCircle />
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
