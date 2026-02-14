@@ -296,7 +296,7 @@ export default function CollegeAdminDashboard() {
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
+          {/* <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
@@ -313,7 +313,7 @@ export default function CollegeAdminDashboard() {
               <span style={{ color: '#94a3b8' }}>›</span>
               <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '0.9rem' }}>Overview</span>
             </div>
-          </motion.div>
+          </motion.div> */}
 
           {/* ================= HEADER ================= */}
           <motion.div
