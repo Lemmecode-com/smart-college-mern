@@ -53,6 +53,11 @@ const TimetableSlotSchema = new mongoose.Schema(
       required: true,
     },
 
+    /* semester: {
+      type: Number,
+      required: true,
+    }, */
+
     room: String,
 
     slotType: {
