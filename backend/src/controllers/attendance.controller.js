@@ -635,6 +635,202 @@ exports.getAttendanceReport = async (req, res) => {
 };
 
 /* =========================================================
+   GET STUDENT ATTENDANCE REPORT (PRODUCTION GRADE)
+   GET /attendance/student
+========================================================= */
+/* exports.getStudentAttendanceReport = async (req, res) => {
+  try {
+    const student = req.student;
+
+    const { subjectId, startDate, endDate } = req.query;
+
+    let sessionFilter = {
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+    };
+
+    if (subjectId) {
+      sessionFilter.subject_id = subjectId;
+    }
+
+    if (startDate && endDate) {
+      sessionFilter.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    const sessions = await AttendanceSession.find(sessionFilter)
+      .populate("subject_id", "name code")
+      .sort({ lectureDate: -1 });
+
+    const report = [];
+
+    let total = 0;
+    let present = 0;
+    let absent = 0;
+
+    for (const session of sessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      if (!record) continue;
+
+      total++;
+
+      if (record.status === "PRESENT") present++;
+      if (record.status === "ABSENT") absent++;
+
+      report.push({
+        date: session.lectureDate,
+        subject: session.subject_id.name,
+        subjectCode: session.subject_id.code,
+        lectureNumber: session.lectureNumber,
+        status: record.status,
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const todaysSessions = await AttendanceSession.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+      lectureDate: today,
+    }).populate("subject_id", "name code");
+
+    const todaysReport = [];
+
+    for (const session of todaysSessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      todaysReport.push({
+        subject: session.subject_id.name,
+        lectureNumber: session.lectureNumber,
+        status: record ? record.status : "NOT MARKED",
+      });
+    }
+
+    res.json({
+      summary: {
+        totalLectures: total,
+        present,
+        absent,
+        percentage: total > 0 ? ((present / total) * 100).toFixed(2) : 0,
+      },
+      sessions: report,
+      today: todaysReport,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to load attendance report" });
+  }
+}; */
+
+exports.getStudentAttendanceReport = async (req, res) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const sessions = await AttendanceSession.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+    }).populate("subject_id", "name code");
+
+    let total = 0;
+    let present = 0;
+    let absent = 0;
+
+    const sessionReport = [];
+    const subjectMap = {}; // 🔥 For subject-wise breakdown
+
+    for (const session of sessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      if (!record) continue;
+
+      total++;
+
+      if (record.status === "PRESENT") present++;
+      if (record.status === "ABSENT") absent++;
+
+      // Session-wise
+      sessionReport.push({
+        date: session.lectureDate,
+        subject: session.subject_id.name,
+        subjectCode: session.subject_id.code,
+        lectureNumber: session.lectureNumber,
+        status: record.status,
+      });
+
+      // 🔥 Subject-wise aggregation
+      const subjectId = session.subject_id._id.toString();
+
+      if (!subjectMap[subjectId]) {
+        subjectMap[subjectId] = {
+          subject: session.subject_id.name,
+          code: session.subject_id.code,
+          total: 0,
+          present: 0,
+        };
+      }
+
+      subjectMap[subjectId].total++;
+
+      if (record.status === "PRESENT") {
+        subjectMap[subjectId].present++;
+      }
+    }
+
+    // 🔥 Convert subjectMap to array
+    const subjectBreakdown = Object.values(subjectMap).map((sub) => {
+      const percentage =
+        sub.total > 0
+          ? ((sub.present / sub.total) * 100).toFixed(2)
+          : 0;
+
+      return {
+        ...sub,
+        percentage,
+        warning: percentage < 75, // ⚠ below 75%
+      };
+    });
+
+    res.json({
+      summary: {
+        totalLectures: total,
+        present,
+        absent,
+        percentage:
+          total > 0 ? ((present / total) * 100).toFixed(2) : 0,
+      },
+      sessions: sessionReport,
+      subjectWise: subjectBreakdown,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to load attendance report",
+    });
+  }
+};
+
+/* =========================================================
   GET TEACHER'S COURSES FOR ATTENDANCE REPORT (PRODUCTION GRADE)
 ========================================================= */
 exports.getTeacherCourses = async (req, res) => {

@@ -72,6 +72,7 @@ export default function CreateTimetable() {
   });
 
   const [previewName, setPreviewName] = useState("");
+  const [availableSemesters, setAvailableSemesters] = useState([]); // ⭐ NEW
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -103,6 +104,32 @@ export default function CreateTimetable() {
     };
     loadCourses();
   }, [department]);
+
+  /* ⭐ GENERATE SEMESTERS BASED ON SELECTED COURSE */
+  useEffect(() => {
+    if (!form.course_id) {
+      setAvailableSemesters([]);
+      return;
+    }
+
+    const selectedCourse = courses.find(
+      (c) => c._id === form.course_id
+    );
+
+    if (!selectedCourse?.semester) {
+      setAvailableSemesters([]);
+      return;
+    }
+
+    const totalSem = selectedCourse.semester;
+
+    const semArray = Array.from(
+      { length: totalSem },
+      (_, i) => i + 1
+    );
+
+    setAvailableSemesters(semArray);
+  }, [form.course_id, courses]);
 
   /* AUTO NAME */
   useEffect(() => {
