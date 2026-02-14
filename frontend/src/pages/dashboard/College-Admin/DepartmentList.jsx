@@ -35,6 +35,8 @@ export default function DepartmentList() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Fixed at 5 records per page
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -88,6 +90,29 @@ export default function DepartmentList() {
 
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  /* ================= PAGINATION LOGIC ================= */
+  const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredDepartments.slice(indexOfFirstItem, indexOfLastItem);
+
+  /* ================= EFFECTS FOR PAGINATION AND FILTERS ================= */
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
+
+  // Adjust current page when total pages change
+  useEffect(() => {
+    const calculatedTotalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
+    if (currentPage > calculatedTotalPages && calculatedTotalPages > 0) {
+      setCurrentPage(calculatedTotalPages);
+    } else if (calculatedTotalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, filteredDepartments.length, itemsPerPage]);
 
   /* ================= RESET FILTERS ================= */
   const resetFilters = () => {
@@ -328,7 +353,7 @@ export default function DepartmentList() {
             <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
               <FaBuilding /> Department List
               <span className="badge bg-light text-dark">
-                {filteredDepartments.length} of {departments.length} departments
+                {currentItems.length} of {filteredDepartments.length} departments
               </span>
             </h2>
           </div>
@@ -381,120 +406,123 @@ export default function DepartmentList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDepartments.map((d, index) => (
-                    <tr
-                      key={d._id}
-                      className="animate-fade-in"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
-                      <td className="ps-4 fw-medium">{index + 1}</td>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div
-                            className="department-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
-                            style={{ width: "36px", height: "36px" }}
-                          >
-                            <FaGraduationCap size={16} />
-                          </div>
-                          <div>
-                            <div className="fw-bold">{d.name}</div>
-                            <div className="text-muted small">
-                              {d.establishedYear}
+                  {currentItems.map((d, index) => {
+                    const globalIndex = indexOfFirstItem + index; // Calculate global index for sr.no
+                    return (
+                      <tr
+                        key={d._id}
+                        className="animate-fade-in"
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                      >
+                        <td className="ps-4 fw-medium">{globalIndex + 1}</td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <div
+                              className="department-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
+                              style={{ width: "36px", height: "36px" }}
+                            >
+                              <FaGraduationCap size={16} />
+                            </div>
+                            <div>
+                              <div className="fw-bold">{d.name}</div>
+                              <div className="text-muted small">
+                                {d.establishedYear}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="fw-medium">{d.code}</td>
-                      <td>
-                        <span className="badge bg-info bg-opacity-25 text-info">
-                          {d.type}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            d.status === "ACTIVE"
-                              ? "bg-success"
-                              : d.status === "INACTIVE"
-                                ? "bg-secondary"
-                                : "bg-warning"
-                          }`}
-                        >
-                          {d.status === "ACTIVE" && (
-                            <FaCheckCircle className="me-1" />
-                          )}
-                          {d.status === "INACTIVE" && (
-                            <FaTimesCircle className="me-1" />
-                          )}
-                          {d.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="d-flex flex-wrap gap-1">
-                          {(d.programsOffered || [])
-                            .slice(0, 2)
-                            .map((prog, i) => (
-                              <span
-                                key={i}
-                                className="badge bg-light text-dark border"
-                              >
-                                {prog}
+                        </td>
+                        <td className="fw-medium">{d.code}</td>
+                        <td>
+                          <span className="badge bg-info bg-opacity-25 text-info">
+                            {d.type}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              d.status === "ACTIVE"
+                                ? "bg-success"
+                                : d.status === "INACTIVE"
+                                  ? "bg-secondary"
+                                  : "bg-warning"
+                            }`}
+                          >
+                            {d.status === "ACTIVE" && (
+                              <FaCheckCircle className="me-1" />
+                            )}
+                            {d.status === "INACTIVE" && (
+                              <FaTimesCircle className="me-1" />
+                            )}
+                            {d.status}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1">
+                            {(d.programsOffered || [])
+                              .slice(0, 2)
+                              .map((prog, i) => (
+                                <span
+                                  key={i}
+                                  className="badge bg-light text-dark border"
+                                >
+                                  {prog}
+                                </span>
+                              ))}
+                            {(d.programsOffered || []).length > 2 && (
+                              <span className="badge bg-secondary">
+                                +{(d.programsOffered || []).length - 2}
                               </span>
-                            ))}
-                          {(d.programsOffered || []).length > 2 && (
-                            <span className="badge bg-secondary">
-                              +{(d.programsOffered || []).length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{d.startYear || "N/A"}</td>
-                      <td>
-                        <div className="d-flex align-items-center gap-1">
-                          <FaChalkboardTeacher
-                            className="text-primary"
-                            size={14}
-                          />
-                          <span>{d.sanctionedFacultyCount || 0}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="d-flex align-items-center gap-1">
-                          <FaGraduationCap className="text-success" size={14} />
-                          <span>{d.sanctionedStudentIntake || 0}</span>
-                        </div>
-                      </td>
-                      <td className="text-center pe-4">
-                        <div className="d-flex justify-content-center gap-1">
-                          <button
-                            className="btn btn-sm btn-outline-primary hover-lift"
-                            title="Edit Department"
-                            onClick={() =>
-                              navigate(`/departments/edit/${d._id}`)
-                            }
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-warning hover-lift"
-                            title="Assign HOD"
-                            onClick={() =>
-                              navigate(`/departments/assign-hod/${d._id}`)
-                            }
-                          >
-                            <FaUserTie size={14} />
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger hover-lift"
-                            title="Delete Department"
-                            onClick={() => handleDelete(d._id)}
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            )}
+                          </div>
+                        </td>
+                        <td>{d.startYear || "N/A"}</td>
+                        <td>
+                          <div className="d-flex align-items-center gap-1">
+                            <FaChalkboardTeacher
+                              className="text-primary"
+                              size={14}
+                            />
+                            <span>{d.sanctionedFacultyCount || 0}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="d-flex align-items-center gap-1">
+                            <FaGraduationCap className="text-success" size={14} />
+                            <span>{d.sanctionedStudentIntake || 0}</span>
+                          </div>
+                        </td>
+                        <td className="text-center pe-4">
+                          <div className="d-flex justify-content-center gap-1">
+                            <button
+                              className="btn btn-sm btn-outline-primary hover-lift"
+                              title="Edit Department"
+                              onClick={() =>
+                                navigate(`/departments/edit/${d._id}`)
+                              }
+                            >
+                              <FaEdit size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-warning hover-lift"
+                              title="Assign HOD"
+                              onClick={() =>
+                                navigate(`/departments/assign-hod/${d._id}`)
+                              }
+                            >
+                              <FaUserTie size={14} />
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger hover-lift"
+                              title="Delete Department"
+                              onClick={() => handleDelete(d._id)}
+                            >
+                              <FaTrash size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -505,22 +533,85 @@ export default function DepartmentList() {
           <div className="card-footer bg-light py-3">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
               <div className="text-muted small">
-                Showing <strong>{filteredDepartments.length}</strong> of{" "}
-                <strong>{departments.length}</strong> departments
+                Showing <strong>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
+                <strong>{filteredDepartments.length}</strong> departments
               </div>
               <nav>
                 <ul className="pagination mb-0">
-                  <li className="page-item disabled">
-                    <button className="page-link">Previous</button>
+                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                    <button 
+                      className="page-link" 
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
                   </li>
-                  <li className="page-item active">
-                    <button className="page-link">1</button>
-                  </li>
-                  <li className="page-item">
-                    <button className="page-link">2</button>
-                  </li>
-                  <li className="page-item">
-                    <button className="page-link">Next</button>
+                  
+                  {/* Show first page */}
+                  {totalPages > 0 && (
+                    <li className={`page-item ${currentPage === 1 ? 'active' : ''}`}>
+                      <button 
+                        className="page-link" 
+                        onClick={() => setCurrentPage(1)}
+                      >
+                        1
+                      </button>
+                    </li>
+                  )}
+                  
+                  {/* Show ellipsis if needed */}
+                  {currentPage > 3 && totalPages > 5 && (
+                    <li className="page-item disabled">
+                      <span className="page-link">...</span>
+                    </li>
+                  )}
+                  
+                  {/* Show pages around current page */}
+                  {totalPages > 1 && Array.from({ length: Math.min(totalPages - 2, 3) }, (_, i) => {
+                    const pageNum = Math.max(2, currentPage - 1) + i;
+                    if (pageNum < totalPages) {
+                      return (
+                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                          <button 
+                            className="page-link" 
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </button>
+                        </li>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  {/* Show ellipsis if needed */}
+                  {currentPage < totalPages - 2 && totalPages > 5 && (
+                    <li className="page-item disabled">
+                      <span className="page-link">...</span>
+                    </li>
+                  )}
+                  
+                  {/* Show last page if there are more than 1 page */}
+                  {totalPages > 1 && (
+                    <li className={`page-item ${currentPage === totalPages ? 'active' : ''}`}>
+                      <button 
+                        className="page-link" 
+                        onClick={() => setCurrentPage(totalPages)}
+                      >
+                        {totalPages}
+                      </button>
+                    </li>
+                  )}
+                  
+                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                    <button 
+                      className="page-link" 
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
                   </li>
                 </ul>
               </nav>
