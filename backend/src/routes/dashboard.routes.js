@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const studentMiddleware = require("../middlewares/student.middleware");
 
 const {
   studentDashboard,
@@ -18,6 +19,7 @@ router.get(
   auth,
   role("STUDENT"),
   collegeMiddleware,
+  // studentMiddleware,
   studentDashboard
 );
 

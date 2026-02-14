@@ -753,14 +753,11 @@ export default function Sidebar() {
                 <NavLink to="/student/fees" style={getNavLinkStyle}>
                   <FaMoneyBillWave /> Fees
                 </NavLink>
-                <NavLink to="/student/attendance" style={getNavLinkStyle}>
+                <NavLink to="/student/my-attendance" style={getNavLinkStyle}>
                   <FaClipboardList /> My Attendance
                 </NavLink>
-                <NavLink to="/student/notifications" style={getNavLinkStyle}>
+                <NavLink to="/notification/student" style={getNavLinkStyle}>
                   <FaBell /> Notifications
-                </NavLink>
-                <NavLink to="/student/grades" style={getNavLinkStyle}>
-                  <FaChartBar /> My Grades
                 </NavLink>
               </>
             )}

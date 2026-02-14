@@ -11,6 +11,7 @@ exports.addSlot = async (req, res) => {
   try {
     const {
       timetable_id,
+      semester,
       day,
       startTime,
       endTime,
@@ -51,12 +52,6 @@ exports.addSlot = async (req, res) => {
     if (!timetable) {
       return res.status(404).json({
         message: "Timetable not found",
-      });
-    }
-
-    if (timetable.status === "PUBLISHED") {
-      return res.status(403).json({
-        message: "Published timetable cannot be modified",
       });
     }
 
@@ -132,6 +127,7 @@ exports.addSlot = async (req, res) => {
       course_id: timetable.course_id,
       subject_id,
       teacher_id,
+      semester,
       day,
       startTime,
       endTime,
@@ -155,38 +151,59 @@ exports.addSlot = async (req, res) => {
  * UPDATE Slot
  */
 exports.updateSlot = async (req, res) => {
-  const slot = await TimetableSlot.findByIdAndUpdate(
-    req.params.slotId,
-    req.body,
-    { new: true },
-  );
+  try {
+    const { slotId } = req.params;
 
-  /* ================= TIMETABLE ================= */
-  const timetable = await Timetable.findOne({
-    _id: timetable_id,
-    college_id: collegeId,
-  });
+    if (!slotId) {
+      return res.status(400).json({ message: "Slot ID is required" });
+    }
 
-  if (!timetable) {
-    return res.status(404).json({
-      message: "Timetable not found",
+    /* STEP 1: Find slot */
+    const slot = await TimetableSlot.findById(slotId);
+    if (!slot) {
+      return res.status(404).json({ message: "Slot not found" });
+    }
+
+    /* STEP 2: Find timetable */
+    const timetable = await Timetable.findById(slot.timetable_id);
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    /* STEP 3: Verify Teacher */
+    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher profile not found" });
+    }
+
+    /* STEP 4: Verify HOD */
+    const department = await Department.findOne({
+      _id: timetable.department_id,
+      hod_id: teacher._id,
     });
-  }
 
-  if (timetable.status === "PUBLISHED") {
-    return res.status(403).json({
-      message: "Cannot modify slots after timetable is published",
+    if (!department) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can update timetable slots",
+      });
+    }
+
+    /* STEP 5: Update slot (NO publish restriction now) */
+    const updatedSlot = await TimetableSlot.findByIdAndUpdate(
+      slotId,
+      req.body,
+      { new: true }
+    );
+
+    res.json({
+      message: "Slot updated successfully",
+      slot: updatedSlot,
     });
-  }
 
-  if (!slot) {
-    return res.status(404).json({ message: "Slot not found" });
+  } catch (error) {
+    console.error("Update Slot Error:", error);
+    res.status(500).json({ message: "Failed to update slot" });
   }
-
-  res.json({
-    message: "Slot updated successfully",
-    slot,
-  });
 };
 
 /**
@@ -196,39 +213,31 @@ exports.deleteTimetableSlot = async (req, res) => {
   try {
     const { slotId } = req.params;
 
-    /* STEP 1: Validate slotId */
     if (!slotId) {
       return res.status(400).json({ message: "Slot ID is required" });
     }
 
-    /* STEP 2: Find slot */
+    /* STEP 1: Find slot */
     const slot = await TimetableSlot.findById(slotId);
     if (!slot) {
       return res.status(404).json({ message: "Slot not found" });
     }
 
-    /* STEP 3: Find timetable */
+    /* STEP 2: Find timetable */
     const timetable = await Timetable.findById(slot.timetable_id);
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    if (timetable.status === "PUBLISHED") {
-      return res.status(403).json({
-        message: "Published timetable cannot be modified",
-      });
-    }
-
-    /* STEP 4: Find teacher profile */
+    /* STEP 3: Verify Teacher */
     const teacher = await Teacher.findOne({ user_id: req.user.id });
-
     if (!teacher) {
       return res.status(403).json({
         message: "Teacher profile not found",
       });
     }
 
-    /* STEP 5: Verify HOD */
+    /* STEP 4: Verify HOD */
     const department = await Department.findOne({
       _id: timetable.department_id,
       hod_id: teacher._id,
@@ -240,10 +249,13 @@ exports.deleteTimetableSlot = async (req, res) => {
       });
     }
 
-    /* STEP 6: Delete slot */
+    /* STEP 5: Delete slot */
     await slot.deleteOne();
 
-    res.json({ message: "Timetable slot deleted successfully" });
+    res.json({
+      message: "Timetable slot deleted successfully",
+    });
+
   } catch (error) {
     console.error("Delete Slot Error:", error);
     res.status(500).json({ message: "Failed to delete timetable slot" });
