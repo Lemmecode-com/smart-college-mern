@@ -116,15 +116,15 @@ export default function TimetableList() {
                       >
                         <FaCheckCircle /> Publish
                       </button>
-
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => deleteTimetable(t._id)}
-                      >
-                        <FaTrash />
-                      </button>
                     </>
                   )}
+
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => deleteTimetable(t._id)}
+                  >
+                    <FaTrash /> Delete
+                  </button>
                 </td>
               </tr>
             ))}
