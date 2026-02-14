@@ -77,7 +77,7 @@ router.delete(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  hod,
+  // hod,
   deleteTimetable,
 );
 
