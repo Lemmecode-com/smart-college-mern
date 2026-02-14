@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 
-import { FaCalendarAlt, FaCheckCircle, FaTrash, FaEye } from "react-icons/fa";
+import { FaCalendarAlt, FaCheckCircle, FaTrash, FaEye, FaEdit } from "react-icons/fa";
 
 export default function TimetableList() {
   const { user } = useContext(AuthContext);
@@ -55,16 +55,29 @@ export default function TimetableList() {
     }
   };
 
+  /* ================= EDIT ================= */
+  const editTimetable = (id) => {
+    navigate(`/timetable/${id}/edit`);
+  };
+
   if (loading) {
     return <p className="text-center mt-4">Loading...</p>;
   }
 
   return (
     <div className="container py-4">
-      <h4 className="fw-bold mb-3">
-        <FaCalendarAlt className="me-2" />
-        Timetables
-      </h4>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h4 className="fw-bold">
+          <FaCalendarAlt className="me-2" />
+          Timetables
+        </h4>
+        <button 
+          className="btn btn-primary"
+          onClick={() => navigate('/timetable/create')}
+        >
+          <FaCalendarAlt className="me-1" /> Create Timetable
+        </button>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -76,7 +89,7 @@ export default function TimetableList() {
               <th>Semester</th>
               <th>Academic Year</th>
               <th>Status</th>
-              <th width="220">Actions</th>
+              <th width="280">Actions</th>
             </tr>
           </thead>
 
@@ -103,8 +116,19 @@ export default function TimetableList() {
                   <button
                     className="btn btn-sm btn-outline-primary me-2"
                     onClick={() => navigate(`/timetable/${t._id}/weekly`)}
+                    title="View Weekly Timetable"
                   >
                     <FaEye /> View
+                  </button>
+
+                  {/* EDIT TIMETABLE */}
+                  <button
+                    className="btn btn-sm btn-outline-info me-2"
+                    onClick={() => editTimetable(t._id)}
+                    disabled={t.status === "PUBLISHED"}
+                    title={t.status === "PUBLISHED" ? "Cannot edit published timetable" : "Edit Timetable"}
+                  >
+                    <FaEdit /> Edit
                   </button>
 
                   {/* HOD ACTIONS (BACKEND WILL VERIFY) */}
@@ -113,6 +137,7 @@ export default function TimetableList() {
                       <button
                         className="btn btn-sm btn-success me-2"
                         onClick={() => publishTimetable(t._id)}
+                        title="Publish Timetable"
                       >
                         <FaCheckCircle /> Publish
                       </button>
@@ -122,6 +147,7 @@ export default function TimetableList() {
                   <button
                     className="btn btn-sm btn-danger"
                     onClick={() => deleteTimetable(t._id)}
+                    title="Delete Timetable"
                   >
                     <FaTrash /> Delete
                   </button>
