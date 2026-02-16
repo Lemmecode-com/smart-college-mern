@@ -8,42 +8,88 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaIdCard,
   FaUserTie,
-  FaUpload,
   FaMapMarkerAlt,
+  FaSyncAlt,
+  FaInfoCircle,
+  FaGraduationCap,
+  FaVial,
+  FaUniversity,
+  FaBriefcase,
+  FaEnvelope,
+  FaKey,
+  FaTransgender,
+  FaBuilding,
+  FaCity,
+  FaMapMarkedAlt,
+  FaUsers,
+  FaRegClock,
+  FaBookOpen
 } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Brand Color Palette
+const BRAND_COLORS = {
+  primary: { main: '#1a4b6d', gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)' },
+  success: { main: '#28a745', gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)' },
+  info: { main: '#17a2b8', gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' },
+  warning: { main: '#ffc107', gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)' },
+  danger: { main: '#dc3545', gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' },
+  secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: { duration: 1, repeat: Infinity, ease: "linear" }
+  }
+};
 
 export default function AddTeacher() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]); // ✅ NEW
-
-  const [documents, setDocuments] = useState({
-    aadhar: null,
-    pan: null,
-    degree: null,
-    photo: null,
-  });
-  const [documentPreviews, setDocumentPreviews] = useState({ // eslint-disable-line no-unused-vars
-    aadhar: null,
-    pan: null,
-    degree: null,
-    photo: null,
-  });
-
+  const [courses, setCourses] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    employeeId: "", // Will be auto-generated
     designation: "",
     qualification: "",
     experienceYears: "",
     department_id: "",
-    course_id: "", // ✅ single course
+    course_id: "", // CRITICAL: Added course_id to state
     password: "",
     gender: "",
     bloodGroup: "",
@@ -56,7 +102,6 @@ export default function AddTeacher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [formTouched, setFormTouched] = useState(false); // eslint-disable-line no-unused-vars
   const [validationErrors, setValidationErrors] = useState({});
 
   /* ================= LOAD DEPARTMENTS ================= */
@@ -65,8 +110,9 @@ export default function AddTeacher() {
       try {
         const res = await api.get("/departments");
         setDepartments(res.data);
-      } catch {
-        setDepartments([]);
+      } catch (err) {
+        console.error("Failed to load departments:", err);
+        setError("Failed to load departments. Please try again later.");
       }
     };
     fetchDepartments();
@@ -76,145 +122,83 @@ export default function AddTeacher() {
   useEffect(() => {
     if (!formData.department_id) {
       setCourses([]);
-      setFormData((p) => ({ ...p, course_id: "" }));
+      setFormData(prev => ({ ...prev, course_id: "" })); // Reset course when department changes
       return;
     }
 
-    api
-      .get(`/courses/department/${formData.department_id}`)
-      .then((res) => setCourses(res.data))
-      .catch(() => setCourses([]));
+    const fetchCourses = async () => {
+      try {
+        const res = await api.get(`/courses/department/${formData.department_id}`);
+        setCourses(res.data);
+      } catch (err) {
+        console.error("Failed to load courses:", err);
+        setCourses([]);
+        setError("Failed to load courses for selected department.");
+      }
+    };
+    fetchCourses();
   }, [formData.department_id]);
 
-  // Check authentication after state initialization
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  /* ================= FORM VALIDATION ================= */
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    // Required fields validation - INCLUDING course_id
+    const requiredFields = [
+      'name', 'email', 'designation', 'qualification', 
+      'experienceYears', 'department_id', 'course_id', // CRITICAL: Added course_id
+      'password', 'gender', 'bloodGroup', 'address', 'city', 'state'
+    ];
+    
+    requiredFields.forEach(field => {
+      if (!formData[field] || formData[field].trim() === '') {
+        errors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+        isValid = false;
+      }
+    });
+
+    // Email validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Invalid email format';
+      isValid = false;
+    }
+
+    // Password validation
+    if (formData.password && formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+      isValid = false;
+    }
+
+    // Experience years validation
+    const expYears = Number(formData.experienceYears);
+    if (isNaN(expYears) || expYears < 0 || expYears > 50) {
+      errors.experienceYears = 'Experience must be between 0-50 years';
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
 
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData({ ...formData, [name]: value });
-    setFormTouched(true);
-
+    
     // Clear validation error for this field
     if (validationErrors[name]) {
-      setValidationErrors((prev) => {
+      setValidationErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
-
-    // Special handling: Clear employeeId when department changes
+    
+    // Special handling: Reset course when department changes
     if (name === "department_id" && value === "") {
-      setFormData((prev) => ({ ...prev, employeeId: "" }));
+      setFormData(prev => ({ ...prev, course_id: "" }));
     }
-  };
-
-
-  const handleFile = (e) => {
-    const { name, files } = e.target;
-    if (files.length > 0) {
-      const file = files[0];
-
-      // Validate file type and size
-      if (!file.type.startsWith("image/") && name !== "degree") {
-        setError("Please upload a valid image file (JPG, PNG, GIF)");
-        return;
-      }
-
-      if (file.size > 2 * 1024 * 1024) {
-        // 2MB limit
-        setError("File size must be less than 2MB");
-        return;
-      }
-
-      setDocuments({ ...documents, [name]: file });
-
-      // Create preview for images
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setDocumentPreviews((prev) => ({ ...prev, [name]: reader.result }));
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setDocumentPreviews((prev) => ({ ...prev, [name]: file.name }));
-      }
-
-      setError("");
-    }
-  };
-
-  /* ================= VALIDATION ================= */
-  const validateForm = () => {
-    const errors = {};
-
-    // Basic info validations
-    if (!formData.name.trim()) {
-      errors.name = "Name is required";
-    }
-
-    if (!formData.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Email is invalid";
-    }
-
-    if (!formData.employeeId.trim()) {
-      errors.employeeId = "Employee ID is required";
-    }
-
-    if (!formData.designation.trim()) {
-      errors.designation = "Designation is required";
-    }
-
-    if (!formData.qualification.trim()) {
-      errors.qualification = "Qualification is required";
-    }
-
-    if (!formData.experienceYears || formData.experienceYears < 0) {
-      errors.experienceYears = "Valid experience is required";
-    }
-
-    if (!formData.password || formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-    }
-
-    // Personal info validations
-    if (!formData.gender) {
-      errors.gender = "Gender is required";
-    }
-
-    if (!formData.bloodGroup) {
-      errors.bloodGroup = "Blood group is required";
-    }
-
-    // Address validations
-    if (!formData.address.trim()) {
-      errors.address = "Address is required";
-    }
-
-    if (!formData.city.trim()) {
-      errors.city = "City is required";
-    }
-
-    if (!formData.state.trim()) {
-      errors.state = "State is required";
-    }
-
-    // Department and course validations
-    if (!formData.department_id) {
-      errors.department_id = "Department is required";
-    }
-
-    if (!formData.course_id) {
-      errors.course_id = "Course is required";
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
   /* ================= SUBMIT ================= */
@@ -223,6 +207,7 @@ export default function AddTeacher() {
 
     if (!validateForm()) {
       setError("Please fix the errors before submitting");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -231,50 +216,76 @@ export default function AddTeacher() {
     setSuccess(false);
 
     try {
-      await api.post("/teachers", {
-        ...formData,
+      // CRITICAL FIXES:
+      // 1. Include course_id in payload (required by backend)
+      // 2. Provide temporary employeeId that follows expected format
+      // 3. Backend will replace employeeId with proper auto-generated value
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        designation: formData.designation.trim(),
+        qualification: formData.qualification.trim(),
         experienceYears: Number(formData.experienceYears),
-      });
+        department_id: formData.department_id,
+        course_id: formData.course_id, // CRITICAL: Include course assignment
+        password: formData.password,
+        gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        employmentType: formData.employmentType,
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        // Temporary employeeId that satisfies backend validation
+        employeeId: `TEMP-T-${Date.now().toString().slice(-4)}`
+      };
 
+      const response = await api.post("/teachers", payload);
+      
       setSuccess(true);
-      setError("");
-
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        employeeId: "",
-        designation: "",
-        qualification: "",
-        experienceYears: "",
-        department_id: "",
-        password: "",
-        gender: "",
-        bloodGroup: "",
-        employmentType: "FULL_TIME",
-        address: "",
-        city: "",
-        state: "",
-      });
-      setDocuments({
-        aadhar: null,
-        pan: null,
-        degree: null,
-        photo: null,
-      });
-      setDocumentPreviews({
-        aadhar: null,
-        pan: null,
-        degree: null,
-        photo: null,
-      });
-
-      setTimeout(() => navigate("/teachers"), 2000);
+      
+      // Reset form after success
+      setTimeout(() => {
+        setFormData({
+          name: "",
+          email: "",
+          designation: "",
+          qualification: "",
+          experienceYears: "",
+          department_id: "",
+          course_id: "", // Reset course
+          password: "",
+          gender: "",
+          bloodGroup: "",
+          employmentType: "FULL_TIME",
+          address: "",
+          city: "",
+          state: ""
+        });
+        setValidationErrors({});
+        navigate("/teachers");
+      }, 2000);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to create teacher. Please try again.",
-      );
+      console.error("Teacher creation failed:", err);
+      
+      let errorMessage = "Failed to create teacher. Please try again.";
+      
+      if (err.response) {
+        if (err.response.status === 500) {
+          errorMessage = "Server error. Please contact system administrator.";
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.message || "Invalid data submitted. Please check all fields.";
+        } else if (err.response.status === 409) {
+          errorMessage = "Teacher with this email already exists.";
+        } else if (err.response.data?.message) {
+          errorMessage = err.response.data.message;
+        }
+        console.warn("Backend error details:", err.response.data);
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your internet connection.";
+      }
+      
+      setError(errorMessage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
@@ -283,1202 +294,943 @@ export default function AddTeacher() {
   /* ================= LOADING STATE ================= */
   if (!departments.length) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+        padding: '2rem'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <motion.div
+            variants={spinVariants}
+            animate="animate"
+            style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
+          >
+            <FaSyncAlt />
+          </motion.div>
+          <h3 style={{ 
+            margin: '0 0 0.5rem 0', 
+            color: '#1e293b', 
+            fontWeight: 700,
+            fontSize: '1.5rem'
+          }}>
+            Loading Departments...
+          </h3>
+          <p style={{ color: '#64748b', margin: 0 }}>
+            Fetching department list for teacher registration
+          </p>
         </div>
-        <h4 className="erp-loading-text">Loading departments...</h4>
       </div>
     );
   }
 
   return (
-    <div className="container-fluid">
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaChalkboardTeacher />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Add New Teacher</h1>
-            <p className="erp-page-subtitle">
-              Register a new faculty member for your institution
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <button
-            type="button"
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate("/teachers")}
-            disabled={loading}
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+          paddingTop: '1.5rem',
+          paddingBottom: '2rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem'
+        }}
+      >
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          {/* ================= BREADCRUMB ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
+            }}
           >
-            <FaArrowLeft className="erp-btn-icon" />
-            <span>Back to Teachers</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ALERTS */}
-      {error && (
-        <div className="erp-alert erp-alert-danger animate-slide-in">
-          <div className="erp-alert-icon">
-            <FaExclamationTriangle />
-          </div>
-          <div className="erp-alert-content">
-            <strong>Error:</strong> {error}
-          </div>
-          <button
-            type="button"
-            className="erp-alert-close"
-            onClick={() => setError("")}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {success && (
-        <div className="erp-alert erp-alert-success animate-slide-in">
-          <div className="erp-alert-icon">
-            <FaCheckCircle />
-          </div>
-          <div className="erp-alert-content">
-            <strong>Success!</strong> Teacher created successfully. Redirecting
-            to teachers list...
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <div className="card shadow-lg border-0 rounded-4 glass-card">
-          <div className="card-body p-4">
-            {/* BASIC INFO */}
-            <h5 className="fw-bold mb-3">
-              <FaUserTie className="me-2" /> Basic Info
-            </h5>
-            <div className="row g-3 mb-4">
-              <Input
-                label="Full Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-              <Input
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-              <Input
-                label="Employee ID"
-                name="employeeId"
-                value={formData.employeeId}
-                onChange={handleChange}
-              />
-              <Input
-                label="Designation"
-                name="designation"
-                value={formData.designation}
-                onChange={handleChange}
-              />
-              <Input
-                label="Qualification"
-                name="qualification"
-                value={formData.qualification}
-                onChange={handleChange}
-              />
-              <Input
-                label="Experience (Years)"
-                name="experienceYears"
-                type="number"
-                value={formData.experienceYears}
-                onChange={handleChange}
-              />
-              <Input
-                label="Password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* PERSONAL */}
-            <h5 className="fw-bold mb-3">
-              <FaIdCard className="me-2" /> Personal Info
-            </h5>
-            <div className="row g-3 mb-4">
-              <Select
-                label="Gender"
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                options={["Male", "Female", "Other"]}
-              />
-              <Select
-                label="Blood Group"
-                name="bloodGroup"
-                value={formData.bloodGroup}
-                onChange={handleChange}
-                options={["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"]}
-              />
-              <Select
-                label="Employment Type"
-                name="employmentType"
-                value={formData.employmentType}
-                onChange={handleChange}
-                options={["FULL_TIME", "PART_TIME", "VISITING"]}
-              />
-            </div>
-          </div>
-
-          <div>
-            {/* ADDRESS */}
-            <h5 className="fw-bold mb-3">
-              <FaMapMarkerAlt className="me-2" /> Address
-            </h5>
-            <div className="row g-3 mb-4">
-              <Input
-                label="Address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-              <Input
-                label="City"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-              />
-              <Input
-                label="State"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div>
-            {/* DOCUMENTS */}
-            <h5 className="fw-bold mb-3">
-              <FaUpload className="me-2" /> Upload Documents
-            </h5>
-            <div className="row g-3 mb-4">
-              <File label="Aadhar" name="aadhar" onChange={handleFile} />
-              <File label="PAN" name="pan" onChange={handleFile} />
-              <File
-                label="Degree Certificate"
-                name="degree"
-                onChange={handleFile}
-              />
-              <File label="Photo" name="photo" onChange={handleFile} />
-            </div>
-          </div>
-
-          <div>
-            {/* DEPARTMENT */}
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label fw-semibold">Department</label>
-                <select
-                  className="form-select"
-                  name="department_id"
-                  value={formData.department_id}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Course */}
-              <div className="col-md-6">
-                <label className="form-label fw-semibold">Course</label>
-                <select
-                  className="form-select"
-                  name="course_id"
-                  value={formData.course_id}
-                  onChange={handleChange}
-                  required
-                  disabled={!formData.department_id}
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* FOOTER */}
-          <div className="card-footer bg-white border-0 d-flex justify-content-between align-items-center p-3">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
+            <motion.button
+              whileHover={{ x: -5 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/teachers")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: BRAND_COLORS.primary.main,
+                background: 'none',
+                border: 'none',
+                fontSize: '0.95rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
-              <FaArrowLeft className="me-1" /> Back
-            </button>
-            <button
-              className="btn btn-success px-4 rounded-pill"
-              disabled={loading}
+              <FaArrowLeft /> Back to Teachers
+            </motion.button>
+            <span style={{ color: '#94a3b8' }}>›</span>
+            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
+              Add New Teacher
+            </span>
+          </motion.div>
+
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            style={{
+              marginBottom: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '1.5rem',
+              overflow: 'hidden',
+              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
+            }}
+          >
+            <div style={{
+              padding: '2rem',
+              background: BRAND_COLORS.primary.gradient,
+              color: 'white',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    borderRadius: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2.5rem',
+                    flexShrink: 0,
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                  }}
+                >
+                  <FaChalkboardTeacher />
+                </motion.div>
+                <div>
+                  <h1 style={{
+                    margin: 0,
+                    fontSize: '2.25rem',
+                    fontWeight: 700,
+                    lineHeight: 1.1
+                  }}>
+                    Add New Teacher
+                  </h1>
+                  <p style={{
+                    margin: '0.75rem 0 0 0',
+                    opacity: 0.9,
+                    fontSize: '1.25rem'
+                  }}>
+                    Register a new faculty member for your institution
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Info Banner - EMPLOYEE ID AUTO-GENERATION NOTICE */}
+            <div style={{
+              padding: '1.25rem 2rem',
+              backgroundColor: '#dcfce7',
+              borderTop: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <FaCheckCircle style={{ color: BRAND_COLORS.success.main, fontSize: '1.5rem', flexShrink: 0 }} />
+              <div style={{ color: '#064e3b', fontWeight: 600, lineHeight: 1.5 }}>
+                <strong>Department & Course Assignment:</strong> Select department first, then choose the course this teacher will be assigned to. 
+                Employee ID will be auto-generated after submission.
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ================= ALERTS ================= */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginBottom: '1.5rem',
+                padding: '1.25rem',
+                borderRadius: '16px',
+                backgroundColor: `${BRAND_COLORS.danger.main}0a`,
+                border: `1px solid ${BRAND_COLORS.danger.main}`,
+                color: BRAND_COLORS.danger.main,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                fontSize: '1.05rem',
+                fontWeight: 500
+              }}
             >
-              {loading ? "Creating..." : "Create Teacher"}
-            </button>
-          </div>
+              <FaExclamationTriangle size={24} />
+              <div>{error}</div>
+              <button
+                onClick={() => setError("")}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  marginLeft: 'auto'
+                }}
+              >
+                ×
+              </button>
+            </motion.div>
+          )}
+          
+          {success && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginBottom: '1.5rem',
+                padding: '1.25rem',
+                borderRadius: '16px',
+                backgroundColor: `${BRAND_COLORS.success.main}0a`,
+                border: `1px solid ${BRAND_COLORS.success.main}`,
+                color: BRAND_COLORS.success.main,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+                fontSize: '1.05rem',
+                fontWeight: 500
+              }}
+            >
+              <FaCheckCircle size={24} />
+              <div>
+                <strong>Success!</strong> Teacher created successfully with department and course assignment. 
+                Redirecting to teachers list...
+              </div>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '2rem'
+            }}>
+              {/* ================= BASIC INFO CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                custom={0}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    padding: '1.75rem',
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: `${BRAND_COLORS.primary.main}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: BRAND_COLORS.primary.main,
+                      fontSize: '1.5rem',
+                      flexShrink: 0
+                    }}>
+                      <FaUserTie />
+                    </div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700,
+                      color: '#1e293b'
+                    }}>
+                      Basic Information
+                    </h2>
+                  </div>
+                  
+                  <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                      <FormField 
+                        icon={<FaUserTie />} 
+                        label="Full Name" 
+                        required
+                        error={validationErrors.name}
+                      >
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., Dr. Rajesh Kumar"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaGraduationCap />} 
+                        label="Designation" 
+                        required
+                        error={validationErrors.designation}
+                      >
+                        <input
+                          type="text"
+                          name="designation"
+                          value={formData.designation}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., Associate Professor"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaUniversity />} 
+                        label="Qualification" 
+                        required
+                        error={validationErrors.qualification}
+                      >
+                        <input
+                          type="text"
+                          name="qualification"
+                          value={formData.qualification}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., Ph.D. Computer Science"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaRegClock />} 
+                        label="Experience (Years)" 
+                        required
+                        error={validationErrors.experienceYears}
+                        helperText="Total teaching experience in years"
+                      >
+                        <input
+                          type="number"
+                          name="experienceYears"
+                          value={formData.experienceYears}
+                          onChange={handleChange}
+                          min="0"
+                          max="50"
+                          style={inputStyle}
+                          placeholder="e.g., 12"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaVial />} 
+                        label="Blood Group" 
+                        required
+                        error={validationErrors.bloodGroup}
+                      >
+                        <select
+                          name="bloodGroup"
+                          value={formData.bloodGroup}
+                          onChange={handleChange}
+                          style={selectStyle}
+                          required
+                        >
+                          <option value="">Select blood group</option>
+                          {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map(group => (
+                            <option key={group} value={group}>{group}</option>
+                          ))}
+                        </select>
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaTransgender />} 
+                        label="Gender" 
+                        required
+                        error={validationErrors.gender}
+                      >
+                        <select
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleChange}
+                          style={selectStyle}
+                          required
+                        >
+                          <option value="">Select gender</option>
+                          {["Male", "Female", "Other"].map(gender => (
+                            <option key={gender} value={gender}>{gender}</option>
+                          ))}
+                        </select>
+                      </FormField>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* ================= CONTACT INFO CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                custom={1}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    padding: '1.75rem',
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                    borderBottom: '1px solid #bbf7d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: `${BRAND_COLORS.success.main}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: BRAND_COLORS.success.main,
+                      fontSize: '1.5rem',
+                      flexShrink: 0
+                    }}>
+                      <FaEnvelope />
+                    </div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700,
+                      color: '#1e293b'
+                    }}>
+                      Contact & Security
+                    </h2>
+                  </div>
+                  
+                  <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                      <FormField 
+                        icon={<FaEnvelope />} 
+                        label="Email Address" 
+                        required
+                        error={validationErrors.email}
+                        helperText="Will be used for login and notifications"
+                      >
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., rajesh.kumar@college.edu"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaKey />} 
+                        label="Password" 
+                        required
+                        error={validationErrors.password}
+                        helperText="Minimum 8 characters required"
+                      >
+                        <input
+                          type="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="Create secure password"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaBriefcase />} 
+                        label="Employment Type" 
+                        required
+                      >
+                        <select
+                          name="employmentType"
+                          value={formData.employmentType}
+                          onChange={handleChange}
+                          style={selectStyle}
+                          required
+                        >
+                          <option value="FULL_TIME">Full Time</option>
+                          <option value="PART_TIME">Part Time</option>
+                          <option value="VISITING">Visiting Faculty</option>
+                        </select>
+                      </FormField>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* ================= DEPARTMENT & COURSE CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                custom={2}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    padding: '1.75rem',
+                    background: 'linear-gradient(135deg, #ffedd5 0%, #ffeddb 100%)',
+                    borderBottom: '1px solid #fed7aa',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: `${BRAND_COLORS.warning.main}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: BRAND_COLORS.warning.main,
+                      fontSize: '1.5rem',
+                      flexShrink: 0
+                    }}>
+                      <FaUsers />
+                    </div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700,
+                      color: '#1e293b'
+                    }}>
+                      Department & Course Assignment
+                    </h2>
+                  </div>
+                  
+                  <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                      <FormField 
+                        icon={<FaUniversity />} 
+                        label="Department" 
+                        required
+                        error={validationErrors.department_id}
+                        helperText="Select department first to load available courses"
+                      >
+                        <select
+                          name="department_id"
+                          value={formData.department_id}
+                          onChange={handleChange}
+                          style={selectStyle}
+                          required
+                        >
+                          <option value="">Select department</option>
+                          {departments.map(dept => (
+                            <option key={dept._id} value={dept._id}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaBookOpen />} 
+                        label="Course" 
+                        required
+                        error={validationErrors.course_id}
+                        helperText={formData.department_id ? `${courses.length} courses available` : "Select department first"}
+                      >
+                        <select
+                          name="course_id"
+                          value={formData.course_id}
+                          onChange={handleChange}
+                          style={selectStyle}
+                          disabled={!formData.department_id}
+                          required
+                        >
+                          <option value="">Select course</option>
+                          {courses.map(course => (
+                            <option key={course._id} value={course._id}>
+                              {course.name} ({course.code})
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                    </div>
+                    
+                    <div style={{ 
+                      marginTop: '1.5rem', 
+                      padding: '1.25rem', 
+                      borderRadius: '16px', 
+                      backgroundColor: '#fffbeb',
+                      border: '1px solid #f59e0b'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                        <FaInfoCircle size={20} style={{ color: BRAND_COLORS.warning.main, flexShrink: 0, marginTop: '0.25rem' }} />
+                        <div>
+                          <strong>Note:</strong> Teacher will be assigned to the selected course in the chosen department. 
+                          Employee ID will be auto-generated using department code and sequence number (e.g., CS-T-001).
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* ================= ADDRESS CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                custom={3}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: '1 / -1' }}
+              >
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '20px',
+                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    padding: '1.75rem',
+                    background: 'linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%)',
+                    borderBottom: '1px solid #ddd6fe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      backgroundColor: `${BRAND_COLORS.secondary.main}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: BRAND_COLORS.secondary.main,
+                      fontSize: '1.5rem',
+                      flexShrink: 0
+                    }}>
+                      <FaMapMarkedAlt />
+                    </div>
+                    <h2 style={{ 
+                      margin: 0, 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700,
+                      color: '#1e293b'
+                    }}>
+                      Address Details
+                    </h2>
+                  </div>
+                  
+                  <div style={{ padding: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                      <FormField 
+                        icon={<FaMapMarkedAlt />} 
+                        label="Address Line" 
+                        required
+                        error={validationErrors.address}
+                      >
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="Street address, building name"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaCity />} 
+                        label="City" 
+                        required
+                        error={validationErrors.city}
+                      >
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., Mumbai"
+                          required
+                        />
+                      </FormField>
+                      
+                      <FormField 
+                        icon={<FaBuilding />} 
+                        label="State" 
+                        required
+                        error={validationErrors.state}
+                      >
+                        <input
+                          type="text"
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          style={inputStyle}
+                          placeholder="e.g., Maharashtra"
+                          required
+                        />
+                      </FormField>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+            
+            {/* ================= SUBMIT BUTTON ================= */}
+            <motion.div
+              variants={fadeInVariants}
+              custom={4}
+              initial="hidden"
+              animate="visible"
+              style={{ 
+                marginTop: '2rem', 
+                display: 'flex', 
+                justifyContent: 'center',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={() => navigate("/teachers")}
+                disabled={loading}
+                style={{
+                  padding: '1rem 2rem',
+                  borderRadius: '16px',
+                  border: '2px solid #e2e8f0',
+                  backgroundColor: 'white',
+                  color: '#1e293b',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                }}
+              >
+                <FaArrowLeft /> Cancel
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: '1rem 2rem',
+                  borderRadius: '16px',
+                  border: 'none',
+                  backgroundColor: loading ? '#94a3b8' : BRAND_COLORS.primary.main,
+                  color: 'white',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: loading ? 'none' : '0 6px 20px rgba(26, 75, 109, 0.35)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                {loading ? (
+                  <>
+                    <motion.div variants={spinVariants} animate="animate">
+                      <FaSyncAlt size={20} />
+                    </motion.div>
+                    Creating Teacher...
+                  </>
+                ) : (
+                  <>
+                    <FaChalkboardTeacher size={20} /> Create Teacher Account
+                  </>
+                )}
+                {!loading && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    animation: 'shimmer 2s infinite'
+                  }} />
+                )}
+              </motion.button>
+            </motion.div>
+          </form>
         </div>
-      </form>
-
-      {/* STYLES */}
-      <style jsx>{`
-        /* Existing styles remain unchanged... */
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
-
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-
-        .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
-
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-        }
-
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-
-        .erp-alert {
-          padding: 1rem 1.5rem;
-          border-radius: 12px;
-          margin-bottom: 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          position: relative;
-          animation: slideIn 0.5s ease;
-        }
-
-        .erp-alert-danger {
-          background: rgba(244, 67, 54, 0.1);
-          border-left: 4px solid #f44336;
-          color: #f44336;
-        }
-
-        .erp-alert-success {
-          background: rgba(76, 175, 80, 0.1);
-          border-left: 4px solid #4caf50;
-          color: #4caf50;
-        }
-
-        .erp-alert-icon {
-          font-size: 1.5rem;
-        }
-
-        .erp-alert-content {
-          flex: 1;
-        }
-
-        .erp-alert-close {
-          background: none;
-          border: none;
-          font-size: 2rem;
-          cursor: pointer;
-          line-height: 1;
-          padding: 0;
-          color: inherit;
-        }
-
-        .erp-form-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          animation: fadeIn 0.6s ease;
-        }
-
-        .erp-form-header {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #e9ecef;
-        }
-
-        .erp-form-title {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .erp-form-icon {
-          color: #1a4b6d;
-          font-size: 1.5rem;
-        }
-
-        .erp-form-title h3 {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
-
-        .erp-form-subtitle {
-          font-size: 0.9rem;
-          color: #666;
-        }
-
-        .erp-form {
-          padding: 0 2rem 2rem;
-        }
-
-        /* FORM SECTIONS NAVIGATION */
-        .form-sections-nav {
-          display: flex;
-          border-bottom: 1px solid #e9ecef;
-          margin-bottom: 2rem;
-          padding: 0 0 1rem;
-          overflow-x: auto;
-        }
-
-        .section-nav-btn {
-          background: none;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          font-size: 0.95rem;
-          font-weight: 500;
-          color: #6c757d;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          border-bottom: 3px solid transparent;
-          transition: all 0.3s ease;
-          white-space: nowrap;
-        }
-
-        .section-nav-btn:hover {
-          color: #1a4b6d;
-          background: #f8f9fa;
-        }
-
-        .section-nav-btn.active {
-          color: #1a4b6d;
-          font-weight: 600;
-          border-bottom-color: #1a4b6d;
-          background: #f0f5ff;
-        }
-
-        .nav-icon {
-          font-size: 1.1rem;
-        }
-
-        /* FORM SECTIONS */
-        .form-section {
-          display: none;
-          animation: fadeIn 0.4s ease;
-        }
-
-        .form-section.active {
-          display: block;
-        }
-
-        .erp-section-title {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          margin-bottom: 1.5rem;
-          padding-bottom: 0.75rem;
-          border-bottom: 2px solid #f0f2f5;
-        }
-
-        .erp-section-icon {
-          color: #1a4b6d;
-        }
-
-        .section-description {
-          color: #666;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-        }
-
-        .erp-row {
-          display: grid;
-          grid-template-columns: repeat(12, 1fr);
-          gap: 1.5rem;
-        }
-
-        .erp-col-12 {
-          grid-column: span 12;
-        }
-        .erp-col-6 {
-          grid-column: span 6;
-        }
-        .erp-col-4 {
-          grid-column: span 4;
-        }
-
-        @media (max-width: 768px) {
-          .erp-col-12,
-          .erp-col-6,
-          .erp-col-4 {
-            grid-column: span 12;
+        
+        {/* ================= STYLES ================= */}
+        <style>{`
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
           }
-        }
-
-        .erp-form-group {
-          margin-bottom: 1.5rem;
-        }
-
-        .erp-label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-weight: 600;
-          color: #2c3e50;
-          font-size: 0.95rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .erp-label-icon {
-          color: #1a4b6d;
-          font-size: 1rem;
-        }
-
-        .required {
-          color: #f44336;
-          margin-left: 0.25rem;
-        }
-
-        .erp-input,
-        .erp-select,
-        .erp-textarea {
-          width: 100%;
-          padding: 0.875rem 1.25rem;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 500;
-          color: #2c3e50;
-          background: white;
-          transition: all 0.3s ease;
-          outline: none;
-        }
-
-        .erp-textarea {
-          min-height: 100px;
-          resize: vertical;
-        }
-
-        .erp-input:focus,
-        .erp-select:focus,
-        .erp-textarea:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
-          transform: translateY(-1px);
-        }
-
-        .erp-input-error {
-          border-color: #f44336 !important;
-          background: rgba(244, 67, 54, 0.05);
-        }
-
-        .erp-select-error {
-          border-color: #f44336 !important;
-          background: rgba(244, 67, 54, 0.05)
-            url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3e%3cpath fill='%23F44336' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e")
-            no-repeat right 0.75rem center/8px 10px;
-        }
-
-        .erp-error-text {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          color: #f44336;
-          margin-top: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: rgba(244, 67, 54, 0.05);
-          border-radius: 6px;
-        }
-
-        .erp-error-icon {
-          font-size: 0.875rem;
-        }
-
-        .erp-hint-text {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          color: #666;
-          margin-top: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: #f8f9fa;
-          border-radius: 6px;
-          border-left: 3px solid #1a4b6d;
-        }
-
-        .document-hint {
-          background: #e3f2fd;
-          border-left-color: #2196f3;
-        }
-
-        .erp-hint-icon {
-          font-size: 0.875rem;
-        }
-
-        /* PASSWORD FIELD */
-        .password-wrapper {
-          position: relative;
-        }
-
-        .toggle-password {
-          position: absolute;
-          right: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          color: #6c757d;
-          cursor: pointer;
-          font-size: 1.1rem;
-          padding: 0;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: color 0.2s ease;
-        }
-
-        .toggle-password:hover {
-          color: #1a4b6d;
-        }
-
-        /* DOCUMENT UPLOAD */
-        .document-upload {
-          border: 2px dashed #e9ecef;
-          border-radius: 12px;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          transition: all 0.3s ease;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .document-upload:hover {
-          border-color: #1a4b6d;
-          background: #f0f5ff;
-        }
-
-        .document-input {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          top: 0;
-          left: 0;
-          opacity: 0;
-          cursor: pointer;
-        }
-
-        .document-preview {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          min-height: 120px;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .preview-image {
-          max-width: 100%;
-          max-height: 120px;
-          object-fit: contain;
-          border-radius: 8px;
-        }
-
-        .photo-preview {
-          border-radius: 50%;
-          object-fit: cover;
-        }
-
-        .file-name {
-          font-size: 0.9rem;
-          color: #1a4b6d;
-          font-weight: 500;
-          text-align: center;
-          padding: 0.5rem;
-        }
-
-        .upload-placeholder {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          color: #6c757d;
-          text-align: center;
-          padding: 1rem;
-        }
-
-        .upload-icon {
-          font-size: 2.5rem;
-          opacity: 0.3;
-          margin-bottom: 0.5rem;
-        }
-
-        .upload-placeholder p {
-          font-size: 0.9rem;
-          margin: 0;
-        }
-
-        /* FORM FOOTER */
-        .erp-form-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 2rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          margin-top: 2rem;
-          border-radius: 0 0 16px 16px;
-        }
-
-        .erp-footer-left,
-        .erp-footer-right {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .erp-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.875rem 1.75rem;
-          border: none;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          text-decoration: none;
-        }
-
-        .erp-btn-icon {
-          font-size: 1.125rem;
-        }
-
-        .erp-btn-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-        }
-
-        .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.4);
-        }
-
-        .erp-btn-secondary {
-          background: white;
-          color: #1a4b6d;
-          border: 2px solid #e9ecef;
-        }
-
-        .erp-btn-secondary:hover {
-          border-color: #1a4b6d;
-          background: #f8f9fa;
-          transform: translateY(-2px);
-        }
-
-        .erp-btn-lg {
-          padding: 1rem 2rem;
-          font-size: 1.05rem;
-        }
-
-        .erp-btn-shadow {
-          box-shadow: 0 4px 16px rgba(26, 75, 109, 0.3);
-        }
-
-        .erp-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .erp-spin {
-          animation: spin 1s linear infinite;
-        }
-
-        /* LOADING CONTAINER */
-        .erp-loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-        }
-
-        .erp-loading-spinner {
-          position: relative;
-          width: 70px;
-          height: 70px;
-        }
-
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
-          animation-delay: 0.1s;
-        }
-
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
-          animation-delay: 0.2s;
-        }
-
-        .erp-loading-text {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-
-        /* EMPLOYEE ID AUTO-GENERATION STYLES */
-        .employee-id-container {
-          position: relative;
-        }
-
-        .employee-id-display {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: white;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          padding: 0.25rem;
-          transition: all 0.3s ease;
-        }
-
-        .employee-id-display.error {
-          border-color: #f44336 !important;
-          background: rgba(244, 67, 54, 0.05);
-        }
-
-        .employee-id-display.generating {
-          border-color: #2196f3;
-          box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.2);
-        }
-
-        .employee-id-display:hover {
-          border-color: #1a4b6d;
-        }
-
-        .id-prefix {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          padding: 0.625rem 0.875rem;
-          border-radius: 8px;
-          font-weight: 700;
-          font-size: 0.95rem;
-          letter-spacing: 0.5px;
-          flex-shrink: 0;
-          box-shadow: 0 2px 6px rgba(26, 75, 109, 0.2);
-        }
-
-        .id-input {
-          flex: 1;
-          background: white;
-          border: none;
-          padding: 0.875rem 1.25rem;
-          font-size: 1.15rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          letter-spacing: 1px;
-          text-align: center;
-          min-width: 0;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(26, 75, 109, 0.08);
-        }
-
-        .id-input::placeholder {
-          color: #9e9e9e;
-          font-weight: 500;
-          letter-spacing: 0.5px;
-        }
-
-        .auto-badge {
-          position: absolute;
-          top: -10px;
-          right: 10px;
-          background: linear-gradient(135deg, #28a745, #20c997);
-          color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          animation: float 2s ease-in-out infinite;
-        }
-
-        .auto-icon {
-          font-size: 0.75rem;
-          animation: spin 2s linear infinite;
-        }
-
-        .generating-spinner {
-          position: absolute;
-          top: 50%;
-          right: 15px;
-          transform: translateY(-50%);
-          color: #2196f3;
-          font-size: 1.2rem;
-          animation: spin 1s linear infinite;
-        }
-
-        .employee-id-error {
-          margin-top: 0.5rem;
-        }
-
-        .employee-id-hint {
-          background: #e8f5e9;
-          border-left-color: #4caf50;
-          margin-top: 0.75rem;
-        }
-
-        /* ANIMATIONS */
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
+          @media (prefers-reduced-motion) {
+            * {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+            }
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+        `}</style>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-3px);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fadeIn 0.6s ease;
-        }
-
-        .animate-slide-in {
-          animation: slideIn 0.5s ease;
-        }
-
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .erp-form-header,
-          .erp-form {
-            padding: 1.5rem;
-          }
-
-          .erp-form-footer {
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1.5rem;
-          }
-
-          .erp-footer-left,
-          .erp-footer-right {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .form-sections-nav {
-            flex-wrap: wrap;
-          }
-
-          .section-nav-btn {
-            padding: 0.75rem;
-            font-size: 0.85rem;
-          }
-
-          .document-preview {
-            min-height: 100px;
-          }
-
-          .preview-image {
-            max-height: 100px;
-          }
-
-          /* Employee ID responsive */
-          .employee-id-display {
-            flex-direction: column;
-            padding: 0.75rem;
-          }
-
-          .id-prefix {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .id-input {
-            width: 100%;
-            text-align: center;
-          }
-
-          .auto-badge {
-            position: static;
-            margin-top: 0.5rem;
-          }
-
-          .generating-spinner {
-            position: static;
-            transform: none;
-            margin-top: 0.5rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .erp-section-title {
-            font-size: 1.15rem;
-          }
-
-          .erp-label {
-            font-size: 0.9rem;
-          }
-
-          .erp-input,
-          .erp-select,
-          .erp-textarea {
-            padding: 0.75rem 1rem;
-            font-size: 0.95rem;
-          }
-
-          .erp-btn-lg {
-            padding: 0.875rem 1.5rem;
-            font-size: 1rem;
-          }
-
-          .upload-icon {
-            font-size: 2rem;
-          }
-        }
-      `}</style>
+/* ================= FORM FIELD COMPONENT ================= */
+function FormField({ icon, label, children, required = false, error, helperText }) {
+  return (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <label style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        marginBottom: '0.75rem',
+        fontWeight: 600,
+        color: '#1e293b',
+        fontSize: '1.05rem'
+      }}>
+        <span style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '32px',
+          height: '32px',
+          borderRadius: '8px',
+          backgroundColor: `${BRAND_COLORS.primary.main}10`,
+          color: BRAND_COLORS.primary.main,
+          fontSize: '1.1rem'
+        }}>
+          {icon}
+        </span>
+        {label}
+        {required && (
+          <span style={{ 
+            color: BRAND_COLORS.danger.main, 
+            marginLeft: '0.25rem',
+            fontSize: '1.2rem'
+          }}>
+            *
+          </span>
+        )}
+      </label>
+      
+      {helperText && (
+        <div style={{
+          fontSize: '0.85rem',
+          color: '#64748b',
+          marginBottom: '0.75rem',
+          paddingLeft: '2.5rem'
+        }}>
+          {helperText}
+        </div>
+      )}
+      
+      {children}
+      
+      {error && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.85rem',
+          color: BRAND_COLORS.danger.main,
+          marginTop: '0.5rem',
+          paddingLeft: '2.5rem'
+        }}>
+          <FaExclamationTriangle size={14} />
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   );
-
-  /* ================= REUSABLE INPUTS ================= */
-
-  function Input({ label, name, ...props }) {
-    return (
-      <div className="col-md-6">
-        <label className="form-label fw-semibold">{label}</label>
-        <input
-          className={`form-control ${validationErrors[name] ? 'is-invalid' : ''}`}
-          name={name}
-          {...props}
-          required
-        />
-        {validationErrors[name] && (
-          <div className="invalid-feedback">{validationErrors[name]}</div>
-        )}
-      </div>
-    );
-  }
-
-  function Select({ label, name, options, ...props }) {
-    return (
-      <div className="col-md-4">
-        <label className="form-label fw-semibold">{label}</label>
-        <select
-          className={`form-select ${validationErrors[name] ? 'is-invalid' : ''}`}
-          name={name}
-          {...props}
-        >
-          <option value="">Select</option>
-          {options.map((o) => (
-            <option key={o}>{o}</option>
-          ))}
-        </select>
-        {validationErrors[name] && (
-          <div className="invalid-feedback">{validationErrors[name]}</div>
-        )}
-      </div>
-    );
-  }
-
-  function File({ label, name, ...props }) {
-    return (
-      <div className="col-md-3">
-        <label className="form-label fw-semibold">{label}</label>
-        <input
-          type="file"
-          className={`form-control ${validationErrors[name] ? 'is-invalid' : ''}`}
-          name={name}
-          {...props}
-        />
-        {validationErrors[name] && (
-          <div className="invalid-feedback">{validationErrors[name]}</div>
-        )}
-      </div>
-    );
-  }
 }
+
+/* ================= STYLES ================= */
+const inputStyle = {
+  width: '100%',
+  padding: '0.875rem 1.25rem',
+  borderRadius: '14px',
+  border: '1px solid #e2e8f0',
+  fontSize: '1.05rem',
+  backgroundColor: 'white',
+  color: '#1e293b',
+  fontWeight: 500,
+  transition: 'all 0.3s ease',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+};
+
+const selectStyle = {
+  width: '100%',
+  padding: '0.875rem 1.25rem',
+  borderRadius: '14px',
+  border: '1px solid #e2e8f0',
+  fontSize: '1.05rem',
+  backgroundColor: 'white',
+  color: '#1e293b',
+  fontWeight: 500,
+  appearance: 'none',
+  backgroundImage: `url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 1.25rem center',
+  backgroundSize: '20px',
+  transition: 'all 0.3s ease',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+};

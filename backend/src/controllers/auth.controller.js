@@ -82,7 +82,8 @@ const sendToken = (res, id, role, college_id) => {
   });
 
   // Send user info in the response (not the token)
-  res.json({ 
+  res.json({
+    token, 
     user: { id, role, college_id },
     success: true 
   });
