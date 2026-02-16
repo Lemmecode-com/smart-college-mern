@@ -76,6 +76,9 @@ export default function AddTeacher() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -196,76 +199,6 @@ export default function AddTeacher() {
     if (name === "department_id" && value === "") {
       setFormData(prev => ({ ...prev, course_id: "" }));
     }
-  };
-
-  /* ================= VALIDATION ================= */
-  const validateForm = () => {
-    const errors = {};
-
-    // Basic info validations
-    if (!formData.name.trim()) {
-      errors.name = "Name is required";
-    }
-
-    if (!formData.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Email is invalid";
-    }
-
-    if (!formData.employeeId.trim()) {
-      errors.employeeId = "Employee ID is required";
-    }
-
-    if (!formData.designation.trim()) {
-      errors.designation = "Designation is required";
-    }
-
-    if (!formData.qualification.trim()) {
-      errors.qualification = "Qualification is required";
-    }
-
-    if (!formData.experienceYears || formData.experienceYears < 0) {
-      errors.experienceYears = "Valid experience is required";
-    }
-
-    if (!formData.password || formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-    }
-
-    // Personal info validations
-    if (!formData.gender) {
-      errors.gender = "Gender is required";
-    }
-
-    if (!formData.bloodGroup) {
-      errors.bloodGroup = "Blood group is required";
-    }
-
-    // Address validations
-    if (!formData.address.trim()) {
-      errors.address = "Address is required";
-    }
-
-    if (!formData.city.trim()) {
-      errors.city = "City is required";
-    }
-
-    if (!formData.state.trim()) {
-      errors.state = "State is required";
-    }
-
-    // Department and course validations
-    if (!formData.department_id) {
-      errors.department_id = "Department is required";
-    }
-
-    if (!formData.course_id) {
-      errors.course_id = "Course is required";
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
   /* ================= SUBMIT ================= */
