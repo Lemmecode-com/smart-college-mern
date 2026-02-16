@@ -19,9 +19,18 @@ import {
   FaBook,
   FaClock,
   FaLock,
-  FaUserShield
+  FaUserShield,
+  FaExclamationTriangle,
+  FaEye,
+  FaEyeSlash,
+  FaStar,
+  FaQuestionCircle,
+  FaLightbulb,
+  FaGraduationCap,
+  FaShieldAlt
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { v4 as uuidv4 } from 'uuid';
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -96,7 +105,6 @@ export default function WeeklyTimetable() {
   const { timetableId } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-
   const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
   const [subjects, setSubjects] = useState([]);
@@ -106,8 +114,7 @@ export default function WeeklyTimetable() {
   const [showModal, setShowModal] = useState(false);
   const [editSlot, setEditSlot] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [isHOD, setIsHOD] = useState(false); // Will be set based on user role/backend
-
+  const [isHOD, setIsHOD] = useState(false);
   const [form, setForm] = useState({
     timetable_id: "",
     day: "MON",
@@ -118,11 +125,16 @@ export default function WeeklyTimetable() {
     room: "",
     slotType: "LECTURE",
   });
+  const [showTooltip, setShowTooltip] = useState(null);
+  const [tooltipContent, setTooltipContent] = useState("");
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoContent, setInfoContent] = useState("");
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
     if (!timetableId) return;
-
+    
     const load = async () => {
       try {
         setLoading(true);
@@ -130,15 +142,15 @@ export default function WeeklyTimetable() {
         setTimetable(res.data.timetable);
         setWeekly(res.data.weekly || {});
         setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
-
-        // Set HOD status (in real app, check user role or backend response)
-        setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER"); // Adjust based on your HOD logic
-
+        
+        // Set HOD status based on user role
+        setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
+        
         const [subRes, teachRes] = await Promise.all([
           api.get(`/subjects/course/${res.data.timetable.course_id}`),
-          api.get(`/teachers/department/${res.data.timetable.department_id}`),
+          api.get(`/teachers/department/${res.data.timetable.department_id}`)
         ]);
-
+        
         setSubjects(subRes.data || []);
         setTeachers(teachRes.data || []);
       } catch (err) {
@@ -148,7 +160,7 @@ export default function WeeklyTimetable() {
         setLoading(false);
       }
     };
-
+    
     load();
   }, [timetableId, user]);
 
@@ -207,6 +219,7 @@ export default function WeeklyTimetable() {
       } else {
         await api.post("/timetable/slot", form);
       }
+      
       setShowModal(false);
       window.location.reload();
     } catch (err) {
@@ -230,6 +243,27 @@ export default function WeeklyTimetable() {
     }
   };
 
+  /* ================= INFO TOOLTIP ================= */
+  const handleTooltip = (e, content) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipContent(content);
+    setTooltipPosition({
+      top: rect.top + window.scrollY + 30,
+      left: rect.left + window.scrollX + rect.width / 2
+    });
+    setShowTooltip(true);
+  };
+
+  const handleTooltipLeave = () => {
+    setShowTooltip(false);
+  };
+
+  /* ================= INFO MODAL ================= */
+  const openInfoModal = (content) => {
+    setInfoContent(content);
+    setShowInfoModal(true);
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -248,9 +282,9 @@ export default function WeeklyTimetable() {
           >
             <FaSyncAlt />
           </motion.div>
-          <h3 style={{ 
-            margin: '0 0 0.5rem 0', 
-            color: '#1e293b', 
+          <h3 style={{
+            margin: '0 0 0.5rem 0',
+            color: '#1e293b',
             fontWeight: 700,
             fontSize: '1.5rem'
           }}>
@@ -345,7 +379,7 @@ export default function WeeklyTimetable() {
             <span style={{ color: '#94a3b8' }}>›</span>
             <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Weekly Timetable</span>
           </motion.div>
-
+          
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -472,21 +506,21 @@ export default function WeeklyTimetable() {
               flexWrap: 'wrap'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                <FaInfoCircle style={{ 
-                  color: timetable?.status === 'PUBLISHED' ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main, 
-                  fontSize: '1.25rem' 
+                <FaInfoCircle style={{
+                  color: timetable?.status === 'PUBLISHED' ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
+                  fontSize: '1.25rem'
                 }} />
                 <span style={{ color: '#1e293b', fontWeight: 500 }}>
-                  {timetable?.status === 'PUBLISHED' 
+                  {timetable?.status === 'PUBLISHED'
                     ? "This timetable is published and visible to students. Only HOD can modify it."
                     : "This timetable is in draft mode. Complete it and publish when ready."
                   }
                 </span>
               </div>
               {isHOD && (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: '0.5rem',
                   backgroundColor: timetable?.status === 'PUBLISHED' ? '#bbf7d0' : '#fed7aa',
                   color: timetable?.status === 'PUBLISHED' ? '#166534' : '#92400e',
@@ -501,7 +535,7 @@ export default function WeeklyTimetable() {
               )}
             </div>
           </motion.div>
-
+          
           {/* ================= TIMETABLE GRID ================= */}
           <motion.div
             variants={fadeInVariants}
@@ -535,9 +569,9 @@ export default function WeeklyTimetable() {
               }}>
                 <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> Weekly Schedule
               </h2>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: '0.5rem',
                 backgroundColor: '#dbeafe',
                 color: BRAND_COLORS.primary.main,
@@ -549,7 +583,6 @@ export default function WeeklyTimetable() {
                 <FaInfoCircle /> {Object.values(weekly).flat().length} slots scheduled
               </div>
             </div>
-            
             <div style={{ overflowX: 'auto' }}>
               <table style={{
                 width: '100%',
@@ -560,8 +593,8 @@ export default function WeeklyTimetable() {
                   <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
                     <th style={headerCellStyle}>Time</th>
                     {DAYS.map((day, idx) => (
-                      <th 
-                        key={day} 
+                      <th
+                        key={day}
                         style={{
                           ...headerCellStyle,
                           backgroundColor: '#f1f5f9',
@@ -569,10 +602,36 @@ export default function WeeklyTimetable() {
                           overflow: 'hidden'
                         }}
                       >
-                        <div>
-                          {day}
-                          <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '0.25rem' }}>
-                            {DAY_NAMES[idx]}
+                        <div style={{ position: 'relative' }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            justifyContent: 'center'
+                          }}>
+                            {day}
+                            <div style={{ 
+                              fontSize: '0.8rem', 
+                              opacity: 0.9, 
+                              marginTop: '0.25rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              {DAY_NAMES[idx]}
+                              <motion.span
+                                whileHover={{ scale: 1.2 }}
+                                style={{
+                                  cursor: 'pointer',
+                                  color: BRAND_COLORS.info.main,
+                                  fontSize: '0.85rem'
+                                }}
+                                onMouseEnter={(e) => handleTooltip(e, `Monday is the first day of the academic week. Timetable slots for Monday are displayed in this column.`)}
+                                onMouseLeave={handleTooltipLeave}
+                              >
+                                <FaQuestionCircle />
+                              </motion.span>
+                            </div>
                           </div>
                         </div>
                       </th>
@@ -587,7 +646,10 @@ export default function WeeklyTimetable() {
                       custom={timeIdx + 1}
                       initial="hidden"
                       animate="visible"
-                      style={{ backgroundColor: 'white' }}
+                      style={{ 
+                        backgroundColor: 'white',
+                        cursor: 'default'
+                      }}
                     >
                       <td style={{
                         ...cellStyle,
@@ -601,10 +663,9 @@ export default function WeeklyTimetable() {
                       {DAYS.map((day) => {
                         const slots = weekly[day] || [];
                         const slot = slots.find(s => s.startTime === timeSlot.start && s.endTime === timeSlot.end);
-                        
                         return (
-                          <td 
-                            key={`${day}-${timeSlot.start}`} 
+                          <td
+                            key={`${day}-${timeSlot.start}`}
                             style={{
                               ...cellStyle,
                               padding: '0.5rem',
@@ -614,24 +675,28 @@ export default function WeeklyTimetable() {
                             }}
                           >
                             {slot ? (
-                              <TimetableSlot 
-                                slot={slot} 
+                              <TimetableSlot
+                                slot={slot}
                                 isHOD={isHOD}
                                 onEdit={() => openEdit(slot, day)}
                                 onDelete={() => deleteSlot(slot._id)}
+                                handleTooltip={handleTooltip}
+                                handleTooltipLeave={handleTooltipLeave}
                               />
                             ) : (
                               isHOD ? (
-                                <AddSlotButton 
+                                <AddSlotButton
                                   onClick={() => openCreate(day, timeSlot)}
                                   time={timeSlot}
                                   day={day}
+                                  handleTooltip={handleTooltip}
+                                  handleTooltipLeave={handleTooltipLeave}
                                 />
                               ) : (
-                                <div style={{ 
-                                  height: '100%', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
+                                <div style={{
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
                                   justifyContent: 'center',
                                   color: '#cbd5e1',
                                   fontSize: '2rem'
@@ -650,8 +715,8 @@ export default function WeeklyTimetable() {
             </div>
             
             {/* Legend */}
-            <div style={{ 
-              padding: '1.5rem', 
+            <div style={{
+              padding: '1.5rem',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
               flexWrap: 'wrap',
@@ -660,294 +725,487 @@ export default function WeeklyTimetable() {
               backgroundColor: '#f8fafc'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  borderRadius: '4px', 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
                   backgroundColor: BRAND_COLORS.slotTypes.LECTURE.bg,
                   border: `1px solid ${BRAND_COLORS.slotTypes.LECTURE.border}`
                 }} />
                 <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Lecture</span>
+                <motion.span
+                  whileHover={{ scale: 1.2 }}
+                  style={{
+                    cursor: 'pointer',
+                    color: BRAND_COLORS.info.main,
+                    fontSize: '0.85rem'
+                  }}
+                  onMouseEnter={(e) => handleTooltip(e, "Lecture slots are for theoretical instruction. They typically involve the teacher presenting concepts to students in a classroom setting.")}
+                  onMouseLeave={handleTooltipLeave}
+                >
+                  <FaQuestionCircle />
+                </motion.span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  borderRadius: '4px', 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
                   backgroundColor: BRAND_COLORS.slotTypes.LAB.bg,
                   border: `1px solid ${BRAND_COLORS.slotTypes.LAB.border}`
                 }} />
                 <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Lab</span>
+                <motion.span
+                  whileHover={{ scale: 1.2 }}
+                  style={{
+                    cursor: 'pointer',
+                    color: BRAND_COLORS.info.main,
+                    fontSize: '0.85rem'
+                  }}
+                  onMouseEnter={(e) => handleTooltip(e, "Lab slots are for hands-on practical sessions. They typically involve students working with equipment or software in a lab environment.")}
+                  onMouseLeave={handleTooltipLeave}
+                >
+                  <FaQuestionCircle />
+                </motion.span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  borderRadius: '4px', 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
                   backgroundColor: BRAND_COLORS.slotTypes.TUTORIAL.bg,
                   border: `1px solid ${BRAND_COLORS.slotTypes.TUTORIAL.border}`
                 }} />
                 <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Tutorial</span>
+                <motion.span
+                  whileHover={{ scale: 1.2 }}
+                  style={{
+                    cursor: 'pointer',
+                    color: BRAND_COLORS.info.main,
+                    fontSize: '0.85rem'
+                  }}
+                  onMouseEnter={(e) => handleTooltip(e, "Tutorial slots are for small-group discussions and problem-solving sessions. They typically involve guided learning with the teacher.")}
+                  onMouseLeave={handleTooltipLeave}
+                >
+                  <FaQuestionCircle />
+                </motion.span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ 
-                  width: '16px', 
-                  height: '16px', 
-                  borderRadius: '4px', 
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
                   backgroundColor: BRAND_COLORS.slotTypes.PRACTICAL.bg,
                   border: `1px solid ${BRAND_COLORS.slotTypes.PRACTICAL.border}`
                 }} />
                 <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Practical</span>
+                <motion.span
+                  whileHover={{ scale: 1.2 }}
+                  style={{
+                    cursor: 'pointer',
+                    color: BRAND_COLORS.info.main,
+                    fontSize: '0.85rem'
+                  }}
+                  onMouseEnter={(e) => handleTooltip(e, "Practical slots are for real-world application of concepts. They typically involve students working on projects or experiments.")}
+                  onMouseLeave={handleTooltipLeave}
+                >
+                  <FaQuestionCircle />
+                </motion.span>
               </div>
               {isHOD && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    borderRadius: '50%', 
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
                     backgroundColor: BRAND_COLORS.primary.main,
                     border: '2px dashed white',
                     boxShadow: '0 0 0 2px #1a4b6d'
                   }} />
                   <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Click to add slot (HOD only)</span>
+                  <motion.span
+                    whileHover={{ scale: 1.2 }}
+                    style={{
+                      cursor: 'pointer',
+                      color: BRAND_COLORS.info.main,
+                      fontSize: '0.85rem'
+                    }}
+                    onMouseEnter={(e) => handleTooltip(e, "Only HODs can add new slots to published timetables. For draft timetables, all teachers can add slots.")}
+                    onMouseLeave={handleTooltipLeave}
+                  >
+                    <FaQuestionCircle />
+                  </motion.span>
                 </div>
               )}
             </div>
           </motion.div>
-        </div>
-
-        {/* ================= MODAL ================= */}
-        <AnimatePresence>
-          {showModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000,
-                padding: '1rem'
-              }}
-              onClick={() => setShowModal(false)}
-            >
+          
+          {/* ================= MODAL ================= */}
+          <AnimatePresence>
+            {showModal && (
               <motion.div
-                variants={scaleVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 style={{
-                  backgroundColor: 'white',
-                  borderRadius: '16px',
-                  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                  width: '100%',
-                  maxWidth: '500px',
-                  maxHeight: '90vh',
-                  overflowY: 'auto'
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000,
+                  padding: '1rem'
                 }}
-                onClick={e => e.stopPropagation()}
+                onClick={() => setShowModal(false)}
               >
-                <div style={{ padding: '1.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '1.5rem', 
-                      fontWeight: 700,
-                      color: '#1e293b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem'
-                    }}>
-                      {editSlot ? <FaEdit /> : <FaPlus />} 
-                      {editSlot ? 'Edit Timetable Slot' : 'Add New Timetable Slot'}
-                    </h3>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setShowModal(false)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
+                <motion.div
+                  variants={scaleVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '16px',
+                    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+                    width: '100%',
+                    maxWidth: '500px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto'
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{ padding: '1.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{
+                        margin: 0,
                         fontSize: '1.5rem',
-                        color: '#64748b',
-                        cursor: 'pointer',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '8px',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      &times;
-                    </motion.button>
-                  </div>
-                  
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                        border: `1px solid ${BRAND_COLORS.danger.main}`,
-                        color: BRAND_COLORS.danger.main,
+                        fontWeight: 700,
+                        color: '#1e293b',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.75rem'
-                      }}
-                    >
-                      <FaTimesCircle size={20} />
-                      <span>{error}</span>
-                    </motion.div>
-                  )}
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <FormField label="Subject" icon={<FaBook />}>
-                      <select
-                        value={form.subject_id}
-                        onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
-                        style={inputStyle}
-                      >
-                        <option value="">Select subject</option>
-                        {subjects.map(s => (
-                          <option key={s._id} value={s._id}>
-                            {s.name} ({s.code})
-                          </option>
-                        ))}
-                      </select>
-                    </FormField>
-                    
-                    <FormField label="Assigned Teacher" icon={<FaChalkboardTeacher />}>
-                      <input
-                        type="text"
-                        value={teachers.find(t => t._id === form.teacher_id)?.name || "Select a subject to auto-assign teacher"}
-                        disabled
+                      }}>
+                        {editSlot ? <FaEdit /> : <FaPlus />}
+                        {editSlot ? 'Edit Timetable Slot' : 'Add New Timetable Slot'}
+                      </h3>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowModal(false)}
                         style={{
-                          ...inputStyle,
-                          backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
-                          color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
-                          fontWeight: form.teacher_id ? 600 : 400,
-                          fontStyle: form.teacher_id ? 'normal' : 'italic'
+                          background: 'none',
+                          border: 'none',
+                          fontSize: '1.5rem',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease'
                         }}
-                      />
-                    </FormField>
-                    
-                    <FormField label="Room Number" icon={<FaDoorOpen />}>
-                      <input
-                        type="text"
-                        placeholder="e.g., A-101, Lab-2"
-                        value={form.room}
-                        onChange={(e) => setForm({ ...form, room: e.target.value })}
-                        style={inputStyle}
-                      />
-                    </FormField>
-                    
-                    <FormField label="Slot Type" icon={<FaLayerGroup />}>
-                      <select
-                        value={form.slotType}
-                        onChange={(e) => setForm({ ...form, slotType: e.target.value })}
-                        style={inputStyle}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                       >
-                        <option value="LECTURE">Lecture</option>
-                        <option value="LAB">Lab</option>
-                        <option value="TUTORIAL">Tutorial</option>
-                        <option value="PRACTICAL">Practical</option>
-                      </select>
-                    </FormField>
+                        &times;
+                      </motion.button>
+                    </div>
+                    
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          marginBottom: '1.5rem',
+                          padding: '1rem',
+                          borderRadius: '12px',
+                          backgroundColor: `${BRAND_COLORS.danger.main}0a`,
+                          border: `1px solid ${BRAND_COLORS.danger.main}`,
+                          color: BRAND_COLORS.danger.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem'
+                        }}
+                      >
+                        <FaTimesCircle size={20} />
+                        <span>{error}</span>
+                      </motion.div>
+                    )}
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <FormField label="Subject" icon={<FaBook />}>
+                        <select
+                          value={form.subject_id}
+                          onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
+                          style={inputStyle}
+                        >
+                          <option value="">Select subject</option>
+                          {subjects.map(s => (
+                            <option key={s._id} value={s._id}>
+                              {s.name} ({s.code})
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                      
+                      <FormField label="Assigned Teacher" icon={<FaChalkboardTeacher />}>
+                        <input
+                          type="text"
+                          value={teachers.find(t => t._id === form.teacher_id)?.name || "Select a subject to auto-assign teacher"}
+                          disabled
+                          style={{
+                            ...inputStyle,
+                            backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
+                            color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
+                            fontWeight: form.teacher_id ? 600 : 400,
+                            fontStyle: form.teacher_id ? 'normal' : 'italic'
+                          }}
+                        />
+                      </FormField>
+                      
+                      <FormField label="Room Number" icon={<FaDoorOpen />}>
+                        <input
+                          type="text"
+                          placeholder="e.g., A-101, Lab-2"
+                          value={form.room}
+                          onChange={(e) => setForm({ ...form, room: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </FormField>
+                      
+                      <FormField label="Slot Type" icon={<FaLayerGroup />}>
+                        <select
+                          value={form.slotType}
+                          onChange={(e) => setForm({ ...form, slotType: e.target.value })}
+                          style={inputStyle}
+                        >
+                          <option value="LECTURE">Lecture</option>
+                          <option value="LAB">Lab</option>
+                          <option value="TUTORIAL">Tutorial</option>
+                          <option value="PRACTICAL">Practical</option>
+                        </select>
+                      </FormField>
+                      
+                      <div style={{
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        backgroundColor: '#dbeafe',
+                        border: '1px solid #93c5fd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem'
+                      }}>
+                        <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>
+                          <strong>Time:</strong> {form.startTime} - {form.endTime} • <strong>Day:</strong> {form.day}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.75rem',
+                      marginTop: '1.5rem',
+                      justifyContent: 'flex-end'
+                    }}>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowModal(false)}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Cancel
+                      </motion.button>
+                      
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={submitSlot}
+                        disabled={submitting || !form.subject_id}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          borderRadius: '12px',
+                          border: 'none',
+                          backgroundColor: (!form.subject_id || submitting) ? '#cbd5e1' : BRAND_COLORS.primary.main,
+                          color: 'white',
+                          fontSize: '1rem',
+                          fontWeight: 600,
+                          cursor: (!form.subject_id || submitting) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          transition: 'all 0.3s ease',
+                          boxShadow: (!form.subject_id || submitting) ? 'none' : '0 4px 15px rgba(26, 75, 109, 0.3)'
+                        }}
+                      >
+                        {submitting ? (
+                          <>
+                            <motion.div variants={spinVariants} animate="animate">
+                              <FaSyncAlt size={16} />
+                            </motion.div>
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <FaCheckCircle /> {editSlot ? 'Update Slot' : 'Add Slot'}
+                          </>
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* ================= INFO TOOLTIP ================= */}
+          {showTooltip && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                position: 'fixed',
+                top: tooltipPosition.top,
+                left: tooltipPosition.left,
+                transform: 'translateX(-50%)',
+                backgroundColor: 'white',
+                padding: '1rem',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                zIndex: 1001,
+                maxWidth: '300px',
+                fontSize: '0.9rem',
+                border: '1px solid #e2e8f0'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
+                <span>{tooltipContent}</span>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* ================= INFO MODAL ================= */}
+          <AnimatePresence>
+            {showInfoModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1001,
+                  padding: '1rem'
+                }}
+                onClick={() => setShowInfoModal(false)}
+              >
+                <motion.div
+                  variants={scaleVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '16px',
+                    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+                    width: '100%',
+                    maxWidth: '500px',
+                    maxHeight: '90vh',
+                    overflowY: 'auto'
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{ padding: '1.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '1.5rem',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem'
+                      }}>
+                        <FaInfoCircle /> Information
+                      </h3>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowInfoModal(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: '1.5rem',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          width: '32px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        &times;
+                      </motion.button>
+                    </div>
                     
                     <div style={{ 
                       padding: '1rem', 
                       borderRadius: '12px', 
-                      backgroundColor: '#dbeafe',
-                      border: '1px solid #93c5fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem'
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0'
                     }}>
-                      <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>
-                        <strong>Time:</strong> {form.startTime} - {form.endTime} • <strong>Day:</strong> {form.day}
-                      </span>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <FaLightbulb style={{ color: BRAND_COLORS.warning.main }} />
+                        <h4 style={{ margin: 0, color: '#1e293b', fontWeight: 600 }}>Timetable Information</h4>
+                      </div>
+                      <p style={{ 
+                        margin: 0, 
+                        color: '#4a5568',
+                        lineHeight: 1.6
+                      }}>
+                        {infoContent}
+                      </p>
                     </div>
                   </div>
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '0.75rem', 
-                    marginTop: '1.5rem',
-                    justifyContent: 'flex-end'
-                  }}>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowModal(false)}
-                      style={{
-                        padding: '0.75rem 1.5rem',
-                        borderRadius: '12px',
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: 'white',
-                        color: '#1e293b',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      Cancel
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={submitSlot}
-                      disabled={submitting || !form.subject_id}
-                      style={{
-                        padding: '0.75rem 1.5rem',
-                        borderRadius: '12px',
-                        border: 'none',
-                        backgroundColor: (!form.subject_id || submitting) ? '#cbd5e1' : BRAND_COLORS.primary.main,
-                        color: 'white',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        cursor: (!form.subject_id || submitting) ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        transition: 'all 0.3s ease',
-                        boxShadow: (!form.subject_id || submitting) ? 'none' : '0 4px 15px rgba(26, 75, 109, 0.3)'
-                      }}
-                    >
-                      {submitting ? (
-                        <>
-                          <motion.div variants={spinVariants} animate="animate">
-                            <FaSyncAlt size={16} />
-                          </motion.div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <FaCheckCircle /> {editSlot ? 'Update Slot' : 'Add Slot'}
-                        </>
-                      )}
-                    </motion.button>
-                  </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
@@ -974,12 +1232,16 @@ function FormField({ label, icon, children }) {
 }
 
 /* ================= TIMETABLE SLOT ================= */
-function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
+function TimetableSlot({ slot, isHOD, onEdit, onDelete, handleTooltip, handleTooltipLeave }) {
   const slotType = BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   
   return (
     <motion.div
-      whileHover={{ y: -2, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)' }}
+      whileHover={{ 
+        y: -2, 
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
+        scale: 1.02
+      }}
       style={{
         backgroundColor: 'white',
         border: `1px solid ${slotType.border}`,
@@ -994,7 +1256,7 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
         overflow: 'hidden'
       }}
     >
-      <div style={{ 
+      <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
@@ -1004,9 +1266,9 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
         zIndex: 1
       }} />
       
-      <div style={{ 
-        fontWeight: 700, 
-        color: slotType.text, 
+      <div style={{
+        fontWeight: 700,
+        color: slotType.text,
         fontSize: '1rem',
         display: 'flex',
         alignItems: 'center',
@@ -1016,9 +1278,9 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
         {slot.subject_id?.name || 'N/A'}
       </div>
       
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         gap: '0.5rem',
         flexWrap: 'wrap',
         fontSize: '0.85rem',
@@ -1027,22 +1289,46 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <FaChalkboardTeacher size={12} />
           {slot.teacher_id?.name || 'N/A'}
+          <motion.span
+            whileHover={{ scale: 1.2 }}
+            style={{
+              cursor: 'pointer',
+              color: BRAND_COLORS.info.main,
+              fontSize: '0.85rem'
+            }}
+            onMouseEnter={(e) => handleTooltip(e, "The teacher assigned to this subject. Click to view teacher details or contact information.")}
+            onMouseLeave={handleTooltipLeave}
+          >
+            <FaQuestionCircle />
+          </motion.span>
         </span>
         {slot.room && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <FaDoorOpen size={12} />
             Room {slot.room}
+            <motion.span
+              whileHover={{ scale: 1.2 }}
+              style={{
+                cursor: 'pointer',
+                color: BRAND_COLORS.info.main,
+                fontSize: '0.85rem'
+              }}
+              onMouseEnter={(e) => handleTooltip(e, "The room where this class will be held. Click to view room details or location on campus map.")}
+              onMouseLeave={handleTooltipLeave}
+            >
+              <FaQuestionCircle />
+            </motion.span>
           </span>
         )}
       </div>
       
-      <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
         gap: '0.375rem',
         marginTop: '0.25rem'
       }}>
-        <span style={{ 
+        <span style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '0.25rem',
@@ -1060,9 +1346,9 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
       </div>
       
       {isHOD && (
-        <div style={{ 
-          display: 'flex', 
-          gap: '0.5rem', 
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
           marginTop: '0.5rem',
           paddingTop: '0.5rem',
           borderTop: '1px dashed #e2e8f0'
@@ -1090,6 +1376,7 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
           >
             <FaEdit size={14} /> Edit
           </motion.button>
+          
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -1120,10 +1407,14 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete }) {
 }
 
 /* ================= ADD SLOT BUTTON ================= */
-function AddSlotButton({ onClick, time, day }) {
+function AddSlotButton({ onClick, time, day, handleTooltip, handleTooltipLeave }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.05, backgroundColor: '#dbeafe' }}
+      whileHover={{ 
+        scale: 1.05, 
+        backgroundColor: '#dbeafe',
+        transform: 'translateY(-3px)'
+      }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
       style={{
@@ -1145,14 +1436,29 @@ function AddSlotButton({ onClick, time, day }) {
         padding: '0.5rem'
       }}
     >
-      <FaPlus />
-      <span style={{ 
-        fontSize: '0.75rem', 
+      <FaPlus size={24} />
+      <span style={{
+        fontSize: '0.75rem',
         fontWeight: 500,
         marginTop: '-0.5rem'
       }}>
         Add Slot
       </span>
+      <motion.div
+        whileHover={{ scale: 1.2 }}
+        style={{
+          cursor: 'pointer',
+          color: BRAND_COLORS.info.main,
+          fontSize: '0.85rem',
+          position: 'absolute',
+          bottom: '8px',
+          right: '8px'
+        }}
+        onMouseEnter={(e) => handleTooltip(e, "Click to add a new timetable slot for this time period. Only HODs can add slots to published timetables.")}
+        onMouseLeave={handleTooltipLeave}
+      >
+        <FaQuestionCircle size={16} />
+      </motion.div>
     </motion.button>
   );
 }
@@ -1191,4 +1497,3 @@ const inputStyle = {
   color: '#1e293b',
   fontWeight: 500
 };
-
