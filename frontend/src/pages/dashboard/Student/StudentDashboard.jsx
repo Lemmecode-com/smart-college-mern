@@ -240,11 +240,11 @@ export default function StudentDashboard() {
               </p>
             </div>
             <div className="d-flex align-items-center novaa-header-actions">
-              <div className="novaa-quick-action me-2" onClick={() => navigate('/student/my-timetable')}>
+              <div className="novaa-quick-action me-2" onClick={() => navigate('/student/timetable')}>
                 <FaCalendarAlt size={20} />
                 <span>Timetable</span>
               </div>
-              <div className="novaa-quick-action me-2" onClick={() => navigate('/student/my-attendance')}>
+              <div className="novaa-quick-action me-2" onClick={() => navigate('/my-attendance')}>
                 <FaClipboardList size={20} />
                 <span>Attendance</span>
               </div>
