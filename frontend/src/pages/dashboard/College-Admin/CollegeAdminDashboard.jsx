@@ -295,8 +295,6 @@ export default function CollegeAdminDashboard() {
         }}
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-          
-
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
