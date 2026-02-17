@@ -20,6 +20,7 @@ export default function StudentRegister() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [collegeName, setCollegeName] = useState("");
 
   const [form, setForm] = useState({
     fullName: "",
@@ -35,15 +36,38 @@ export default function StudentRegister() {
     department_id: "",
     course_id: "",
     admissionYear: new Date().getFullYear(),
-    currentSemester: 1
+    currentSemester: 1,
+    category: "GEN"
   });
+
+  /* ================= LOAD COLLEGE NAME ================= */
+  useEffect(() => {
+    const fetchCollege = async () => {
+      try {
+        // Get college info from departments endpoint which now returns college name
+        const res = await publicApi.get(`/public/departments/${collegeCode}`);
+        // Extract college name from the response
+        if (res.data && res.data.collegeName) {
+          setCollegeName(res.data.collegeName);
+        }
+      } catch (err) {
+        console.error("Failed to load college info:", err);
+        // Don't set an error for this since it's not critical for functionality
+      }
+    };
+
+    if (collegeCode) {
+      fetchCollege(); 
+    }
+  }, [collegeCode]);
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await publicApi.get("/departments");
-        setDepartments(res.data || []);
+        const res = await publicApi.get(`/public/departments/${collegeCode}`);
+        // The new response format includes departments array inside the response
+        setDepartments(res.data.departments || res.data || []);
       } catch (err) {
         console.error(err);
         setError("Failed to load departments");
@@ -51,16 +75,16 @@ export default function StudentRegister() {
     };
 
     fetchDepartments();
-  }, []);
+  }, [collegeCode]);
 
   /* ================= LOAD COURSES ================= */
   useEffect(() => {
-    if (!form.department_id) return;
+    if (!form.department_id || !collegeCode) return;
 
     const fetchCourses = async () => {
       try {
         const res = await publicApi.get(
-          `/courses/department/${form.department_id}`
+          `/public/courses/${collegeCode}/department/${form.department_id}`
         );
         setCourses(res.data || []);
       } catch (err) {
@@ -70,7 +94,7 @@ export default function StudentRegister() {
     };
 
     fetchCourses();
-  }, [form.department_id]);
+  }, [form.department_id, collegeCode]);
 
   /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
@@ -84,12 +108,12 @@ export default function StudentRegister() {
     setError("");
 
     try {
-      await publicApi.post(
+      const response = await publicApi.post(
         `/students/register/${collegeCode}`,
         form
       );
 
-      alert("🎉 Registration successful! Wait for college approval.");
+      alert(response.data.message || "🎉 Registration successful! Wait for college approval.");
       navigate("/login");
     } catch (err) {
       console.error(err);
@@ -108,22 +132,28 @@ export default function StudentRegister() {
   }
 
   return (
+    <div className="m-0">
     <div
       className="d-flex align-items-center justify-content-center"
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #0f3a4a, #134952)"
+        padding:"20px",
       }}
     >
       <div
-        className="card shadow-lg p-4"
-        style={{ width: "1000px", borderRadius: "16px" }}
+        className="card  p-4"
+        style={{ width: "1000px", borderRadius: "16px" ,boxShadow:"10px 10px 45px gray"}}
       >
         <div className="text-center mb-4">
-          <FaUniversity size={48} className="mb-2" />
-          <h3 className="fw-bold">Smart College Admission Portal</h3>
+          <FaUniversity size={48} className="mb-2"/>
+          <h3 className="fw-bold">{collegeName || "NOVAA"}</h3>
           <p className="text-muted mb-1">Student Self Registration</p>
-          <span className="badge bg-dark">{collegeCode}</span>
+          <div className="d-flex gap-2 justify-content-center">
+            <span className="badge bg-dark">{collegeCode}</span>
+            {collegeName && (
+              <span className="badge bg-success">{collegeName}</span>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -194,10 +224,54 @@ export default function StudentRegister() {
                 ))}
               </select>
             </div>
+            
+            <div className="col-md-6">
+              <select className="form-select" name="category" value={form.category} onChange={handleChange} required>
+                <option value="GEN">General (GEN)</option>
+                <option value="OBC">Other Backward Classes (OBC)</option>
+                <option value="SC">Scheduled Caste (SC)</option>
+                <option value="ST">Scheduled Tribe (ST)</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            
+            <div className="col-md-6">
+              <input 
+                type="number" 
+                className="form-control" 
+                name="admissionYear" 
+                placeholder="Admission Year" 
+                value={form.admissionYear} 
+                onChange={handleChange} 
+                min="1900" 
+                max="2100" 
+                required 
+              />
+            </div>
+            
+            <div className="col-md-6">
+              <select className="form-select" name="currentSemester" value={form.currentSemester} onChange={handleChange} required>
+                {!form.course_id && <option value="">Select a course first</option>}
+                {form.course_id && courses.length > 0 && (() => {
+                  const selectedCourse = courses.find(course => course._id === form.course_id);
+                  if (selectedCourse && selectedCourse.semester) {
+                    return Array.from({ length: selectedCourse.semester }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>Semester {i + 1}</option>
+                    ));
+                  } else {
+                    // Default to 8 semesters if course semester info is not available
+                    return Array.from({ length: 8 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>Semester {i + 1}</option>
+                    ));
+                  }
+                })()}
+                {form.course_id && courses.length === 0 && <option value="">No semesters available</option>}
+              </select>
+            </div>
           </div>
 
           <button
-            className="btn btn-dark w-100 mt-4 d-flex align-items-center justify-content-center gap-2"
+            className="btn w-25 mt-4 d-flex align-items-center justify-content-center gap-2 text-light fw-semibold" style={{position:"relative",left:"350px",background:"linear-gradient(45deg, #286079, #5798b7, #09567f)"}}
             disabled={loading}
           >
             {loading ? (
@@ -225,6 +299,7 @@ export default function StudentRegister() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
     </div>
   );
 }

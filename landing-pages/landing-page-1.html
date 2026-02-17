@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVAA - Modern Education Management Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2a5bd7;
+            --secondary-color: #f8f9fa;
+            --accent-color: #ff6b35;
+            --dark-color: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
+            color: white;
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.2;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .testimonial-card {
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .testimonial-card:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1a4bc7;
+            border-color: #1a4bc7;
+        }
+        
+        .section-padding {
+            padding: 80px 0;
+        }
+        
+        .bg-light {
+            background-color: var(--secondary-color) !important;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color) !important;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            opacity: 0;
+        }
+        
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .delay-1 {
+            animation-delay: 0.2s;
+        }
+        
+        .delay-2 {
+            animation-delay: 0.4s;
+        }
+        
+        .delay-3 {
+            animation-delay: 0.6s;
+        }
+        
+        .delay-4 {
+            animation-delay: 0.8s;
+        }
+        
+        .delay-5 {
+            animation-delay: 1.0s;
+        }
+        
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fs-2" href="#">
+                <i class="fas fa-graduation-cap me-2"></i>NOVAA
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                    <li class="nav-item">
+                        <a class="btn btn-outline-primary ms-2" href="./login.html">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 animate-fade-in-up">
+                    <h1 class="display-4 fw-bold mb-4 animate-pulse">Transform Your Educational Institution</h1>
+                    <p class="lead mb-4">Comprehensive college management platform designed to streamline operations, enhance learning experiences, and connect students, teachers, and administrators seamlessly.</p>
+                    <div class="d-flex gap-3">
+                        <a href="/register" class="btn btn-light btn-lg px-4 py-2 hover-lift">Get Started</a>
+                        <a href="#features" class="btn btn-outline-light btn-lg px-4 py-2 hover-lift">Learn More</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 mt-5 mt-lg-0 animate-fade-in-up delay-1">
+                    <div class="text-center">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23f0f4ff'/%3E%3Ccircle cx='150' cy='150' r='80' fill='%234361ee' opacity='0.2'/%3E%3Ccircle cx='450' cy='250' r='80' fill='%234cc9f0' opacity='0.2'/%3E%3Crect x='200' y='150' width='200' height='100' rx='10' fill='%23ffffff' stroke='%234361ee' stroke-width='2'/%3E%3Crect x='220' y='170' width='160' height='15' fill='%23e0e7ff'/%3E%3Crect x='220' y='195' width='120' height='15' fill='%23e0e7ff'/%3E%3Crect x='220' y='220' width='140' height='15' fill='%23e0e7ff'/%3E%3C/svg%3E" alt="Education Technology" class="img-fluid rounded shadow animate-float">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Us Section -->
+    <section id="about" class="section-padding">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-12 text-center animate-fade-in-up">
+                    <h2 class="fw-bold mb-3">About NOVAA</h2>
+                    <p class="text-muted">Transforming education through innovative technology solutions</p>
+                </div>
+            </div>
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0 animate-fade-in-up">
+                    <div class="p-4">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='350' viewBox='0 0 600 350'%3E%3Crect width='600' height='350' fill='%23f0f4ff'/%3E%3Crect x='50' y='50' width='500' height='250' rx='10' fill='%23ffffff' stroke='%234361ee' stroke-width='2'/%3E%3Ccircle cx='100' cy='100' r='20' fill='%234361ee'/%3E%3Ccircle cx='150' cy='100' r='20' fill='%234cc9f0'/%3E%3Ccircle cx='200' cy='100' r='20' fill='%233f37c9'/%3E%3Crect x='80' y='150' width='440' height='120' fill='%23f8fafc' rx='5'/%3E%3Crect x='100' y='170' width='400' height='20' fill='%23e0e7ff' rx='3'/%3E%3Crect x='100' y='200' width='350' height='15' fill='%23e0e7ff' rx='2'/%3E%3Crect x='100' y='225' width='400' height='15' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" alt="Education Management Platform" class="img-fluid rounded shadow animate-float">
+                    </div>
+                </div>
+                <div class="col-lg-6 animate-fade-in-up delay-1">
+                    <h3 class="fw-bold mb-4">Revolutionizing Educational Management</h3>
+                    <p class="mb-4">NOVAA is a comprehensive education management platform designed to streamline operations across educational institutions. Our platform connects students, teachers, administrators, and parents through a unified digital ecosystem.</p>
+
+<!--                     
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">Multi-role Support</h6>
+                                    <p class="text-muted mb-0">For students, teachers, admins</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">Secure Platform</h6>
+                                    <p class="text-muted mb-0">JWT authentication & httpOnly cookies</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">Real-time Updates</h6>
+                                    <p class="text-muted mb-0">Live data synchronization</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">Analytics</h6>
+                                    <p class="text-muted mb-0">Performance insights & reports</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section-padding bg-light">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-12 text-center">
+                    <h2 class="fw-bold mb-3">Powerful Features</h2>
+                    <p class="text-muted">Everything you need to manage your educational institution efficiently</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4 animate-fade-in-up hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234361ee'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Student Management" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title animate-pulse">Student Management</h5>
+                            <p class="card-text">Complete student lifecycle management from admission to graduation with detailed records and analytics.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234cc9f0'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3Ccircle cx='300' cy='70' r='15' fill='%234cc9f0'/%3E%3C/svg%3E" class="img-fluid" alt="Teacher Portal" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title">Teacher Portal</h5>
+                            <p class="card-text">Empower educators with tools for attendance, grading, timetables, and communication with students.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Crect x='80' y='50' width='240' height='80' fill='%23f8fafc' rx='5'/%3E%3Crect x='90' y='60' width='220' height='12' fill='%23e0e7ff' rx='2'/%3E%3Crect x='90' y='80' width='180' height='12' fill='%23e0e7ff' rx='2'/%3E%3Crect x='90' y='100' width='200' height='12' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Timetable Management" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title">Timetable Management</h5>
+                            <p class="card-text">Intelligent scheduling system that creates conflict-free timetables for classes and exams.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 animate-fade-in-up delay-3 hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234361ee'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Fee Management" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title animate-pulse">Fee Management</h5>
+                            <p class="card-text">Automated fee calculation, payment processing, and financial reporting for transparent billing.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Crect x='80' y='50' width='240' height='80' fill='%23f8fafc'/%3E%3Crect x='90' y='60' width='60' height='50' fill='%234361ee' rx='3'/%3E%3Crect x='160' y='60' width='60' height='30' fill='%234cc9f0' rx='3'/%3E%3Crect x='230' y='60' width='60' height='40' fill='%233f37c9' rx='3'/%3E%3Crect x='90' y='115' width='200' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Analytics & Reports" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title">Analytics & Reports</h5>
+                            <p class="card-text">Comprehensive dashboards with insights on academics, attendance, and institutional performance.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 hover-lift">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='80' r='25' fill='%234361ee'/%3E%3Crect x='140' y='70' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='95' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='110' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Notifications" style="object-fit: cover;">
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="card-title">Notifications</h5>
+                            <p class="card-text">Real-time alerts and notifications to keep all stakeholders informed about important updates.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <!-- <section class="section-padding">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">500+</div>
+                    <p class="text-muted">Colleges Using Our Platform</p>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">50K+</div>
+                    <p class="text-muted">Active Students</p>
+                </div>
+                <div class="col-md-3 mb-4 mb-md-0">
+                    <div class="stats-number">5K+</div>
+                    <p class="text-muted">Educators</p>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-number">98%</div>
+                    <p class="text-muted">Satisfaction Rate</p>
+                </div>
+            </div>
+        </div>
+    </section> -->
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="section-padding bg-light">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-12 text-center animate-fade-in-up">
+                    <h2 class="fw-bold mb-3">What Educators Say</h2>
+                    <p class="text-muted">Trusted by educational institutions worldwide</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4 animate-fade-in-up hover-lift">
+                    <div class="card testimonial-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-quote-left text-muted"></i>
+                            </div>
+                            <p class="card-text">"NOVAA has revolutionized how we manage our academic operations. The attendance and fee management features alone have saved us countless hours."</p>
+                            <div class="d-flex align-items-center mt-3">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                        <i class="fas fa-user fa-lg"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Dr. Sarah Johnson</h6>
+                                    <small class="text-muted">Principal, ABC University</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 animate-fade-in-up delay-1 hover-lift">
+                    <div class="card testimonial-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-quote-left text-muted"></i>
+                            </div>
+                            <p class="card-text">"The intuitive dashboard and real-time reporting have transformed our decision-making process. We can now track student performance more effectively."</p>
+                            <div class="d-flex align-items-center mt-3">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                        <i class="fas fa-user fa-lg"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Mr. Rajesh Kumar</h6>
+                                    <small class="text-muted">Director, XYZ College</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 animate-fade-in-up delay-2 hover-lift">
+                    <div class="card testimonial-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <i class="fas fa-quote-left text-muted"></i>
+                            </div>
+                            <p class="card-text">"Our teachers love the timetable management system. It has eliminated scheduling conflicts and improved classroom utilization significantly."</p>
+                            <div class="d-flex align-items-center mt-3">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                        <i class="fas fa-user fa-lg"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-0">Ms. Priya Sharma</h6>
+                                    <small class="text-muted">Dean, PQR Institute</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section-padding">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="fw-bold mb-4 animate-pulse">Ready to Transform Your Institution?</h2>
+                    <p class="lead mb-4">Join hundreds of educational institutions that trust NOVAA for their management needs.</p>
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+                        <a href="/register" class="btn btn-primary btn-lg px-4 py-2 hover-lift">Start Free Trial</a>
+                        <a href="#contact" class="btn btn-outline-primary btn-lg px-4 py-2 hover-lift">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section-padding">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-12 text-center">
+                    <h2 class="fw-bold mb-3">Contact Us</h2>
+                    <p class="text-muted">Have questions? Our team is here to help you get started</p>
+                </div>
+            </div>
+            <div class="row g-5">
+                <div class="col-lg-7">
+                    <div class="card feature-card h-100 border-0 shadow-sm">
+                        <div class="card-body p-5">
+                            <form id="contactForm">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <label for="firstName" class="form-label">First Name</label>
+                                        <input type="text" class="form-control form-control-lg" id="firstName" placeholder="Enter your first name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lastName" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control form-control-lg" id="lastName" placeholder="Enter your last name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input type="email" class="form-control form-control-lg" id="email" placeholder="Enter your email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="phone" class="form-label">Phone</label>
+                                        <input type="tel" class="form-control form-control-lg" id="phone" placeholder="Enter your phone number">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="institution" class="form-label">Institution/Organization</label>
+                                        <input type="text" class="form-control form-control-lg" id="institution" placeholder="Enter your institution name" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="role" class="form-label">Role</label>
+                                        <select class="form-select form-select-lg" id="role" required>
+                                            <option value="" disabled selected>Select your role</option>
+                                            <option value="principal">Principal</option>
+                                            <option value="admin">Administrator</option>
+                                            <option value="teacher">Teacher</option>
+                                            <option value="student">Student</option>
+                                            <option value="parent">Parent</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="message" class="form-label">Message</label>
+                                        <textarea class="form-control form-control-lg" id="message" rows="5" placeholder="Tell us how we can help you..." required></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check mb-4">
+                                            <input class="form-check-input" type="checkbox" id="consent" required>
+                                            <label class="form-check-label" for="consent">
+                                                I agree to receive communications from NOVAA
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3">Send Message</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="h-100">
+                        <div class="card feature-card h-100 border-0 shadow-sm">
+                            <div class="card-img-top" style="height: 200px; overflow: hidden;">
+                                <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80" class="img-fluid" alt="Our Team" style="object-fit: cover;">
+                            </div>
+                            <div class="card-body p-5">
+                                <h3 class="fw-bold mb-4">Get in Touch</h3>
+                                <p class="mb-4">We'd love to hear from you. Fill out the form and our team will get back to you as soon as possible.</p>
+                                
+                                <div class="d-flex mb-4">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
+                                            <i class="fas fa-envelope fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">Email Us</h6>
+                                        <p class="text-muted mb-0">info@novaa.edu</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex mb-4">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
+                                            <i class="fas fa-phone fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">Call Us</h6>
+                                        <p class="text-muted mb-0">+1 (555) 123-4567</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex mb-4">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
+                                            <i class="fas fa-map-marker-alt fa-xl"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">Visit Us</h6>
+                                        <p class="text-muted mb-0">123 Education St, Learning City</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-5">
+                                    <h4 class="fw-bold mb-4">Office Hours</h4>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2 d-flex justify-content-between">
+                                            <span>Monday - Friday</span>
+                                            <span class="text-muted">9:00 AM - 6:00 PM</span>
+                                        </li>
+                                        <li class="mb-2 d-flex justify-content-between">
+                                            <span>Saturday</span>
+                                            <span class="text-muted">10:00 AM - 4:00 PM</span>
+                                        </li>
+                                        <li class="mb-2 d-flex justify-content-between">
+                                            <span>Sunday</span>
+                                            <span class="text-muted">Closed</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="fw-bold mb-3">
+                        <i class="fas fa-graduation-cap me-2"></i>NOVAA
+                    </h5>
+                    <p>Modern education management platform designed to streamline operations and enhance learning experiences.</p>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h6 class="fw-bold mb-3">Product</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light text-decoration-none">Features</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Solutions</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Pricing</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Demo</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4 mb-md-0">
+                    <h6 class="fw-bold mb-3">Company</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light text-decoration-none">About</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Careers</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Blog</a></li>
+                        <li><a href="#" class="text-light text-decoration-none">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="fw-bold mb-3">Contact Us</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i>info@novaa.edu</li>
+                        <li><i class="fas fa-phone me-2"></i>+1 (555) 123-4567</li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i>123 Education St, Learning City</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2026 NOVAA. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const institution = document.getElementById('institution').value;
+            const role = document.getElementById('role').value;
+            const message = document.getElementById('message').value;
+            
+            // In a real application, you would send this data to a server
+            // For now, we'll just show a success message
+            alert(`Thank you ${firstName}! Your message has been sent successfully. We'll get back to you soon.`);
+            
+            // Reset the form
+            this.reset();
+        });
+    </script>
+</body>
+</html>
