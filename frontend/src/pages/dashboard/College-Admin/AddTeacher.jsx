@@ -200,7 +200,6 @@ export default function AddTeacher() {
       setFormData(prev => ({ ...prev, course_id: "" }));
     }
   };
-
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
