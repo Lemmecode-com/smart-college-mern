@@ -44,12 +44,10 @@ import {
   FaToggleOn,
 } from "react-icons/fa";
 
-export default function Sidebar() {
+export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
   const { user, logout } = useContext(AuthContext);
   const location = useLocation();
 
-  // Mobile sidebar state
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [openSections, setOpenSections] = useState({
     // College Admin sections
     college: true,
@@ -76,29 +74,65 @@ export default function Sidebar() {
     "super-settings": true,
   });
 
+  // Track if device is mobile
+  const [isMobileDevice, setIsMobileDevice] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  // Handle window resize
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobileDevice(mobile);
+      // Auto-close sidebar when switching to desktop
+      if (!mobile && isMobileOpen) {
+        setIsMobileOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobileOpen, setIsMobileOpen]);
+
   // Close mobile sidebar on route change
   useEffect(() => {
     if (isMobileOpen) {
       setIsMobileOpen(false);
     }
-  }, [location.pathname, isMobileOpen]);
+  }, [location.pathname, setIsMobileOpen]);
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
+    // Only attach listener when sidebar is open on mobile
+    if (!isMobileOpen || !isMobileDevice) return;
+
     const handleClickOutside = (event) => {
-      if (isMobileOpen && window.innerWidth < 768) {
-        const sidebar = document.querySelector(".sidebar-container");
-        if (sidebar && !sidebar.contains(event.target)) {
-          setIsMobileOpen(false);
-        }
+      const sidebar = document.querySelector(".sidebar-container");
+      const navbar = document.querySelector(".navbar");
+
+      // Check if click is outside both sidebar and navbar
+      const clickedOutsideSidebar = !sidebar || !sidebar.contains(event.target);
+      const clickedOutsideNavbar = !navbar || !navbar.contains(event.target);
+
+      if (clickedOutsideSidebar && clickedOutsideNavbar) {
+        setIsMobileOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    // Use setTimeout to prevent immediate trigger
+    const timeoutId = setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }, 150);
+
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
-  }, [isMobileOpen]);
+  }, [isMobileOpen, isMobileDevice, setIsMobileOpen]);
 
   if (!user) return null;
 
@@ -109,10 +143,6 @@ export default function Sidebar() {
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  const toggleMobileSidebar = () => {
-    setIsMobileOpen((prev) => !prev);
   };
 
   const handleLogout = async () => {
@@ -180,28 +210,36 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE SIDEBAR TOGGLE BUTTON */}
-      {window.innerWidth < 768 && (
-        <button
-          onClick={toggleMobileSidebar}
-          className="mobile-menu-toggle"
-          aria-label="Toggle menu"
-        >
-          {isMobileOpen ? (
-            <FaTimes size={24} color="white" />
-          ) : (
-            <FaBars size={24} color="white" />
-          )}
-        </button>
-      )}
-
       {/* SIDEBAR CONTAINER */}
-      <div className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}>
+      <div
+        className={`sidebar-container ${isMobileOpen ? "mobile-open" : ""}`}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          height: "100vh",
+          width: "280px",
+          maxWidth: "280px",
+          zIndex: 1050,
+          transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: isMobileDevice && !isMobileOpen ? "translateX(-100%)" : "translateX(0)",
+        }}
+      >
         {/* SIDEBAR BACKDROP FOR MOBILE */}
-        {isMobileOpen && window.innerWidth < 768 && (
+        {isMobileOpen && isMobileDevice && (
           <div
             className="sidebar-backdrop"
             onClick={() => setIsMobileOpen(false)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: -1,
+              backdropFilter: "blur(2px)",
+            }}
           />
         )}
 
@@ -226,10 +264,10 @@ export default function Sidebar() {
                 role === "SUPER_ADMIN"
                   ? "/super-admin/dashboard"
                   : role === "COLLEGE_ADMIN"
-                    ? "/dashboard"
-                    : role === "TEACHER"
-                      ? "/teacher/dashboard"
-                      : "/student/dashboard"
+                  ? "/dashboard"
+                  : role === "TEACHER"
+                  ? "/teacher/dashboard"
+                  : "/student/dashboard"
               }
               style={getNavLinkStyle}
               className={({ isActive }) => (isActive ? "active-link" : "")}
@@ -745,7 +783,7 @@ export default function Sidebar() {
                 </div>
                 <div
                   style={sectionBodyStyle(
-                    openSections["notifications-teacher"],
+                    openSections["notifications-teacher"]
                   )}
                 >
                   <NavLink
@@ -804,31 +842,31 @@ export default function Sidebar() {
       {/* STYLES */}
       <style>{`
         .sidebar-container {
-          position: fixed;
+          position: fixed !important;
           top: 0;
           left: 0;
           height: 100vh;
-          width: 100%;
+          width: 280px;
           max-width: 280px;
           background: transparent;
-          z-index: 1040;
+          z-index: 1050 !important;
           display: flex;
-          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          transform: ${
-            isMobileOpen || window.innerWidth >= 768
-              ? "translateX(0)"
-              : "translateX(-100%)"
-          };
+        }
+
+        .sidebar-container.mobile-open {
+          transform: translateX(0) !important;
+          box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
         }
 
         .sidebar-backdrop {
           position: fixed;
           top: 0;
           left: 0;
-          width: 100%;
-          height: 100%;
+          width: 100vw;
+          height: 100vh;
           background-color: rgba(0, 0, 0, 0.5);
           z-index: 1039;
+          backdrop-filter: blur(2px);
         }
 
         .sidebar-content {
@@ -1032,37 +1070,19 @@ export default function Sidebar() {
           transform: translateY(0);
         }
 
-        .mobile-menu-toggle {
-          position: fixed;
-          top: 15px;
-          left: 15px;
-          z-index: 1050;
-          width: 45px;
-          height: 45px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          border: none;
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
         @media (min-width: 768px) {
-          .mobile-menu-toggle {
-            display: none !important;
+          .sidebar-container {
+            transform: translateX(0) !important;
           }
         }
 
-        @media (max-width: 767px) {
-          .sidebar-container.mobile-open {
-            transform: translateX(0);
-          }
-
+        @media (max-width: 767.98px) {
           .sidebar-container {
-            transform: translateX(-100%);
+            transform: translateX(-100%) !important;
+          }
+          
+          .sidebar-container.mobile-open {
+            transform: translateX(0) !important;
           }
           
           .sidebar-content {
@@ -1100,34 +1120,6 @@ export default function Sidebar() {
           }
         }
 
-        /* Animation for section collapse */
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        /* Subtle hover effects for all links */
-        a:hover,
-        button:hover {
-          transform: translateX(3px);
-        }
-
-        /* Smooth scroll behavior */
-        .sidebar-content {
-          scroll-behavior: smooth;
-        }
-
-        /* Section title animations */
-        .sidebar-section-title {
-          animation: fadeIn 0.4s ease forwards;
-        }
-
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -1137,11 +1129,6 @@ export default function Sidebar() {
             opacity: 1;
             transform: translateX(0);
           }
-        }
-
-        /* Pulse animation for active section */
-        .sidebar-section-title.open {
-          animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
@@ -1156,7 +1143,6 @@ export default function Sidebar() {
           }
         }
 
-        /* Float animation for logo */
         @keyframes float {
           0%, 100% {
             transform: translateY(0);
@@ -1166,20 +1152,34 @@ export default function Sidebar() {
           }
         }
 
-        /* Sub-link hover effects */
+        .sidebar-section-title {
+          animation: fadeIn 0.4s ease forwards;
+        }
+
+        .sidebar-section-title.open {
+          animation: pulse 2s infinite;
+        }
+
+        a:hover,
+        button:hover {
+          transform: translateX(3px);
+        }
+
+        .sidebar-content {
+          scroll-behavior: smooth;
+        }
+
         a[style*="padding: 10px 16px 10px 36px"]:hover {
           background: rgba(255, 255, 255, 0.08) !important;
           transform: translateX(5px) !important;
         }
 
-        /* Ensure active sub-links have proper styling */
         a.active-link + div a.active {
           color: #0f3a4a !important;
           background: rgba(255, 255, 255, 0.15) !important;
           border-left: 3px solid #4CAF50 !important;
         }
 
-        /* Mobile optimizations */
         @media (max-width: 768px) {
           .sidebar-container {
             max-width: 100%;
