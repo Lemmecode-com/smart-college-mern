@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 
 import { AuthContext } from "./auth/AuthContext";
@@ -122,10 +122,14 @@ import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
 export default function App() {
   const { user } = useContext(AuthContext);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isMobileDevice, setIsMobileDevice] = useState(window.innerWidth < 768);
+  const [isMobileDevice, setIsMobileDevice] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
 
   // Handle window resize
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobileDevice(mobile);
@@ -135,767 +139,854 @@ export default function App() {
     };
 
     window.addEventListener("resize", handleResize);
+    handleResize(); // Call once to set initial state
+
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const toggleSidebar = () => {
-    setIsMobileOpen(!isMobileOpen);
+    setIsMobileOpen((prev) => !prev);
   };
 
   return (
     <BrowserRouter>
-      <div className="container-fluid p-0">
-        <div className="row g-0">
-          {/* ================= SIDEBAR ================= */}
-          {user && (
-            <Sidebar
-              isMobileOpen={isMobileOpen}
-              setIsMobileOpen={setIsMobileOpen}
-            />
-          )}
-
-          {/* ================= MAIN CONTENT ================= */}
-          <main
-            className="col p-0"
-            style={{
-              marginLeft: user && !isMobileDevice ? "280px" : "0",
-              width: user && !isMobileDevice ? "calc(100% - 280px)" : "100%",
-              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-              minHeight: "100vh",
-              position: "relative",
-            }}
-          >
-            {user && <Navbar onToggleSidebar={toggleSidebar} />}
-
-            <div className="p-3 p-md-4">
-              <Routes>
-                {/* ================= ROOT DECIDER ================= */}
-                <Route
-                  path="/"
-                  element={
-                    !user ? (
-                      <Navigate to="/login" />
-                    ) : user.role === "SUPER_ADMIN" ? (
-                      <Navigate to="/super-admin/dashboard" />
-                    ) : user.role === "COLLEGE_ADMIN" ? (
-                      <Navigate to="/dashboard" />
-                    ) : user.role === "TEACHER" ? (
-                      <Navigate to="/teacher/dashboard" />
-                    ) : user.role === "STUDENT" ? (
-                      <Navigate to="/student/dashboard" />
-                    ) : (
-                      <Navigate to="/login" />
-                    )
-                  }
-                />
-
-                {/* ================= PUBLIC ================= */}
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/register/:collegeCode"
-                  element={<StudentRegister />}
-                />
-
-                {/* ================= SUPER ADMIN ================= */}
-                <Route
-                  path="/super-admin/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <SuperAdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/super-admin/create-college"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <CreateNewCollege />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/super-admin/colleges-list"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <CollegeList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/super-admin/college/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <ViewCollegeDetails />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/super-admin/college/:id/edit"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <EditCollege />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/super-admin/reports"
-                  element={
-                    <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                      <SuperAdminReports />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= COLLEGE ADMIN ================= */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CollegeAdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college/profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CollegeProfile />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college/edit-profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditCollegeProfile />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college/view-student/:studentId"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewStudent />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/students/approve"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ApproveStudents />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college/view-approved-student/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewApproveStudent />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/fees/create"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CreateFeeStructure />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/fees/view/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewFeeStructure />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/fees/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditFeeStructure />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/fees/list"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <FeeStructureList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/notification/create"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CreateNotification />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/notification/list"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <NotificationList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/notification/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <UpdateNotifications />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/notification/student"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentNotificationList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college-admin/reports"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AdminReports />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college-admin/reports/course-wise"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CourseReport />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college-admin/reports/attendance"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AttendanceSummary />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/college-admin/reports/payment-summary"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <PaymentReports />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= TEACHER ================= */}
-                <Route
-                  path="/teacher/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <TeacherDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teacher/notifications/create"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CreateNotifications />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teacher/notifications/list"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <Notifications />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/notifications/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER", "COLLEGE_ADMIN"]}>
-                      <EditNotifications />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= STUDENT ================= */}
-                <Route
-                  path="/student/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/edit-profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <EditStudentProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/timetable"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/student/fees"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <StudentFees />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/student/make-payment"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <MakePayments />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/student/fee-receipt/:paymentId"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <FeeReceipt />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/student/payment-success"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <PaymentSuccess />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/student/payment-cancel"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <PaymentCancel />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= DEPARTMENTS ================= */}
-                <Route
-                  path="/departments"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <DepartmentList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/departments/add"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddDepartment />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/departments/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditDepartment />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/departments/assign-hod/:departmentId"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AssignHod />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= COURSES ================= */}
-                <Route
-                  path="/courses"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <CourseList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/courses/add"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddCourse />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/courses/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditCourse />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/courses/view/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewCourse />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= STUDENTS ================= */}
-                <Route
-                  path="/students"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <StudentList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= ATTENDANCE ================= */}
-
-                <Route
-                  path="/attendance/create-session"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CreateSessionModal />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/my-sessions-list"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <AttendanceSessionsList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/session/:sessionId"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <SessionDetails />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/session/:sessionId/mark"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MarkAttendanceModal />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/session/:sessionId/edit"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <EditAttendanceModal />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/report"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
-                      <AttendanceReport />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/attendance/list"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
-                      <AttendanceList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= MY ATTENDANCE ================= */}
-
-                <Route
-                  path="/my-attendance"
-                  element={
-                    <ProtectedRoute allowedRoles={["STUDENT"]}>
-                      <MyAttendance />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= SUBJECTS ================= */}
-                <Route
-                  path="/subjects/course/:courseId"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <SubjectList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/subjects/add"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddSubject />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/subjects/view/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewSubject />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/subjects/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditSubject />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= System settings ================= */}
-                <Route
-                  path="/system-settings/fees"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <FeeSetting />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/system-settings/general"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <GeneralSetting />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/system-settings/academic"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AcademicSetting />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/system-settings/notifications"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <NotificationSetting />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/teachers"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <TeachersList />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teachers/view/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewTeacher />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teachers/add-teacher"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AddTeacher />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teachers/edit/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <EditTeacher />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/teachers/assign-subjects"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <AssignTeacherSubjects />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ================= TEACHERS ================= */}
-
-                {/* TIMETABLE */}
-                <Route
-                  path="/timetable/create-timetable"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CreateTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/timetable/list"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <TimetableList />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/timetable/add-slot"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <AddTimetableSlot />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/timetable/weekly-timetable"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MySchedule />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/timetable/:timetableId/weekly"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <WeeklyTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/timetable/view"
-                  element={
-                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                      <ViewTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/timetable/my-timetable"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MyTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/sessions/my-sessions"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MySessions />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="profile/my-profile"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <MyProfile />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Sessions */}
-                <Route
-                  path="/sessions/create"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CreateSession />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* New Timetable created by teacher(hod) */}
-
-                <Route
-                  path="/timetable/create-timetable"
-                  element={
-                    <ProtectedRoute allowedRoles={["TEACHER"]}>
-                      <CreateTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* ================= FALLBACK ================= */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </div>
-          </main>
-        </div>
-      </div>
+      <AppContent 
+        user={user} 
+        isMobileOpen={isMobileOpen} 
+        setIsMobileOpen={setIsMobileOpen} 
+        isMobileDevice={isMobileDevice} 
+        toggleSidebar={toggleSidebar} 
+      />
     </BrowserRouter>
+  );
+}
+
+function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggleSidebar }) {
+  const location = useLocation();
+
+  // Hide layout on public routes
+  const hideLayout = 
+    location.pathname === "/login" || 
+    location.pathname.startsWith("/register/");
+
+  // Check if user is authenticated
+  const isAuthenticated = !!user;
+
+  return (
+    <div className="app-wrapper">
+      {/* ================= SIDEBAR ================= */}
+      {isAuthenticated && !hideLayout && (
+        <Sidebar 
+          isMobileOpen={isMobileOpen} 
+          setIsMobileOpen={setIsMobileOpen} 
+        />
+      )}
+
+      {/* ================= MAIN CONTENT ================= */}
+      <main
+        className={`main-content ${isAuthenticated && !hideLayout ? "with-sidebar" : "full-width"}`}
+        style={{
+          marginLeft: isAuthenticated && !hideLayout && !isMobileDevice ? "280px" : "0",
+          transition: "margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+          width: isAuthenticated && !hideLayout && !isMobileDevice ? "calc(100% - 280px)" : "100%",
+          minHeight: "100vh"
+        }}
+      >
+        {isAuthenticated && !hideLayout && <Navbar onToggleSidebar={toggleSidebar} />}
+
+        <div className="content-wrapper p-3 p-md-4">
+          <Routes>
+            {/* ================= ROOT DECIDER ================= */}
+            <Route
+              path="/"
+              element={
+                !user ? (
+                  <Navigate to="/login" />
+                ) : user.role === "SUPER_ADMIN" ? (
+                  <Navigate to="/super-admin/dashboard" />
+                ) : user.role === "COLLEGE_ADMIN" ? (
+                  <Navigate to="/dashboard" />
+                ) : user.role === "TEACHER" ? (
+                  <Navigate to="/teacher/dashboard" />
+                ) : user.role === "STUDENT" ? (
+                  <Navigate to="/student/dashboard" />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+
+            {/* ================= PUBLIC ================= */}
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/register/:collegeCode"
+              element={<StudentRegister />}
+            />
+
+            {/* ================= SUPER ADMIN ================= */}
+            <Route
+              path="/super-admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/super-admin/create-college"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CreateNewCollege />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/super-admin/colleges-list"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CollegeList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <ViewCollegeDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <EditCollege />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/super-admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminReports />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= COLLEGE ADMIN ================= */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CollegeAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/profile"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CollegeProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/edit-profile"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditCollegeProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/view-student/:studentId"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewStudent />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/approve"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ApproveStudents />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/view-approved-student/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewApproveStudent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fees/create"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CreateFeeStructure />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/fees/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewFeeStructure />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/fees/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditFeeStructure />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/fees/list"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <FeeStructureList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notification/create"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CreateNotification />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notification/list"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <NotificationList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notification/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <UpdateNotifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notification/student"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentNotificationList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college-admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AdminReports />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college-admin/reports/course-wise"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CourseReport />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college-admin/reports/attendance"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AttendanceSummary />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college-admin/reports/payment-summary"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PaymentReports />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= TEACHER ================= */}
+            <Route
+              path="/teacher/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <TeacherDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/notifications/create"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateNotifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/notifications/list"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER", "COLLEGE_ADMIN"]}>
+                  <EditNotifications />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= STUDENT ================= */}
+            <Route
+              path="/student/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/profile"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/edit-profile"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <EditStudentProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/timetable"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentTimetable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/fees"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentFees />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/make-payment"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <MakePayments />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/fee-receipt/:paymentId"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <FeeReceipt />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/payment-success"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/payment-cancel"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <PaymentCancel />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= DEPARTMENTS ================= */}
+            <Route
+              path="/departments"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <DepartmentList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/departments/add"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AddDepartment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/departments/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditDepartment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/departments/assign-hod/:departmentId"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AssignHod />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= COURSES ================= */}
+            <Route
+              path="/courses"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CourseList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/courses/add"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AddCourse />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/courses/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditCourse />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/courses/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewCourse />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= STUDENTS ================= */}
+            <Route
+              path="/students"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <StudentList />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= ATTENDANCE ================= */}
+            <Route
+              path="/attendance/create-session"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateSessionModal />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/my-sessions-list"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <AttendanceSessionsList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/session/:sessionId"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <SessionDetails />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/session/:sessionId/mark"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MarkAttendanceModal />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/session/:sessionId/edit"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <EditAttendanceModal />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/report"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
+                  <AttendanceReport />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/attendance/list"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
+                  <AttendanceList />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= MY ATTENDANCE ================= */}
+            <Route
+              path="/my-attendance"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <MyAttendance />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= SUBJECTS ================= */}
+            <Route
+              path="/subjects/course/:courseId"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <SubjectList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subjects/add"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AddSubject />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subjects/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewSubject />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subjects/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditSubject />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= System settings ================= */}
+            <Route
+              path="/system-settings/fees"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <FeeSetting />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/system-settings/general"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <GeneralSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/academic"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AcademicSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/notifications"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <NotificationSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/teachers"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <TeachersList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teachers/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewTeacher />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teachers/add-teacher"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AddTeacher />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teachers/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EditTeacher />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/teachers/assign-subjects"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AssignTeacherSubjects />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= TEACHERS ================= */}
+            {/* TIMETABLE */}
+            <Route
+              path="/timetable/create-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateTimetable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable/list"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <TimetableList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/timetable/add-slot"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <AddTimetableSlot />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable/weekly-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MySchedule />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/timetable/:timetableId/weekly"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <WeeklyTimetable />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/timetable/view"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ViewTimetable />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/timetable/my-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MyTimetable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sessions/my-sessions"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MySessions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="profile/my-profile"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MyProfile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Sessions */}
+            <Route
+              path="/sessions/create"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateSession />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* New Timetable created by teacher(hod) */}
+            <Route
+              path="/timetable/create-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateTimetable />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= FALLBACK ================= */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </main>
+
+      {/* ================= GLOBAL STYLES ================= */}
+      <style>{`
+        /* App Wrapper */
+        .app-wrapper {
+          min-height: 100vh;
+          background: #f5f7fa;
+        }
+
+        /* Main Content */
+        .main-content {
+          transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          min-height: 100vh;
+        }
+
+        .main-content.with-sidebar {
+          margin-left: 280px;
+          width: calc(100% - 280px);
+        }
+
+        .main-content.full-width {
+          margin-left: 0;
+          width: 100%;
+        }
+
+        /* Content Wrapper */
+        .content-wrapper {
+          min-height: calc(100vh - 70px);
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 767.98px) {
+          .main-content.with-sidebar {
+            margin-left: 0 !important;
+            width: 100% !important;
+          }
+
+          .content-wrapper {
+            padding: 1rem !important;
+          }
+        }
+
+        @media (min-width: 768px) and (max-width: 991.98px) {
+          .content-wrapper {
+            padding: 1.5rem !important;
+          }
+        }
+
+        @media (min-width: 992px) {
+          .content-wrapper {
+            padding: 2rem !important;
+          }
+        }
+
+        /* Bootstrap Override for Better Spacing */
+        .p-3 {
+          padding: 1rem !important;
+        }
+
+        .p-4 {
+          padding: 1.5rem !important;
+        }
+
+        @media (min-width: 768px) {
+          .p-md-4 {
+            padding: 1.5rem !important;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
