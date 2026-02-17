@@ -613,7 +613,7 @@ export default function CollegeAdminDashboard() {
               </div>
             </div>
 
-            {/* RIGHT COLUMN - PENDING ADMISSIONS & SYSTEM STATUS */}
+            {/* RIGHT COLUMN - PENDING ADMISSIONS */}
             <div style={{ gridColumn: '1 / -1' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {/* PENDING ADMISSIONS */}
@@ -673,49 +673,6 @@ export default function CollegeAdminDashboard() {
                           success={true}
                         />
                       )}
-                    </div>
-                  </SectionCard>
-                </motion.div>
-
-                {/* SYSTEM STATUS */}
-                <motion.div
-                  variants={fadeInVariants}
-                  custom={4}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <SectionCard
-                    title="System Status"
-                    icon={<FaAward />}
-                    color={BRAND_COLORS.secondary.main}
-                  >
-                    <div style={{ padding: '1rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <StatusItem
-                          title="Database"
-                          detail="Operational"
-                          status="online"
-                          icon={<FaDatabase />}
-                        />
-                        <StatusItem
-                          title="Authentication"
-                          detail="Secure & Active"
-                          status="online"
-                          icon={<FaShieldAlt />}
-                        />
-                        <StatusItem
-                          title="File Storage"
-                          detail="Available"
-                          status="online"
-                          icon={<FaCloudUploadAlt />}
-                        />
-                        <StatusItem
-                          title="Reports Module"
-                          detail="Scheduled maintenance"
-                          status="maintenance"
-                          icon={<FaCogs />}
-                        />
-                      </div>
                     </div>
                   </SectionCard>
                 </motion.div>
