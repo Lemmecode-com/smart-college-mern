@@ -1,1236 +1,1604 @@
-import { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import api from "../../../api/axios"; // ✅ FIXED: Import real API instance
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import api from "../../../api/axios";
 import {
   FaUserGraduate,
-  FaClipboardList,
-  FaMoneyBillWave,
+  FaBook,
+  FaBuilding,
+  FaInfoCircle,
   FaCheckCircle,
   FaTimesCircle,
-  FaCalendarAlt,
-  FaBell,
-  FaBook,
-  FaClock,
-  FaDoorOpen,
-  FaUniversity,
-  FaLayerGroup,
-  FaGraduationCap,
-  FaArrowRight,
   FaExclamationTriangle,
+  FaClock,
+  FaMapMarkerAlt,
+  FaChalkboardTeacher,
+  FaRupeeSign,
+  FaBell,
+  FaCalendarAlt,
+  FaChartPie,
+  FaChartBar,
   FaDownload,
-  FaQrcode,
-  FaHistory,
+  FaEye,
   FaWallet,
-  FaChalkboardTeacher
+  FaGraduationCap,
+  FaAward,
+  FaTrophy,
+  FaStar,
+  FaSync,
 } from "react-icons/fa";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  AreaChart,
+  Area,
+} from "recharts";
 
 export default function StudentDashboard() {
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  
-  // Static mock data for unavailable endpoints (will replace with real API later)
-  const STATIC_STUDENT = {
-    fullName: "Rahul Sharma",
-    rollNumber: "CS2023001",
-    department: { name: "Computer Science" },
-    course: { name: "B.Tech Computer Science" },
-    semester: 5,
-    admissionYear: 2021,
-    photo: null
-  };
-
-  const STATIC_SUBJECT_ATTENDANCE = [
-    { subject: "Data Structures", code: "CS301", total: 45, present: 42, percentage: 93.3 },
-    { subject: "Operating Systems", code: "CS302", total: 40, present: 38, percentage: 95.0 },
-    { subject: "Database Management", code: "CS303", total: 35, present: 26, percentage: 74.3 },
-    { subject: "Computer Networks", code: "CS304", total: 30, present: 28, percentage: 93.3 },
-    { subject: "Machine Learning", code: "CS305", total: 25, present: 22, percentage: 88.0 }
-  ];
-
-  const STATIC_TIMETABLE = [
-    { 
-      startTime: "09:00", 
-      endTime: "10:00", 
-      subject: "Data Structures", 
-      room: "A-204",
-      teacher: "Dr. Mehta"
-    },
-    { 
-      startTime: "10:15", 
-      endTime: "11:15", 
-      subject: "Operating Systems", 
-      room: "B-101",
-      teacher: "Prof. Sharma"
-    },
-    { 
-      startTime: "11:30", 
-      endTime: "12:30", 
-      subject: "Database Management", 
-      room: "Lab-3",
-      teacher: "Dr. Patel"
-    }
-  ];
-
-  const STATIC_NOTIFICATIONS = [
-    { 
-      _id: "1", 
-      title: "Fee Payment Due", 
-      message: "Second installment due on Jan 15, 2024", 
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      read: false 
-    },
-    { 
-      _id: "2", 
-      title: "Exam Schedule Released", 
-      message: "End-semester exams start from Dec 5, 2023", 
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      read: true 
-    },
-    { 
-      _id: "3", 
-      title: "Holiday Notice", 
-      message: "College closed on Nov 1 for Diwali", 
-      createdAt: new Date(Date.now() - 259200000).toISOString(),
-      read: true 
-    }
-  ];
-
-  const STATIC_FEES = {
-    totalFee: 80000,
-    paid: 0,
-    due: 80000,
-    installments: [
-      { id: 1, dueDate: "2023-11-15", amount: 25000, status: "PAID" },
-      { id: 2, dueDate: "2024-01-15", amount: 25000, status: "DUE" },
-      { id: 3, dueDate: "2024-03-15", amount: 25000, status: "PENDING" }
-    ]
-  };
-
-  // State management
-  const [student, setStudent] = useState(STATIC_STUDENT);
-  const [attendance, setAttendance] = useState({
-    overall: 0,
-    total: 0,
-    present: 0,
-    absent: 0
-  });
-  const [subjectAttendance, setSubjectAttendance] = useState(STATIC_SUBJECT_ATTENDANCE);
-  const [timetable, setTimetable] = useState(STATIC_TIMETABLE);
-  const [notifications, setNotifications] = useState(STATIC_NOTIFICATIONS);
-  const [fees, setFees] = useState(STATIC_FEES);
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch dashboard data from REAL API endpoint
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // ✅ REAL API CALL: Fetch actual dashboard data
-        const res = await api.get("/dashboard/student");
-        
-        // Update attendance data from real API
-        const attendancePct = res.data.attendanceSummary.total > 0 
-          ? (res.data.attendanceSummary.present / res.data.attendanceSummary.total) * 100 
-          : 0;
-          
-        setAttendance({
-          ...res.data.attendanceSummary,
-          overall: attendancePct
-        });
-        
-        // Update fee data from real API
-        setFees(prev => ({
-          ...prev,
-          totalFee: res.data.feeSummary.totalFee,
-          paid: res.data.feeSummary.paid,
-          due: res.data.feeSummary.due
-        }));
-        
-        // Success message for debugging
-        console.log("✅ Dashboard data loaded successfully from /dashboard/student");
-      } catch (err) {
-        console.error("❌ Failed to load dashboard data:", err);
-        setError("Failed to load dashboard data. Using mock data for other sections.");
-        
-        // Set realistic fallback values from mock data
-        setAttendance({
-          overall: 86.5,
-          total: 120,
-          present: 104,
-          absent: 16
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchDashboardData();
+  }, [retryCount]);
 
-    // Only initialize if user is student
-    if (user?.role === "STUDENT") {
-      fetchData();
-    } else {
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get("/dashboard/student");
+      setDashboardData(response.data);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+      setError(
+        err.response?.data?.message ||
+          "Failed to load dashboard data. Please check your connection and try again."
+      );
+    } finally {
       setLoading(false);
     }
-  }, [user]);
-
-  // Calculate attendance percentage
-  const getAttendancePercentage = () => {
-    if (attendance.total === 0) return 0;
-    return ((attendance.present / attendance.total) * 100).toFixed(1);
   };
 
-  // Get today's date details
-  const today = new Date();
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const formattedDate = today.toLocaleDateString('en-US', options);
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
+  };
 
+  // Tooltip Component
+  const InfoTooltip = ({ message }) => (
+    <div className="info-tooltip-wrapper">
+      <FaInfoCircle className="info-icon" />
+      <div className="info-tooltip-content">
+        <span className="tooltip-text">{message}</span>
+      </div>
+    </div>
+  );
+
+  // Custom Tooltip for Charts
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-chart-tooltip">
+          <p className="tooltip-label">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="tooltip-value" style={{ color: entry.fill }}>
+              {entry.name}: {entry.value}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Prepare Attendance Pie Chart Data
+  const attendancePieData = dashboardData
+    ? [
+        {
+          name: "Present",
+          value: dashboardData.attendanceSummary.present,
+          color: "#28a745",
+        },
+        {
+          name: "Absent",
+          value: dashboardData.attendanceSummary.absent,
+          color: "#dc3545",
+        },
+      ]
+    : [];
+
+  // Prepare Subject-wise Bar Chart Data
+  const subjectBarData =
+    dashboardData?.subjectWiseAttendance.map((subject) => ({
+      subject: subject.subject,
+      code: subject.code,
+      present: subject.present,
+      total: subject.total,
+      percentage: subject.percentage,
+    })) || [];
+
+  // Loading State
   if (loading) {
     return (
-      <div className="novaa-dashboard">
-        <div className="novaa-loader">
-          <div className="novaa-loader-spinner"></div>
-          <p className="mt-3 text-muted">Loading your dashboard...</p>
+      <div className="dashboard-loading">
+        <div className="loading-spinner">
+          <FaGraduationCap className="spinner-icon" />
+          <div className="loading-text">Loading your dashboard...</div>
+          <div className="loading-bar">
+            <div className="loading-progress"></div>
+          </div>
         </div>
-        
-        <style jsx>{`
-          .novaa-dashboard {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-            padding: 2rem;
-          }
-          .novaa-loader {
-            text-align: center;
-          }
-          .novaa-loader-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(26, 75, 109, 0.1);
-            border-top: 4px solid #1a4b6d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
 
+  // Error State
+  if (error) {
+    return (
+      <div className="dashboard-error">
+        <div className="error-content">
+          <FaExclamationTriangle className="error-icon" />
+          <h3>Oops! Something went wrong</h3>
+          <p className="error-message">{error}</p>
+          <button onClick={handleRetry} className="retry-btn">
+            <FaSync /> Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) return null;
+
+  const {
+    student,
+    attendanceSummary,
+    subjectWiseAttendance,
+    todayTimetable,
+    feeSummary,
+    latestNotifications,
+  } = dashboardData;
+
+  // Utility Functions
+  const getFeeStatusColor = (status) => {
+    const colors = {
+      PAID: "#28a745",
+      PARTIAL: "#ffc107",
+      DUE: "#dc3545",
+    };
+    return colors[status] || "#6c757d";
+  };
+
+  const getAttendanceWarningColor = (percentage) => {
+    if (percentage >= 75) return "#28a745";
+    if (percentage >= 60) return "#ffc107";
+    return "#dc3545";
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   return (
-    <div className="novaa-dashboard">
-      {/* Header Section */}
-      <header className="novaa-header">
-        <div className="container-fluid">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-            <div className="mb-3 mb-md-0">
-              <h1 className="novaa-header-title">
-                <FaUserGraduate className="me-2" /> 
-                Student Dashboard
-              </h1>
-              <p className="novaa-header-subtitle mb-0">
-                Welcome back, <span className="fw-bold">{student.fullName}</span> • {formattedDate}
-              </p>
+    <div className="student-dashboard-container">
+      {/* ================= HEADER ================= */}
+      <div className="dashboard-header fade-in">
+        <div className="header-left">
+          <div className="header-icon-wrapper">
+            <FaGraduationCap />
+          </div>
+          <div>
+            <h1 className="dashboard-title">Welcome, {student.name}!</h1>
+          </div>
+        </div>
+        <div className="header-right">
+          <button className="btn-refresh" onClick={handleRetry}>
+            <FaSync className={loading ? "spinning" : ""} /> Refresh
+          </button>
+          <Link to="/student/make-payment" className="btn-primary">
+            <FaWallet /> Pay Fees
+          </Link>
+        </div>
+      </div>
+
+      {/* ================= INFO CARDS ROW ================= */}
+      <div className="info-cards-row">
+        <div className="info-card fade-in-up">
+          <div className="card-icon-wrapper blue">
+            <FaUserGraduate />
+          </div>
+          <div className="card-content">
+            <h3>{student.name}</h3>
+            <p>Student Name</p>
+            <InfoTooltip message="Your registered name in the system" />
+          </div>
+        </div>
+
+        <div className="info-card fade-in-up">
+          <div className="card-icon-wrapper green">
+            <FaBook />
+          </div>
+          <div className="card-content">
+            <h3>{student.course}</h3>
+            <p>Current Course</p>
+            <InfoTooltip message="Your enrolled course/subject" />
+          </div>
+        </div>
+
+        <div className="info-card fade-in-up">
+          <div className="card-icon-wrapper purple">
+            <FaBuilding />
+          </div>
+          <div className="card-content">
+            <h3>{student.department}</h3>
+            <p>Department</p>
+            <InfoTooltip message="Your academic department" />
+          </div>
+        </div>
+
+        <div className="info-card fade-in-up">
+          <div className="card-icon-wrapper orange">
+            <FaAward />
+          </div>
+          <div className="card-content">
+            <h3>{attendanceSummary.percentage}%</h3>
+            <p>Attendance</p>
+            <InfoTooltip message="Overall attendance percentage" />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= MAIN CONTENT GRID ================= */}
+      <div className="dashboard-grid">
+        {/* ================= ATTENDANCE SUMMARY ================= */}
+        <div className="dashboard-card attendance-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaChartPie className="card-icon" />
+              <h3>Attendance Summary</h3>
+              <InfoTooltip message="Your overall attendance statistics" />
             </div>
-            <div className="d-flex align-items-center novaa-header-actions">
-              <div className="novaa-quick-action me-2" onClick={() => navigate('/student/timetable')}>
-                <FaCalendarAlt size={20} />
-                <span>Timetable</span>
+            <Link to="/my-attendance" className="view-all-link">
+              <FaEye /> View All
+            </Link>
+          </div>
+
+          <div className="card-body">
+            <div className="attendance-stats">
+              <div className="stat-item">
+                <FaCheckCircle className="stat-icon present" />
+                <div>
+                  <span className="stat-value">{attendanceSummary.present}</span>
+                  <span className="stat-label">Present</span>
+                </div>
               </div>
-              <div className="novaa-quick-action me-2" onClick={() => navigate('/my-attendance')}>
-                <FaClipboardList size={20} />
+              <div className="stat-item">
+                <FaTimesCircle className="stat-icon absent" />
+                <div>
+                  <span className="stat-value">{attendanceSummary.absent}</span>
+                  <span className="stat-label">Absent</span>
+                </div>
+              </div>
+              <div className="stat-item">
+                <FaClock className="stat-icon total" />
+                <div>
+                  <span className="stat-value">{attendanceSummary.total}</span>
+                  <span className="stat-label">Total</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="attendance-chart">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={attendancePieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {attendancePieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="attendance-percentage">
+              <div className="progress-bar-wrapper">
+                <div
+                  className="progress-bar"
+                  style={{
+                    width: `${attendanceSummary.percentage}%`,
+                    backgroundColor: getAttendanceWarningColor(
+                      attendanceSummary.percentage
+                    ),
+                  }}
+                />
+              </div>
+              <span
+                className="percentage-text"
+                style={{
+                  color: getAttendanceWarningColor(attendanceSummary.percentage),
+                }}
+              >
+                {attendanceSummary.percentage}% Overall Attendance
+              </span>
+              {attendanceSummary.warning && (
+                <div className="attendance-warning">
+                  <FaExclamationTriangle /> Low Attendance! Minimum 75% required.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ================= SUBJECT-WISE ATTENDANCE ================= */}
+        <div className="dashboard-card subject-attendance-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaChartBar className="card-icon" />
+              <h3>Subject-wise Attendance</h3>
+              <InfoTooltip message="Attendance breakdown by subject" />
+            </div>
+          </div>
+
+          <div className="card-body">
+            <div className="subject-chart">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={subjectBarData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis
+                    dataKey="code"
+                    tick={{ fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar dataKey="present" fill="#28a745" name="Present" />
+                  <Bar dataKey="total" fill="#6c757d" name="Total" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="subject-list">
+              {subjectWiseAttendance.map((subject, index) => (
+                <div key={index} className="subject-item">
+                  <div className="subject-info">
+                    <span className="subject-name">{subject.subject}</span>
+                    <span className="subject-code">{subject.code}</span>
+                  </div>
+                  <div className="subject-progress">
+                    <div className="progress-bar-wrapper">
+                      <div
+                        className="progress-bar"
+                        style={{
+                          width: `${subject.percentage}%`,
+                          backgroundColor: getAttendanceWarningColor(
+                            subject.percentage
+                          ),
+                        }}
+                      />
+                    </div>
+                    <span
+                      className="percentage-text"
+                      style={{
+                        color: getAttendanceWarningColor(subject.percentage),
+                      }}
+                    >
+                      {subject.percentage}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ================= TODAY'S TIMETABLE ================= */}
+        <div className="dashboard-card timetable-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaCalendarAlt className="card-icon" />
+              <h3>Today's Timetable</h3>
+              <InfoTooltip message="Your scheduled classes for today" />
+            </div>
+            <Link to="/student/timetable" className="view-all-link">
+              <FaEye /> Full Timetable
+            </Link>
+          </div>
+
+          <div className="card-body">
+            {todayTimetable.length === 0 ? (
+              <div className="no-data">
+                <FaCalendarAlt className="no-data-icon" />
+                <p>No classes scheduled for today</p>
+              </div>
+            ) : (
+              <div className="timetable-list">
+                {todayTimetable.map((slot, index) => (
+                  <div key={index} className="timetable-slot">
+                    <div className="slot-time">
+                      <FaClock className="time-icon" />
+                      <div className="time-range">
+                        <span className="start-time">{slot.startTime}</span>
+                        <span className="time-separator">-</span>
+                        <span className="end-time">{slot.endTime}</span>
+                      </div>
+                    </div>
+                    <div className="slot-details">
+                      <h4 className="slot-subject">{slot.subject}</h4>
+                      <div className="slot-meta">
+                        <span className="slot-code">{slot.code}</span>
+                        <span className="slot-type">{slot.slotType}</span>
+                      </div>
+                      <div className="slot-info">
+                        <span className="slot-teacher">
+                          <FaChalkboardTeacher /> {slot.teacher}
+                        </span>
+                        <span className="slot-room">
+                          <FaMapMarkerAlt /> Room {slot.room}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ================= FEE SUMMARY ================= */}
+        <div className="dashboard-card fee-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaWallet className="card-icon" />
+              <h3>Fee Summary</h3>
+              <InfoTooltip message="Your fee payment status" />
+            </div>
+            <Link to="/student/fees" className="view-all-link">
+              <FaEye /> View Details
+            </Link>
+          </div>
+
+          <div className="card-body">
+            <div className="fee-overview">
+              <div className="fee-stat">
+                <span className="fee-label">Total Fee</span>
+                <span className="fee-value">
+                  {formatCurrency(feeSummary.totalFee)}
+                </span>
+              </div>
+              <div className="fee-stat">
+                <span className="fee-label">Paid</span>
+                <span className="fee-value paid">
+                  {formatCurrency(feeSummary.paid)}
+                </span>
+              </div>
+              <div className="fee-stat">
+                <span className="fee-label">Due</span>
+                <span className="fee-value due">
+                  {formatCurrency(feeSummary.due)}
+                </span>
+              </div>
+            </div>
+
+            <div className="fee-status">
+              <div
+                className="status-badge"
+                style={{ backgroundColor: getFeeStatusColor(feeSummary.paymentStatus) }}
+              >
+                {feeSummary.paymentStatus}
+              </div>
+            </div>
+
+            <div className="fee-progress">
+              <div className="progress-label">
+                <span>Payment Progress</span>
+                <span>
+                  {Math.round((feeSummary.paid / feeSummary.totalFee) * 100)}%
+                </span>
+              </div>
+              <div className="progress-bar-wrapper">
+                <div
+                  className="progress-bar"
+                  style={{
+                    width: `${(feeSummary.paid / feeSummary.totalFee) * 100}%`,
+                    backgroundColor: getFeeStatusColor(feeSummary.paymentStatus),
+                  }}
+                />
+              </div>
+            </div>
+
+            {feeSummary.paymentStatus !== "PAID" && (
+              <Link to="/student/make-payment" className="btn-pay-now">
+                <FaRupeeSign /> Pay Now
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* ================= LATEST NOTIFICATIONS ================= */}
+        <div className="dashboard-card notifications-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaBell className="card-icon" />
+              <h3>Latest Notifications</h3>
+              <InfoTooltip message="Recent announcements and updates" />
+            </div>
+            <Link to="/notification/student" className="view-all-link">
+              <FaEye /> View All
+            </Link>
+          </div>
+
+          <div className="card-body">
+            {latestNotifications.length === 0 ? (
+              <div className="no-data">
+                <FaBell className="no-data-icon" />
+                <p>No new notifications</p>
+              </div>
+            ) : (
+              <div className="notifications-list">
+                {latestNotifications.slice(0, 5).map((notification) => (
+                  <div
+                    key={notification._id}
+                    className={`notification-item ${
+                      !notification.isRead ? "unread" : ""
+                    }`}
+                  >
+                    <div className="notification-icon">
+                      <FaBell
+                        className={notification.isRead ? "read" : "unread"}
+                      />
+                    </div>
+                    <div className="notification-content">
+                      <h4 className="notification-title">{notification.title}</h4>
+                      <p className="notification-message">{notification.message}</p>
+                      <div className="notification-meta">
+                        <span className="notification-type">
+                          {notification.type}
+                        </span>
+                        <span className="notification-date">
+                          {formatDate(notification.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ================= QUICK ACTIONS ================= */}
+        <div className="dashboard-card quick-actions-card fade-in-up">
+          <div className="card-header">
+            <div className="card-title-wrapper">
+              <FaStar className="card-icon" />
+              <h3>Quick Actions</h3>
+              <InfoTooltip message="Frequently used actions" />
+            </div>
+          </div>
+
+          <div className="card-body">
+            <div className="quick-actions-grid">
+              <Link to="/my-attendance" className="quick-action-item">
+                <FaChartPie className="action-icon" />
                 <span>Attendance</span>
-              </div>
-              <div className="novaa-quick-action" onClick={() => navigate('/student/fees')}>
-                <FaWallet size={20} />
-                <span>Fee Portal</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container-fluid novaa-container">
-        {/* Summary Cards - REAL DATA FROM API */}
-        <div className="row g-4 mb-4">
-          <div className="col-xl-3 col-md-6 novaa-fade-in">
-            <div className="novaa-card novaa-card-hover h-100">
-              <div className="novaa-card-icon novaa-card-icon-attendance">
-                <FaClipboardList size={28} />
-              </div>
-              <div className="novaa-card-content">
-                <h3 className="novaa-card-title">Attendance</h3>
-                <div className="novaa-card-value">{getAttendancePercentage()}%</div>
-                <div className="novaa-card-meta">
-                  <span className="text-success"><FaCheckCircle className="me-1" /> {attendance.present} Present</span>
-                  <span className="text-danger ms-3"><FaTimesCircle className="me-1" /> {attendance.absent} Absent</span>
-                </div>
-                <div className="novaa-progress mt-3">
-                  <div 
-                    className="novaa-progress-bar" 
-                    style={{ width: `${getAttendancePercentage()}%`, backgroundColor: getAttendancePercentage() < 75 ? '#ef4444' : '#10b981' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-xl-3 col-md-6 novaa-fade-in" style={{ "--delay": "0.1s" }}>
-            <div className="novaa-card novaa-card-hover h-100">
-              <div className="novaa-card-icon novaa-card-icon-fee">
-                <FaMoneyBillWave size={28} />
-              </div>
-              <div className="novaa-card-content">
-                <h3 className="novaa-card-title">Total Fee</h3>
-                <div className="novaa-card-value">₹{fees.totalFee.toLocaleString()}</div>
-                <div className="novaa-card-meta">
-                  <span className="text-success"><FaCheckCircle className="me-1" /> Paid: ₹{fees.paid.toLocaleString()}</span>
-                </div>
-                <div className="mt-3">
-                  <span className="badge bg-light text-dark border novaa-badge">Academic Year 2023-24</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-xl-3 col-md-6 novaa-fade-in" style={{ "--delay": "0.2s" }}>
-            <div className="novaa-card novaa-card-hover h-100">
-              <div className="novaa-card-icon novaa-card-icon-paid">
-                <FaCheckCircle size={28} />
-              </div>
-              <div className="novaa-card-content">
-                <h3 className="novaa-card-title">Paid Amount</h3>
-                <div className="novaa-card-value text-success">₹{fees.paid.toLocaleString()}</div>
-                <div className="novaa-card-meta">
-                  <span>{((fees.paid / fees.totalFee) * 100).toFixed(0)}% of total fee</span>
-                </div>
-                <div className="mt-3">
-                  <span className="badge bg-success novaa-badge">Receipt Available</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="col-xl-3 col-md-6 novaa-fade-in" style={{ "--delay": "0.3s" }}>
-            <div className="novaa-card novaa-card-hover h-100">
-              <div className="novaa-card-icon novaa-card-icon-due">
-                <FaTimesCircle size={28} />
-              </div>
-              <div className="novaa-card-content">
-                <h3 className="novaa-card-title">Due Amount</h3>
-                <div className="novaa-card-value text-danger">₹{fees.due.toLocaleString()}</div>
-                <div className="novaa-card-meta">
-                  <span>Next due: {new Date(fees.installments.find(i => i.status === 'DUE')?.dueDate || Date.now()).toLocaleDateString()}</span>
-                </div>
-                {fees.due > 0 && (
-                  <button 
-                    className="btn novaa-btn-primary mt-3 w-100"
-                    onClick={() => navigate('/student/make-payment')}
-                  >
-                    <FaWallet className="me-1" /> Pay Now
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="row g-4">
-          {/* Left Column */}
-          <div className="col-lg-8">
-            {/* Profile Snapshot - STATIC MOCK DATA (endpoint not ready) */}
-            <div className="novaa-card novaa-fade-in mb-4" style={{ "--delay": "0.4s" }}>
-              <div className="novaa-card-header">
-                <h2 className="h5 mb-0"><FaUserGraduate className="me-2" /> Profile Snapshot</h2>
-              </div>
-              <div className="novaa-card-body">
-                <div className="row align-items-center">
-                  <div className="col-md-3 text-center mb-3 mb-md-0">
-                    <div className="novaa-avatar">
-                      {student.photo ? (
-                        <img src={student.photo} alt={student.fullName} />
-                      ) : (
-                        <div className="novaa-avatar-placeholder">
-                          <span>{student.fullName.charAt(0)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="col-md-9">
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Full Name</span>
-                          <span className="novaa-profile-value">{student.fullName}</span>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Roll Number</span>
-                          <span className="novaa-profile-value">{student.rollNumber}</span>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Department</span>
-                          <span className="novaa-profile-value">{student.department?.name || 'N/A'}</span>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Course</span>
-                          <span className="novaa-profile-value">{student.course?.name || 'N/A'}</span>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Semester</span>
-                          <span className="novaa-profile-value">Semester {student.semester}</span>
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="novaa-profile-item">
-                          <span className="novaa-profile-label">Admission Year</span>
-                          <span className="novaa-profile-value">{student.admissionYear}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Today's Timetable - STATIC MOCK DATA (endpoint not ready) */}
-            <div className="novaa-card novaa-fade-in mb-4" style={{ "--delay": "0.5s" }}>
-              <div className="novaa-card-header">
-                <h2 className="h5 mb-0"><FaCalendarAlt className="me-2" /> Today's Timetable</h2>
-                <span className="badge bg-primary">{timetable.length} Classes</span>
-              </div>
-              <div className="novaa-card-body p-0">
-                {timetable.length > 0 ? (
-                  <div className="novaa-timetable">
-                    {timetable.map((slot, index) => (
-                      <div key={index} className="novaa-timetable-slot">
-                        <div className="novaa-timetable-time">
-                          <div className="novaa-timetable-hour">{slot.startTime}</div>
-                          <div className="novaa-timetable-divider"></div>
-                          <div className="novaa-timetable-hour">{slot.endTime}</div>
-                        </div>
-                        <div className="novaa-timetable-details">
-                          <div className="novaa-timetable-subject">
-                            <FaBook className="me-2 text-primary" />
-                            <span className="fw-bold">{slot.subject}</span>
-                          </div>
-                          <div className="novaa-timetable-meta">
-                            <span><FaDoorOpen className="me-1 text-info" /> Room {slot.room}</span>
-                            <span className="ms-3"><FaChalkboardTeacher className="me-1 text-success" /> {slot.teacher}</span>
-                          </div>
-                          <div className="novaa-timetable-actions">
-                            <button className="btn btn-sm novaa-btn-outline-primary">
-                              <FaQrcode className="me-1" /> Mark Attendance
-                            </button>
-                            <button className="btn btn-sm novaa-btn-outline-secondary ms-2">
-                              <FaHistory className="me-1" /> View Materials
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-5">
-                    <div className="novaa-empty-icon">
-                      <FaCalendarAlt size={48} className="text-muted" />
-                    </div>
-                    <p className="text-muted mt-3">No classes scheduled for today</p>
-                    <button className="btn novaa-btn-outline-primary mt-2" onClick={() => navigate('/student/my-timetable')}>
-                      <FaArrowRight className="me-1" /> View Full Timetable
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Subject-wise Attendance - STATIC MOCK DATA (endpoint not ready) */}
-            <div className="novaa-card novaa-fade-in" style={{ "--delay": "0.6s" }}>
-              <div className="novaa-card-header">
-                <h2 className="h5 mb-0"><FaClipboardList className="me-2" /> Subject-wise Attendance</h2>
-              </div>
-              <div className="novaa-card-body p-0">
-                <div className="table-responsive">
-                  <table className="table novaa-table mb-0">
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>Code</th>
-                        <th>Present</th>
-                        <th>Total</th>
-                        <th>Percentage</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subjectAttendance.map((subject, index) => (
-                        <tr key={index} className={subject.percentage < 75 ? 'novaa-table-row-critical' : ''}>
-                          <td className="fw-medium">{subject.subject}</td>
-                          <td><span className="badge bg-light text-dark">{subject.code}</span></td>
-                          <td>{subject.present}</td>
-                          <td>{subject.total}</td>
-                          <td>
-                            <div className="novaa-attendance-cell">
-                              <span className={subject.percentage < 75 ? 'text-danger fw-bold' : 'text-success fw-bold'}>
-                                {subject.percentage}%
-                              </span>
-                              <div className="novaa-progress-small mt-1">
-                                <div 
-                                  className="novaa-progress-bar-small" 
-                                  style={{ 
-                                    width: `${subject.percentage}%`, 
-                                    backgroundColor: subject.percentage < 75 ? '#ef4444' : '#10b981' 
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`badge ${subject.percentage < 75 ? 'bg-danger' : 'bg-success'}`}>
-                              {subject.percentage < 75 ? 'Critical' : 'Good'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="novaa-card-footer">
-                  <button className="btn novaa-btn-link" onClick={() => navigate('/student/my-attendance')}>
-                    <FaArrowRight className="me-1" /> View Detailed Attendance Report
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Right Column */}
-          <div className="col-lg-4">
-            {/* Notifications - STATIC MOCK DATA (endpoint not ready) */}
-            <div className="novaa-card novaa-fade-in mb-4" style={{ "--delay": "0.5s" }}>
-              <div className="novaa-card-header">
-                <h2 className="h5 mb-0"><FaBell className="me-2" /> Latest Notifications</h2>
-                <span className="badge bg-danger">{notifications.filter(n => !n.read).length} New</span>
-              </div>
-              <div className="novaa-card-body p-0">
-                {notifications.length > 0 ? (
-                  <div className="novaa-notifications">
-                    {notifications.map((notification, index) => (
-                      <div 
-                        key={notification._id} 
-                        className={`novaa-notification ${!notification.read ? 'novaa-notification-unread' : ''}`}
-                      >
-                        <div className="novaa-notification-icon">
-                          <div className={`novaa-notification-badge ${!notification.read ? 'bg-danger' : 'bg-secondary'}`}></div>
-                        </div>
-                        <div className="novaa-notification-content">
-                          <h5 className="novaa-notification-title">{notification.title}</h5>
-                          <p className="novaa-notification-message mb-1">{notification.message}</p>
-                          <small className="text-muted">
-                            <FaClock className="me-1" />
-                            {new Date(notification.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </small>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <div className="novaa-empty-icon">
-                      <FaBell size={48} className="text-muted" />
-                    </div>
-                    <p className="text-muted mt-3">No new notifications</p>
-                  </div>
-                )}
-                <div className="novaa-card-footer">
-                  <button className="btn novaa-btn-link w-100" onClick={() => navigate('/student/notifications')}>
-                    <FaArrowRight className="me-1" /> View All Notifications
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Fee Summary - REAL DATA FROM API */}
-            <div className="novaa-card novaa-fade-in" style={{ "--delay": "0.6s" }}>
-              <div className="novaa-card-header">
-                <h2 className="h5 mb-0"><FaMoneyBillWave className="me-2" /> Fee Summary</h2>
-              </div>
-              <div className="novaa-card-body">
-                <div className="novaa-fee-summary">
-                  <div className="novaa-fee-item">
-                    <span>Total Fee</span>
-                    <span className="fw-bold">₹{fees.totalFee.toLocaleString()}</span>
-                  </div>
-                  <div className="novaa-fee-item">
-                    <span>Paid Amount</span>
-                    <span className="text-success fw-bold">₹{fees.paid.toLocaleString()}</span>
-                  </div>
-                  <div className="novaa-fee-item novaa-fee-due">
-                    <span>Due Amount</span>
-                    <span className="text-danger fw-bold">₹{fees.due.toLocaleString()}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <h6 className="fw-bold mb-3"><FaCalendarAlt className="me-2" /> Installment Schedule</h6>
-                  <div className="novaa-installments">
-                    {fees.installments.map((installment) => (
-                      <div key={installment.id} className="novaa-installment-item">
-                        <div>
-                          <div className="fw-bold">Installment {installment.id}</div>
-                          <small className="text-muted">
-                            Due: {new Date(installment.dueDate).toLocaleDateString()}
-                          </small>
-                        </div>
-                        <div className="text-end">
-                          <div className="fw-bold">₹{installment.amount.toLocaleString()}</div>
-                          <span className={`badge ${
-                            installment.status === 'PAID' ? 'bg-success' : 
-                            installment.status === 'DUE' ? 'bg-danger' : 'bg-secondary'
-                          }`}>
-                            {installment.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {fees.due > 0 && (
-                  <button 
-                    className="btn novaa-btn-primary w-100 mt-4"
-                    onClick={() => navigate('/student/make-payment')}
-                  >
-                    <FaWallet className="me-2" /> Pay Due Amount: ₹{fees.due.toLocaleString()}
-                  </button>
-                )}
-                
-                <div className="novaa-card-footer mt-3 pt-3 border-top">
-                  <button className="btn novaa-btn-outline-primary w-100" onClick={() => navigate('/student/fee-receipts')}>
-                    <FaDownload className="me-1" /> Download Receipts
-                  </button>
-                </div>
-              </div>
+              </Link>
+              <Link to="/student/timetable" className="quick-action-item">
+                <FaCalendarAlt className="action-icon" />
+                <span>Timetable</span>
+              </Link>
+              <Link to="/student/fees" className="quick-action-item">
+                <FaWallet className="action-icon" />
+                <span>Fees</span>
+              </Link>
+              <Link to="/student/profile" className="quick-action-item">
+                <FaUserGraduate className="action-icon" />
+                <span>Profile</span>
+              </Link>
+              <Link to="/notification/student" className="quick-action-item">
+                <FaBell className="action-icon" />
+                <span>Notifications</span>
+              </Link>
+              <Link to="/student/fee-receipt" className="quick-action-item">
+                <FaDownload className="action-icon" />
+                <span>Receipts</span>
+              </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <style jsx>{`
-        .novaa-dashboard {
-          background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+      {/* ================= STYLES ================= */}
+      <style>{`
+        /* ================= CONTAINER ================= */
+        .student-dashboard-container {
+          padding: 1.5rem;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
           min-height: 100vh;
-          padding-top: 20px;
-          padding-bottom: 40px;
         }
-        
-        /* Header Styles */
-        .novaa-header {
-          background: linear-gradient(120deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          padding: 1.5rem 0;
-          margin-bottom: 2rem;
-          border-radius: 0 0 20px 20px;
-          box-shadow: 0 4px 20px rgba(26, 75, 109, 0.25);
-        }
-        
-        .novaa-header-title {
-          font-size: 1.8rem;
-          font-weight: 700;
-          margin-bottom: 0.25rem;
+
+        /* ================= LOADING STATE ================= */
+        .dashboard-loading {
           display: flex;
           align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
         }
-        
-        .novaa-header-subtitle {
-          opacity: 0.9;
-          font-size: 1.05rem;
+
+        .loading-spinner {
+          text-align: center;
         }
-        
-        .novaa-header-actions {
-          margin-top: 1rem;
+
+        .spinner-icon {
+          font-size: 5rem;
+          color: #1a4b6d;
+          animation: float 3s ease-in-out infinite;
         }
-        
-        .novaa-quick-action {
-          background: rgba(255, 255, 255, 0.15);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+
+        .loading-text {
+          margin-top: 1.5rem;
+          font-size: 1.25rem;
+          color: #1a4b6d;
+          font-weight: 600;
+        }
+
+        .loading-bar {
+          width: 200px;
+          height: 4px;
+          background: #e0e0e0;
+          border-radius: 2px;
+          margin: 1.5rem auto 0;
+          overflow: hidden;
+        }
+
+        .loading-progress {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, #1a4b6d, #2d6f8f);
+          animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        /* ================= ERROR STATE ================= */
+        .dashboard-error {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+        }
+
+        .error-content {
+          text-align: center;
+          padding: 3rem;
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-icon {
+          font-size: 5rem;
+          color: #dc3545;
+          margin-bottom: 1.5rem;
+        }
+
+        .error-content h3 {
+          margin: 0 0 1rem;
+          color: #1a4b6d;
+          font-size: 1.75rem;
+        }
+
+        .error-message {
+          color: #6c757d;
+          margin-bottom: 2rem;
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .retry-btn {
+          padding: 0.875rem 2rem;
+          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
           color: white;
-          padding: 0.75rem 1.25rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
+        }
+
+        .retry-btn .spinning {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* ================= HEADER ================= */
+        .dashboard-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem;
+          background: white;
           border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+        }
+
+        .header-icon-wrapper {
+          width: 70px;
+          height: 70px;
+          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 2.5rem;
+          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
+        }
+
+        .dashboard-title {
+          margin: 0;
+          font-size: 1.75rem;
+          color: #1a4b6d;
+          font-weight: 700;
+        }
+
+        .dashboard-subtitle {
+          margin: 0.25rem 0 0;
+          color: #6c757d;
+          font-size: 1rem;
+        }
+
+        .header-right {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .btn-refresh,
+        .btn-primary {
+          padding: 0.75rem 1.25rem;
+          border-radius: 8px;
+          font-weight: 600;
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-weight: 500;
+          text-decoration: none;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-left: 0.5rem;
-        }
-        
-        .novaa-quick-action:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
-        }
-        
-        /* Container Styles */
-        .novaa-container {
-          max-width: 1600px;
-        }
-        
-        /* Card Styles */
-        .novaa-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          margin-bottom: 1.5rem;
-          transition: all 0.3s ease;
           border: none;
-          overflow: hidden;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
         }
-        
-        .novaa-card-hover:hover {
+
+        .btn-refresh {
+          background: #f8f9fa;
+          color: #1a4b6d;
+          border: 2px solid #1a4b6d;
+        }
+
+        .btn-refresh:hover {
+          background: #1a4b6d;
+          color: white;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
+          color: white;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
+        }
+
+        /* ================= INFO CARDS ================= */
+        .info-cards-row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .info-card {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1.5rem;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          transition: all 0.3s ease;
+          position: relative;
+        }
+
+        .info-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.15);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
-        
-        .novaa-card-header {
+
+        .card-icon-wrapper {
+          width: 60px;
+          height: 60px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.75rem;
+          color: white;
+          flex-shrink: 0;
+        }
+
+        .card-icon-wrapper.blue { background: linear-gradient(135deg, #007bff, #0056b3); }
+        .card-icon-wrapper.green { background: linear-gradient(135deg, #28a745, #1e7e34); }
+        .card-icon-wrapper.purple { background: linear-gradient(135deg, #6f42c1, #4a2d8a); }
+        .card-icon-wrapper.orange { background: linear-gradient(135deg, #fd7e14, #c95d0a); }
+
+        .card-content {
+          flex: 1;
+          position: relative;
+        }
+
+        .card-content h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          color: #1a4b6d;
+          font-weight: 700;
+        }
+
+        .card-content p {
+          margin: 0.25rem 0 0;
+          font-size: 0.85rem;
+          color: #6c757d;
+        }
+
+        /* ================= TOOLTIP ================= */
+        .info-tooltip-wrapper {
+          position: absolute;
+          top: 0;
+          right: 0;
+          cursor: pointer;
+        }
+
+        .info-icon {
+          color: #6c757d;
+          font-size: 1rem;
+          transition: color 0.3s ease;
+        }
+
+        .info-icon:hover {
+          color: #1a4b6d;
+        }
+
+        .info-tooltip-content {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: #1a4b6d;
+          color: white;
+          padding: 0.5rem 0.75rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          white-space: nowrap;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s ease;
+          z-index: 100;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+          margin-top: 5px;
+        }
+
+        .info-tooltip-content::before {
+          content: "";
+          position: absolute;
+          bottom: 100%;
+          right: 1rem;
+          border: 6px solid transparent;
+          border-bottom-color: #1a4b6d;
+        }
+
+        .info-tooltip-wrapper:hover .info-tooltip-content {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+
+        /* ================= DASHBOARD GRID ================= */
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 1.5rem;
+        }
+
+        /* ================= CARD STYLES ================= */
+        .dashboard-card {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           padding: 1.25rem 1.5rem;
-          background: linear-gradient(to right, #f8fafc, #f1f5f9);
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid #e9ecef;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .card-title-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .card-icon {
+          font-size: 1.25rem;
+          color: #1a4b6d;
+        }
+
+        .card-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          color: #1a4b6d;
+          font-weight: 700;
+        }
+
+        .view-all-link {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #1a4b6d;
+          text-decoration: none;
+          font-size: 0.85rem;
+          font-weight: 600;
+          transition: color 0.3s ease;
+        }
+
+        .view-all-link:hover {
+          color: #2d6f8f;
+        }
+
+        .card-body {
+          padding: 1.5rem;
+        }
+
+        /* ================= ATTENDANCE ================= */
+        .attendance-stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+
+        .stat-icon {
+          font-size: 1.5rem;
+        }
+
+        .stat-icon.present { color: #28a745; }
+        .stat-icon.absent { color: #dc3545; }
+        .stat-icon.total { color: #17a2b8; }
+
+        .stat-value {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1a4b6d;
+        }
+
+        .stat-label {
+          font-size: 0.75rem;
+          color: #6c757d;
+        }
+
+        .attendance-chart {
+          margin: 1.5rem 0;
+        }
+
+        .attendance-percentage {
+          text-align: center;
+        }
+
+        .progress-bar-wrapper {
+          width: 100%;
+          height: 10px;
+          background: #e9ecef;
+          border-radius: 5px;
+          overflow: hidden;
+          margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+          height: 100%;
+          border-radius: 5px;
+          transition: width 0.5s ease;
+        }
+
+        .percentage-text {
+          font-size: 0.9rem;
+          font-weight: 600;
+        }
+
+        .attendance-warning {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          background: #fff3cd;
+          color: #856404;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+
+        /* ================= SUBJECT ATTENDANCE ================= */
+        .subject-chart {
+          margin-bottom: 1.5rem;
+        }
+
+        .subject-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .subject-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+
+        .subject-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        
-        .novaa-card-body {
-          padding: 1.5rem;
+
+        .subject-name {
+          font-weight: 600;
+          color: #1a4b6d;
         }
-        
-        .novaa-card-footer {
-          padding: 1rem 1.5rem;
-          border-top: 1px solid #f1f5f9;
-          background-color: #f8fafc;
+
+        .subject-code {
+          font-size: 0.75rem;
+          color: #6c757d;
+          background: #e9ecef;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
         }
-        
-        /* Summary Cards */
-        .novaa-card-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 16px;
+
+        .subject-progress {
           display: flex;
           align-items: center;
-          justify-content: center;
-          margin-bottom: 1.25rem;
-          font-size: 1.5rem;
+          gap: 1rem;
         }
-        
-        .novaa-card-icon-attendance { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; }
-        .novaa-card-icon-fee { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #c2410c; }
-        .novaa-card-icon-paid { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
-        .novaa-card-icon-due { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #b91c1c; }
-        
-        .novaa-card-content {
-          text-align: center;
+
+        .subject-progress .progress-bar-wrapper {
+          flex: 1;
+          margin-bottom: 0;
         }
-        
-        .novaa-card-title {
-          font-size: 1.1rem;
-          color: #4a5568;
-          margin-bottom: 0.5rem;
-          font-weight: 600;
+
+        /* ================= TIMETABLE ================= */
+        .timetable-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
         }
-        
-        .novaa-card-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #0f172a;
-          margin-bottom: 0.5rem;
+
+        .timetable-slot {
+          display: flex;
+          gap: 1rem;
+          padding: 1rem;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 8px;
+          border-left: 4px solid #1a4b6d;
+          transition: all 0.3s ease;
         }
-        
-        .novaa-card-meta {
-          font-size: 0.9rem;
-          color: #64748b;
-        }
-        
-        .novaa-badge {
-          padding: 0.35rem 0.75rem;
-          border-radius: 20px;
-          font-weight: 500;
-          font-size: 0.85rem;
-        }
-        
-        /* Progress Bars */
-        .novaa-progress {
-          height: 8px;
-          background: #e2e8f0;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        
-        .novaa-progress-bar {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease;
-        }
-        
-        .novaa-progress-small {
-          height: 6px;
-          background: #e2e8f0;
-          border-radius: 3px;
-          overflow: hidden;
-        }
-        
-        .novaa-progress-bar-small {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.5s ease;
-        }
-        
-        /* Profile Styles */
-        .novaa-avatar {
-          width: 120px;
-          height: 120px;
-          border-radius: 50%;
-          overflow: hidden;
-          margin: 0 auto;
-          border: 4px solid #dbeafe;
+
+        .timetable-slot:hover {
+          transform: translateX(5px);
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        
-        .novaa-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        
-        .novaa-avatar-placeholder {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+
+        .slot-time {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
-          font-size: 3rem;
-          font-weight: 700;
-          color: #1e40af;
-        }
-        
-        .novaa-profile-item {
+          min-width: 90px;
           padding: 0.75rem;
-          border-radius: 12px;
-          background: #f8fafc;
-          margin-bottom: 0.75rem;
+          background: white;
+          border-radius: 8px;
+          text-align: center;
         }
-        
-        .novaa-profile-label {
-          font-size: 0.85rem;
-          color: #64748b;
-          display: block;
+
+        .time-icon {
+          font-size: 1.25rem;
+          color: #1a4b6d;
           margin-bottom: 0.25rem;
         }
-        
-        .novaa-profile-value {
-          font-weight: 600;
-          color: #0f172a;
-          font-size: 1.1rem;
-        }
-        
-        /* Timetable Styles */
-        .novaa-timetable {
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        
-        .novaa-timetable-slot {
-          display: flex;
-          padding: 1.25rem;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        
-        .novaa-timetable-slot:last-child {
-          border-bottom: none;
-        }
-        
-        .novaa-timetable-time {
-          min-width: 100px;
-          text-align: center;
-          padding-right: 1.5rem;
-          border-right: 2px dashed #e2e8f0;
-        }
-        
-        .novaa-timetable-hour {
-          font-weight: 700;
-          color: #1a4b6d;
-          font-size: 1.1rem;
-        }
-        
-        .novaa-timetable-divider {
-          height: 24px;
-          width: 2px;
-          background: #cbd5e1;
-          margin: 4px auto;
-        }
-        
-        .novaa-timetable-details {
-          flex: 1;
-          padding-left: 1.5rem;
-        }
-        
-        .novaa-timetable-subject {
-          font-size: 1.15rem;
-          margin-bottom: 0.5rem;
+
+        .time-range {
           display: flex;
           align-items: center;
+          gap: 0.25rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1a4b6d;
         }
-        
-        .novaa-timetable-meta {
-          font-size: 0.95rem;
-          color: #4a5568;
-          margin-bottom: 1rem;
+
+        .time-separator {
+          color: #6c757d;
+        }
+
+        .slot-details {
+          flex: 1;
+        }
+
+        .slot-subject {
+          margin: 0 0 0.5rem;
+          font-size: 1rem;
+          color: #1a4b6d;
+          font-weight: 700;
+        }
+
+        .slot-meta {
+          display: flex;
+          gap: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .slot-code,
+        .slot-type {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          background: #e9ecef;
+          color: #6c757d;
+        }
+
+        .slot-type {
+          background: #1a4b6d;
+          color: white;
+        }
+
+        .slot-info {
           display: flex;
           flex-wrap: wrap;
           gap: 1rem;
+          font-size: 0.85rem;
+          color: #6c757d;
         }
-        
-        .novaa-timetable-actions {
-          display: flex;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-        
-        /* Table Styles */
-        .novaa-table {
-          margin-bottom: 0;
-        }
-        
-        .novaa-table thead th {
-          background: #f8fafc;
-          font-weight: 600;
-          color: #1e293b;
-          padding: 1rem 1.25rem;
-          border-bottom: 2px solid #e2e8f0;
-        }
-        
-        .novaa-table tbody td {
-          padding: 1rem 1.25rem;
-          border-color: #f1f5f9;
-          vertical-align: middle;
-        }
-        
-        .novaa-table-row-critical {
-          background-color: #fff1f2 !important;
-        }
-        
-        .novaa-attendance-cell {
-          display: flex;
-          flex-direction: column;
-        }
-        
-        /* Notifications */
-        .novaa-notifications {
-          max-height: 350px;
-          overflow-y: auto;
-        }
-        
-        .novaa-notification {
-          display: flex;
-          padding: 1.25rem;
-          border-bottom: 1px solid #f1f5f9;
-          transition: background 0.2s ease;
-        }
-        
-        .novaa-notification:hover {
-          background: #f8fafc;
-        }
-        
-        .novaa-notification:last-child {
-          border-bottom: none;
-        }
-        
-        .novaa-notification-unread {
-          background: #f0f9ff !important;
-          border-left: 3px solid #3b82f6;
-        }
-        
-        .novaa-notification-icon {
-          min-width: 40px;
+
+        .slot-teacher,
+        .slot-room {
           display: flex;
           align-items: center;
-          justify-content: center;
-          position: relative;
+          gap: 0.5rem;
         }
-        
-        .novaa-notification-badge {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          position: absolute;
-          top: 4px;
-          right: 4px;
-        }
-        
-        .novaa-notification-content {
-          flex: 1;
-          padding-left: 1rem;
-        }
-        
-        .novaa-notification-title {
-          font-weight: 600;
-          color: #0f172a;
-          margin-bottom: 0.25rem;
-          font-size: 1.05rem;
-        }
-        
-        .novaa-notification-message {
-          color: #4a5568;
-          font-size: 0.95rem;
-          line-height: 1.5;
-        }
-        
-        /* Fee Styles */
-        .novaa-fee-summary {
-          background: #f8fafc;
-          border-radius: 12px;
-          padding: 1.5rem;
+
+        /* ================= FEE ================= */
+        .fee-overview {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
           margin-bottom: 1.5rem;
         }
-        
-        .novaa-fee-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 0.75rem 0;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .novaa-fee-item:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-        
-        .novaa-fee-due {
-          border-top: 1px solid #e2e8f0;
-          padding-top: 1rem;
-          margin-top: 1rem;
-          font-size: 1.15rem;
-        }
-        
-        .novaa-installments {
-          background: white;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-        
-        .novaa-installment-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 1rem 1.25rem;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        
-        .novaa-installment-item:last-child {
-          border-bottom: none;
-        }
-        
-        /* Button Styles */
-        .novaa-btn-primary {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 10px rgba(26, 75, 109, 0.3);
-        }
-        
-        .novaa-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 15px rgba(26, 75, 109, 0.4);
-        }
-        
-        .novaa-btn-outline-primary {
-          background: transparent;
-          color: #1a4b6d;
-          border: 1px solid #1a4b6d;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-        
-        .novaa-btn-outline-primary:hover {
-          background: #dbeafe;
-          transform: translateY(-2px);
-        }
-        
-        .novaa-btn-link {
-          background: transparent;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.5rem 1rem;
-          font-weight: 600;
-          text-decoration: underline;
-          transition: all 0.2s ease;
-        }
-        
-        .novaa-btn-link:hover {
-          color: #0f3a4a;
-          background: #f1f5f9;
-        }
-        
-        .novaa-btn-outline-secondary {
-          background: transparent;
-          color: #4a5568;
-          border: 1px solid #cbd5e1;
-          padding: 0.5rem 1rem;
+
+        .fee-stat {
+          text-align: center;
+          padding: 1rem;
+          background: #f8f9fa;
           border-radius: 8px;
-          font-weight: 500;
-          transition: all 0.2s ease;
         }
-        
-        .novaa-btn-outline-secondary:hover {
-          background: #f1f5f9;
-          border-color: #94a3b8;
+
+        .fee-label {
+          display: block;
+          font-size: 0.75rem;
+          color: #6c757d;
+          margin-bottom: 0.5rem;
         }
-        
-        /* Empty States */
-        .novaa-empty-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: #f1f5f9;
+
+        .fee-value {
+          display: block;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #1a4b6d;
+        }
+
+        .fee-value.paid { color: #28a745; }
+        .fee-value.due { color: #dc3545; }
+
+        .fee-status {
+          text-align: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .status-badge {
+          display: inline-block;
+          padding: 0.5rem 1.5rem;
+          border-radius: 20px;
+          color: white;
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+
+        .fee-progress {
+          margin-bottom: 1.5rem;
+        }
+
+        .progress-label {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 0.5rem;
+          font-size: 0.85rem;
+          color: #6c757d;
+          font-weight: 600;
+        }
+
+        .btn-pay-now {
+          display: block;
+          width: 100%;
+          padding: 1rem;
+          background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+          color: white;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 700;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
         }
-        
-        /* Animations */
-        .novaa-fade-in {
+
+        .btn-pay-now:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        /* ================= NOTIFICATIONS ================= */
+        .notifications-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .notification-item {
+          display: flex;
+          gap: 1rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+          border-left: 4px solid #e9ecef;
+          transition: all 0.3s ease;
+        }
+
+        .notification-item.unread {
+          background: linear-gradient(135deg, #e7f3ff 0%, #d0e8ff 100%);
+          border-left-color: #007bff;
+        }
+
+        .notification-item:hover {
+          transform: translateX(5px);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: white;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .notification-icon .unread { color: #007bff; }
+        .notification-icon .read { color: #6c757d; }
+
+        .notification-content {
+          flex: 1;
+        }
+
+        .notification-title {
+          margin: 0 0 0.25rem;
+          font-size: 0.95rem;
+          color: #1a4b6d;
+          font-weight: 700;
+        }
+
+        .notification-message {
+          margin: 0 0 0.5rem;
+          font-size: 0.85rem;
+          color: #6c757d;
+          line-height: 1.5;
+        }
+
+        .notification-meta {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.75rem;
+          color: #6c757d;
+        }
+
+        .notification-type {
+          background: #e9ecef;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+        }
+
+        /* ================= QUICK ACTIONS ================= */
+        .quick-actions-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 1rem;
+        }
+
+        .quick-action-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1.25rem;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 10px;
+          text-decoration: none;
+          color: #1a4b6d;
+          transition: all 0.3s ease;
+        }
+
+        .quick-action-item:hover {
+          transform: translateY(-5px);
+          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
+          color: white;
+          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
+        }
+
+        .action-icon {
+          font-size: 1.75rem;
+        }
+
+        .quick-action-item span {
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+
+        /* ================= NO DATA ================= */
+        .no-data {
+          text-align: center;
+          padding: 3rem 1rem;
+          color: #6c757d;
+        }
+
+        .no-data-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
+
+        /* ================= CHART TOOLTIP ================= */
+        .custom-chart-tooltip {
+          background: white;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+          border: 1px solid #e9ecef;
+        }
+
+        .tooltip-label {
+          margin: 0 0 0.5rem;
+          font-weight: 700;
+          color: #1a4b6d;
+          font-size: 0.85rem;
+        }
+
+        .tooltip-value {
+          margin: 0.25rem 0;
+          font-size: 0.8rem;
+        }
+
+        /* ================= ANIMATIONS ================= */
+        .fade-in {
           animation: fadeIn 0.6s ease forwards;
+        }
+
+        .fade-in-up {
+          animation: fadeInUp 0.6s ease forwards;
           opacity: 0;
         }
-        
+
+        .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+        .fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+        .fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+        .fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+        .fade-in-up:nth-child(5) { animation-delay: 0.5s; }
+        .fade-in-up:nth-child(6) { animation-delay: 0.6s; }
+
         @keyframes fadeIn {
-          from { 
-            opacity: 0; 
-            transform: translateY(20px);
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
           }
-          to { 
-            opacity: 1; 
+          to {
+            opacity: 1;
             transform: translateY(0);
           }
         }
-        
-        /* Responsive Design */
-        @media (max-width: 992px) {
-          .novaa-header-actions {
-            margin-top: 1rem;
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 768px) {
+          .student-dashboard-container {
+            padding: 1rem;
+          }
+
+          .dashboard-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+          }
+
+          .header-left {
+            flex-direction: column;
+          }
+
+          .header-right {
             width: 100%;
             justify-content: center;
           }
-          
-          .novaa-quick-action {
-            margin-left: 0.25rem;
-            margin-right: 0.25rem;
-            padding: 0.6rem 1rem;
-            font-size: 0.9rem;
+
+          .info-cards-row {
+            grid-template-columns: 1fr;
           }
-          
-          .novaa-card-icon {
-            width: 50px;
-            height: 50px;
-            font-size: 1.25rem;
+
+          .dashboard-grid {
+            grid-template-columns: 1fr;
           }
-          
-          .novaa-card-value {
-            font-size: 1.75rem;
+
+          .attendance-stats,
+          .fee-overview {
+            grid-template-columns: 1fr;
+          }
+
+          .timetable-slot {
+            flex-direction: column;
+          }
+
+          .slot-time {
+            width: 100%;
+            flex-direction: row;
+            gap: 0.5rem;
+          }
+
+          .quick-actions-grid {
+            grid-template-columns: repeat(3, 1fr);
           }
         }
-        
-        @media (max-width: 768px) {
-          .novaa-header {
-            border-radius: 0 0 16px 16px;
-          }
-          
-          .novaa-header-title {
+
+        @media (max-width: 480px) {
+          .dashboard-title {
             font-size: 1.5rem;
           }
-          
-          .novaa-header-subtitle {
-            font-size: 0.95rem;
+
+          .header-icon-wrapper {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
           }
-          
-          .novaa-card {
-            border-radius: 14px;
+
+          .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
-          
-          .novaa-timetable-slot {
+
+          .card-header {
             flex-direction: column;
+            gap: 0.75rem;
             text-align: center;
           }
-          
-          .novaa-timetable-time {
-            border-right: none;
-            border-bottom: 2px dashed #e2e8f0;
-            padding-bottom: 1rem;
-            margin-bottom: 1rem;
+
+          .card-title-wrapper {
+            flex-direction: column;
           }
-          
-          .novaa-timetable-details {
-            padding-left: 0;
+
+          .stat-value {
+            font-size: 1.25rem;
           }
-          
-          .novaa-timetable-actions {
-            justify-content: center;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .novaa-container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-          }
-          
-          .novaa-card-body {
-            padding: 1.25rem;
-          }
-          
-          .novaa-card-header {
-            padding: 1rem 1.25rem;
-          }
-          
-          .novaa-card-value {
-            font-size: 1.5rem;
-          }
-          
-          .novaa-profile-item {
-            padding: 0.6rem;
-          }
-          
-          .novaa-btn-primary,
-          .novaa-btn-outline-primary {
-            padding: 0.65rem 1.25rem;
-            font-size: 0.95rem;
+
+          .attendance-chart,
+          .subject-chart {
+            height: 180px;
           }
         }
       `}</style>
