@@ -49,7 +49,6 @@ import StudentNotificationList from "./pages/dashboard/Student/StudentNotificati
 
 /* ================= REPORTS ================= */
 import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
-import CourseReport from "./pages/dashboard/College-Admin/Reports/CourseReport";
 import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
 import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
 import SuperAdminReports from "./pages/dashboard/Super-Admin/SuperAdminReports";
@@ -118,6 +117,7 @@ import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacher
 /* ================= TEACHER ================= */
 import CreateSession from "./pages/dashboard/Teacher/Attendance/CreateSession";
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
+import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -401,19 +401,19 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             <Route
-              path="/college-admin/reports"
+              path="/college-admin/reports-dashboard"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <AdminReports />
+                  <ReportDashboard />
                 </ProtectedRoute>
               }
             />
 
             <Route
-              path="/college-admin/reports/course-wise"
+              path="/college-admin/reports"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <CourseReport />
+                  <AdminReports />
                 </ProtectedRoute>
               }
             />
