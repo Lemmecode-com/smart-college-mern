@@ -1,6 +1,5 @@
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
-import { jwtDecode } from "jwt-decode";
 
 export const AuthContext = createContext(null);
 
@@ -14,11 +13,15 @@ export const AuthProvider = ({ children }) => {
       // Note: With httpOnly cookies, the token will be stored in the cookie automatically
       const res = await api.post("/auth/login", credentials);
 
-      // With httpOnly cookies, we don't receive the token in the response
-      // The token is automatically sent with subsequent requests
+      // With httpOnly cookies, we don't receive the token in the response body to store manually
+      // The token is automatically sent with subsequent requests via cookies
       
-      // Get user info from the response or make a separate call to get user details
-      const userInfo = res.data.user || { id: res.data.userId, role: res.data.role, college_id: res.data.college_id };
+      // Get user info from the response
+      const userInfo = res.data.user || { 
+        id: res.data.userId, 
+        role: res.data.role, 
+        college_id: res.data.college_id 
+      };
 
       // Store user info (not the token) in state
       setUser({
@@ -39,12 +42,12 @@ export const AuthProvider = ({ children }) => {
   /* ========== LOGOUT ========== */
   const logout = async () => {
     try {
-      // Call logout endpoint to clear the httpOnly cookie
+      // Call logout endpoint to clear the httpOnly cookie on backend
       await api.post("/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      // Clear user info from state
+      // Clear user info from state regardless of API success
       setUser(null);
     }
   };
@@ -60,8 +63,8 @@ export const AuthProvider = ({ children }) => {
           role: res.data.role,
           college_id: res.data.college_id || null
         });
-      } catch {
-        // If the request fails, the user is not authenticated
+      } catch (error) {
+        // If the request fails (401/403), the user is not authenticated
         setUser(null);
       } finally {
         setLoading(false);

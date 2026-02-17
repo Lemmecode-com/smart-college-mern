@@ -2,9 +2,9 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { FaBell, FaCheck } from "react-icons/fa";
+import { FaBell, FaCheck, FaBars } from "react-icons/fa";
 
-export default function Navbar() {
+export default function Navbar({ onToggleSidebar }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -12,10 +12,21 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState([]);
   const [toast, setToast] = useState(null);
-  const [college, setCollege] = useState(null); // State to store college information
+  const [college, setCollege] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const prevCount = useRef(0);
   const dropdownRef = useRef();
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (!user) return null;
 
@@ -27,20 +38,15 @@ export default function Navbar() {
           let response;
 
           if (user.role === "COLLEGE_ADMIN") {
-            // College admins can access the direct college endpoint
             response = await api.get("/college/my-college");
             setCollege(response.data);
           } else if (user.role === "TEACHER") {
-            // Teachers can get their profile which includes college info
             response = await api.get("/teachers/my-profile");
-            // Teacher profile has college info in the populated college_id field
             if (response.data && response.data.college_id) {
               setCollege(response.data.college_id);
             }
           } else if (user.role === "STUDENT") {
-            // Students can get their profile which includes college info
             response = await api.get("/students/my-profile");
-            // Student profile has college info in a separate college field
             if (response.data && response.data.college) {
               setCollege(response.data.college);
             }
@@ -143,38 +149,54 @@ export default function Navbar() {
       {toast && (
         <div
           className="position-fixed top-0 end-0 m-3 alert alert-success shadow"
-          style={{ zIndex: 2000 }}
+          style={{ zIndex: 3000 }}
         >
           {toast}
         </div>
       )}
 
-      <nav className="navbar navbar-light bg-white px-4 shadow-sm d-flex justify-content-between align-items-center">
-        {/* LEFT */}
+      <nav className="navbar navbar-light bg-white px-3 px-md-4 shadow-sm d-flex justify-content-between align-items-center" style={{ position: "relative", zIndex: 1060 }}>
+        {/* LEFT - With Mobile Toggle */}
         <div className="d-flex align-items-center gap-3">
+          {/* MOBILE HAMBURGER BUTTON */}
+          {isMobile && (
+            <button
+              className="btn btn-link text-dark p-0 me-2"
+              onClick={onToggleSidebar}
+              style={{ fontSize: "1.5rem", border: "none", zIndex: 1070 }}
+              aria-label="Toggle sidebar"
+            >
+              <FaBars />
+            </button>
+          )}
+
           {college ? (
-            <h5 className="mb-0 fw-bold text-primary">{college.name}</h5>
+            <h5 className="mb-0 fw-bold text-primary" style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}>
+              {college.name}
+            </h5>
           ) : (
-            <h5 className="mb-0 fw-bold text-primary">NOVAA</h5>
+            <h5 className="mb-0 fw-bold text-primary" style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}>
+              NOVAA
+            </h5>
           )}
 
           <div className="d-flex flex-wrap gap-2">
-            <span className="badge bg-dark">
+            <span className="badge bg-dark" style={{ fontSize: isMobile ? "0.65rem" : "0.75rem" }}>
               {user.role.replace("_", " ")}
             </span>
           </div>
         </div>
 
         {/* RIGHT */}
-        <div className="d-flex align-items-center gap-4 position-relative">
+        <div className="d-flex align-items-center gap-2 gap-md-4 position-relative">
           {/* BELL */}
           <div
             className="position-relative"
             ref={dropdownRef}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", zIndex: 3000 }}
           >
             <FaBell
-              size={20}
+              size={isMobile ? 18 : 20}
               onClick={() => {
                 setOpen(!open);
                 fetchNotes();
@@ -188,7 +210,13 @@ export default function Navbar() {
                   position: "absolute",
                   top: "-6px",
                   right: "-8px",
-                  fontSize: "10px"
+                  fontSize: "10px",
+                  padding: "2px 5px",
+                  minWidth: "18px",
+                  height: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
               >
                 {count}
@@ -197,16 +225,24 @@ export default function Navbar() {
 
             {open && (
               <div
-                className="card shadow border-0 position-absolute end-0 mt-3"
-                style={{ width: 320, zIndex: 2000 }}
+                className="card shadow border-0 position-absolute"
+                style={{ 
+                  width: isMobile ? "280px" : "320px",
+                  zIndex: 3000,
+                  top: "calc(100% + 10px)",
+                  right: isMobile ? "-120px" : "0",
+                  left: isMobile ? "auto" : "auto",
+                  maxHeight: "80vh",
+                  overflowY: "auto"
+                }}
               >
                 <div className="card-body p-2">
-                  <h6 className="fw-bold text-center">
+                  <h6 className="fw-bold text-center mb-3" style={{ fontSize: "0.9rem" }}>
                     Unread Notifications
                   </h6>
 
                   {notes.length === 0 && (
-                    <p className="text-muted small text-center">
+                    <p className="text-muted small text-center py-3">
                       No new notifications
                     </p>
                   )}
@@ -215,9 +251,10 @@ export default function Navbar() {
                     <div
                       key={n._id}
                       className="p-2 rounded mb-1 small bg-warning bg-opacity-25"
+                      style={{ fontSize: "0.8rem" }}
                     >
-                      <strong>{n.title}</strong>
-                      <div className="text-muted small">
+                      <strong className="d-block mb-1">{n.title}</strong>
+                      <div className="text-muted small mb-2">
                         {n.message}
                       </div>
 
@@ -225,6 +262,7 @@ export default function Navbar() {
                         <button
                           className="btn btn-sm btn-link text-success p-0"
                           onClick={() => markAsRead(n._id)}
+                          style={{ fontSize: "0.75rem" }}
                         >
                           <FaCheck /> Mark read
                         </button>
@@ -232,10 +270,11 @@ export default function Navbar() {
                     </div>
                   ))}
 
-                  <div className="text-center mt-2">
+                  <div className="text-center mt-3">
                     <button
-                      className="btn btn-sm btn-primary"
+                      className="btn btn-sm btn-primary w-100"
                       onClick={goToNotificationList}
+                      style={{ fontSize: "0.8rem" }}
                     >
                       View All
                     </button>
@@ -245,15 +284,19 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* USER EMAIL */}
-          <span className="text-muted small">{user.email}</span>
+          {/* USER EMAIL - Hidden on very small screens */}
+          <span className="text-muted small d-none d-md-block" style={{ fontSize: "0.8rem" }}>
+            {user.email}
+          </span>
 
           {/* LOGOUT */}
           <button
             className="btn btn-outline-danger btn-sm"
             onClick={handleLogout}
+            style={{ fontSize: isMobile ? "0.7rem" : "0.875rem", padding: isMobile ? "0.25rem 0.5rem" : "0.25rem 0.75rem" }}
           >
-            Logout
+            <span className="d-none d-md-inline">Logout</span>
+            <span className="d-md-none">🚪</span>
           </button>
         </div>
       </nav>
