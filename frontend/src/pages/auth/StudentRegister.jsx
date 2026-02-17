@@ -57,7 +57,7 @@ export default function StudentRegister() {
     };
 
     if (collegeCode) {
-      fetchCollege();
+      fetchCollege(); 
     }
   }, [collegeCode]);
 
@@ -132,23 +132,28 @@ export default function StudentRegister() {
   }
 
   return (
+    <div className="m-0">
     <div
       className="d-flex align-items-center justify-content-center"
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #0f3a4a, #134952)",
         padding:"20px",
       }}
     >
       <div
-        className="card shadow-lg p-4"
-        style={{ width: "1000px", borderRadius: "16px" }}
+        className="card  p-4"
+        style={{ width: "1000px", borderRadius: "16px" ,boxShadow:"10px 10px 45px gray"}}
       >
         <div className="text-center mb-4">
-          <FaUniversity size={48} className="mb-2" />
-          <h3 className="fw-bold">NOVAA</h3>
+          <FaUniversity size={48} className="mb-2"/>
+          <h3 className="fw-bold">{collegeName || "NOVAA"}</h3>
           <p className="text-muted mb-1">Student Self Registration</p>
-          <span className="badge bg-dark">{collegeCode}</span>
+          <div className="d-flex gap-2 justify-content-center">
+            <span className="badge bg-dark">{collegeCode}</span>
+            {collegeName && (
+              <span className="badge bg-success">{collegeName}</span>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -266,7 +271,7 @@ export default function StudentRegister() {
           </div>
 
           <button
-            className="btn btn-dark w-100 mt-4 d-flex align-items-center justify-content-center gap-2"
+            className="btn w-25 mt-4 d-flex align-items-center justify-content-center gap-2 text-light fw-semibold" style={{position:"relative",left:"350px",background:"linear-gradient(45deg, #286079, #5798b7, #09567f)"}}
             disabled={loading}
           >
             {loading ? (
@@ -294,6 +299,7 @@ export default function StudentRegister() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
     </div>
   );
 }
