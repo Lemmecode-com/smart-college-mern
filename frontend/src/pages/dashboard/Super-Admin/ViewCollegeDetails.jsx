@@ -82,6 +82,16 @@ export default function ViewCollegeDetails() {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Fix registration URL to use frontend port instead of backend port
+  const getFrontendRegistrationUrl = (url) => {
+    if (!url) return '';
+    // Replace backend URL with frontend URL
+    return url.replace(/localhost:\d+/, 'localhost:5173')
+              .replace(/127\.0\.0\.1:\d+/, '127.0.0.1:5173');
+  };
+
+  const frontendRegistrationUrl = getFrontendRegistrationUrl(college?.registrationUrl);
+
   // Security checks
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "SUPER_ADMIN")
@@ -507,7 +517,7 @@ export default function ViewCollegeDetails() {
                     <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.75rem' }}>
                       <input
                         type="text"
-                        value={college.registrationUrl}
+                        value={frontendRegistrationUrl}
                         readOnly
                         style={{
                           flex: 1,
@@ -521,7 +531,7 @@ export default function ViewCollegeDetails() {
                       />
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(college.registrationUrl);
+                          navigator.clipboard.writeText(frontendRegistrationUrl);
                           setShowSuccess(true);
                           setTimeout(() => setShowSuccess(false), 3000);
                         }}
@@ -542,8 +552,8 @@ export default function ViewCollegeDetails() {
                         Copy
                       </button>
                     </div>
-                    <a
-                      href={college.registrationUrl}
+                    {/* <a
+                      href={frontendRegistrationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -569,6 +579,40 @@ export default function ViewCollegeDetails() {
                     >
                       Open Registration Portal <span style={{ marginLeft: '0.25rem' }}>↗</span>
                     </a>
+
+                    {/* Send Email to College Admin Button */}
+                    <button
+                      onClick={() => {
+                        window.location.href = `mailto:${college.email}?subject=Regarding ${college.name} - Smart College Management`;
+                      }}
+                      style={{
+                        display: 'inline-block',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        textDecoration: 'none',
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '0.75rem',
+                        fontSize: '0.95rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        border: 'none',
+                        marginLeft: '0.75rem',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 12px rgba(16, 185, 129, 0.4)';
+                        e.target.style.backgroundColor = '#059669';
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 6px rgba(16, 185, 129, 0.3)';
+                        e.target.style.backgroundColor = '#10b981';
+                      }}
+                    >
+                      📧 Send Email to College Admin
+                    </button>
                   </div>
 
                   {college.registrationQr && (

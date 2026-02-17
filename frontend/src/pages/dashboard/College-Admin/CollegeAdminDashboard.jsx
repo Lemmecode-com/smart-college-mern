@@ -637,13 +637,13 @@ export default function CollegeAdminDashboard() {
                               key={student._id} 
                               student={{ ...student, status: 'PENDING' }} 
                               isPending={true}
-                              onClick={() => navigate(`/students/approve`)}
+                              onClick={() => navigate(`/college/view-student/${student._id}`)}
                             />
                           ))}
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => navigate("/students/approve")}
+                            onClick={() => navigate("/students")}
                             style={{
                               width: '100%',
                               marginTop: '1.25rem',
