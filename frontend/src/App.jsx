@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useContext } from "react";
 
 import { AuthContext } from "./auth/AuthContext";
@@ -126,16 +126,28 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="container-fluid">
-        <div className="row">
-          {/* ================= SIDEBAR ================= */}
-          {user && <Sidebar />}
+      <AppContent user={user} />
+    </BrowserRouter>
+  );
+}
 
-          <main
-            className="col p-0"
-            style={{ marginLeft: user ? "260px" : "0" }}
-          >
-            {user && <Navbar />}
+function AppContent({ user }) {
+  const location = useLocation();
+
+  // Hide layout on public routes
+  const hideLayout = location.pathname.startsWith('/register/');
+
+  return (
+    <div className="container-fluid">
+      <div className="row">
+        {/* ================= SIDEBAR ================= */}
+        {user && !hideLayout && <Sidebar />}
+
+        <main
+          className="col p-0"
+          style={{ marginLeft: (user && !hideLayout) ? "260px" : "0" }}
+        >
+          {user && !hideLayout && <Navbar />}
 
             <div className="p-4">
               <Routes>
@@ -876,6 +888,5 @@ export default function App() {
           </main>
         </div>
       </div>
-    </BrowserRouter>
   );
 }
