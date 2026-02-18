@@ -99,10 +99,13 @@ export default function StudentList() {
   /* ================= ACTIONS ================= */
   const approveStudent = async (id) => {
     if (!window.confirm("Are you sure you want to approve this student?")) return;
-    
+
     try {
       await api.put(`/students/${id}/approve`);
+      // Refresh the list
       fetchStudents();
+      // Navigate to Approved Students list with refresh flag
+      navigate("/students/approve", { state: { refresh: true } });
     } catch (err) {
       alert("Failed to approve student. Please try again.");
       console.error("Approve error:", err);
