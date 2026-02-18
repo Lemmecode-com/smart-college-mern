@@ -302,6 +302,48 @@ export default function MySchedule() {
   // Filter today's slots only
   const todaysSlots = weekly[currentDayAbbr] || [];
 
+  // Responsive styles
+  const getResponsiveStyles = () => {
+    const isMobile = window.innerWidth < 768;
+    const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+    
+    return {
+      container: {
+        maxWidth: isMobile ? '100%' : isTablet ? '95%' : '1200px',
+        padding: isMobile ? '0.75rem' : '1.5rem'
+      },
+      headerTitle: {
+        fontSize: isMobile ? '1.5rem' : '2rem'
+      },
+      headerSubtitle: {
+        fontSize: isMobile ? '0.9rem' : '1.1rem'
+      },
+      headerIcon: {
+        width: isMobile ? '50px' : '72px',
+        height: isMobile ? '50px' : '72px',
+        fontSize: isMobile ? '1.5rem' : '2rem'
+      },
+      statsLabel: {
+        fontSize: isMobile ? '0.75rem' : '0.85rem'
+      },
+      statsValue: {
+        fontSize: isMobile ? '1rem' : '1.15rem'
+      },
+      cardPadding: {
+        padding: isMobile ? '1rem' : '1.5rem'
+      },
+      timeColumn: {
+        minWidth: isMobile ? '90px' : '120px',
+        fontSize: isMobile ? '1.2rem' : '1.5rem'
+      },
+      buttonPadding: {
+        padding: isMobile ? '0.75rem' : '0.875rem'
+      }
+    };
+  };
+
+  const styles = getResponsiveStyles();
+
   if (loading || !sessionsLoaded) {
     return (
       <div style={{
@@ -345,16 +387,16 @@ export default function MySchedule() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
+          paddingTop: styles.container.padding,
           paddingBottom: '2rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem',
+          paddingLeft: styles.container.padding,
+          paddingRight: styles.container.padding,
           display: 'flex',
           justifyContent: 'center'
         }}
       >
         <div style={{ 
-          maxWidth: '800px', 
+          maxWidth: styles.container.maxWidth,
           width: '100%',
           margin: '0 auto'
         }}>
@@ -364,10 +406,10 @@ export default function MySchedule() {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '1.5rem',
+              marginBottom: '1rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '0.5rem',
               flexWrap: 'wrap'
             }}
           >
@@ -382,7 +424,7 @@ export default function MySchedule() {
                 color: BRAND_COLORS.primary.main,
                 background: 'none',
                 border: 'none',
-                fontSize: '0.95rem',
+                fontSize: window.innerWidth < 768 ? '0.85rem' : '0.95rem',
                 fontWeight: 500,
                 cursor: 'pointer',
                 padding: '0.5rem',
@@ -395,7 +437,7 @@ export default function MySchedule() {
               <FaArrowLeft /> Back to Dashboard
             </motion.button>
             <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Today's Schedule</span>
+            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: window.innerWidth < 768 ? '0.9rem' : '1rem' }}>Today's Schedule</span>
           </motion.div>
 
           {/* ================= HEADER ================= */}
@@ -415,29 +457,29 @@ export default function MySchedule() {
             }}
           >
             <div style={{
-              padding: '1.75rem 2rem',
+              padding: window.innerWidth < 768 ? '1.25rem' : '1.75rem 2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: window.innerWidth < 768 ? '1rem' : '1.5rem', flexWrap: 'wrap' }}>
                 <motion.div
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '72px',
-                    height: '72px',
+                    width: styles.headerIcon.width,
+                    height: styles.headerIcon.height,
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2rem',
+                    fontSize: styles.headerIcon.fontSize,
                     flexShrink: 0,
                     boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
                   }}
@@ -447,7 +489,7 @@ export default function MySchedule() {
                 <div>
                   <h1 style={{
                     margin: 0,
-                    fontSize: '2rem',
+                    fontSize: styles.headerTitle.fontSize,
                     fontWeight: 700,
                     lineHeight: 1.2
                   }}>
@@ -456,25 +498,27 @@ export default function MySchedule() {
                   <p style={{
                     margin: '0.5rem 0 0 0',
                     opacity: 0.9,
-                    fontSize: '1.1rem',
+                    fontSize: styles.headerSubtitle.fontSize,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: '0.5rem',
+                    flexWrap: 'wrap'
                   }}>
                     <FaSun /> {currentDayName}, {today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', width: window.innerWidth < 768 ? '100%' : 'auto', justifyContent: window.innerWidth < 768 ? 'center' : 'flex-end' }}>
                 <div style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '0.75rem 1.5rem',
+                  padding: '0.6rem 1rem',
                   borderRadius: '12px',
                   textAlign: 'center',
-                  minWidth: '120px'
+                  minWidth: '100px',
+                  flex: window.innerWidth < 768 ? '1' : 'none'
                 }}>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: '0.25rem' }}>Current Time</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.85, marginBottom: '0.25rem' }}>Current Time</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
                     {currentTime.toLocaleTimeString('en-US', { 
                       hour: '2-digit', 
                       minute: '2-digit',
@@ -493,26 +537,27 @@ export default function MySchedule() {
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,
                     border: '2px solid white',
-                    padding: '0.75rem 1.5rem',
+                    padding: '0.6rem 1rem',
                     borderRadius: '12px',
-                    fontSize: '0.95rem',
+                    fontSize: '0.85rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
                     transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <FaSyncAlt /> Refresh
+                  <FaSyncAlt /> <span style={{ display: window.innerWidth < 768 ? 'none' : 'inline' }}>Refresh</span>
                 </motion.button>
               </div>
             </div>
             
             {/* Stats Bar */}
             <div style={{
-              padding: '1rem 2rem',
+              padding: window.innerWidth < 768 ? '0.75rem 1rem' : '1rem 2rem',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
@@ -521,24 +566,27 @@ export default function MySchedule() {
               flexWrap: 'wrap',
               gap: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: window.innerWidth < 768 ? '0.75rem' : '1.5rem', flexWrap: 'wrap', flex: 1 }}>
                 <StatItem
                   icon={<FaUniversity />}
                   label="Total Classes"
                   value={todaysSlots.length}
                   color={BRAND_COLORS.primary.main}
+                  styles={styles}
                 />
                 <StatItem
                   icon={<FaCheckCircle />}
                   label="Published"
                   value={todaysSlots.filter(s => s.timetable_id?.status === "PUBLISHED").length}
                   color={BRAND_COLORS.success.main}
+                  styles={styles}
                 />
                 <StatItem
                   icon={<FaBell />}
                   label="Active Sessions"
                   value={Object.keys(activeSessions).length}
                   color={BRAND_COLORS.warning.main}
+                  styles={styles}
                 />
               </div>
               <div style={{ 
@@ -547,10 +595,11 @@ export default function MySchedule() {
                 backgroundColor: `${BRAND_COLORS.success.main}15`,
                 color: BRAND_COLORS.success.main,
                 fontWeight: 600,
-                fontSize: '0.95rem',
+                fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
               }}>
                 <FaCalendarAlt size={14} />
                 {currentDayName}
@@ -575,7 +624,7 @@ export default function MySchedule() {
                 gap: '0.75rem'
               }}
             >
-              <FaExclamationTriangle size={20} />
+              <FaExclamationTriangle size={window.innerWidth < 768 ? 16 : 20} />
               <span>{error}</span>
             </motion.div>
           )}
@@ -594,7 +643,7 @@ export default function MySchedule() {
             }}
           >
             <div style={{
-              padding: '1.5rem',
+              padding: window.innerWidth < 768 ? '1rem' : '1.5rem',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'space-between',
@@ -605,7 +654,7 @@ export default function MySchedule() {
             }}>
               <h2 style={{
                 margin: 0,
-                fontSize: '1.5rem',
+                fontSize: window.innerWidth < 768 ? '1.25rem' : '1.5rem',
                 fontWeight: 700,
                 color: '#1e293b',
                 display: 'flex',
@@ -620,16 +669,16 @@ export default function MySchedule() {
                 gap: '0.5rem',
                 backgroundColor: '#dbeafe',
                 color: BRAND_COLORS.primary.main,
-                padding: '0.5rem 1rem',
+                padding: '0.4rem 0.875rem',
                 borderRadius: '20px',
-                fontSize: '0.9rem',
+                fontSize: window.innerWidth < 768 ? '0.8rem' : '0.9rem',
                 fontWeight: 500
               }}>
-                <FaInfoCircle /> Only today's classes are shown
+                <FaInfoCircle /> <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Only today's classes are shown</span>
               </div>
             </div>
             
-            <div style={{ padding: '1.5rem' }}>
+            <div style={styles.cardPadding}>
               {todaysSlots.length === 0 ? (
                 <EmptyState 
                   icon={<FaCalendarAlt />} 
@@ -657,6 +706,7 @@ export default function MySchedule() {
                         delay={idx * 0.05}
                         hasActiveSession={!!activeSessions[slot._id]}
                         hasAttendanceSession={!!attendanceSessions[slot._id]}
+                        styles={styles}
                       />
                     );
                   })}
@@ -673,7 +723,7 @@ export default function MySchedule() {
             animate="visible"
             style={{
               marginTop: '1.5rem',
-              padding: '1.25rem',
+              padding: window.innerWidth < 768 ? '1rem' : '1.25rem',
               borderRadius: '16px',
               backgroundColor: '#fffbeb',
               border: '1px solid #f59e0b',
@@ -682,8 +732,8 @@ export default function MySchedule() {
               gap: '1rem'
             }}
           >
-            <FaInfoCircle size={24} style={{ color: BRAND_COLORS.warning.main, flexShrink: 0, marginTop: '0.25rem' }} />
-            <div style={{ color: '#92400e', fontSize: '0.95rem', lineHeight: 1.6 }}>
+            <FaInfoCircle size={window.innerWidth < 768 ? 18 : 24} style={{ color: BRAND_COLORS.warning.main, flexShrink: 0, marginTop: '0.25rem' }} />
+            <div style={{ color: '#92400e', fontSize: window.innerWidth < 768 ? '0.85rem' : '0.95rem', lineHeight: 1.6 }}>
               <strong>Attendance Policy:</strong> You can only start attendance for currently active classes (between start and end time). 
               The button will automatically enable at start time and disable after end time. Once started, attendance cannot be created again.
             </div>
@@ -712,35 +762,38 @@ function isCurrentTimeSlot(timeSlot) {
 }
 
 /* ================= STAT ITEM ================= */
-function StatItem({ icon, label, value, color }) {
+function StatItem({ icon, label, value, color, styles }) {
+  const isMobile = window.innerWidth < 768;
+  
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem' }}>
       <div style={{
-        width: '36px',
-        height: '36px',
+        width: isMobile ? '32px' : '36px',
+        height: isMobile ? '32px' : '36px',
         borderRadius: '10px',
         backgroundColor: `${color}15`,
         color: color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '1.1rem',
+        fontSize: isMobile ? '1rem' : '1.1rem',
         flexShrink: 0
       }}>
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>{value}</div>
+        <div style={{ fontSize: styles.statsLabel.fontSize, color: '#64748b', fontWeight: 500 }}>{label}</div>
+        <div style={{ fontSize: styles.statsValue.fontSize, fontWeight: 700, color: '#1e293b' }}>{value}</div>
       </div>
     </div>
   );
 }
 
 /* ================= SCHEDULE ROW ================= */
-function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay = 0, hasActiveSession, hasAttendanceSession }) {
+function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay = 0, hasActiveSession, hasAttendanceSession, styles }) {
   const slotType = BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   const isPublished = slot.timetable_id?.status === "PUBLISHED";
+  const isMobile = window.innerWidth < 768;
   
   // Determine slot status
   const [startTime, endTime] = time.split(' - ');
@@ -779,14 +832,15 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: delay, duration: 0.5 }}
-      whileHover={{ y: -3, boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)' }}
+      whileHover={{ y: isMobile ? 0 : -3, boxShadow: isMobile ? '0 2px 8px rgba(0, 0, 0, 0.06)' : '0 8px 20px rgba(0, 0, 0, 0.1)' }}
       style={{
         backgroundColor: 'white',
         border: `1px solid ${slotType.border}`,
         borderRadius: '16px',
-        padding: '1.25rem',
+        padding: isMobile ? '1rem' : '1.25rem',
         display: 'flex',
-        gap: '1.5rem',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '1rem' : '1.5rem',
         transition: 'all 0.3s ease',
         position: 'relative',
         overflow: 'hidden',
@@ -808,17 +862,19 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
       
       {/* Time Column */}
       <div style={{ 
-        minWidth: '120px', 
+        minWidth: isMobile ? '100%' : styles.timeColumn.minWidth,
         display: 'flex', 
         flexDirection: 'column', 
-        alignItems: 'center',
+        alignItems: isMobile ? 'stretch' : 'center',
         justifyContent: 'center',
         padding: '0.5rem',
-        borderRight: `1px solid ${slotType.border}`,
-        backgroundColor: `${slotType.bg}30`
+        borderRight: isMobile ? 'none' : `1px solid ${slotType.border}`,
+        borderBottom: isMobile ? `1px solid ${slotType.border}` : 'none',
+        backgroundColor: `${slotType.bg}30`,
+        marginBottom: isMobile ? '0.5rem' : '0'
       }}>
         <div style={{ 
-          fontSize: '1.5rem', 
+          fontSize: styles.timeColumn.fontSize, 
           fontWeight: 700, 
           color: slotType.text,
           marginBottom: '0.25rem'
@@ -826,7 +882,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
           {time.split(' - ')[0]}
         </div>
         <div style={{ 
-          fontSize: '0.9rem', 
+          fontSize: isMobile ? '0.85rem' : '0.9rem', 
           color: '#64748b',
           fontWeight: 500
         }}>
@@ -847,7 +903,8 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem'
+              gap: '0.375rem',
+              justifyContent: isMobile ? 'flex-start' : 'center'
             }}
           >
             <FaClock size={12} />
@@ -866,7 +923,8 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem'
+              gap: '0.375rem',
+              justifyContent: isMobile ? 'flex-start' : 'center'
             }}
           >
             <FaClock size={12} />
@@ -885,7 +943,8 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem'
+              gap: '0.375rem',
+              justifyContent: isMobile ? 'flex-start' : 'center'
             }}
           >
             <FaCheckCircle size={12} />
@@ -895,33 +954,36 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
       </div>
       
       {/* Content Column */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, width: '100%' }}>
         <div style={{ 
           display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between', 
           alignItems: 'flex-start',
           gap: '1rem',
           marginBottom: '1rem'
         }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, width: '100%' }}>
             <div style={{ 
               fontWeight: 700, 
               color: slotType.text, 
-              fontSize: '1.25rem',
+              fontSize: isMobile ? '1.1rem' : '1.25rem',
               marginBottom: '0.25rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
+              flexWrap: 'wrap'
             }}>
-              <FaBook size={18} />
+              <FaBook size={isMobile ? 16 : 18} />
               {slot.subject_id?.name}
             </div>
             
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '0.75rem',
-              flexWrap: 'wrap'
+              gap: '0.5rem',
+              flexWrap: 'wrap',
+              marginBottom: isMobile ? '0.5rem' : '0'
             }}>
               <span style={{ 
                 display: 'inline-flex',
@@ -987,12 +1049,13 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            alignItems: 'flex-end',
+            alignItems: isMobile ? 'flex-start' : 'flex-end',
             flexShrink: 0,
-            minWidth: '150px'
+            minWidth: isMobile ? '100%' : '150px',
+            marginTop: isMobile ? '0.5rem' : '0'
           }}>
             <div style={{ 
-              fontSize: '0.95rem', 
+              fontSize: isMobile ? '0.9rem' : '0.95rem', 
               color: '#4a5568', 
               fontWeight: 600,
               marginBottom: '0.25rem'
@@ -1000,7 +1063,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               {slot.timetable_id?.name}
             </div>
             <div style={{ 
-              fontSize: '0.85rem', 
+              fontSize: isMobile ? '0.8rem' : '0.85rem', 
               color: '#64748b'
             }}>
               Sem {slot.timetable_id?.semester} • {slot.timetable_id?.academicYear}
@@ -1020,9 +1083,10 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
             alignItems: 'center', 
             gap: '0.5rem',
             color: '#4a5568',
-            fontSize: '0.95rem'
+            fontSize: isMobile ? '0.9rem' : '0.95rem',
+            flexWrap: 'wrap'
           }}>
-            <FaChalkboardTeacher size={16} style={{ color: BRAND_COLORS.primary.main }} />
+            <FaChalkboardTeacher size={isMobile ? 14 : 16} style={{ color: BRAND_COLORS.primary.main }} />
             <span>{slot.teacher_id?.name || 'N/A'}</span>
           </div>
           
@@ -1031,12 +1095,12 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               disabled
               style={{
                 width: '100%',
-                padding: '0.875rem',
+                padding: styles.buttonPadding,
                 borderRadius: '12px',
                 border: 'none',
                 backgroundColor: BRAND_COLORS.success.main,
                 color: 'white',
-                fontSize: '1.05rem',
+                fontSize: isMobile ? '0.95rem' : '1.05rem',
                 fontWeight: 600,
                 cursor: 'not-allowed',
                 display: 'flex',
@@ -1054,11 +1118,11 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
           ) : buttonState === 'active' ? (
             <div style={{
               width: '100%',
-              padding: '0.875rem',
+              padding: styles.buttonPadding,
               borderRadius: '12px',
               backgroundColor: '#dcfce7',
               color: '#166534',
-              fontSize: '1.05rem',
+              fontSize: isMobile ? '0.95rem' : '1.05rem',
               fontWeight: 600,
               textAlign: 'center',
               border: `2px solid #86efac`,
@@ -1067,7 +1131,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               justifyContent: 'center',
               gap: '0.75rem'
             }}>
-              <FaCheckCircle size={20} />
+              <FaCheckCircle size={isMobile ? 18 : 20} />
               Attendance Session Active
             </div>
           ) : buttonState === 'ended' ? (
@@ -1075,18 +1139,18 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               disabled
               style={{
                 width: '100%',
-                padding: '0.875rem',
                 borderRadius: '12px',
                 border: 'none',
                 backgroundColor: '#cbd5e1',
                 color: '#64748b',
-                fontSize: '1.05rem',
+                fontSize: isMobile ? '0.95rem' : '1.05rem',
                 fontWeight: 600,
                 cursor: 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.75rem'
+                gap: '0.75rem',
+                padding: '10px 0px'
               }}
             >
               <FaPauseCircle /> 
@@ -1094,7 +1158,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
             </button>
           ) : buttonState === 'unpublished' ? (
             <div style={{ 
-              padding: '0.875rem', 
+              padding: styles.buttonPadding, 
               borderRadius: '12px', 
               backgroundColor: '#fee2e2',
               color: '#b91c1c',
@@ -1113,12 +1177,12 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               onClick={() => onStartAttendance(slot)}
               style={{
                 width: '100%',
-                padding: '0.875rem',
+                padding: styles.buttonPadding,
                 borderRadius: '12px',
                 border: 'none',
                 backgroundColor: BRAND_COLORS.success.main,
                 color: 'white',
-                fontSize: '1.05rem',
+                fontSize: isMobile ? '0.95rem' : '1.05rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
@@ -1139,7 +1203,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               borderRadius: '10px', 
               backgroundColor: '#fee2e2',
               color: '#b91c1c',
-              fontSize: '0.9rem',
+              fontSize: isMobile ? '0.85rem' : '0.9rem',
               border: '1px solid #fecaca',
               display: 'flex',
               alignItems: 'center',
@@ -1156,7 +1220,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               borderRadius: '10px', 
               backgroundColor: '#dcfce7',
               color: '#166534',
-              fontSize: '0.9rem',
+              fontSize: isMobile ? '0.85rem' : '0.9rem',
               border: '1px solid #86efac',
               display: 'flex',
               alignItems: 'center',
@@ -1173,7 +1237,7 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
               borderRadius: '10px', 
               backgroundColor: '#f0f9ff',
               color: '#0c4a6e',
-              fontSize: '0.9rem',
+              fontSize: isMobile ? '0.85rem' : '0.9rem',
               border: '1px solid #bae6fd',
               display: 'flex',
               alignItems: 'center',
@@ -1191,18 +1255,20 @@ function ScheduleRow({ time, slot, isCurrent, onStartAttendance, creating, delay
 
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message }) {
+  const isMobile = window.innerWidth < 768;
+  
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       style={{
-        padding: '3rem 1.5rem',
+        padding: isMobile ? '2rem 1rem' : '3rem 1.5rem',
         textAlign: 'center',
         color: '#64748b'
       }}
     >
       <div style={{
-        fontSize: '5rem',
+        fontSize: isMobile ? '3.5rem' : '5rem',
         marginBottom: '1.5rem',
         opacity: 0.3,
         color: '#e2e8f0'
@@ -1213,13 +1279,13 @@ function EmptyState({ icon, title, message }) {
         margin: '0 0 0.75rem 0',
         color: '#1e293b',
         fontWeight: 700,
-        fontSize: '1.75rem'
+        fontSize: isMobile ? '1.5rem' : '1.75rem'
       }}>
         {title}
       </h3>
       <p style={{ 
         margin: 0, 
-        fontSize: '1.1rem',
+        fontSize: isMobile ? '1rem' : '1.1rem',
         maxWidth: '600px',
         margin: '0 auto',
         lineHeight: 1.6
