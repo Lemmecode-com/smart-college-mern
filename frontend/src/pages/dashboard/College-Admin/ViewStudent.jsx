@@ -52,7 +52,8 @@ export default function ViewStudent() {
     try {
       await api.put(`/students/${studentId}/approve`);
       alert("Student approved successfully");
-      fetchStudent();
+      // Navigate to Approved Students list with refresh flag
+      navigate("/students/approve", { state: { refresh: true } });
     } catch (err) {
       alert(err.response?.data?.message || "Approval failed");
     }
