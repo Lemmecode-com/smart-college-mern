@@ -28,7 +28,7 @@ import {
   FaLayerGroup,
   FaIdCard,
   FaEnvelope,
-  FaPhoneAlt
+  FaPhoneAlt,
 } from "react-icons/fa";
 
 export default function StudentFees() {
@@ -65,25 +65,27 @@ export default function StudentFees() {
   const loadFees = async () => {
     try {
       const res = await api.get("/student/payments/my-fee-dashboard");
-      
+
       if (!res.data) {
         throw new Error("Invalid fee dashboard response");
       }
-      
+
       setDashboard(res.data);
       setError("");
     } catch (err) {
       console.error("Fee dashboard error:", err);
-      
-      const errorMsg = err.response?.status === 401 
-        ? "Session expired. Please login again." 
-        : err.response?.status === 404
-          ? "Fee structure not found for your course. Contact administration."
-          : err.response?.data?.message || "Unable to load fee dashboard. Please try again.";
-      
+
+      const errorMsg =
+        err.response?.status === 401
+          ? "Session expired. Please login again."
+          : err.response?.status === 404
+            ? "Fee structure not found for your course. Contact administration."
+            : err.response?.data?.message ||
+              "Unable to load fee dashboard. Please try again.";
+
       setError(errorMsg);
       toast.error(errorMsg);
-      
+
       if (err.response?.status === 401) {
         setTimeout(() => navigate("/login"), 3000);
       }
@@ -97,9 +99,10 @@ export default function StudentFees() {
   }, []);
 
   /* ================= CALCULATIONS ================= */
-  const progress = dashboard?.totalFee > 0 
-    ? Math.round((dashboard.totalPaid / dashboard.totalFee) * 100)
-    : 0;
+  const progress =
+    dashboard?.totalFee > 0
+      ? Math.round((dashboard.totalPaid / dashboard.totalFee) * 100)
+      : 0;
 
   const isNearDue = (date) => {
     const dueDate = new Date(date);
@@ -125,14 +128,14 @@ export default function StudentFees() {
       toast.warning("Invalid payment request");
       return;
     }
-    
+
     navigate("/student/make-payment", {
-      state: { 
+      state: {
         installmentId: installment._id,
         installmentName: installment.name,
         amount: installment.amount,
-        dueDate: installment.dueDate
-      }
+        dueDate: installment.dueDate,
+      },
     });
   };
 
@@ -144,11 +147,17 @@ export default function StudentFees() {
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
               <div className="card-body p-5 text-center">
-                <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
+                <div
+                  className="spinner-border text-primary mb-3"
+                  role="status"
+                  style={{ width: "3rem", height: "3rem" }}
+                >
                   <span className="visually-hidden">Loading...</span>
                 </div>
                 <h5 className="text-muted">Loading Fee Dashboard...</h5>
-                <p className="text-muted small">Fetching your fee information and payment history</p>
+                <p className="text-muted small">
+                  Fetching your fee information and payment history
+                </p>
               </div>
             </div>
           </div>
@@ -171,13 +180,13 @@ export default function StudentFees() {
                 <h4 className="fw-bold mb-2">Fee Dashboard Error</h4>
                 <p className="text-muted mb-4">{error}</p>
                 <div className="d-flex justify-content-center gap-3">
-                  <button 
+                  <button
                     onClick={loadFees}
                     className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
                   >
                     <FaSync className="spin-icon" /> Retry
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigate("/student/dashboard")}
                     className="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-2"
                   >
@@ -201,8 +210,11 @@ export default function StudentFees() {
               <div className="card-body text-center p-5">
                 <FaMoneyCheckAlt className="text-muted mb-3" size={64} />
                 <h4 className="fw-bold mb-2">No Fee Data Available</h4>
-                <p className="text-muted mb-4">Your fee structure has not been configured yet. Please contact your college administration.</p>
-                <button 
+                <p className="text-muted mb-4">
+                  Your fee structure has not been configured yet. Please contact
+                  your college administration.
+                </p>
+                <button
                   onClick={() => navigate("/student/dashboard")}
                   className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
                 >
@@ -223,48 +235,51 @@ export default function StudentFees() {
       {/* ================= TOP NAVIGATION BAR ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <button 
+          <button
             onClick={() => navigate("/student/dashboard")}
             className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
             title="Back to Dashboard"
           >
             <FaArrowLeft size={16} /> Back
           </button>
-          
+
           <div className="d-flex align-items-center gap-3">
             <div className="fees-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
               <FaMoneyCheckAlt size={28} />
             </div>
             <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">Fee Management</h1>
+              <h1 className="h4 h3-md fw-bold mb-1 text-dark">
+                Fee Management
+              </h1>
               <p className="text-muted mb-0 small">
                 <FaGraduationCap className="me-1" />
-                {studentProfile?.fullName || user.name || "Student"} | {dashboard.course?.name || "Course"}
+                {studentProfile?.fullName || user.name || "Student"} |{" "}
+                {dashboard.course?.name || "Course"}
               </p>
             </div>
           </div>
         </div>
 
         <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
+          <button
             onClick={() => setShowHelp(!showHelp)}
             className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
             title="Fee Dashboard Help"
           >
             <FaInfoCircle size={16} /> Help
           </button>
-          
-          <button 
+
+          <button
             onClick={loadFees}
             className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
             title="Refresh Fee Data"
             disabled={loading}
           >
-            <FaSync className={loading ? "spin-icon" : ""} size={16} /> 
+            <FaSync className={loading ? "spin-icon" : ""} size={16} />
             {loading ? "Refreshing..." : "Refresh"}
           </button>
-          
-          <button 
+
+          <button
             onClick={() => window.print()}
             className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
             title="Print Fee Summary"
@@ -282,21 +297,46 @@ export default function StudentFees() {
             <div>
               <h6 className="fw-bold mb-1">Fee Dashboard Guide</h6>
               <ul className="mb-0 small ps-3">
-                <li><strong>Fee Summary</strong>: Overview of total fees, amount paid, and pending dues</li>
-                <li><strong>Progress Bar</strong>: Visual representation of payment completion</li>
-                <li><strong>Installments</strong>: Detailed breakdown of payment schedule</li>
-                <li><strong>Status Indicators</strong>: 
+                <li>
+                  <strong>Fee Summary</strong>: Overview of total fees, amount
+                  paid, and pending dues
+                </li>
+                <li>
+                  <strong>Progress Bar</strong>: Visual representation of
+                  payment completion
+                </li>
+                <li>
+                  <strong>Installments</strong>: Detailed breakdown of payment
+                  schedule
+                </li>
+                <li>
+                  <strong>Status Indicators</strong>:
                   <ul className="mt-1 mb-0 ps-3">
-                    <li><span className="badge bg-success me-1">PAID</span> - Payment completed</li>
-                    <li><span className="badge bg-warning me-1">PENDING</span> - Due soon (yellow)</li>
-                    <li><span className="badge bg-danger me-1">PENDING</span> - Overdue (red)</li>
+                    <li>
+                      <span className="badge bg-success me-1">PAID</span> -
+                      Payment completed
+                    </li>
+                    <li>
+                      <span className="badge bg-warning me-1">PENDING</span> -
+                      Due soon (yellow)
+                    </li>
+                    <li>
+                      <span className="badge bg-danger me-1">PENDING</span> -
+                      Overdue (red)
+                    </li>
                   </ul>
                 </li>
-                <li><strong>Actions</strong>: Pay pending installments or download receipts for paid ones</li>
-                <li><FaBell className="text-warning me-1" /> Bell icon indicates payment due within 7 days</li>
+                <li>
+                  <strong>Actions</strong>: Pay pending installments or download
+                  receipts for paid ones
+                </li>
+                <li>
+                  <FaBell className="text-warning me-1" /> Bell icon indicates
+                  payment due within 7 days
+                </li>
               </ul>
-              <button 
-                onClick={() => setShowHelp(false)} 
+              <button
+                onClick={() => setShowHelp(false)}
                 className="btn btn-sm btn-outline-info mt-2 px-3"
               >
                 Got it!
@@ -307,7 +347,10 @@ export default function StudentFees() {
       )}
 
       {/* ================= STUDENT PROFILE HEADER ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.1s" }}
+      >
         <div className="card-header bg-gradient-primary text-white py-4">
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
             <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
@@ -317,50 +360,68 @@ export default function StudentFees() {
                 </div>
               </div>
               <div>
-                <h2 className="h4 fw-bold mb-1">{studentProfile?.fullName || user.name || "Student Name"}</h2>
+                <h2 className="h4 fw-bold mb-1">
+                  {studentProfile?.fullName || user.name || "Student Name"}
+                </h2>
                 <div className="d-flex flex-wrap gap-3">
                   <div className="d-flex align-items-center gap-1">
-                    <FaIdCard className="text-white opacity-75" /> 
-                    <span className="opacity-75">{studentProfile?.enrollmentNumber || "N/A"}</span>
+                    <FaIdCard className="text-white opacity-75" />
+                    <span className="opacity-75">
+                      {studentProfile?.enrollmentNumber || "N/A"}
+                    </span>
                   </div>
                   <div className="d-flex align-items-center gap-1">
-                    <FaGraduationCap className="text-white opacity-75" /> 
-                    <span className="opacity-75">{dashboard.course?.name || "N/A"}</span>
+                    <FaGraduationCap className="text-white opacity-75" />
+                    <span className="opacity-75">
+                      {dashboard.course?.name || "N/A"}
+                    </span>
                   </div>
                   <div className="d-flex align-items-center gap-1">
-                    <FaLayerGroup className="text-white opacity-75" /> 
-                    <span className="opacity-75">{dashboard.course?.code || "N/A"}</span>
+                    <FaLayerGroup className="text-white opacity-75" />
+                    <span className="opacity-75">
+                      {dashboard.course?.code || "N/A"}
+                    </span>
                   </div>
                 </div>
                 <div className="d-flex flex-wrap gap-2 mt-2">
                   <div className="d-flex align-items-center gap-2">
                     <FaEnvelope className="text-white opacity-75" />
-                    <span className="opacity-75">{studentProfile?.email || user.email || "N/A"}</span>
+                    <span className="opacity-75">
+                      {studentProfile?.email || user.email || "N/A"}
+                    </span>
                   </div>
                   <div className="d-flex align-items-center gap-2">
                     <FaPhoneAlt className="text-white opacity-75" />
-                    <span className="opacity-75">{studentProfile?.mobileNumber || "N/A"}</span>
+                    <span className="opacity-75">
+                      {studentProfile?.mobileNumber || "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="card-body bg-light py-3">
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center text-center text-md-start">
             <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mb-2 mb-md-0">
               <div className="d-flex align-items-center gap-2">
-                <FaUniversity className="text-primary" /> 
-                <span className="fw-medium">{dashboard.college?.name || "N/A"}</span>
+                <FaUniversity className="text-primary" />
+                <span className="fw-medium">
+                  {dashboard.college?.name || "N/A"}
+                </span>
               </div>
               <div className="d-flex align-items-center gap-2">
-                <FaCalendarAlt className="text-success" /> 
-                <span className="fw-medium">Academic Year: {dashboard.academicYear || "2025-2026"}</span>
+                <FaCalendarAlt className="text-success" />
+                <span className="fw-medium">
+                  Academic Year: {dashboard.academicYear || "2025-2026"}
+                </span>
               </div>
               <div className="d-flex align-items-center gap-2">
-                <FaLayerGroup className="text-info" /> 
-                <span className="fw-medium">Semester: {studentProfile?.currentSemester || "N/A"}</span>
+                <FaLayerGroup className="text-info" />
+                <span className="fw-medium">
+                  Semester: {studentProfile?.currentSemester || "N/A"}
+                </span>
               </div>
             </div>
             <small className="text-muted">
@@ -372,7 +433,10 @@ export default function StudentFees() {
       </div>
 
       {/* ================= FEE SUMMARY CARDS ================= */}
-      <div className="row g-3 g-md-4 mb-3 mb-md-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+      <div
+        className="row g-3 g-md-4 mb-3 mb-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.2s" }}
+      >
         <FeeSummaryCard
           title="Total Fee"
           amount={dashboard.totalFee}
@@ -398,13 +462,18 @@ export default function StudentFees() {
           title="Payment Progress"
           amount={`${progress}%`}
           icon={<FaCreditCard />}
-          color={progress === 100 ? "success" : progress > 50 ? "warning" : "info"}
+          color={
+            progress === 100 ? "success" : progress > 50 ? "warning" : "info"
+          }
           subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
         />
       </div>
 
       {/* ================= PROGRESS BAR SECTION ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.3s" }}
+      >
         <div className="card-header bg-light py-3">
           <h5 className="fw-bold mb-0 d-flex align-items-center gap-2">
             <FaCreditCard /> Payment Progress
@@ -413,26 +482,35 @@ export default function StudentFees() {
         <div className="card-body p-4">
           <div className="d-flex justify-content-between mb-2">
             <span className="fw-semibold">Fee Payment Status</span>
-            <span className="fw-bold text-{progress === 100 ? 'success' : 'primary'}">{progress}% Complete</span>
+            <span className="fw-bold text-{progress === 100 ? 'success' : 'primary'}">
+              {progress}% Complete
+            </span>
           </div>
-          <div className="progress" style={{ height: '24px', borderRadius: '12px', overflow: 'hidden' }}>
-            <div 
-              className={`progress-bar ${progress === 100 ? 'bg-success' : progress > 75 ? 'bg-primary' : progress > 50 ? 'bg-warning' : 'bg-info'}`} 
-              role="progressbar" 
+          <div
+            className="progress"
+            style={{ height: "24px", borderRadius: "12px", overflow: "hidden" }}
+          >
+            <div
+              className={`progress-bar ${progress === 100 ? "bg-success" : progress > 75 ? "bg-primary" : progress > 50 ? "bg-warning" : "bg-info"}`}
+              role="progressbar"
               style={{ width: `${progress}%` }}
             >
               <div className="progress-text">{progress}%</div>
             </div>
           </div>
-          
+
           <div className="d-flex justify-content-between mt-3 text-muted small">
             <div>
               <FaCheckCircle className="me-1 text-success" />
-              {dashboard.installments?.filter(i => i.status === "PAID").length || 0} Paid
+              {dashboard.installments?.filter((i) => i.status === "PAID")
+                .length || 0}{" "}
+              Paid
             </div>
             <div>
               <FaClock className="me-1 text-warning" />
-              {dashboard.installments?.filter(i => i.status === "PENDING").length || 0} Pending
+              {dashboard.installments?.filter((i) => i.status === "PENDING")
+                .length || 0}{" "}
+              Pending
             </div>
             <div>
               <FaMoneyCheckAlt className="me-1 text-primary" />
@@ -443,7 +521,10 @@ export default function StudentFees() {
       </div>
 
       {/* ================= INSTALLMENTS TABLE ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up"
+        style={{ animationDelay: "0.4s" }}
+      >
         <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
           <div className="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3">
             <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
@@ -451,14 +532,17 @@ export default function StudentFees() {
             </h2>
           </div>
         </div>
-        
+
         <div className="card-body p-0">
           {dashboard.installments?.length === 0 ? (
             <div className="text-center py-5 px-3">
               <FaMoneyCheckAlt className="text-muted mb-3" size={64} />
               <h5 className="text-muted mb-2">No Installments Found</h5>
-              <p className="text-muted mb-4">Your fee structure has not been configured with installments. Please contact administration.</p>
-              <button 
+              <p className="text-muted mb-4">
+                Your fee structure has not been configured with installments.
+                Please contact administration.
+              </p>
+              <button
                 onClick={() => navigate("/student/dashboard")}
                 className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
               >
@@ -470,68 +554,133 @@ export default function StudentFees() {
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th width="15%" className="ps-4">Installment</th>
+                    <th width="15%" className="ps-4">
+                      Installment
+                    </th>
                     <th width="15%">Amount</th>
                     <th width="15%">Due Date</th>
                     <th width="15%">Status</th>
                     <th width="20%">Payment Date</th>
                     {/* <th width="15%" className="text-center">Reminder</th> */}
-                    <th width="15%" className="text-center pe-4">Action</th>
+                    <th width="15%" className="text-center pe-4">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {dashboard.installments.map((installment, idx) => (
-                    <tr 
-                      key={installment._id} 
+                    <tr
+                      key={installment._id}
                       className={`animate-fade-in ${installment.status === "PAID" ? "table-success" : ""}`}
                       style={{ animationDelay: `${idx * 0.05}s` }}
                     >
                       <td className="ps-4 fw-semibold">{installment.name}</td>
                       <td>₹{installment.amount.toLocaleString()}</td>
                       <td>
-                        <div>{new Date(installment.dueDate).toLocaleDateString()}</div>
-                        {isNearDue(installment.dueDate) && installment.status !== "PAID" && (
-                          <small className="text-warning d-block mt-1">
-                            <FaClock className="me-1" size={10} />
-                            Due in {Math.ceil((new Date(installment.dueDate) - new Date()) / (1000 * 60 * 60 * 24))} days
-                          </small>
-                        )}
-                        {new Date(installment.dueDate) < new Date() && installment.status !== "PAID" && (
-                          <small className="text-danger d-block mt-1">
-                            <FaExclamationTriangle className="me-1" size={10} />
-                            Overdue by {Math.ceil((new Date() - new Date(installment.dueDate)) / (1000 * 60 * 60 * 24))} days
-                          </small>
-                        )}
+                        <div>
+                          {new Date(installment.dueDate).toLocaleDateString()}
+                        </div>
+                        {isNearDue(installment.dueDate) &&
+                          installment.status !== "PAID" && (
+                            <small className="text-warning d-block mt-1">
+                              <FaClock className="me-1" size={10} />
+                              Due in{" "}
+                              {Math.ceil(
+                                (new Date(installment.dueDate) - new Date()) /
+                                  (1000 * 60 * 60 * 24),
+                              )}{" "}
+                              days
+                            </small>
+                          )}
+                        {new Date(installment.dueDate) < new Date() &&
+                          installment.status !== "PAID" && (
+                            <small className="text-danger d-block mt-1">
+                              <FaExclamationTriangle
+                                className="me-1"
+                                size={10}
+                              />
+                              Overdue by{" "}
+                              {Math.ceil(
+                                (new Date() - new Date(installment.dueDate)) /
+                                  (1000 * 60 * 60 * 24),
+                              )}{" "}
+                              days
+                            </small>
+                          )}
                       </td>
                       <td>
-                        <span className={`badge bg-${getInstallmentStatusColor(installment.status, installment.dueDate)}`}>
-                          {installment.status === "PAID" && <FaCheckCircle className="me-1" />}
+                        <span
+                          className={`badge bg-${getInstallmentStatusColor(installment.status, installment.dueDate)}`}
+                        >
+                          {installment.status === "PAID" && (
+                            <FaCheckCircle className="me-1" />
+                          )}
                           {installment.status}
                         </span>
                       </td>
+                      {/* <td>
+                        {installment.status === "PAID" ? (
+                          <div>
+                            <div>
+                              {installment.paidAt
+                                ? new Date(
+                                    installment.paidAt,
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </div>
+                            <small className="text-muted">
+                              Ref: {installment.transactionId || "N/A"}
+                            </small>
+                          </div>
+                        ) : (
+                          <span className="text-muted">Not paid yet</span>
+                        )}
+                      </td> */}
+
                       <td>
                         {installment.status === "PAID" ? (
                           <div>
-                            <div>{new Date(installment.paymentDate).toLocaleDateString()}</div>
-                            <small className="text-muted">Ref: {installment.transactionId || "N/A"}</small>
+                            <div className="fw-semibold">
+                              {installment.paidAt
+                                ? new Date(installment.paidAt).toLocaleString(
+                                    "en-IN",
+                                  )
+                                : "N/A"}
+                            </div>
+
+                            <small className="text-muted d-block">
+                              Ref:{" "}
+                              <span
+                                className="fw-medium text-primary"
+                                style={{ cursor: "pointer" }}
+                                onClick={() =>
+                                  navigator.clipboard.writeText(
+                                    installment.transactionId,
+                                  )
+                                }
+                              >
+                                {installment.transactionId || "N/A"}
+                              </span>
+                            </small>
+
+                            <small className="badge bg-light text-dark mt-1">
+                              STRIPE
+                            </small>
                           </div>
                         ) : (
                           <span className="text-muted">Not paid yet</span>
                         )}
                       </td>
-                      {/* <td className="text-center">
-                        {installment.status === "PENDING" && isNearDue(installment.dueDate) && (
-                          <FaBell className="text-warning blink" title="Payment due soon" size={20} />
-                        )}
-                        {installment.status === "PENDING" && new Date(installment.dueDate) < new Date() && (
-                          <FaExclamationTriangle className="text-danger blink" title="Payment overdue" size={20} />
-                        )}
-                      </td> */}
+
                       <td className="text-center pe-4">
                         {installment.status === "PAID" ? (
                           <button
                             className="btn btn-sm btn-outline-success d-flex align-items-center gap-1 mx-auto"
-                            onClick={() => navigate(`/student/fee-receipt/${installment._id}`)}
+                            onClick={() =>
+                              navigate(
+                                `/student/fee-receipt/${installment._id}`,
+                              )
+                            }
                             title="View Receipt"
                           >
                             <FaReceipt size={14} /> Receipt
@@ -569,18 +718,19 @@ export default function StudentFees() {
               <p className="mb-0">
                 <small className="text-muted">
                   <FaSync className="spin-icon me-1" />
-                  Fee data last updated: <strong>{new Date().toLocaleString()}</strong>
+                  Fee data last updated:{" "}
+                  <strong>{new Date().toLocaleString()}</strong>
                 </small>
               </p>
             </div>
             <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button 
+              <button
                 className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                 onClick={loadFees}
               >
                 <FaSync size={12} /> Refresh Data
               </button>
-              <button 
+              <button
                 className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
                 onClick={() => navigate("/student/dashboard")}
               >
@@ -765,12 +915,18 @@ export default function StudentFees() {
 function FeeSummaryCard({ title, amount, icon, color, subtitle }) {
   return (
     <div className="col-6 col-md-3 mb-3">
-      <div className={`card h-100 border-0 fee-summary-card bg-light-${color} animate-fade-in-up`}>
+      <div
+        className={`card h-100 border-0 fee-summary-card bg-light-${color} animate-fade-in-up`}
+      >
         <div className="card-body text-center">
           <div className={`fs-2 text-${color} mb-2`}>{icon}</div>
           <h6 className="text-muted mb-1">{title}</h6>
-          <div className={`amount text-${color}`}>₹{typeof amount === 'number' ? amount.toLocaleString() : amount}</div>
-          {subtitle && <div className="subtitle text-muted mt-1">{subtitle}</div>}
+          <div className={`amount text-${color}`}>
+            ₹{typeof amount === "number" ? amount.toLocaleString() : amount}
+          </div>
+          {subtitle && (
+            <div className="subtitle text-muted mt-1">{subtitle}</div>
+          )}
         </div>
       </div>
     </div>
