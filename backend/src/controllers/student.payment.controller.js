@@ -1,6 +1,7 @@
 const StudentFee = require("../models/studentFee.model");
+const AppError = require("../utils/AppError");
 
-exports.getStudentFeeDashboard = async (req, res) => {
+exports.getStudentFeeDashboard = async (req, res, next) => {
   try {
     const studentId = req.user.id;
 
@@ -12,9 +13,7 @@ exports.getStudentFeeDashboard = async (req, res) => {
       .populate("course_id", "name code");
 
     if (!studentFee) {
-      return res.status(404).json({
-        message: "Fee details not found"
-      });
+      throw new AppError("Fee details not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     // 2️⃣ Calculate totals
@@ -41,14 +40,11 @@ exports.getStudentFeeDashboard = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Student fee dashboard error:", error);
-    res.status(500).json({
-      message: "Failed to fetch fee dashboard"
-    });
+    next(error);
   }
 };
 
-exports.getStudentReceipt = async (req, res) => {
+exports.getStudentReceipt = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const { installmentId } = req.params;
@@ -68,15 +64,13 @@ exports.getStudentReceipt = async (req, res) => {
       .populate("college_id");
 
     if (!studentFee) {
-      return res.status(404).json({ message: "Receipt not found" });
+      throw new AppError("Receipt not found", 404, "RECEIPT_NOT_FOUND");
     }
 
     const installment = studentFee.installments.id(installmentId);
 
     if (!installment || installment.status !== "PAID") {
-      return res.status(400).json({
-        message: "Installment not paid or invalid receipt",
-      });
+      throw new AppError("Installment not paid or invalid receipt", 404, "INSTALLMENT_NOT_PAID");
     }
 
     const receiptNumber = `RCPT-${installment._id
@@ -117,6 +111,6 @@ exports.getStudentReceipt = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

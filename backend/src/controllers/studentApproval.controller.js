@@ -2,8 +2,9 @@ const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
+const AppError = require("../utils/AppError");
 
-exports.approveStudent = async (req, res) => {
+exports.approveStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
 
@@ -15,9 +16,7 @@ exports.approveStudent = async (req, res) => {
     });
 
     if (!student) {
-      return res.status(404).json({
-        message: "Student not found or already processed",
-      });
+      throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
     }
 
     // 2️⃣ Validate course
@@ -27,9 +26,7 @@ exports.approveStudent = async (req, res) => {
     });
 
     if (!course) {
-      return res.status(400).json({
-        message: "Invalid course",
-      });
+      throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
     }
 
     // 3️⃣ Admission capacity check
@@ -40,9 +37,7 @@ exports.approveStudent = async (req, res) => {
     });
 
     if (approvedCount >= course.maxStudents) {
-      return res.status(400).json({
-        message: "Admission capacity reached for this course",
-      });
+      throw new AppError("Admission capacity reached for this course", 409, "CAPACITY_REACHED");
     }
 
     // 4️⃣ Prevent duplicate fee record
@@ -51,9 +46,7 @@ exports.approveStudent = async (req, res) => {
     });
 
     if (existingFee) {
-      return res.status(400).json({
-        message: "Student fee record already exists",
-      });
+      throw new AppError("Student fee record already exists", 409, "DUPLICATE_FEE_RECORD");
     }
 
     // 5️⃣ Find fee structure (correct)
@@ -64,9 +57,7 @@ exports.approveStudent = async (req, res) => {
     });
 
     if (!feeStructure) {
-      return res.status(400).json({
-        message: "Fee structure not configured for this course & category",
-      });
+      throw new AppError("Fee structure not configured for this course & category", 404, "FEE_STRUCTURE_NOT_FOUND");
     }
 
     // ✅ Create student fee
@@ -114,10 +105,7 @@ exports.approveStudent = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Approve student error:", error);
-    res.status(500).json({
-      message: "Internal server error",
-    });
+    next(error);
   }
 };
 

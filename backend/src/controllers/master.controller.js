@@ -9,8 +9,9 @@ const Student = require("../models/student.model");
 const Timetable = require("../models/timetable.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
+const AppError = require("../utils/AppError");
 
-exports.createCollege = async (req, res) => {
+exports.createCollege = async (req, res, next) => {
   try {
     const {
       collegeName,
@@ -27,7 +28,7 @@ exports.createCollege = async (req, res) => {
     // 1️⃣ Check college code uniqueness
     const exists = await College.findOne({ code: collegeCode });
     if (exists) {
-      return res.status(400).json({ message: "College code already exists" });
+      throw new AppError("College code already exists", 409, "DUPLICATE_CODE");
     }
 
     // 2️⃣ Generate Registration URL + QR FIRST
@@ -74,8 +75,7 @@ exports.createCollege = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -88,24 +88,20 @@ exports.getAllColleges = async (req, res) => {
 /* =========================================================
    SUPER ADMIN: Get Single College with Full Stats
 ========================================================= */
-exports.getCollegeById = async (req, res) => {
+exports.getCollegeById = async (req, res, next) => {
   try {
     const { collegeId } = req.params;
 
     // 1️⃣ Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(collegeId)) {
-      return res.status(400).json({
-        message: "Invalid college ID",
-      });
+      throw new AppError("Invalid college ID", 400, "INVALID_ID");
     }
 
     // 2️⃣ Get College
     const college = await College.findById(collegeId);
 
     if (!college) {
-      return res.status(404).json({
-        message: "College not found",
-      });
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
     }
 
     // 3️⃣ Collect Stats (Parallel for performance)
@@ -158,9 +154,6 @@ exports.getCollegeById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get College By ID Error:", error);
-    res.status(500).json({
-      message: "Failed to fetch college details",
-    });
+    next(error);
   }
 };
