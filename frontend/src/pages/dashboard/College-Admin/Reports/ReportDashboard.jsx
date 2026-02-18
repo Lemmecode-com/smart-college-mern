@@ -79,9 +79,18 @@ export default function ReportDashboard() {
       setPaymentData(paymentRes.data);
       setAttendanceData(attendanceRes.data);
 
-      // Static data for tables (replace with actual API calls when available)
+      // Extract low attendance students from attendance data if available
+      // Or fetch from a separate endpoint if needed
+      if (attendanceRes.data?.lowAttendanceStudents) {
+        setLowAttendanceStudents(attendanceRes.data.lowAttendanceStudents);
+      } else {
+        // Fallback to static data if API doesn't provide it
+        setLowAttendanceStudents(getStaticLowAttendanceStudents());
+      }
+
+      // Fetch student payment data from API if available
+      // For now using static data - replace with actual API call
       setStudentPayments(getStaticStudentPayments());
-      setLowAttendanceStudents(getStaticLowAttendanceStudents());
 
       showToast("Reports loaded successfully!", "success");
     } catch (err) {
@@ -309,44 +318,48 @@ export default function ReportDashboard() {
         </div>
       </div>
 
-      {/* ================= SUMMARY CARDS ================= */}
+      {/* ================= DYNAMIC SUMMARY CARDS ================= */}
       <div className="summary-cards-grid">
-        <div className="summary-card fade-in-up">
+        {/* Total Applications Card */}
+        <div className="summary-card blink-effect">
           <div className="card-icon-wrapper blue">
-            <FaUsers />
+            <FaUsers className="icon-blink" />
           </div>
           <div className="card-content">
-            <h3>{admissionData?.total || 0}</h3>
+            <h3 className="value-blink">{admissionData?.total || 0}</h3>
             <p>Total Applications</p>
           </div>
         </div>
 
-        <div className="summary-card fade-in-up">
+        {/* Total Collected Card */}
+        <div className="summary-card blink-effect">
           <div className="card-icon-wrapper green">
-            <FaWallet />
+            <FaWallet className="icon-blink" />
           </div>
           <div className="card-content">
-            <h3>{formatCurrency(paymentData?.collected || 0)}</h3>
+            <h3 className="value-blink">{formatCurrency(paymentData?.collected || 0)}</h3>
             <p>Total Collected</p>
           </div>
         </div>
 
-        <div className="summary-card fade-in-up">
+        {/* Avg Attendance Card */}
+        <div className="summary-card blink-effect">
           <div className="card-icon-wrapper purple">
-            <FaCalendarCheck />
+            <FaCalendarCheck className="icon-blink" />
           </div>
           <div className="card-content">
-            <h3>{attendanceData?.percentage || 0}%</h3>
+            <h3 className="value-blink">{attendanceData?.percentage || 0}%</h3>
             <p>Avg Attendance</p>
           </div>
         </div>
 
-        <div className="summary-card fade-in-up">
+        {/* Low Attendance Card */}
+        <div className="summary-card blink-effect warning">
           <div className="card-icon-wrapper orange">
-            <FaExclamationTriangle />
+            <FaExclamationTriangle className="icon-blink" />
           </div>
           <div className="card-content">
-            <h3>{lowAttendanceStudents.length}</h3>
+            <h3 className="value-blink">{lowAttendanceStudents.length}</h3>
             <p>Low Attendance</p>
           </div>
         </div>
@@ -875,11 +888,17 @@ export default function ReportDashboard() {
           border-radius: 12px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
           transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
         }
 
         .summary-card:hover {
           transform: translateY(-5px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .summary-card.warning {
+          border-left: 4px solid #fd7e14;
         }
 
         .card-icon-wrapper {
@@ -891,6 +910,7 @@ export default function ReportDashboard() {
           justify-content: center;
           font-size: 1.75rem;
           color: white;
+          flex-shrink: 0;
         }
 
         .card-icon-wrapper.blue {
@@ -906,9 +926,13 @@ export default function ReportDashboard() {
           background: linear-gradient(135deg, #fd7e14, #c95d0a);
         }
 
+        .card-content {
+          flex: 1;
+        }
+
         .card-content h3 {
           margin: 0;
-          font-size: 1.5rem;
+          font-size: 1.75rem;
           color: #1a4b6d;
           font-weight: 700;
         }
@@ -917,6 +941,52 @@ export default function ReportDashboard() {
           margin: 0.25rem 0 0;
           font-size: 0.9rem;
           color: #6c757d;
+        }
+
+        /* Blinking Effects */
+        .blink-effect {
+          animation: cardPulse 2s ease-in-out infinite;
+        }
+
+        .icon-blink {
+          animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        .value-blink {
+          animation: valuePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes cardPulse {
+          0%, 100% {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transform: translateY(0);
+          }
+          50% {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+          }
+        }
+
+        @keyframes iconPulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.1);
+          }
+        }
+
+        @keyframes valuePulse {
+          0%, 100% {
+            color: #1a4b6d;
+            transform: scale(1);
+          }
+          50% {
+            color: #2d6f8f;
+            transform: scale(1.05);
+          }
         }
 
         /* ================= REPORTS GRID ================= */
