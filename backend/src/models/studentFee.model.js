@@ -28,29 +28,45 @@ const studentFeeSchema = new mongoose.Schema({
   },
 
   installments: [
-    {
-      name: String,
-      amount: Number,
+  {
+    name: String,
+    amount: Number,
 
-      dueDate: {
-        type: Date,
-        required: true,
-      },
-
-      status: {
-        type: String,
-        enum: ["PENDING", "PAID"],
-        default: "PENDING",
-      },
-
-      razorpayPaymentId: String,
-      paidAt: Date,
-      reminderSent: {
-        type: Boolean,
-        default: false,
-      },
+    dueDate: {
+      type: Date,
+      required: true,
     },
-  ],
+
+    status: {
+      type: String,
+      enum: ["PENDING", "PAID"],
+      default: "PENDING",
+    },
+
+    transactionId: {
+      type: String,
+      trim: true,
+    },
+
+    paymentGateway: {
+      type: String,
+      default: "STRIPE",
+    },
+
+    stripeSessionId: {
+      type: String,
+      trim: true,
+    },
+
+    paidAt: Date,
+
+    reminderSent: {
+      type: Boolean,
+      default: false,
+    },
+  },
+],
+
 });
 
 module.exports = mongoose.model("StudentFee", studentFeeSchema);
