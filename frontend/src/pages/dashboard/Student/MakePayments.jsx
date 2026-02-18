@@ -1,5 +1,5 @@
-import { useContext, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
@@ -19,14 +19,33 @@ import {
 export default function MakePayments() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [installmentName, setInstallmentName] = useState("");
+  // const [installmentName, setInstallmentName] = useState("");
+
+  const [installmentName, setInstallmentName] = useState(
+    location.state?.installmentName || "",
+  );
+
+  const [installmentDetails, setInstallmentDetails] = useState({
+    id: location.state?.installmentId || null,
+    amount: location.state?.amount || null,
+    dueDate: location.state?.dueDate || null,
+  });
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
+
+  useEffect(() => {
+    if (!location.state?.installmentName) {
+      toast.warning("No installment selected");
+      navigate("/student/fees");
+    }
+  }, []);
 
   /* ======================================================
      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
@@ -105,50 +124,77 @@ export default function MakePayments() {
       </div>
 
       {/* ================= FORM ================= */}
-      <div className="row justify-content-center">
-        <div className="col-lg-5 col-md-8 col-sm-12">
-          <div className="card shadow-lg border-0 rounded-4 glass-card">
-            <div className="card-body p-4 text-center">
-              <h5 className="fw-bold mb-3">Enter Installment Name</h5>
-
-              <input
-                type="text"
-                className="form-control mb-3"
-                placeholder="e.g. Installment 2"
-                value={installmentName}
-                onChange={(e) => setInstallmentName(e.target.value)}
-              />
-
-              {/* STRIPE PAY */}
-              <button
-                className="btn btn-primary w-100 py-2 rounded-pill mb-2"
-                onClick={handleStripePayment}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="me-2 spin" />
-                    Redirecting to Stripe...
-                  </>
-                ) : (
-                  <>
-                    <FaCreditCard className="me-2" />
-                    Pay with Card (Stripe)
-                  </>
-                )}
-              </button>
-
-              {/* MOCK PAY */}
-              <button
-                className="btn btn-success w-100 py-2 rounded-pill"
-                onClick={handleMockPayment}
-                disabled={loading}
-              >
-                <FaMoneyBillWave className="me-2" />
-                Mock Pay (Test)
-              </button>
-            </div>
+      <div className="card-body p-4 payment-card-body">
+        {/* ====== HEADER ====== */}
+        <div className="mb-4">
+          <div className="installment-badge mb-2">
+            <FaReceipt className="me-2" />
+            {installmentName}
           </div>
+
+          <h3 className="fw-bold mb-1 text-dark">
+            ₹{installmentDetails.amount?.toLocaleString()}
+          </h3>
+
+          <div className="text-muted small">
+            Due on{" "}
+            <strong>
+              {installmentDetails.dueDate
+                ? new Date(installmentDetails.dueDate).toLocaleDateString(
+                    "en-IN",
+                  )
+                : "N/A"}
+            </strong>
+          </div>
+        </div>
+
+        {/* ====== PAYMENT INFO BOX ====== */}
+        <div className="payment-info-box mb-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <span>Installment</span>
+            <span className="fw-semibold">{installmentName}</span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center mt-2">
+            <span>Amount</span>
+            <span className="fw-bold text-primary">
+              ₹{installmentDetails.amount?.toLocaleString()}
+            </span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center mt-2">
+            <span>Status</span>
+            <span className="badge bg-warning text-dark">Pending</span>
+          </div>
+        </div>
+
+        <div className="d-flex flex-column align-items-center">
+          {/* ====== STRIPE BUTTON ====== */}
+          <button
+            className="btn stripe-btn w-25 mb-3"
+            onClick={handleStripePayment}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="me-2 spin" />
+                Redirecting to Secure Checkout...
+              </>
+            ) : (
+              <>
+                <FaCreditCard className="me-2" />
+                Pay Securely with Stripe
+              </>
+            )}
+          </button>
+
+          {/* ====== MOCK BUTTON ====== */}
+          <button
+            className="btn btn-outline-success w-25 rounded-pill"
+            onClick={handleMockPayment}
+            disabled={loading}
+          >
+            <FaMoneyBillWave className="me-2" />
+            Mock Pay (Test Mode)
+          </button>
         </div>
       </div>
 
@@ -240,6 +286,55 @@ export default function MakePayments() {
         @keyframes spin {
           to { transform: rotate(360deg) }
         }
+
+        .payment-card-body {
+  background: linear-gradient(145deg, #ffffff, #f8fbfd);
+  border-radius: 20px;
+}
+
+.installment-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
+  color: white;
+  font-size: 14px;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.payment-info-box {
+  background: rgba(15, 58, 74, 0.05);
+  padding: 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  backdrop-filter: blur(6px);
+}
+
+.stripe-btn {
+  background: linear-gradient(90deg, #635bff, #4f46e5);
+  color: white;
+  border: none;
+  padding: 12px;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(99, 91, 255, 0.4);
+}
+
+.stripe-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(99, 91, 255, 0.5);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
       `}</style>
     </div>
   );
