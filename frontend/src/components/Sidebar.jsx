@@ -1,7 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../auth/AuthContext";
-
 import {
   FaTachometerAlt,
   FaUniversity,
@@ -15,9 +14,8 @@ import {
   FaCog,
   FaCalendarAlt,
   FaMoneyBillWave,
-  FaMoneyBillWaveAlt,
-  FaBars,
-  FaTimes,
+  FaMoneyBill,
+  FaChartBar,
   FaBell,
   FaHome,
   FaPlus,
@@ -28,20 +26,7 @@ import {
   FaUsers,
   FaGraduationCap,
   FaCheckCircle,
-  FaExclamationTriangle,
-  FaInfoCircle,
-  FaMoneyBill,
-  FaChartBar,
   FaChartPie,
-  FaDownload,
-  FaUser,
-  FaUserCog,
-  FaClock,
-  FaFileAlt,
-  FaEye,
-  FaEdit,
-  FaToggleOff,
-  FaToggleOn,
 } from "react-icons/fa";
 
 export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
@@ -547,14 +532,13 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                   )}
                 </div>
                 <div style={sectionBodyStyle(openSections.reports)}>
+                  <NavLink to="/college-admin/reports-dashboard" style={getNavLinkStyle}>
+                    <FaChartBar /> Reports Dashboard
+                  </NavLink>
+                </div>
+                <div style={sectionBodyStyle(openSections.reports)}>
                   <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
                     <FaGraduationCap /> Admission Reports
-                  </NavLink>
-                  <NavLink
-                    to="/college-admin/reports/course-wise"
-                    style={getNavLinkStyle}
-                  >
-                    <FaUserGraduate /> Course-wise Reports
                   </NavLink>
                   <NavLink
                     to="/college-admin/reports/payment-summary"

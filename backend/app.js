@@ -42,6 +42,9 @@ app.use("/api/notifications", require("./src/routes/notification.routes"));
 app.use("/api/stripe", require("./src/routes/stripe.routes"));
 
 
+/* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
+app.use("/api/public", require("./src/routes/public.department.course.routes"));
+
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));
 

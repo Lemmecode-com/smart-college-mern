@@ -76,6 +76,9 @@ export default function AddTeacher() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);

@@ -294,7 +294,7 @@ export default function ApproveStudents() {
             <div className="stat-card-value">{Object.keys(stats.byCourse).length}</div>
           </div>
         </div>
-        <div className="stat-card">
+        {/* <div className="stat-card">
           <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'}}>
             <FaCalendarAlt />
           </div>
@@ -302,7 +302,7 @@ export default function ApproveStudents() {
             <div className="stat-card-label">Admission Years</div>
             <div className="stat-card-value">{Object.keys(stats.byYear).length}</div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* CONTROLS SECTION */}
