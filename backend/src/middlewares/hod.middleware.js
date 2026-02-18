@@ -1,20 +1,19 @@
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const Timetable = require("../models/timetable.model");
+const AppError = require("../utils/AppError");
 
 module.exports = async (req, res, next) => {
   try {
     /* ================= STEP 1: Role check ================= */
     if (!req.user || req.user.role !== "TEACHER") {
-      return res.status(403).json({
-        message: "Access denied: Only teachers allowed",
-      });
+      throw new AppError("Access denied: Only teachers allowed", 403, "TEACHER_ROLE_REQUIRED");
     }
 
     /* ================= STEP 2: Find teacher ================= */
     const teacher = await Teacher.findOne({ user_id: req.user.id });
     if (!teacher) {
-      return res.status(403).json({ message: "Teacher profile not found" });
+      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
 
     /* ================= STEP 3: Resolve timetable ================= */
@@ -22,14 +21,12 @@ module.exports = async (req, res, next) => {
       req.body?.timetable_id || req.params?.id || null;
 
     if (!timetableId) {
-      return res.status(400).json({
-        message: "Timetable ID missing",
-      });
+      throw new AppError("Timetable ID missing", 400, "TIMETABLE_ID_MISSING");
     }
 
     const timetable = await Timetable.findById(timetableId);
     if (!timetable) {
-      return res.status(404).json({ message: "Timetable not found" });
+      throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
 
     /* ================= STEP 4: Verify HOD ================= */
@@ -39,9 +36,7 @@ module.exports = async (req, res, next) => {
     });
 
     if (!department) {
-      return res.status(403).json({
-        message: "Only HOD can manage this timetable",
-      });
+      throw new AppError("Only HOD can manage this timetable", 403, "HOD_ONLY");
     }
 
     /* ================= STEP 5: Attach ================= */
@@ -51,9 +46,6 @@ module.exports = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("HOD middleware error:", error);
-    res.status(500).json({
-      message: "Server error in HOD authorization",
-    });
+    next(error);
   }
 };

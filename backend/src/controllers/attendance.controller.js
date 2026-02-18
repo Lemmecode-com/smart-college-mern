@@ -7,18 +7,17 @@ const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
+const AppError = require("../utils/AppError");
 
 /* =========================================================
    CREATE ATTENDANCE SESSION (Teacher)
 ========================================================= */
-exports.createAttendanceSession = async (req, res) => {
+exports.createAttendanceSession = async (req, res, next) => {
   try {
     const { slot_id, lectureDate, lectureNumber } = req.body;
 
     if (!lectureNumber) {
-      return res.status(400).json({
-        message: "lectureNumber is required",
-      });
+      throw new AppError("lectureNumber is required", 400, "MISSING_FIELD");
     }
 
     const collegeId = req.college_id;
@@ -32,9 +31,7 @@ exports.createAttendanceSession = async (req, res) => {
     }
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not linked with user",
-      });
+      throw new AppError("Teacher profile not linked with user", 403, "TEACHER_NOT_FOUND");
     }
 
     // Validate slot
@@ -45,15 +42,11 @@ exports.createAttendanceSession = async (req, res) => {
     });
 
     if (!slot) {
-      return res.status(400).json({
-        message: "Invalid timetable slot for this teacher",
-      });
+      throw new AppError("Invalid timetable slot for this teacher", 404, "SLOT_NOT_FOUND");
     }
 
     if (!slot.department_id || !slot.course_id) {
-      return res.status(500).json({
-        message: "Slot data incomplete. Please recreate slot.",
-      });
+      throw new AppError("Slot data incomplete. Please recreate slot.", 500, "INVALID_SLOT_DATA");
     }
 
     // Prevent duplicate
@@ -64,9 +57,7 @@ exports.createAttendanceSession = async (req, res) => {
     });
 
     if (existing) {
-      return res.status(400).json({
-        message: "Attendance already created for this lecture",
-      });
+      throw new AppError("Attendance already created for this lecture", 409, "DUPLICATE_SESSION");
     }
 
     // Count students
@@ -96,8 +87,7 @@ exports.createAttendanceSession = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Create Attendance Session Error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -164,7 +154,7 @@ exports.getAttendanceSessionById = async (req, res) => {
    UPDATE ATTENDANCE SESSION (Only OPEN, Owner Teacher)
    PUT /attendance/sessions/:sessionId
 ========================================================= */
-exports.updateAttendanceSession = async (req, res) => {
+exports.updateAttendanceSession = async (req, res, next) => {
   try {
     const { lectureDate, lectureNumber } = req.body;
     const collegeId = req.college_id;
@@ -176,23 +166,19 @@ exports.updateAttendanceSession = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not found",
-      });
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
     /* ================= Find Session ================= */
     const session = await AttendanceSession.findOne({
       _id: req.params.sessionId,
       college_id: collegeId,
-      teacher_id: teacher._id,   // ✅ FIX
+      teacher_id: teacher._id,
       status: "OPEN",
     });
 
     if (!session) {
-      return res.status(400).json({
-        message: "Session not found or already closed",
-      });
+      throw new AppError("Session not found or already closed", 404, "SESSION_NOT_FOUND");
     }
 
     /* ================= Update ================= */
@@ -212,8 +198,7 @@ exports.updateAttendanceSession = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Update Attendance Session Error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -269,7 +254,7 @@ exports.getStudentsForAttendance = async (req, res) => {
    MARK ATTENDANCE (Initial)
    POST /attendance/sessions/:sessionId/mark
 ========================================================= */
-exports.markAttendance = async (req, res) => {
+exports.markAttendance = async (req, res, next) => {
   try {
     const { attendance } = req.body;
     const collegeId = req.college_id;
@@ -280,9 +265,7 @@ exports.markAttendance = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not found",
-      });
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
     const session = await AttendanceSession.findOne({
@@ -293,9 +276,7 @@ exports.markAttendance = async (req, res) => {
     });
 
     if (!session) {
-      return res.status(400).json({
-        message: "Session not found or closed",
-      });
+      throw new AppError("Session not found or closed", 404, "SESSION_NOT_FOUND");
     }
 
     for (let item of attendance) {
@@ -320,7 +301,7 @@ exports.markAttendance = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -328,7 +309,7 @@ exports.markAttendance = async (req, res) => {
    EDIT ATTENDANCE (While OPEN)
    PUT /attendance/sessions/:sessionId/edit
 ========================================================= */
-exports.editAttendance = async (req, res) => {
+exports.editAttendance = async (req, res, next) => {
   try {
     const { attendance } = req.body;
     const collegeId = req.college_id;
@@ -340,9 +321,7 @@ exports.editAttendance = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not found",
-      });
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
     // Validate session
@@ -354,9 +333,7 @@ exports.editAttendance = async (req, res) => {
     });
 
     if (!session) {
-      return res.status(400).json({
-        message: "Session not found or already closed",
-      });
+      throw new AppError("Session not found or already closed", 404, "SESSION_NOT_FOUND");
     }
 
     const updated = [];
@@ -385,7 +362,7 @@ exports.editAttendance = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -393,7 +370,7 @@ exports.editAttendance = async (req, res) => {
    DELETE ATTENDANCE SESSION (Teacher only, OPEN only)
    DELETE /attendance/sessions/:sessionId
 ========================================================= */
-exports.deleteAttendanceSession = async (req, res) => {
+exports.deleteAttendanceSession = async (req, res, next) => {
   try {
     const collegeId = req.college_id;
 
@@ -404,23 +381,19 @@ exports.deleteAttendanceSession = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not found",
-      });
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
     // Delete only own OPEN session
     const session = await AttendanceSession.findOneAndDelete({
       _id: req.params.sessionId,
       college_id: collegeId,
-      teacher_id: teacher._id,   // ✅ FIX
+      teacher_id: teacher._id,
       status: "OPEN",
     });
 
     if (!session) {
-      return res.status(400).json({
-        message: "Cannot delete closed or invalid session",
-      });
+      throw new AppError("Cannot delete closed or invalid session", 404, "SESSION_NOT_FOUND");
     }
 
     // Remove related attendance records
@@ -433,7 +406,7 @@ exports.deleteAttendanceSession = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -638,103 +611,6 @@ exports.getAttendanceReport = async (req, res) => {
    GET STUDENT ATTENDANCE REPORT (PRODUCTION GRADE)
    GET /attendance/student
 ========================================================= */
-/* exports.getStudentAttendanceReport = async (req, res) => {
-  try {
-    const student = req.student;
-
-    const { subjectId, startDate, endDate } = req.query;
-
-    let sessionFilter = {
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-    };
-
-    if (subjectId) {
-      sessionFilter.subject_id = subjectId;
-    }
-
-    if (startDate && endDate) {
-      sessionFilter.lectureDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
-
-    const sessions = await AttendanceSession.find(sessionFilter)
-      .populate("subject_id", "name code")
-      .sort({ lectureDate: -1 });
-
-    const report = [];
-
-    let total = 0;
-    let present = 0;
-    let absent = 0;
-
-    for (const session of sessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      if (!record) continue;
-
-      total++;
-
-      if (record.status === "PRESENT") present++;
-      if (record.status === "ABSENT") absent++;
-
-      report.push({
-        date: session.lectureDate,
-        subject: session.subject_id.name,
-        subjectCode: session.subject_id.code,
-        lectureNumber: session.lectureNumber,
-        status: record.status,
-      });
-    }
-
-    const today = new Date();
-    today.setHours(0,0,0,0);
-
-    const todaysSessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-      lectureDate: today,
-    }).populate("subject_id", "name code");
-
-    const todaysReport = [];
-
-    for (const session of todaysSessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      todaysReport.push({
-        subject: session.subject_id.name,
-        lectureNumber: session.lectureNumber,
-        status: record ? record.status : "NOT MARKED",
-      });
-    }
-
-    res.json({
-      summary: {
-        totalLectures: total,
-        present,
-        absent,
-        percentage: total > 0 ? ((present / total) * 100).toFixed(2) : 0,
-      },
-      sessions: report,
-      today: todaysReport,
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to load attendance report" });
-  }
-}; */
-
 exports.getStudentAttendanceReport = async (req, res) => {
   try {
     const student = req.student;

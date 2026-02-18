@@ -1,14 +1,15 @@
 const stripe = require("../services/stripe.service");
 const StudentFee = require("../models/studentFee.model");
+const AppError = require("../utils/AppError");
 
-exports.createCheckoutSession = async (req, res) => {
+exports.createCheckoutSession = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const { installmentName } = req.body;
 
     const studentFee = await StudentFee.findOne({ student_id: studentId });
     if (!studentFee) {
-      return res.status(404).json({ message: "Student fee record not found" });
+      throw new AppError("Student fee record not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     const installment = studentFee.installments.find(
@@ -16,9 +17,7 @@ exports.createCheckoutSession = async (req, res) => {
     );
 
     if (!installment) {
-      return res
-        .status(400)
-        .json({ message: "Invalid or already paid installment" });
+      throw new AppError("Invalid or already paid installment", 404, "INSTALLMENT_NOT_FOUND");
     }
 
     const successUrl = `${process.env.FRONTEND_URL}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`;
@@ -52,11 +51,11 @@ exports.createCheckoutSession = async (req, res) => {
 
     res.json({ checkoutUrl: session.url });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.confirmStripePayment = async (req, res) => {
+exports.confirmStripePayment = async (req, res, next) => {
   try {
     const studentId = req.user.id;
     const { sessionId } = req.body;
@@ -64,14 +63,14 @@ exports.confirmStripePayment = async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
-      return res.status(400).json({ message: "Payment not completed" });
+      throw new AppError("Payment not completed", 400, "PAYMENT_NOT_COMPLETED");
     }
 
     const { installmentName } = session.metadata;
 
     const studentFee = await StudentFee.findOne({ student_id: studentId });
     if (!studentFee) {
-      return res.status(404).json({ message: "Fee record not found" });
+      throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     const installment = studentFee.installments.find(
@@ -83,9 +82,7 @@ exports.confirmStripePayment = async (req, res) => {
     } */
 
     if (!installment) {
-      return res.status(404).json({
-        message: "Installment not found",
-      });
+      throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
     }
 
     // 🔥 If already paid → just return existing data
@@ -141,6 +138,6 @@ exports.confirmStripePayment = async (req, res) => {
       remainingAmount: studentFee.totalFee - studentFee.paidAmount,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
