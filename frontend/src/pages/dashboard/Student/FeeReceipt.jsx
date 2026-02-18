@@ -11,7 +11,9 @@ import {
   FaReceipt,
   FaCheckCircle,
   FaDownload,
-  FaPrint
+  FaPrint,
+  FaUniversity,
+  FaCreditCard
 } from "react-icons/fa";
 
 export default function FeeReceipt() {
@@ -29,35 +31,10 @@ export default function FeeReceipt() {
   useEffect(() => {
     const fetchReceipt = async () => {
       try {
-        const res = await api.get(`/payments/${paymentId}`);
+        const res = await api.get(`/student/payments/receipt/${paymentId}`);
         setReceipt(res.data);
-        toast.success("Receipt loaded successfully");
-      } catch {
-        toast.warning("API not ready. Showing demo receipt.");
-
-        setReceipt({
-          receiptNo: paymentId,
-          status: "SUCCESS",
-          amount: 25000,
-          paymentMethod: "PhonePe",
-          paymentDate: new Date(),
-
-          student: {
-            name: user.name,
-            email: user.email,
-            enrollment: "STU-2025-001",
-            department: "Bachelor Of Arts",
-            course: "Ancient History",
-            academicYear: "2024-25"
-          },
-
-          college: {
-            name: "NCK College",
-            address: "Kolhapur, Maharashtra",
-            email: "nck@gmail.com",
-            contact: "9090909090"
-          }
-        });
+      } catch (err) {
+        toast.error("Unable to fetch receipt");
       } finally {
         setLoading(false);
       }
@@ -66,19 +43,24 @@ export default function FeeReceipt() {
     fetchReceipt();
   }, [paymentId]);
 
-  /* ================= PDF ================= */
+  /* ================= PDF DOWNLOAD ================= */
   const downloadPDF = async () => {
     try {
       toast.info("Generating PDF...");
-      const canvas = await html2canvas(receiptRef.current, { scale: 2 });
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 3,
+        useCORS: true
+      });
+
       const imgData = canvas.toDataURL("image/png");
 
       const pdf = new jsPDF("p", "mm", "a4");
-      const width = 210;
-      const height = (canvas.height * width) / canvas.width;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight =
+        (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, "PNG", 0, 0, width, height);
-      pdf.save(`Fee_Receipt_${paymentId}.pdf`);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Fee_Receipt_${receipt.transactionId}.pdf`);
 
       toast.success("PDF downloaded!");
     } catch {
@@ -86,101 +68,142 @@ export default function FeeReceipt() {
     }
   };
 
-  if (loading) {
-    return <div className="text-center mt-5">Loading receipt...</div>;
-  }
-
-  if (!receipt) {
-    return <div className="alert alert-danger text-center">Receipt not found</div>;
-  }
+  if (loading) return <div className="text-center mt-5">Loading...</div>;
+  if (!receipt) return <div className="alert alert-danger">Receipt not found</div>;
 
   return (
     <div className="container py-4">
       <ToastContainer position="top-right" />
 
-      {/* HEADER */}
       <div className="text-center mb-4">
         <h3 className="fw-bold">
-          <FaReceipt className="me-2 blink" />
+          <FaReceipt className="me-2 text-primary" />
           Fee Payment Receipt
         </h3>
       </div>
 
-      {/* RECEIPT */}
-      <div ref={receiptRef} className="card shadow p-4 rounded-4">
-        <div className="text-center mb-3">
-          <h4 className="fw-bold">{receipt.college.name}</h4>
-          <p className="mb-0">{receipt.college.address}</p>
-          <p className="small">{receipt.college.email} | {receipt.college.contact}</p>
+      {/* RECEIPT CARD */}
+      <div ref={receiptRef} className="receipt-card position-relative">
+
+        {/* WATERMARK */}
+        <div className="watermark">PAID</div>
+
+        {/* HEADER */}
+        <div className="text-center mb-4">
+          <h4 className="fw-bold">
+            <FaUniversity className="me-2" />
+            {receipt.college?.name}
+          </h4>
+          <div className="small text-muted">
+            {receipt.college?.address}
+          </div>
+          <div className="small">
+            {receipt.college?.email} | {receipt.college?.contact}
+          </div>
         </div>
 
         <hr />
 
-        <div className="text-center mb-3">
-          <FaCheckCircle className="text-success fs-2" />
+        {/* STATUS */}
+        <div className="text-center mb-4">
+          <FaCheckCircle className="text-success display-5 mb-2" />
           <h5 className="text-success fw-bold">Payment Successful</h5>
-          <p>Receipt No: <strong>{receipt.receiptNo}</strong></p>
+          <div className="small text-muted">
+            Receipt No: <strong>{receipt.transactionId}</strong>
+          </div>
         </div>
 
-        <Section title="Student Details">
-          <Info label="Name" value={receipt.student.name} />
-          <Info label="Email" value={receipt.student.email} />
-          <Info label="Enrollment" value={receipt.student.enrollment} />
-          <Info label="Department" value={receipt.student.department} />
-          <Info label="Course" value={receipt.student.course} />
-          <Info label="Academic Year" value={receipt.student.academicYear} />
-        </Section>
+        {/* DETAILS GRID */}
+        <div className="row g-4">
 
-        <Section title="Payment Details">
-          <Info label="Amount" value={`₹ ${receipt.amount}`} />
-          <Info label="Method" value={receipt.paymentMethod} />
-          <Info label="Date" value={new Date(receipt.paymentDate).toLocaleDateString()} />
-          <Info label="Status" value={receipt.status} />
-        </Section>
+          <div className="col-md-6">
+            <h6 className="section-title">Student Details</h6>
+            <Info label="Name" value={receipt.student?.name} />
+            <Info label="Course" value={receipt.student?.course} />
+            <Info label="Department" value={receipt.student?.department} />
+            <Info label="Academic Year" value={receipt.student?.academicYear} />
+          </div>
 
-        <p className="text-center mt-4 small text-muted">
-          This is a system generated receipt.
+          <div className="col-md-6">
+            <h6 className="section-title">Payment Details</h6>
+            <Info label="Installment" value={receipt.installmentName} />
+            <Info label="Amount" value={`₹ ${receipt.amount?.toLocaleString()}`} />
+            <Info label="Payment Method" value="Stripe (Card)" />
+            <Info
+              label="Paid On"
+              value={new Date(receipt.paidAt).toLocaleString("en-IN")}
+            />
+            <Info label="Status" value={receipt.status} />
+          </div>
+        </div>
+
+        <hr />
+
+        <p className="text-center small text-muted mt-4">
+          This is a system-generated receipt. No signature required.
         </p>
       </div>
 
-      {/* ACTIONS */}
-      <div className="d-flex justify-content-center gap-3 mt-4">
+      {/* ACTION BUTTONS */}
+      <div className="d-flex justify-content-center gap-3 mt-4 no-print">
         <button className="btn btn-outline-primary" onClick={() => window.print()}>
-          <FaPrint /> Print
+          <FaPrint className="me-1" /> Print
         </button>
+
         <button className="btn btn-success" onClick={downloadPDF}>
-          <FaDownload /> Download PDF
+          <FaDownload className="me-1" /> Download PDF
         </button>
       </div>
 
+      {/* STYLES */}
       <style>{`
-        .blink { animation: blink 1.5s infinite; }
-        @keyframes blink { 50% { opacity: 0.4; } }
+        .receipt-card {
+          background: white;
+          padding: 40px;
+          border-radius: 20px;
+          box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+          overflow: hidden;
+        }
+
+        .section-title {
+          font-weight: 700;
+          margin-bottom: 12px;
+          color: #1a4b6d;
+        }
+
+        .info-row {
+          margin-bottom: 10px;
+        }
+
+        .watermark {
+          position: absolute;
+          top: 40%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-30deg);
+          font-size: 120px;
+          font-weight: 900;
+          color: rgba(0, 128, 0, 0.05);
+          pointer-events: none;
+        }
 
         @media print {
-          button { display: none; }
+          .no-print {
+            display: none !important;
+          }
+          body {
+            background: white;
+          }
         }
       `}</style>
     </div>
   );
 }
 
-/* ===== Helpers ===== */
-function Section({ title, children }) {
-  return (
-    <>
-      <h6 className="fw-bold mt-3">{title}</h6>
-      <div className="row">{children}</div>
-      <hr />
-    </>
-  );
-}
-
+/* Helper */
 function Info({ label, value }) {
   return (
-    <div className="col-md-6 mb-2">
-      <strong>{label}:</strong><br />
-      {value || "N/A"}
+    <div className="info-row">
+      <strong>{label}:</strong> {value || "N/A"}
     </div>
   );
 }
