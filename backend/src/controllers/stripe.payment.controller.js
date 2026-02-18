@@ -56,69 +56,6 @@ exports.createCheckoutSession = async (req, res) => {
   }
 };
 
-/* exports.confirmStripePayment = async (req, res) => {
-  try {
-    const studentId = req.user.id;
-    const { sessionId } = req.body;
-
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.payment_status !== "paid") {
-      return res.status(400).json({ message: "Payment not completed" });
-    }
-
-    const { installmentName } = session.metadata;
-
-    const studentFee = await StudentFee.findOne({ student_id: studentId });
-    if (!studentFee) {
-      return res.status(404).json({ message: "Fee record not found" });
-    }
-
-    const installment = studentFee.installments.find(
-      (i) => i.name === installmentName,
-    );
-
-    if (!installment || installment.status === "PAID") {
-      return res.json({ message: "Installment already processed" });
-    }
-
-    installment.status = "PAID";
-    installment.paidAt = new Date();
-    installment.transactionId = session.payment_intent;
-    installment.paymentGateway = "STRIPE";
-
-    // 🔄 Recalculate paid amount
-    studentFee.paidAmount = studentFee.installments
-      .filter((i) => i.status === "PAID")
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    await studentFee.save();
-
-    // res.json({
-    //   message: "Payment verified and installment updated",
-    //   paidAmount: studentFee.paidAmount,
-    //   remainingAmount: studentFee.totalFee - studentFee.paidAmount
-    // });
-
-    return res.json({
-      installment: {
-        _id: installment._id,
-        name: installment.name,
-        amount: installment.amount,
-        paidAt: installment.paidAt,
-        status: installment.status,
-      },
-      totalFee: studentFee.totalFee,
-      paidAmount: studentFee.paidAmount,
-      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-}; */
-
-
-
 exports.confirmStripePayment = async (req, res) => {
   try {
     const studentId = req.user.id;
@@ -141,8 +78,31 @@ exports.confirmStripePayment = async (req, res) => {
       (i) => i.name === installmentName,
     );
 
-    if (!installment || installment.status === "PAID") {
+    /* if (!installment || installment.status === "PAID") {
       return res.json({ message: "Installment already processed" });
+    } */
+
+    if (!installment) {
+      return res.status(404).json({
+        message: "Installment not found",
+      });
+    }
+
+    // 🔥 If already paid → just return existing data
+    if (installment.status === "PAID") {
+      return res.json({
+        installment: {
+          _id: installment._id,
+          name: installment.name,
+          amount: installment.amount,
+          paidAt: installment.paidAt,
+          transactionId: installment.transactionId,
+          status: installment.status,
+        },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+      });
     }
 
     /* =========================
@@ -180,7 +140,6 @@ exports.confirmStripePayment = async (req, res) => {
       paidAmount: studentFee.paidAmount,
       remainingAmount: studentFee.totalFee - studentFee.paidAmount,
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
