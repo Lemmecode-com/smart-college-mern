@@ -1,4 +1,5 @@
 const Student = require("../models/student.model");
+const AppError = require("../utils/AppError");
 
 /**
  * Student Middleware
@@ -17,15 +18,13 @@ module.exports = async (req, res, next) => {
     });
 
     if (!student) {
-      return res.status(403).json({
-        message: "Student not found or not approved"
-      });
+      throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
     }
 
     req.student = student; // 🔥 attach student
     next();
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

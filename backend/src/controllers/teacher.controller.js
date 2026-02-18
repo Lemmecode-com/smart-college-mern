@@ -2,13 +2,14 @@ const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const User = require("../models/user.model");
+const AppError = require("../utils/AppError");
 
 /* =========================================================
    CREATE TEACHER (College Admin)
    POST /teachers
    ➕ supports course assignment
 ========================================================= */
-exports.createTeacher = async (req, res) => {
+exports.createTeacher = async (req, res, next) => {
   try {
     const {
       name,
@@ -38,7 +39,7 @@ exports.createTeacher = async (req, res) => {
     });
 
     if (!department) {
-      return res.status(404).json({ message: "Invalid department" });
+      throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
 
     /* ================= Validate Courses ================= */
@@ -50,16 +51,14 @@ exports.createTeacher = async (req, res) => {
       });
 
       if (validCourses !== finalCourses.length) {
-        return res.status(400).json({
-          message: "One or more courses do not belong to this department",
-        });
+        throw new AppError("One or more courses do not belong to this department", 404, "COURSE_NOT_FOUND");
       }
     }
 
     /* ================= Duplicate User ================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already exists" });
+      throw new AppError("Email already exists", 409, "DUPLICATE_EMAIL");
     }
 
     /* ================= Create User ================= */
@@ -91,8 +90,7 @@ exports.createTeacher = async (req, res) => {
       teacher,
     });
   } catch (error) {
-    console.error("Create Teacher Error:", error);
-    res.status(500).json({ message: "Failed to create teacher" });
+    next(error);
   }
 };
 

@@ -6,8 +6,9 @@ const Student = require("../models/student.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const StudentFee = require("../models/studentFee.model");
+const AppError = require("../utils/AppError");
 
-exports.registerStudent = async (req, res) => {
+exports.registerStudent = async (req, res, next) => {
   try {
     const { collegeCode } = req.params;
 
@@ -37,9 +38,7 @@ exports.registerStudent = async (req, res) => {
     // 1️⃣ Resolve college
     const college = await College.findOne({ code: collegeCode });
     if (!college) {
-      return res
-        .status(404)
-        .json({ message: "Invalid college registration link" });
+      throw new AppError("Invalid college registration link", 404, "COLLEGE_NOT_FOUND");
     }
 
     // 2️⃣ Validate department & course (same as before)
@@ -50,7 +49,7 @@ exports.registerStudent = async (req, res) => {
       college_id: college._id,
     });
     if (!department) {
-      return res.status(400).json({ message: "Invalid department" });
+      throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
 
     // Validate course
@@ -60,7 +59,7 @@ exports.registerStudent = async (req, res) => {
       college_id: college._id,
     });
     if (!course) {
-      return res.status(400).json({ message: "Invalid course" });
+      throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
     }
 
     // 3️⃣ Prevent duplicate
@@ -69,9 +68,7 @@ exports.registerStudent = async (req, res) => {
       college_id: college._id,
     });
     if (exists) {
-      return res
-        .status(400)
-        .json({ message: "Student already registered with this email" });
+      throw new AppError("Student already registered with this email", 409, "DUPLICATE_EMAIL");
     }
 
     // 4️⃣ Hash password
@@ -108,7 +105,7 @@ exports.registerStudent = async (req, res) => {
       registeredStud,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
