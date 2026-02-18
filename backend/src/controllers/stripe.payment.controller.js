@@ -21,6 +21,12 @@ exports.createCheckoutSession = async (req, res) => {
         .json({ message: "Invalid or already paid installment" });
     }
 
+    const successUrl = `${process.env.FRONTEND_URL}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${process.env.FRONTEND_URL}/student/payment-cancel`;
+
+    console.log("Success URL:", successUrl);
+    console.log("Cancel URL:", cancelUrl);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -50,7 +56,7 @@ exports.createCheckoutSession = async (req, res) => {
   }
 };
 
-exports.confirmStripePayment = async (req, res) => {
+/* exports.confirmStripePayment = async (req, res) => {
   try {
     const studentId = req.user.id;
     const { sessionId } = req.body;
@@ -106,6 +112,75 @@ exports.confirmStripePayment = async (req, res) => {
       paidAmount: studentFee.paidAmount,
       remainingAmount: studentFee.totalFee - studentFee.paidAmount,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}; */
+
+
+
+exports.confirmStripePayment = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { sessionId } = req.body;
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== "paid") {
+      return res.status(400).json({ message: "Payment not completed" });
+    }
+
+    const { installmentName } = session.metadata;
+
+    const studentFee = await StudentFee.findOne({ student_id: studentId });
+    if (!studentFee) {
+      return res.status(404).json({ message: "Fee record not found" });
+    }
+
+    const installment = studentFee.installments.find(
+      (i) => i.name === installmentName,
+    );
+
+    if (!installment || installment.status === "PAID") {
+      return res.json({ message: "Installment already processed" });
+    }
+
+    /* =========================
+       STRIPE TRANSACTION DATA
+    ========================== */
+
+    const paymentIntentId = session.payment_intent; // ✅ main transaction id
+
+    installment.status = "PAID";
+    installment.paidAt = new Date();
+    installment.transactionId = paymentIntentId; // ✅ Store Stripe PaymentIntent
+    installment.paymentGateway = "STRIPE";
+    installment.stripeSessionId = sessionId; // optional but good practice
+
+    /* =========================
+       Recalculate paid amount
+    ========================== */
+
+    studentFee.paidAmount = studentFee.installments
+      .filter((i) => i.status === "PAID")
+      .reduce((sum, i) => sum + i.amount, 0);
+
+    await studentFee.save();
+
+    return res.json({
+      installment: {
+        _id: installment._id,
+        name: installment.name,
+        amount: installment.amount,
+        paidAt: installment.paidAt,
+        transactionId: installment.transactionId, // ✅ RETURN IT
+        status: installment.status,
+      },
+      totalFee: studentFee.totalFee,
+      paidAmount: studentFee.paidAmount,
+      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
