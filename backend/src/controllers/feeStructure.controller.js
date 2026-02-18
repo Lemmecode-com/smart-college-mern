@@ -1,11 +1,12 @@
 const FeeStructure = require("../../src/models/feeStructure.model");
 const Course = require("../../src/models/course.model");
+const AppError = require("../utils/AppError");
 // const StudentFee = require("../models/studentFee.model"); // uncomment if exists
 
 /**
  * CREATE Fee Structure
  */
-exports.createFeeStructure = async (req, res) => {
+exports.createFeeStructure = async (req, res, next) => {
   try {
     const { course_id, category, totalFee, installments } = req.body;
 
@@ -16,9 +17,7 @@ exports.createFeeStructure = async (req, res) => {
     });
 
     if (!course) {
-      return res.status(400).json({
-        message: "Invalid course for this college",
-      });
+      throw new AppError("Invalid course for this college", 404, "COURSE_NOT_FOUND");
     }
 
     // Prevent duplicate
@@ -29,9 +28,7 @@ exports.createFeeStructure = async (req, res) => {
     });
 
     if (exists) {
-      return res.status(400).json({
-        message: "Fee structure already exists for this course & category",
-      });
+      throw new AppError("Fee structure already exists for this course & category", 409, "DUPLICATE_FEE_STRUCTURE");
     }
 
     // Validate installments
@@ -41,9 +38,7 @@ exports.createFeeStructure = async (req, res) => {
     );
 
     if (totalInstallmentAmount !== totalFee) {
-      return res.status(400).json({
-        message: "Installment total must match total fee",
-      });
+      throw new AppError("Installment total must match total fee", 400, "INVALID_INSTALLMENTS");
     }
 
     const feeStructure = await FeeStructure.create({
@@ -59,14 +54,14 @@ exports.createFeeStructure = async (req, res) => {
       feeStructure,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * GET ALL Fee Structures (college-wise)
  */
-exports.getFeeStructures = async (req, res) => {
+exports.getFeeStructures = async (req, res, next) => {
   try {
     const fees = await FeeStructure.find({
       college_id: req.college_id,
@@ -74,14 +69,14 @@ exports.getFeeStructures = async (req, res) => {
 
     res.json(fees);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * UPDATE Fee Structure
  */
-exports.updateFeeStructure = async (req, res) => {
+exports.updateFeeStructure = async (req, res, next) => {
   try {
     const { feeStructureId } = req.params;
     const { totalFee, installments } = req.body;
@@ -92,9 +87,7 @@ exports.updateFeeStructure = async (req, res) => {
     });
 
     if (!feeStructure) {
-      return res.status(404).json({
-        message: "Fee structure not found",
-      });
+      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
     }
 
     const installmentTotal = installments.reduce(
@@ -103,9 +96,7 @@ exports.updateFeeStructure = async (req, res) => {
     );
 
     if (installmentTotal !== totalFee) {
-      return res.status(400).json({
-        message: "Installment total must match total fee",
-      });
+      throw new AppError("Installment total must match total fee", 400, "INVALID_INSTALLMENTS");
     }
 
     feeStructure.totalFee = totalFee;
@@ -118,7 +109,7 @@ exports.updateFeeStructure = async (req, res) => {
       feeStructure,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
