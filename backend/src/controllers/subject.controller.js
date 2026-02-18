@@ -1,11 +1,12 @@
 const Subject = require("../models/subject.model");
 const Course = require("../models/course.model");
 const Teacher = require("../models/teacher.model");
+const AppError = require("../utils/AppError");
 
 /**
  * CREATE SUBJECT
  */
-exports.createSubject = async (req, res) => {
+exports.createSubject = async (req, res, next) => {
   const { course_id, name, code, semester, credits, teacher_id } = req.body;
 
   // Validate course
@@ -15,7 +16,7 @@ exports.createSubject = async (req, res) => {
   });
 
   if (!course) {
-    return res.status(404).json({ message: "Invalid course" });
+    throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
   }
 
   // ✅ FIX: validate teacher WITH department
@@ -26,9 +27,7 @@ exports.createSubject = async (req, res) => {
   });
 
   if (!teacher) {
-    return res.status(400).json({
-      message: "Teacher does not belong to this course's department",
-    });
+    throw new AppError("Teacher does not belong to this course's department", 404, "TEACHER_NOT_FOUND");
   }
 
   const subject = await Subject.create({
@@ -49,33 +48,41 @@ exports.createSubject = async (req, res) => {
 /**
  * GET SUBJECTS BY COURSE
  */
-exports.getSubjectsByCourse = async (req, res) => {
-  const subjects = await Subject.find({
-    course_id: req.params.courseId,
-    college_id: req.college_id,
-  }).populate("teacher_id", "name designation");
+exports.getSubjectsByCourse = async (req, res, next) => {
+  try {
+    const subjects = await Subject.find({
+      course_id: req.params.courseId,
+      college_id: req.college_id,
+    }).populate("teacher_id", "name designation");
 
-  res.json(subjects);
+    res.json(subjects);
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
  * UPDATE SUBJECT
  */
-exports.updateSubject = async (req, res) => {
-  const subject = await Subject.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      college_id: req.college_id,
-    },
-    req.body,
-    { new: true },
-  );
+exports.updateSubject = async (req, res, next) => {
+  try {
+    const subject = await Subject.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        college_id: req.college_id,
+      },
+      req.body,
+      { new: true },
+    );
 
-  if (!subject) {
-    return res.status(404).json({ message: "Subject not found" });
+    if (!subject) {
+      throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+    }
+
+    res.json(subject);
+  } catch (error) {
+    next(error);
   }
-
-  res.json(subject);
 };
 
 /**
