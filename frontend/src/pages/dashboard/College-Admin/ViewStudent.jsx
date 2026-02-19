@@ -13,7 +13,11 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaTimesCircle,
-  FaArrowLeft
+  FaArrowLeft,
+  FaFileAlt,
+  FaImage,
+  FaUser,
+  FaGraduationCap
 } from "react-icons/fa";
 
 export default function ViewStudent() {
@@ -107,7 +111,7 @@ export default function ViewStudent() {
               Student Profile
             </h3>
             <p className="opacity-75 mb-0">
-              Complete student details
+              Complete student details with academic records
             </p>
           </div>
           <button
@@ -116,6 +120,93 @@ export default function ViewStudent() {
           >
             <FaArrowLeft /> Back
           </button>
+        </div>
+      </div>
+
+      {/* ================= PARENT/GUARDIAN INFO ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-3 text-primary">
+            <FaUser className="me-2" />
+            Parent / Guardian Information
+          </h5>
+
+          <div className="row g-3">
+            <Info label="Father's Name" value={student.fatherName} />
+            <Info label="Father's Mobile" value={student.fatherMobile} />
+            <Info label="Mother's Name" value={student.motherName} />
+            <Info label="Mother's Mobile" value={student.motherMobile} />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 10TH ACADEMIC DETAILS ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-3 text-primary">
+            <FaGraduationCap className="me-2" />
+            10th (SSC) Academic Details
+          </h5>
+
+          <div className="row g-3">
+            <Info label="School Name" value={student.sscSchoolName} />
+            <Info label="Board" value={student.sscBoard} />
+            <Info label="Passing Year" value={student.sscPassingYear} />
+            <Info label="Percentage / CGPA" value={student.sscPercentage ? `${student.sscPercentage}%` : '-'} />
+            <Info label="Roll Number" value={student.sscRollNumber} />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 12TH ACADEMIC DETAILS ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-3 text-primary">
+            <FaGraduationCap className="me-2" />
+            12th (HSC) Academic Details
+          </h5>
+
+          <div className="row g-3">
+            <Info label="School / College Name" value={student.hscSchoolName} />
+            <Info label="Board" value={student.hscBoard} />
+            <Info label="Stream" value={student.hscStream} />
+            <Info label="Passing Year" value={student.hscPassingYear} />
+            <Info label="Percentage / CGPA" value={student.hscPercentage ? `${student.hscPercentage}%` : '-'} />
+            <Info label="Roll Number" value={student.hscRollNumber} />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= DOCUMENTS UPLOADED ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-3 text-primary">
+            <FaFileAlt className="me-2" />
+            Uploaded Documents
+          </h5>
+
+          <div className="row g-3">
+            <DocumentInfo 
+              label="10th Marksheet" 
+              path={student.sscMarksheetPath} 
+              icon={<FaFileAlt />}
+            />
+            <DocumentInfo 
+              label="12th Marksheet" 
+              path={student.hscMarksheetPath} 
+              icon={<FaFileAlt />}
+            />
+            <DocumentInfo 
+              label="Passport Photo" 
+              path={student.passportPhotoPath} 
+              icon={<FaImage />}
+            />
+            <DocumentInfo 
+              label="Category Certificate" 
+              path={student.categoryCertificatePath} 
+              icon={<FaFileAlt />}
+            />
+          </div>
         </div>
       </div>
 
@@ -139,6 +230,20 @@ export default function ViewStudent() {
         </div>
       </div>
 
+      {/* ================= ADDRESS ================= */}
+      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+        <div className="card-body p-4">
+          <h5 className="fw-bold mb-3">Address Details</h5>
+
+          <div className="row g-3">
+            <Info label="Address Line" value={student.addressLine} />
+            <Info label="City" value={student.city} />
+            <Info label="State" value={student.state} />
+            <Info label="Pincode" value={student.pincode} />
+          </div>
+        </div>
+      </div>
+
       {/* ================= ACADEMIC INFO ================= */}
       <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
         <div className="card-body p-4">
@@ -151,20 +256,6 @@ export default function ViewStudent() {
             <Info label="Course" value={student.course_id?.name} />
             <Info label="Admission Year" value={student.admissionYear} />
             <Info label="Current Semester" value={student.currentSemester} />
-          </div>
-        </div>
-      </div>
-
-      {/* ================= ADDRESS ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-3">Address Details</h5>
-
-          <div className="row g-3">
-            <Info label="Address Line" value={student.addressLine} />
-            <Info label="City" value={student.city} />
-            <Info label="State" value={student.state} />
-            <Info label="Pincode" value={student.pincode} />
           </div>
         </div>
       </div>
@@ -227,6 +318,18 @@ export default function ViewStudent() {
           background: rgba(255,255,255,0.96);
           backdrop-filter: blur(8px);
         }
+        .document-link {
+          color: #1976d2;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .document-link:hover {
+          text-decoration: underline;
+        }
+        .document-not-uploaded {
+          color: #9e9e9e;
+          font-style: italic;
+        }
         `}
       </style>
     </div>
@@ -239,6 +342,35 @@ function Info({ label, value }) {
     <div className="col-md-4 col-sm-6">
       <h6 className="text-muted">{label}</h6>
       <h5 className="fw-bold">{value || "-"}</h5>
+    </div>
+  );
+}
+
+/* ================= DOCUMENT INFO ================= */
+function DocumentInfo({ label, path, icon }) {
+  const getFileName = (filePath) => {
+    if (!filePath) return null;
+    const parts = filePath.split('\\');
+    return parts[parts.length - 1];
+  };
+
+  const fileName = getFileName(path);
+
+  return (
+    <div className="col-md-6 col-sm-12">
+      <h6 className="text-muted">{label}</h6>
+      {path ? (
+        <a 
+          href={`${import.meta.env.VITE_API_BASE_URL}/${path}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="document-link"
+        >
+          {icon} <span className="ms-1">{fileName || "View Document"}</span>
+        </a>
+      ) : (
+        <span className="document-not-uploaded">Not uploaded</span>
+      )}
     </div>
   );
 }

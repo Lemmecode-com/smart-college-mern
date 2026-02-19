@@ -45,6 +45,9 @@ app.use("/api/stripe", require("./src/routes/stripe.routes"));
 /* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
 app.use("/api/public", require("./src/routes/public.department.course.routes"));
 
+/* ================= DOCUMENT CONFIGURATION ================= */
+app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
+
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));
 
