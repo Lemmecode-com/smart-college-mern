@@ -92,7 +92,20 @@ export default function StudentTimetable() {
 
   const getSlot = (day, timeRange) => {
     const [start] = timeRange.split(" - ");
-    return slots.find((slot) => slot.day === day && slot.startTime === start);
+    const slot = slots.find((slot) => slot.day === day && slot.startTime === start);
+    
+    // ✅ Return slot with snapshot data if available
+    if (slot) {
+      return {
+        ...slot,
+        // Use snapshot data for historical accuracy
+        subjectName: slot.subject?.name || slot.slotSnapshot?.subject_name || slot.subject_id?.name,
+        teacherName: slot.teacher?.name || slot.slotSnapshot?.teacher_name,
+        room: slot.room || slot.slotSnapshot?.room,
+        slotType: slot.slotType || slot.slotSnapshot?.slotType
+      };
+    }
+    return null;
   };
 
   const getSlotTypeIcon = (type) => {
@@ -299,7 +312,8 @@ export default function StudentTimetable() {
                         ) : (
                           <div className="slot-card scale-on-hover">
                             <div className="slot-header">
-                              <h6 className="slot-subject">{slot.subject_id?.name}</h6>
+                              {/* ✅ Use snapshot data if available */}
+                              <h6 className="slot-subject">{slot.subjectName || slot.subject_id?.name}</h6>
                               <span className={`slot-type-badge ${getSlotTypeColor(slot.slotType)}`}>
                                 {getSlotTypeIcon(slot.slotType)}
                                 <span>{slot.slotType}</span>
@@ -308,15 +322,15 @@ export default function StudentTimetable() {
                             <div className="slot-body">
                               <div className="slot-code">
                                 <FaBook className="icon" />
-                                <span>{slot.subject_id?.code}</span>
+                                <span>{slot.subject_id?.code || slot.slotSnapshot?.subject_code}</span>
                               </div>
                               <div className="slot-teacher">
                                 <FaChalkboardTeacher className="icon" />
-                                <span>{slot.teacher_id?.name}</span>
+                                <span>{slot.teacherName || slot.teacher_id?.name}</span>
                               </div>
                               <div className="slot-room">
                                 <FaMapMarkerAlt className="icon" />
-                                <span>Room {slot.room}</span>
+                                <span>Room {slot.room || slot.slotSnapshot?.room}</span>
                               </div>
                             </div>
                           </div>

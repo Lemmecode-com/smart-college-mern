@@ -23,7 +23,7 @@ const attendanceSessionSchema = new mongoose.Schema(
       ref: "Subject",
       required: true,
     },
-    
+
     teacher_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
@@ -56,6 +56,50 @@ const attendanceSessionSchema = new mongoose.Schema(
       enum: ["OPEN", "CLOSED"],
       default: "OPEN",
     },
+
+    // ✅ SESSION SNAPSHOT (Preserves history)
+    // Immutable copy of slot data at time of session creation
+    slotSnapshot: {
+      subject_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+      subject_name: {
+        type: String,
+        required: true,
+      },
+      subject_code: {
+        type: String,
+        required: true,
+      },
+      teacher_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+      teacher_name: {
+        type: String,
+        required: true,
+      },
+      day: {
+        type: String,
+        enum: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+        required: true,
+      },
+      startTime: {
+        type: String,
+        required: true,
+      },
+      endTime: {
+        type: String,
+        required: true,
+      },
+      room: String,
+      slotType: {
+        type: String,
+        enum: ["LECTURE", "LAB"],
+        required: true,
+      }
+    }
   },
   { timestamps: true }
 );

@@ -192,10 +192,6 @@ exports.getTeachersByDepartment = async (req, res) => {
    ✅ NEW: GET TEACHERS BY COURSE
    GET /teachers/course/:courseId
 ========================================================= */
-/**
- * GET TEACHERS BY COURSE
- * GET /teachers/course/:courseId
- */
 exports.getTeachersByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
