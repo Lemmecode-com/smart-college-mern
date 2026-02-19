@@ -1,6 +1,5 @@
 const stripe = require("../services/stripe.service");
 const StudentFee = require("../models/studentFee.model");
-const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
 
 exports.createCheckoutSession = async (req, res, next) => {
@@ -83,27 +82,18 @@ exports.confirmStripePayment = async (req, res, next) => {
 
     const { installmentName } = session.metadata;
 
-    // ✅ Find student by user_id (don't filter by college_id)
-    const student = await Student.findOne({
-      user_id: userId
-    });
-
-    if (!student) {
-      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
-    }
-
-    // Find student fee record using student._id
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id
-    });
-
+    const studentFee = await StudentFee.findOne({ student_id: studentId });
     if (!studentFee) {
       throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     const installment = studentFee.installments.find(
-      (i) => i.name === installmentName
+      (i) => i.name === installmentName,
     );
+
+    /* if (!installment || installment.status === "PAID") {
+      return res.json({ message: "Installment already processed" });
+    } */
 
     if (!installment) {
       throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
