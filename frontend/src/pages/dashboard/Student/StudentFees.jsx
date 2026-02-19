@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -34,12 +34,14 @@ import {
 export default function StudentFees() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const toastIdRef = useRef({});
 
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHelp, setShowHelp] = useState(false);
   const [studentProfile, setStudentProfile] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -64,6 +66,9 @@ export default function StudentFees() {
   /* ================= FETCH FEE DASHBOARD ================= */
   const loadFees = async () => {
     try {
+      setLoading(true);
+      setError("");
+
       const res = await api.get("/student/payments/my-fee-dashboard");
 
       if (!res.data) {
@@ -71,7 +76,17 @@ export default function StudentFees() {
       }
 
       setDashboard(res.data);
-      setError("");
+
+      // Show success toast only once using unique toastId
+      if (!toastIdRef.current.feeSuccess) {
+        toast.success("Fee dashboard loaded successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+          toastId: "fee-success",
+        });
+        toastIdRef.current.feeSuccess = true;
+      }
     } catch (err) {
       console.error("Fee dashboard error:", err);
 
@@ -79,12 +94,22 @@ export default function StudentFees() {
         err.response?.status === 401
           ? "Session expired. Please login again."
           : err.response?.status === 404
-            ? "Fee structure not found for your course. Contact administration."
-            : err.response?.data?.message ||
-              "Unable to load fee dashboard. Please try again.";
+          ? "Fee structure not found for your course. Contact administration."
+          : err.response?.data?.message ||
+            "Unable to load fee dashboard. Please try again.";
 
       setError(errorMsg);
-      toast.error(errorMsg);
+
+      // Show error toast with unique ID to prevent duplicates
+      if (!toastIdRef.current.feeError) {
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+          toastId: "fee-error",
+        });
+        toastIdRef.current.feeError = true;
+      }
 
       if (err.response?.status === 401) {
         setTimeout(() => navigate("/login"), 3000);
@@ -96,7 +121,7 @@ export default function StudentFees() {
 
   useEffect(() => {
     loadFees();
-  }, []);
+  }, [retryCount]);
 
   /* ================= CALCULATIONS ================= */
   const progress =
@@ -125,7 +150,9 @@ export default function StudentFees() {
   /* ================= PAYMENT HANDLER ================= */
   const handleRedirectPayment = (installment) => {
     if (!installment?._id || installment.status !== "PENDING") {
-      toast.warning("Invalid payment request");
+      toast.warning("Invalid payment request", {
+        toastId: "payment-warning",
+      });
       return;
     }
 
@@ -139,27 +166,44 @@ export default function StudentFees() {
     });
   };
 
+  /* ================= RETRY HANDLER ================= */
+  const handleRetry = () => {
+    // Reset toast flags for retry
+    toastIdRef.current = {};
+    setRetryCount((prev) => prev + 1);
+  };
+
   /* ================= LOADING STATE ================= */
   if (loading) {
     return (
-      <div className="container-fluid py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body p-5 text-center">
-                <div
-                  className="spinner-border text-primary mb-3"
-                  role="status"
-                  style={{ width: "3rem", height: "3rem" }}
-                >
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <h5 className="text-muted">Loading Fee Dashboard...</h5>
-                <p className="text-muted small">
-                  Fetching your fee information and payment history
-                </p>
-              </div>
-            </div>
+      <div className="fees-container">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+        <div className="loading-wrapper">
+          <div className="loading-spinner">
+            <FaSpinner className="spin-icon" />
+            <p>Loading Fee Dashboard...</p>
+          </div>
+          <div className="skeleton-cards">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="skeleton-card" />
+            ))}
+          </div>
+          <div className="skeleton-table">
+            <div className="skeleton-table-header" />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="skeleton-table-row" />
+            ))}
           </div>
         </div>
       </div>
@@ -169,31 +213,36 @@ export default function StudentFees() {
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <div className="container-fluid py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body text-center p-5">
-                <div className="text-danger mb-3">
-                  <FaTimesCircle size={64} />
-                </div>
-                <h4 className="fw-bold mb-2">Fee Dashboard Error</h4>
-                <p className="text-muted mb-4">{error}</p>
-                <div className="d-flex justify-content-center gap-3">
-                  <button
-                    onClick={loadFees}
-                    className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
-                  >
-                    <FaSync className="spin-icon" /> Retry
-                  </button>
-                  <button
-                    onClick={() => navigate("/student/dashboard")}
-                    className="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-2"
-                  >
-                    <FaArrowLeft /> Back to Dashboard
-                  </button>
-                </div>
-              </div>
+      <div className="fees-container">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+        <div className="error-wrapper fade-in">
+          <div className="error-content">
+            <FaExclamationTriangle className="error-icon" />
+            <h3>Fee Dashboard Error</h3>
+            <p className="error-message">{error}</p>
+            <div className="error-actions">
+              <button onClick={handleRetry} className="retry-btn">
+                <FaSync className="me-2" />
+                Try Again
+              </button>
+              <button
+                onClick={() => navigate("/student/dashboard")}
+                className="back-btn"
+              >
+                <FaArrowLeft className="me-2" />
+                Back to Dashboard
+              </button>
             </div>
           </div>
         </div>
@@ -203,25 +252,34 @@ export default function StudentFees() {
 
   if (!dashboard) {
     return (
-      <div className="container-fluid py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body text-center p-5">
-                <FaMoneyCheckAlt className="text-muted mb-3" size={64} />
-                <h4 className="fw-bold mb-2">No Fee Data Available</h4>
-                <p className="text-muted mb-4">
-                  Your fee structure has not been configured yet. Please contact
-                  your college administration.
-                </p>
-                <button
-                  onClick={() => navigate("/student/dashboard")}
-                  className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
-                >
-                  <FaArrowLeft /> Back to Dashboard
-                </button>
-              </div>
-            </div>
+      <div className="fees-container">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+        <div className="empty-wrapper fade-in">
+          <div className="empty-content">
+            <FaMoneyCheckAlt className="empty-icon" />
+            <h3>No Fee Data Available</h3>
+            <p className="empty-message">
+              Your fee structure has not been configured yet. Please contact
+              your college administration.
+            </p>
+            <button
+              onClick={() => navigate("/student/dashboard")}
+              className="back-btn"
+            >
+              <FaArrowLeft className="me-2" />
+              Back to Dashboard
+            </button>
           </div>
         </div>
       </div>
@@ -229,29 +287,37 @@ export default function StudentFees() {
   }
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
-      <ToastContainer position="top-right" autoClose={3000} />
+    <div className="fees-container">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
 
       {/* ================= TOP NAVIGATION BAR ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
+      <header className="fees-header fade-in">
+        <div className="header-left">
           <button
             onClick={() => navigate("/student/dashboard")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Back to Dashboard"
+            className="btn-back"
+            aria-label="Back to Dashboard"
           >
-            <FaArrowLeft size={16} /> Back
+            <FaArrowLeft />
           </button>
-
-          <div className="d-flex align-items-center gap-3">
-            <div className="fees-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaMoneyCheckAlt size={28} />
+          <div className="header-info">
+            <div className="header-icon-wrapper">
+              <FaMoneyCheckAlt />
             </div>
             <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">
-                Fee Management
-              </h1>
-              <p className="text-muted mb-0 small">
+              <h1 className="header-title">Fee Management</h1>
+              <p className="header-subtitle">
                 <FaGraduationCap className="me-1" />
                 {studentProfile?.fullName || user.name || "Student"} |{" "}
                 {dashboard.course?.name || "Course"}
@@ -259,44 +325,31 @@ export default function StudentFees() {
             </div>
           </div>
         </div>
-
-        <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div className="header-actions">
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
+            className="btn-action"
             title="Fee Dashboard Help"
           >
-            <FaInfoCircle size={16} /> Help
-          </button>
-
-          <button
-            onClick={loadFees}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Refresh Fee Data"
-            disabled={loading}
-          >
-            <FaSync className={loading ? "spin-icon" : ""} size={16} />
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Print Fee Summary"
-          >
-            <FaPrint size={16} /> Print
+            <FaInfoCircle />
+            <span className="btn-text">Help</span>
           </button>
         </div>
-      </div>
+      </header>
 
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
-        <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
-          <div className="d-flex align-items-start gap-2">
-            <FaInfoCircle className="mt-1 flex-shrink-0" size={20} />
-            <div>
-              <h6 className="fw-bold mb-1">Fee Dashboard Guide</h6>
-              <ul className="mb-0 small ps-3">
+        <div className="help-section fade-in-up">
+          <div className="help-content">
+            <div className="help-header">
+              <FaInfoCircle className="help-icon" />
+              <h4>Fee Dashboard Guide</h4>
+              <button className="help-close" onClick={() => setShowHelp(false)}>
+                <FaTimesCircle />
+              </button>
+            </div>
+            <div className="help-body">
+              <ul>
                 <li>
                   <strong>Fee Summary</strong>: Overview of total fees, amount
                   paid, and pending dues
@@ -311,17 +364,17 @@ export default function StudentFees() {
                 </li>
                 <li>
                   <strong>Status Indicators</strong>:
-                  <ul className="mt-1 mb-0 ps-3">
+                  <ul className="help-sublist">
                     <li>
-                      <span className="badge bg-success me-1">PAID</span> -
-                      Payment completed
+                      <span className="badge bg-success">PAID</span> - Payment
+                      completed
                     </li>
                     <li>
-                      <span className="badge bg-warning me-1">PENDING</span> -
-                      Due soon (yellow)
+                      <span className="badge bg-warning">PENDING</span> - Due
+                      soon (yellow)
                     </li>
                     <li>
-                      <span className="badge bg-danger me-1">PENDING</span> -
+                      <span className="badge bg-danger">PENDING</span> -
                       Overdue (red)
                     </li>
                   </ul>
@@ -335,600 +388,1482 @@ export default function StudentFees() {
                   payment due within 7 days
                 </li>
               </ul>
-              <button
-                onClick={() => setShowHelp(false)}
-                className="btn btn-sm btn-outline-info mt-2 px-3"
-              >
-                Got it!
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ================= STUDENT PROFILE HEADER ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
-        style={{ animationDelay: "0.1s" }}
-      >
-        <div className="card-header bg-gradient-primary text-white py-4">
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-            <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
-              <div className="profile-avatar-container">
-                <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
-                  <FaUserGraduate size={48} />
-                </div>
-              </div>
-              <div>
-                <h2 className="h4 fw-bold mb-1">
-                  {studentProfile?.fullName || user.name || "Student Name"}
-                </h2>
-                <div className="d-flex flex-wrap gap-3">
-                  <div className="d-flex align-items-center gap-1">
-                    <FaIdCard className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {studentProfile?.enrollmentNumber || "N/A"}
-                    </span>
-                  </div>
-                  <div className="d-flex align-items-center gap-1">
-                    <FaGraduationCap className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {dashboard.course?.name || "N/A"}
-                    </span>
-                  </div>
-                  <div className="d-flex align-items-center gap-1">
-                    <FaLayerGroup className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {dashboard.course?.code || "N/A"}
-                    </span>
-                  </div>
-                </div>
-                <div className="d-flex flex-wrap gap-2 mt-2">
-                  <div className="d-flex align-items-center gap-2">
-                    <FaEnvelope className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {studentProfile?.email || user.email || "N/A"}
-                    </span>
-                  </div>
-                  <div className="d-flex align-items-center gap-2">
-                    <FaPhoneAlt className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {studentProfile?.mobileNumber || "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-body bg-light py-3">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center text-center text-md-start">
-            <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mb-2 mb-md-0">
-              <div className="d-flex align-items-center gap-2">
-                <FaUniversity className="text-primary" />
-                <span className="fw-medium">
-                  {dashboard.college?.name || "N/A"}
-                </span>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <FaCalendarAlt className="text-success" />
-                <span className="fw-medium">
-                  Academic Year: {dashboard.academicYear || "2025-2026"}
-                </span>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <FaLayerGroup className="text-info" />
-                <span className="fw-medium">
-                  Semester: {studentProfile?.currentSemester || "N/A"}
-                </span>
-              </div>
-            </div>
-            <small className="text-muted">
-              <FaSync className="spin-icon me-1" />
-              Last updated: {new Date().toLocaleString()}
-            </small>
-          </div>
-        </div>
-      </div>
-
       {/* ================= FEE SUMMARY CARDS ================= */}
-      <div
-        className="row g-3 g-md-4 mb-3 mb-md-4 animate-fade-in-up"
-        style={{ animationDelay: "0.2s" }}
-      >
-        <FeeSummaryCard
-          title="Total Fee"
-          amount={dashboard.totalFee}
-          icon={<FaUniversity className="blink-fast" />}
-          color="primary"
-          subtitle="Complete academic year fee"
-        />
-        <FeeSummaryCard
-          title="Amount Paid"
-          amount={dashboard.totalPaid}
-          icon={<FaCheckCircle />}
-          color="success"
-          subtitle="Successfully paid installments"
-        />
-        <FeeSummaryCard
-          title="Pending Due"
-          amount={dashboard.totalDue}
-          icon={<FaTimesCircle />}
-          color="danger"
-          subtitle="Remaining payment amount"
-        />
-        <FeeSummaryCard
-          title="Payment Progress"
-          amount={`${progress}%`}
-          icon={<FaCreditCard />}
-          color={
-            progress === 100 ? "success" : progress > 50 ? "warning" : "info"
-          }
-          subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
-        />
-      </div>
+      <section className="summary-section">
+        <div className="summary-grid">
+          <FeeSummaryCard
+            title="Total Fee"
+            amount={dashboard.totalFee}
+            icon={<FaUniversity className="blink-fast" />}
+            color="primary"
+            subtitle="Complete academic year fee"
+            delay="0.1s"
+          />
+          <FeeSummaryCard
+            title="Amount Paid"
+            amount={dashboard.totalPaid}
+            icon={<FaCheckCircle />}
+            color="success"
+            subtitle="Successfully paid installments"
+            delay="0.2s"
+          />
+          <FeeSummaryCard
+            title="Pending Due"
+            amount={dashboard.totalDue}
+            icon={<FaTimesCircle />}
+            color="danger"
+            subtitle="Remaining payment amount"
+            delay="0.3s"
+          />
+          <FeeSummaryCard
+            title="Payment Progress"
+            amount={`${progress}%`}
+            icon={<FaCreditCard />}
+            color={
+              progress === 100
+                ? "success"
+                : progress > 50
+                ? "warning"
+                : "info"
+            }
+            subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
+            delay="0.4s"
+          />
+        </div>
+      </section>
 
       {/* ================= PROGRESS BAR SECTION ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
-        style={{ animationDelay: "0.3s" }}
-      >
-        <div className="card-header bg-light py-3">
-          <h5 className="fw-bold mb-0 d-flex align-items-center gap-2">
-            <FaCreditCard /> Payment Progress
-          </h5>
+      <section className="progress-section fade-in-up">
+        <div className="progress-card">
+          <div className="progress-header">
+            <h3>
+              <FaCreditCard className="me-2" />
+              Payment Progress
+            </h3>
+          </div>
+          <div className="progress-body">
+            <div className="progress-info">
+              <span className="progress-label">Fee Payment Status</span>
+              <span
+                className={`progress-value ${
+                  progress === 100 ? "text-success" : "text-primary"
+                }`}
+              >
+                {progress}% Complete
+              </span>
+            </div>
+            <div className="progress-bar-wrapper">
+              <div
+                className={`progress-bar ${
+                  progress === 100
+                    ? "bg-success"
+                    : progress > 75
+                    ? "bg-primary"
+                    : progress > 50
+                    ? "bg-warning"
+                    : "bg-info"
+                }`}
+                role="progressbar"
+                style={{ width: `${progress}%` }}
+              >
+                <span className="progress-text">{progress}%</span>
+              </div>
+            </div>
+            <div className="progress-stats">
+              <div className="stat-item">
+                <FaCheckCircle className="text-success me-1" />
+                <span>
+                  {
+                    dashboard.installments?.filter(
+                      (i) => i.status === "PAID"
+                    ).length || 0
+                  }{" "}
+                  Paid
+                </span>
+              </div>
+              <div className="stat-item">
+                <FaClock className="text-warning me-1" />
+                <span>
+                  {
+                    dashboard.installments?.filter(
+                      (i) => i.status === "PENDING"
+                    ).length || 0
+                  }{" "}
+                  Pending
+                </span>
+              </div>
+              <div className="stat-item">
+                <FaMoneyCheckAlt className="text-primary me-1" />
+                <span>
+                  {dashboard.installments?.length || 0} Total Installments
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="card-body p-4">
-          <div className="d-flex justify-content-between mb-2">
-            <span className="fw-semibold">Fee Payment Status</span>
-            <span className="fw-bold text-{progress === 100 ? 'success' : 'primary'}">
-              {progress}% Complete
-            </span>
-          </div>
-          <div
-            className="progress"
-            style={{ height: "24px", borderRadius: "12px", overflow: "hidden" }}
-          >
-            <div
-              className={`progress-bar ${progress === 100 ? "bg-success" : progress > 75 ? "bg-primary" : progress > 50 ? "bg-warning" : "bg-info"}`}
-              role="progressbar"
-              style={{ width: `${progress}%` }}
-            >
-              <div className="progress-text">{progress}%</div>
-            </div>
-          </div>
-
-          <div className="d-flex justify-content-between mt-3 text-muted small">
-            <div>
-              <FaCheckCircle className="me-1 text-success" />
-              {dashboard.installments?.filter((i) => i.status === "PAID")
-                .length || 0}{" "}
-              Paid
-            </div>
-            <div>
-              <FaClock className="me-1 text-warning" />
-              {dashboard.installments?.filter((i) => i.status === "PENDING")
-                .length || 0}{" "}
-              Pending
-            </div>
-            <div>
-              <FaMoneyCheckAlt className="me-1 text-primary" />
-              {dashboard.installments?.length || 0} Total Installments
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* ================= INSTALLMENTS TABLE ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up"
-        style={{ animationDelay: "0.4s" }}
-      >
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
-          <div className="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3">
-            <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
-              <FaCalendarAlt /> Fee Installments
-            </h2>
+      <section className="installments-section fade-in-up">
+        <div className="installments-card">
+          <div className="installments-header">
+            <h3>
+              <FaCalendarAlt className="me-2" />
+              Fee Installments
+            </h3>
+          </div>
+          <div className="installments-body">
+            {dashboard.installments?.length === 0 ? (
+              <div className="empty-installments">
+                <FaMoneyCheckAlt className="empty-icon" />
+                <h4>No Installments Found</h4>
+                <p>
+                  Your fee structure has not been configured with installments.
+                  Please contact administration.
+                </p>
+                <button
+                  onClick={() => navigate("/student/dashboard")}
+                  className="back-btn"
+                >
+                  <FaArrowLeft className="me-2" />
+                  Back to Dashboard
+                </button>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="fees-table">
+                  <thead>
+                    <tr>
+                      <th className="col-installment">Installment</th>
+                      <th className="col-amount">Amount</th>
+                      <th className="col-due">Due Date</th>
+                      <th className="col-status">Status</th>
+                      <th className="col-payment">Payment Date</th>
+                      <th className="col-action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboard.installments.map((installment, idx) => (
+                      <tr
+                        key={installment._id}
+                        className={`installment-row ${
+                          installment.status === "PAID" ? "paid-row" : ""
+                        }`}
+                        style={{ animationDelay: `${idx * 0.05}s` }}
+                      >
+                        <td className="cell-installment">
+                          {installment.name}
+                        </td>
+                        <td className="cell-amount">
+                          ₹{installment.amount.toLocaleString()}
+                        </td>
+                        <td className="cell-due">
+                          <div className="due-date">
+                            {new Date(
+                              installment.dueDate
+                            ).toLocaleDateString()}
+                          </div>
+                          {isNearDue(installment.dueDate) &&
+                            installment.status !== "PAID" && (
+                              <small className="due-warning">
+                                <FaClock className="me-1" />
+                                Due in{" "}
+                                {Math.ceil(
+                                  (new Date(installment.dueDate) -
+                                    new Date()) /
+                                    (1000 * 60 * 60 * 24)
+                                )}{" "}
+                                days
+                              </small>
+                            )}
+                          {new Date(installment.dueDate) < new Date() &&
+                            installment.status !== "PAID" && (
+                              <small className="due-overdue">
+                                <FaExclamationTriangle className="me-1" />
+                                Overdue by{" "}
+                                {Math.ceil(
+                                  (new Date() -
+                                    new Date(installment.dueDate)) /
+                                    (1000 * 60 * 60 * 24)
+                                )}{" "}
+                                days
+                              </small>
+                            )}
+                        </td>
+                        <td className="cell-status">
+                          <span
+                            className={`status-badge bg-${getInstallmentStatusColor(
+                              installment.status,
+                              installment.dueDate
+                            )}`}
+                          >
+                            {installment.status === "PAID" && (
+                              <FaCheckCircle className="me-1" />
+                            )}
+                            {installment.status}
+                          </span>
+                        </td>
+                        <td className="cell-payment">
+                          {installment.status === "PAID" ? (
+                            <div className="payment-info">
+                              <div className="payment-date">
+                                {installment.paidAt
+                                  ? new Date(
+                                      installment.paidAt
+                                    ).toLocaleString("en-IN")
+                                  : "N/A"}
+                              </div>
+                              <small className="payment-ref">
+                                Ref:{" "}
+                                <span
+                                  className="ref-id"
+                                  onClick={() =>
+                                    navigator.clipboard.writeText(
+                                      installment.transactionId
+                                    )
+                                  }
+                                  title="Click to copy"
+                                >
+                                  {installment.transactionId || "N/A"}
+                                </span>
+                              </small>
+                              <span className="payment-method">STRIPE</span>
+                            </div>
+                          ) : (
+                            <span className="not-paid">Not paid yet</span>
+                          )}
+                        </td>
+                        <td className="cell-action">
+                          {installment.status === "PAID" ? (
+                            <button
+                              className="btn-receipt"
+                              onClick={() =>
+                                navigate(
+                                  `/student/fee-receipt/${installment._id}`
+                                )
+                              }
+                              title="View Receipt"
+                            >
+                              <FaReceipt /> Receipt
+                            </button>
+                          ) : (
+                            <button
+                              className="btn-pay"
+                              onClick={() =>
+                                handleRedirectPayment(installment)
+                              }
+                              title="Pay Now"
+                            >
+                              <FaCreditCard /> Pay
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="card-body p-0">
-          {dashboard.installments?.length === 0 ? (
-            <div className="text-center py-5 px-3">
-              <FaMoneyCheckAlt className="text-muted mb-3" size={64} />
-              <h5 className="text-muted mb-2">No Installments Found</h5>
-              <p className="text-muted mb-4">
-                Your fee structure has not been configured with installments.
-                Please contact administration.
-              </p>
-              <button
-                onClick={() => navigate("/student/dashboard")}
-                className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
-              >
-                <FaArrowLeft /> Back to Dashboard
-              </button>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th width="15%" className="ps-4">
-                      Installment
-                    </th>
-                    <th width="15%">Amount</th>
-                    <th width="15%">Due Date</th>
-                    <th width="15%">Status</th>
-                    <th width="20%">Payment Date</th>
-                    {/* <th width="15%" className="text-center">Reminder</th> */}
-                    <th width="15%" className="text-center pe-4">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dashboard.installments.map((installment, idx) => (
-                    <tr
-                      key={installment._id}
-                      className={`animate-fade-in ${installment.status === "PAID" ? "table-success" : ""}`}
-                      style={{ animationDelay: `${idx * 0.05}s` }}
-                    >
-                      <td className="ps-4 fw-semibold">{installment.name}</td>
-                      <td>₹{installment.amount.toLocaleString()}</td>
-                      <td>
-                        <div>
-                          {new Date(installment.dueDate).toLocaleDateString()}
-                        </div>
-                        {isNearDue(installment.dueDate) &&
-                          installment.status !== "PAID" && (
-                            <small className="text-warning d-block mt-1">
-                              <FaClock className="me-1" size={10} />
-                              Due in{" "}
-                              {Math.ceil(
-                                (new Date(installment.dueDate) - new Date()) /
-                                  (1000 * 60 * 60 * 24),
-                              )}{" "}
-                              days
-                            </small>
-                          )}
-                        {new Date(installment.dueDate) < new Date() &&
-                          installment.status !== "PAID" && (
-                            <small className="text-danger d-block mt-1">
-                              <FaExclamationTriangle
-                                className="me-1"
-                                size={10}
-                              />
-                              Overdue by{" "}
-                              {Math.ceil(
-                                (new Date() - new Date(installment.dueDate)) /
-                                  (1000 * 60 * 60 * 24),
-                              )}{" "}
-                              days
-                            </small>
-                          )}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge bg-${getInstallmentStatusColor(installment.status, installment.dueDate)}`}
-                        >
-                          {installment.status === "PAID" && (
-                            <FaCheckCircle className="me-1" />
-                          )}
-                          {installment.status}
-                        </span>
-                      </td>
-                      {/* <td>
-                        {installment.status === "PAID" ? (
-                          <div>
-                            <div>
-                              {installment.paidAt
-                                ? new Date(
-                                    installment.paidAt,
-                                  ).toLocaleDateString()
-                                : "N/A"}
-                            </div>
-                            <small className="text-muted">
-                              Ref: {installment.transactionId || "N/A"}
-                            </small>
-                          </div>
-                        ) : (
-                          <span className="text-muted">Not paid yet</span>
-                        )}
-                      </td> */}
-
-                      <td>
-                        {installment.status === "PAID" ? (
-                          <div>
-                            <div className="fw-semibold">
-                              {installment.paidAt
-                                ? new Date(installment.paidAt).toLocaleString(
-                                    "en-IN",
-                                  )
-                                : "N/A"}
-                            </div>
-
-                            <small className="text-muted d-block">
-                              Ref:{" "}
-                              <span
-                                className="fw-medium text-primary"
-                                style={{ cursor: "pointer" }}
-                                onClick={() =>
-                                  navigator.clipboard.writeText(
-                                    installment.transactionId,
-                                  )
-                                }
-                              >
-                                {installment.transactionId || "N/A"}
-                              </span>
-                            </small>
-
-                            <small className="badge bg-light text-dark mt-1">
-                              STRIPE
-                            </small>
-                          </div>
-                        ) : (
-                          <span className="text-muted">Not paid yet</span>
-                        )}
-                      </td>
-
-                      <td className="text-center pe-4">
-                        {installment.status === "PAID" ? (
-                          <button
-                            className="btn btn-sm btn-outline-success d-flex align-items-center gap-1 mx-auto"
-                            onClick={() =>
-                              navigate(
-                                `/student/fee-receipt/${installment._id}`,
-                              )
-                            }
-                            title="View Receipt"
-                          >
-                            <FaReceipt size={14} /> Receipt
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-sm btn-success d-flex align-items-center gap-1 mx-auto hover-lift"
-                            onClick={() => handleRedirectPayment(installment)}
-                            title="Pay Now"
-                          >
-                            <FaCreditCard size={14} /> Pay
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+      </section>
 
       {/* ================= FOOTER ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up">
-        <div className="card-body p-3 p-md-4 bg-light">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div className="text-center text-md-start">
-              <p className="mb-1">
-                <small className="text-muted">
-                  <FaMoneyCheckAlt className="me-1" />
-                  Student Fee Dashboard | Smart College ERP System
-                </small>
-              </p>
-              <p className="mb-0">
-                <small className="text-muted">
-                  <FaSync className="spin-icon me-1" />
-                  Fee data last updated:{" "}
-                  <strong>{new Date().toLocaleString()}</strong>
-                </small>
-              </p>
-            </div>
-            <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button
-                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                onClick={loadFees}
-              >
-                <FaSync size={12} /> Refresh Data
-              </button>
-              <button
-                className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                onClick={() => navigate("/student/dashboard")}
-              >
-                <FaArrowLeft size={12} /> Back to Dashboard
-              </button>
-            </div>
+      <footer className="fees-footer fade-in-up">
+        <div className="footer-content">
+          <div className="footer-info">
+            <p>
+              <small>
+                <FaMoneyCheckAlt className="me-1" />
+                Student Fee Dashboard | Smart College ERP System
+              </small>
+            </p>
+            <p>
+              <small>
+                <FaSync className="spin-icon me-1" />
+                Fee data last updated:{" "}
+                <strong>{new Date().toLocaleString()}</strong>
+              </small>
+            </p>
+          </div>
+          <div className="footer-actions">
+            <button
+              className="btn-footer"
+              onClick={handleRetry}
+              disabled={loading}
+            >
+              <FaSync size={12} className={loading ? "spin" : ""} />{" "}
+              {loading ? "Refreshing..." : "Refresh Data"}
+            </button>
+            <button
+              className="btn-footer"
+              onClick={() => navigate("/student/dashboard")}
+            >
+              <FaArrowLeft size={12} /> Back to Dashboard
+            </button>
           </div>
         </div>
-      </div>
+      </footer>
 
-      {/* ================= STYLES ================= */}
+      {/* ================= CSS ================= */}
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0.4); }
-          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(26, 75, 109, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0); }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        @keyframes lift {
-          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        /* ================= CONTAINER ================= */
+        .fees-container {
+          padding: 2rem;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+          min-height: 100vh;
         }
 
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
-        .animate-fade-in-up { animation: slideUp 0.6s ease-out forwards; }
-        .pulse-icon { animation: pulse 2s infinite; }
-        .blink { animation: blink 1.5s infinite; }
-        .blink-fast { animation: blink 0.9s infinite; }
-        .hover-lift:hover { animation: lift 0.3s ease forwards; }
-        .spin-icon { animation: spin 1s linear infinite; }
-        .float-badge { animation: float 3s ease-in-out infinite; }
-
-        .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
+        /* ================= LOADING ================= */
+        .loading-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 80vh;
+          gap: 2rem;
         }
 
-        .fees-logo-container {
-          width: 60px;
+        .loading-spinner {
+          text-align: center;
+        }
+
+        .spin-icon {
+          font-size: 4rem;
+          color: #1a4b6d;
+          animation: spin 1s linear infinite;
+        }
+
+        .loading-spinner p {
+          margin-top: 1rem;
+          color: #6c757d;
+          font-weight: 500;
+          font-size: 1.1rem;
+        }
+
+        .skeleton-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          width: 100%;
+          max-width: 1200px;
+        }
+
+        .skeleton-card {
+          height: 150px;
+          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 16px;
+        }
+
+        .skeleton-table {
+          width: 100%;
+          max-width: 1200px;
+          background: white;
+          border-radius: 16px;
+          padding: 1.5rem;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .skeleton-table-header {
+          height: 50px;
+          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+        }
+
+        .skeleton-table-row {
           height: 60px;
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.4);
+          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 8px;
+          margin-bottom: 0.75rem;
         }
 
-        .profile-avatar-container {
-          position: relative;
-          width: 80px;
-          height: 80px;
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+
+        /* ================= ERROR ================= */
+        .error-wrapper,
+        .empty-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 80vh;
+        }
+
+        .error-content,
+        .empty-content {
+          text-align: center;
+          padding: 3rem;
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+          max-width: 500px;
+        }
+
+        .error-icon,
+        .empty-icon {
+          font-size: 5rem;
+          color: #dc3545;
+          margin-bottom: 1.5rem;
+        }
+
+        .empty-icon {
+          color: #6c757d;
+        }
+
+        .error-content h3,
+        .empty-content h3 {
+          margin: 0 0 1rem;
+          color: #1a4b6d;
+          font-size: 1.75rem;
+        }
+
+        .error-message,
+        .empty-message {
+          color: #6c757d;
+          margin-bottom: 2rem;
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .error-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .retry-btn,
+        .back-btn {
+          padding: 0.875rem 2rem;
+          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
+          color: white;
+          border: none;
+          border-radius: 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover,
+        .back-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
+        }
+
+        .back-btn {
+          background: white;
+          border: 2px solid #6c757d;
+          color: #6c757d;
+        }
+
+        .back-btn:hover {
+          background: #6c757d;
+          color: white;
+        }
+
+        /* ================= HEADER ================= */
+        .fees-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          padding: 1.5rem 2rem;
+          background: linear-gradient(180deg, #0f3a4a, #134952);
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(15, 58, 74, 0.3);
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+        }
+
+        .btn-back {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+          background: rgba(255, 255, 255, 0.3);
+          transform: translateX(-3px);
+        }
+
+        .header-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .header-icon-wrapper {
+          width: 50px;
+          height: 50px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4fc3f7;
+          font-size: 1.5rem;
+        }
+
+        .header-title {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: white;
+        }
+
+        .header-subtitle {
+          margin: 0.25rem 0 0;
+          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.9rem;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-action {
+          padding: 0.75rem 1.25rem;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          color: white;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
+        }
+
+        .btn-action:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
+        }
+
+        .btn-primary-action {
+          background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+          border: none;
+        }
+
+        .btn-primary-action:hover {
+          background: linear-gradient(135deg, #29b6f6, #0288d1);
+          box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
+        }
+
+        .btn-text {
+          display: none;
+        }
+
+        @media (min-width: 768px) {
+          .btn-text {
+            display: inline;
+          }
+        }
+
+        /* ================= HELP SECTION ================= */
+        .help-section {
+          margin-bottom: 2rem;
+        }
+
+        .help-content {
+          background: rgba(23, 162, 184, 0.1);
+          border: 1px solid rgba(23, 162, 184, 0.3);
+          border-radius: 16px;
+          padding: 1.5rem;
+        }
+
+        .help-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .help-icon {
+          font-size: 1.5rem;
+          color: #17a2b8;
+        }
+
+        .help-header h4 {
+          margin: 0;
+          color: #1a4b6d;
+          font-size: 1.1rem;
+        }
+
+        .help-close {
+          margin-left: auto;
+          background: none;
+          border: none;
+          color: #6c757d;
+          cursor: pointer;
+          font-size: 1.25rem;
+          transition: color 0.3s ease;
+        }
+
+        .help-close:hover {
+          color: #dc3545;
+        }
+
+        .help-body ul {
+          margin: 0;
+          padding-left: 1.5rem;
+          color: #495057;
+          line-height: 1.6;
+        }
+
+        .help-body .help-sublist {
+          margin-top: 0.5rem;
+          padding-left: 1.5rem;
+        }
+
+        /* ================= PROFILE SECTION ================= */
+        .profile-section {
+          margin-bottom: 2rem;
+        }
+
+        .profile-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        .profile-header {
+          background: linear-gradient(180deg, #0f3a4a, #134952);
+          padding: 2rem;
+          color: white;
+        }
+
+        .profile-info {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
         }
 
         .profile-avatar {
           width: 80px;
           height: 80px;
           border-radius: 50%;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+          background: white;
+          color: #1a4b6d;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-size: 2rem;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .progress-text {
-          position: absolute;
-          width: 100%;
-          text-align: center;
-          color: white;
-          font-weight: 600;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        .profile-details {
+          flex: 1;
+        }
+
+        .profile-name {
+          margin: 0 0 0.5rem;
+          font-size: 1.5rem;
+          font-weight: 700;
+        }
+
+        .profile-meta {
+          display: flex;
+          gap: 1.5rem;
+          margin-bottom: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          opacity: 0.9;
+        }
+
+        .profile-contact {
+          display: flex;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          opacity: 0.9;
+        }
+
+        .profile-footer {
+          padding: 1rem 2rem;
+          background: #f8f9fa;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .footer-info {
+          display: flex;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .info-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          color: #495057;
+        }
+
+        .last-updated {
+          color: #6c757d;
+          font-size: 0.85rem;
+        }
+
+        /* ================= SUMMARY SECTION ================= */
+        .summary-section {
+          margin-bottom: 2rem;
+        }
+
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
         }
 
         .fee-summary-card {
+          background: white;
           border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+          padding: 1.5rem;
+          text-align: center;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
           transition: all 0.3s ease;
-          height: 100%;
           border: none;
         }
+
         .fee-summary-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
-        .fee-summary-card .card-body {
-          padding: 1.5rem;
-        }
+
         .fee-summary-card .fs-2 {
-          font-size: 2.5rem;
+          font-size: 2rem;
           margin-bottom: 0.5rem;
         }
+
         .fee-summary-card h6 {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           font-weight: 600;
-          opacity: 0.9;
+          color: #6c757d;
           margin-bottom: 0.25rem;
         }
+
         .fee-summary-card .amount {
-          font-size: 2rem;
+          font-size: 1.75rem;
           font-weight: 700;
           margin: 0.25rem 0;
         }
+
         .fee-summary-card .subtitle {
-          font-size: 0.85rem;
-          opacity: 0.8;
+          font-size: 0.8rem;
+          color: #6c757d;
         }
 
-        @media (max-width: 992px) {
-          .fees-logo-container {
-            width: 50px;
-            height: 50px;
+        /* ================= PROGRESS SECTION ================= */
+        .progress-section {
+          margin-bottom: 2rem;
+        }
+
+        .progress-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        .progress-header {
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+          border-bottom: 1px solid #e9ecef;
+        }
+
+        .progress-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #1a4b6d;
+          display: flex;
+          align-items: center;
+        }
+
+        .progress-body {
+          padding: 1.5rem;
+        }
+
+        .progress-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+        }
+
+        .progress-label {
+          font-weight: 600;
+          color: #495057;
+        }
+
+        .progress-value {
+          font-weight: 700;
+          font-size: 1.1rem;
+        }
+
+        .progress-bar-wrapper {
+          width: 100%;
+          height: 24px;
+          background: #e9ecef;
+          border-radius: 12px;
+          overflow: hidden;
+          margin-bottom: 1rem;
+          position: relative;
+        }
+
+        .progress-bar {
+          height: 100%;
+          border-radius: 12px;
+          transition: width 0.5s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .progress-text {
+          color: white;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-stats {
+          display: flex;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          color: #6c757d;
+        }
+
+        /* ================= INSTALLMENTS SECTION ================= */
+        .installments-section {
+          margin-bottom: 2rem;
+        }
+
+        .installments-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        .installments-header {
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(180deg, #0f3a4a, #134952);
+          color: white;
+        }
+
+        .installments-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+        }
+
+        .installments-body {
+          padding: 0;
+        }
+
+        .empty-installments {
+          text-align: center;
+          padding: 3rem 1.5rem;
+        }
+
+        .empty-installments .empty-icon {
+          font-size: 4rem;
+          color: #6c757d;
+          margin-bottom: 1rem;
+        }
+
+        .empty-installments h4 {
+          margin: 0 0 0.5rem;
+          color: #1a4b6d;
+          font-size: 1.25rem;
+        }
+
+        .empty-installments p {
+          color: #6c757d;
+          margin-bottom: 1.5rem;
+        }
+
+        .table-responsive {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .fees-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 800px;
+        }
+
+        .fees-table th {
+          padding: 1rem 1.25rem;
+          font-weight: 700;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #495057;
+          background: #f8f9fa;
+          border-bottom: 2px solid #e9ecef;
+          text-align: left;
+        }
+
+        .fees-table td {
+          padding: 1rem 1.25rem;
+          border-bottom: 1px solid #e9ecef;
+          vertical-align: middle;
+        }
+
+        .fees-table tbody tr {
+          transition: all 0.3s ease;
+          animation: fadeInUp 0.6s ease forwards;
+          opacity: 0;
+        }
+
+        .fees-table tbody tr:hover {
+          background: rgba(26, 75, 109, 0.03);
+        }
+
+        .installment-row.paid-row {
+          background: rgba(40, 167, 69, 0.05);
+        }
+
+        .cell-installment {
+          font-weight: 600;
+          color: #1a4b6d;
+        }
+
+        .cell-amount {
+          font-weight: 700;
+          color: #1a4b6d;
+        }
+
+        .cell-due {
+          font-size: 0.9rem;
+        }
+
+        .due-date {
+          font-weight: 500;
+        }
+
+        .due-warning,
+        .due-overdue {
+          display: block;
+          margin-top: 0.25rem;
+          font-size: 0.8rem;
+        }
+
+        .due-warning {
+          color: #856404;
+        }
+
+        .due-overdue {
+          color: #721c24;
+        }
+
+        .cell-status {
+          text-align: center;
+        }
+
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.35rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .cell-payment {
+          font-size: 0.9rem;
+        }
+
+        .payment-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .payment-date {
+          font-weight: 600;
+          color: #1a4b6d;
+        }
+
+        .payment-ref {
+          color: #6c757d;
+        }
+
+        .ref-id {
+          color: #1a4b6d;
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+
+        .ref-id:hover {
+          color: #0f3a4a;
+          text-decoration: underline;
+        }
+
+        .payment-method {
+          display: inline-block;
+          background: #e9ecef;
+          padding: 0.15rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #495057;
+          margin-top: 0.25rem;
+        }
+
+        .not-paid {
+          color: #6c757d;
+          font-style: italic;
+        }
+
+        .cell-action {
+          text-align: center;
+        }
+
+        .btn-receipt,
+        .btn-pay {
+          padding: 0.5rem 1rem;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+          border: none;
+        }
+
+        .btn-receipt {
+          background: white;
+          color: #28a745;
+          border: 2px solid #28a745;
+        }
+
+        .btn-receipt:hover {
+          background: #28a745;
+          color: white;
+        }
+
+        .btn-pay {
+          background: linear-gradient(135deg, #28a745, #1e7e34);
+          color: white;
+        }
+
+        .btn-pay:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        /* ================= FOOTER ================= */
+        .fees-footer {
+          background: white;
+          border-radius: 16px;
+          padding: 1.5rem 2rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .footer-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        .footer-info p {
+          margin: 0;
+          color: #6c757d;
+          font-size: 0.9rem;
+        }
+
+        .footer-actions {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-footer {
+          padding: 0.5rem 1rem;
+          background: white;
+          border: 2px solid #6c757d;
+          color: #6c757d;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.85rem;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .btn-footer:hover {
+          background: #6c757d;
+          color: white;
+        }
+
+        /* ================= ANIMATIONS ================= */
+        .fade-in {
+          animation: fadeIn 0.6s ease forwards;
+        }
+
+        .fade-in-up {
+          animation: fadeInUp 0.6s ease forwards;
+          opacity: 0;
+        }
+
+        .fade-in-up:nth-child(1) {
+          animation-delay: 0.1s;
+        }
+        .fade-in-up:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        .fade-in-up:nth-child(3) {
+          animation-delay: 0.3s;
+        }
+        .fade-in-up:nth-child(4) {
+          animation-delay: 0.4s;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
           }
-          .profile-avatar {
-            width: 70px;
-            height: 70px;
-            font-size: 1.75rem;
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        .blink {
+          animation: blink 2s infinite;
+        }
+
+        .blink-fast {
+          animation: blink 0.9s infinite;
+        }
+
+        @keyframes blink {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 1024px) {
+          .fees-container {
+            padding: 1rem;
+          }
+
+          .fees-header {
+            padding: 1.25rem;
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .header-left {
+            flex-direction: column;
+          }
+
+          .header-actions {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .profile-info {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .profile-meta,
+          .profile-contact {
+            justify-content: center;
+          }
+
+          .profile-footer {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .footer-info {
+            justify-content: center;
           }
         }
 
         @media (max-width: 768px) {
-          .fee-summary-card .fs-2 {
-            font-size: 2rem;
+          .fees-table th,
+          .fees-table td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.85rem;
           }
+
+          .col-installment,
+          .col-amount,
+          .col-due,
+          .col-status {
+            display: table-cell;
+          }
+
+          .col-payment,
+          .col-action {
+            display: none;
+          }
+
+          .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
           .fee-summary-card .amount {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
           }
-          .btn-sm {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.75rem !important;
+
+          .progress-stats {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
           }
         }
 
-        @media (max-width: 576px) {
-          .fees-logo-container {
-            width: 45px;
-            height: 45px;
+        @media (max-width: 480px) {
+          .header-title {
+            font-size: 1.25rem;
           }
+
+          .header-subtitle {
+            font-size: 0.85rem;
+          }
+
+          .header-icon-wrapper {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+          }
+
           .profile-avatar {
             width: 60px;
             height: 60px;
             font-size: 1.5rem;
           }
-          .fee-summary-card {
-            border-radius: 12px;
+
+          .profile-name {
+            font-size: 1.25rem;
           }
-          table thead th:nth-child(n+5),
-          table tbody td:nth-child(n+5) {
+
+          .summary-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .fees-table {
+            min-width: 600px;
+          }
+
+          .col-installment,
+          .col-amount,
+          .col-due,
+          .col-status {
+            display: table-cell;
+          }
+
+          .col-payment,
+          .col-action {
             display: none;
           }
+        }
+
+        /* ================= PRINT STYLES ================= */
+        @media print {
+          .fees-container {
+            background: white;
+            padding: 0;
+          }
+
+          .fees-header {
+            background: #1a4b6d !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .header-actions,
+          .help-section,
+          .btn-back {
+            display: none !important;
+          }
+
+          .profile-card,
+          .progress-card,
+          .installments-card,
+          .fees-footer {
+            box-shadow: none;
+            border: 1px solid #ddd;
+            page-break-inside: avoid;
+          }
+
+          .fees-table {
+            page-break-inside: avoid;
+          }
+
+          .installment-row {
+            break-inside: avoid;
+          }
+        }
+
+        /* ================= TOASTIFY OVERRIDES ================= */
+        .Toastify__toast {
+          border-radius: 10px;
+          font-weight: 500;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .Toastify__toast--success {
+          background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+
+        .Toastify__toast--error {
+          background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .Toastify__toast--warning {
+          background: linear-gradient(135deg, #ffc107, #e0a800);
+        }
+
+        .Toastify__toast--info {
+          background: linear-gradient(135deg, #17a2b8, #117a8b);
+        }
+
+        /* ================= ACCESSIBILITY ================= */
+        @media (prefers-reduced-motion: reduce) {
+          *,
+          *::before,
+          *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+
+        .btn-back:focus-visible,
+        .btn-action:focus-visible,
+        .btn-receipt:focus-visible,
+        .btn-pay:focus-visible {
+          outline: 2px solid #1a4b6d;
+          outline-offset: 2px;
         }
       `}</style>
     </div>
   );
 }
 
-/* ================= FEE SUMMARY CARD ================= */
-function FeeSummaryCard({ title, amount, icon, color, subtitle }) {
+/* ================= FEE SUMMARY CARD COMPONENT ================= */
+function FeeSummaryCard({ title, amount, icon, color, subtitle, delay }) {
   return (
-    <div className="col-6 col-md-3 mb-3">
-      <div
-        className={`card h-100 border-0 fee-summary-card bg-light-${color} animate-fade-in-up`}
-      >
-        <div className="card-body text-center">
-          <div className={`fs-2 text-${color} mb-2`}>{icon}</div>
-          <h6 className="text-muted mb-1">{title}</h6>
-          <div className={`amount text-${color}`}>
-            ₹{typeof amount === "number" ? amount.toLocaleString() : amount}
-          </div>
-          {subtitle && (
-            <div className="subtitle text-muted mt-1">{subtitle}</div>
-          )}
-        </div>
+    <div
+      className="fee-summary-card scale-on-hover"
+      style={{ animationDelay: delay }}
+    >
+      <div className={`fs-2 text-${color}`}>{icon}</div>
+      <h6 className="text-muted mb-1">{title}</h6>
+      <div className={`amount text-${color}`}>
+        ₹{typeof amount === "number" ? amount.toLocaleString() : amount}
       </div>
+      {subtitle && <div className="subtitle text-muted mt-1">{subtitle}</div>}
     </div>
   );
 }
