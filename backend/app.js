@@ -51,4 +51,17 @@ app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));
 
+/* ================= 404 HANDLER ================= */
+// Handle routes that don't exist
+app.use((req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  error.statusCode = 404;
+  error.code = 'NOT_FOUND';
+  next(error);
+});
+
+/* ================= GLOBAL ERROR HANDLER ================= */
+// Must be last - handles all errors from above routes
+app.use(require("./src/middlewares/error.middleware"));
+
 module.exports = app;

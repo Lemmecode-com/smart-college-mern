@@ -1,4 +1,5 @@
 const College = require("../models/college.model");
+const AppError = require("../utils/AppError");
 
 module.exports = async (req, res, next) => {
   try {
@@ -8,16 +9,16 @@ module.exports = async (req, res, next) => {
     }
 
     if (!req.user.college_id) {
-      return res.status(403).json({ message: "College not assigned" });
+      throw new AppError("College not assigned", 403, "COLLEGE_NOT_ASSIGNED");
     }
 
     const college = await College.findById(req.user.college_id);
     if (!college) {
-      return res.status(404).json({ message: "College not found" });
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
     }
 
     if (!college.isActive) {
-      return res.status(403).json({ message: "College is suspended" });
+      throw new AppError("College is suspended", 403, "COLLEGE_SUSPENDED");
     }
 
     // Attach college info
@@ -26,6 +27,6 @@ module.exports = async (req, res, next) => {
 
     next();
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

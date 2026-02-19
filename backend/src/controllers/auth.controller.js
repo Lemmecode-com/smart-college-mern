@@ -4,11 +4,12 @@ const jwt = require("jsonwebtoken");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
 const User = require("../models/user.model");
+const AppError = require("../utils/AppError");
 
 /**
  * COMMON LOGIN
  */
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -17,7 +18,7 @@ exports.login = async (req, res) => {
     if (user) {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(400).json({ message: "Invalid credentials" });
+        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
       return sendToken(res, user._id, user.role, user.college_id);
     }
@@ -27,7 +28,7 @@ exports.login = async (req, res) => {
     if (teacher) {
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        return res.status(400).json({ message: "Invalid credentials" });
+        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
       return sendToken(res, teacher._id, "TEACHER", teacher.college_id);
     }
@@ -35,17 +36,25 @@ exports.login = async (req, res) => {
     // 3️⃣ STUDENT (APPROVED ONLY)
     let student = await Student.findOne({ email, status: "APPROVED" });
     if (student) {
-      const isMatch = await bcrypt.compare(password, student.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid credentials" });
+      // ✅ Find the User record for password verification
+      const user = await User.findOne({ email, role: "STUDENT" });
+      
+      if (user) {
+        // Use User.password (hashed) for verification
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        }
+        // Send student.user_id in token
+        return sendToken(res, student.user_id || student._id, "STUDENT", student.college_id);
+      } else {
+        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      return sendToken(res, student._id, "STUDENT", student.college_id);
     }
 
-    return res.status(404).json({ message: "User not found or not approved" });
+    throw new AppError("User not found or not approved", 404, "USER_NOT_FOUND");
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Login failed" });
+    next(error);
   }
 };
 
@@ -88,3 +97,4 @@ const sendToken = (res, id, role, college_id) => {
     success: true 
   });
 };
+//=====================================================================

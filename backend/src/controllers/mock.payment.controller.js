@@ -1,13 +1,30 @@
 const StudentFee = require("../models/studentFee.model");
+const Student = require("../models/student.model");
+const AppError = require("../utils/AppError");
 
-exports.mockPaymentSuccess = async (req, res) => {
+exports.mockPaymentSuccess = async (req, res, next) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;  // This is User._id
+    const collegeId = req.college_id;
     const { installmentName } = req.body;
 
-    const studentFee = await StudentFee.findOne({ student_id: studentId });
+    // ✅ First find the student by user_id
+    const student = await Student.findOne({
+      user_id: userId,
+      college_id: collegeId
+    });
+
+    if (!student) {
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    // Find student fee record using student._id
+    const studentFee = await StudentFee.findOne({ 
+      student_id: student._id  // ✅ Use student._id
+    });
+    
     if (!studentFee) {
-      return res.status(404).json({ message: "Student fee record not found" });
+      throw new AppError("Student fee record not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     const installment = studentFee.installments.find(
@@ -15,7 +32,7 @@ exports.mockPaymentSuccess = async (req, res) => {
     );
 
     if (!installment) {
-      return res.status(400).json({ message: "Invalid installment" });
+      throw new AppError("Invalid installment", 404, "INSTALLMENT_NOT_FOUND");
     }
 
     if (installment.status === "PAID") {
@@ -49,8 +66,7 @@ exports.mockPaymentSuccess = async (req, res) => {
       installment
     });
   } catch (err) {
-    console.error("Mock payment error:", err);
-    res.status(500).json({ message: "Mock payment failed" });
+    next(err);
   }
 };
 

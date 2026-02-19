@@ -13,8 +13,6 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimes,
-  FaEye,
-  FaEyeSlash,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -40,7 +38,6 @@ export default function EditCollegeProfile() {
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
-  const [showPassword, setShowPassword] = useState(false); // For future password field
   const [unsavedChanges, setUnsavedChanges] = useState(false);
 
   // ================= LOAD COLLEGE =================
@@ -48,7 +45,7 @@ export default function EditCollegeProfile() {
     fetchCollege();
     return () => {
       // Cleanup: warn about unsaved changes on unmount
-      if (unsavedChanges) {
+      if (unsavedChanges && !saving) {
         // Could show confirm dialog here if needed
       }
     };

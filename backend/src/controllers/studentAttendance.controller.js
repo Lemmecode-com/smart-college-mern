@@ -2,22 +2,21 @@ const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const Subject = require("../models/subject.model");
 const Student = require("../models/student.model");
+const AppError = require("../utils/AppError");
 
-exports.getStudentAttendanceSummary = async (req, res) => {
+exports.getStudentAttendanceSummary = async (req, res, next) => {
   try {
-    const studentId = req.user.id;     // ✅ Student._id
+    const userId = req.user.id;     // ✅ User._id from token
     const collegeId = req.college_id;
 
-    // ✅ Ensure student exists
+    // ✅ Use user_id instead of _id
     const student = await Student.findOne({
-      _id: studentId,
+      user_id: userId,
       college_id: collegeId
     });
 
     if (!student) {
-      return res.status(404).json({
-        message: "Student not found"
-      });
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     const summary = await AttendanceRecord.aggregate([
@@ -90,14 +89,11 @@ exports.getStudentAttendanceSummary = async (req, res) => {
     );
 
     res.json({
-      studentId: student._id,
+      studentId: student.user_id || student._id,
       attendance: finalSummary
     });
 
   } catch (error) {
-    console.error("Attendance summary error:", error);
-    res.status(500).json({
-      message: error.message
-    });
+    next(error);
   }
 };

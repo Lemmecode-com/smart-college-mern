@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const AppError = require("../utils/AppError");
 
 module.exports = (req, res, next) => {
   try {
@@ -6,9 +7,7 @@ module.exports = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) {
-      return res.status(401).json({
-        message: "Authorization token missing"
-      });
+      throw new AppError("Authorization token missing", 401, "TOKEN_MISSING");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -22,7 +21,11 @@ module.exports = (req, res, next) => {
 
     next();
   } catch (error) {
-    error.statusCode = 401;
-    next(error);
+    if (error instanceof AppError) {
+      next(error);
+    } else {
+      // JWT verification failed
+      throw new AppError("Invalid or expired token", 401, "INVALID_TOKEN");
+    }
   }
 };
