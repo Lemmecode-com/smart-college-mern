@@ -9,8 +9,14 @@ app.use(cors({
   credentials: true,
   origin: process.env.CLIENT_URL || "http://localhost:5173"  // Adjust this to your frontend URL
 }));
-app.use(express.json());
 app.use(cookieParser());
+
+/* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
+// Stripe webhook needs raw body, so we handle it separately
+app.use("/api/stripe/webhook", require("./src/webhooks/stripe.webhook").handleStripeWebhook);
+
+/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
+app.use(express.json());
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
