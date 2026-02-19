@@ -1,12 +1,11 @@
 const Teacher = require("../models/teacher.model");
+const AppError = require("../utils/AppError");
 
 module.exports = async (req, res, next) => {
   try {
     // Auth must already populate req.user
     if (!req.user || req.user.role !== "TEACHER") {
-      return res.status(403).json({
-        message: "Access denied: teacher only",
-      });
+      throw new AppError("Access denied: teacher only", 403, "TEACHER_ROLE_REQUIRED");
     }
 
     // ✅ CORRECT LOOKUP
@@ -17,9 +16,7 @@ module.exports = async (req, res, next) => {
     });
 
     if (!teacher) {
-      return res.status(404).json({
-        message: "Teacher account not found",
-      });
+      throw new AppError("Teacher account not found", 404, "TEACHER_NOT_FOUND");
     }
 
     // ✅ Attach resolved teacher context
@@ -29,9 +26,6 @@ module.exports = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Teacher middleware error:", error);
-    res.status(500).json({
-      message: "Teacher authentication failed",
-    });
+    next(error);
   }
 };
