@@ -1,5 +1,4 @@
 const StudentFee = require("../models/studentFee.model");
-const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
 
 exports.mockPaymentSuccess = async (req, res, next) => {
