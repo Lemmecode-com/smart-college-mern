@@ -2,6 +2,16 @@ const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
+    // 🔗 User Reference (Links to User collection)
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false, // Made optional for backward compatibility during migration
+      unique: true,
+      index: true,
+      sparse: true // Allows documents without user_id during migration
+    },
+
     // 🔗 College Mapping
     college_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -32,10 +42,7 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
-    password: {
-      type: String,
-      required: true,
-    },
+    // ❌ REMOVED: password field (authentication is handled by User collection)
 
     mobileNumber: {
       type: String,
