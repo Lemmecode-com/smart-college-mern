@@ -481,7 +481,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                 </div>
                 <div style={sectionBodyStyle(openSections.students)}>
                   <NavLink to="/students" style={getNavLinkStyle}>
-                    <FaListOl /> Student List
+                    <FaListOl /> Pending Student List
                   </NavLink>
                   <NavLink to="/students/approve" style={getNavLinkStyle}>
                     <FaCheckCircle /> Approve Students
