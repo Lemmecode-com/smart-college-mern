@@ -176,15 +176,17 @@ export default function AddTimetableSlot() {
 
     const loadDeps = async () => {
       try {
+        
         const [subjectsRes, teachersRes] = await Promise.all([
           api.get(`/subjects/course/${timetable.course_id}`),
           api.get(`/teachers/department/${timetable.department_id}`)
         ]);
 
-        setSubjects(subjectsRes.data);
-        setTeachers(teachersRes.data);
-      } catch {
-        setError("Failed to load subjects or teachers");
+        setSubjects(subjectsRes.data || []);
+        setTeachers(teachersRes.data || []);
+      } catch (err) {
+        console.error("Failed to load subjects/teachers:", err);
+        setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
       }
     };
 
@@ -225,7 +227,7 @@ export default function AddTimetableSlot() {
         endTime: form.endTime,
       });
 
-      setSuccess("Timetable slot added successfully!");
+      setSuccess("✅ Timetable slot added successfully!");
 
       setForm(prev => ({
         ...prev,
@@ -238,7 +240,23 @@ export default function AddTimetableSlot() {
 
       setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to add slot");
+      const errorMsg = err.response?.data?.message || "Failed to add slot";
+      const errorCode = err.response?.data?.code;
+      
+      // ✅ Show specific validation errors
+      if (errorCode === 'TEACHER_SUBJECT_MISMATCH') {
+        setError("🔒 " + errorMsg);
+      } else if (errorCode === 'SUBJECT_NOT_FOUND') {
+        setError("⚠️ " + errorMsg);
+      } else if (errorCode === 'TEACHER_NOT_FOUND') {
+        setError("⚠️ " + errorMsg);
+      } else if (errorCode === 'TIMETABLE_NOT_FOUND') {
+        setError("⚠️ " + errorMsg);
+      } else if (errorCode === 'TIME_CONFLICT') {
+        setError("⏰ " + errorMsg);
+      } else {
+        setError("❌ " + errorMsg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -553,12 +571,22 @@ export default function AddTimetableSlot() {
                           backgroundSize: '16px'
                         }}
                       >
-                        <option value="">Select subject</option>
-                        {subjects.map(s => (
-                          <option key={s._id} value={s._id}>
-                            {s.name} ({s.code})
+                        <option value="">
+                          {subjects.length === 0 
+                            ? "No subjects available for this course" 
+                            : "Select subject"}
+                        </option>
+                        {subjects.length === 0 ? (
+                          <option disabled value="">
+                            ⚠️ Please create subjects for this course first
                           </option>
-                        ))}
+                        ) : (
+                          subjects.map(s => (
+                            <option key={s._id} value={s._id}>
+                              {s.name} ({s.code})
+                            </option>
+                          ))
+                        )}
                       </select>
                     </FormField>
 
