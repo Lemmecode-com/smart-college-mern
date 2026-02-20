@@ -42,8 +42,6 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ❌ REMOVED: password field (authentication is handled by User collection)
-
     mobileNumber: {
       type: String,
       required: true,

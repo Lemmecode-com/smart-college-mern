@@ -86,7 +86,6 @@ exports.registerStudent = async (req, res, next) => {
       user_id: user._id,  // ← Link to User
       fullName,
       email,
-      // ❌ NO password field (authentication via User collection only)
       mobileNumber,
       gender,
       dateOfBirth,
