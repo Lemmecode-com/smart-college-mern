@@ -141,10 +141,50 @@ const studentSchema = new mongoose.Schema(
     passportPhotoPath: String,
     categoryCertificatePath: String,
 
-    // 📎 Dynamic Documents (flexible storage for all document types)
+    // 📎 Dynamic Documents - All possible document types (based on DocumentConfig)
+    // These fields store file paths for documents uploaded during registration
+    incomeCertificatePath: String,
+    characterCertificatePath: String,
+    transferCertificatePath: String,
+    aadharCardPath: String,
+    entranceExamScorePath: String,
+    migrationCertificatePath: String,
+    domicileCertificatePath: String,
+    casteCertificatePath: String,
+    nonCreamyLayerCertificatePath: String,
+    physicallyChallengedCertificatePath: String,
+    sportsQuotaCertificatePath: String,
+    nriSponsorCertificatePath: String,
+    gapCertificatePath: String,
+    affidavitPath: String,
+    
+    // 📎 Generic documents storage (flexible Map for any document type)
     documents: {
       type: Map,
       of: String
+    },
+
+    // 📝 Additional Profile Fields (for profile completion)
+    addressLine2: String,
+    country: {
+      type: String,
+      default: "India"
+    },
+    religion: String,
+    alternateMobileNumber: String,
+    emergencyContactName: String,
+    emergencyContactNumber: String,
+    parentGuardianOccupation: String,
+    parentGuardianIncome: String,
+    minorityType: String, // For minority category students
+    pwdDisability: String, // Percentage of disability if applicable
+    hostelRequired: {
+      type: Boolean,
+      default: false
+    },
+    libraryRequired: {
+      type: Boolean,
+      default: true
     },
 
     // 🔐 System
