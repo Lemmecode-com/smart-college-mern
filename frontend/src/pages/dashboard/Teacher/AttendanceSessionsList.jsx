@@ -83,6 +83,7 @@ const spinVariants = {
 
 export default function AttendanceSessionsList() {
   const [sessions, setSessions] = useState([]);
+  const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -101,8 +102,28 @@ export default function AttendanceSessionsList() {
     }
   };
 
+  // ✅ Fetch slots for modal dropdown
+  const fetchSlots = async () => {
+    try {
+      const res = await api.get("/timetable");
+      const allTimetables = res.data || [];
+      
+      // Get all slots from all timetables
+      const allSlots = [];
+      for (const timetable of allTimetables) {
+        if (timetable.slots) {
+          allSlots.push(...timetable.slots);
+        }
+      }
+      setSlots(allSlots);
+    } catch (err) {
+      console.error("Failed to load slots:", err);
+    }
+  };
+
   useEffect(() => {
     fetchSessions();
+    fetchSlots();  // ✅ Fetch slots for modal
   }, []);
 
   // Calculate stats
@@ -485,8 +506,12 @@ export default function AttendanceSessionsList() {
           {/* ================= MODAL ================= */}
           {showModal && (
             <CreateSessionModal
+              slots={slots}
               onClose={() => setShowModal(false)}
-              onSuccess={fetchSessions}
+              onSuccess={() => {
+                fetchSessions();
+                setShowModal(false);
+              }}
             />
           )}
         </div>
@@ -581,10 +606,17 @@ function SessionRow({ session, delay, onView }) {
       </td>
       <td style={cellStyle}>
         <div style={{ fontWeight: 600, color: '#1e293b' }}>
-          {session.subject_id?.name || 'N/A'}
+          {/* ✅ Use snapshot data if available (historical accuracy) */}
+          {session.subject?.name || session.slotSnapshot?.subject_name || session.subject_id?.name || 'N/A'}
         </div>
         <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-          {session.course_id?.name || 'N/A'}
+          {/* ✅ Show teacher from snapshot */}
+          👨‍🏫 {session.slotSnapshot?.teacher_name || session.teacher_id?.name || 'N/A'}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+          {/* ✅ Show slot details from snapshot */}
+          📅 {session.slotSnapshot?.day} | 🕐 {session.slotSnapshot?.startTime} - {session.slotSnapshot?.endTime}
+          {session.slotSnapshot?.room && ` | 🚪 ${session.slotSnapshot.room}`}
         </div>
       </td>
       <td style={cellStyle}>
