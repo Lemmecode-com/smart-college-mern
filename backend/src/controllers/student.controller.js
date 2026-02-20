@@ -3,6 +3,7 @@ const College = require("../models/college.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const Student = require("../models/student.model");
+const User = require("../models/user.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const StudentFee = require("../models/studentFee.model");
@@ -71,14 +72,21 @@ exports.registerStudent = async (req, res, next) => {
       throw new AppError("Student already registered with this email", 409, "DUPLICATE_EMAIL");
     }
 
-    // 4️⃣ Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // ✅ 4️⃣ Create User FIRST (with password hashing)
+    const user = await User.create({
+      name: fullName,
+      email,
+      password,  // User model will hash this automatically
+      role: "STUDENT",
+      college_id: college._id,
+    });
 
-    // 5️⃣ Create student
+    // ✅ 5️⃣ Create Student WITH user_id reference (NO password field)
     const registeredStud = await Student.create({
+      user_id: user._id,  // ← Link to User
       fullName,
       email,
-      password: hashedPassword,
+      // ❌ NO password field (authentication via User collection only)
       mobileNumber,
       gender,
       dateOfBirth,
