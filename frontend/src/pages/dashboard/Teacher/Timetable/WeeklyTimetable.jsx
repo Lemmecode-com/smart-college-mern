@@ -133,8 +133,32 @@ export default function WeeklyTimetable() {
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
-    if (!timetableId) return;
-    
+    // If no timetableId, fetch teacher's weekly timetable instead
+    if (!timetableId) {
+      const loadTeacherWeekly = async () => {
+        try {
+          setLoading(true);
+          const res = await api.get("/timetable/weekly");
+          setTimetable(res.data.timetable || null);
+          setWeekly(res.data.weekly || {});
+          
+          if (res.data.timetable) {
+            setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
+          }
+          
+          setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
+        } catch (err) {
+          console.error("Failed to load teacher weekly timetable:", err);
+          setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadTeacherWeekly();
+      return;
+    }
+
     const load = async () => {
       try {
         setLoading(true);
@@ -142,15 +166,15 @@ export default function WeeklyTimetable() {
         setTimetable(res.data.timetable);
         setWeekly(res.data.weekly || {});
         setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
-        
+
         // Set HOD status based on user role
         setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
-        
+
         const [subRes, teachRes] = await Promise.all([
           api.get(`/subjects/course/${res.data.timetable.course_id}`),
           api.get(`/teachers/department/${res.data.timetable.department_id}`)
         ]);
-        
+
         setSubjects(subRes.data || []);
         setTeachers(teachRes.data || []);
       } catch (err) {
@@ -160,7 +184,7 @@ export default function WeeklyTimetable() {
         setLoading(false);
       }
     };
-    
+
     load();
   }, [timetableId, user]);
 
