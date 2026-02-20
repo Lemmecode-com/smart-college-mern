@@ -23,7 +23,10 @@ import {
   FaCreditCard,
   FaHistory,
   FaShieldAlt,
-  FaDownload
+  FaDownload,
+  FaUser,
+  FaFileAlt,
+  FaImage
 } from "react-icons/fa";
 
 export default function ViewApproveStudent() {
@@ -322,6 +325,173 @@ export default function ViewApproveStudent() {
                       label="Pincode" 
                       value={student.pincode || "N/A"} 
                       icon={<FaMapMarkerAlt />}
+                    />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* PARENT / GUARDIAN INFORMATION */}
+          <div className="erp-card">
+            <div className="erp-card-header">
+              <h3>
+                <FaUser className="erp-card-icon" />
+                Parent / Guardian Information
+              </h3>
+            </div>
+            <div className="erp-card-body">
+              <div className="erp-table-container">
+                <table className="erp-detail-table">
+                  <tbody>
+                    <DetailRow
+                      label="Father's Name"
+                      value={student.fatherName || "N/A"}
+                      icon={<FaUser />}
+                    />
+                    <DetailRow
+                      label="Father's Mobile"
+                      value={student.fatherMobile || "N/A"}
+                      icon={<FaPhone />}
+                    />
+                    <DetailRow
+                      label="Mother's Name"
+                      value={student.motherName || "N/A"}
+                      icon={<FaUser />}
+                    />
+                    <DetailRow
+                      label="Mother's Mobile"
+                      value={student.motherMobile || "N/A"}
+                      icon={<FaPhone />}
+                    />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* 10TH (SSC) ACADEMIC DETAILS */}
+          <div className="erp-card">
+            <div className="erp-card-header">
+              <h3>
+                <FaGraduationCap className="erp-card-icon" />
+                10th (SSC) Academic Details
+              </h3>
+            </div>
+            <div className="erp-card-body">
+              <div className="erp-table-container">
+                <table className="erp-detail-table">
+                  <tbody>
+                    <DetailRow
+                      label="School Name"
+                      value={student.sscSchoolName || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <DetailRow
+                      label="Board"
+                      value={student.sscBoard || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <DetailRow
+                      label="Passing Year"
+                      value={student.sscPassingYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.sscPercentage ? `${student.sscPercentage}%` : "N/A"}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow
+                      label="Roll Number"
+                      value={student.sscRollNumber || "N/A"}
+                      icon={<FaBookOpen />}
+                    />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* 12TH (HSC) ACADEMIC DETAILS */}
+          <div className="erp-card">
+            <div className="erp-card-header">
+              <h3>
+                <FaGraduationCap className="erp-card-icon" />
+                12th (HSC) Academic Details
+              </h3>
+            </div>
+            <div className="erp-card-body">
+              <div className="erp-table-container">
+                <table className="erp-detail-table">
+                  <tbody>
+                    <DetailRow
+                      label="School / College Name"
+                      value={student.hscSchoolName || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <DetailRow
+                      label="Board"
+                      value={student.hscBoard || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <DetailRow
+                      label="Stream"
+                      value={student.hscStream || "N/A"}
+                      icon={<FaBookOpen />}
+                    />
+                    <DetailRow
+                      label="Passing Year"
+                      value={student.hscPassingYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.hscPercentage ? `${student.hscPercentage}%` : "N/A"}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow
+                      label="Roll Number"
+                      value={student.hscRollNumber || "N/A"}
+                      icon={<FaBookOpen />}
+                    />
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* UPLOADED DOCUMENTS */}
+          <div className="erp-card">
+            <div className="erp-card-header">
+              <h3>
+                <FaFileAlt className="erp-card-icon" />
+                Uploaded Documents
+              </h3>
+            </div>
+            <div className="erp-card-body">
+              <div className="erp-table-container">
+                <table className="erp-detail-table">
+                  <tbody>
+                    <DocumentRow
+                      label="10th Marksheet"
+                      path={student.sscMarksheetPath}
+                      icon={<FaFileAlt />}
+                    />
+                    <DocumentRow
+                      label="12th Marksheet"
+                      path={student.hscMarksheetPath}
+                      icon={<FaFileAlt />}
+                    />
+                    <DocumentRow
+                      label="Passport Photo"
+                      path={student.passportPhotoPath}
+                      icon={<FaImage />}
+                    />
+                    <DocumentRow
+                      label="Category Certificate"
+                      path={student.categoryCertificatePath}
+                      icon={<FaFileAlt />}
                     />
                   </tbody>
                 </table>
@@ -789,7 +959,25 @@ export default function ViewApproveStudent() {
           white-space: pre-line;
           line-height: 1.5;
         }
-        
+
+        .detail-value .document-link {
+          color: #1976d2;
+          text-decoration: none;
+          font-weight: 600;
+          transition: all 0.2s ease;
+        }
+
+        .detail-value .document-link:hover {
+          text-decoration: underline;
+          color: #1565c0;
+        }
+
+        .document-not-uploaded {
+          color: #9e9e9e;
+          font-style: italic;
+          font-size: 0.9rem;
+        }
+
         /* FEE SUMMARY */
         .fee-summary-card {
           grid-row: span 2;
@@ -1417,6 +1605,41 @@ function DetailRow({ label, value, icon, isEmail = false, isMultiline = false })
       </td>
       <td className={`detail-value ${isEmail ? 'email' : ''} ${isMultiline ? 'multiline' : ''}`}>
         {value}
+      </td>
+    </tr>
+  );
+}
+
+/* ================= DOCUMENT ROW COMPONENT ================= */
+function DocumentRow({ label, path, icon }) {
+  const getFileName = (filePath) => {
+    if (!filePath) return null;
+    const parts = filePath.split(/[\\/]/);
+    return parts[parts.length - 1];
+  };
+
+  const fileName = getFileName(path);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+  return (
+    <tr className="detail-row">
+      <td className="detail-label">
+        <span className="detail-label-icon">{icon}</span>
+        {label}
+      </td>
+      <td className="detail-value">
+        {path ? (
+          <a
+            href={`${baseUrl}/${path}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="document-link"
+          >
+            {fileName || "View Document"}
+          </a>
+        ) : (
+          <span className="document-not-uploaded">Not uploaded</span>
+        )}
       </td>
     </tr>
   );
