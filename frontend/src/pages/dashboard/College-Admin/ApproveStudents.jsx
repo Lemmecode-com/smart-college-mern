@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
@@ -32,6 +32,7 @@ const PAGE_SIZE = 5;
 export default function ApproveStudents() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
@@ -100,6 +101,29 @@ export default function ApproveStudents() {
 
   useEffect(() => {
     fetchApprovedStudents();
+  }, []);
+
+  // Refresh when navigating from approval action
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchApprovedStudents();
+      // Clear the refresh flag
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.refresh]);
+
+  // Refresh on page focus (when user returns to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchApprovedStudents();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   /* ================= RETRY HANDLER ================= */

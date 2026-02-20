@@ -27,6 +27,7 @@ import {
   FaGraduationCap,
   FaCheckCircle,
   FaChartPie,
+  FaFileAlt,
 } from "react-icons/fa";
 
 export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
@@ -618,6 +619,12 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                     style={getNavLinkStyle}
                   >
                     <FaBell /> Notification Settings
+                  </NavLink>
+                  <NavLink
+                    to="/college/document-settings"
+                    style={getNavLinkStyle}
+                  >
+                    <FaFileAlt /> Document Settings
                   </NavLink>
                 </div>
               </>
