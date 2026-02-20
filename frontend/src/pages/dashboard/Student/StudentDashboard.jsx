@@ -59,11 +59,14 @@ export default function StudentDashboard() {
       const response = await api.get("/dashboard/student");
       setDashboardData(response.data);
     } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      setError(
-        err.response?.data?.message ||
-          "Failed to load dashboard data. Please check your connection and try again."
-      );
+      // Silently handle auth errors
+      if (err.response?.status !== 403 && err.response?.status !== 401) {
+        console.error("Dashboard fetch error:", err);
+        setError(
+          err.response?.data?.message ||
+            "Failed to load dashboard data. Please check your connection and try again."
+        );
+      }
     } finally {
       setLoading(false);
     }

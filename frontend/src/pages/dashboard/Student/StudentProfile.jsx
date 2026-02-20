@@ -318,42 +318,59 @@ export default function StudentProfile() {
           <div className="d-flex flex-column flex-lg-row">
             {/* Tab Navigation - Vertical on desktop, horizontal on mobile */}
             <div className="tabs-navigation bg-light border-end border-bottom border-lg-end-0 border-lg-bottom-0">
-              <TabItem 
-                icon={<FaUserGraduate />} 
-                label="Personal Information" 
-                active={activeTab === 'personal'} 
-                onClick={() => setActiveTab('personal')} 
+              <TabItem
+                icon={<FaUserGraduate />}
+                label="Personal Information"
+                active={activeTab === 'personal'}
+                onClick={() => setActiveTab('personal')}
               />
-              <TabItem 
-                icon={<FaBook />} 
-                label="Academic Information" 
-                active={activeTab === 'academic'} 
-                onClick={() => setActiveTab('academic')} 
+              <TabItem
+                icon={<FaUserFriends />}
+                label="Parent Details"
+                active={activeTab === 'parent'}
+                onClick={() => setActiveTab('parent')}
               />
-              <TabItem 
-                icon={<FaPhoneAlt />} 
-                label="Contact Information" 
-                active={activeTab === 'contact'} 
-                onClick={() => setActiveTab('contact')} 
+              <TabItem
+                icon={<FaBook />}
+                label="Academic Information"
+                active={activeTab === 'academic'}
+                onClick={() => setActiveTab('academic')}
               />
-              <TabItem 
-                icon={<FaHome />} 
-                label="Address Information" 
-                active={activeTab === 'address'} 
-                onClick={() => setActiveTab('address')} 
+              <TabItem
+                icon={<FaPhoneAlt />}
+                label="Contact Information"
+                active={activeTab === 'contact'}
+                onClick={() => setActiveTab('contact')}
               />
-              <TabItem 
-                icon={<FaGraduationCap />} 
-                label="Educational Information" 
-                active={activeTab === 'education'} 
-                onClick={() => setActiveTab('education')} 
-                badge={educationalDocuments.length}
+              <TabItem
+                icon={<FaHome />}
+                label="Address Information"
+                active={activeTab === 'address'}
+                onClick={() => setActiveTab('address')}
               />
-              <TabItem 
-                icon={<FaUniversity />} 
-                label="College Information" 
-                active={activeTab === 'college'} 
-                onClick={() => setActiveTab('college')} 
+              <TabItem
+                icon={<FaGraduationCap />}
+                label="10th Details"
+                active={activeTab === 'ssc'}
+                onClick={() => setActiveTab('ssc')}
+              />
+              <TabItem
+                icon={<FaGraduationCap />}
+                label="12th Details"
+                active={activeTab === 'hsc'}
+                onClick={() => setActiveTab('hsc')}
+              />
+              <TabItem
+                icon={<FaFileAlt />}
+                label="Uploaded Documents"
+                active={activeTab === 'documents'}
+                onClick={() => setActiveTab('documents')}
+              />
+              <TabItem
+                icon={<FaUniversity />}
+                label="College Information"
+                active={activeTab === 'college'}
+                onClick={() => setActiveTab('college')}
               />
             </div>
             
@@ -364,10 +381,10 @@ export default function StudentProfile() {
                   <div className="row g-3">
                     <InfoItem label="Full Name" value={student?.fullName || "N/A"} icon={<FaUserGraduate />} col={12} />
                     <InfoItem label="Gender" value={student?.gender || "N/A"} icon={<FaVial />} />
-                    <InfoItem 
-                      label="Date of Birth" 
-                      value={student?.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : "N/A"} 
-                      icon={<FaCalendarAlt />} 
+                    <InfoItem
+                      label="Date of Birth"
+                      value={student?.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : "N/A"}
+                      icon={<FaCalendarAlt />}
                     />
                     <InfoItem label="Nationality" value={student?.nationality || "N/A"} icon={<FaGlobe />} />
                     <InfoItem label="Religion" value={student?.religion || "N/A"} icon={<FaHeartbeat />} />
@@ -376,7 +393,18 @@ export default function StudentProfile() {
                   </div>
                 </SectionContent>
               )}
-              
+
+              {activeTab === 'parent' && (
+                <SectionContent title="Parent / Guardian Information" icon={<FaUserFriends />} color="primary">
+                  <div className="row g-3">
+                    <InfoItem label="Father's Name" value={student?.fatherName || "N/A"} icon={<FaUserGraduate />} col={12} />
+                    <InfoItem label="Father's Mobile" value={student?.fatherMobile || "N/A"} icon={<FaPhoneAlt />} />
+                    <InfoItem label="Mother's Name" value={student?.motherName || "N/A"} icon={<FaUserGraduate />} col={12} />
+                    <InfoItem label="Mother's Mobile" value={student?.motherMobile || "N/A"} icon={<FaPhoneAlt />} />
+                  </div>
+                </SectionContent>
+              )}
+
               {activeTab === 'academic' && (
                 <SectionContent title="Academic Information" icon={<FaBook />} color="success">
                   <div className="row g-3">
@@ -414,35 +442,87 @@ export default function StudentProfile() {
                   </div>
                 </SectionContent>
               )}
-              
-              {activeTab === 'education' && (
-                <SectionContent title="Educational Information" icon={<FaGraduationCap />} color="primary">
+
+              {activeTab === 'ssc' && (
+                <SectionContent title="10th (SSC) Academic Details" icon={<FaGraduationCap />} color="info">
+                  <div className="row g-3">
+                    <InfoItem label="School Name" value={student?.sscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
+                    <InfoItem label="Board" value={student?.sscBoard || "N/A"} icon={<FaUniversity />} />
+                    <InfoItem label="Passing Year" value={student?.sscPassingYear || "N/A"} icon={<FaCalendarAlt />} />
+                    <InfoItem label="Percentage / CGPA" value={student?.sscPercentage ? `${student.sscPercentage}%` : "N/A"} icon={<FaCheckCircle />} />
+                    <InfoItem label="Roll Number" value={student?.sscRollNumber || "N/A"} icon={<FaIdCard />} />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === 'hsc' && (
+                <SectionContent title="12th (HSC) Academic Details" icon={<FaGraduationCap />} color="success">
+                  <div className="row g-3">
+                    <InfoItem label="School / College Name" value={student?.hscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
+                    <InfoItem label="Board" value={student?.hscBoard || "N/A"} icon={<FaUniversity />} />
+                    <InfoItem label="Stream" value={student?.hscStream || "N/A"} icon={<FaBook />} />
+                    <InfoItem label="Passing Year" value={student?.hscPassingYear || "N/A"} icon={<FaCalendarAlt />} />
+                    <InfoItem label="Percentage / CGPA" value={student?.hscPercentage ? `${student.hscPercentage}%` : "N/A"} icon={<FaCheckCircle />} />
+                    <InfoItem label="Roll Number" value={student?.hscRollNumber || "N/A"} icon={<FaIdCard />} />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === 'documents' && (
+                <SectionContent title="Uploaded Documents" icon={<FaFileAlt />} color="primary">
                   <div className="mb-4">
                     <h5 className="fw-bold mb-3 text-primary">
-                      <FaFileAlt className="me-2" />
-                      Academic Documents Repository
+                      <FaFilePdf className="me-2" />
+                      Your Uploaded Documents
                     </h5>
                     <p className="text-muted mb-0">
-                      Your previous academic records and important certificates. Click on any document to download.
+                      These are the documents you uploaded during registration. They are verified by the college admin.
                     </p>
                   </div>
-                  
+
                   <div className="row g-3">
-                    {educationalDocuments.map((doc) => (
-                      <div key={doc.id} className="col-md-6">
-                        <DocumentCard 
-                          icon={doc.icon} 
-                          type={doc.type} 
-                          name={doc.name} 
-                          board={doc.board} 
-                          year={doc.year} 
-                          percentage={doc.percentage} 
-                          file={doc.file}
-                        />
-                      </div>
-                    ))}
+                    <DocumentCard
+                      icon={<FaFilePdf />}
+                      type="10th Marksheet"
+                      name="Secondary School Certificate"
+                      board={student?.sscBoard || "N/A"}
+                      year={student?.sscPassingYear || "N/A"}
+                      percentage={student?.sscPercentage ? `${student.sscPercentage}%` : ""}
+                      file={student?.sscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                      filePath={student?.sscMarksheetPath}
+                    />
+                    <DocumentCard
+                      icon={<FaFilePdf />}
+                      type="12th Marksheet"
+                      name="Higher Secondary Certificate"
+                      board={student?.hscBoard || "N/A"}
+                      year={student?.hscPassingYear || "N/A"}
+                      percentage={student?.hscPercentage ? `${student.hscPercentage}%` : ""}
+                      file={student?.hscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                      filePath={student?.hscMarksheetPath}
+                    />
+                    <DocumentCard
+                      icon={<FaFileAlt />}
+                      type="Passport Photo"
+                      name="Passport Size Photograph"
+                      board="N/A"
+                      year="N/A"
+                      percentage=""
+                      file={student?.passportPhotoPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                      filePath={student?.passportPhotoPath}
+                    />
+                    <DocumentCard
+                      icon={<FaCertificate />}
+                      type="Category Certificate"
+                      name={`${student?.category || "N/A"} Category Certificate`}
+                      board="Issuing Authority"
+                      year="N/A"
+                      percentage=""
+                      file={student?.categoryCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                      filePath={student?.categoryCertificatePath}
+                    />
                   </div>
-                  
+
                   <div className="mt-4 p-3 bg-light rounded-3">
                     <h6 className="fw-bold mb-2">
                       <FaInfoCircle className="me-2 text-info" />
@@ -457,7 +537,7 @@ export default function StudentProfile() {
                   </div>
                 </SectionContent>
               )}
-              
+
               {activeTab === 'college' && (
                 <SectionContent title="College Information" icon={<FaUniversity />} color="secondary">
                   <div className="row g-3">
@@ -929,7 +1009,7 @@ function InfoItem({ label, value, icon, col = 6 }) {
 }
 
 /* ================= DOCUMENT CARD COMPONENT ================= */
-function DocumentCard({ icon, type, name, board, year, percentage, file }) {
+function DocumentCard({ icon, type, name, board, year, percentage, file, filePath }) {
   const getDocumentColor = () => {
     switch(type) {
       case "10th Marksheet": return "#dbeafe";
@@ -940,7 +1020,7 @@ function DocumentCard({ icon, type, name, board, year, percentage, file }) {
       default: return "#f1f5f9";
     }
   };
-  
+
   const getDocumentIconColor = () => {
     switch(type) {
       case "10th Marksheet": return "#1e40af";
@@ -952,11 +1032,33 @@ function DocumentCard({ icon, type, name, board, year, percentage, file }) {
     }
   };
 
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  // Ensure filePath starts with /uploads/ for correct URL
+  const normalizedPath = filePath ? filePath.replace(/^\/?uploads/, '/uploads') : null;
+  const documentUrl = normalizedPath ? `${baseUrl}${normalizedPath}` : null;
+
+  const handleView = () => {
+    if (documentUrl) {
+      window.open(documentUrl, '_blank');
+    }
+  };
+
+  const handleDownload = () => {
+    if (documentUrl) {
+      const link = document.createElement('a');
+      link.href = documentUrl;
+      link.setAttribute('download', file);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="document-card">
-      <div 
-        className="document-icon" 
-        style={{ 
+      <div
+        className="document-icon"
+        style={{
           backgroundColor: getDocumentColor(),
           color: getDocumentIconColor()
         }}
@@ -972,9 +1074,30 @@ function DocumentCard({ icon, type, name, board, year, percentage, file }) {
         <div className="document-year">{year}</div>
         {percentage && <div className="document-percentage">{percentage}</div>}
       </div>
-      <button className="document-download">
-        <FaDownload size={14} /> Download {file}
-      </button>
+      <div className="d-flex gap-2 mt-3">
+        <button
+          className="btn btn-sm btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          onClick={handleView}
+          disabled={!filePath}
+          style={{
+            opacity: filePath ? 1 : 0.5,
+            cursor: filePath ? 'pointer' : 'not-allowed'
+          }}
+        >
+          <FaFilePdf size={14} /> View
+        </button>
+        <button
+          className="btn btn-sm btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          onClick={handleDownload}
+          disabled={!filePath}
+          style={{
+            opacity: filePath ? 1 : 0.5,
+            cursor: filePath ? 'pointer' : 'not-allowed'
+          }}
+        >
+          <FaDownload size={14} /> Download
+        </button>
+      </div>
     </div>
   );
 }
