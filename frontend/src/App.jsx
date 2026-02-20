@@ -16,6 +16,7 @@ import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
+import DocumentSettings from "./pages/dashboard/College-Admin/SystemSetting/DocumentSettings";
 
 /* ================= DEPARTMENTS ================= */
 import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
@@ -768,6 +769,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <NotificationSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/document-settings"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <DocumentSettings />
                 </ProtectedRoute>
               }
             />
