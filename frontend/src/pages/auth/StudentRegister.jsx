@@ -104,13 +104,18 @@ export default function StudentRegister() {
     const loadDocumentConfig = async () => {
       try {
         setConfigLoading(true);
+        console.log("📥 Loading document config for college:", collegeCode);
         const res = await publicApi.get(`/document-config/${collegeCode}`);
+        
+        console.log("📄 API Response:", res.data);
+        console.log("📋 Documents received:", res.data.documents?.length);
         
         if (res.data && res.data.documents) {
           setDocumentConfig(res.data.documents);
+          console.log("✅ Document config loaded successfully");
         }
       } catch (err) {
-        console.error("Failed to load document config:", err);
+        console.error("❌ Failed to load document config:", err);
         // Use default config if failed
       } finally {
         setConfigLoading(false);
@@ -1024,6 +1029,9 @@ export default function StudentRegister() {
         </div>
       );
     }
+
+    console.log("📄 Rendering documents - Config length:", documentConfig.length);
+    console.log("📄 Enabled documents:", documentConfig.filter(d => d.enabled).length);
 
     return (
       <div className="animate-fade">
