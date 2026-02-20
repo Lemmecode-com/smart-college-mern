@@ -11,21 +11,22 @@ exports.getDocumentConfig = async (req, res) => {
 
     console.log("📄 Document Config Request - College Code:", collegeCode);
 
+    // Case-insensitive search for college code
     const config = await DocumentConfig.findOne({
-      collegeCode,
+      collegeCode: { $regex: new RegExp(`^${collegeCode}$`, 'i') },
       isActive: true
     }).select("documents collegeCode");
 
     console.log("📄 Database Response:", config ? "Config Found" : "Config Not Found");
 
     if (!config) {
-      console.log("⚠️ No config found, returning default configuration");
-      // If no config exists, return default configuration
-      const defaultDocuments = DocumentConfig.getDefaultConfig();
+      console.log("⚠️ No config found - returning EMPTY documents array (admin must configure first)");
+      // If no config exists, return empty array - admin must configure documents first
       return res.json({
         collegeCode,
-        documents: defaultDocuments,
-        isDefault: true
+        documents: [],
+        isDefault: false,
+        message: "No document configuration found. Please contact college admin."
       });
     }
 
