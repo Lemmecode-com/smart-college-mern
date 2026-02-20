@@ -15,13 +15,13 @@ const TimetableSlot = require("../models/timetableSlot.model");
  */
 exports.autoCloseAttendanceSessions = async () => {
   try {
-    console.log('🕐 [Auto-Close] Starting auto-close job...');
+    // console.log('🕐 [Auto-Close] Starting auto-close job...');
 
     const now = new Date();
     const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
     const today = now.toISOString().split('T')[0];
 
-    console.log(`📍 Current time: ${currentTime} (${today})`);
+    // console.log(`📍 Current time: ${currentTime} (${today})`);
 
     // ✅ Step 1: Find all OPEN sessions for today
     const openSessions = await AttendanceSession.find({
@@ -32,10 +32,10 @@ exports.autoCloseAttendanceSessions = async () => {
       }
     }).populate('slot_id');
 
-    console.log(`📊 Found ${openSessions.length} open sessions`);
+    // console.log(`📊 Found ${openSessions.length} open sessions`);
 
     if (openSessions.length === 0) {
-      console.log('✅ No sessions to close');
+      // console.log('✅ No sessions to close');
       return;
     }
 
@@ -48,14 +48,14 @@ exports.autoCloseAttendanceSessions = async () => {
         const slot = session.slot_id;
 
         if (!slot) {
-          console.log(`⚠️  Session ${session._id} has no slot, skipping...`);
+          // console.log(`⚠️  Session ${session._id} has no slot, skipping...`);
           continue;
         }
 
         const slotEndTime = slot.endTime; // e.g., "10:00"
         const sessionDate = session.lectureDate.toISOString().split('T')[0];
 
-        console.log(`⏳ Checking session ${session._id}: Slot ends at ${slotEndTime}`);
+        // console.log(`⏳ Checking session ${session._id}: Slot ends at ${slotEndTime}`);
 
         // ✅ Step 3: Check if slot end time has passed + 5 minutes buffer
         const [endHour, endMinute] = slotEndTime.split(':').map(Number);
@@ -65,13 +65,13 @@ exports.autoCloseAttendanceSessions = async () => {
         // Add 5 minutes buffer
         const autoCloseTime = new Date(slotEndDateTime.getTime() + 5 * 60 * 1000);
 
-        console.log(`   Slot end: ${slotEndDateTime.toLocaleTimeString()}`);
-        console.log(`   Auto-close at: ${autoCloseTime.toLocaleTimeString()}`);
-        console.log(`   Current time: ${now.toLocaleTimeString()}`);
+        // console.log(`   Slot end: ${slotEndDateTime.toLocaleTimeString()}`);
+        // console.log(`   Auto-close at: ${autoCloseTime.toLocaleTimeString()}`);
+        // console.log(`   Current time: ${now.toLocaleTimeString()}`);
 
         // Check if current time is past auto-close time
         if (now < autoCloseTime) {
-          console.log(`   ⏭️  Not yet time to close (waiting until ${autoCloseTime.toLocaleTimeString()})`);
+          // console.log(`   ⏭️  Not yet time to close (waiting until ${autoCloseTime.toLocaleTimeString()})`);
           continue;
         }
 
@@ -82,7 +82,7 @@ exports.autoCloseAttendanceSessions = async () => {
           status: 'APPROVED'
         });
 
-        console.log(`   📚 Total students: ${students.length}`);
+        // console.log(`   📚 Total students: ${students.length}`);
 
         // ✅ Step 5: Get already marked attendance records
         const markedRecords = await AttendanceRecord.find({
@@ -92,8 +92,8 @@ exports.autoCloseAttendanceSessions = async () => {
         const markedStudentIds = markedRecords.map(r => r.student_id.toString());
         const unmarkedCount = students.length - markedStudentIds.length;
 
-        console.log(`   ✅ Already marked: ${markedStudentIds.length}`);
-        console.log(`   ⚠️  Unmarked: ${unmarkedCount}`);
+        // console.log(`   ✅ Already marked: ${markedStudentIds.length}`);
+        // console.log(`   ⚠️  Unmarked: ${unmarkedCount}`);
 
         // ✅ Step 6: Mark all unmarked students as PRESENT
         if (unmarkedCount > 0) {
@@ -113,7 +113,7 @@ exports.autoCloseAttendanceSessions = async () => {
 
           // Insert all auto-marked records
           await AttendanceRecord.insertMany(autoMarkedRecords);
-          console.log(`   ✅ Auto-marked ${unmarkedCount} students as PRESENT`);
+          // console.log(`   ✅ Auto-marked ${unmarkedCount} students as PRESENT`);
         }
 
         // ✅ Step 7: Close the session
@@ -121,8 +121,8 @@ exports.autoCloseAttendanceSessions = async () => {
         await session.save();
 
         closedCount++;
-        console.log(`   ✅ Session ${session._id} closed successfully`);
-        console.log(`   📝 Snapshot preserved: ${session.slotSnapshot.subject_name} (${session.slotSnapshot.teacher_name})\n`);
+        // console.log(`   ✅ Session ${session._id} closed successfully`);
+        // console.log(`   📝 Snapshot preserved: ${session.slotSnapshot.subject_name} (${session.slotSnapshot.teacher_name})\n`);
 
       } catch (err) {
         errorCount++;
@@ -130,13 +130,13 @@ exports.autoCloseAttendanceSessions = async () => {
       }
     }
 
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 AUTO-CLOSE SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`✅ Sessions closed: ${closedCount}`);
-    console.log(`❌ Errors: ${errorCount}`);
-    console.log('='.repeat(50));
-    console.log('🕐 [Auto-Close] Job completed\n');
+    // console.log('\n' + '='.repeat(50));
+    // console.log('📊 AUTO-CLOSE SUMMARY');
+    // console.log('='.repeat(50));
+    // console.log(`✅ Sessions closed: ${closedCount}`);
+    // console.log(`❌ Errors: ${errorCount}`);
+    // console.log('='.repeat(50));
+    // console.log('🕐 [Auto-Close] Job completed\n');
 
   } catch (error) {
     console.error('❌ [Auto-Close] Job failed:', error.message);
@@ -155,7 +155,7 @@ exports.autoCloseAttendanceSessions = async () => {
  */
 exports.cleanupOldSessions = async () => {
   try {
-    console.log('🧹 [Cleanup] Starting old session cleanup...');
+    // console.log('🧹 [Cleanup] Starting old session cleanup...');
 
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -165,8 +165,8 @@ exports.cleanupOldSessions = async () => {
       lectureDate: { $lt: oneYearAgo }
     });
 
-    console.log(`✅ Deleted ${result.deletedCount} old sessions`);
-    console.log('🧹 [Cleanup] Job completed\n');
+    // console.log(`✅ Deleted ${result.deletedCount} old sessions`);
+    // console.log('🧹 [Cleanup] Job completed\n');
 
   } catch (error) {
     console.error('❌ [Cleanup] Job failed:', error.message);
