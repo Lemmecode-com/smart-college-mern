@@ -453,7 +453,7 @@ export default function StudentRegister() {
       formData.append("currentSemester", "1");
 
       // Append files - Map frontend field names to backend expected field names
-      // Backend expects: sscMarksheet, hscMarksheet, passportPhoto, categoryCertificate
+      // Backend expects: sscMarksheet, hscMarksheet, passportPhoto, categoryCertificate, etc.
       documentConfig.forEach((doc) => {
         if (form[doc.type]) {
           console.log("📎 Appending file:", doc.type, form[doc.type]?.name);
@@ -468,6 +468,34 @@ export default function StudentRegister() {
             backendFieldName = "passportPhoto";
           } else if (doc.type === "category_certificate") {
             backendFieldName = "categoryCertificate";
+          } else if (doc.type === "income_certificate") {
+            backendFieldName = "incomeCertificate";
+          } else if (doc.type === "character_certificate") {
+            backendFieldName = "characterCertificate";
+          } else if (doc.type === "transfer_certificate") {
+            backendFieldName = "transferCertificate";
+          } else if (doc.type === "aadhar_card") {
+            backendFieldName = "aadharCard";
+          } else if (doc.type === "entrance_exam_score") {
+            backendFieldName = "entranceExamScore";
+          } else if (doc.type === "migration_certificate") {
+            backendFieldName = "migrationCertificate";
+          } else if (doc.type === "domicile_certificate") {
+            backendFieldName = "domicileCertificate";
+          } else if (doc.type === "caste_certificate") {
+            backendFieldName = "casteCertificate";
+          } else if (doc.type === "non_creamy_layer_certificate") {
+            backendFieldName = "nonCreamyLayerCertificate";
+          } else if (doc.type === "physically_challenged_certificate") {
+            backendFieldName = "physicallyChallengedCertificate";
+          } else if (doc.type === "sports_quota_certificate") {
+            backendFieldName = "sportsQuotaCertificate";
+          } else if (doc.type === "nri_sponsor_certificate") {
+            backendFieldName = "nriSponsorCertificate";
+          } else if (doc.type === "gap_certificate") {
+            backendFieldName = "gapCertificate";
+          } else if (doc.type === "affidavit") {
+            backendFieldName = "affidavit";
           }
           
           formData.append(backendFieldName, form[doc.type]);

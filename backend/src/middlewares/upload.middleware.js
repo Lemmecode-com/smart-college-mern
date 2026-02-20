@@ -52,7 +52,21 @@ const uploadStudentDocuments = upload.fields([
   { name: "sscMarksheet", maxCount: 1 },
   { name: "hscMarksheet", maxCount: 1 },
   { name: "passportPhoto", maxCount: 1 },
-  { name: "categoryCertificate", maxCount: 1 }
+  { name: "categoryCertificate", maxCount: 1 },
+  { name: "incomeCertificate", maxCount: 1 },
+  { name: "characterCertificate", maxCount: 1 },
+  { name: "transferCertificate", maxCount: 1 },
+  { name: "aadharCard", maxCount: 1 },
+  { name: "entranceExamScore", maxCount: 1 },
+  { name: "migrationCertificate", maxCount: 1 },
+  { name: "domicileCertificate", maxCount: 1 },
+  { name: "casteCertificate", maxCount: 1 },
+  { name: "nonCreamyLayerCertificate", maxCount: 1 },
+  { name: "physicallyChallengedCertificate", maxCount: 1 },
+  { name: "sportsQuotaCertificate", maxCount: 1 },
+  { name: "nriSponsorCertificate", maxCount: 1 },
+  { name: "gapCertificate", maxCount: 1 },
+  { name: "affidavit", maxCount: 1 }
 ]);
 
 module.exports = {
