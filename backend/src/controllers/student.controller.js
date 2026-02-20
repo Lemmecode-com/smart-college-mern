@@ -238,6 +238,12 @@ exports.getMyFullProfile = async (req, res) => {
     );
     const course = await Course.findById(student.course_id).select("name code");
 
+    // 3️⃣ Document Config (to determine which fields to show)
+    const docConfig = await DocumentConfig.findOne({
+      collegeCode: college.code,
+      isActive: true
+    }).select("documents");
+
     // 4️⃣ Attendance Summary
     const sessions = await AttendanceSession.find({
       course_id: student.course_id,
@@ -344,6 +350,7 @@ exports.getMyFullProfile = async (req, res) => {
       department,
       course,
       attendance: attendanceSummary,
+      documentConfig: docConfig?.documents || [] // Return document config for conditional rendering
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
