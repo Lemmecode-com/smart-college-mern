@@ -51,6 +51,7 @@ export default function StudentProfile() {
   const [error, setError] = useState("");
   const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState('personal'); // 'personal', 'academic', 'contact', 'address', 'education', 'college'
+  const [documentConfig, setDocumentConfig] = useState([]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -67,6 +68,20 @@ export default function StudentProfile() {
         }
 
         setProfile(res.data);
+        
+        // Extract document config for conditional rendering
+        if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
+          setDocumentConfig(res.data.documentConfig);
+          console.log("📄 Document config loaded:", res.data.documentConfig);
+        } else {
+          // Default config if not provided
+          setDocumentConfig([
+            { type: "10th_marksheet", enabled: true, label: "10th Marksheet" },
+            { type: "12th_marksheet", enabled: true, label: "12th Marksheet" },
+            { type: "passport_photo", enabled: true, label: "Passport Photo" },
+            { type: "category_certificate", enabled: true, label: "Category Certificate" }
+          ]);
+        }
       } catch (err) {
         console.error("PROFILE ERROR:", err);
 
@@ -169,6 +184,23 @@ export default function StudentProfile() {
   }
 
   const { student, college, department, course } = profile;
+
+  // Helper functions to check if documents are enabled
+  const is10thEnabled = () => {
+    return documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled);
+  };
+
+  const is12thEnabled = () => {
+    return documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled);
+  };
+
+  const isPassportPhotoEnabled = () => {
+    return documentConfig.some(doc => doc.type === "passport_photo" && doc.enabled);
+  };
+
+  const isCategoryCertificateEnabled = () => {
+    return documentConfig.some(doc => doc.type === "category_certificate" && doc.enabled);
+  };
 
   // Mock educational documents data (to be replaced with real API later)
   const educationalDocuments = [
@@ -353,12 +385,14 @@ export default function StudentProfile() {
                 label="10th Details"
                 active={activeTab === 'ssc'}
                 onClick={() => setActiveTab('ssc')}
+                hidden={!is10thEnabled()}
               />
               <TabItem
                 icon={<FaGraduationCap />}
                 label="12th Details"
                 active={activeTab === 'hsc'}
                 onClick={() => setActiveTab('hsc')}
+                hidden={!is12thEnabled()}
               />
               <TabItem
                 icon={<FaFileAlt />}
@@ -443,7 +477,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === 'ssc' && (
+              {activeTab === 'ssc' && is10thEnabled() && (
                 <SectionContent title="10th (SSC) Academic Details" icon={<FaGraduationCap />} color="info">
                   <div className="row g-3">
                     <InfoItem label="School Name" value={student?.sscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
@@ -455,7 +489,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === 'hsc' && (
+              {activeTab === 'hsc' && is12thEnabled() && (
                 <SectionContent title="12th (HSC) Academic Details" icon={<FaGraduationCap />} color="success">
                   <div className="row g-3">
                     <InfoItem label="School / College Name" value={student?.hscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
@@ -481,46 +515,73 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="row g-3">
-                    <DocumentCard
-                      icon={<FaFilePdf />}
-                      type="10th Marksheet"
-                      name="Secondary School Certificate"
-                      board={student?.sscBoard || "N/A"}
-                      year={student?.sscPassingYear || "N/A"}
-                      percentage={student?.sscPercentage ? `${student.sscPercentage}%` : ""}
-                      file={student?.sscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
-                      filePath={student?.sscMarksheetPath}
-                    />
-                    <DocumentCard
-                      icon={<FaFilePdf />}
-                      type="12th Marksheet"
-                      name="Higher Secondary Certificate"
-                      board={student?.hscBoard || "N/A"}
-                      year={student?.hscPassingYear || "N/A"}
-                      percentage={student?.hscPercentage ? `${student.hscPercentage}%` : ""}
-                      file={student?.hscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
-                      filePath={student?.hscMarksheetPath}
-                    />
-                    <DocumentCard
-                      icon={<FaFileAlt />}
-                      type="Passport Photo"
-                      name="Passport Size Photograph"
-                      board="N/A"
-                      year="N/A"
-                      percentage=""
-                      file={student?.passportPhotoPath?.split(/[\\/]/).pop() || "Not uploaded"}
-                      filePath={student?.passportPhotoPath}
-                    />
-                    <DocumentCard
-                      icon={<FaCertificate />}
-                      type="Category Certificate"
-                      name={`${student?.category || "N/A"} Category Certificate`}
-                      board="Issuing Authority"
-                      year="N/A"
-                      percentage=""
-                      file={student?.categoryCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
-                      filePath={student?.categoryCertificatePath}
-                    />
+                    {/* 10th Marksheet - Only if enabled */}
+                    {is10thEnabled() && (
+                      <DocumentCard
+                        icon={<FaFilePdf />}
+                        type="10th Marksheet"
+                        name="Secondary School Certificate"
+                        board={student?.sscBoard || "N/A"}
+                        year={student?.sscPassingYear || "N/A"}
+                        percentage={student?.sscPercentage ? `${student.sscPercentage}%` : ""}
+                        file={student?.sscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        filePath={student?.sscMarksheetPath}
+                      />
+                    )}
+                    
+                    {/* 12th Marksheet - Only if enabled */}
+                    {is12thEnabled() && (
+                      <DocumentCard
+                        icon={<FaFilePdf />}
+                        type="12th Marksheet"
+                        name="Higher Secondary Certificate"
+                        board={student?.hscBoard || "N/A"}
+                        year={student?.hscPassingYear || "N/A"}
+                        percentage={student?.hscPercentage ? `${student.hscPercentage}%` : ""}
+                        file={student?.hscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        filePath={student?.hscMarksheetPath}
+                      />
+                    )}
+                    
+                    {/* Passport Photo - Only if enabled */}
+                    {isPassportPhotoEnabled() && (
+                      <DocumentCard
+                        icon={<FaFileAlt />}
+                        type="Passport Photo"
+                        name="Passport Size Photograph"
+                        board="N/A"
+                        year="N/A"
+                        percentage=""
+                        file={student?.passportPhotoPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        filePath={student?.passportPhotoPath}
+                      />
+                    )}
+                    
+                    {/* Category Certificate - Only if enabled and category is not GEN */}
+                    {isCategoryCertificateEnabled() && student?.category !== 'GEN' && (
+                      <DocumentCard
+                        icon={<FaCertificate />}
+                        type="Category Certificate"
+                        name={`${student?.category || "N/A"} Category Certificate`}
+                        board="Issuing Authority"
+                        year="N/A"
+                        percentage=""
+                        file={student?.categoryCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        filePath={student?.categoryCertificatePath}
+                      />
+                    )}
+                    
+                    {/* Show message if no documents are configured */}
+                    {!is10thEnabled() && !is12thEnabled() && !isPassportPhotoEnabled() && (!isCategoryCertificateEnabled() || student?.category === 'GEN') && (
+                      <div className="col-12">
+                        <div className="alert alert-warning d-flex align-items-center">
+                          <FaExclamationTriangle className="me-2" size={20} />
+                          <div>
+                            <strong>No Documents Required:</strong> Your college has not configured any document requirements for your batch.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 p-3 bg-light rounded-3">
@@ -963,10 +1024,12 @@ export default function StudentProfile() {
 }
 
 /* ================= TAB ITEM COMPONENT ================= */
-function TabItem({ icon, label, active, onClick, badge }) {
+function TabItem({ icon, label, active, onClick, badge, hidden }) {
+  if (hidden) return null;
+  
   return (
-    <div 
-      className={`tab-item ${active ? 'active' : ''}`} 
+    <div
+      className={`tab-item ${active ? 'active' : ''}`}
       onClick={onClick}
     >
       <span className="fs-4">{icon}</span>
