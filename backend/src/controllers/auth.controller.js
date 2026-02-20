@@ -36,11 +36,20 @@ exports.login = async (req, res, next) => {
     // 3️⃣ STUDENT (APPROVED ONLY)
     let student = await Student.findOne({ email, status: "APPROVED" });
     if (student) {
-      const isMatch = await bcrypt.compare(password, student.password);
-      if (!isMatch) {
+      // ✅ Find the User record for password verification
+      const user = await User.findOne({ email, role: "STUDENT" });
+      
+      if (user) {
+        // Use User.password (hashed) for verification
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        }
+        // Send student.user_id in token
+        return sendToken(res, student.user_id || student._id, "STUDENT", student.college_id);
+      } else {
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      return sendToken(res, student._id, "STUDENT", student.college_id);
     }
 
     throw new AppError("User not found or not approved", 404, "USER_NOT_FOUND");
@@ -88,3 +97,4 @@ const sendToken = (res, id, role, college_id) => {
     success: true 
   });
 };
+//=====================================================================

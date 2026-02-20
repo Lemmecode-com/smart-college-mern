@@ -9,52 +9,30 @@ const College = require("../models/college.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
+const AppError = require("../utils/AppError");
+
 /**
  * 👨‍🎓 STUDENT DASHBOARD
  */
-/* exports.studentDashboard = async (req, res) => {
-  const studentId = req.user.id;
-
-  const attendance = await AttendanceRecord.find({ student_id: studentId });
-  const fee = await StudentFee.findOne({ student_id: studentId });
-
-  res.json({
-    attendanceSummary: {
-      total: attendance.length,
-      present: attendance.filter(a => a.status === "PRESENT").length,
-      absent: attendance.filter(a => a.status === "ABSENT").length,
-    },
-    feeSummary: fee
-      ? {
-          totalFee: fee.totalFee,
-          paid: fee.paidAmount,
-          due: fee.totalFee - fee.paidAmount,
-        }
-      : null,
-  });
-}; */
-
-/**
- * 👨‍🎓 ENHANCED STUDENT DASHBOARD
- */
-exports.studentDashboard = async (req, res) => {
+exports.studentDashboard = async (req, res, next) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;  // This is User._id
     const collegeId = req.college_id;
 
     /* =====================================================
        1️⃣ STUDENT PROFILE
     ===================================================== */
 
+    // ✅ Use user_id instead of _id
     const student = await Student.findOne({
-      _id: studentId,
+      user_id: userId,
       college_id: collegeId,
     })
       .populate("course_id", "name")
       .populate("department_id", "name");
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     /* =====================================================
@@ -62,7 +40,7 @@ exports.studentDashboard = async (req, res) => {
     ===================================================== */
 
     const attendanceRecords = await AttendanceRecord.find({
-      student_id: studentId,
+      student_id: student._id,  // ✅ Use student._id (not user_id)
       college_id: collegeId,
     }).populate({
       path: "session_id",
@@ -151,7 +129,7 @@ exports.studentDashboard = async (req, res) => {
     ===================================================== */
 
     const fee = await StudentFee.findOne({
-      student_id: studentId,
+      student_id: student._id,  // ✅ Use student._id (not user_id)
     });
 
     let feeSummary = null;
@@ -173,7 +151,7 @@ exports.studentDashboard = async (req, res) => {
     ===================================================== */
 
     const readRecords = await NotificationRead.find({
-      user_id: studentId,
+      user_id: student.user_id,  // ✅ Use student.user_id
     }).select("notification_id");
 
     const readIds = readRecords.map((r) => r.notification_id);
@@ -227,8 +205,7 @@ exports.studentDashboard = async (req, res) => {
       latestNotifications,
     });
   } catch (error) {
-    console.error("Student Dashboard Error:", error);
-    res.status(500).json({ message: "Failed to load dashboard" });
+    next(error);
   }
 };
 
@@ -307,6 +284,9 @@ exports.teacherDashboard = async (req, res) => {
   }
 };
 
+/**
+ * 👩‍🏫 COLLEGE ADMIN DASHBOARD
+ */
 exports.collegeAdminDashboard = async (req, res) => {
   try {
     const collegeId = req.college_id;
