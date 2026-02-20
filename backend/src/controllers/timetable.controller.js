@@ -3,6 +3,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const { getValidDatesForSlot, getDayName } = require("../utils/date.utils");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -94,18 +95,52 @@ exports.publishTimetable = async (req, res) => {
    GET TIMETABLE BY ID
 ========================================================= */
 exports.getTimetableById = async (req, res) => {
-  const timetable = await Timetable.findOne({
-    _id: req.params.id,
-    college_id: req.college_id,
-  })
-    .populate("department_id", "name")
-    .populate("course_id", "name");
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    })
+      .populate("department_id", "name")
+      .populate("course_id", "name");
 
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Get all slots for this timetable
+    const slots = await TimetableSlot.find({
+      timetable_id: timetable._id,
+      college_id: req.college_id,
+    })
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name email");
+
+    // Add valid dates for each slot
+    const slotsWithDates = slots.map(slot => {
+      const validDates = getValidDatesForSlot(
+        slot.day,
+        timetable.academicYear,
+        timetable.semester
+      );
+
+      return {
+        ...slot.toObject(),
+        validDates: validDates.map(d => ({
+          date: d.toISOString().split('T')[0],
+          dayName: getDayName(d)
+        }))
+      };
+    });
+
+    res.json({
+      timetable,
+      slots: slotsWithDates,
+      message: "Timetable with valid dates retrieved successfully"
+    });
+  } catch (error) {
+    console.error("Get Timetable Error:", error);
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(timetable);
 };
 
 /* =========================================================
