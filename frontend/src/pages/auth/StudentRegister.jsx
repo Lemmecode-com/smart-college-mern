@@ -41,7 +41,7 @@ export default function StudentRegister() {
     email: "",
     password: "",
     mobileNumber: "",
-    gender: "Female",
+    gender: "",
     dateOfBirth: "",
     category: "GEN",
 
@@ -330,6 +330,11 @@ export default function StudentRegister() {
     // Validate Document Upload
     if (step === steps.documents) {
       for (const doc of documentConfig) {
+        // Skip category certificate if category is GEN
+        if (doc.type === 'category_certificate' && form.category === 'GEN') {
+          continue;
+        }
+        
         if (doc.enabled && doc.mandatory && !form[doc.type]) {
           alert(`Please upload ${doc.label} (Mandatory)`);
           return false;
@@ -1046,7 +1051,14 @@ export default function StudentRegister() {
         </p>
 
         <div className="row g-3">
-          {documentConfig.filter(doc => doc.enabled).map((doc) => (
+          {documentConfig.filter(doc => {
+            // Conditional rendering for category certificate
+            if (doc.type === 'category_certificate') {
+              // Show category certificate only if category is not GEN
+              return doc.enabled && form.category !== 'GEN';
+            }
+            return doc.enabled;
+          }).map((doc) => (
             <div className="col-md-6" key={doc.type}>
               <label className="form-label fw-semibold">
                 {doc.label}
@@ -1059,7 +1071,7 @@ export default function StudentRegister() {
                   accept={doc.allowedFormats.map(f => `.${f}`).join(',')}
                   onChange={handleFileChange}
                   className="form-control"
-                  required={doc.mandatory}
+                  required={doc.mandatory && (doc.type !== 'category_certificate' || form.category !== 'GEN')}
                 />
                 <small className="text-muted">
                   {doc.allowedFormats.join(', ').toUpperCase()} only
@@ -1074,6 +1086,16 @@ export default function StudentRegister() {
               </div>
             </div>
           ))}
+          
+          {/* Show info message for GEN category */}
+          {form.category === 'GEN' && documentConfig.some(doc => doc.type === 'category_certificate' && doc.enabled) && (
+            <div className="col-md-12">
+              <div className="alert alert-info mb-0">
+                <FaInfoCircle className="me-2" />
+                <strong>Category Certificate:</strong> Not required for General (GEN) category students.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="alert alert-warning mt-4">
