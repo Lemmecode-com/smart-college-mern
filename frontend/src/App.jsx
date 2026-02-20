@@ -9,6 +9,8 @@ import Navbar from "./components/Navbar";
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
 import StudentRegister from "./pages/auth/StudentRegister";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import VerifyOTP from "./pages/auth/VerifyOTP";
 
 /* ================= DASHBOARDS ================= */
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
@@ -16,6 +18,7 @@ import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
 import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
+import DocumentSettings from "./pages/dashboard/College-Admin/SystemSetting/DocumentSettings";
 
 /* ================= DEPARTMENTS ================= */
 import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
@@ -164,9 +167,11 @@ export default function App() {
 function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggleSidebar }) {
   const location = useLocation();
 
-  // Hide layout on public routes
-  const hideLayout = 
-    location.pathname === "/login" || 
+  // Hide layout on public/auth routes
+  const hideLayout =
+    location.pathname === "/login" ||
+    location.pathname === "/forgot-password" ||
+    location.pathname === "/verify-otp" ||
     location.pathname.startsWith("/register/");
 
   // Check if user is authenticated
@@ -218,6 +223,8 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
 
             {/* ================= PUBLIC ================= */}
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route
               path="/register/:collegeCode"
               element={<StudentRegister />}
@@ -768,6 +775,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <NotificationSetting />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/college/document-settings"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <DocumentSettings />
                 </ProtectedRoute>
               }
             />
