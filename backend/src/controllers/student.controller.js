@@ -33,14 +33,24 @@ exports.registerStudent = async (req, res, next) => {
     
     if (docConfig && docConfig.documents) {
       // Use college-specific document config
+      console.log("📋 Processing document config for college:", collegeCode);
       for (const doc of docConfig.documents) {
+        console.log("📄 Checking document:", doc.type, "Enabled:", doc.enabled, "Mandatory:", doc.mandatory);
+        
         if (doc.enabled && files[doc.type]) {
           const filePath = files[doc.type][0]?.path;
           if (filePath) {
             // Store relative path
             documentPaths[doc.type] = filePath.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
+            console.log("✅ Saved document:", doc.type, documentPaths[doc.type]);
           }
         } else if (doc.mandatory && !files[doc.type]) {
+          // Skip category certificate if category is GEN
+          if (doc.type === 'category_certificate' && category === 'GEN') {
+            console.log("⏭️ Skipping category certificate (GEN category)");
+            continue;
+          }
+          console.log("❌ Missing mandatory document:", doc.label);
           return res.status(400).json({
             message: `${doc.label} is mandatory`
           });
