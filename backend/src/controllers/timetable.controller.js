@@ -72,22 +72,53 @@ exports.createTimetable = async (req, res) => {
 
 /* =========================================================
    PUBLISH TIMETABLE (HOD)
+   Only HOD of the department can publish
 ========================================================= */
 exports.publishTimetable = async (req, res) => {
-  const timetable = await Timetable.findByIdAndUpdate(
-    req.params.id,
-    { status: "PUBLISHED" },
-    { new: true }
-  );
-
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+  try {
+    const { id } = req.params;
+    
+    // 1️⃣ Find timetable
+    const timetable = await Timetable.findById(id);
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+    
+    // 2️⃣ Find teacher profile
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    });
+    
+    if (!teacher) {
+      return res.status(403).json({ message: "Teacher profile not found" });
+    }
+    
+    // 3️⃣ Verify HOD of that department
+    const department = await Department.findOne({
+      _id: timetable.department_id,
+      hod_id: teacher._id,
+    });
+    
+    if (!department) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can publish timetable",
+      });
+    }
+    
+    // 4️⃣ Update status
+    timetable.status = "PUBLISHED";
+    await timetable.save();
+    
+    res.json({
+      message: "Timetable published successfully",
+      timetable,
+    });
+  } catch (error) {
+    console.error("Publish Timetable Error:", error);
+    res.status(500).json({ message: "Failed to publish timetable" });
   }
-
-  res.json({
-    message: "Timetable published successfully",
-    timetable,
-  });
 };
 
 
@@ -145,15 +176,51 @@ exports.getTimetableById = async (req, res) => {
 
 /* =========================================================
    LIST TIMETABLES
+   - Admin: All departments timetables
+   - HOD: Only own department timetables
+   - Teacher: Only own department timetables
 ========================================================= */
 exports.getTimetables = async (req, res) => {
-  const filter = { college_id: req.college_id };
-  if (req.query.department_id) {
-    filter.department_id = req.query.department_id;
-  }
+  try {
+    const filter = { college_id: req.college_id };
+    
+    // Check if user is TEACHER (includes HOD)
+    if (req.user.role === "TEACHER") {
+      // Find teacher profile to get department_id
+      const teacher = await Teacher.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      });
+      
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher profile not found" });
+      }
+      
+      // HOD can only see their own department timetables
+      // Normal teachers can also only see their department timetables
+      filter.department_id = teacher.department_id;
+      
+      console.log(`📋 HOD/Teacher timetable filter - Department: ${teacher.department_id}`);
+    }
+    
+    // Optional: Allow manual department_id filter for Admin
+    if (req.query.department_id && req.user.role === "COLLEGE_ADMIN") {
+      filter.department_id = req.query.department_id;
+    }
 
-  const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
-  res.json(timetables);
+    const timetables = await Timetable.find(filter)
+      .populate("department_id", "name code")
+      .populate("course_id", "name code")
+      .populate("createdBy", "name")
+      .sort({ createdAt: -1 });
+    
+    console.log(`✅ Found ${timetables.length} timetables for ${req.user.role}`);
+    res.json(timetables);
+  } catch (error) {
+    console.error("Get Timetables Error:", error);
+    res.status(500).json({ message: "Failed to fetch timetables" });
+  }
 };
 
 /* =========================================================
@@ -175,7 +242,7 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
     const slots = await TimetableSlot.find({
       teacher_id: teacher._id,
     })
-      .populate("subject_id", "name")
+      .populate("subject_id", "name teacher_id") // ✅ Include teacher_id
       .populate("teacher_id", "name")
       .populate({
         path: "timetable_id",
