@@ -1054,6 +1054,8 @@ export default function MySchedule() {
       );
       return;
     }
+    
+    // ✅ Check if class time has ended
     if (currentMinutes >= endMinutes) {
       toast.error(
         "Attendance cannot be started after lecture end time. Class has ended.",
@@ -1549,6 +1551,11 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
+  
+  // ✅ Check backend status first (highest priority)
+  const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
+  const hasOpenSession = slot.hasOpenSession || hasActiveSession;
+  
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
@@ -1565,8 +1572,10 @@ function ScheduleRow({
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
-  } else if (hasActiveSession || hasAttendanceSession) {
-    buttonState = "active";
+  } else if (hasOpenSession) {
+    buttonState = "active";  // ✅ Backend says session is open
+  } else if (hasClosedSession) {
+    buttonState = "ended";  // ✅ Backend says session is closed
   } else if (slotStatus === "past") {
     buttonState = "ended";
   } else if (slotStatus === "upcoming") {

@@ -104,6 +104,21 @@ const TIMES = [
 export default function WeeklyTimetable() {
   const { timetableId } = useParams();
   const navigate = useNavigate();
+
+  // ✅ Validate timetableId - redirect if missing
+  useEffect(() => {
+    if (!timetableId) {
+      toast.error("Timetable ID is required. Redirecting to timetable list...", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaExclamationTriangle />,
+      });
+      setTimeout(() => {
+        navigate("/timetable");
+      }, 3000);
+      return;
+    }
+  }, [timetableId, navigate]);
   const { user } = useContext(AuthContext);
   const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
@@ -160,6 +175,12 @@ export default function WeeklyTimetable() {
     }
 
     const load = async () => {
+      // ✅ Don't load if timetableId is missing
+      if (!timetableId) {
+        console.warn("No timetableId provided, skipping load");
+        return;
+      }
+      
       try {
         setLoading(true);
         const res = await api.get(`/timetable/${timetableId}/weekly`);
