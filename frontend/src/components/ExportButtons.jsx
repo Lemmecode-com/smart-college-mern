@@ -29,7 +29,11 @@ export default function ExportButtons({
       // Fetch fresh data if data is a function, otherwise use provided data
       let exportData = data;
       if (typeof data === 'function') {
-        exportData = await data();
+        exportData = data(); // Call the function (can be sync or async)
+        // If it returns a promise, wait for it
+        if (exportData && typeof exportData.then === 'function') {
+          exportData = await exportData;
+        }
       }
 
       if (!exportData || exportData.length === 0) {
