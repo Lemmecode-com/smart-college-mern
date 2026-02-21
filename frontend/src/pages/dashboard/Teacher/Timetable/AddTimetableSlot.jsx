@@ -135,7 +135,6 @@ export default function AddTimetableSlot() {
   const [timetables, setTimetables] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  const [selectedTimetable, setSelectedTimetable] = useState(null);
 
   const [form, setForm] = useState({
     timetable_id: timetableFromUrl || "",
@@ -159,8 +158,7 @@ export default function AddTimetableSlot() {
       try {
         const res = await api.get("/timetable");
         setTimetables(res.data);
-      } catch (err) {
-        console.error("Failed to load timetables:", err);
+      } catch {
         setError("Failed to load timetables");
       } finally {
         setLoading(false);
@@ -174,54 +172,21 @@ export default function AddTimetableSlot() {
     if (!form.timetable_id) return;
 
     const timetable = timetables.find(t => t._id === form.timetable_id);
-    if (!timetable) {
-      console.warn("⚠️ Timetable not found for ID:", form.timetable_id);
-      return;
-    }
-
-    // ✅ Extract IDs properly (handle both string and object cases)
-    const courseId = typeof timetable.course_id === 'string' 
-      ? timetable.course_id 
-      : timetable.course_id?._id;
-    
-    const departmentId = typeof timetable.department_id === 'string'
-      ? timetable.department_id
-      : timetable.department_id?._id;
-
-    console.log("📋 Selected timetable:", timetable);
-    console.log("📋 Course ID:", courseId);
-    console.log("📋 Department ID:", departmentId);
-
-    setSelectedTimetable(timetable);
+    if (!timetable) return;
 
     const loadDeps = async () => {
       try {
-        if (!courseId || !departmentId) {
-          console.error("❌ Invalid course or department ID");
-          setError("⚠️ Invalid timetable data. Please create a new timetable.");
-          return;
-        }
-
-        console.log("📚 Loading subjects for course:", courseId);
-        console.log("👥 Loading teachers for department:", departmentId);
-
+        
         const [subjectsRes, teachersRes] = await Promise.all([
-          api.get(`/subjects/course/${courseId}`),
-          api.get(`/teachers/department/${departmentId}`)
+          api.get(`/subjects/course/${timetable.course_id}`),
+          api.get(`/teachers/department/${timetable.department_id}`)
         ]);
-
-        console.log("✅ Subjects loaded:", subjectsRes.data);
-        console.log("✅ Teachers loaded:", teachersRes.data);
 
         setSubjects(subjectsRes.data || []);
         setTeachers(teachersRes.data || []);
       } catch (err) {
-        console.error("❌ Failed to load subjects/teachers:", err);
-        console.error("Error response:", err.response?.data);
-        console.error("Error status:", err.response?.status);
-        
-        const subjectError = err.response?.data?.message || "Failed to load subjects";
-        setError(`⚠️ ${subjectError}. Please ensure subjects are created for this course.`);
+        console.error("Failed to load subjects/teachers:", err);
+        setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
       }
     };
 
@@ -256,19 +221,11 @@ export default function AddTimetableSlot() {
     setSubmitting(true);
 
     try {
-      // ✅ Get semester from selected timetable
-      const payload = {
+      await api.post("/timetable/slot", {
         ...form,
         startTime: form.startTime,
         endTime: form.endTime,
-        semester: selectedTimetable?.semester || 1, // ✅ Auto-fill semester
-      };
-
-      console.log("📤 Sending payload:", payload);
-
-      const response = await api.post("/timetable/slot", payload);
-      
-      console.log("✅ Response:", response.data);
+      });
 
       setSuccess("✅ Timetable slot added successfully!");
 
@@ -283,24 +240,19 @@ export default function AddTimetableSlot() {
 
       setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      console.error("❌ Error adding slot:", err);
-      
       const errorMsg = err.response?.data?.message || "Failed to add slot";
       const errorCode = err.response?.data?.code;
-
+      
+      // ✅ Show specific validation errors
       if (errorCode === 'TEACHER_SUBJECT_MISMATCH') {
         setError("🔒 " + errorMsg);
       } else if (errorCode === 'SUBJECT_NOT_FOUND') {
-        setError("⚠️ " + errorMsg + ". Please ensure the subject belongs to this course.");
+        setError("⚠️ " + errorMsg);
       } else if (errorCode === 'TEACHER_NOT_FOUND') {
         setError("⚠️ " + errorMsg);
       } else if (errorCode === 'TIMETABLE_NOT_FOUND') {
         setError("⚠️ " + errorMsg);
       } else if (errorCode === 'TIME_CONFLICT') {
-        setError("⏰ " + errorMsg);
-      } else if (errorCode === 'MISSING_FIELDS') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'INVALID_TIME') {
         setError("⏰ " + errorMsg);
       } else {
         setError("❌ " + errorMsg);
@@ -503,7 +455,7 @@ export default function AddTimetableSlot() {
                         <option value="">Select timetable</option>
                         {timetables.map(t => (
                           <option key={t._id} value={t._id}>
-                            {t.name} - {t.department_id?.name || 'N/A'} (Sem {t.semester})
+                            {t.name} - {t.department_id?.name || 'N/A'}
                           </option>
                         ))}
                       </select>
@@ -620,8 +572,8 @@ export default function AddTimetableSlot() {
                         }}
                       >
                         <option value="">
-                          {subjects.length === 0
-                            ? "No subjects available for this course"
+                          {subjects.length === 0 
+                            ? "No subjects available for this course" 
                             : "Select subject"}
                         </option>
                         {subjects.length === 0 ? (

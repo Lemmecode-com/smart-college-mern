@@ -77,7 +77,7 @@ router.delete(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  hod,  // ✅ HOD middleware enabled
+  hod, // ✅ FIXED: Uncommented HOD middleware
   deleteTimetable,
 );
 
@@ -90,6 +90,13 @@ router.put(
   updateSlot,
 );
 
-router.delete("/slot/:slotId", auth, collegeMiddleware, deleteTimetableSlot);
+router.delete(
+  "/slot/:slotId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  hod, // ✅ FIXED: Added role + HOD check
+  deleteTimetableSlot
+);
 
 module.exports = router;

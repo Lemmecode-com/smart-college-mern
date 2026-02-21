@@ -7,11 +7,71 @@ const User = require("../models/user.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const StudentFee = require("../models/studentFee.model");
+const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
 
 exports.registerStudent = async (req, res, next) => {
   try {
     const { collegeCode } = req.params;
+
+    // Load document configuration for this college
+    const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
+    
+    // Get uploaded files
+    const files = req.files || {};
+    
+    // Map document type to field name (backward compatibility)
+    const documentFieldMap = {
+      "10th_marksheet": "sscMarksheet",
+      "12th_marksheet": "hscMarksheet",
+      "passport_photo": "passportPhoto",
+      "category_certificate": "categoryCertificate"
+    };
+
+    // Build document paths object dynamically
+    const documentPaths = {};
+    
+    if (docConfig && docConfig.documents) {
+      // Use college-specific document config
+      console.log("📋 Processing document config for college:", collegeCode);
+      for (const doc of docConfig.documents) {
+        console.log("📄 Checking document:", doc.type, "Enabled:", doc.enabled, "Mandatory:", doc.mandatory);
+        
+        if (doc.enabled && files[doc.type]) {
+          const filePath = files[doc.type][0]?.path;
+          if (filePath) {
+            // Store relative path
+            documentPaths[doc.type] = filePath.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
+            console.log("✅ Saved document:", doc.type, documentPaths[doc.type]);
+          }
+        } else if (doc.mandatory && !files[doc.type]) {
+          // Skip category certificate if category is GEN
+          if (doc.type === 'category_certificate' && category === 'GEN') {
+            console.log("⏭️ Skipping category certificate (GEN category)");
+            continue;
+          }
+          console.log("❌ Missing mandatory document:", doc.label);
+          return res.status(400).json({
+            message: `${doc.label} is mandatory`
+          });
+        }
+      }
+    } else {
+      // Use default document fields (backward compatibility)
+      const sscMarksheetPath = files.sscMarksheet?.[0]?.path ?
+        files.sscMarksheet[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
+      const hscMarksheetPath = files.hscMarksheet?.[0]?.path ?
+        files.hscMarksheet[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
+      const passportPhotoPath = files.passportPhoto?.[0]?.path ?
+        files.passportPhoto[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
+      const categoryCertificatePath = files.categoryCertificate?.[0]?.path ?
+        files.categoryCertificate[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
+
+      documentPaths["10th_marksheet"] = sscMarksheetPath;
+      documentPaths["12th_marksheet"] = hscMarksheetPath;
+      documentPaths["passport_photo"] = passportPhotoPath;
+      documentPaths["category_certificate"] = categoryCertificatePath;
+    }
 
     const {
       fullName,
@@ -34,6 +94,24 @@ exports.registerStudent = async (req, res, next) => {
       nationality,
       bloodGroup,
       alternateMobile,
+      // Parent/Guardian Details
+      fatherName,
+      fatherMobile,
+      motherName,
+      motherMobile,
+      // 10th (SSC) Academic Details
+      sscSchoolName,
+      sscBoard,
+      sscPassingYear,
+      sscPercentage,
+      sscRollNumber,
+      // 12th (HSC) Academic Details
+      hscSchoolName,
+      hscBoard,
+      hscStream,
+      hscPassingYear,
+      hscPercentage,
+      hscRollNumber,
     } = req.body;
 
     // 1️⃣ Resolve college
@@ -105,6 +183,31 @@ exports.registerStudent = async (req, res, next) => {
       nationality,
       bloodGroup,
       alternateMobile,
+      // Parent/Guardian Details
+      fatherName,
+      fatherMobile,
+      motherName,
+      motherMobile,
+      // 10th (SSC) Academic Details
+      sscSchoolName,
+      sscBoard,
+      sscPassingYear,
+      sscPercentage,
+      sscRollNumber,
+      // 12th (HSC) Academic Details
+      hscSchoolName,
+      hscBoard,
+      hscStream,
+      hscPassingYear,
+      hscPercentage,
+      hscRollNumber,
+      // Document Upload Paths (backward compatibility)
+      sscMarksheetPath: documentPaths["10th_marksheet"] || "",
+      hscMarksheetPath: documentPaths["12th_marksheet"] || "",
+      passportPhotoPath: documentPaths["passport_photo"] || "",
+      categoryCertificatePath: documentPaths["category_certificate"] || "",
+      // Store all documents in a flexible field
+      documents: documentPaths,
       status: "PENDING",
     });
 
@@ -126,7 +229,7 @@ exports.getMyFullProfile = async (req, res) => {
 
     // 1️⃣ College Info
     const college = await College.findById(student.college_id).select(
-      "name code email contactNumber address",
+      "name code email contactNumber address establishedYear",
     );
 
     // 2️⃣ Department & Course
@@ -183,21 +286,60 @@ exports.getMyFullProfile = async (req, res) => {
       };
     });
 
-    // 5️⃣ Final Response
+    // 5️⃣ Final Response - Include ALL student fields from model
+    const studentData = {
+      id: student._id,
+      fullName: student.fullName,
+      email: student.email,
+      mobileNumber: student.mobileNumber,
+      gender: student.gender,
+      dateOfBirth: student.dateOfBirth,
+      nationality: student.nationality,
+      category: student.category,
+      bloodGroup: student.bloodGroup,
+      admissionYear: student.admissionYear,
+      currentSemester: student.currentSemester,
+      status: student.status,
+      createdAt: student.createdAt,
+      updatedAt: student.updatedAt,
+      // Address fields
+      addressLine: student.addressLine,
+      city: student.city,
+      state: student.state,
+      pincode: student.pincode,
+      // Contact fields
+      alternateMobileNumber: student.alternateMobile,
+      // Parent/Guardian fields
+      fatherName: student.fatherName,
+      fatherMobile: student.fatherMobile,
+      motherName: student.motherName,
+      motherMobile: student.motherMobile,
+      // 10th (SSC) fields
+      sscSchoolName: student.sscSchoolName,
+      sscBoard: student.sscBoard,
+      sscPassingYear: student.sscPassingYear,
+      sscPercentage: student.sscPercentage,
+      sscRollNumber: student.sscRollNumber,
+      // 12th (HSC) fields
+      hscSchoolName: student.hscSchoolName,
+      hscBoard: student.hscBoard,
+      hscStream: student.hscStream,
+      hscPassingYear: student.hscPassingYear,
+      hscPercentage: student.hscPercentage,
+      hscRollNumber: student.hscRollNumber,
+      // Document file paths (normalize path separators for URL and extract relative path)
+      sscMarksheetPath: student.sscMarksheetPath ? 
+        student.sscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      hscMarksheetPath: student.hscMarksheetPath ? 
+        student.hscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      passportPhotoPath: student.passportPhotoPath ? 
+        student.passportPhotoPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      categoryCertificatePath: student.categoryCertificatePath ? 
+        student.categoryCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+    };
+
     res.json({
-      student: {
-        id: student._id,
-        fullName: student.fullName,
-        email: student.email,
-        mobileNumber: student.mobileNumber,
-        gender: student.gender,
-        dateOfBirth: student.dateOfBirth,
-        nationality: student.nationality,
-        admissionYear: student.admissionYear,
-        currentSemester: student.currentSemester,
-        status: student.status,
-        createdAt: student.createdAt,
-      },
+      student: studentData,
       college,
       department,
       course,
