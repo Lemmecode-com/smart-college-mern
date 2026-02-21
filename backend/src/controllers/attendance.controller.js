@@ -18,6 +18,14 @@ exports.createAttendanceSession = async (req, res, next) => {
   try {
     const { slot_id, lectureDate, lectureNumber } = req.body;
 
+    console.log("🟢 [CREATE SESSION] Request received:", {
+      slot_id,
+      lectureDate,
+      lectureNumber,
+      collegeId: req.college_id,
+      userId: req.user.id
+    });
+
     if (!lectureNumber) {
       throw new AppError("lectureNumber is required", 400, "MISSING_FIELD");
     }
@@ -32,6 +40,8 @@ exports.createAttendanceSession = async (req, res, next) => {
       teacher = await Teacher.findOne({ email: userEmail });
     }
 
+    console.log("🔵 [CREATE SESSION] Teacher found:", teacher?._id, teacher?.name);
+
     if (!teacher) {
       throw new AppError("Teacher profile not linked with user", 403, "TEACHER_NOT_FOUND");
     }
@@ -41,6 +51,8 @@ exports.createAttendanceSession = async (req, res, next) => {
       _id: slot_id,
       college_id: collegeId,
     }).populate('subject_id', 'teacher_id name code');
+
+    console.log("🔵 [CREATE SESSION] Slot found:", slot?._id, "Subject:", slot?.subject_id?.name);
 
     if (!slot) {
       throw new AppError("Invalid timetable slot for this teacher", 404, "SLOT_NOT_FOUND");
@@ -52,6 +64,10 @@ exports.createAttendanceSession = async (req, res, next) => {
 
     // ✅ STRICT VALIDATION: Teacher MUST be the subject's assigned teacher
     if (slot.subject_id.teacher_id.toString() !== teacher._id.toString()) {
+      console.log("🔴 [CREATE SESSION] Teacher mismatch:", {
+        slotTeacherId: slot.subject_id.teacher_id.toString(),
+        currentTeacherId: teacher._id.toString()
+      });
       throw new AppError(
         `Access denied: You are not the assigned teacher for "${slot.subject_id.name}". Only the subject's assigned teacher can start attendance sessions.`,
         403,
@@ -59,7 +75,7 @@ exports.createAttendanceSession = async (req, res, next) => {
       );
     }
 
-    console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${slot.subject_id.name}`);
+    console.log(`✅ [CREATE SESSION] Teacher validation passed: ${teacher.name} is assigned to ${slot.subject_id.name}`);
 
     // ✅ DATE VALIDATION 1: Check if date is provided
     if (!lectureDate) {
