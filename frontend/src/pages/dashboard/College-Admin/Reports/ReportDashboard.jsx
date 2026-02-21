@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
+import { exportToPDF, exportToExcel } from "../../../../utils/exportHelpers";
 import {
   FaGraduationCap,
   FaCheckCircle,
@@ -20,6 +22,8 @@ import {
   FaWallet,
   FaCalendarCheck,
   FaEye,
+  FaFilePdf,
+  FaFileExcel,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -44,6 +48,7 @@ export default function ReportDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   // Report Data States
   const [admissionData, setAdmissionData] = useState(null);
@@ -57,6 +62,158 @@ export default function ReportDashboard() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [attendanceCourseFilter, setAttendanceCourseFilter] = useState("");
+
+  // ================= EXPORT HELPER FUNCTIONS =================
+  const formatCurrency = (amount) => {
+    // Use "Rs." prefix instead of ₹ symbol for better PDF compatibility
+    const formatted = new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+    return `Rs. ${formatted}`;
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const classes = {
+      PAID: "badge-paid",
+      PARTIAL: "badge-partial",
+      DUE: "badge-due",
+      WARNING: "badge-warning",
+      CRITICAL: "badge-critical",
+    };
+    return classes[status] || "badge-default";
+  };
+
+  // Prepare admission data for export
+  const getAdmissionExportData = () => {
+    if (!admissionData) return [];
+    return [
+      { metric: "Total Students", value: admissionData.total ?? 0 },
+      { metric: "Approved", value: admissionData.approved ?? 0 },
+      { metric: "Pending", value: admissionData.pending ?? 0 },
+      { metric: "Rejected", value: admissionData.rejected ?? 0 },
+      { metric: "Approval Rate", value: `${admissionData.approvedPercentage ?? 0}%` },
+      { metric: "Pending Rate", value: `${admissionData.pendingPercentage ?? 0}%` },
+    ];
+  };
+
+  // Prepare payment data for export
+  const getPaymentExportData = () => {
+    if (!paymentData) return [];
+    return [
+      { metric: "Total Expected Fee", value: formatCurrency(paymentData.total ?? 0) },
+      { metric: "Total Collected", value: formatCurrency(paymentData.collected ?? 0) },
+      { metric: "Total Pending", value: formatCurrency((paymentData.total ?? 0) - (paymentData.collected ?? 0)) },
+      { metric: "Collection Rate", value: `${paymentData.collectionRate ?? 0}%` },
+    ];
+  };
+
+  // Prepare student payment details for export
+  const getStudentPaymentsExportData = () => {
+    return filteredStudentPayments.map(student => ({
+      name: student.name,
+      course: student.course,
+      totalFee: formatCurrency(student.totalFee ?? 0),
+      paid: formatCurrency(student.paid ?? 0),
+      pending: formatCurrency((student.totalFee ?? 0) - (student.paid ?? 0)),
+      status: student.status || 'DUE'
+    }));
+  };
+
+  // Prepare attendance data for export
+  const getAttendanceExportData = () => {
+    if (!attendanceData) return [];
+    return [
+      { metric: "Overall Attendance", value: `${attendanceData.percentage ?? 0}%` },
+      { metric: "Total Sessions", value: attendanceData.totalSessions ?? 0 },
+      { metric: "Average Attendance", value: attendanceData.averageAttendance ?? 0 },
+    ];
+  };
+
+  // Prepare low attendance students data for export
+  const getLowAttendanceExportData = () => {
+    return filteredLowAttendance.map(student => ({
+      name: student.name,
+      course: student.course,
+      attendance: `${student.attendance ?? 0}%`,
+      status: student.status || 'LOW'
+    }));
+  };
+
+  // ================= EXPORT ALL FUNCTIONALITY =================
+  const handleExportAll = async (format) => {
+    if (!admissionData || !paymentData || !attendanceData) {
+      setToast({ type: 'warning', message: 'Data not loaded. Please refresh first.' });
+      return;
+    }
+
+    setExporting(true);
+
+    try {
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `comprehensive_report_${timestamp}`;
+
+      // Create comprehensive data sections - ALL fields included even if 0
+      const comprehensiveData = [
+        // Section 1: Admission Summary
+        { section: 'ADMISSION SUMMARY', metric: '', value: '' },
+        { metric: 'Total Students', value: admissionData.total ?? 0 },
+        { metric: 'Approved', value: admissionData.approved ?? 0 },
+        { metric: 'Pending', value: admissionData.pending ?? 0 },
+        { metric: 'Rejected', value: admissionData.rejected ?? 0 },
+        { metric: 'Approval Rate', value: `${admissionData.approvedPercentage ?? 0}%` },
+        { metric: 'Pending Rate', value: `${admissionData.pendingPercentage ?? 0}%` },
+        
+        // Section 2: Payment Summary
+        { section: 'PAYMENT SUMMARY', metric: '', value: '' },
+        { metric: 'Total Expected Fee', value: formatCurrency(paymentData.total ?? 0) },
+        { metric: 'Total Collected', value: formatCurrency(paymentData.collected ?? 0) },
+        { metric: 'Total Pending', value: formatCurrency((paymentData.total ?? 0) - (paymentData.collected ?? 0)) },
+        { metric: 'Collection Rate', value: `${paymentData.collectionRate ?? 0}%` },
+        
+        // Section 3: Attendance Summary
+        { section: 'ATTENDANCE SUMMARY', metric: '', value: '' },
+        { metric: 'Overall Attendance', value: `${attendanceData.percentage ?? 0}%` },
+        { metric: 'Total Sessions', value: attendanceData.totalSessions ?? 0 },
+        { metric: 'Average Attendance', value: attendanceData.averageAttendance ?? 0 },
+      ];
+
+      const columns = [
+        { header: 'Section', key: 'section', dataKey: 'section' },
+        { header: 'Metric', key: 'metric', dataKey: 'metric' },
+        { header: 'Value', key: 'value', dataKey: 'value' }
+      ];
+
+      let result;
+      
+      if (format === 'pdf') {
+        result = await exportToPDF(
+          'Comprehensive College Performance Report',
+          columns,
+          comprehensiveData,
+          `${filename}.pdf`
+        );
+      } else if (format === 'excel') {
+        result = await exportToExcel(
+          'Comprehensive College Performance Report',
+          columns,
+          comprehensiveData,
+          `${filename}.xlsx`
+        );
+      }
+
+      if (result?.success) {
+        setToast({ type: 'success', message: `Report exported successfully as ${format.toUpperCase()}!` });
+      } else {
+        setToast({ type: 'error', message: 'Export failed. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Export All error:', error);
+      setToast({ type: 'error', message: 'Export failed. Please try again.' });
+    } finally {
+      setTimeout(() => setExporting(false), 500);
+    }
+  };
 
   // ================= FETCH DATA =================
   useEffect(() => {
@@ -240,26 +397,6 @@ export default function ReportDashboard() {
     { month: "Jun", attendance: 88 },
   ];
 
-  // ================= UTILITY FUNCTIONS =================
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusBadgeClass = (status) => {
-    const classes = {
-      PAID: "badge-paid",
-      PARTIAL: "badge-partial",
-      DUE: "badge-due",
-      WARNING: "badge-warning",
-      CRITICAL: "badge-critical",
-    };
-    return classes[status] || "badge-default";
-  };
-
   // ================= LOADING STATE =================
   if (loading) {
     return (
@@ -309,12 +446,39 @@ export default function ReportDashboard() {
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn-refresh" onClick={fetchAllReports}>
-            <FaChartLine /> Refresh Data
+          <button 
+            className="btn-refresh" 
+            onClick={fetchAllReports}
+            disabled={loading}
+          >
+            <FaChartLine /> {loading ? 'Loading...' : 'Refresh Data'}
           </button>
-          <button className="btn-export">
-            <FaDownload /> Export All
-          </button>
+          <div className="export-dropdown">
+            <button 
+              className="btn-export" 
+              disabled={exporting || loading}
+              title="Export comprehensive report"
+            >
+              {exporting ? <FaSpinner className="spin-icon" /> : <FaDownload />}
+              {exporting ? 'Exporting...' : 'Export All'}
+            </button>
+            <div className="dropdown-content">
+              <button 
+                onClick={() => handleExportAll('pdf')}
+                disabled={exporting}
+                className="dropdown-item-pdf"
+              >
+                <FaFilePdf /> Export as PDF
+              </button>
+              <button 
+                onClick={() => handleExportAll('excel')}
+                disabled={exporting}
+                className="dropdown-item-excel"
+              >
+                <FaFileExcel /> Export as Excel
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -374,9 +538,21 @@ export default function ReportDashboard() {
               <FaGraduationCap className="card-icon" />
               <h3>Admission Summary</h3>
             </div>
-            <Link to="/reports/admissions" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Admission Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getAdmissionExportData()}
+                filename="admission_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/admissions" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -447,9 +623,21 @@ export default function ReportDashboard() {
               <FaWallet className="card-icon" />
               <h3>Payment Summary</h3>
             </div>
-            <Link to="/reports/payments" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Payment Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getPaymentExportData()}
+                filename="payment_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/payments" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -502,9 +690,21 @@ export default function ReportDashboard() {
               <FaTable className="card-icon" />
               <h3>Student Payment Status</h3>
             </div>
-            <button className="btn-filter">
-              <FaFilter /> Filter
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Student Payment Status Report"
+                columns={[
+                  { header: 'Student Name', key: 'name' },
+                  { header: 'Course', key: 'course' },
+                  { header: 'Total Fee', key: 'totalFee' },
+                  { header: 'Paid', key: 'paid' },
+                  { header: 'Pending', key: 'pending' },
+                  { header: 'Status', key: 'status' }
+                ]}
+                data={getStudentPaymentsExportData()}
+                filename="student_payment_status"
+              />
+            </div>
           </div>
 
           <div className="card-body">
@@ -593,9 +793,21 @@ export default function ReportDashboard() {
               <FaCalendarCheck className="card-icon" />
               <h3>Attendance Summary</h3>
             </div>
-            <Link to="/reports/attendance" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Attendance Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getAttendanceExportData()}
+                filename="attendance_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/attendance" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -649,16 +861,30 @@ export default function ReportDashboard() {
               <FaExclamationTriangle className="card-icon" />
               <h3>Low Attendance Students</h3>
             </div>
-            <select
-              value={attendanceCourseFilter}
-              onChange={(e) => setAttendanceCourseFilter(e.target.value)}
-              className="filter-select-small"
-            >
-              <option value="">All Courses</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">IT</option>
-              <option value="Mechanical Engineering">Mechanical</option>
-            </select>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Low Attendance Students Report"
+                columns={[
+                  { header: 'Student Name', key: 'name' },
+                  { header: 'Course', key: 'course' },
+                  { header: 'Attendance %', key: 'attendance' },
+                  { header: 'Status', key: 'status' }
+                ]}
+                data={getLowAttendanceExportData()}
+                filename="low_attendance_students"
+              />
+              <select
+                value={attendanceCourseFilter}
+                onChange={(e) => setAttendanceCourseFilter(e.target.value)}
+                className="filter-select-small"
+                style={{ marginLeft: '0.5rem' }}
+              >
+                <option value="">All Courses</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">IT</option>
+                <option value="Mechanical Engineering">Mechanical</option>
+              </select>
+            </div>
           </div>
 
           <div className="card-body">
@@ -869,6 +1095,76 @@ export default function ReportDashboard() {
         .btn-export {
           background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
           color: white;
+        }
+
+        .btn-refresh:disabled,
+        .btn-export:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Export Dropdown */
+        .export-dropdown {
+          position: relative;
+          display: inline-block;
+        }
+
+        .dropdown-content {
+          display: none;
+          position: absolute;
+          right: 0;
+          top: 100%;
+          background: white;
+          min-width: 180px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          border-radius: 8px;
+          overflow: hidden;
+          z-index: 1000;
+          margin-top: 0.5rem;
+        }
+
+        .export-dropdown:hover .dropdown-content {
+          display: block;
+        }
+
+        .dropdown-item-pdf,
+        .dropdown-item-excel {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border: none;
+          background: white;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: left;
+        }
+
+        .dropdown-item-pdf:hover {
+          background: #fee;
+          color: #dc3545;
+        }
+
+        .dropdown-item-excel:hover {
+          background: #efe;
+          color: #28a745;
+        }
+
+        .dropdown-item-pdf:disabled,
+        .dropdown-item-excel:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* ================= SUMMARY CARDS ================= */

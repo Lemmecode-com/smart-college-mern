@@ -70,29 +70,6 @@ export default function SuperAdminDashboard() {
   const collegesToDisplay = useMemo(() => colleges.slice(0, 3), [colleges]);
   const showViewMore = collegeCount > 3;
 
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    if (colleges.length === 0) return;
-    
-    const headers = ["College ID", "College Name"];
-    const rows = colleges.map(college => [
-      college._id || "N/A",
-      college.name || "Unnamed College"
-    ]);
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `colleges_list_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
     <div className="skeleton-container">
