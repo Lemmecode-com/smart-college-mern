@@ -785,6 +785,7 @@ export default function MySchedule() {
   const [attendanceSessions, setAttendanceSessions] = useState({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
+  const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
   const navigate = useNavigate();
   const toastIds = useRef({});
 
@@ -830,10 +831,17 @@ export default function MySchedule() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Load weekly schedule (all slots for teacher)
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
+        
+        // Fetch today's slots with attendance status (NEW)
+        await loadTodaySlots();
+        
         // Fetch active attendance sessions
         await loadActiveSessions();
+        
         if (!toastIds.current.success) {
           toast.success("Schedule loaded successfully!", {
             toastId: "schedule-success",
@@ -864,6 +872,20 @@ export default function MySchedule() {
     };
     load();
   }, []);
+
+  // Load today's slots with attendance status (NEW FUNCTION)
+  const loadTodaySlots = async () => {
+    try {
+      const res = await api.get("/attendance/today-slots");
+      setTodaySlotsData(res.data);
+      // Store today's slots in localStorage for quick access
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+    } catch (err) {
+      console.error("Failed to load today's slots:", err);
+      // Don't fail the entire load, just use weekly data
+    }
+  };
 
   // Load active attendance sessions
   const loadActiveSessions = async () => {
@@ -948,7 +970,13 @@ export default function MySchedule() {
   /* ================= CREATE ATTENDANCE ================= */
   const startAttendance = async (slot, timeSlot) => {
     const today = new Date();
-    const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
+    
+    // ✅ CORRECT: Get today's day abbreviation
+    const dayMap = {
+      0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+    };
+    const currentDayAbbr = dayMap[today.getDay()];
+    
     // Check if it's today's lecture
     if (slot.day !== currentDayAbbr) {
       toast.error("Attendance can only be started for today's lectures.", {
@@ -959,8 +987,9 @@ export default function MySchedule() {
       });
       return;
     }
-    // Check if attendance is already active
-    if (activeSessions[slot._id]) {
+    
+    // Check if attendance is already active (from backend data)
+    if (slot.hasOpenSession) {
       toast.warning("Attendance session is already active for this lecture.", {
         toastId: "already-active",
         position: "top-right",
@@ -969,8 +998,9 @@ export default function MySchedule() {
       });
       return;
     }
-    // Check if attendance already exists
-    if (attendanceSessions[slot._id]) {
+    
+    // Check if attendance already exists (closed session)
+    if (slot.hasClosedSession) {
       toast.warning("Attendance already created for this lecture.", {
         toastId: "already-exists",
         position: "top-right",
@@ -979,6 +1009,7 @@ export default function MySchedule() {
       });
       return;
     }
+    
     // Check if class time is currently active
     const [startTime, endTime] = timeSlot.split(" - ");
     const [startHour, startMin] = startTime.split(":").map(Number);
@@ -987,6 +1018,7 @@ export default function MySchedule() {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
+    
     // STRICT TIME CHECK: Only allow during active class time
     if (currentMinutes < startMinutes) {
       toast.error(
@@ -1012,6 +1044,7 @@ export default function MySchedule() {
       );
       return;
     }
+    
     // Confirm before creating
     const confirmed = window.confirm(
       `Start attendance for ${slot.subject_id?.name}?\n` +
@@ -1020,16 +1053,20 @@ export default function MySchedule() {
         `This will create a new attendance session for today's lecture.`
     );
     if (!confirmed) return;
+    
     try {
       setCreating(slot._id);
       const todayDate = today.toISOString().split("T")[0];
+      
       const res = await api.post("/attendance/sessions", {
         slot_id: slot._id,
         lectureDate: todayDate,
         lectureNumber: 1,
       });
+      
       const newSession = res.data.session;
       const slotId = slot._id;
+      
       // Update state
       const newActiveSessions = {
         ...activeSessions,
@@ -1041,6 +1078,7 @@ export default function MySchedule() {
       };
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
+      
       // Store in localStorage
       if (isClient) {
         const todayStr = today.toISOString().split("T")[0];
@@ -1053,12 +1091,17 @@ export default function MySchedule() {
           JSON.stringify(newAttendanceSessions)
         );
       }
+      
       toast.success("Attendance session started successfully! Redirecting...", {
         toastId: "start-success",
         position: "top-right",
         autoClose: 2000,
         icon: <FaCheckCircle />,
       });
+      
+      // Refresh today's slots data
+      await loadTodaySlots();
+      
       // Navigate to session page
       setTimeout(() => {
         navigate(`/attendance/session/${newSession._id}`);
@@ -1074,10 +1117,12 @@ export default function MySchedule() {
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
       });
+      
       // If error says attendance already exists, update the state
       if (
         message.toLowerCase().includes("already") ||
-        message.toLowerCase().includes("exists")
+        message.toLowerCase().includes("exists") ||
+        message.toLowerCase().includes("duplicate")
       ) {
         const slotId = slot._id;
         const newActiveSessions = {
@@ -1109,12 +1154,18 @@ export default function MySchedule() {
 
   // Get current day and time for highlighting
   const today = new Date();
-  const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)];
+  
+  // ✅ CORRECT: Get today's day abbreviation
+  const dayMap = {
+    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+  };
+  const currentDayAbbr = dayMap[today.getDay()];
+  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
-  // Filter today's slots only
-  const todaysSlots = weekly[currentDayAbbr] || [];
+
+  // Filter today's slots only - Use todaySlotsData if available, otherwise fall back to weekly
+  const todaysSlots = todaySlotsData?.slots || (weekly[currentDayAbbr] || []);
 
   // Responsive styles
   const getResponsiveStyles = () => {
@@ -1322,12 +1373,10 @@ export default function MySchedule() {
                 />
                 <StatItem
                   icon={<FaCheckCircle />}
-                  label="Published"
-                  value={
-                    todaysSlots.filter(
-                      (s) => s.timetable_id?.status === "PUBLISHED"
-                    ).length
-                  }
+                  label="Available for Attendance"
+                  value={todaySlotsData?.availableForAttendance || todaysSlots.filter(
+                    (s) => s.timetable_id?.status === "PUBLISHED"
+                  ).length}
                   color={BRAND_COLORS.success.main}
                   styles={styles}
                 />
@@ -1393,25 +1442,22 @@ export default function MySchedule() {
                 />
               ) : (
                 <div className="slots-list">
-                  {TIMES.map((time, idx) => {
-                    const slot = todaysSlots.find((s) => {
-                      const slotTime = `${s.startTime} - ${s.endTime}`;
-                      return slotTime === time;
-                    });
-                    if (!slot) return null;
+                  {todaysSlots.map((slot, idx) => {
+                    const time = `${slot.startTime} - ${slot.endTime}`;
                     return (
                       <ScheduleRow
-                        key={time}
+                        key={slot._id || time}
                         time={time}
                         slot={slot}
                         isCurrent={isCurrentTimeSlot(time)}
                         onStartAttendance={startAttendance}
                         creating={creating === slot._id}
                         delay={idx * 0.05}
-                        hasActiveSession={!!activeSessions[slot._id]}
-                        hasAttendanceSession={!!attendanceSessions[slot._id]}
+                        hasActiveSession={!!activeSessions[slot._id] || slot.hasOpenSession}
+                        hasAttendanceSession={!!attendanceSessions[slot._id] || slot.hasClosedSession}
                         sessionTimer={sessionTimers[slot._id]}
                         styles={styles}
+                        attendanceMessage={slot.message}
                       />
                     );
                   })}
@@ -1502,6 +1548,7 @@ function ScheduleRow({
   hasAttendanceSession,
   sessionTimer,
   styles,
+  attendanceMessage,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
@@ -1708,7 +1755,17 @@ function ScheduleRow({
             </motion.button>
           )}
           {/* Info Messages */}
-          {buttonState === "ended" && isPublished && (
+          {attendanceMessage && (
+            <div className={`info-message info-${
+              attendanceMessage.includes('already') ? 'warning' :
+              attendanceMessage.includes('ended') ? 'error' :
+              'info'
+            }`}>
+              <FaInfoCircle size={16} />
+              <span>{attendanceMessage}</span>
+            </div>
+          )}
+          {buttonState === "ended" && isPublished && !attendanceMessage && (
             <div className="info-message info-error">
               <FaInfoCircle size={16} />
               <span>
