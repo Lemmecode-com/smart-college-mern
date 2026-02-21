@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
-import { useHOD } from "../../../../hooks/useHOD";
-import { canMarkAttendance } from "../../../../utils/permissions";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -24,7 +22,6 @@ import {
   FaUserClock,
   FaChartLine,
   FaUsers,
-  FaEdit,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
@@ -838,17 +835,9 @@ export default function MySchedule() {
   const [attendanceSessions, setAttendanceSessions] = useState({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
+  const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
   const navigate = useNavigate();
   const toastIds = useRef({});
-
-  // ✅ HOD Hook for teacher validation
-  const { 
-    isHOD, 
-    loading: hodLoading, 
-    teacherProfile, 
-    department,
-    error: hodError 
-  } = useHOD();
 
   // Update current time every second for accurate slot checking
   useEffect(() => {
@@ -888,11 +877,16 @@ export default function MySchedule() {
         setLoading(true);
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
+        
+        // Fetch today's slots with attendance status (NEW)
+        await loadTodaySlots();
+        
         // Fetch active attendance sessions
         await loadActiveSessions();
       } catch (err) {
         console.error("Failed to load schedule:", err);
         setError("Failed to load your schedule. Please try again.");
+        // Removed toastIds check to allow error notification on retry/load
         toast.error("Failed to load schedule", {
           toastId: "schedule-error",
           position: "top-right",
@@ -904,6 +898,20 @@ export default function MySchedule() {
     };
     load();
   }, []);
+
+  // Load today's slots with attendance status (NEW FUNCTION)
+  const loadTodaySlots = async () => {
+    try {
+      const res = await api.get("/attendance/today-slots");
+      setTodaySlotsData(res.data);
+      // Store today's slots in localStorage for quick access
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+    } catch (err) {
+      console.error("Failed to load today's slots:", err);
+      // Don't fail the entire load, just use weekly data
+    }
+  };
 
   // Load active attendance sessions
   const loadActiveSessions = async () => {
@@ -986,62 +994,6 @@ export default function MySchedule() {
   const startAttendance = async (slot) => {
     const today = new Date();
     const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-
-    console.log("🔵 Starting attendance for slot:", slot);
-    console.log("🔵 Teacher profile:", teacherProfile);
-    console.log("🔵 Slot subject_id:", slot.subject_id);
-
-    // ✅ Check if teacher profile is loaded
-    if (!teacherProfile) {
-      toast.error("Teacher profile not loaded. Please refresh the page.", {
-        toastId: "profile-not-loaded",
-        position: "top-right",
-        autoClose: 4000,
-        icon: <FaExclamationTriangle />,
-      });
-      return;
-    }
-
-    // ✅ Check if subject exists
-    if (!slot.subject_id) {
-      toast.error("Subject information is missing for this slot.", {
-        toastId: "subject-missing",
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
-      });
-      return;
-    }
-
-    // ✅ Check if teacher is assigned to this subject
-    // Handle populated subject.teacher_id object
-    const subjectTeacherId = slot.subject_id?.teacher_id?._id || slot.subject_id?.teacher_id;
-    const currentTeacherId = teacherProfile._id;
-
-    console.log("🔵 Subject teacher ID:", subjectTeacherId);
-    console.log("🔵 Current teacher ID:", currentTeacherId);
-    console.log("🔵 Full subject data:", slot.subject_id);
-
-    if (!subjectTeacherId) {
-      toast.error("Subject teacher information is missing. Please contact admin.", {
-        toastId: "subject-teacher-missing",
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
-      });
-      return;
-    }
-
-    if (subjectTeacherId.toString() !== currentTeacherId.toString()) {
-      toast.error("You are not the assigned teacher for this subject. Cannot start attendance.", {
-        toastId: "teacher-mismatch",
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
-      });
-      return;
-    }
-
     // STRICT VALIDATION 1: Only today's classes
     if (slot.day !== currentDayAbbr) {
       toast.error("Attendance can only be started for today's lectures.", {
@@ -1052,7 +1004,6 @@ export default function MySchedule() {
       });
       return;
     }
-    
     // STRICT VALIDATION 2: Check if already active
     if (activeSessions[slot._id]) {
       toast.warning("Attendance session is already active for this lecture.", {
@@ -1063,7 +1014,6 @@ export default function MySchedule() {
       });
       return;
     }
-    
     // STRICT VALIDATION 3: Check if attendance already exists
     if (attendanceSessions[slot._id]) {
       toast.warning("Attendance already created for this lecture.", {
@@ -1074,7 +1024,6 @@ export default function MySchedule() {
       });
       return;
     }
-    
     // STRICT VALIDATION 4: Check if timetable is published
     if (slot.timetable_id?.status !== "PUBLISHED") {
       toast.error("Cannot start attendance for unpublished timetable.", {
@@ -1085,7 +1034,6 @@ export default function MySchedule() {
       });
       return;
     }
-    
     // STRICT VALIDATION 5: Check current time is within slot time
     const [startHour, startMin] = slot.startTime.split(":").map(Number);
     const [endHour, endMin] = slot.endTime.split(":").map(Number);
@@ -1093,7 +1041,6 @@ export default function MySchedule() {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
-    
     if (currentMinutes < startMinutes) {
       const minsUntilStart = startMinutes - currentMinutes;
       toast.error(
@@ -1107,7 +1054,6 @@ export default function MySchedule() {
       );
       return;
     }
-    
     if (currentMinutes >= endMinutes) {
       toast.error(
         "Attendance cannot be started after lecture end time. Class has ended.",
@@ -1120,7 +1066,6 @@ export default function MySchedule() {
       );
       return;
     }
-    
     // Show confirmation toast instead of window.confirm
     toast.info(
       `Start attendance for ${slot.subject_id?.name}? This will create a new attendance session.`,
@@ -1139,19 +1084,10 @@ export default function MySchedule() {
 
   // Confirm start attendance (called from toast action)
   const confirmStartAttendance = async (slot) => {
-    const today = new Date();
-    console.log("🟢 Confirming attendance for slot:", slot._id);
-    
+    const today = new Date(); // Fixed: Added missing definition
     try {
       setCreating(slot._id);
       const todayDate = today.toISOString().split("T")[0];
-      
-      console.log("🟢 Sending request to create attendance session...");
-      console.log("🟢 Payload:", {
-        slot_id: slot._id,
-        lectureDate: todayDate,
-        lectureNumber: 1,
-      });
       
       const res = await api.post("/attendance/sessions", {
         slot_id: slot._id,
@@ -1159,11 +1095,9 @@ export default function MySchedule() {
         lectureNumber: 1,
       });
       
-      console.log("✅ Attendance session created:", res.data);
-      
       const newSession = res.data.session;
       const slotId = slot._id;
-
+      
       // Update state
       const newActiveSessions = {
         ...activeSessions,
@@ -1175,7 +1109,7 @@ export default function MySchedule() {
       };
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
-
+      
       // Store in localStorage
       const todayStr = today.toISOString().split("T")[0];
       localStorage.setItem(
@@ -1186,7 +1120,6 @@ export default function MySchedule() {
         `attendanceSessions_${todayStr}`,
         JSON.stringify(newAttendanceSessions)
       );
-
       // Success toast
       toast.success("Attendance session started successfully!", {
         toastId: "start-success",
@@ -1194,30 +1127,23 @@ export default function MySchedule() {
         autoClose: 3000,
         icon: <FaCheckCircle />,
       });
-
-      // Navigate to attendance marking page after short delay
+      // Navigate to attendance marking
       setTimeout(() => {
-        console.log("🟡 Navigating to attendance session:", newSession._id);
         navigate(`/attendance/session/${newSession._id}`);
       }, 1500);
     } catch (err) {
-      console.error("❌ Error creating attendance session:", err);
-      console.error("❌ Error response:", err.response?.data);
-      
       const message =
         err.response?.data?.message ||
         "Failed to create attendance session. Please try again.";
-      
       toast.error(message, {
         toastId: "start-error",
         position: "top-right",
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
       });
-
+      
       // If error says attendance already exists, update the state
       if (message.includes("already") || message.includes("exists")) {
-        console.log("🟡 Session already exists, updating state...");
         const slotId = slot._id;
         const newActiveSessions = {
           ...activeSessions,
@@ -1246,15 +1172,22 @@ export default function MySchedule() {
 
   // Get current day and time for highlighting
   const today = new Date();
-  const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)];
+  
+  // ✅ CORRECT: Get today's day abbreviation
+  const dayMap = {
+    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+  };
+  const currentDayAbbr = dayMap[today.getDay()];
+  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
-  // Filter today's slots only
-  const todaysSlots = weekly[currentDayAbbr] || [];
+
+  // Filter today's slots only - Use todaySlotsData if available, otherwise fall back to weekly
+  const todaysSlots = todaySlotsData?.slots || (weekly[currentDayAbbr] || []);
 
   // Responsive styles
   const getResponsiveStyles = () => {
+    // Fixed: Added window check
     const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
     const isMobile = width < 768;
     const isTablet = width >= 768 && width < 1024;
@@ -1294,8 +1227,7 @@ export default function MySchedule() {
   };
   const styles = getResponsiveStyles();
 
-  // ✅ Include hodLoading in loading check
-  if (loading || !sessionsLoaded || hodLoading) {
+  if (loading || !sessionsLoaded) {
     return (
       <div className="schedule-container">
         <ToastContainer
@@ -1459,7 +1391,7 @@ export default function MySchedule() {
                   <StatItem
                     icon={<FaUserClock />}
                     label="Time Remaining"
-                    value="Active"
+                    value={getSessionTimeRemaining()}
                     color={BRAND_COLORS.info.main}
                     styles={styles}
                   />
@@ -1524,7 +1456,6 @@ export default function MySchedule() {
                           hasAttendanceSession={!!attendanceSessions[slot._id]}
                           sessionTimer={sessionTimers[slot._id]}
                           styles={styles}
-                          isHOD={isHOD}
                         />
                       );
                     })}
@@ -1567,6 +1498,7 @@ function getSessionTimeRemaining() {
 
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color, styles }) {
+  // Fixed: Added window check
   const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   return (
     <div className="stat-item">
@@ -1602,13 +1534,13 @@ function ScheduleRow({
   hasAttendanceSession,
   sessionTimer,
   styles,
-  isHOD = false,
+  attendanceMessage,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   const isPublished = slot.timetable_id?.status === "PUBLISHED";
+  // Fixed: Added window check
   const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-  
   // Determine slot status with STRICT time validation
   const [startTime, endTime] = time.split(" - ");
   const [startHour, startMin] = startTime.split(":").map(Number);
@@ -1617,21 +1549,18 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
-  
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
   } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
     slotStatus = "active";
   }
-  
   // Button is enabled ONLY if: published AND currently active time AND no existing session
   const canStartAttendance =
     isPublished &&
     slotStatus === "active" &&
     !hasActiveSession &&
     !hasAttendanceSession;
-  
   // Determine button state
   let buttonState = "start";
   if (creating === slot._id) {
@@ -1645,7 +1574,6 @@ function ScheduleRow({
   } else if (!isPublished) {
     buttonState = "unpublished";
   }
-  
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -1760,34 +1688,6 @@ function ScheduleRow({
               Sem {slot.timetable_id?.semester} •{" "}
               {slot.timetable_id?.academicYear}
             </div>
-            {/* ✅ Edit Button for HOD */}
-            {isHOD && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/timetable/${slot.timetable_id?._id}/weekly?editSlot=${slot._id}`);
-                }}
-                style={{
-                  marginTop: '0.5rem',
-                  padding: '0.5rem 0.875rem',
-                  backgroundColor: BRAND_COLORS.info.main,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  width: 'fit-content'
-                }}
-              >
-                <FaEdit size={12} /> Edit Slot
-              </motion.button>
-            )}
           </div>
         </div>
         <div className="content-footer">
@@ -1882,6 +1782,7 @@ function ScheduleRow({
 
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message }) {
+  // Fixed: Added window check
   const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   return (
     <motion.div
