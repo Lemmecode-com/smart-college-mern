@@ -107,29 +107,11 @@ exports.getTimetableById = async (req, res) => {
       _id: req.params.id,
       college_id: req.college_id,
     })
-      .populate("department_id", "name hod_id")
+      .populate("department_id", "name")
       .populate("course_id", "name");
 
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
-    }
-
-    // If teacher, check if they have access to this department's timetable
-    if (req.user.role === "TEACHER") {
-      const teacher = await Teacher.findOne({ user_id: req.user.id });
-      if (!teacher) {
-        return res.status(404).json({ message: "Teacher profile not found" });
-      }
-      
-      // Check if teacher belongs to the same department OR is HOD of that department
-      const isSameDepartment = teacher.department_id.toString() === timetable.department_id._id.toString();
-      const isHodOfDepartment = timetable.department_id.hod_id?.toString() === teacher._id.toString();
-      
-      if (!isSameDepartment && !isHodOfDepartment) {
-        return res.status(403).json({ 
-          message: "Access denied: You can only view timetables for your department" 
-        });
-      }
     }
 
     // Get all slots for this timetable
