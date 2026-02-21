@@ -16,6 +16,7 @@ const {
   getWeeklyTimetableById,
   getWeeklyTimetableForTeacher,
   getStudentTimetable,
+  getStudentTodayTimetable,
 } = require("../controllers/timetable.controller");
 
 const {
@@ -49,6 +50,15 @@ router.get(
   collegeMiddleware,
   studentMiddleware,
   getStudentTimetable,
+);
+
+router.get(
+  "/student/today",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentTodayTimetable,
 );
 
 router.get(

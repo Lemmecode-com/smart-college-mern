@@ -696,6 +696,16 @@ const componentStyles = `
     transform: rotate(360deg);
   }
 }
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
 @media (max-width: 1024px) {
   .schedule-container {
     padding: 1rem;
@@ -988,6 +998,43 @@ export default function MySchedule() {
       return;
     }
     
+    // ✅ STRICT TIME CHECK: Verify current time is within slot time
+    const [startTime, endTime] = timeSlot.split(" - ");
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    // ✅ Check if class time has started
+    if (currentMinutes < startMinutes) {
+      toast.error(
+        `Class hasn't started yet. Attendance can be started from ${startTime}.`,
+        {
+          toastId: "before-time",
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaHourglassStart />,
+        }
+      );
+      return;
+    }
+    
+    // ✅ Check if class time has ended
+    if (currentMinutes >= endMinutes) {
+      toast.error(
+        `Class has ended at ${endTime}. Attendance cannot be started after class time.`,
+        {
+          toastId: "after-time",
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaHourglassEnd />,
+        }
+      );
+      return;
+    }
+    
     // Check if attendance is already active (from backend data)
     if (slot.hasOpenSession) {
       toast.warning("Attendance session is already active for this lecture.", {
@@ -1001,47 +1048,12 @@ export default function MySchedule() {
     
     // Check if attendance already exists (closed session)
     if (slot.hasClosedSession) {
-      toast.warning("Attendance already created for this lecture.", {
-        toastId: "already-exists",
+      toast.warning("Attendance session is already closed for this lecture.", {
+        toastId: "already-closed",
         position: "top-right",
         autoClose: 4000,
         icon: <FaInfoCircle />,
       });
-      return;
-    }
-    
-    // Check if class time is currently active
-    const [startTime, endTime] = timeSlot.split(" - ");
-    const [startHour, startMin] = startTime.split(":").map(Number);
-    const [endHour, endMin] = endTime.split(":").map(Number);
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    
-    // STRICT TIME CHECK: Only allow during active class time
-    if (currentMinutes < startMinutes) {
-      toast.error(
-        `Class hasn't started yet. Attendance can be started from ${startTime}.`,
-        {
-          toastId: "before-time",
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaHourglassStart />,
-        }
-      );
-      return;
-    }
-    if (currentMinutes >= endMinutes) {
-      toast.error(
-        `Class has ended at ${endTime}. Attendance cannot be started after class time.`,
-        {
-          toastId: "after-time",
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaHourglassEnd />,
-        }
-      );
       return;
     }
     
@@ -1554,6 +1566,7 @@ function ScheduleRow({
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   const isPublished = slot.timetable_id?.status === "PUBLISHED";
   const isMobile = typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  
   // Determine slot status
   const [startTime, endTime] = time.split(" - ");
   const [startHour, startMin] = startTime.split(":").map(Number);
@@ -1562,23 +1575,39 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
+  
+  // ✅ Check backend status first (highest priority)
+  const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
+  const hasOpenSession = slot.hasOpenSession || hasActiveSession;
+  
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
   } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
     slotStatus = "active";
   }
-  // Button is enabled ONLY if: published AND currently active AND no existing session
+  
+  // ✅ Button is enabled ONLY if ALL conditions are met:
+  // 1. Timetable is published
+  // 2. Currently within class time (not before, not after)
+  // 3. No existing open session
+  // 4. No existing closed session
   const canStartAttendance =
-    isPublished && isCurrent && !hasActiveSession && !hasAttendanceSession;
-  // Determine button state
+    isPublished && 
+    slotStatus === "active" &&  // ✅ STRICT: Must be within time window
+    !hasOpenSession && 
+    !hasClosedSession;
+  
+  // Determine button state (priority order)
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
-  } else if (hasActiveSession || hasAttendanceSession) {
-    buttonState = "active";
+  } else if (hasOpenSession) {
+    buttonState = "active";  // ✅ Backend says session is open
+  } else if (hasClosedSession) {
+    buttonState = "ended";  // ✅ Backend says session is closed
   } else if (slotStatus === "past") {
-    buttonState = "ended";
+    buttonState = "ended";  // ✅ Time-based: class ended
   } else if (!isPublished) {
     buttonState = "unpublished";
   } else if (slotStatus === "upcoming") {
@@ -1717,48 +1746,108 @@ function ScheduleRow({
             <span>{slot.teacher_id?.name || "N/A"}</span>
           </div>
           {buttonState === "creating" ? (
-            <motion.button disabled className="btn-action btn-creating">
+            <motion.button 
+              disabled 
+              className="btn-action btn-creating"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.8
+              }}
+            >
               <motion.div variants={spinVariants} animate="animate">
                 <FaSyncAlt />
               </motion.div>
               Starting Session...
             </motion.button>
           ) : buttonState === "active" ? (
-            <div className="btn-action btn-active">
+            <motion.div 
+              className="btn-action btn-active"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.4)',
+                cursor: 'default'
+              }}
+            >
               <FaCheckCircle size={isMobile ? 18 : 20} />
-              Attendance Session Active
-            </div>
+              <span style={{ fontWeight: 600 }}>Attendance Active</span>
+            </motion.div>
           ) : buttonState === "ended" ? (
-            <button disabled className="btn-action btn-ended">
-              <FaPauseCircle />
-              Class Ended
-            </button>
+            <motion.div 
+              className="btn-action btn-ended"
+              style={{
+                background: 'linear-gradient(135deg, #6c757d, #5a6268)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.7
+              }}
+            >
+              <FaTimesCircle size={isMobile ? 18 : 20} />
+              <span>Session Closed</span>
+            </motion.div>
           ) : buttonState === "unpublished" ? (
-            <div className="btn-action btn-unpublished">
+            <div className="btn-action btn-unpublished"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
               <FaExclamationTriangle size={16} />
-              Timetable not published - Attendance unavailable
+              <span>Timetable Not Published</span>
             </div>
           ) : buttonState === "upcoming" ? (
-            <div className="btn-action btn-upcoming">
+            <div className="btn-action btn-upcoming"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
               <FaHourglassStart size={16} />
-              Wait for class to start
+              <span>Starts at {startTime}</span>
             </div>
-          ) : (
+          ) : canStartAttendance ? (
             <motion.button
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ 
+                scale: 1.03,
+                boxShadow: '0 6px 20px rgba(40, 167, 69, 0.45)'
+              }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onStartAttendance(slot, time)}
               className="btn-action btn-start"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.35)',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
             >
               <FaPlay />
-              Start Attendance Now
+              <span style={{ fontWeight: 600 }}>Start Attendance</span>
             </motion.button>
+          ) : (
+            <button 
+              disabled 
+              className="btn-action btn-start"
+              style={{
+                background: '#e9ecef',
+                color: '#6c757d',
+                cursor: 'not-allowed',
+                opacity: 0.6,
+                boxShadow: 'none'
+              }}
+            >
+              <FaPlay />
+              <span>Not Available</span>
+            </button>
           )}
           {/* Info Messages */}
           {attendanceMessage && (
             <div className={`info-message info-${
               attendanceMessage.includes('already') ? 'warning' :
-              attendanceMessage.includes('ended') ? 'error' :
+              attendanceMessage.includes('ended') || attendanceMessage.includes('closed') ? 'error' :
               'info'
             }`}>
               <FaInfoCircle size={16} />
@@ -1767,19 +1856,17 @@ function ScheduleRow({
           )}
           {buttonState === "ended" && isPublished && !attendanceMessage && (
             <div className="info-message info-error">
-              <FaInfoCircle size={16} />
+              <FaTimesCircle size={16} />
               <span>
-                This class ended at {endTime}. Attendance cannot be started for
-                past classes.
+                This class ended at {endTime}. Attendance session is closed.
               </span>
             </div>
           )}
           {buttonState === "active" && (
             <div className="info-message info-success">
-              <FaInfoCircle size={16} />
+              <FaCheckCircle size={16} />
               <span>
-                Attendance is currently active for this class. You can now mark
-                Student's attendance.
+                Attendance is active. Click the button above to mark student attendance.
               </span>
             </div>
           )}
@@ -1793,8 +1880,8 @@ function ScheduleRow({
           )}
           {buttonState === "unpublished" && (
             <div className="info-message info-warning">
-              <FaInfoCircle size={16} />
-              <span>Please publish the timetable to enable attendance.</span>
+              <FaExclamationTriangle size={16} />
+              <span>Please ask HOD to publish the timetable to enable attendance.</span>
             </div>
           )}
         </div>
