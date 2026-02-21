@@ -734,7 +734,7 @@ export default function StudentFees() {
         }
 
         .spin-icon {
-          font-size: 4rem;
+          font-size: 1rem;
           color: #1a4b6d;
           animation: spin 1s linear infinite;
         }
