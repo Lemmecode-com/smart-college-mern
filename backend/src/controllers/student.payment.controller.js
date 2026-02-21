@@ -1,4 +1,5 @@
 const StudentFee = require("../models/studentFee.model");
+const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
 
 exports.getStudentFeeDashboard = async (req, res, next) => {
@@ -57,11 +58,22 @@ exports.getStudentFeeDashboard = async (req, res, next) => {
 
 exports.getStudentReceipt = async (req, res, next) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;  // This is User._id
+    const collegeId = req.college_id;
     const { installmentId } = req.params;
 
+    // ✅ First find the student by user_id
+    const student = await Student.findOne({
+      user_id: userId,
+      college_id: collegeId
+    });
+
+    if (!student) {
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
+    }
+
     const studentFee = await StudentFee.findOne({
-      student_id: studentId,
+      student_id: student._id,  // ✅ Use student._id
       "installments._id": installmentId,
     })
       .populate("student_id")
