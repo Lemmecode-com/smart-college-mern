@@ -19,7 +19,9 @@ import {
   FaClock,
   FaInfoCircle,
   FaLock,
-  FaUnlock
+  FaUnlock,
+  FaUserTie,
+  FaEyeSlash
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -67,28 +69,92 @@ const spinVariants = {
   }
 };
 
+// Stat Item Component
+const StatItem = ({ icon, label, value, color }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{
+      width: '40px',
+      height: '40px',
+      borderRadius: '10px',
+      backgroundColor: `${color}15`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: color,
+      fontSize: '1.25rem'
+    }}>
+      {icon}
+    </div>
+    <div>
+      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>{value}</div>
+      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{label}</div>
+    </div>
+  </div>
+);
+
 export default function TimetableList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const isTeacher = user?.role === "TEACHER";
 
   const [timetables, setTimetables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
+  
+  // ✅ HOD Status
+  const [teacherProfile, setTeacherProfile] = useState(null);
+  const [isHOD, setIsHOD] = useState(false);
+  const [hodVerified, setHodVerified] = useState(false);
 
   /* ================= FETCH TIMETABLES ================= */
   useEffect(() => {
-    fetchTimetables();
+    loadTimetables();
   }, []);
 
-  const fetchTimetables = async () => {
+  const loadTimetables = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/timetable");
-      setTimetables(res.data);
       setError("");
+
+      // Step 1: Load teacher profile to check HOD status
+      if (user?.role === "TEACHER") {
+        const profileRes = await api.get("/teachers/my-profile");
+        setTeacherProfile(profileRes.data);
+
+        // Step 2: Check if teacher is HOD
+        const teacherData = profileRes.data;
+        const isTeacherHOD = teacherData.department_id?.hod_id?.toString() === teacherData._id.toString();
+        
+        console.log("📋 HOD Check:", {
+          isHOD: isTeacherHOD,
+          teacherId: teacherData._id,
+          hodId: teacherData.department_id?.hod_id,
+          department: teacherData.department_id?.name
+        });
+        
+        setIsHOD(isTeacherHOD);
+        setHodVerified(true);
+        
+        // Step 3: Load timetables AFTER HOD verification
+        const res = await api.get("/timetable");
+        console.log("✅ Timetables loaded:", res.data.length);
+        setTimetables(res.data);
+        
+      } else if (user?.role === "COLLEGE_ADMIN") {
+        setIsHOD(true); // Admin has full access
+        setHodVerified(true);
+        
+        // Step 3: Load timetables
+        const res = await api.get("/timetable");
+        console.log("✅ Timetables loaded (Admin):", res.data.length);
+        setTimetables(res.data);
+      } else {
+        // For other roles, just load timetables
+        const res = await api.get("/timetable");
+        setTimetables(res.data);
+        setHodVerified(true);
+      }
     } catch (err) {
       console.error("Failed to load timetables:", err);
       setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
@@ -104,7 +170,7 @@ export default function TimetableList() {
     setPublishingId(id);
     try {
       await api.put(`/timetable/${id}/publish`);
-      fetchTimetables();
+      loadTimetables();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to publish timetable. Please try again.");
     } finally {
@@ -119,7 +185,7 @@ export default function TimetableList() {
     setDeletingId(id);
     try {
       await api.delete(`/timetable/${id}`);
-      fetchTimetables();
+      loadTimetables();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete timetable. Please try again.");
     } finally {
@@ -132,6 +198,7 @@ export default function TimetableList() {
     navigate(`/timetable/${id}/edit`);
   };
 
+  // Loading State
   if (loading) {
     return (
       <div style={{
@@ -150,9 +217,9 @@ export default function TimetableList() {
           >
             <FaSyncAlt />
           </motion.div>
-          <h3 style={{ 
-            margin: '0 0 0.5rem 0', 
-            color: '#1e293b', 
+          <h3 style={{
+            margin: '0 0 0.5rem 0',
+            color: '#1e293b',
             fontWeight: 700,
             fontSize: '1.5rem'
           }}>
@@ -210,16 +277,13 @@ export default function TimetableList() {
                 fontWeight: 500,
                 cursor: 'pointer',
                 padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                borderRadius: '8px'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
               <FaArrowLeft /> Back
             </motion.button>
             <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
+            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600 }}>
               Timetable Management
             </span>
           </motion.div>
@@ -232,12 +296,9 @@ export default function TimetableList() {
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
+              borderRadius: '20px',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
+              overflow: 'hidden'
             }}
           >
             <div style={{
@@ -263,9 +324,7 @@ export default function TimetableList() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
-                    flexShrink: 0,
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                    fontSize: '2.5rem'
                   }}
                 >
                   <FaCalendarAlt />
@@ -282,39 +341,57 @@ export default function TimetableList() {
                   <p style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
-                    fontSize: '1.25rem'
+                    fontSize: '1.1rem'
                   }}>
                     View, manage, and publish academic schedules
                   </p>
+                  {hodVerified && isHOD && (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginTop: '0.5rem',
+                      padding: '0.375rem 0.75rem',
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: '20px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600
+                    }}>
+                      <FaUserTie /> HOD Access Enabled
+                    </div>
+                  )}
                 </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/timetable/create-timetable')}
-                style={{
-                  backgroundColor: 'white',
-                  color: BRAND_COLORS.primary.main,
-                  border: '2px solid white',
-                  padding: '0.875rem 1.75rem',
-                  borderRadius: '14px',
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <FaPlus /> Create Timetable
-              </motion.button>
+              
+              {/* ✅ HOD Only: Create Timetable Button */}
+              {hodVerified && isHOD && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/timetable/create-timetable')}
+                  style={{
+                    backgroundColor: 'white',
+                    color: BRAND_COLORS.primary.main,
+                    border: '2px solid white',
+                    padding: '0.875rem 1.75rem',
+                    borderRadius: '14px',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <FaPlus /> Create Timetable
+                </motion.button>
+              )}
             </div>
-            
+
             {/* Stats Bar */}
             <div style={{
-              padding: '1rem 2rem',
+              padding: '1.25rem 2rem',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
@@ -324,480 +401,386 @@ export default function TimetableList() {
               gap: '1.5rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <StatItem 
-                  icon={<FaCalendarAlt />} 
-                  label="Total Timetables" 
-                  value={timetables.length} 
-                  color={BRAND_COLORS.primary.main} 
+                <StatItem
+                  icon={<FaCalendarAlt />}
+                  label="Total Timetables"
+                  value={timetables.length}
+                  color={BRAND_COLORS.primary.main}
                 />
-                <StatItem 
-                  icon={<FaCheckCircle />} 
-                  label="Published" 
-                  value={timetables.filter(t => t.status === "PUBLISHED").length} 
-                  color={BRAND_COLORS.success.main} 
+                <StatItem
+                  icon={<FaCheckCircle />}
+                  label="Published"
+                  value={timetables.filter(t => t.status === "PUBLISHED").length}
+                  color={BRAND_COLORS.success.main}
                 />
-                <StatItem 
-                  icon={<FaClock />} 
-                  label="Draft" 
-                  value={timetables.filter(t => t.status === "DRAFT").length} 
-                  color={BRAND_COLORS.warning.main} 
+                <StatItem
+                  icon={<FaClock />}
+                  label="Draft"
+                  value={timetables.filter(t => t.status === "DRAFT").length}
+                  color={BRAND_COLORS.warning.main}
                 />
               </div>
-              <div style={{ 
+              <div style={{
                 padding: '0.5rem 1.25rem',
                 borderRadius: '20px',
                 backgroundColor: '#dbeafe',
                 color: BRAND_COLORS.primary.main,
+                fontSize: '0.9rem',
                 fontWeight: 600,
-                fontSize: '0.95rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <FaInfoCircle size={14} />
-                {isTeacher ? "Teacher View" : "Admin View"}
+                {hodVerified && isHOD ? (
+                  <>
+                    <FaUnlock /> Full Access
+                  </>
+                ) : (
+                  <>
+                    <FaLock /> View Only
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Info Banner */}
+            {!hodVerified && (
+              <div style={{
+                padding: '1rem 2rem',
+                backgroundColor: '#fef3c7',
+                borderTop: '1px solid #fcd34d',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem'
+              }}>
+                <FaInfoCircle style={{ color: BRAND_COLORS.warning.main, fontSize: '1.25rem' }} />
+                <span style={{ color: '#92400e', fontWeight: 500 }}>
+                  Verifying your access permissions...
+                </span>
+              </div>
+            )}
+            {hodVerified && !isHOD && (
+              <div style={{
+                padding: '1rem 2rem',
+                backgroundColor: '#dbeafe',
+                borderTop: '1px solid #bfdbfe',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem'
+              }}>
+                <FaEye style={{ color: BRAND_COLORS.info.main, fontSize: '1.25rem' }} />
+                <span style={{ color: '#1e40af', fontWeight: 500 }}>
+                  You are viewing timetables as a <strong>Teacher</strong>. Contact your HOD for any changes.
+                </span>
+              </div>
+            )}
           </motion.div>
 
-          {/* ================= ERROR STATE ================= */}
+          {/* ================= ERROR ================= */}
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                marginBottom: '1.5rem',
+                marginBottom: '2rem',
                 padding: '1.25rem',
-                borderRadius: '16px',
+                borderRadius: '12px',
                 backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                border: `1px solid ${BRAND_COLORS.danger.main}`,
+                border: `2px solid ${BRAND_COLORS.danger.main}`,
                 color: BRAND_COLORS.danger.main,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '1rem',
-                fontSize: '1.05rem',
-                fontWeight: 500
+                gap: '1rem'
               }}
             >
               <FaExclamationTriangle size={24} />
-              <div style={{ flex: 1 }}>{error}</div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={fetchTimetables}
-                style={{
-                  background: BRAND_COLORS.danger.main,
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <FaSyncAlt /> Retry
-              </motion.button>
+              <span>{error}</span>
             </motion.div>
           )}
 
-          {/* ================= TIMETABLES CARD ================= */}
-          <motion.div
-            variants={fadeInVariants}
-            custom={0}
-            initial="hidden"
-            animate="visible"
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
-            }}
-          >
-            <div style={{
-              padding: '1.75rem',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: '#1e293b',
+          {/* ================= EMPTY STATE ================= */}
+          {timetables.length === 0 && !error && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                padding: '4rem 2rem',
+                backgroundColor: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{
+                width: '80px',
+                height: '80px',
+                margin: '0 auto 1.5rem',
+                backgroundColor: `${BRAND_COLORS.warning.main}15`,
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem'
+                justifyContent: 'center',
+                color: BRAND_COLORS.warning.main,
+                fontSize: '2.5rem'
               }}>
-                <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> 
-                Academic Timetables
-              </h2>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                backgroundColor: '#dbeafe',
-                color: BRAND_COLORS.primary.main,
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: 500
-              }}>
-                <FaInfoCircle size={14} />
-                Click on any timetable to view weekly schedule
+                <FaCalendarAlt />
               </div>
-            </div>
-            
-            {timetables.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle}>
-                  <thead>
-                    <tr>
-                      <th style={headerCellStyle}>Timetable Name</th>
-                      <th style={headerCellStyle}>Semester</th>
-                      <th style={headerCellStyle}>Academic Year</th>
-                      <th style={headerCellStyle}>Status</th>
-                      <th style={{ ...headerCellStyle, minWidth: '280px', textAlign: 'center' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {timetables.map((t, index) => (
-                      <motion.tr
-                        key={t._id}
-                        variants={fadeInVariants}
-                        custom={index * 0.03}
-                        initial="hidden"
-                        animate="visible"
-                        style={{
-                          backgroundColor: 'white',
-                          transition: 'background-color 0.3s ease'
-                        }}
-                        whileHover={{ backgroundColor: '#f8fafc' }}
-                      >
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
+              <h3 style={{ color: '#1e293b', margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>
+                No Timetables Found
+              </h3>
+              <p style={{ color: '#64748b', margin: '0 0 1.5rem 0' }}>
+                {hodVerified && isHOD 
+                  ? "Create your first timetable to get started!"
+                  : "No timetables available for your department."}
+              </p>
+              {hodVerified && isHOD && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/timetable/create-timetable')}
+                  style={{
+                    padding: '0.875rem 2rem',
+                    backgroundColor: BRAND_COLORS.primary.main,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <FaPlus /> Create Timetable
+                </motion.button>
+              )}
+            </motion.div>
+          )}
+
+          {/* ================= TIMETABLE GRID ================= */}
+          {timetables.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+              gap: '1.5rem'
+            }}>
+              {timetables.map((t, index) => (
+                <motion.div
+                  key={t._id}
+                  variants={fadeInVariants}
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '20px',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Status Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    padding: '0.375rem 0.75rem',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    backgroundColor: t.status === "PUBLISHED" ? '#dcfce7' : '#fef3c7',
+                    color: t.status === "PUBLISHED" ? '#15803d' : '#a16207',
+                    zIndex: 10
+                  }}>
+                    {t.status}
+                  </div>
+
+                  <div style={{
+                    padding: '1.5rem',
+                    background: t.status === "PUBLISHED" 
+                      ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+                      : 'linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '12px',
+                        backgroundColor: t.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '1.5rem'
+                      }}>
+                        <FaGraduationCap />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>
+                          {t.course_id?.name || t.name}
+                        </h3>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                          {t.department_id?.name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <div style={{
+                        padding: '0.375rem 0.75rem',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: '#1e293b'
+                      }}>
+                        <FaLayerGroup style={{ marginRight: '0.375rem' }} />
+                        Sem {t.semester}
+                      </div>
+                      <div style={{
+                        padding: '0.375rem 0.75rem',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: '#1e293b'
+                      }}>
+                        <FaClock style={{ marginRight: '0.375rem' }} />
+                        {t.academicYear}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '1.25rem' }}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                        Created By
+                      </div>
+                      <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>
+                        {t.createdBy?.name || 'N/A'}
+                      </div>
+                    </div>
+
+                    {/* 🔍 Debug Info */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                        HOD: {String(isHOD)} | Verified: {String(hodVerified)} | Status: {t.status || 'undefined'}
+                        {console.log(`📋 Timetable Card: ${t.name}, Status: ${t.status}, HOD: ${isHOD}`)}
+                      </div>
+                    )}
+
+                    {/* ✅ HOD Only: Action Buttons */}
+                    {hodVerified && isHOD && (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate(`/timetable/${t._id}/weekly`)}
+                          style={{
+                            flex: 1,
+                            padding: '0.75rem',
+                            borderRadius: '10px',
+                            border: 'none',
+                            backgroundColor: BRAND_COLORS.info.main,
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <FaEye /> View
+                        </motion.button>
+                        {t.status !== "PUBLISHED" && (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => publishTimetable(t._id)}
+                            disabled={publishingId === t._id}
+                            style={{
+                              flex: 1,
+                              padding: '0.75rem',
                               borderRadius: '10px',
-                              backgroundColor: `${BRAND_COLORS.primary.main}10`,
+                              border: 'none',
+                              backgroundColor: publishingId === t._id ? '#cbd5e1' : BRAND_COLORS.success.main,
+                              color: 'white',
+                              fontWeight: 600,
+                              fontSize: '0.9rem',
+                              cursor: publishingId === t._id ? 'not-allowed' : 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: BRAND_COLORS.primary.main,
-                              flexShrink: 0
-                            }}>
-                              <FaCalendarAlt size={16} />
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: '#1e293b' }}>{t.name}</div>
-                              <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                Created: {new Date(t.createdAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <FaLayerGroup size={16} style={{ color: BRAND_COLORS.warning.main }} />
-                            <span>{t.semester || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <FaClock size={16} style={{ color: BRAND_COLORS.info.main }} />
-                            <span>{t.academicYear || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.375rem',
-                            padding: '0.375rem 0.875rem',
-                            borderRadius: '20px',
-                            backgroundColor: t.status === "PUBLISHED" ? `${BRAND_COLORS.success.main}15` : `${BRAND_COLORS.warning.main}15`,
-                            color: t.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
+                              gap: '0.5rem'
+                            }}
+                          >
+                            {publishingId === t._id ? <FaSyncAlt className="spin" /> : <FaCheckCircle />}
+                            Publish
+                          </motion.button>
+                        )}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => deleteTimetable(t._id)}
+                          disabled={deletingId === t._id}
+                          style={{
+                            padding: '0.75rem',
+                            borderRadius: '10px',
+                            border: 'none',
+                            backgroundColor: deletingId === t._id ? '#cbd5e1' : BRAND_COLORS.danger.main,
+                            color: 'white',
                             fontWeight: 600,
-                            fontSize: '0.85rem',
-                            border: `1px solid ${t.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}30`
-                          }}>
-                            {t.status === "PUBLISHED" ? <FaCheckCircle size={12} /> : <FaClock size={12} />}
-                            {t.status}
-                          </span>
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {/* VIEW BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => navigate(`/timetable/${t._id}/weekly`)}
-                              title="View Weekly Timetable"
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #cbd5e1',
-                                backgroundColor: 'white',
-                                color: BRAND_COLORS.primary.main,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <FaEye size={14} /> View
-                            </motion.button>
-                            
-                            {/* EDIT BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => editTimetable(t._id)}
-                              disabled={t.status === "PUBLISHED"}
-                              title={t.status === "PUBLISHED" ? "Cannot edit published timetable" : "Edit Timetable"}
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #cbd5e1',
-                                backgroundColor: t.status === "PUBLISHED" ? '#f1f5f9' : '#dbeafe',
-                                color: t.status === "PUBLISHED" ? '#94a3b8' : BRAND_COLORS.primary.main,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: t.status === "PUBLISHED" ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <FaEdit size={14} /> Edit
-                            </motion.button>
-                            
-                            {/* PUBLISH BUTTON (TEACHERS ONLY) */}
-                            {isTeacher && t.status === "DRAFT" && (
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => publishTimetable(t._id)}
-                                disabled={publishingId === t._id}
-                                title="Publish Timetable"
-                                style={{
-                                  padding: '0.5rem 0.875rem',
-                                  borderRadius: '10px',
-                                  border: 'none',
-                                  backgroundColor: publishingId === t._id ? '#94a3b8' : BRAND_COLORS.success.main,
-                                  color: 'white',
-                                  fontSize: '0.875rem',
-                                  fontWeight: 600,
-                                  cursor: publishingId === t._id ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.375rem',
-                                  transition: 'all 0.2s ease',
-                                  boxShadow: publishingId === t._id ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
-                                }}
-                              >
-                                {publishingId === t._id ? (
-                                  <motion.div variants={spinVariants} animate="animate">
-                                    <FaSyncAlt size={14} />
-                                  </motion.div>
-                                ) : (
-                                  <FaCheckCircle size={14} />
-                                )}
-                                {publishingId === t._id ? 'Publishing...' : 'Publish'}
-                              </motion.button>
-                            )}
-                            
-                            {/* DELETE BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => deleteTimetable(t._id)}
-                              disabled={deletingId === t._id}
-                              title="Delete Timetable"
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #fecaca',
-                                backgroundColor: deletingId === t._id ? '#94a3b8' : BRAND_COLORS.danger.main,
-                                color: 'white',
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              {deletingId === t._id ? (
-                                <motion.div variants={spinVariants} animate="animate">
-                                  <FaSyncAlt size={14} />
-                                </motion.div>
-                              ) : (
-                                <FaTrash size={14} />
-                              )}
-                              {deletingId === t._id ? 'Deleting...' : 'Delete'}
-                            </motion.button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState 
-                icon={<FaCalendarAlt />} 
-                title="No Timetables Found" 
-                message="Create your first academic timetable to get started" 
-                actionText="Create Timetable" 
-                onAction={() => navigate('/timetable/create-timetable')} 
-              />
-            )}
-            
-            <div style={{ 
-              padding: '1.5rem',
-              borderTop: '1px solid #f1f5f9',
-              backgroundColor: '#f8fafc',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
-            }}>
-              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
-              <div style={{ color: '#4a5568', fontSize: '0.95rem' }}>
-                <strong>Tip:</strong> Timetables in <span style={{ color: BRAND_COLORS.success.main, fontWeight: 600 }}>Published</span> status are visible to students. 
-                <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                  {isTeacher ? "As a teacher, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
-                </span>
-              </div>
+                            fontSize: '0.9rem',
+                            cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {deletingId === t._id ? <FaSyncAlt className="spin" /> : <FaTrash />}
+                        </motion.button>
+                      </div>
+                    )}
+                    
+                    {/* Non-HOD: View Only */}
+                    {(!hodVerified || !isHOD) && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate(`/timetable/${t._id}/weekly`)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '10px',
+                          border: 'none',
+                          backgroundColor: BRAND_COLORS.primary.main,
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <FaEye /> View Timetable
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>
   );
 }
-
-/* ================= STAT ITEM COMPONENT ================= */
-function StatItem({ icon, label, value, color }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '10px',
-        backgroundColor: `${color}15`,
-        color: color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.1rem',
-        flexShrink: 0
-      }}>
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
-/* ================= EMPTY STATE COMPONENT ================= */
-function EmptyState({ icon, title, message, actionText, onAction }) {
-  return (
-    <div style={{ 
-      padding: '4rem 2rem',
-      textAlign: 'center',
-      color: '#64748b'
-    }}>
-      <div style={{
-        fontSize: '6rem',
-        marginBottom: '1.5rem',
-        opacity: 0.2,
-        color: '#e2e8f0'
-      }}>
-        {icon}
-      </div>
-      <h3 style={{
-        margin: '0 0 0.75rem 0',
-        color: '#1e293b',
-        fontWeight: 700,
-        fontSize: '1.75rem'
-      }}>
-        {title}
-      </h3>
-      <p style={{ 
-        margin: '0 0 2rem 0', 
-        fontSize: '1.1rem',
-        maxWidth: '600px',
-        margin: '0 auto 2rem'
-      }}>
-        {message}
-      </p>
-      <motion.button
-        whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.3)' }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onAction}
-        style={{
-          backgroundColor: BRAND_COLORS.primary.main,
-          color: 'white',
-          border: 'none',
-          padding: '0.875rem 2rem',
-          borderRadius: '14px',
-          fontSize: '1.1rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
-          transition: 'all 0.3s ease'
-        }}
-      >
-        <FaPlus /> {actionText}
-      </motion.button>
-    </div>
-  );
-}
-
-/* ================= STYLES ================= */
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  minWidth: '900px'
-};
-
-const headerCellStyle = {
-  padding: '1rem 1.25rem',
-  textAlign: 'left',
-  fontWeight: 700,
-  color: '#1e293b',
-  fontSize: '0.95rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  backgroundColor: '#f8fafc',
-  borderBottom: '2px solid #e2e8f0'
-};
-
-const cellStyle = {
-  padding: '1rem 1.25rem',
-  fontSize: '0.95rem',
-  color: '#1e293b',
-  borderBottom: '1px solid #f1f5f9',
-  verticalAlign: 'middle'
-};
