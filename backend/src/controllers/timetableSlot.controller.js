@@ -51,25 +51,6 @@ exports.addSlot = async (req, res, next) => {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
 
-    /* ================= TEACHER (LOGGED IN) ================= */
-    const loggedInTeacher = await Teacher.findOne({
-      user_id: req.user.id,
-      college_id: collegeId,
-    });
-
-    if (!loggedInTeacher) {
-      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
-    }
-
-    // 🔒 SECURITY: Ensure teacher can only add slots to their own department's timetable
-    if (loggedInTeacher.department_id.toString() !== timetable.department_id.toString()) {
-      throw new AppError(
-        "Access denied: You can only manage slots for your own department's timetable", 
-        403, 
-        "DEPARTMENT_MISMATCH"
-      );
-    }
-
     /* ================= SUBJECT VALIDATION ================= */
     const subject = await Subject.findOne({
       _id: subject_id,
