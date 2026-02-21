@@ -313,10 +313,68 @@ exports.getStudentTimetable = async (req, res) => {
 };
 
 /* =========================================================
+   TODAY'S TIMETABLE — STUDENTS
+========================================================= */
+exports.getStudentTodayTimetable = async (req, res) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Get today's day name
+    const today = new Date();
+    const todayDayName = getDayName(today);
+    const todayStr = today.toISOString().split('T')[0];
+
+    console.log(`📅 Today: ${todayStr} (${todayDayName})`);
+
+    // Find all PUBLISHED timetables for student's course
+    const slots = await TimetableSlot.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+      day: todayDayName,
+    })
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
+      .populate("course_id", "name code")
+      .populate({
+        path: "timetable_id",
+        select: "semester academicYear status",
+        match: { status: "PUBLISHED" },
+      })
+      .sort({ startTime: 1 });
+
+    // Filter only slots from PUBLISHED timetables
+    const publishedSlots = slots.filter(slot => slot.timetable_id);
+
+    res.json({
+      today: todayStr,
+      dayName: todayDayName,
+      totalSlots: publishedSlots.length,
+      slots: publishedSlots
+    });
+
+  } catch (error) {
+    console.error("Student today timetable error:", error);
+    res.status(500).json({ message: "Failed to fetch today's timetable" });
+  }
+};
+
+/* =========================================================
    WEEKLY TIMETABLE — HOD (FULL VIEW)
 ========================================================= */
 exports.getWeeklyTimetableById = async (req, res) => {
   try {
+    // ✅ Validate timetableId parameter
+    if (!req.params.timetableId || req.params.timetableId === 'undefined') {
+      return res.status(400).json({ 
+        message: "Invalid timetable ID. Please select a valid timetable." 
+      });
+    }
+
     const timetable = await Timetable.findOne({
       _id: req.params.timetableId,
       college_id: req.college_id,
@@ -357,6 +415,12 @@ exports.getWeeklyTimetableById = async (req, res) => {
 
     res.json({ timetable, weekly });
   } catch (error) {
+    // ✅ Handle MongoDB ObjectId cast errors gracefully
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        message: "Invalid timetable ID format. Please provide a valid ID." 
+      });
+    }
     console.error("Get Weekly Timetable Error:", error);
     res.status(500).json({ message: "Failed to fetch weekly timetable" });
   }

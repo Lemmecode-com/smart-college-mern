@@ -30,6 +30,7 @@ const TIME_SLOTS = [
 
 export default function StudentTimetable() {
   const [slots, setSlots] = useState([]);
+  const [todaySlots, setTodaySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -37,13 +38,14 @@ export default function StudentTimetable() {
 
   useEffect(() => {
     fetchTimetable();
+    fetchTodaySlots();
   }, [retryCount]);
 
   const fetchTimetable = async () => {
     try {
       setLoading(true);
       setError(null);
-      hasShownSuccessToast.current = false; // Reset toast flag on new fetch
+      hasShownSuccessToast.current = false;
 
       const res = await api.get("/timetable/student");
       setSlots(res.data || []);
@@ -55,7 +57,7 @@ export default function StudentTimetable() {
             position: "top-right",
             autoClose: 3000,
             icon: "✅",
-            toastId: "timetable-success", // Unique ID to prevent duplicates
+            toastId: "timetable-success",
           });
           hasShownSuccessToast.current = true;
         } else {
@@ -63,7 +65,7 @@ export default function StudentTimetable() {
             position: "top-right",
             autoClose: 4000,
             icon: "ℹ️",
-            toastId: "timetable-info", // Unique ID
+            toastId: "timetable-info",
           });
         }
       }
@@ -72,16 +74,25 @@ export default function StudentTimetable() {
       const errorMessage =
         err.response?.data?.message || "Failed to load timetable. Please try again.";
       setError(errorMessage);
-      
-      // Show error toast with unique ID
+
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
-        toastId: "timetable-error", // Unique ID
+        toastId: "timetable-error",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTodaySlots = async () => {
+    try {
+      const res = await api.get("/timetable/student/today");
+      setTodaySlots(res.data.slots || []);
+      console.log(`📅 Today's slots: ${res.data.totalSlots}`);
+    } catch (err) {
+      console.error("Failed to fetch today's slots:", err);
     }
   };
 
@@ -274,6 +285,57 @@ export default function StudentTimetable() {
           </button>
         </div>
       </header>
+
+      {/* TODAY'S CLASSES SECTION */}
+      {todaySlots.length > 0 && (
+        <section className="today-section fade-in-up">
+          <div className="today-header">
+            <div className="today-icon-wrapper">
+              <FaCalendarAlt />
+            </div>
+            <div>
+              <h2 className="today-title">Today's Classes</h2>
+              <p className="today-subtitle">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+                <span className="today-count"> • {todaySlots.length} classes</span>
+              </p>
+            </div>
+          </div>
+          <div className="today-slots-grid">
+            {todaySlots.map((slot, index) => (
+              <div key={slot._id} className="today-slot-card scale-on-hover" style={{ animationDelay: `${index * 0.1}s` }}>
+                <div className="today-slot-time">
+                  <FaClock className="time-icon" />
+                  <span>{slot.startTime} - {slot.endTime}</span>
+                </div>
+                <div className="today-slot-content">
+                  <h6 className="today-slot-subject">{slot.subject_id?.name}</h6>
+                  <div className="today-slot-details">
+                    <div className="today-slot-detail">
+                      <FaChalkboardTeacher className="icon" />
+                      <span>{slot.teacher_id?.name}</span>
+                    </div>
+                    <div className="today-slot-detail">
+                      <FaMapMarkerAlt className="icon" />
+                      <span>Room {slot.room || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="today-slot-footer">
+                    <span className={`slot-type-badge ${getSlotTypeColor(slot.slotType)}`}>
+                      {getSlotTypeIcon(slot.slotType)}
+                      <span>{slot.slotType}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* TIMETABLE CARD */}
       <main className="timetable-card fade-in-up">
@@ -985,6 +1047,148 @@ export default function StudentTimetable() {
             border: 1px solid #ddd;
             page-break-inside: avoid;
           }
+        }
+
+        /* ================= TODAY'S CLASSES SECTION ================= */
+        .today-section {
+          background: white;
+          border-radius: 16px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .today-header {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 2px solid #e9ecef;
+        }
+
+        .today-icon-wrapper {
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 1.5rem;
+        }
+
+        .today-title {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #1a4b6d;
+        }
+
+        .today-subtitle {
+          margin: 0.25rem 0 0;
+          color: #6c757d;
+          font-size: 0.95rem;
+        }
+
+        .today-count {
+          color: #1a4b6d;
+          font-weight: 600;
+        }
+
+        .today-slots-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+        }
+
+        .today-slot-card {
+          background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+          border-radius: 12px;
+          padding: 1rem;
+          border: 1px solid rgba(26, 75, 109, 0.1);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .today-slot-card:hover {
+          transform: scale(1.03);
+          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.2);
+          background: linear-gradient(135deg, #e8f4f8, #d0e8f0);
+        }
+
+        .today-slot-time {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #1a4b6d;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px dashed #dee2e6;
+        }
+
+        .today-slot-time .time-icon {
+          color: #6c757d;
+        }
+
+        .today-slot-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          flex: 1;
+        }
+
+        .today-slot-subject {
+          margin: 0;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #1a4b6d;
+          line-height: 1.3;
+        }
+
+        .today-slot-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.375rem;
+        }
+
+        .today-slot-detail {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          color: #6c757d;
+        }
+
+        .today-slot-detail .icon {
+          color: #1a4b6d;
+          font-size: 0.85rem;
+        }
+
+        .today-slot-footer {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+          .today-slots-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .today-header {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .today-title {
+            font-size: 1.25rem;
+          }
+        }
 
           .slot-card {
             break-inside: avoid;
