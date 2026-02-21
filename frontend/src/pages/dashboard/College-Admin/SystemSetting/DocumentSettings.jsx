@@ -169,13 +169,19 @@ export default function DocumentSettings() {
         order: index
       }));
 
+      console.log("💾 Saving document config:", {
+        documentsCount: documentsWithOrder.length,
+        enabledCount: enabledDocs.length
+      });
+
       await api.put("/document-config/admin/college", {
         documents: documentsWithOrder
       });
 
+      console.log("✅ Config saved successfully");
       setMessage({ type: "success", text: "Document configuration saved successfully!" });
     } catch (error) {
-      console.error("Error saving config:", error);
+      console.error("❌ Error saving config:", error);
       setMessage({ type: "error", text: error.response?.data?.message || "Failed to save configuration" });
     } finally {
       setSaving(false);
