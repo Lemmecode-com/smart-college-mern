@@ -7,10 +7,13 @@ const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
+const Department = require("../models/department.model");
 const AppError = require("../utils/AppError");
+const { getDayName, isDateMatchesDay, isPastDate, isFutureDate, isToday } = require("../utils/date.utils");
 
 /* =========================================================
    CREATE ATTENDANCE SESSION (Teacher)
+   MUST: Only for TODAY, and date must match slot's day
 ========================================================= */
 exports.createAttendanceSession = async (req, res, next) => {
   try {
@@ -34,12 +37,11 @@ exports.createAttendanceSession = async (req, res, next) => {
       throw new AppError("Teacher profile not linked with user", 403, "TEACHER_NOT_FOUND");
     }
 
-    // Validate slot
+    // ✅ Validate slot AND teacher ownership
     const slot = await TimetableSlot.findOne({
       _id: slot_id,
-      teacher_id: teacher._id,
       college_id: collegeId,
-    });
+    }).populate('subject_id', 'teacher_id name code');
 
     if (!slot) {
       throw new AppError("Invalid timetable slot for this teacher", 404, "SLOT_NOT_FOUND");
@@ -47,6 +49,61 @@ exports.createAttendanceSession = async (req, res, next) => {
 
     if (!slot.department_id || !slot.course_id) {
       throw new AppError("Slot data incomplete. Please recreate slot.", 500, "INVALID_SLOT_DATA");
+    }
+
+    // ✅ STRICT VALIDATION: Teacher MUST be the subject's assigned teacher
+    if (slot.subject_id.teacher_id.toString() !== teacher._id.toString()) {
+      throw new AppError(
+        `Access denied: You are not the assigned teacher for "${slot.subject_id.name}". Only the subject's assigned teacher can start attendance sessions.`,
+        403,
+        "NOT_SUBJECT_TEACHER"
+      );
+    }
+
+    console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${slot.subject_id.name}`);
+
+    // ✅ DATE VALIDATION 1: Check if date is provided
+    if (!lectureDate) {
+      throw new AppError("Lecture date is required", 400, "MISSING_DATE");
+    }
+
+    // ✅ DATE VALIDATION 2: Check if date matches slot's day
+    const slotDay = slot.day; // e.g., "MON"
+    const lectureDay = getDayName(lectureDate); // e.g., "MON"
+    
+    if (!isDateMatchesDay(lectureDate, slotDay)) {
+      throw new AppError(
+        `Invalid date: Slot is for ${slotDay} but provided date is ${lectureDay} (${lectureDate})`,
+        400,
+        "DATE_DAY_MISMATCH"
+      );
+    }
+
+    // ✅ DATE VALIDATION 3: Cannot create session for past dates
+    if (isPastDate(lectureDate)) {
+      throw new AppError(
+        "Cannot create attendance session for past dates",
+        400,
+        "PAST_DATE_NOT_ALLOWED"
+      );
+    }
+
+    // ✅ DATE VALIDATION 4: Cannot create session for future dates (more than 7 days)
+    if (isFutureDate(lectureDate, 7)) {
+      throw new AppError(
+        "Cannot create attendance session for future dates (max 7 days ahead)",
+        400,
+        "FUTURE_DATE_NOT_ALLOWED"
+      );
+    }
+
+    // ✅ DATE VALIDATION 5: ENFORCED - Only allow today's sessions
+    if (!isToday(lectureDate)) {
+      throw new AppError(
+        "Attendance sessions can only be created for today",
+        400,
+        "ONLY_TODAY_ALLOWED"
+      );
     }
 
     // Prevent duplicate
@@ -60,6 +117,24 @@ exports.createAttendanceSession = async (req, res, next) => {
       throw new AppError("Attendance already created for this lecture", 409, "DUPLICATE_SESSION");
     }
 
+    // ✅ CAPTURE SLOT SNAPSHOT (Preserve history)
+    const slotWithDetails = await TimetableSlot.findById(slot_id)
+      .populate('subject_id', 'name code')
+      .populate('teacher_id', 'name');
+
+    const slotSnapshot = {
+      subject_id: slotWithDetails.subject_id._id,
+      subject_name: slotWithDetails.subject_id.name,
+      subject_code: slotWithDetails.subject_id.code,
+      teacher_id: slotWithDetails.teacher_id._id,
+      teacher_name: slotWithDetails.teacher_id.name,
+      day: slotWithDetails.day,
+      startTime: slotWithDetails.startTime,
+      endTime: slotWithDetails.endTime,
+      room: slotWithDetails.room || '',
+      slotType: slotWithDetails.slotType || 'LECTURE'
+    };
+
     // Count students
     const totalStudents = await Student.countDocuments({
       college_id: collegeId,
@@ -67,7 +142,7 @@ exports.createAttendanceSession = async (req, res, next) => {
       status: "APPROVED",
     });
 
-    // Create session
+    // Create session with snapshot
     const session = await AttendanceSession.create({
       college_id: collegeId,
       department_id: slot.department_id,
@@ -79,6 +154,7 @@ exports.createAttendanceSession = async (req, res, next) => {
       lectureNumber,
       totalStudents,
       status: "OPEN",
+      slotSnapshot: slotSnapshot  // ✅ Preserve slot data
     });
 
     res.status(201).json({
@@ -87,6 +163,10 @@ exports.createAttendanceSession = async (req, res, next) => {
     });
 
   } catch (error) {
+    // Handle duplicate key error gracefully
+    if (error.code === 11000) {
+      return next(new AppError("Attendance session already exists for this slot and lecture number", 409, "DUPLICATE_SESSION"));
+    }
     next(error);
   }
 };
@@ -94,8 +174,13 @@ exports.createAttendanceSession = async (req, res, next) => {
 /* =========================================================
    GET ALL ATTENDANCE SESSIONS (Logged-in Teacher)
    GET /attendance/sessions
+   Returns: Sessions with snapshot data
+
+   Access Control:
+   - TEACHER: Only their own sessions
+   - HOD: All sessions in their department
 ========================================================= */
-exports.getAttendanceSessions = async (req, res) => {
+exports.getAttendanceSessions = async (req, res, next) => {
   try {
     // 1️⃣ Resolve teacher from logged-in user
     const teacher = await Teacher.findOne({
@@ -104,24 +189,72 @@ exports.getAttendanceSessions = async (req, res) => {
     });
 
     if (!teacher) {
-      return res.status(403).json({
-        message: "Teacher profile not found for this user",
-      });
+      throw new AppError("Teacher profile not found for this user", 404, "TEACHER_NOT_FOUND");
     }
 
-    // 2️⃣ Fetch sessions for this teacher
-    const sessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      teacher_id: teacher._id,
-    })
-      .populate("subject_id", "name code")
-      .populate("course_id", "name")
-      .sort({ lectureDate: -1, lectureNumber: -1 });
+    // 2️⃣ Check if teacher is HOD of their department
+    const isHod = await Department.findOne({
+      _id: teacher.department_id,
+      hod_id: teacher._id
+    });
 
-    res.status(200).json(sessions);
+    // 3️⃣ Fetch sessions based on role
+    let sessions;
+    if (isHod) {
+      // HOD can see all sessions in their department
+      sessions = await AttendanceSession.find({
+        college_id: req.college_id,
+        department_id: teacher.department_id,
+      })
+        .populate("subject_id", "name code")
+        .populate("course_id", "name")
+        .sort({ lectureDate: -1, lectureNumber: -1 });
+    } else {
+      // Regular teacher sees only their own sessions
+      sessions = await AttendanceSession.find({
+        college_id: req.college_id,
+        teacher_id: teacher._id,
+      })
+        .populate("subject_id", "name code")
+        .populate("course_id", "name")
+        .sort({ lectureDate: -1, lectureNumber: -1 });
+    }
+
+    // 4️⃣ Return sessions with snapshot info
+    const sessionsWithSnapshot = sessions.map(session => {
+      const sessionObj = session.toObject();
+
+      // Use snapshot data if available (for historical accuracy)
+      if (sessionObj.slotSnapshot) {
+        return {
+          ...sessionObj,
+          // Snapshot takes precedence for historical data
+          subject: {
+            _id: sessionObj.slotSnapshot.subject_id,
+            name: sessionObj.slotSnapshot.subject_name,
+            code: sessionObj.slotSnapshot.subject_code
+          },
+          slotDetails: {
+            day: sessionObj.slotSnapshot.day,
+            startTime: sessionObj.slotSnapshot.startTime,
+            endTime: sessionObj.slotSnapshot.endTime,
+            room: sessionObj.slotSnapshot.room,
+            slotType: sessionObj.slotSnapshot.slotType,
+            teacher: {
+              _id: sessionObj.slotSnapshot.teacher_id,
+              name: sessionObj.slotSnapshot.teacher_name
+            }
+          },
+          hasSnapshot: true
+        };
+      }
+
+      return sessionObj;
+    });
+
+    res.status(200).json(sessionsWithSnapshot);
   } catch (error) {
-    console.error("Get Attendance Sessions Error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -772,5 +905,92 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET TODAY'S SLOTS FOR TEACHER (FOR ATTENDANCE)
+   GET /attendance/today-slots
+   Purpose: Show slots for today where teacher can start attendance
+========================================================= */
+exports.getTodaySlotsForTeacher = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+    const userId = req.user.id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: userId,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    // Get today's day name
+    const today = new Date();
+    const todayDayName = getDayName(today);
+    const todayStr = today.toISOString().split('T')[0];
+
+    console.log(`📅 Today: ${todayStr} (${todayDayName})`);
+
+    // Find all PUBLISHED timetables for teacher's department
+    const slots = await TimetableSlot.find({
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      day: todayDayName,
+    })
+      .populate('subject_id', 'name code')
+      .populate('timetable_id', 'name status semester academicYear')
+      .populate('course_id', 'name')
+      .sort({ startTime: 1 });
+
+    // Filter only slots from PUBLISHED timetables
+    const publishedSlots = slots.filter(slot => 
+      slot.timetable_id?.status === 'PUBLISHED'
+    );
+
+    // Check if attendance session already exists for each slot
+    const slotsWithSessionStatus = await Promise.all(
+      publishedSlots.map(async (slot) => {
+        // Check for existing sessions today for this slot
+        const existingSessions = await AttendanceSession.find({
+          slot_id: slot._id,
+          lectureDate: {
+            $gte: new Date(todayStr),
+            $lt: new Date(new Date(todayStr).getTime() + 24 * 60 * 60 * 1000)
+          }
+        });
+
+        const hasOpenSession = existingSessions.some(s => s.status === 'OPEN');
+        const hasClosedSession = existingSessions.some(s => s.status === 'CLOSED');
+        const sessionCount = existingSessions.length;
+
+        return {
+          ...slot.toObject(),
+          canStartAttendance: !hasOpenSession && !hasClosedSession,
+          hasOpenSession,
+          hasClosedSession,
+          sessionCount,
+          message: hasOpenSession 
+            ? 'Attendance session already open' 
+            : hasClosedSession 
+              ? `Attendance already closed (${sessionCount} sessions)` 
+              : 'Can start attendance'
+        };
+      })
+    );
+
+    res.json({
+      today: todayStr,
+      dayName: todayDayName,
+      totalSlots: slotsWithSessionStatus.length,
+      availableForAttendance: slotsWithSessionStatus.filter(s => s.canStartAttendance).length,
+      slots: slotsWithSessionStatus
+    });
+
+  } catch (error) {
+    next(error);
   }
 };

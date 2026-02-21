@@ -3,6 +3,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const { getValidDatesForSlot, getDayName } = require("../utils/date.utils");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -24,6 +25,13 @@ exports.createTimetable = async (req, res) => {
     }
 
     const { department_id, course_id, semester, academicYear } = req.body;
+
+    // 🔒 SECURITY: Ensure teacher can only create timetable for their own department
+    if (teacher.department_id.toString() !== department_id) {
+      return res.status(403).json({ 
+        message: "Access denied: You can only create timetables for your own department" 
+      });
+    }
 
     const department = await Department.findOne({
       _id: department_id,
@@ -94,31 +102,112 @@ exports.publishTimetable = async (req, res) => {
    GET TIMETABLE BY ID
 ========================================================= */
 exports.getTimetableById = async (req, res) => {
-  const timetable = await Timetable.findOne({
-    _id: req.params.id,
-    college_id: req.college_id,
-  })
-    .populate("department_id", "name")
-    .populate("course_id", "name");
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    })
+      .populate("department_id", "name")
+      .populate("course_id", "name");
 
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Get all slots for this timetable
+    const slots = await TimetableSlot.find({
+      timetable_id: timetable._id,
+      college_id: req.college_id,
+    })
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name email");
+
+    // Add valid dates for each slot
+    const slotsWithDates = slots.map(slot => {
+      const validDates = getValidDatesForSlot(
+        slot.day,
+        timetable.academicYear,
+        timetable.semester
+      );
+
+      return {
+        ...slot.toObject(),
+        validDates: validDates.map(d => ({
+          date: d.toISOString().split('T')[0],
+          dayName: getDayName(d)
+        }))
+      };
+    });
+
+    res.json({
+      timetable,
+      slots: slotsWithDates,
+      message: "Timetable with valid dates retrieved successfully"
+    });
+  } catch (error) {
+    console.error("Get Timetable Error:", error);
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(timetable);
 };
 
 /* =========================================================
    LIST TIMETABLES
 ========================================================= */
 exports.getTimetables = async (req, res) => {
-  const filter = { college_id: req.college_id };
-  if (req.query.department_id) {
-    filter.department_id = req.query.department_id;
-  }
+  try {
+    const filter = { college_id: req.college_id };
+    
+    // If teacher, restrict to their department OR courses they teach
+    if (req.user.role === "TEACHER") {
+      const teacher = await Teacher.findOne({ user_id: req.user.id });
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher profile not found" });
+      }
+      
+      // Check if teacher is HOD of their department
+      const isHod = await Department.findOne({
+        _id: teacher.department_id,
+        hod_id: teacher._id
+      });
+      
+      if (isHod) {
+        // HOD can see all timetables in their department
+        filter.department_id = teacher.department_id;
+      } else {
+        // Regular teacher: Get courses they teach
+        const teacherCourses = teacher.courses || [];
+        if (teacherCourses.length === 0) {
+          return res.json([]); // No courses assigned
+        }
+        filter.course_id = { $in: teacherCourses };
+      }
+    }
+    
+    // Allow department filter override for HOD/Admin
+    if (req.query.department_id) {
+      // Only allow if user is HOD of that department or admin
+      if (req.user.role === "TEACHER") {
+        const teacher = await Teacher.findOne({ user_id: req.user.id });
+        const department = await Department.findOne({
+          _id: req.query.department_id,
+          hod_id: teacher._id
+        });
+        
+        if (!department) {
+          return res.status(403).json({ 
+            message: "Access denied: You can only view timetables for your department" 
+          });
+        }
+      }
+      filter.department_id = req.query.department_id;
+    }
 
-  const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
-  res.json(timetables);
+    const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
+    res.json(timetables);
+  } catch (error) {
+    console.error("Get Timetables Error:", error);
+    res.status(500).json({ message: "Failed to fetch timetables" });
+  }
 };
 
 /* =========================================================
@@ -209,25 +298,50 @@ exports.getStudentTimetable = async (req, res) => {
    WEEKLY TIMETABLE — HOD (FULL VIEW)
 ========================================================= */
 exports.getWeeklyTimetableById = async (req, res) => {
-  const timetable = await Timetable.findOne({
-    _id: req.params.timetableId,
-    college_id: req.college_id,
-  });
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.timetableId,
+      college_id: req.college_id,
+    });
 
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // 🔒 SECURITY: Check if user has access to this department's timetable
+    if (req.user.role === "TEACHER") {
+      const teacher = await Teacher.findOne({ user_id: req.user.id });
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher profile not found" });
+      }
+
+      const isSameDepartment = teacher.department_id.toString() === timetable.department_id.toString();
+      const isHodOfDepartment = await Department.findOne({
+        _id: timetable.department_id,
+        hod_id: teacher._id
+      });
+
+      if (!isSameDepartment && !isHodOfDepartment) {
+        return res.status(403).json({
+          message: "Access denied: You can only view timetables for your department"
+        });
+      }
+    }
+
+    const slots = await TimetableSlot.find({
+      timetable_id: timetable._id,
+    })
+      .populate("subject_id", "name")
+      .populate("teacher_id", "name");
+
+    const weekly = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] };
+    slots.forEach(s => weekly[s.day].push(s));
+
+    res.json({ timetable, weekly });
+  } catch (error) {
+    console.error("Get Weekly Timetable Error:", error);
+    res.status(500).json({ message: "Failed to fetch weekly timetable" });
   }
-
-  const slots = await TimetableSlot.find({
-    timetable_id: timetable._id,
-  })
-    .populate("subject_id", "name")
-    .populate("teacher_id", "name");
-
-  const weekly = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] };
-  slots.forEach(s => weekly[s.day].push(s));
-
-  res.json({ timetable, weekly });
 };
 
 /* =========================================================

@@ -9,8 +9,16 @@ app.use(cors({
   credentials: true,
   origin: process.env.CLIENT_URL || "http://localhost:5173"  // Adjust this to your frontend URL
 }));
-app.use(express.json());
 app.use(cookieParser());
+
+/* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
+// Stripe webhook needs raw body, so we handle it separately
+app.use("/api/stripe/webhook", require("./src/webhooks/stripe.webhook").handleStripeWebhook);
+
+/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
+app.use(express.json());
+
+app.use("/health-check", require("./src/routes/health.routes"))
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
@@ -34,6 +42,7 @@ app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
+app.use("/api/reports/dashboard", require("./src/routes/reportDashboard.routes"));
 app.use("/api/reports", require("./src/routes/reports.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
 app.use("/api/notifications", require("./src/routes/notification.routes"));

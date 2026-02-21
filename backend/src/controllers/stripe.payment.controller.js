@@ -1,5 +1,9 @@
 const stripe = require("../services/stripe.service");
 const StudentFee = require("../models/studentFee.model");
+const Student = require("../models/student.model");
+const College = require("../models/college.model");
+const Course = require("../models/course.model");
+const { sendPaymentReceiptEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 exports.createCheckoutSession = async (req, res, next) => {
@@ -82,18 +86,27 @@ exports.confirmStripePayment = async (req, res, next) => {
 
     const { installmentName } = session.metadata;
 
-    const studentFee = await StudentFee.findOne({ student_id: studentId });
+    // ✅ Find student by user_id (don't filter by college_id)
+    const student = await Student.findOne({
+      user_id: userId
+    });
+
+    if (!student) {
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    // Find student fee record using student._id
+    const studentFee = await StudentFee.findOne({
+      student_id: student._id
+    });
+
     if (!studentFee) {
       throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
     }
 
     const installment = studentFee.installments.find(
-      (i) => i.name === installmentName,
+      (i) => i.name === installmentName
     );
-
-    /* if (!installment || installment.status === "PAID") {
-      return res.json({ message: "Installment already processed" });
-    } */
 
     if (!installment) {
       throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
@@ -137,6 +150,31 @@ exports.confirmStripePayment = async (req, res, next) => {
       .reduce((sum, i) => sum + i.amount, 0);
 
     await studentFee.save();
+
+    // 📧 Send payment confirmation email (non-blocking)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select('name email');
+        const course = await Course.findById(student.course_id).select('name');
+        
+        await sendPaymentReceiptEmail({
+          to: student.email,
+          studentName: student.fullName,
+          installment: {
+            name: installment.name,
+            amount: installment.amount,
+            paidAt: installment.paidAt,
+            transactionId: installment.transactionId
+          },
+          totalFee: studentFee.totalFee,
+          paidAmount: studentFee.paidAmount,
+          remainingAmount: studentFee.totalFee - studentFee.paidAmount
+        });
+        console.log(`✅ Payment receipt email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send payment receipt email:', emailError.message);
+      }
+    })();
 
     return res.json({
       installment: {

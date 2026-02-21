@@ -22,11 +22,21 @@ const {
   getTeacherCourses,
   getTeacherSubjectsByCourse,
   getStudentAttendanceReport,
+  getTodaySlotsForTeacher,
 } = require("../controllers/attendance.controller");
 
 /* =========================================================
    ATTENDANCE SESSION APIs (Teacher)
 ========================================================= */
+
+// ➕ NEW: Get today's slots for teacher (for easy attendance start)
+router.get(
+  "/today-slots",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTodaySlotsForTeacher
+);
 
 // ➕ Create attendance session
 router.post(

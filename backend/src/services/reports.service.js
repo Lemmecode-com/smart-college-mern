@@ -19,11 +19,18 @@ exports.admissionSummary = async (college_id) => {
     college_id,
     status: "PENDING"
   });
+  const rejected = await Student.countDocuments({
+    college_id,
+    status: "REJECTED"
+  });
 
   return {
-    totalStudents: total,
+    total,
     approved,
-    pending
+    pending,
+    rejected,
+    approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
+    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0
   };
 };
 
@@ -79,11 +86,16 @@ exports.paymentSummary = async (college_id) => {
   ]);
 
   const data = result[0] || { totalExpected: 0, totalPaid: 0 };
+  const total = data.totalExpected;
+  const collected = data.totalPaid;
+  const pending = total - collected;
+  const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
 
   return {
-    totalExpectedFee: data.totalExpected,
-    totalCollected: data.totalPaid,
-    totalPending: data.totalExpected - data.totalPaid
+    total,
+    collected,
+    pending,
+    collectionRate
   };
 };
 
@@ -94,9 +106,21 @@ exports.studentPaymentStatus = async (college_id, status) => {
   const query = { college_id };
   if (status) query.paymentStatus = status;
 
-  return StudentFee.find(query)
+  const fees = await StudentFee.find(query)
     .populate("student_id", "fullName email")
+    .populate("course_id", "name")
     .select("totalFee paidAmount paymentStatus installments");
+
+  // Transform to expected format
+  return fees.map(fee => ({
+    name: fee.student_id?.fullName || 'N/A',
+    email: fee.student_id?.email || '',
+    course: fee.course_id?.name || 'N/A',
+    totalFee: fee.totalFee || 0,
+    paid: fee.paidAmount || 0,
+    pending: (fee.totalFee || 0) - (fee.paidAmount || 0),
+    status: fee.paymentStatus || 'DUE'
+  }));
 };
 
 /**
@@ -119,12 +143,12 @@ exports.attendanceSummary = async (college_id) => {
   ]);
 
   const data = result[0] || { total: 0, present: 0 };
+  const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
 
   return {
-    totalRecords: data.total,
-    averageAttendance: data.total
-      ? Math.round((data.present / data.total) * 100)
-      : 0
+    percentage,
+    totalSessions: data.total,
+    averageAttendance: data.present
   };
 };
 
@@ -132,7 +156,7 @@ exports.attendanceSummary = async (college_id) => {
  * LOW ATTENDANCE STUDENTS (COLLEGE)
  */
 exports.studentAttendanceReport = async (college_id, minPercentage) => {
-  return AttendanceRecord.aggregate([
+  const records = await AttendanceRecord.aggregate([
     { $match: { college_id } },
     {
       $group: {
@@ -148,6 +172,8 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
     {
       $project: {
         student_id: "$_id",
+        total: 1,
+        present: 1,
         percentage: {
           $multiply: [{ $divide: ["$present", "$total"] }, 100]
         }
@@ -155,6 +181,25 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
     },
     { $match: { percentage: { $lt: minPercentage } } }
   ]);
+
+  // Enrich with student details
+  const Student = require("../models/student.model");
+  const enriched = await Promise.all(
+    records.map(async (record) => {
+      const student = await Student.findById(record.student_id)
+        .populate("course_id", "name")
+        .select("fullName");
+      
+      return {
+        name: student?.fullName || 'Unknown',
+        course: student?.course_id?.name || 'N/A',
+        attendance: Math.round(record.percentage),
+        status: record.percentage < 50 ? 'CRITICAL' : 'WARNING'
+      };
+    })
+  );
+
+  return enriched;
 };
 
 /* =====================================================

@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
  * Reusable Export Buttons Component
  * @param {string} title - Report title for PDF header
  * @param {Array} columns - Column definitions [{header: 'Name', key: 'name'}]
- * @param {Array} data - Data to export
+ * @param {Array} data - Data to export (can be array or async function that returns array)
  * @param {string} filename - Base filename (without extension)
  * @param {boolean} showPDF - Show PDF button (default: true)
  * @param {boolean} showExcel - Show Excel button (default: true)
@@ -23,26 +23,33 @@ export default function ExportButtons({
   const [exporting, setExporting] = useState(null); // 'pdf', 'excel', or null
 
   const handleExport = async (format) => {
-    if (!data || data.length === 0) {
-      toast.warning('No data to export!', {
-        position: 'top-right',
-        autoClose: 3000
-      });
-      return;
-    }
-
     setExporting(format);
 
     try {
+      // Fetch fresh data if data is a function, otherwise use provided data
+      let exportData = data;
+      if (typeof data === 'function') {
+        exportData = await data();
+      }
+
+      if (!exportData || exportData.length === 0) {
+        toast.warning('No data to export!', {
+          position: 'top-right',
+          autoClose: 3000
+        });
+        setExporting(null);
+        return;
+      }
+
       let result;
       const timestamp = new Date().toISOString().split('T')[0];
-      
+
       switch (format) {
         case 'pdf':
           result = await exportToPDF(
             title,
             columns,
-            data,
+            exportData,
             `${filename}_${timestamp}.pdf`
           );
           break;
@@ -50,7 +57,7 @@ export default function ExportButtons({
           result = await exportToExcel(
             title,
             columns,
-            data,
+            exportData,
             `${filename}_${timestamp}.xlsx`
           );
           break;
