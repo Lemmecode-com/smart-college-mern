@@ -56,6 +56,7 @@ export default function ReportDashboard() {
   const [attendanceData, setAttendanceData] = useState(null);
   const [studentPayments, setStudentPayments] = useState([]);
   const [lowAttendanceStudents, setLowAttendanceStudents] = useState([]);
+  const [courses, setCourses] = useState([]); // Dynamic courses list
 
   // Filter States
   const [courseFilter, setCourseFilter] = useState("");
@@ -84,98 +85,132 @@ export default function ReportDashboard() {
     return classes[status] || "badge-default";
   };
 
-  // Prepare admission data for export
-  const getAdmissionExportData = () => {
-    if (!admissionData) return [];
-    return [
-      { metric: "Total Students", value: admissionData.total ?? 0 },
-      { metric: "Approved", value: admissionData.approved ?? 0 },
-      { metric: "Pending", value: admissionData.pending ?? 0 },
-      { metric: "Rejected", value: admissionData.rejected ?? 0 },
-      { metric: "Approval Rate", value: `${admissionData.approvedPercentage ?? 0}%` },
-      { metric: "Pending Rate", value: `${admissionData.pendingPercentage ?? 0}%` },
-    ];
+  // Prepare admission data for export (fetches fresh data)
+  const getAdmissionExportData = async () => {
+    try {
+      const res = await api.get("/reports/admissions/college-admin-summary");
+      const data = res.data;
+      return [
+        { metric: "Total Students", value: data.total ?? 0 },
+        { metric: "Approved", value: data.approved ?? 0 },
+        { metric: "Pending", value: data.pending ?? 0 },
+        { metric: "Rejected", value: data.rejected ?? 0 },
+        { metric: "Approval Rate", value: `${data.approvedPercentage ?? 0}%` },
+        { metric: "Pending Rate", value: `${data.pendingPercentage ?? 0}%` },
+      ];
+    } catch (error) {
+      console.error("Error fetching admission data:", error);
+      return [];
+    }
   };
 
-  // Prepare payment data for export
-  const getPaymentExportData = () => {
-    if (!paymentData) return [];
-    return [
-      { metric: "Total Expected Fee", value: formatCurrency(paymentData.total ?? 0) },
-      { metric: "Total Collected", value: formatCurrency(paymentData.collected ?? 0) },
-      { metric: "Total Pending", value: formatCurrency((paymentData.total ?? 0) - (paymentData.collected ?? 0)) },
-      { metric: "Collection Rate", value: `${paymentData.collectionRate ?? 0}%` },
-    ];
+  // Prepare payment data for export (fetches fresh data)
+  const getPaymentExportData = async () => {
+    try {
+      const res = await api.get("/reports/payments/summary");
+      const data = res.data;
+      return [
+        { metric: "Total Expected Fee", value: formatCurrency(data.total ?? 0) },
+        { metric: "Total Collected", value: formatCurrency(data.collected ?? 0) },
+        { metric: "Total Pending", value: formatCurrency(data.pending ?? 0) },
+        { metric: "Collection Rate", value: `${data.collectionRate ?? 0}%` },
+      ];
+    } catch (error) {
+      console.error("Error fetching payment data:", error);
+      return [];
+    }
   };
 
-  // Prepare student payment details for export
-  const getStudentPaymentsExportData = () => {
-    return filteredStudentPayments.map(student => ({
-      name: student.name,
-      course: student.course,
-      totalFee: formatCurrency(student.totalFee ?? 0),
-      paid: formatCurrency(student.paid ?? 0),
-      pending: formatCurrency((student.totalFee ?? 0) - (student.paid ?? 0)),
-      status: student.status || 'DUE'
-    }));
+  // Prepare student payment details for export (fetches fresh data)
+  const getStudentPaymentsExportData = async () => {
+    try {
+      const res = await api.get("/reports/payments/students");
+      const data = res.data;
+      return data.map(student => ({
+        name: student.name || 'N/A',
+        course: student.course || 'N/A',
+        totalFee: formatCurrency(student.totalFee ?? 0),
+        paid: formatCurrency(student.paid ?? 0),
+        pending: formatCurrency(student.pending ?? 0),
+        status: student.status || 'DUE'
+      }));
+    } catch (error) {
+      console.error("Error fetching student payment data:", error);
+      return [];
+    }
   };
 
-  // Prepare attendance data for export
-  const getAttendanceExportData = () => {
-    if (!attendanceData) return [];
-    return [
-      { metric: "Overall Attendance", value: `${attendanceData.percentage ?? 0}%` },
-      { metric: "Total Sessions", value: attendanceData.totalSessions ?? 0 },
-      { metric: "Average Attendance", value: attendanceData.averageAttendance ?? 0 },
-    ];
+  // Prepare attendance data for export (fetches fresh data)
+  const getAttendanceExportData = async () => {
+    try {
+      const res = await api.get("/reports/attendance/summary");
+      const data = res.data;
+      return [
+        { metric: "Overall Attendance", value: `${data.percentage ?? 0}%` },
+        { metric: "Total Sessions", value: data.totalSessions ?? 0 },
+        { metric: "Average Attendance", value: data.averageAttendance ?? 0 },
+      ];
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      return [];
+    }
   };
 
-  // Prepare low attendance students data for export
-  const getLowAttendanceExportData = () => {
-    return filteredLowAttendance.map(student => ({
-      name: student.name,
-      course: student.course,
-      attendance: `${student.attendance ?? 0}%`,
-      status: student.status || 'LOW'
-    }));
+  // Prepare low attendance students data for export (fetches fresh data)
+  const getLowAttendanceExportData = async () => {
+    try {
+      const res = await api.get("/reports/attendance/low-attendance");
+      const data = res.data;
+      return data.map(student => ({
+        name: student.name || 'N/A',
+        course: student.course || 'N/A',
+        attendance: `${student.attendance ?? 0}%`,
+        status: student.status || 'LOW'
+      }));
+    } catch (error) {
+      console.error("Error fetching low attendance data:", error);
+      return [];
+    }
   };
 
   // ================= EXPORT ALL FUNCTIONALITY =================
   const handleExportAll = async (format) => {
-    if (!admissionData || !paymentData || !attendanceData) {
-      setToast({ type: 'warning', message: 'Data not loaded. Please refresh first.' });
-      return;
-    }
-
-    setExporting(true);
-
+    // Always fetch fresh data before export
     try {
+      setLoading(true);
+      const res = await api.get("/reports/dashboard/all");
+      if (!res.data.success) {
+        throw new Error('Failed to fetch data');
+      }
+      
+      const freshData = res.data.data;
+      
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `comprehensive_report_${timestamp}`;
 
-      // Create comprehensive data sections - ALL fields included even if 0
+      // Create comprehensive data sections with FRESH data
       const comprehensiveData = [
         // Section 1: Admission Summary
         { section: 'ADMISSION SUMMARY', metric: '', value: '' },
-        { metric: 'Total Students', value: admissionData.total ?? 0 },
-        { metric: 'Approved', value: admissionData.approved ?? 0 },
-        { metric: 'Pending', value: admissionData.pending ?? 0 },
-        { metric: 'Rejected', value: admissionData.rejected ?? 0 },
-        { metric: 'Approval Rate', value: `${admissionData.approvedPercentage ?? 0}%` },
-        { metric: 'Pending Rate', value: `${admissionData.pendingPercentage ?? 0}%` },
+        { metric: 'Total Students', value: freshData.admissionSummary.total ?? 0 },
+        { metric: 'Approved', value: freshData.admissionSummary.approved ?? 0 },
+        { metric: 'Pending', value: freshData.admissionSummary.pending ?? 0 },
+        { metric: 'Rejected', value: freshData.admissionSummary.rejected ?? 0 },
+        { metric: 'Approval Rate', value: `${freshData.admissionSummary.approvedPercentage ?? 0}%` },
+        { metric: 'Pending Rate', value: `${freshData.admissionSummary.pendingPercentage ?? 0}%` },
         
         // Section 2: Payment Summary
         { section: 'PAYMENT SUMMARY', metric: '', value: '' },
-        { metric: 'Total Expected Fee', value: formatCurrency(paymentData.total ?? 0) },
-        { metric: 'Total Collected', value: formatCurrency(paymentData.collected ?? 0) },
-        { metric: 'Total Pending', value: formatCurrency((paymentData.total ?? 0) - (paymentData.collected ?? 0)) },
-        { metric: 'Collection Rate', value: `${paymentData.collectionRate ?? 0}%` },
+        { metric: 'Total Expected Fee', value: formatCurrency(freshData.paymentSummary.total ?? 0) },
+        { metric: 'Total Collected', value: formatCurrency(freshData.paymentSummary.collected ?? 0) },
+        { metric: 'Total Pending', value: formatCurrency(freshData.paymentSummary.pending ?? 0) },
+        { metric: 'Collection Rate', value: `${freshData.paymentSummary.collectionRate ?? 0}%` },
         
         // Section 3: Attendance Summary
         { section: 'ATTENDANCE SUMMARY', metric: '', value: '' },
-        { metric: 'Overall Attendance', value: `${attendanceData.percentage ?? 0}%` },
-        { metric: 'Total Sessions', value: attendanceData.totalSessions ?? 0 },
-        { metric: 'Average Attendance', value: attendanceData.averageAttendance ?? 0 },
+        { metric: 'Overall Attendance', value: `${freshData.attendanceSummary.percentage ?? 0}%` },
+        { metric: 'Total Sessions', value: freshData.attendanceSummary.totalSessions ?? 0 },
+        { metric: 'Average Attendance', value: freshData.attendanceSummary.averageAttendance ?? 0 },
       ];
 
       const columns = [
@@ -211,13 +246,14 @@ export default function ReportDashboard() {
       console.error('Export All error:', error);
       setToast({ type: 'error', message: 'Export failed. Please try again.' });
     } finally {
-      setTimeout(() => setExporting(false), 500);
+      setLoading(false);
     }
   };
 
   // ================= FETCH DATA =================
   useEffect(() => {
     fetchAllReports();
+    fetchCourses(); // Fetch courses for filter dropdown
   }, []);
 
   const fetchAllReports = async () => {
@@ -225,31 +261,21 @@ export default function ReportDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch all reports in parallel from API endpoints
-      const [admissionRes, paymentRes, attendanceRes] = await Promise.all([
-        api.get("/reports/admissions/college-admin-summary"),
-        api.get("/reports/payments/summary"),
-        api.get("/reports/attendance/summary"),
-      ]);
+      // SINGLE API CALL - Fetch all reports from one endpoint
+      const res = await api.get("/reports/dashboard/all");
 
-      setAdmissionData(admissionRes.data);
-      setPaymentData(paymentRes.data);
-      setAttendanceData(attendanceRes.data);
+      if (res.data.success) {
+        const data = res.data.data;
+        
+        // Set all report data
+        setAdmissionData(data.admissionSummary);
+        setPaymentData(data.paymentSummary);
+        setStudentPayments(data.studentPaymentStatus || []);
+        setAttendanceData(data.attendanceSummary);
+        setLowAttendanceStudents(data.lowAttendanceStudents || []);
 
-      // Extract low attendance students from attendance data if available
-      // Or fetch from a separate endpoint if needed
-      if (attendanceRes.data?.lowAttendanceStudents) {
-        setLowAttendanceStudents(attendanceRes.data.lowAttendanceStudents);
-      } else {
-        // Fallback to static data if API doesn't provide it
-        setLowAttendanceStudents(getStaticLowAttendanceStudents());
+        showToast("Reports loaded successfully!", "success");
       }
-
-      // Fetch student payment data from API if available
-      // For now using static data - replace with actual API call
-      setStudentPayments(getStaticStudentPayments());
-
-      showToast("Reports loaded successfully!", "success");
     } catch (err) {
       console.error("Error fetching reports:", err);
       setError(
@@ -261,69 +287,57 @@ export default function ReportDashboard() {
     }
   };
 
-  // ================= STATIC DATA (Replace with API when available) =================
-  const getStaticStudentPayments = () => [
-    {
-      _id: "1",
-      name: "Rahul Sharma",
-      course: "Computer Science",
-      totalFee: 95000,
-      paid: 45000,
-      pending: 50000,
-      status: "PARTIAL",
-    },
-    {
-      _id: "2",
-      name: "Priya Patel",
-      course: "Information Technology",
-      totalFee: 95000,
-      paid: 95000,
-      pending: 0,
-      status: "PAID",
-    },
-    {
-      _id: "3",
-      name: "Amit Kumar",
-      course: "Computer Science",
-      totalFee: 95000,
-      paid: 0,
-      pending: 95000,
-      status: "DUE",
-    },
-    {
-      _id: "4",
-      name: "Sneha Singh",
-      course: "Mechanical Engineering",
-      totalFee: 85000,
-      paid: 85000,
-      pending: 0,
-      status: "PAID",
-    },
-  ];
+  const fetchCourses = async () => {
+    try {
+      const res = await api.get("/courses");
+      if (res.data && Array.isArray(res.data)) {
+        setCourses(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+      // Silently fail - filters will still work
+    }
+  };
 
-  const getStaticLowAttendanceStudents = () => [
-    {
-      _id: "1",
-      name: "Vikram Yadav",
-      course: "Computer Science",
-      attendance: 65,
-      status: "WARNING",
-    },
-    {
-      _id: "2",
-      name: "Anjali Desai",
-      course: "Information Technology",
-      attendance: 70,
-      status: "WARNING",
-    },
-    {
-      _id: "3",
-      name: "Rohan Mehta",
-      course: "Mechanical Engineering",
-      attendance: 58,
-      status: "CRITICAL",
-    },
-  ];
+  // ================= FILTER HANDLERS =================
+  const handleCourseFilter = (course) => {
+    setCourseFilter(course);
+    // Refetch with filter
+    fetchReportsWithFilters(course, paymentStatusFilter, searchQuery);
+  };
+
+  const handlePaymentStatusFilter = (status) => {
+    setPaymentStatusFilter(status);
+    // Refetch with filter
+    fetchReportsWithFilters(courseFilter, status, searchQuery);
+  };
+
+  const handleSearch = (search) => {
+    setSearchQuery(search);
+    // Debounced search
+    setTimeout(() => {
+      fetchReportsWithFilters(courseFilter, paymentStatusFilter, search);
+    }, 500);
+  };
+
+  const fetchReportsWithFilters = async (course, status, search) => {
+    try {
+      const params = new URLSearchParams();
+      if (course) params.append('course', course);
+      if (status) params.append('status', status);
+      if (search) params.append('search', search);
+
+      const res = await api.get(`/reports/dashboard/all?${params}`);
+
+      if (res.data.success) {
+        const data = res.data.data;
+        setStudentPayments(data.studentPaymentStatus || []);
+        setLowAttendanceStudents(data.lowAttendanceStudents || []);
+      }
+    } catch (err) {
+      console.error("Error filtering reports:", err);
+    }
+  };
 
   // ================= TOAST NOTIFICATIONS =================
   const showToast = (message, type = "info") => {
@@ -369,21 +383,6 @@ export default function ReportDashboard() {
           name: "Rejected",
           value: admissionData.rejected || 0,
           color: "#dc3545",
-        },
-      ]
-    : [];
-
-  const paymentBarData = paymentData
-    ? [
-        {
-          name: "Collected",
-          amount: paymentData.collected || 0,
-          fill: "#28a745",
-        },
-        {
-          name: "Pending",
-          amount: paymentData.pending || 0,
-          fill: "#dc3545",
         },
       ]
     : [];
@@ -545,7 +544,7 @@ export default function ReportDashboard() {
                   { header: 'Metric', key: 'metric' },
                   { header: 'Value', key: 'value' }
                 ]}
-                data={getAdmissionExportData()}
+                data={getAdmissionExportData}
                 filename="admission_summary"
                 showCSV={false}
               />
@@ -630,7 +629,7 @@ export default function ReportDashboard() {
                   { header: 'Metric', key: 'metric' },
                   { header: 'Value', key: 'value' }
                 ]}
-                data={getPaymentExportData()}
+                data={getPaymentExportData}
                 filename="payment_summary"
                 showCSV={false}
               />
@@ -645,19 +644,19 @@ export default function ReportDashboard() {
               <div className="payment-stat">
                 <span className="payment-label">Total Expected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.total || 0)}
+                  {formatCurrency(paymentData?.totalExpectedFee || 0)}
                 </span>
               </div>
               <div className="payment-stat collected">
                 <span className="payment-label">Total Collected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.collected || 0)}
+                  {formatCurrency(paymentData?.totalCollected || 0)}
                 </span>
               </div>
               <div className="payment-stat pending">
                 <span className="payment-label">Total Pending</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.pending || 0)}
+                  {formatCurrency(paymentData?.totalPending || 0)}
                 </span>
               </div>
               <div className="payment-stat rate">
@@ -670,13 +669,13 @@ export default function ReportDashboard() {
 
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={paymentBarData}>
+                <BarChart data={paymentData?.barChartData || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip formatter={(value) => formatCurrency(value)} />
                   <Legend />
-                  <Bar dataKey="amount" name="Amount (₹)" />
+                  <Bar dataKey="amount" name="Amount (₹)" fill="#28a745" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -701,7 +700,7 @@ export default function ReportDashboard() {
                   { header: 'Pending', key: 'pending' },
                   { header: 'Status', key: 'status' }
                 ]}
-                data={getStudentPaymentsExportData()}
+                data={getStudentPaymentsExportData}
                 filename="student_payment_status"
               />
             </div>
@@ -727,9 +726,11 @@ export default function ReportDashboard() {
                 className="filter-select"
               >
                 <option value="">All Courses</option>
-                <option value="Computer Science">Computer Science</option>
-                <option value="Information Technology">IT</option>
-                <option value="Mechanical Engineering">Mechanical</option>
+                {courses.map(course => (
+                  <option key={course._id} value={course.name}>
+                    {course.name}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -800,7 +801,7 @@ export default function ReportDashboard() {
                   { header: 'Metric', key: 'metric' },
                   { header: 'Value', key: 'value' }
                 ]}
-                data={getAttendanceExportData()}
+                data={getAttendanceExportData}
                 filename="attendance_summary"
                 showCSV={false}
               />
@@ -870,7 +871,7 @@ export default function ReportDashboard() {
                   { header: 'Attendance %', key: 'attendance' },
                   { header: 'Status', key: 'status' }
                 ]}
-                data={getLowAttendanceExportData()}
+                data={getLowAttendanceExportData}
                 filename="low_attendance_students"
               />
               <select
@@ -885,6 +886,18 @@ export default function ReportDashboard() {
                 <option value="Mechanical Engineering">Mechanical</option>
               </select>
             </div>
+            <select
+              value={attendanceCourseFilter}
+              onChange={(e) => setAttendanceCourseFilter(e.target.value)}
+              className="filter-select-small"
+            >
+              <option value="">All Courses</option>
+              {courses.map(course => (
+                <option key={course._id} value={course.name}>
+                  {course.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="card-body">
@@ -896,7 +909,6 @@ export default function ReportDashboard() {
                     <th>Course</th>
                     <th>Attendance %</th>
                     <th>Status</th>
-                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -928,11 +940,6 @@ export default function ReportDashboard() {
                         >
                           {student.status}
                         </span>
-                      </td>
-                      <td>
-                        <button className="btn-action">
-                          <FaEye /> View
-                        </button>
                       </td>
                     </tr>
                   ))}

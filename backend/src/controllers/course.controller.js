@@ -53,6 +53,24 @@ exports.getCoursesByDepartment = async (req, res) => {
   res.json(courses);
 };
 
+/**
+ * READ All Courses (College-wise)
+ */
+exports.getAllCourses = async (req, res) => {
+  try {
+    const courses = await Course.find({
+      college_id: req.college_id
+    })
+      .populate("department_id", "name code")
+      .sort({ name: 1 });
+
+    res.json(courses);
+  } catch (error) {
+    console.error("Get all courses error:", error);
+    res.status(500).json({ message: "Failed to fetch courses" });
+  }
+};
+
 
 /**
  * READ Single Course (by ID)
