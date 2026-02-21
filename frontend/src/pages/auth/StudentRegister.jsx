@@ -10,7 +10,6 @@ import {
   FaCheckCircle,
   FaUpload,
   FaFilePdf,
-  FaImage,
   FaBook,
   FaInfoCircle,
   FaExclamationTriangle,
@@ -41,7 +40,7 @@ export default function StudentRegister() {
     email: "",
     password: "",
     mobileNumber: "",
-    gender: "Female",
+    gender: "",
     dateOfBirth: "",
     category: "GEN",
 
@@ -104,13 +103,18 @@ export default function StudentRegister() {
     const loadDocumentConfig = async () => {
       try {
         setConfigLoading(true);
+        console.log("📥 Loading document config for college:", collegeCode);
         const res = await publicApi.get(`/document-config/${collegeCode}`);
+        
+        console.log("📄 API Response:", res.data);
+        console.log("📋 Documents received:", res.data.documents?.length);
         
         if (res.data && res.data.documents) {
           setDocumentConfig(res.data.documents);
+          console.log("✅ Document config loaded successfully");
         }
       } catch (err) {
-        console.error("Failed to load document config:", err);
+        console.error("❌ Failed to load document config:", err);
         // Use default config if failed
       } finally {
         setConfigLoading(false);
@@ -169,6 +173,22 @@ export default function StudentRegister() {
     if (file) {
       // Validate: Only accept documents that are enabled in config
       const docConfig = documentConfig.find(doc => doc.type === fieldName);
+      
+      // Special handling for category certificate
+      if (!docConfig && fieldName === 'category_certificate') {
+        // Allow upload if category is not GEN
+        if (form.category === 'GEN') {
+          alert(`Category certificate is not required for GEN category`);
+          return;
+        }
+        // If config doesn't exist but category is not GEN, allow it
+        setForm({
+          ...form,
+          [fieldName]: file
+        });
+        return;
+      }
+      
       if (!docConfig) {
         alert(`${fieldName} is not required for this college`);
         return;
@@ -324,12 +344,27 @@ export default function StudentRegister() {
     
     // Validate Document Upload
     if (step === steps.documents) {
+      // If no documents configured, allow submission
+      if (!documentConfig || documentConfig.length === 0) {
+        console.log("⚠️ No documents configured - skipping validation");
+        return true;
+      }
+      
+      console.log("🔍 Validating documents...");
       for (const doc of documentConfig) {
+        // Skip category certificate if category is GEN
+        if (doc.type === 'category_certificate' && form.category === 'GEN') {
+          console.log("⏭️ Skipping category certificate (GEN category)");
+          continue;
+        }
+        
         if (doc.enabled && doc.mandatory && !form[doc.type]) {
+          console.log("❌ Missing required document:", doc.label);
           alert(`Please upload ${doc.label} (Mandatory)`);
           return false;
         }
       }
+      console.log("✅ All documents validated");
       return true;
     }
     
@@ -417,12 +452,36 @@ export default function StudentRegister() {
       formData.append("admissionYear", form.admissionYear);
       formData.append("currentSemester", "1");
 
-      // Append files dynamically based on document config
+      // Append files - Map frontend field names to backend expected field names
+      // Backend expects: sscMarksheet, hscMarksheet, passportPhoto, categoryCertificate
       documentConfig.forEach((doc) => {
         if (form[doc.type]) {
-          formData.append(doc.type, form[doc.type]);
+          console.log("📎 Appending file:", doc.type, form[doc.type]?.name);
+          
+          // Map field names to match backend upload middleware
+          let backendFieldName = doc.type;
+          if (doc.type === "10th_marksheet") {
+            backendFieldName = "sscMarksheet";
+          } else if (doc.type === "12th_marksheet") {
+            backendFieldName = "hscMarksheet";
+          } else if (doc.type === "passport_photo") {
+            backendFieldName = "passportPhoto";
+          } else if (doc.type === "category_certificate") {
+            backendFieldName = "categoryCertificate";
+          }
+          
+          formData.append(backendFieldName, form[doc.type]);
         }
       });
+
+      // Special handling: Append category certificate if category is not GEN
+      if (form.category !== 'GEN' && form.category_certificate) {
+        console.log("📎 Appending category certificate:", form.category_certificate?.name);
+        formData.append("categoryCertificate", form.category_certificate);
+      }
+
+      console.log("📦 FormData prepared for submission");
+      console.log("📦 Form data:", Object.fromEntries(formData));
 
       // Submit with FormData (includes files)
       const response = await publicApi.post(
@@ -438,8 +497,15 @@ export default function StudentRegister() {
       alert(response.data.message || "🎉 Registration successful! Wait for college approval.");
       navigate("/login");
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Registration failed");
+      console.error("❌ Registration Error:", err);
+      console.error("❌ Error Response:", err.response?.data);
+      console.error("❌ Error Status:", err.response?.status);
+      
+      const errorMessage = err.response?.data?.message || "Registration failed";
+      console.error("❌ Error Message:", errorMessage);
+      
+      setError(errorMessage);
+      alert("Registration Failed: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -1025,6 +1091,25 @@ export default function StudentRegister() {
       );
     }
 
+    console.log("📄 Rendering documents - Config length:", documentConfig.length);
+    console.log("📄 Enabled documents:", documentConfig.filter(d => d.enabled).length);
+
+    // Check if no documents are configured
+    if (!documentConfig || documentConfig.length === 0) {
+      return (
+        <div className="text-center py-5">
+          <div className="alert alert-warning">
+            <FaExclamationTriangle className="me-2" size={24} />
+            <h5 className="fw-bold mt-3">No Documents Required</h5>
+            <p className="text-muted">
+              This college has not configured any document requirements yet.
+              Please contact the college administration for more information.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="animate-fade">
         <h5 className="fw-bold mb-3 text-primary">
@@ -1038,34 +1123,60 @@ export default function StudentRegister() {
         </p>
 
         <div className="row g-3">
-          {documentConfig.filter(doc => doc.enabled).map((doc) => (
-            <div className="col-md-6" key={doc.type}>
-              <label className="form-label fw-semibold">
-                {doc.label}
-                {doc.mandatory && <span className="text-danger"> *</span>}
-              </label>
-              <div className="upload-box">
-                <input
-                  type="file"
-                  name={doc.type}
-                  accept={doc.allowedFormats.map(f => `.${f}`).join(',')}
-                  onChange={handleFileChange}
-                  className="form-control"
-                  required={doc.mandatory}
-                />
-                <small className="text-muted">
-                  {doc.allowedFormats.join(', ').toUpperCase()} only
-                  {doc.description && <div className="mt-1">{doc.description}</div>}
-                </small>
-                {form[doc.type] && (
-                  <div className="file-preview mt-2 text-success">
-                    <FaCheckCircle className="me-1" />
-                    {form[doc.type].name}
-                  </div>
-                )}
+          {(() => {
+            const filteredDocs = documentConfig.filter(doc => {
+              // Conditional rendering for category certificate
+              if (doc.type === 'category_certificate') {
+                // Show category certificate only if category is not GEN
+                const shouldShow = doc.enabled && form.category !== 'GEN';
+                console.log("📋 Category Certificate - Enabled:", doc.enabled, "Category:", form.category, "Show:", shouldShow);
+                return shouldShow;
+              }
+              return doc.enabled;
+            });
+            
+            console.log("📄 Filtered documents to render:", filteredDocs.length);
+            console.log("📄 Documents:", filteredDocs.map(d => d.type));
+            
+            return filteredDocs.map((doc) => (
+              <div className="col-md-6" key={doc.type}>
+                <label className="form-label fw-semibold">
+                  {doc.label}
+                  {doc.mandatory && <span className="text-danger"> *</span>}
+                </label>
+                <div className="upload-box">
+                  <input
+                    type="file"
+                    name={doc.type}
+                    accept={doc.allowedFormats.map(f => `.${f}`).join(',')}
+                    onChange={handleFileChange}
+                    className="form-control"
+                    required={doc.mandatory && (doc.type !== 'category_certificate' || form.category !== 'GEN')}
+                  />
+                  <small className="text-muted">
+                    {doc.allowedFormats.join(', ').toUpperCase()} only
+                    {doc.description && <div className="mt-1">{doc.description}</div>}
+                  </small>
+                  {form[doc.type] && (
+                    <div className="file-preview mt-2 text-success">
+                      <FaCheckCircle className="me-1" />
+                      {form[doc.type].name}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ));
+          })()}
+          
+          {/* Show info message for GEN category */}
+          {form.category === 'GEN' && documentConfig.some(doc => doc.type === 'category_certificate' && doc.enabled) && (
+            <div className="col-md-12">
+              <div className="alert alert-info mb-0">
+                <FaInfoCircle className="me-2" />
+                <strong>Category Certificate:</strong> Not required for General (GEN) category students.
               </div>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="alert alert-warning mt-4">

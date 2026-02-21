@@ -1,7 +1,9 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
+const College = require("../models/college.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
+const { sendAdmissionApprovalEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 exports.approveStudent = async (req, res, next) => {
@@ -82,6 +84,26 @@ exports.approveStudent = async (req, res, next) => {
     student.approvedBy = req.user.id;
     student.approvedAt = new Date();
     await student.save();
+
+    // 📧 Send admission approval email (non-blocking)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select('name email');
+        const course = await Course.findById(student.course_id).select('name');
+        
+        await sendAdmissionApprovalEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: course?.name || 'N/A',
+          collegeName: college?.name || 'Our College',
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber
+        });
+        console.log(`✅ Admission approval email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send admission approval email:', emailError.message);
+      }
+    })();
 
     res.json({
       message: "Student approved and fee allocated successfully",

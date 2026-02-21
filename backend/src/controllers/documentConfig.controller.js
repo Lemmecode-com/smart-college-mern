@@ -9,23 +9,31 @@ exports.getDocumentConfig = async (req, res) => {
   try {
     const { collegeCode } = req.params;
 
-    const config = await DocumentConfig.findOne({ 
-      collegeCode, 
-      isActive: true 
+    console.log("📄 Document Config Request - College Code:", collegeCode);
+
+    // Case-insensitive search for college code
+    const config = await DocumentConfig.findOne({
+      collegeCode: { $regex: new RegExp(`^${collegeCode}$`, 'i') },
+      isActive: true
     }).select("documents collegeCode");
 
+    console.log("📄 Database Response:", config ? "Config Found" : "Config Not Found");
+
     if (!config) {
-      // If no config exists, return default configuration
-      const defaultDocuments = DocumentConfig.getDefaultConfig();
+      console.log("⚠️ No config found - returning EMPTY documents array (admin must configure first)");
+      // If no config exists, return empty array - admin must configure documents first
       return res.json({
         collegeCode,
-        documents: defaultDocuments,
-        isDefault: true
+        documents: [],
+        isDefault: false,
+        message: "No document configuration found. Please contact college admin."
       });
     }
 
     // Return only enabled documents
     const enabledDocuments = config.documents.filter(doc => doc.enabled);
+    
+    console.log("✅ Returning", enabledDocuments.length, "enabled documents");
 
     res.json({
       collegeCode,
@@ -33,6 +41,7 @@ exports.getDocumentConfig = async (req, res) => {
       isDefault: false
     });
   } catch (error) {
+    console.error("❌ Error in getDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -81,10 +90,13 @@ exports.upsertDocumentConfig = async (req, res) => {
     const { documents } = req.body;
     const userId = req.user.id;
 
+    console.log("💾 Saving Document Config - College ID:", college_id, "Code:", collegeCode);
+    console.log("📋 Documents count:", documents?.length);
+
     // Validate documents array
     if (!documents || !Array.isArray(documents)) {
-      return res.status(400).json({ 
-        message: "Documents array is required" 
+      return res.status(400).json({
+        message: "Documents array is required"
       });
     }
 
@@ -104,26 +116,26 @@ exports.upsertDocumentConfig = async (req, res) => {
 
     for (const doc of documents) {
       if (!doc.type || !doc.label) {
-        return res.status(400).json({ 
-          message: "Each document must have a type and label" 
+        return res.status(400).json({
+          message: "Each document must have a type and label"
         });
       }
       
       if (doc.type !== "custom_document" && !allowedDocumentTypes.includes(doc.type)) {
-        return res.status(400).json({ 
-          message: `Invalid document type: ${doc.type}` 
+        return res.status(400).json({
+          message: `Invalid document type: ${doc.type}`
         });
       }
 
       if (doc.maxFileSize && (doc.maxFileSize < 1 || doc.maxFileSize > 20)) {
-        return res.status(400).json({ 
-          message: "Max file size must be between 1MB and 20MB" 
+        return res.status(400).json({
+          message: "Max file size must be between 1MB and 20MB"
         });
       }
 
       if (doc.allowedFormats && !Array.isArray(doc.allowedFormats)) {
-        return res.status(400).json({ 
-          message: "Allowed formats must be an array" 
+        return res.status(400).json({
+          message: "Allowed formats must be an array"
         });
       }
     }
@@ -133,12 +145,14 @@ exports.upsertDocumentConfig = async (req, res) => {
 
     if (config) {
       // Update existing config
+      console.log("✏️ Updating existing config");
       config.documents = documents;
       config.updatedBy = userId;
       config.updatedAt = new Date();
       await config.save();
     } else {
       // Create new config
+      console.log("✨ Creating new config");
       config = await DocumentConfig.create({
         college_id,
         collegeCode,
@@ -148,11 +162,14 @@ exports.upsertDocumentConfig = async (req, res) => {
       });
     }
 
+    console.log("✅ Config saved successfully");
+
     res.json({
       message: "Document configuration saved successfully",
       config
     });
   } catch (error) {
+    console.error("❌ Error in upsertDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };

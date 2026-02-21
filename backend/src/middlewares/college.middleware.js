@@ -24,6 +24,7 @@ module.exports = async (req, res, next) => {
     // Attach college info
     req.college = college;
     req.college_id = college._id;
+    req.collegeCode = college.code;
 
     next();
   } catch (error) {

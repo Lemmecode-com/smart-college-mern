@@ -835,6 +835,7 @@ export default function MySchedule() {
   const [attendanceSessions, setAttendanceSessions] = useState({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
+  const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
   const navigate = useNavigate();
   const toastIds = useRef({});
 
@@ -876,6 +877,10 @@ export default function MySchedule() {
         setLoading(true);
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
+        
+        // Fetch today's slots with attendance status (NEW)
+        await loadTodaySlots();
+        
         // Fetch active attendance sessions
         await loadActiveSessions();
       } catch (err) {
@@ -893,6 +898,20 @@ export default function MySchedule() {
     };
     load();
   }, []);
+
+  // Load today's slots with attendance status (NEW FUNCTION)
+  const loadTodaySlots = async () => {
+    try {
+      const res = await api.get("/attendance/today-slots");
+      setTodaySlotsData(res.data);
+      // Store today's slots in localStorage for quick access
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+    } catch (err) {
+      console.error("Failed to load today's slots:", err);
+      // Don't fail the entire load, just use weekly data
+    }
+  };
 
   // Load active attendance sessions
   const loadActiveSessions = async () => {
@@ -1069,13 +1088,16 @@ export default function MySchedule() {
     try {
       setCreating(slot._id);
       const todayDate = today.toISOString().split("T")[0];
+      
       const res = await api.post("/attendance/sessions", {
         slot_id: slot._id,
         lectureDate: todayDate,
         lectureNumber: 1,
       });
+      
       const newSession = res.data.session;
       const slotId = slot._id;
+      
       // Update state
       const newActiveSessions = {
         ...activeSessions,
@@ -1087,6 +1109,7 @@ export default function MySchedule() {
       };
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
+      
       // Store in localStorage
       const todayStr = today.toISOString().split("T")[0];
       localStorage.setItem(
@@ -1118,6 +1141,7 @@ export default function MySchedule() {
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
       });
+      
       // If error says attendance already exists, update the state
       if (message.includes("already") || message.includes("exists")) {
         const slotId = slot._id;
@@ -1148,12 +1172,18 @@ export default function MySchedule() {
 
   // Get current day and time for highlighting
   const today = new Date();
-  const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)];
+  
+  // ✅ CORRECT: Get today's day abbreviation
+  const dayMap = {
+    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+  };
+  const currentDayAbbr = dayMap[today.getDay()];
+  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
-  // Filter today's slots only
-  const todaysSlots = weekly[currentDayAbbr] || [];
+
+  // Filter today's slots only - Use todaySlotsData if available, otherwise fall back to weekly
+  const todaysSlots = todaySlotsData?.slots || (weekly[currentDayAbbr] || []);
 
   // Responsive styles
   const getResponsiveStyles = () => {
@@ -1504,6 +1534,7 @@ function ScheduleRow({
   hasAttendanceSession,
   sessionTimer,
   styles,
+  attendanceMessage,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
