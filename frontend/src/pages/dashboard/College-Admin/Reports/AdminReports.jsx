@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaUsers,
   FaCheckCircle,
@@ -14,6 +16,7 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaUniversity,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 export default function AdminReports() {
@@ -55,7 +58,30 @@ export default function AdminReports() {
     }
   };
 
-  /* ================= EXPORT HANDLER ================= */
+  /* ================= EXPORT DATA PREPARATION ================= */
+  const getExportData = () => {
+    if (!data) return [];
+    return [
+      { metric: "Total Students", value: data.totalStudents || 0 },
+      { metric: "Approved Students", value: data.approved || 0 },
+      { metric: "Pending Approvals", value: data.pending || 0 },
+      { metric: "Rejected", value: data.rejected || 0 },
+      {
+        metric: "Approval Rate",
+        value: data.approved && data.totalStudents
+          ? `${Math.round((data.approved / data.totalStudents) * 100)}%`
+          : "0%",
+      },
+      {
+        metric: "Pending Rate",
+        value: data.pending && data.totalStudents
+          ? `${Math.round((data.pending / data.totalStudents) * 100)}%`
+          : "0%",
+      },
+    ];
+  };
+
+  /* ================= LEGACY EXPORT HANDLER (Keep for backward compatibility) ================= */
   const exportCSV = () => {
     if (!data) return;
 
@@ -202,14 +228,17 @@ export default function AdminReports() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-outline-primary"
-            onClick={exportCSV}
-            title="Export report data to CSV"
-          >
-            <FaDownload className="erp-btn-icon" />
-            <span>Export CSV</span>
-          </button>
+          <ExportButtons
+            title="College Admission Analytics Report"
+            columns={[
+              { header: 'Metric', key: 'metric' },
+              { header: 'Value', key: 'value' }
+            ]}
+            data={getExportData()}
+            filename="admission_report"
+            showPDF={true}
+            showExcel={true}
+          />
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchSummary}
