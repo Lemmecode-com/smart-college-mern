@@ -30,10 +30,10 @@ exports.getDocumentConfig = async (req, res) => {
       });
     }
 
-    // Return only enabled documents
+    // Return only enabled documents from config
     const enabledDocuments = config.documents.filter(doc => doc.enabled);
-    
-    console.log("✅ Returning", enabledDocuments.length, "enabled documents");
+
+    console.log("✅ Returning", enabledDocuments.length, "enabled documents out of", config.documents.length, "total");
 
     res.json({
       collegeCode,
