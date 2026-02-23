@@ -90,6 +90,16 @@ const scaleVariants = {
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
 const TIMES = [
   { start: "09:00", end: "10:00" },
   { start: "10:00", end: "11:00" },
@@ -703,7 +713,7 @@ export default function WeeklyTimetable() {
                         fontSize: '0.95rem',
                         borderRight: '1px solid #e2e8f0'
                       }}>
-                        {timeSlot.start} - {timeSlot.end}
+                        {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
                       </td>
                       {DAYS.map((day) => {
                         const slots = weekly[day] || [];
