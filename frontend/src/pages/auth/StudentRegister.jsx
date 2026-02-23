@@ -735,9 +735,9 @@ export default function StudentRegister() {
         </div>
         <div className="col-md-6">
           <label className="form-label fw-semibold">Gender <span className="text-danger">*</span></label>
-          <select className="form-select" name="gender" value={form.gender} onChange={handleChange}>
-            <option>Select gender</option>
-             <option value="Female">Female</option>
+          <select className="form-select" name="gender" value={form.gender} onChange={handleChange} required>
+            <option value="">Select gender</option>
+            <option value="Female">Female</option>
             <option value="Male">Male</option>
             <option value="Other">Other</option>
           </select>
