@@ -1,1054 +1,81 @@
-// import { useEffect, useState, useRef } from "react";
-// import api from "../../../api/axios";
-// import {
-//   FaCalendarAlt,
-//   FaClock,
-//   FaChalkboardTeacher,
-//   FaMapMarkerAlt,
-//   FaFlask,
-//   FaBook,
-//   FaLaptop,
-//   FaExclamationTriangle,
-//   FaSpinner,
-//   FaRedo,
-//   FaDownload,
-//   FaPrint,
-// } from "react-icons/fa";
-// import { toast, ToastContainer } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
-
-// const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
-
-// const TIME_SLOTS = [
-//   "09:00 - 10:00",
-//   "10:00 - 11:00",
-//   "11:00 - 12:00",
-//   "12:00 - 01:00",
-//   "01:00 - 02:00",
-//   "02:00 - 03:00",
-// ];
-
-// export default function StudentTimetable() {
-//   const [slots, setSlots] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-//   const [retryCount, setRetryCount] = useState(0);
-//   const hasShownSuccessToast = useRef(false);
-
-//   useEffect(() => {
-//     fetchTimetable();
-//   }, [retryCount]);
-
-//   const fetchTimetable = async () => {
-//     try {
-//       setLoading(true);
-//       setError(null);
-//       hasShownSuccessToast.current = false; // Reset toast flag on new fetch
-
-//       const res = await api.get("/timetable/student");
-//       setSlots(res.data || []);
-
-//       // Show success toast only once
-//       if (!hasShownSuccessToast.current) {
-//         if (res.data && res.data.length > 0) {
-//           toast.success("Timetable loaded successfully!", {
-//             position: "top-right",
-//             autoClose: 3000,
-//             icon: "✅",
-//             toastId: "timetable-success", // Unique ID to prevent duplicates
-//           });
-//           hasShownSuccessToast.current = true;
-//         } else {
-//           toast.info("No timetable found for your course", {
-//             position: "top-right",
-//             autoClose: 4000,
-//             icon: "ℹ️",
-//             toastId: "timetable-info", // Unique ID
-//           });
-//         }
-//       }
-//     } catch (err) {
-//       console.error("Fetch timetable error:", err);
-//       const errorMessage =
-//         err.response?.data?.message || "Failed to load timetable. Please try again.";
-//       setError(errorMessage);
-      
-//       // Show error toast with unique ID
-//       toast.error(errorMessage, {
-//         position: "top-right",
-//         autoClose: 5000,
-//         icon: <FaExclamationTriangle />,
-//         toastId: "timetable-error", // Unique ID
-//       });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleRetry = () => {
-//     hasShownSuccessToast.current = false; // Reset for retry
-//     setRetryCount((prev) => prev + 1);
-//   };
-
-//   const getSlot = (day, timeRange) => {
-//     const [start] = timeRange.split(" - ");
-//     const slot = slots.find((slot) => slot.day === day && slot.startTime === start);
-    
-//     // ✅ Return slot with snapshot data if available
-//     if (slot) {
-//       return {
-//         ...slot,
-//         // Use snapshot data for historical accuracy
-//         subjectName: slot.subject?.name || slot.slotSnapshot?.subject_name || slot.subject_id?.name,
-//         teacherName: slot.teacher?.name || slot.slotSnapshot?.teacher_name,
-//         room: slot.room || slot.slotSnapshot?.room,
-//         slotType: slot.slotType || slot.slotSnapshot?.slotType
-//       };
-//     }
-//     return null;
-//   };
-
-//   const getSlotTypeIcon = (type) => {
-//     switch (type) {
-//       case "LAB":
-//         return <FaFlask />;
-//       case "PRACTICAL":
-//         return <FaLaptop />;
-//       case "LECTURE":
-//         return <FaBook />;
-//       default:
-//         return <FaBook />;
-//     }
-//   };
-
-//   const getSlotTypeColor = (type) => {
-//     switch (type) {
-//       case "LAB":
-//         return "bg-danger";
-//       case "PRACTICAL":
-//         return "bg-warning text-dark";
-//       case "LECTURE":
-//         return "bg-primary";
-//       default:
-//         return "bg-secondary";
-//     }
-//   };
-
-//   const courseName = slots.length > 0 ? slots[0]?.course_id?.name : "";
-//   const semester = slots.length > 0 ? slots[0]?.timetable_id?.semester : "";
-//   const academicYear = slots.length > 0 ? slots[0]?.timetable_id?.academicYear : "";
-
-//   const handlePrint = () => {
-//     window.print();
-//     toast.info("Print dialog opened", {
-//       position: "top-right",
-//       autoClose: 2000,
-//       toastId: "print-info",
-//     });
-//   };
-
-//   const handleExport = () => {
-//     toast.success("Export feature coming soon!", {
-//       position: "top-right",
-//       autoClose: 3000,
-//       icon: "🚀",
-//       toastId: "export-info",
-//     });
-//   };
-
-//   // Loading State
-//   if (loading) {
-//     return (
-//       <div className="timetable-container">
-//         <ToastContainer
-//           position="top-right"
-//           autoClose={3000}
-//           hideProgressBar={false}
-//           newestOnTop
-//           closeOnClick
-//           rtl={false}
-//           pauseOnFocusLoss
-//           draggable
-//           pauseOnHover
-//           theme="colored"
-//         />
-//         <div className="loading-wrapper">
-//           <div className="loading-spinner">
-//             <FaSpinner className="spin-icon" />
-//             <p>Loading your timetable...</p>
-//           </div>
-//           <div className="skeleton-table">
-//             <div className="skeleton-header" />
-//             {[...Array(6)].map((_, i) => (
-//               <div key={i} className="skeleton-row">
-//                 {[...Array(7)].map((_, j) => (
-//                   <div key={j} className="skeleton-cell" />
-//                 ))}
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   // Error State
-//   if (error) {
-//     return (
-//       <div className="timetable-container">
-//         <ToastContainer
-//           position="top-right"
-//           autoClose={3000}
-//           hideProgressBar={false}
-//           newestOnTop
-//           closeOnClick
-//           rtl={false}
-//           pauseOnFocusLoss
-//           draggable
-//           pauseOnHover
-//           theme="colored"
-//         />
-//         <div className="error-wrapper fade-in">
-//           <div className="error-content">
-//             <FaExclamationTriangle className="error-icon" />
-//             <h3>Oops! Something went wrong</h3>
-//             <p className="error-message">{error}</p>
-//             <button onClick={handleRetry} className="retry-btn">
-//               <FaRedo className="me-2" />
-//               Try Again
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="timetable-container">
-//       <ToastContainer
-//         position="top-right"
-//         autoClose={3000}
-//         hideProgressBar={false}
-//         newestOnTop
-//         closeOnClick
-//         rtl={false}
-//         pauseOnFocusLoss
-//         draggable
-//         pauseOnHover
-//         theme="colored"
-//       />
-
-//       {/* HEADER */}
-//       <header className="timetable-header fade-in">
-//         <div className="header-left">
-//           <div className="header-icon-wrapper">
-//             <FaCalendarAlt />
-//           </div>
-//           <div>
-//             <h1 className="header-title">My Weekly Timetable</h1>
-//             <p className="header-subtitle">
-//               {courseName && (
-//                 <>
-//                   {courseName}
-//                   {semester && <span className="separator">•</span>}
-//                   {semester && `Sem ${semester}`}
-//                   {academicYear && <span className="separator">•</span>}
-//                   {academicYear && `${academicYear}`}
-//                 </>
-//               )}
-//             </p>
-//           </div>
-//         </div>
-//         <div className="header-actions">
-//           <button className="btn-action" onClick={handlePrint} title="Print Timetable">
-//             <FaPrint />
-//             <span className="btn-text">Print</span>
-//           </button>
-//           <button className="btn-action btn-primary-action" onClick={handleExport} title="Export Timetable">
-//             <FaDownload />
-//             <span className="btn-text">Export</span>
-//           </button>
-//           <button className="btn-action" onClick={handleRetry} title="Refresh">
-//             <FaRedo className={loading ? "spin" : ""} />
-//             <span className="btn-text">Refresh</span>
-//           </button>
-//         </div>
-//       </header>
-
-//       {/* TIMETABLE CARD */}
-//       <main className="timetable-card fade-in-up">
-//         <div className="table-responsive">
-//           <table className="timetable-table">
-//             <thead>
-//               <tr>
-//                 <th className="time-column">
-//                   <FaClock className="me-2" />
-//                   Time
-//                 </th>
-//                 {DAYS.map((day, index) => (
-//                   <th key={day} className="day-column" style={{ animationDelay: `${index * 0.1}s` }}>
-//                     {day}
-//                   </th>
-//                 ))}
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {TIME_SLOTS.map((time, timeIndex) => (
-//                 <tr key={time} className="time-row" style={{ animationDelay: `${timeIndex * 0.1}s` }}>
-//                   <td className="time-cell">
-//                     <div className="time-content">
-//                       <FaClock className="time-icon" />
-//                       <span>{time}</span>
-//                     </div>
-//                   </td>
-//                   {DAYS.map((day, dayIndex) => {
-//                     const slot = getSlot(day, time);
-//                     return (
-//                       <td key={`${day}-${time}`} className="slot-cell">
-//                         {!slot ? (
-//                           <div className="empty-slot">
-//                             <span>—</span>
-//                           </div>
-//                         ) : (
-//                           <div className="slot-card scale-on-hover">
-//                             <div className="slot-header">
-//                               {/* ✅ Use snapshot data if available */}
-//                               <h6 className="slot-subject">{slot.subjectName || slot.subject_id?.name}</h6>
-//                               <span className={`slot-type-badge ${getSlotTypeColor(slot.slotType)}`}>
-//                                 {getSlotTypeIcon(slot.slotType)}
-//                                 <span>{slot.slotType}</span>
-//                               </span>
-//                             </div>
-//                             <div className="slot-body">
-//                               <div className="slot-code">
-//                                 <FaBook className="icon" />
-//                                 <span>{slot.subject_id?.code || slot.slotSnapshot?.subject_code}</span>
-//                               </div>
-//                               <div className="slot-teacher">
-//                                 <FaChalkboardTeacher className="icon" />
-//                                 <span>{slot.teacherName || slot.teacher_id?.name}</span>
-//                               </div>
-//                               <div className="slot-room">
-//                                 <FaMapMarkerAlt className="icon" />
-//                                 <span>Room {slot.room || slot.slotSnapshot?.room}</span>
-//                               </div>
-//                             </div>
-//                           </div>
-//                         )}
-//                       </td>
-//                     );
-//                   })}
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       </main>
-
-//       {/* LEGEND */}
-//       <footer className="timetable-legend fade-in-up">
-//         <h5 className="legend-title">Class Types</h5>
-//         <div className="legend-items">
-//           <div className="legend-item">
-//             <span className="legend-badge bg-primary">
-//               <FaBook /> LECTURE
-//             </span>
-//           </div>
-//           <div className="legend-item">
-//             <span className="legend-badge bg-danger">
-//               <FaFlask /> LAB
-//             </span>
-//           </div>
-//           <div className="legend-item">
-//             <span className="legend-badge bg-warning text-dark">
-//               <FaLaptop /> PRACTICAL
-//             </span>
-//           </div>
-//         </div>
-//       </footer>
-
-//       {/* CSS */}
-//       <style>{`
-//         /* ================= CONTAINER ================= */
-//         .timetable-container {
-//           padding: 2rem;
-//           background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-//           min-height: 100vh;
-//         }
-
-//         /* ================= LOADING ================= */
-//         .loading-wrapper {
-//           display: flex;
-//           flex-direction: column;
-//           align-items: center;
-//           justify-content: center;
-//           min-height: 80vh;
-//           gap: 2rem;
-//         }
-
-//         .loading-spinner {
-//           text-align: center;
-//         }
-
-//         .spin-icon {
-//           font-size: 4rem;
-//           color: #1a4b6d;
-//           animation: spin 1s linear infinite;
-//         }
-
-//         .loading-spinner p {
-//           margin-top: 1rem;
-//           color: #6c757d;
-//           font-weight: 500;
-//           font-size: 1.1rem;
-//         }
-
-//         .skeleton-table {
-//           width: 100%;
-//           max-width: 1400px;
-//           background: white;
-//           border-radius: 16px;
-//           padding: 1.5rem;
-//           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-//         }
-
-//         .skeleton-header {
-//           height: 60px;
-//           background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-//           background-size: 200% 100%;
-//           animation: shimmer 1.5s infinite;
-//           border-radius: 8px;
-//           margin-bottom: 1rem;
-//         }
-
-//         .skeleton-row {
-//           display: grid;
-//           grid-template-columns: 120px repeat(6, 1fr);
-//           gap: 1rem;
-//           margin-bottom: 1rem;
-//         }
-
-//         .skeleton-cell {
-//           height: 100px;
-//           background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-//           background-size: 200% 100%;
-//           animation: shimmer 1.5s infinite;
-//           border-radius: 10px;
-//         }
-
-//         @keyframes shimmer {
-//           0% {
-//             background-position: -200% 0;
-//           }
-//           100% {
-//             background-position: 200% 0;
-//           }
-//         }
-
-//         /* ================= ERROR ================= */
-//         .error-wrapper {
-//           display: flex;
-//           align-items: center;
-//           justify-content: center;
-//           min-height: 80vh;
-//         }
-
-//         .error-content {
-//           text-align: center;
-//           padding: 3rem;
-//           background: white;
-//           border-radius: 20px;
-//           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-//           max-width: 500px;
-//         }
-
-//         .error-icon {
-//           font-size: 5rem;
-//           color: #dc3545;
-//           margin-bottom: 1.5rem;
-//         }
-
-//         .error-content h3 {
-//           margin: 0 0 1rem;
-//           color: #1a4b6d;
-//           font-size: 1.75rem;
-//         }
-
-//         .error-message {
-//           color: #6c757d;
-//           margin-bottom: 2rem;
-//           font-size: 1rem;
-//           line-height: 1.6;
-//         }
-
-//         .retry-btn {
-//           padding: 0.875rem 2rem;
-//           background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-//           color: white;
-//           border: none;
-//           border-radius: 10px;
-//           font-size: 1rem;
-//           font-weight: 600;
-//           cursor: pointer;
-//           display: inline-flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//           transition: all 0.3s ease;
-//         }
-
-//         .retry-btn:hover {
-//           transform: translateY(-2px);
-//           box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-//         }
-
-//         /* ================= HEADER ================= */
-//         .timetable-header {
-//           display: flex;
-//           justify-content: space-between;
-//           align-items: center;
-//           margin-bottom: 2rem;
-//           padding: 1.5rem 2rem;
-//           background: linear-gradient(180deg, #0f3a4a, #134952);
-//           border-radius: 16px;
-//           box-shadow: 0 4px 20px rgba(15, 58, 74, 0.3);
-//           flex-wrap: wrap;
-//           gap: 1rem;
-//         }
-
-//         .header-left {
-//           display: flex;
-//           align-items: center;
-//           gap: 1.25rem;
-//         }
-
-//         .header-icon-wrapper {
-//           width: 60px;
-//           height: 60px;
-//           background: rgba(255, 255, 255, 0.15);
-//           border-radius: 12px;
-//           display: flex;
-//           align-items: center;
-//           justify-content: center;
-//           color: #4fc3f7;
-//           font-size: 2rem;
-//         }
-
-//         .header-title {
-//           margin: 0;
-//           font-size: 1.75rem;
-//           font-weight: 700;
-//           color: white;
-//         }
-
-//         .header-subtitle {
-//           margin: 0.25rem 0 0;
-//           color: rgba(255, 255, 255, 0.8);
-//           font-size: 0.95rem;
-//         }
-
-//         .separator {
-//           margin: 0 0.5rem;
-//           opacity: 0.6;
-//         }
-
-//         .header-actions {
-//           display: flex;
-//           gap: 0.75rem;
-//           flex-wrap: wrap;
-//         }
-
-//         .btn-action {
-//           padding: 0.75rem 1.25rem;
-//           background: rgba(255, 255, 255, 0.15);
-//           border: 1px solid rgba(255, 255, 255, 0.3);
-//           color: white;
-//           border-radius: 10px;
-//           font-weight: 600;
-//           cursor: pointer;
-//           display: flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//           transition: all 0.3s ease;
-//           font-size: 0.9rem;
-//         }
-
-//         .btn-action:hover {
-//           background: rgba(255, 255, 255, 0.25);
-//           transform: translateY(-2px);
-//         }
-
-//         .btn-primary-action {
-//           background: linear-gradient(135deg, #4fc3f7, #29b6f6);
-//           border: none;
-//         }
-
-//         .btn-primary-action:hover {
-//           background: linear-gradient(135deg, #29b6f6, #0288d1);
-//           box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
-//         }
-
-//         .btn-text {
-//           display: none;
-//         }
-
-//         @media (min-width: 768px) {
-//           .btn-text {
-//             display: inline;
-//           }
-//         }
-
-//         /* ================= TIMETABLE CARD ================= */
-//         .timetable-card {
-//           background: white;
-//           border-radius: 16px;
-//           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-//           overflow: hidden;
-//           margin-bottom: 2rem;
-//         }
-
-//         .table-responsive {
-//           overflow-x: auto;
-//           -webkit-overflow-scrolling: touch;
-//         }
-
-//         .timetable-table {
-//           width: 100%;
-//           border-collapse: collapse;
-//           min-width: 900px;
-//         }
-
-//         .timetable-table thead {
-//           background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
-//           color: white;
-//         }
-
-//         .timetable-table th {
-//           padding: 1.25rem 1rem;
-//           font-weight: 700;
-//           font-size: 0.9rem;
-//           text-transform: uppercase;
-//           letter-spacing: 0.5px;
-//           border: 1px solid rgba(255, 255, 255, 0.2);
-//         }
-
-//         .time-column {
-//           width: 140px;
-//           background: linear-gradient(135deg, #0f3a4a, #134952);
-//         }
-
-//         .day-column {
-//           animation: fadeInLeft 0.6s ease forwards;
-//           opacity: 0;
-//         }
-
-//         .timetable-table tbody tr {
-//           transition: all 0.3s ease;
-//           animation: fadeInUp 0.6s ease forwards;
-//           opacity: 0;
-//         }
-
-//         .timetable-table tbody tr:hover {
-//           background: rgba(26, 75, 109, 0.03);
-//         }
-
-//         .time-cell {
-//           padding: 1rem;
-//           background: #f8f9fa;
-//           border: 1px solid #e9ecef;
-//           font-weight: 600;
-//           font-size: 0.85rem;
-//           color: #1a4b6d;
-//         }
-
-//         .time-content {
-//           display: flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//         }
-
-//         .time-icon {
-//           color: #6c757d;
-//           font-size: 0.9rem;
-//         }
-
-//         .slot-cell {
-//           padding: 0.75rem;
-//           border: 1px solid #e9ecef;
-//           vertical-align: top;
-//         }
-
-//         .empty-slot {
-//           height: 100%;
-//           min-height: 100px;
-//           display: flex;
-//           align-items: center;
-//           justify-content: center;
-//           color: #dee2e6;
-//           font-size: 1.5rem;
-//           font-weight: 300;
-//         }
-
-//         /* ================= SLOT CARD ================= */
-//         .slot-card {
-//           background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-//           border-radius: 12px;
-//           padding: 1rem;
-//           min-height: 110px;
-//           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-//           border: 1px solid rgba(26, 75, 109, 0.1);
-//           height: 100%;
-//           display: flex;
-//           flex-direction: column;
-//         }
-
-//         .scale-on-hover:hover {
-//           transform: scale(1.03);
-//           box-shadow: 0 8px 25px rgba(26, 75, 109, 0.2);
-//           background: linear-gradient(135deg, #e8f4f8, #d0e8f0);
-//         }
-
-//         .slot-header {
-//           display: flex;
-//           justify-content: space-between;
-//           align-items: flex-start;
-//           gap: 0.5rem;
-//           margin-bottom: 0.75rem;
-//         }
-
-//         .slot-subject {
-//           margin: 0;
-//           font-size: 0.9rem;
-//           font-weight: 700;
-//           color: #1a4b6d;
-//           line-height: 1.3;
-//           flex: 1;
-//         }
-
-//         .slot-type-badge {
-//           display: inline-flex;
-//           align-items: center;
-//           gap: 0.25rem;
-//           padding: 0.25rem 0.5rem;
-//           border-radius: 6px;
-//           font-size: 0.7rem;
-//           font-weight: 700;
-//           text-transform: uppercase;
-//           white-space: nowrap;
-//         }
-
-//         .slot-body {
-//           display: flex;
-//           flex-direction: column;
-//           gap: 0.5rem;
-//           flex: 1;
-//         }
-
-//         .slot-code,
-//         .slot-teacher,
-//         .slot-room {
-//           display: flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//           font-size: 0.75rem;
-//           color: #6c757d;
-//         }
-
-//         .slot-code .icon,
-//         .slot-teacher .icon,
-//         .slot-room .icon {
-//           font-size: 0.8rem;
-//           color: #1a4b6d;
-//           width: 14px;
-//         }
-
-//         /* ================= LEGEND ================= */
-//         .timetable-legend {
-//           background: white;
-//           border-radius: 16px;
-//           padding: 1.5rem 2rem;
-//           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-//         }
-
-//         .legend-title {
-//           margin: 0 0 1rem;
-//           font-size: 1rem;
-//           font-weight: 700;
-//           color: #1a4b6d;
-//         }
-
-//         .legend-items {
-//           display: flex;
-//           gap: 1.5rem;
-//           flex-wrap: wrap;
-//         }
-
-//         .legend-item {
-//           display: flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//         }
-
-//         .legend-badge {
-//           display: inline-flex;
-//           align-items: center;
-//           gap: 0.5rem;
-//           padding: 0.5rem 1rem;
-//           border-radius: 8px;
-//           font-size: 0.85rem;
-//           font-weight: 600;
-//           color: white;
-//         }
-
-//         /* ================= ANIMATIONS ================= */
-//         .fade-in {
-//           animation: fadeIn 0.6s ease forwards;
-//         }
-
-//         .fade-in-up {
-//           animation: fadeInUp 0.6s ease forwards;
-//           opacity: 0;
-//         }
-
-//         .fade-in-up:nth-child(1) {
-//           animation-delay: 0.1s;
-//         }
-//         .fade-in-up:nth-child(2) {
-//           animation-delay: 0.2s;
-//         }
-//         .fade-in-up:nth-child(3) {
-//           animation-delay: 0.3s;
-//         }
-
-//         @keyframes fadeIn {
-//           from {
-//             opacity: 0;
-//           }
-//           to {
-//             opacity: 1;
-//           }
-//         }
-
-//         @keyframes fadeInUp {
-//           from {
-//             opacity: 0;
-//             transform: translateY(20px);
-//           }
-//           to {
-//             opacity: 1;
-//             transform: translateY(0);
-//           }
-//         }
-
-//         @keyframes fadeInLeft {
-//           from {
-//             opacity: 0;
-//             transform: translateX(-20px);
-//           }
-//           to {
-//             opacity: 1;
-//             transform: translateX(0);
-//           }
-//         }
-
-//         @keyframes spin {
-//           from {
-//             transform: rotate(0deg);
-//           }
-//           to {
-//             transform: rotate(360deg);
-//           }
-//         }
-
-//         .spin {
-//           animation: spin 1s linear infinite;
-//         }
-
-//         /* ================= RESPONSIVE ================= */
-//         @media (max-width: 1024px) {
-//           .timetable-container {
-//             padding: 1rem;
-//           }
-
-//           .timetable-header {
-//             padding: 1.25rem;
-//             flex-direction: column;
-//             text-align: center;
-//           }
-
-//           .header-left {
-//             flex-direction: column;
-//           }
-
-//           .header-actions {
-//             width: 100%;
-//             justify-content: center;
-//           }
-
-//           .slot-card {
-//             min-height: 95px;
-//             padding: 0.75rem;
-//           }
-
-//           .slot-subject {
-//             font-size: 0.85rem;
-//           }
-
-//           .slot-code,
-//           .slot-teacher,
-//           .slot-room {
-//             font-size: 0.7rem;
-//           }
-//         }
-
-//         @media (max-width: 768px) {
-//           .timetable-table th,
-//           .timetable-table td {
-//             padding: 0.75rem 0.5rem;
-//           }
-
-//           .time-column {
-//             width: 100px;
-//             font-size: 0.75rem;
-//           }
-
-//           .slot-card {
-//             min-height: 85px;
-//           }
-
-//           .slot-type-badge {
-//             font-size: 0.65rem;
-//             padding: 0.2rem 0.4rem;
-//           }
-
-//           .legend-items {
-//             gap: 0.75rem;
-//           }
-
-//           .legend-badge {
-//             font-size: 0.75rem;
-//             padding: 0.4rem 0.75rem;
-//           }
-//         }
-
-//         @media (max-width: 480px) {
-//           .header-title {
-//             font-size: 1.4rem;
-//           }
-
-//           .header-subtitle {
-//             font-size: 0.85rem;
-//           }
-
-//           .header-icon-wrapper {
-//             width: 50px;
-//             height: 50px;
-//             font-size: 1.5rem;
-//           }
-
-//           .timetable-card {
-//             border-radius: 12px;
-//           }
-
-//           .slot-card {
-//             padding: 0.6rem;
-//           }
-
-//           .slot-subject {
-//             font-size: 0.8rem;
-//           }
-//         }
-
-//         /* ================= PRINT STYLES ================= */
-//         @media print {
-//           .timetable-container {
-//             background: white;
-//             padding: 0;
-//           }
-
-//           .timetable-header {
-//             background: #1a4b6d !important;
-//             -webkit-print-color-adjust: exact;
-//             print-color-adjust: exact;
-//           }
-
-//           .header-actions {
-//             display: none !important;
-//           }
-
-//           .timetable-card {
-//             box-shadow: none;
-//             border: 1px solid #ddd;
-//           }
-
-//           .timetable-legend {
-//             box-shadow: none;
-//             border: 1px solid #ddd;
-//             page-break-inside: avoid;
-//           }
-
-//           .slot-card {
-//             break-inside: avoid;
-//           }
-//         }
-
-//         /* ================= TOASTIFY OVERRIDES ================= */
-//         .Toastify__toast {
-//           border-radius: 10px;
-//           font-weight: 500;
-//           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-//         }
-
-//         .Toastify__toast--success {
-//           background: linear-gradient(135deg, #28a745, #1e7e34);
-//         }
-
-//         .Toastify__toast--error {
-//           background: linear-gradient(135deg, #dc3545, #c82333);
-//         }
-
-//         .Toastify__toast--info {
-//           background: linear-gradient(135deg, #17a2b8, #117a8b);
-//         }
-//       `}</style>
-//     </div>
-//   );
-// }
-
-
-
-
-
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import {
   FaCalendarAlt,
   FaClock,
   FaChalkboardTeacher,
-  FaMapMarkerAlt,
-  FaFlask,
-  FaBook,
-  FaLaptop,
+  FaDoorOpen,
+  FaCheckCircle,
   FaExclamationTriangle,
-  FaSpinner,
-  FaRedo,
-  FaDownload,
-  FaPrint,
+  FaInfoCircle,
+  FaSun,
+  FaBook,
+  FaLayerGroup,
+  FaArrowLeft,
+  FaSyncAlt,
+  FaGraduationCap,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+// Brand Color Palette
+const BRAND_COLORS = {
+  primary: "#1a4b6d",
+  secondary: "#2d6f8f",
+  accent: "#4fc3f7",
+  success: "#28a745",
+  warning: "#ffc107",
+  danger: "#dc3545",
+  slotTypes: {
+    LECTURE: { bg: "#e3f2fd", text: "#1565c0", border: "#90caf9" },
+    LAB: { bg: "#ffebee", text: "#c62828", border: "#ef9a9a" },
+    TUTORIAL: { bg: "#e8f5e9", text: "#2e7d32", border: "#a5d6a7" },
+    PRACTICAL: { bg: "#f3e5f5", text: "#6a1b9a", border: "#ce93d8" },
+  },
+};
 
-// ✅ Standard time slots in 24-hour format for matching
-const TIME_SLOTS_24 = [
-  { start: "09:00", end: "10:00", display: "09:00 AM - 10:00 AM" },
-  { start: "10:00", end: "11:00", display: "10:00 AM - 11:00 AM" },
-  { start: "11:00", end: "12:00", display: "11:00 AM - 12:00 PM" },
-  { start: "12:00", end: "13:00", display: "12:00 PM - 01:00 PM" },
-  { start: "13:00", end: "14:00", display: "01:00 PM - 02:00 PM" },
-  { start: "14:00", end: "15:00", display: "02:00 PM - 03:00 PM" },
-  { start: "15:00", end: "16:00", display: "03:00 PM - 04:00 PM" },
-  { start: "16:00", end: "17:00", display: "04:00 PM - 05:00 PM" },
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+const TIME_SLOTS = [
+  { start: "09:00", end: "10:00" },
+  { start: "10:00", end: "11:00" },
+  { start: "11:00", end: "12:00" },
+  { start: "12:00", end: "13:00" },
+  { start: "13:00", end: "14:00" },
+  { start: "14:00", end: "15:00" },
+  { start: "15:00", end: "16:00" },
+  { start: "16:00", end: "17:00" },
 ];
 
 /**
@@ -1075,1197 +102,997 @@ const formatTimeRange = (startTime, endTime) => {
 };
 
 export default function StudentTimetable() {
-  const [slots, setSlots] = useState([]);
+  const navigate = useNavigate();
+  const [weekly, setWeekly] = useState({});
   const [todaySlots, setTodaySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const hasShownSuccessToast = useRef(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const toastIds = useRef({});
+
+  const isClient = typeof window !== "undefined";
+
+  // Update current time
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    fetchTimetable();
-    fetchTodaySlots();
-  }, [retryCount]);
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const fetchTimetable = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      hasShownSuccessToast.current = false;
+        // Load weekly schedule
+        const weeklyRes = await api.get("/timetable/student");
+        const allSlots = weeklyRes.data || [];
 
-      const res = await api.get("/timetable/student");
-      setSlots(res.data || []);
+        // Group by day
+        const weeklyData = {};
+        DAYS.forEach((day) => {
+          weeklyData[day] = allSlots.filter((slot) => slot.day === day);
+        });
+        setWeekly(weeklyData);
 
-      if (!hasShownSuccessToast.current) {
-        if (res.data && res.data.length > 0) {
+        // Load today's slots
+        const today = new Date();
+        const dayMap = {
+          0: "SUN",
+          1: "MON",
+          2: "TUE",
+          3: "WED",
+          4: "THU",
+          5: "FRI",
+          6: "SAT",
+        };
+        const currentDayAbbr = dayMap[today.getDay()];
+        setTodaySlots(weeklyData[currentDayAbbr] || []);
+
+        if (!toastIds.current.success && allSlots.length > 0) {
           toast.success("Timetable loaded successfully!", {
+            toastId: "schedule-success",
             position: "top-right",
             autoClose: 3000,
-            icon: "✅",
-            toastId: "timetable-success",
+            icon: <FaCheckCircle />,
           });
-          hasShownSuccessToast.current = true;
-        } else {
-          toast.info("No timetable found for your course", {
-            position: "top-right",
-            autoClose: 4000,
-            icon: "ℹ️",
-            toastId: "timetable-info",
-          });
+          toastIds.current.success = true;
         }
+      } catch (err) {
+        console.error("Failed to load timetable:", err);
+        const errorMsg = err.response?.data?.message || "Failed to load timetable.";
+        setError(errorMsg);
+        if (!toastIds.current.error) {
+          toast.error(errorMsg, {
+            toastId: "schedule-error",
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />,
+          });
+          toastIds.current.error = true;
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Fetch timetable error:", err);
-      const errorMessage =
-        err.response?.data?.message || "Failed to load timetable. Please try again.";
-      setError(errorMessage);
+    };
+    load();
+  }, []);
 
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
-        toastId: "timetable-error",
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Get current day
+  const today = new Date();
+  const dayMap = {
+    0: "SUN",
+    1: "MON",
+    2: "TUE",
+    3: "WED",
+    4: "THU",
+    5: "FRI",
+    6: "SAT",
   };
+  const currentDayAbbr = dayMap[today.getDay()];
 
-  const fetchTodaySlots = async () => {
-    try {
-      const res = await api.get("/timetable/student/today");
-      setTodaySlots(res.data.slots || []);
-      console.log(`📅 Today's slots: ${res.data.totalSlots}`);
-    } catch (err) {
-      console.error("Failed to fetch today's slots:", err);
-    }
-  };
+  // Get course info
+  const courseName = todaySlots.length > 0 ? todaySlots[0]?.course_id?.name : "";
+  const semester = todaySlots.length > 0 ? todaySlots[0]?.timetable_id?.semester : "";
+  const academicYear = todaySlots.length > 0 ? todaySlots[0]?.timetable_id?.academicYear : "";
 
-  const handleRetry = () => {
-    hasShownSuccessToast.current = false;
-    setRetryCount((prev) => prev + 1);
-  };
-
-  /**
-   * ✅ FIXED: Match slot using 24-hour format
-   */
-  const getSlot = (day, startTime24h) => {
-    const slot = slots.find((slot) => {
-      // ✅ Compare start times in 24-hour format
-      return slot.day === day && slot.startTime === startTime24h;
-    });
-
-    if (slot) {
-      return {
-        ...slot,
-        subjectName: slot.subject?.name || slot.slotSnapshot?.subject_name || slot.subject_id?.name,
-        teacherName: slot.teacher?.name || slot.slotSnapshot?.teacher_name,
-        room: slot.room || slot.slotSnapshot?.room,
-        slotType: slot.slotType || slot.slotSnapshot?.slotType,
-        // ✅ Add formatted time for display
-        timeDisplay: formatTimeRange(slot.startTime, slot.endTime),
-      };
-    }
-    return null;
-  };
-
-  const getSlotTypeIcon = (type) => {
-    switch (type) {
-      case "LAB":
-        return <FaFlask />;
-      case "PRACTICAL":
-        return <FaLaptop />;
-      case "TUTORIAL":
-        return <FaBook />;
-      case "LECTURE":
-        return <FaBook />;
-      default:
-        return <FaBook />;
-    }
-  };
-
-  const getSlotTypeColor = (type) => {
-    switch (type) {
-      case "LAB":
-        return "bg-danger";
-      case "PRACTICAL":
-      case "TUTORIAL":
-        return "bg-warning text-dark";
-      case "LECTURE":
-        return "bg-primary";
-      default:
-        return "bg-secondary";
-    }
-  };
-
-  const courseName = slots.length > 0 ? slots[0]?.course_id?.name : "";
-  const semester = slots.length > 0 ? slots[0]?.timetable_id?.semester : "";
-  const academicYear = slots.length > 0 ? slots[0]?.timetable_id?.academicYear : "";
-
-  const handlePrint = () => {
-    window.print();
-    toast.info("Print dialog opened", {
-      position: "top-right",
-      autoClose: 2000,
-      toastId: "print-info",
-    });
-  };
-
-  const handleExport = () => {
-    toast.success("Export feature coming soon!", {
-      position: "top-right",
-      autoClose: 3000,
-      icon: "🚀",
-      toastId: "export-info",
-    });
-  };
-
-  // Loading State
   if (loading) {
     return (
-      <div className="timetable-container">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-        <div className="loading-wrapper">
-          <div className="loading-spinner">
-            <FaSpinner className="spin-icon" />
-            <p>Loading your timetable...</p>
-          </div>
-          <div className="skeleton-table">
-            <div className="skeleton-header" />
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="skeleton-row">
-                {[...Array(7)].map((_, j) => (
-                  <div key={j} className="skeleton-cell" />
-                ))}
-              </div>
-            ))}
-          </div>
+      <div className="st-container">
+        <ToastContainer position="top-right" theme="colored" />
+        <div className="st-loading">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="st-loading-icon"
+          >
+            <FaSyncAlt />
+          </motion.div>
+          <h3>Loading Your Timetable...</h3>
+          <p>Fetching your course schedule</p>
         </div>
-      </div>
-    );
-  }
-
-  // Error State
-  if (error) {
-    return (
-      <div className="timetable-container">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-        <div className="error-wrapper fade-in">
-          <div className="error-content">
-            <FaExclamationTriangle className="error-icon" />
-            <h3>Oops! Something went wrong</h3>
-            <p className="error-message">{error}</p>
-            <button onClick={handleRetry} className="retry-btn">
-              <FaRedo className="me-2" />
-              Try Again
-            </button>
-          </div>
-        </div>
+        <style>{componentStyles}</style>
       </div>
     );
   }
 
   return (
-    <div className="timetable-container">
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
+    <div className="st-container">
+      <style>{componentStyles}</style>
+      <ToastContainer position="top-right" theme="colored" />
+      
+      {/* Breadcrumb */}
+      <motion.div
+        variants={slideDownVariants}
+        initial="hidden"
+        animate="visible"
+        className="st-breadcrumb"
+      >
+        <button onClick={() => navigate("/student/dashboard")} className="st-breadcrumb-btn">
+          <FaArrowLeft /> Back to Dashboard
+        </button>
+        <span className="st-breadcrumb-sep">›</span>
+        <span className="st-breadcrumb-current">My Timetable</span>
+      </motion.div>
 
-      {/* HEADER */}
-      <header className="timetable-header fade-in">
-        <div className="header-left">
-          <div className="header-icon-wrapper">
-            <FaCalendarAlt />
+      {/* Header */}
+      <motion.div
+        variants={slideDownVariants}
+        initial="hidden"
+        animate="visible"
+        className="st-header"
+      >
+        <div className="st-header-left">
+          <div className="st-header-icon">
+            <FaGraduationCap />
           </div>
-          <div>
-            <h1 className="header-title">My Weekly Timetable</h1>
-            <p className="header-subtitle">
+          <div className="st-header-info">
+            <h1 className="st-header-title">My Class Timetable</h1>
+            <p className="st-header-subtitle">
               {courseName && (
                 <>
-                  {courseName}
-                  {semester && <span className="separator">•</span>}
-                  {semester && `Sem ${semester}`}
-                  {academicYear && <span className="separator">•</span>}
-                  {academicYear && `${academicYear}`}
+                  <FaBook className="st-subtitle-icon" /> {courseName}
+                  {semester && <span className="st-sep">•</span>}
+                  {semester && <span>Sem {semester}</span>}
+                  {academicYear && <span className="st-sep">•</span>}
+                  {academicYear && <span>{academicYear}</span>}
                 </>
               )}
             </p>
           </div>
         </div>
-        <div className="header-actions">
-          <button className="btn-action" onClick={handlePrint} title="Print Timetable">
-            <FaPrint />
-            <span className="btn-text">Print</span>
-          </button>
-          <button className="btn-action btn-primary-action" onClick={handleExport} title="Export Timetable">
-            <FaDownload />
-            <span className="btn-text">Export</span>
-          </button>
-          <button className="btn-action" onClick={handleRetry} title="Refresh">
-            <FaRedo className={loading ? "spin" : ""} />
-            <span className="btn-text">Refresh</span>
+        <div className="st-header-right">
+          <div className="st-time-badge">
+            <FaClock className="st-badge-icon" />
+            <div className="st-badge-text">
+              <span className="st-badge-label">Current Time</span>
+              <span className="st-badge-value">
+                {currentTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
+            </div>
+          </div>
+          <button onClick={() => window.location.reload()} className="st-refresh-btn">
+            <FaSyncAlt className={loading ? "st-spin" : ""} />
+            <span>Refresh</span>
           </button>
         </div>
-      </header>
+      </motion.div>
 
-      {/* TODAY'S CLASSES SECTION */}
-      {todaySlots.length > 0 && (
-        <section className="today-section fade-in-up">
-          <div className="today-header">
-            <div className="today-icon-wrapper">
-              <FaCalendarAlt />
-            </div>
-            <div>
-              <h2 className="today-title">Today's Classes</h2>
-              <p className="today-subtitle">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-                <span className="today-count"> • {todaySlots.length} classes</span>
-              </p>
-            </div>
+      {/* Stats Bar */}
+      <div className="st-stats-bar">
+        <div className="st-stat">
+          <div className="st-stat-icon st-stat-primary">
+            <FaCalendarAlt />
           </div>
-          <div className="today-slots-grid">
-            {todaySlots.map((slot, index) => (
-              <div key={slot._id} className="today-slot-card scale-on-hover" style={{ animationDelay: `${index * 0.1}s` }}>
-                <div className="today-slot-time">
-                  <FaClock className="time-icon" />
-                  <span>{slot.startTime} - {slot.endTime}</span>
-                </div>
-                <div className="today-slot-content">
-                  <h6 className="today-slot-subject">{slot.subject_id?.name}</h6>
-                  <div className="today-slot-details">
-                    <div className="today-slot-detail">
-                      <FaChalkboardTeacher className="icon" />
-                      <span>{slot.teacher_id?.name}</span>
-                    </div>
-                    <div className="today-slot-detail">
-                      <FaMapMarkerAlt className="icon" />
-                      <span>Room {slot.room || 'N/A'}</span>
-                    </div>
-                  </div>
-                  <div className="today-slot-footer">
-                    <span className={`slot-type-badge ${getSlotTypeColor(slot.slotType)}`}>
-                      {getSlotTypeIcon(slot.slotType)}
-                      <span>{slot.slotType}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="st-stat-info">
+            <span className="st-stat-value">{Object.values(weekly).flat().length}</span>
+            <span className="st-stat-label">Classes This Week</span>
           </div>
-        </section>
+        </div>
+        <div className="st-stat">
+          <div className="st-stat-icon st-stat-success">
+            <FaSun />
+          </div>
+          <div className="st-stat-info">
+            <span className="st-stat-value">{todaySlots.length}</span>
+            <span className="st-stat-label">Today's Classes</span>
+          </div>
+        </div>
+        <div className="st-stat">
+          <div className="st-stat-icon st-stat-info">
+            <FaClock />
+          </div>
+          <div className="st-stat-info">
+            <span className="st-stat-value">
+              {DAYS.filter((day) => weekly[day]?.length > 0).length}
+            </span>
+            <span className="st-stat-label">Active Days</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="st-error-banner"
+        >
+          <FaExclamationTriangle className="st-error-icon" />
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="st-error-close">×</button>
+        </motion.div>
       )}
 
-      {/* TIMETABLE CARD */}
-      <main className="timetable-card fade-in-up">
-        <div className="table-responsive">
-          <table className="timetable-table">
+      {/* Today's Classes */}
+      {todaySlots.length > 0 && (
+        <motion.div
+          variants={fadeInVariants}
+          initial="hidden"
+          animate="visible"
+          className="st-section st-section-today"
+        >
+          <div className="st-section-header">
+            <div className="st-section-title-wrapper">
+              <FaSun className="st-section-icon st-sun-icon" />
+              <h2 className="st-section-title">Today's Classes</h2>
+            </div>
+            <div className="st-section-badge">
+              <FaInfoCircle />
+              <span>{todaySlots.length} {todaySlots.length === 1 ? 'class' : 'classes'}</span>
+            </div>
+          </div>
+          <div className="st-today-grid">
+            {todaySlots.map((slot, idx) => (
+              <TodaySlotCard key={slot._id} slot={slot} index={idx} />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Weekly Timetable Table */}
+      <motion.div
+        variants={fadeInVariants}
+        initial="hidden"
+        animate="visible"
+        className="st-section st-section-weekly"
+      >
+        <div className="st-section-header">
+          <div className="st-section-title-wrapper">
+            <FaCalendarAlt className="st-section-icon" />
+            <h2 className="st-section-title">Weekly Schedule</h2>
+          </div>
+          <div className="st-section-badge">
+            <FaBook />
+            <span>Full Week View</span>
+          </div>
+        </div>
+        <div className="st-table-container">
+          <table className="st-timetable-table">
             <thead>
               <tr>
-                <th className="time-column">
-                  <FaClock className="me-2" />
-                  Time
+                <th className="st-time-col-header">
+                  <FaClock /> Time
                 </th>
-                {DAYS.map((day, index) => (
-                  <th key={day} className="day-column" style={{ animationDelay: `${index * 0.1}s` }}>
-                    {day}
+                {DAYS.map((day, idx) => (
+                  <th key={day} className={`st-day-col-header ${day === currentDayAbbr ? 'st-today-col' : ''}`}>
+                    {DAY_NAMES[idx]}
+                    {day === currentDayAbbr && <span className="st-today-marker"> (Today)</span>}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS_24.map((slot, timeIndex) => (
-                <tr key={slot.start} className="time-row" style={{ animationDelay: `${timeIndex * 0.1}s` }}>
-                  <td className="time-cell">
-                    <div className="time-content">
-                      <FaClock className="time-icon" />
-                      <span>{slot.display}</span>
-                    </div>
-                  </td>
-                  {DAYS.map((day, dayIndex) => {
-                    const matchedSlot = getSlot(day, slot.start);
-                    return (
-                      <td key={`${day}-${slot.start}`} className="slot-cell">
-                        {!matchedSlot ? (
-                          <div className="empty-slot">
-                            <span>—</span>
-                          </div>
-                        ) : (
-                          <div className="slot-card scale-on-hover">
-                            <div className="slot-header">
-                              <h6 className="slot-subject">{matchedSlot.subjectName || matchedSlot.subject_id?.name}</h6>
-                              <span className={`slot-type-badge ${getSlotTypeColor(matchedSlot.slotType)}`}>
-                                {getSlotTypeIcon(matchedSlot.slotType)}
-                                <span>{matchedSlot.slotType}</span>
-                              </span>
-                            </div>
-                            <div className="slot-body">
-                              <div className="slot-code">
-                                <FaBook className="icon" />
-                                <span>{matchedSlot.subject_id?.code || matchedSlot.slotSnapshot?.subject_code}</span>
-                              </div>
-                              <div className="slot-teacher">
-                                <FaChalkboardTeacher className="icon" />
-                                <span>{matchedSlot.teacherName || matchedSlot.teacher_id?.name}</span>
-                              </div>
-                              <div className="slot-room">
-                                <FaMapMarkerAlt className="icon" />
-                                <span>Room {matchedSlot.room || matchedSlot.slotSnapshot?.room}</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {TIME_SLOTS.map((timeSlot, idx) => {
+                const timeStr = `${formatTime12Hour(timeSlot.start)} - ${formatTime12Hour(timeSlot.end)}`;
+                return (
+                  <tr key={timeSlot.start}>
+                    <td className="st-time-cell">{timeStr}</td>
+                    {DAYS.map((day) => {
+                      const slot = (weekly[day] || []).find(
+                        (s) => s.startTime === timeSlot.start
+                      );
+                      return (
+                        <td key={`${day}-${timeSlot.start}`} className="st-slot-cell">
+                          {slot ? <WeeklySlotCard slot={slot} /> : <div className="st-empty-cell">—</div>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </main>
-
-      {/* LEGEND */}
-      <footer className="timetable-legend fade-in-up">
-        <h5 className="legend-title">Class Types</h5>
-        <div className="legend-items">
-          <div className="legend-item">
-            <span className="legend-badge bg-primary">
-              <FaBook /> LECTURE
-            </span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-badge bg-danger">
-              <FaFlask /> LAB
-            </span>
-          </div>
-          <div className="legend-item">
-            <span className="legend-badge bg-warning text-dark">
-              <FaLaptop /> PRACTICAL
-            </span>
-          </div>
-        </div>
-      </footer>
-
-      {/* CSS */}
-      <style>{`
-        /* ================= CONTAINER ================= */
-        .timetable-container {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-        }
-
-        /* ================= LOADING ================= */
-        .loading-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 80vh;
-          gap: 2rem;
-        }
-
-        .loading-spinner {
-          text-align: center;
-        }
-
-        .spin-icon {
-          font-size: 4rem;
-          color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-
-        .loading-spinner p {
-          margin-top: 1rem;
-          color: #6c757d;
-          font-weight: 500;
-          font-size: 1.1rem;
-        }
-
-        .skeleton-table {
-          width: 100%;
-          max-width: 1400px;
-          background: white;
-          border-radius: 16px;
-          padding: 1.5rem;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .skeleton-header {
-          height: 60px;
-          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-row {
-          display: grid;
-          grid-template-columns: 120px repeat(6, 1fr);
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-cell {
-          height: 100px;
-          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-          border-radius: 10px;
-        }
-
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-
-        /* ================= ERROR ================= */
-        .error-wrapper {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 80vh;
-        }
-
-        .error-content {
-          text-align: center;
-          padding: 3rem;
-          background: white;
-          border-radius: 20px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-          max-width: 500px;
-        }
-
-        .error-icon {
-          font-size: 5rem;
-          color: #dc3545;
-          margin-bottom: 1.5rem;
-        }
-
-        .error-content h3 {
-          margin: 0 0 1rem;
-          color: #1a4b6d;
-          font-size: 1.75rem;
-        }
-
-        .error-message {
-          color: #6c757d;
-          margin-bottom: 2rem;
-          font-size: 1rem;
-          line-height: 1.6;
-        }
-
-        .retry-btn {
-          padding: 0.875rem 2rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .retry-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        /* ================= HEADER ================= */
-        .timetable-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding: 1.5rem 2rem;
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(15, 58, 74, 0.3);
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .header-left {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .header-icon-wrapper {
-          width: 60px;
-          height: 60px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #4fc3f7;
-          font-size: 2rem;
-        }
-
-        .header-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: white;
-        }
-
-        .header-subtitle {
-          margin: 0.25rem 0 0;
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 0.95rem;
-        }
-
-        .separator {
-          margin: 0 0.5rem;
-          opacity: 0.6;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-
-        .btn-action {
-          padding: 0.75rem 1.25rem;
-          background: rgba(255, 255, 255, 0.15);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          color: white;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-          font-size: 0.9rem;
-        }
-
-        .btn-action:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
-        }
-
-        .btn-primary-action {
-          background: linear-gradient(135deg, #4fc3f7, #29b6f6);
-          border: none;
-        }
-
-        .btn-primary-action:hover {
-          background: linear-gradient(135deg, #29b6f6, #0288d1);
-          box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
-        }
-
-        .btn-text {
-          display: none;
-        }
-
-        @media (min-width: 768px) {
-          .btn-text {
-            display: inline;
-          }
-        }
-
-        /* ================= TIMETABLE CARD ================= */
-        .timetable-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-          overflow: hidden;
-          margin-bottom: 2rem;
-        }
-
-        .table-responsive {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .timetable-table {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 900px;
-        }
-
-        .timetable-table thead {
-          background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
-          color: white;
-        }
-
-        .timetable-table th {
-          padding: 1.25rem 1rem;
-          font-weight: 700;
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .time-column {
-          width: 160px;
-          background: linear-gradient(135deg, #0f3a4a, #134952);
-        }
-
-        .day-column {
-          animation: fadeInLeft 0.6s ease forwards;
-          opacity: 0;
-        }
-
-        .timetable-table tbody tr {
-          transition: all 0.3s ease;
-          animation: fadeInUp 0.6s ease forwards;
-          opacity: 0;
-        }
-
-        .timetable-table tbody tr:hover {
-          background: rgba(26, 75, 109, 0.03);
-        }
-
-        .time-cell {
-          padding: 1rem;
-          background: #f8f9fa;
-          border: 1px solid #e9ecef;
-          font-weight: 600;
-          font-size: 0.8rem;
-          color: #1a4b6d;
-        }
-
-        .time-content {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .time-icon {
-          color: #6c757d;
-          font-size: 0.9rem;
-        }
-
-        .slot-cell {
-          padding: 0.75rem;
-          border: 1px solid #e9ecef;
-          vertical-align: top;
-        }
-
-        .empty-slot {
-          height: 100%;
-          min-height: 100px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #dee2e6;
-          font-size: 1.5rem;
-          font-weight: 300;
-        }
-
-        /* ================= SLOT CARD ================= */
-        .slot-card {
-          background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-          border-radius: 12px;
-          padding: 1rem;
-          min-height: 110px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid rgba(26, 75, 109, 0.1);
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .scale-on-hover:hover {
-          transform: scale(1.03);
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.2);
-          background: linear-gradient(135deg, #e8f4f8, #d0e8f0);
-        }
-
-        .slot-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .slot-subject {
-          margin: 0;
-          font-size: 0.85rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          line-height: 1.3;
-          flex: 1;
-        }
-
-        .slot-type-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
-          font-size: 0.65rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          white-space: nowrap;
-        }
-
-        .slot-body {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          flex: 1;
-        }
-
-        .slot-code,
-        .slot-teacher,
-        .slot-room {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.7rem;
-          color: #6c757d;
-        }
-
-        .slot-code .icon,
-        .slot-teacher .icon,
-        .slot-room .icon {
-          font-size: 0.8rem;
-          color: #1a4b6d;
-          width: 14px;
-        }
-
-        /* ================= LEGEND ================= */
-        .timetable-legend {
-          background: white;
-          border-radius: 16px;
-          padding: 1.5rem 2rem;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .legend-title {
-          margin: 0 0 1rem;
-          font-size: 1rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
-
-        .legend-items {
-          display: flex;
-          gap: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .legend-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: white;
-        }
-
-        /* ================= ANIMATIONS ================= */
-        .fade-in {
-          animation: fadeIn 0.6s ease forwards;
-        }
-
-        .fade-in-up {
-          animation: fadeInUp 0.6s ease forwards;
-          opacity: 0;
-        }
-
-        .fade-in-up:nth-child(1) {
-          animation-delay: 0.1s;
-        }
-        .fade-in-up:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-        .fade-in-up:nth-child(3) {
-          animation-delay: 0.3s;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes fadeInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 1024px) {
-          .timetable-container {
-            padding: 1rem;
-          }
-
-          .timetable-header {
-            padding: 1.25rem;
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .header-left {
-            flex-direction: column;
-          }
-
-          .header-actions {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .slot-card {
-            min-height: 95px;
-            padding: 0.75rem;
-          }
-
-          .slot-subject {
-            font-size: 0.8rem;
-          }
-
-          .slot-code,
-          .slot-teacher,
-          .slot-room {
-            font-size: 0.65rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .timetable-table th,
-          .timetable-table td {
-            padding: 0.75rem 0.5rem;
-          }
-
-          .time-column {
-            width: 120px;
-            font-size: 0.7rem;
-          }
-
-          .slot-card {
-            min-height: 85px;
-          }
-
-          .slot-type-badge {
-            font-size: 0.6rem;
-            padding: 0.2rem 0.4rem;
-          }
-
-          .legend-items {
-            gap: 0.75rem;
-          }
-
-          .legend-badge {
-            font-size: 0.75rem;
-            padding: 0.4rem 0.75rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .header-title {
-            font-size: 1.4rem;
-          }
-
-          .header-subtitle {
-            font-size: 0.85rem;
-          }
-
-          .header-icon-wrapper {
-            width: 50px;
-            height: 50px;
-            font-size: 1.5rem;
-          }
-
-          .timetable-card {
-            border-radius: 12px;
-          }
-
-          .slot-card {
-            padding: 0.6rem;
-          }
-
-          .slot-subject {
-            font-size: 0.8rem;
-          }
-        }
-
-        /* ================= PRINT STYLES ================= */
-        @media print {
-          .timetable-container {
-            background: white;
-            padding: 0;
-          }
-
-          .timetable-header {
-            background: #1a4b6d !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          .header-actions {
-            display: none !important;
-          }
-
-          .timetable-card {
-            box-shadow: none;
-            border: 1px solid #ddd;
-          }
-
-          .timetable-legend {
-            box-shadow: none;
-            border: 1px solid #ddd;
-            page-break-inside: avoid;
-          }
-        }
-
-        /* ================= TODAY'S CLASSES SECTION ================= */
-        .today-section {
-          background: white;
-          border-radius: 16px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .today-header {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          margin-bottom: 1.5rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e9ecef;
-        }
-
-        .today-icon-wrapper {
-          width: 50px;
-          height: 50px;
-          background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 1.5rem;
-        }
-
-        .today-title {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
-
-        .today-subtitle {
-          margin: 0.25rem 0 0;
-          color: #6c757d;
-          font-size: 0.95rem;
-        }
-
-        .today-count {
-          color: #1a4b6d;
-          font-weight: 600;
-        }
-
-        .today-slots-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1rem;
-        }
-
-        .today-slot-card {
-          background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-          border-radius: 12px;
-          padding: 1rem;
-          border: 1px solid rgba(26, 75, 109, 0.1);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .today-slot-card:hover {
-          transform: scale(1.03);
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.2);
-          background: linear-gradient(135deg, #e8f4f8, #d0e8f0);
-        }
-
-        .today-slot-time {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #1a4b6d;
-          padding-bottom: 0.5rem;
-          border-bottom: 1px dashed #dee2e6;
-        }
-
-        .today-slot-time .time-icon {
-          color: #6c757d;
-        }
-
-        .today-slot-content {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          flex: 1;
-        }
-
-        .today-slot-subject {
-          margin: 0;
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          line-height: 1.3;
-        }
-
-        .today-slot-details {
-          display: flex;
-          flex-direction: column;
-          gap: 0.375rem;
-        }
-
-        .today-slot-detail {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.8rem;
-          color: #6c757d;
-        }
-
-        .today-slot-detail .icon {
-          color: #1a4b6d;
-          font-size: 0.85rem;
-        }
-
-        .today-slot-footer {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-          .today-slots-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .today-header {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .today-title {
-            font-size: 1.25rem;
-          }
-        }
-
-          .slot-card {
-            break-inside: avoid;
-          }
-        }
-
-        /* ================= TOASTIFY OVERRIDES ================= */
-        .Toastify__toast {
-          border-radius: 10px;
-          font-weight: 500;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .Toastify__toast--success {
-          background: linear-gradient(135deg, #28a745, #1e7e34);
-        }
-
-        .Toastify__toast--error {
-          background: linear-gradient(135deg, #dc3545, #c82333);
-        }
-
-        .Toastify__toast--info {
-          background: linear-gradient(135deg, #17a2b8, #117a8b);
-        }
-      `}</style>
+      </motion.div>
     </div>
   );
 }
+
+/* ================= TODAY'S SLOT CARD ================= */
+function TodaySlotCard({ slot, index }) {
+  const slotType = BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="st-today-card"
+      style={{ borderLeft: `4px solid ${slotType.text}` }}
+    >
+      <div className="st-today-card-header">
+        <div className="st-today-time">
+          <FaClock className="st-time-icon" />
+          <span className="st-time-text">
+            {formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}
+          </span>
+        </div>
+        <span
+          className="st-type-badge"
+          style={{ backgroundColor: slotType.bg, color: slotType.text }}
+        >
+          <FaLayerGroup size={12} />
+          {slot.slotType}
+        </span>
+      </div>
+      <div className="st-today-card-body">
+        <h4 className="st-today-subject">{slot.subject_id?.name}</h4>
+        <div className="st-today-card-footer">
+          <div className="st-today-detail">
+            <FaChalkboardTeacher className="st-detail-icon" />
+            <span>{slot.teacher_id?.name}</span>
+          </div>
+          {slot.room && (
+            <div className="st-today-detail">
+              <FaDoorOpen className="st-detail-icon" />
+              <span>Room {slot.room}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= WEEKLY SLOT CARD ================= */
+function WeeklySlotCard({ slot }) {
+  const slotType = BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
+
+  return (
+    <div
+      className="st-weekly-slot"
+      style={{ backgroundColor: slotType.bg, border: `1px solid ${slotType.border}` }}
+    >
+      <div className="st-weekly-slot-header">
+        <span className="st-weekly-type" style={{ color: slotType.text }}>
+          {slot.slotType}
+        </span>
+      </div>
+      <div className="st-weekly-slot-subject">{slot.subject_id?.name}</div>
+      <div className="st-weekly-slot-footer">
+        <div className="st-weekly-detail">
+          <FaChalkboardTeacher className="st-weekly-icon" />
+          <span className="st-weekly-teacher">{slot.teacher_id?.name?.split(' ')[0]}</span>
+        </div>
+        {slot.room && (
+          <div className="st-weekly-detail">
+            <FaDoorOpen className="st-weekly-icon" />
+            <span>{slot.room}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================= CSS STYLES ================= */
+const componentStyles = `
+  /* ================= CONTAINER ================= */
+  .st-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    padding: 1.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  }
+
+  /* ================= LOADING ================= */
+  .st-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    gap: 1.5rem;
+  }
+
+  .st-loading-icon {
+    font-size: 4rem;
+    color: #1a4b6d;
+  }
+
+  .st-loading h3 {
+    margin: 0;
+    color: #1a4b6d;
+    font-size: 1.5rem;
+  }
+
+  .st-loading p {
+    margin: 0;
+    color: #64748b;
+  }
+
+  /* ================= BREADCRUMB ================= */
+  .st-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .st-breadcrumb-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: #1a4b6d;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .st-breadcrumb-btn:hover {
+    background: rgba(26, 75, 109, 0.1);
+  }
+
+  .st-breadcrumb-sep {
+    color: #94a3b8;
+  }
+
+  .st-breadcrumb-current {
+    color: #1a4b6d;
+    font-weight: 600;
+  }
+
+  /* ================= HEADER ================= */
+  .st-header {
+    background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    box-shadow: 0 10px 40px rgba(26, 75, 109, 0.3);
+    color: white;
+  }
+
+  .st-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .st-header-icon {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+
+  .st-header-title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  .st-header-subtitle {
+    margin: 0.5rem 0 0;
+    opacity: 0.95;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+  }
+
+  .st-subtitle-icon {
+    font-size: 0.9rem;
+  }
+
+  .st-sep {
+    opacity: 0.6;
+    margin: 0 0.25rem;
+  }
+
+  .st-header-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .st-time-badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .st-badge-icon {
+    font-size: 1.5rem;
+    opacity: 0.9;
+  }
+
+  .st-badge-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .st-badge-label {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .st-badge-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .st-refresh-btn {
+    background: white;
+    color: #1a4b6d;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+  }
+
+  .st-refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+  }
+
+  .st-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ================= STATS BAR ================= */
+  .st-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .st-stat {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .st-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .st-stat-primary { background: #e3f2fd; color: #1976d2; }
+  .st-stat-success { background: #e8f5e9; color: #388e3c; }
+  .st-stat-info { background: #e0f7fa; color: #0097a7; }
+
+  .st-stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .st-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .st-stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  /* ================= ERROR BANNER ================= */
+  .st-error-banner {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .st-error-icon {
+    font-size: 1.25rem;
+  }
+
+  .st-error-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0.25rem;
+    line-height: 1;
+  }
+
+  /* ================= SECTIONS ================= */
+  .st-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .st-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+
+  .st-section-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .st-section-icon {
+    font-size: 1.5rem;
+    color: #1a4b6d;
+  }
+
+  .st-sun-icon {
+    color: #f59e0b;
+  }
+
+  .st-section-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .st-section-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* ================= TODAY'S GRID ================= */
+  .st-today-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .st-today-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+  }
+
+  .st-today-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  .st-today-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+
+  .st-today-time {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #1a4b6d;
+  }
+
+  .st-time-icon {
+    color: #64748b;
+  }
+
+  .st-time-text {
+    font-size: 0.95rem;
+  }
+
+  .st-type-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .st-today-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .st-today-subject {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+  }
+
+  .st-today-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .st-today-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  .st-detail-icon {
+    color: #1a4b6d;
+    font-size: 0.9rem;
+  }
+
+  /* ================= WEEKLY TABLE ================= */
+  .st-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .st-timetable-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+  }
+
+  .st-timetable-table thead {
+    background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
+    color: white;
+  }
+
+  .st-time-col-header {
+    padding: 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #0f3a4a;
+    width: 140px;
+    text-align: center;
+  }
+
+  .st-day-col-header {
+    padding: 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: 140px;
+  }
+
+  .st-today-col {
+    background: rgba(255, 255, 255, 0.15);
+    position: relative;
+  }
+
+  .st-today-marker {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+
+  .st-timetable-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: background 0.3s ease;
+  }
+
+  .st-timetable-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .st-time-cell {
+    padding: 0.75rem;
+    background: #f8fafc;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #1a4b6d;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+  }
+
+  .st-slot-cell {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+    height: 110px;
+  }
+
+  .st-empty-cell {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e2e8f0;
+    font-size: 1.5rem;
+  }
+
+  /* ================= WEEKLY SLOT ================= */
+  .st-weekly-slot {
+    border-radius: 8px;
+    padding: 0.6rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: all 0.3s ease;
+  }
+
+  .st-weekly-slot:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .st-weekly-slot-header {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .st-weekly-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .st-weekly-slot-subject {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a4b6d;
+    line-height: 1.2;
+    flex: 1;
+  }
+
+  .st-weekly-slot-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .st-weekly-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: #64748b;
+  }
+
+  .st-weekly-icon {
+    color: #1a4b6d;
+    font-size: 0.75rem;
+  }
+
+  .st-weekly-teacher {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ================= RESPONSIVE ================= */
+  @media (max-width: 768px) {
+    .st-container {
+      padding: 1rem;
+    }
+
+    .st-header {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .st-header-left {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .st-header-right {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .st-header-title {
+      font-size: 1.5rem;
+    }
+
+    .st-today-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .st-stats-bar {
+      grid-template-columns: 1fr;
+    }
+
+    .st-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+`;
