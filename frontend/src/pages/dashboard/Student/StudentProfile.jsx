@@ -68,19 +68,16 @@ export default function StudentProfile() {
         }
 
         setProfile(res.data);
-        
+
         // Extract document config for conditional rendering
         if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
           setDocumentConfig(res.data.documentConfig);
-          console.log("📄 Document config loaded:", res.data.documentConfig);
+          console.log("📄 Document config loaded from profile:", res.data.documentConfig.length, "documents");
         } else {
-          // Default config if not provided
-          setDocumentConfig([
-            { type: "10th_marksheet", enabled: true, label: "10th Marksheet" },
-            { type: "12th_marksheet", enabled: true, label: "12th Marksheet" },
-            { type: "passport_photo", enabled: true, label: "Passport Photo" },
-            { type: "category_certificate", enabled: true, label: "Category Certificate" }
-          ]);
+          // No document config - use empty array (no documents shown)
+          // This means college admin hasn't configured any documents
+          setDocumentConfig([]);
+          console.log("📭 No document config found - showing no documents");
         }
       } catch (err) {
         console.error("PROFILE ERROR:", err);
