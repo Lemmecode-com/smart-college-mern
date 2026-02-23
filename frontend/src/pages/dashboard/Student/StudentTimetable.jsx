@@ -78,6 +78,29 @@ const TIME_SLOTS = [
   { start: "16:00", end: "17:00" },
 ];
 
+/**
+ * Convert 24-hour format to 12-hour AM/PM format
+ */
+const convertTo12Hour = (time24h) => {
+  if (!time24h) return time24h;
+  
+  const [hours, minutes] = time24h.split(':');
+  let h = parseInt(hours);
+  const modifier = h >= 12 ? 'PM' : 'AM';
+  
+  h = h % 12;
+  h = h ? h : 12;
+  
+  return `${h.toString().padStart(2, '0')}:${minutes} ${modifier}`;
+};
+
+/**
+ * Format time range for display
+ */
+const formatTimeRange = (startTime, endTime) => {
+  return `${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}`;
+};
+
 export default function StudentTimetable() {
   const navigate = useNavigate();
   const [weekly, setWeekly] = useState({});
