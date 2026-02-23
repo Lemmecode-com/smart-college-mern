@@ -131,7 +131,16 @@ const TIMES = [
   "16:00 - 17:00",
 ];
 
-// CSS Styles Constant
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+// CSS Styles
 const componentStyles = `
 /* ================= CONTAINER ================= */
 .schedule-container {
@@ -1614,11 +1623,9 @@ function ScheduleRow({
           borderColor: slotType.border,
         }}
       >
-        <div className="time-start" style={{ color: slotType.text }}>
-          {time.split(" - ")[0]}
-        </div>
-        <div className="time-end">to {time.split(" - ")[1]}</div>
-        {slotStatus === "active" && !hasActiveSession && (
+        <div className="time-start">{formatTime12Hour(time.split(" - ")[0])}</div>
+        <div className="time-end">to {formatTime12Hour(time.split(" - ")[1])}</div>
+        {isCurrent && !hasActiveSession && (
           <motion.div
             variants={pulseVariants}
             initial="initial"
