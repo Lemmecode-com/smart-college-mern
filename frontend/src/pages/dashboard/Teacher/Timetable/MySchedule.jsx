@@ -131,7 +131,16 @@ const TIMES = [
   "16:00 - 17:00",
 ];
 
-// CSS Styles Constant
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+// CSS Styles
 const componentStyles = `
 /* ================= CONTAINER ================= */
 .schedule-container {
@@ -1054,6 +1063,8 @@ export default function MySchedule() {
       );
       return;
     }
+    
+    // ✅ Check if class time has ended
     if (currentMinutes >= endMinutes) {
       toast.error(
         "Attendance cannot be started after lecture end time. Class has ended.",
@@ -1549,6 +1560,11 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
+  
+  // ✅ Check backend status first (highest priority)
+  const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
+  const hasOpenSession = slot.hasOpenSession || hasActiveSession;
+  
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
@@ -1565,8 +1581,10 @@ function ScheduleRow({
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
-  } else if (hasActiveSession || hasAttendanceSession) {
-    buttonState = "active";
+  } else if (hasOpenSession) {
+    buttonState = "active";  // ✅ Backend says session is open
+  } else if (hasClosedSession) {
+    buttonState = "ended";  // ✅ Backend says session is closed
   } else if (slotStatus === "past") {
     buttonState = "ended";
   } else if (slotStatus === "upcoming") {
@@ -1605,11 +1623,9 @@ function ScheduleRow({
           borderColor: slotType.border,
         }}
       >
-        <div className="time-start" style={{ color: slotType.text }}>
-          {time.split(" - ")[0]}
-        </div>
-        <div className="time-end">to {time.split(" - ")[1]}</div>
-        {slotStatus === "active" && !hasActiveSession && (
+        <div className="time-start">{formatTime12Hour(time.split(" - ")[0])}</div>
+        <div className="time-end">to {formatTime12Hour(time.split(" - ")[1])}</div>
+        {isCurrent && !hasActiveSession && (
           <motion.div
             variants={pulseVariants}
             initial="initial"
