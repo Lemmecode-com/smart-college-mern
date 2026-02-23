@@ -171,33 +171,58 @@ export default function StudentRegister() {
     const fieldName = e.target.name;
 
     if (file) {
-      // Validate: Only accept documents that are enabled in config
-      const docConfig = documentConfig.find(doc => doc.type === fieldName);
+      console.log("📄 File selected:", fieldName, file.name, file.size, "bytes");
+      console.log("📄 Current documentConfig:", documentConfig);
       
+      // Validate: Only accept documents that are enabled in config
+      const docConfig = documentConfig ? documentConfig.find(doc => doc.type === fieldName) : undefined;
+
+      console.log("📄 Found docConfig for", fieldName, ":", docConfig);
+
       // Special handling for category certificate
       if (!docConfig && fieldName === 'category_certificate') {
         // Allow upload if category is not GEN
         if (form.category === 'GEN') {
           alert(`Category certificate is not required for GEN category`);
+          e.target.value = ''; // Clear file input
           return;
         }
         // If config doesn't exist but category is not GEN, allow it
-        setForm({
-          ...form,
+        console.log("✅ Setting file (category cert no config):", fieldName, file.name);
+        setForm((prevForm) => ({
+          ...prevForm,
           [fieldName]: file
-        });
+        }));
         return;
       }
-      
+
       if (!docConfig) {
-        alert(`${fieldName} is not required for this college`);
+        console.error("❌ Document config not found for:", fieldName);
+        // Fallback: Allow upload if documentConfig is empty but field exists in form
+        // This handles edge cases where config might not be fully loaded
+        if (!documentConfig || documentConfig.length === 0) {
+          console.log("⚠️ No config loaded, but allowing upload for:", fieldName);
+          console.log("✅ Setting file (no config):", fieldName, file.name);
+          setForm((prevForm) => ({
+            ...prevForm,
+            [fieldName]: file
+          }));
+          return;
+        }
+        alert(`${fieldName} is not configured for this college. Please contact admin.`);
+        e.target.value = ''; // Clear file input
         return;
       }
 
       // Validate file format
       const fileExt = file.name.split('.').pop().toLowerCase();
-      if (!docConfig.allowedFormats.includes(fileExt)) {
-        alert(`${docConfig.label} accepts only: ${docConfig.allowedFormats.join(', ').toUpperCase()}`);
+      const allowedFormats = docConfig.allowedFormats || ['pdf', 'jpg', 'jpeg', 'png'];
+      
+      console.log("📄 Checking format:", fileExt, "against allowed:", allowedFormats);
+      
+      if (!allowedFormats.includes(fileExt)) {
+        alert(`${docConfig.label} accepts only: ${allowedFormats.join(', ').toUpperCase()}`);
+        e.target.value = ''; // Clear file input
         return;
       }
 
@@ -205,13 +230,16 @@ export default function StudentRegister() {
       const maxSize = (docConfig.maxFileSize || 5) * 1024 * 1024;
       if (file.size > maxSize) {
         alert(`${docConfig.label} file size should be less than ${docConfig.maxFileSize || 5}MB`);
+        e.target.value = ''; // Clear file input
         return;
       }
 
-      setForm({
-        ...form,
+      console.log("✅ Setting file:", fieldName, file.name);
+      setForm((prevForm) => ({
+        ...prevForm,
         [fieldName]: file
-      });
+      }));
+      console.log("✅ File accepted:", fieldName);
     }
   };
 
@@ -454,10 +482,17 @@ export default function StudentRegister() {
 
       // Append files - Map frontend field names to backend expected field names
       // Backend expects: sscMarksheet, hscMarksheet, passportPhoto, categoryCertificate, etc.
+      console.log("📋 Starting file append process...");
+      console.log("📋 documentConfig:", documentConfig);
+      console.log("📋 form state:", form);
+      
       documentConfig.forEach((doc) => {
+        console.log("📄 Checking document:", doc.type, "Enabled:", doc.enabled);
+        console.log("📄 form[doc.type]:", form[doc.type]);
+        
         if (form[doc.type]) {
           console.log("📎 Appending file:", doc.type, form[doc.type]?.name);
-          
+
           // Map field names to match backend upload middleware
           let backendFieldName = doc.type;
           if (doc.type === "10th_marksheet") {
@@ -497,8 +532,11 @@ export default function StudentRegister() {
           } else if (doc.type === "affidavit") {
             backendFieldName = "affidavit";
           }
-          
+
           formData.append(backendFieldName, form[doc.type]);
+          console.log("✅ Appended:", backendFieldName);
+        } else {
+          console.log("⚠️ File not uploaded for:", doc.type, "Mandatory:", doc.mandatory);
         }
       });
 
@@ -698,7 +736,8 @@ export default function StudentRegister() {
         <div className="col-md-6">
           <label className="form-label fw-semibold">Gender <span className="text-danger">*</span></label>
           <select className="form-select" name="gender" value={form.gender} onChange={handleChange}>
-            <option value="Female">Female</option>
+            <option>Select gender</option>
+             <option value="Female">Female</option>
             <option value="Male">Male</option>
             <option value="Other">Other</option>
           </select>

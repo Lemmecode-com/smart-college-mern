@@ -14,12 +14,15 @@ exports.registerStudent = async (req, res, next) => {
   try {
     const { collegeCode } = req.params;
 
+    // Extract category early from req.body for validation
+    const { category } = req.body;
+
     // Load document configuration for this college
     const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
-    
+
     // Get uploaded files
     const files = req.files || {};
-    
+
     // Map document type to field name (backward compatibility)
     const documentFieldMap = {
       "10th_marksheet": "sscMarksheet",
@@ -48,19 +51,23 @@ exports.registerStudent = async (req, res, next) => {
     if (docConfig && docConfig.documents) {
       // Use college-specific document config
       console.log("📋 Processing document config for college:", collegeCode);
-      
+
       // First pass: Check mandatory documents and validate
       for (const doc of docConfig.documents) {
         console.log("📄 Checking document:", doc.type, "Enabled:", doc.enabled, "Mandatory:", doc.mandatory);
 
+        // Map document type to backend field name
+        const backendFieldName = documentFieldMap[doc.type] || doc.type;
+        
         // Check mandatory documents (only if enabled)
-        if (doc.enabled && doc.mandatory && !files[doc.type]) {
+        if (doc.enabled && doc.mandatory && !files[backendFieldName]) {
           // Skip category certificate if category is GEN
           if (doc.type === 'category_certificate' && category === 'GEN') {
             console.log("⏭️ Skipping category certificate (GEN category)");
             continue;
           }
-          console.log("❌ Missing mandatory document:", doc.label);
+          console.log("❌ Missing mandatory document:", doc.label, "(looking for field:", backendFieldName, ")");
+          console.log("📁 Files received:", Object.keys(files));
           return res.status(400).json({
             message: `${doc.label} is mandatory`
           });
@@ -123,7 +130,7 @@ exports.registerStudent = async (req, res, next) => {
       currentSemester,
       previousQualification,
       previousInstitute,
-      category,
+      // category is extracted earlier for validation
       nationality,
       bloodGroup,
       alternateMobile,

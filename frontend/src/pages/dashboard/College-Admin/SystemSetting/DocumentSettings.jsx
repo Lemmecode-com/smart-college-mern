@@ -46,22 +46,25 @@ export default function DocumentSettings() {
     try {
       setLoading(true);
       const res = await api.get("/document-config/admin/college");
-      
+
       if (res.data.config && res.data.config.documents) {
         setDocuments(res.data.config.documents);
+        console.log("✅ Loaded existing document config:", res.data.config.documents.length, "documents");
       } else {
-        // Initialize with default configuration
-        const defaultDocs = defaultDocumentTypes.map((doc, index) => ({
+        // Initialize with EMPTY configuration - admin must explicitly enable documents
+        // This ensures registration form only shows documents that admin actually selects
+        const emptyDocs = defaultDocumentTypes.map((doc, index) => ({
           type: doc.type,
           label: doc.label,
-          enabled: index < 4, // First 4 enabled by default
-          mandatory: index < 3, // First 3 mandatory by default
+          enabled: false, // ALL disabled by default - admin must enable
+          mandatory: false,
           allowedFormats: doc.defaultFormats,
           maxFileSize: 5,
           description: "",
           order: index
         }));
-        setDocuments(defaultDocs);
+        setDocuments(emptyDocs);
+        console.log("📭 No config found - initialized with empty (all disabled) config");
       }
     } catch (error) {
       console.error("Error loading document config:", error);
