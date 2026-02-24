@@ -726,6 +726,8 @@ const componentStyles = `
   .st-stat-info {
     display: flex;
     flex-direction: column;
+    padding: 10px;
+    border-radius: 12px;
   }
 
   .st-stat-value {

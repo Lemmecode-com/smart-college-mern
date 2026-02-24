@@ -444,6 +444,66 @@ exports.getMyProfile = async (req, res) => {
 };
 
 /* =========================================================
+   UPDATE MY PROFILE (Logged-in Teacher)
+   PUT /teachers/my-profile
+   ⚠️ Teachers can ONLY edit: name, email, experienceYears
+   ❌ Cannot edit: employeeId, designation, qualification, department_id, courses (admin only)
+========================================================= */
+exports.updateMyProfile = async (req, res, next) => {
+  try {
+    const {
+      name,
+      email,
+      experienceYears,
+    } = req.body;
+
+    // Find teacher by user_id (logged-in user)
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    // Update teacher fields (ONLY editable fields)
+    const updateFields = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(experienceYears !== undefined && { experienceYears }),
+    };
+
+    const updatedTeacher = await Teacher.findOneAndUpdate(
+      {
+        _id: teacher._id,
+        college_id: req.college_id,
+      },
+      updateFields,
+      { new: true }
+    )
+      .populate("department_id", "name")
+      .populate("courses", "name code");
+
+    // Update user name/email if provided
+    if (name || email) {
+      await User.findByIdAndUpdate(req.user.id, {
+        ...(name && { name }),
+        ...(email && { email }),
+      });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      teacher: updatedTeacher,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
    GET ALL TEACHERS (Admin / HOD)
    GET /teachers
 ========================================================= */
