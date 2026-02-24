@@ -1706,54 +1706,153 @@ function ScheduleRow({
             </div>
           </div>
         </div>
-        <div className="content-footer">
-          <div className="teacher-info">
+        <div className="content-bottom">
+          {/* <div className="teacher-info">
             <FaChalkboardTeacher
               size={isMobile ? 14 : 16}
               style={{ color: BRAND_COLORS.primary.main }}
             />
             <span>{slot.teacher_id?.name || "N/A"}</span>
-          </div>
-          <div className="action-section">
-            {buttonState === "creating" ? (
-              <motion.button disabled className="btn-action btn-creating">
-                <motion.div variants={spinVariants} animate="animate">
-                  <FaSyncAlt />
-                </motion.div>
-                Starting Session...
-              </motion.button>
-            ) : buttonState === "active" ? (
-              <div className="btn-action btn-active">
-                <FaCheckCircle size={20} />
-                Attendance Session Active
-              </div>
-            ) : buttonState === "ended" ? (
-              <button disabled className="btn-action btn-ended">
-                <FaStopCircle />
-                Class Ended - Attendance Closed
-              </button>
-            ) : buttonState === "upcoming" ? (
-              <button disabled className="btn-action btn-upcoming">
-                <FaClock />
-                Starts at {startTime}
-              </button>
-            ) : buttonState === "unpublished" ? (
-              <div className="btn-action btn-unpublished">
-                <FaExclamationTriangle size={16} />
-                Timetable Not Published
-              </div>
-            ) : (
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onStartAttendance(slot)}
-                className="btn-action btn-start"
-              >
-                <FaPlay />
-                Start Attendance Now
-              </motion.button>
-            )}
-          </div>
+          </div> */}
+          {buttonState === "creating" ? (
+            <motion.button 
+              disabled 
+              className="btn-action btn-creating"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.8
+              }}
+            >
+              <motion.div variants={spinVariants} animate="animate">
+                <FaSyncAlt />
+              </motion.div>
+              Starting Session...
+            </motion.button>
+          ) : buttonState === "active" ? (
+            <motion.div 
+              className="btn-action btn-active"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.4)',
+                cursor: 'default'
+              }}
+            >
+              <FaCheckCircle size={isMobile ? 18 : 20} />
+              <span style={{ fontWeight: 600 }}>Attendance Active</span>
+            </motion.div>
+          ) : buttonState === "ended" ? (
+            <motion.div 
+              className="btn-action btn-ended"
+              style={{
+                background: 'linear-gradient(135deg, #6c757d, #5a6268)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.7
+              }}
+            >
+              <FaTimesCircle size={isMobile ? 18 : 20} />
+              <span>Session Closed</span>
+            </motion.div>
+          ) : buttonState === "unpublished" ? (
+            <div className="btn-action btn-unpublished"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
+              <FaExclamationTriangle size={16} />
+              <span>Timetable Not Published</span>
+            </div>
+          ) : buttonState === "upcoming" ? (
+            <div className="btn-action btn-upcoming"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
+              <FaHourglassStart size={16} />
+              <span>Starts at {startTime}</span>
+            </div>
+          ) : canStartAttendance ? (
+            <motion.button
+              whileHover={{ 
+                scale: 1.03,
+                boxShadow: '0 6px 20px rgba(40, 167, 69, 0.45)'
+              }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onStartAttendance(slot, time)}
+              className="btn-action btn-start"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.35)',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <FaPlay />
+              <span style={{ fontWeight: 600 }}>Start Attendance</span>
+            </motion.button>
+          ) : (
+            <button 
+              disabled 
+              className="btn-action btn-start"
+              style={{
+                background: '#e9ecef',
+                color: '#6c757d',
+                cursor: 'not-allowed',
+                opacity: 0.6,
+                boxShadow: 'none'
+              }}
+            >
+              <FaPlay />
+              <span>Not Available</span>
+            </button>
+          )}
+          {/* Info Messages */}
+          {attendanceMessage && (
+            <div className={`info-message info-${
+              attendanceMessage.includes('already') ? 'warning' :
+              attendanceMessage.includes('ended') || attendanceMessage.includes('closed') ? 'error' :
+              'info'
+            }`}>
+              <FaInfoCircle size={16} />
+              <span>{attendanceMessage}</span>
+            </div>
+          )}
+          {buttonState === "ended" && isPublished && !attendanceMessage && (
+            <div className="info-message info-error">
+              <FaTimesCircle size={16} />
+              <span>
+                This class ended at {endTime}. Attendance session is closed.
+              </span>
+            </div>
+          )}
+          {buttonState === "active" && (
+            <div className="info-message info-success">
+              <FaCheckCircle size={16} />
+              <span>
+                Attendance is active. Click the button above to mark student attendance.
+              </span>
+            </div>
+          )}
+          {buttonState === "upcoming" && (
+            <div className="info-message info-info">
+              <FaInfoCircle size={16} />
+              <span>
+                Attendance will be available from {startTime} to {endTime}
+              </span>
+            </div>
+          )}
+          {buttonState === "unpublished" && (
+            <div className="info-message info-warning">
+              <FaExclamationTriangle size={16} />
+              <span>Please ask HOD to publish the timetable to enable attendance.</span>
+            </div>
+          )}
         </div>
         {/* Info Messages */}
         {buttonState === "ended" && isPublished && (
