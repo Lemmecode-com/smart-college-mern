@@ -2,14 +2,35 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const cookieParser = require("cookie-parser");
+const morgan = require("morgan");
+
+const { securityMiddleware } = require("./src/middlewares/security.middleware");
+const {
+  healthCheckLimiter,
+  apiLimiter,
+  publicLimiter,
+  paymentLimiter
+} = require("./src/middlewares/rateLimit.middleware");
+const logger = require("./src/utils/logger");
 
 const app = express();
 
+/* ================= CORS CONFIGURATION ================= */
 app.use(cors({
   credentials: true,
   origin: process.env.CLIENT_URL || "http://localhost:5173"  // Adjust this to your frontend URL
 }));
 app.use(cookieParser());
+
+/* ================= REQUEST LOGGING (MORGAN) ================= */
+// Log all HTTP requests with Morgan
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => {
+      logger.http(message.trim());
+    }
+  }
+}));
 
 /* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
 // Stripe webhook needs raw body, so we handle it separately
@@ -18,7 +39,17 @@ app.use("/api/stripe/webhook", require("./src/webhooks/stripe.webhook").handleSt
 /* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
 app.use(express.json());
 
-app.use("/health-check", require("./src/routes/health.routes"))
+/* ================= SECURITY MIDDLEWARE ================= */
+app.use(securityMiddleware);
+
+/* ================= RATE LIMITING ================= */
+app.use("/health-check", healthCheckLimiter);
+app.use("/api/public", publicLimiter);
+app.use("/api/stripe", paymentLimiter);
+app.use("/api/student/payments", paymentLimiter);
+app.use("/api/admin/payments", paymentLimiter);
+app.use("/api/fees/structure", paymentLimiter);
+app.use("/api/", apiLimiter);
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
