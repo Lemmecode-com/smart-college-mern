@@ -1,27 +1,21 @@
 const AppError = require("../utils/AppError");
+const logger = require("../utils/logger");
 
 /**
  * Global Error Handler Middleware
- * 
- * Handles all types of errors consistently:
- * - Operational errors (AppError)
- * - MongoDB errors (CastError, Duplicate, ValidationError)
- * - JWT errors (JsonWebTokenError, TokenExpiredError)
- * - Stripe errors
- * - Express validation errors
- * - Unknown/programming errors
  */
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error for debugging (never log sensitive data)
-  console.error(`[Error Handler] ${err.name}: ${err.message}`);
-  
-  // Only log stack trace in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error(err.stack);
-  }
+  // Log error using Winston (file only, not console)
+  logger.logError(`[Error Handler] ${err.name}: ${err.message}`, {
+    name: err.name,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    url: req.originalUrl,
+    method: req.method,
+    userId: req.user?._id || req.user?.id,
+  });
 
   // Mongoose CastError (Invalid ObjectId)
   if (err.name === 'CastError') {
