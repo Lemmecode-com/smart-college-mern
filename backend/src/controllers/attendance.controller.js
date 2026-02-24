@@ -8,6 +8,7 @@ const Teacher = require("../models/teacher.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
 const Department = require("../models/department.model");
+const College = require("../models/college.model");
 const AppError = require("../utils/AppError");
 const { getDayName, isDateMatchesDay, isPastDate, isFutureDate, isToday } = require("../utils/date.utils");
 
@@ -675,6 +676,9 @@ exports.getAttendanceReport = async (req, res) => {
 
     const { courseId, subjectId, startDate, endDate } = req.query;
 
+    /* ================= FETCH COLLEGE INFO ================= */
+    const college = await College.findById(collegeId).select("name code");
+
     /* ================= MATCH CONDITIONS ================= */
     const match = {
       college_id: new mongoose.Types.ObjectId(collegeId),
@@ -699,6 +703,7 @@ exports.getAttendanceReport = async (req, res) => {
     /* ================= FETCH SESSIONS ================= */
     const sessions = await AttendanceSession.find(match)
       .populate("subject_id", "name")
+      .populate("course_id", "name code")
       .sort({ lectureDate: -1 });
 
     const sessionIds = sessions.map(s => s._id);
@@ -725,7 +730,9 @@ exports.getAttendanceReport = async (req, res) => {
         _id: session._id,
         date: session.lectureDate,
         subject: session.subject_id?.name || "N/A",
+        course: session.course_id?.name || "N/A",
         lectureNumber: session.lectureNumber,
+        totalStudents: total,
         present,
         absent,
         percentage,
@@ -739,6 +746,10 @@ exports.getAttendanceReport = async (req, res) => {
     const totalAbsent = records.filter(r => r.status === "ABSENT").length;
 
     res.json({
+      college: {
+        name: college?.name || "N/A",
+        code: college?.code || "N/A",
+      },
       summary: {
         totalLectures,
         totalStudents,

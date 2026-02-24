@@ -312,6 +312,7 @@ const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const User = require("../models/user.model");
+const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 
 /* =========================================================
@@ -434,7 +435,18 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    res.json(teacher);
+    // ✅ Fetch subjects assigned to this teacher
+    const subjects = await Subject.find({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    }).populate("course_id", "name code");
+
+    // ✅ Convert to plain object and add subjects
+    const teacherObj = teacher.toObject();
+    teacherObj.subjects = subjects;
+
+    res.json(teacherObj);
   } catch (error) {
     console.error("PROFILE ERROR:", error);
     res.status(500).json({
