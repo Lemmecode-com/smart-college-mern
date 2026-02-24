@@ -17,6 +17,7 @@ import {
   FaArrowLeft,
   FaBell,
   FaSun,
+  FaTimesCircle,
   FaPauseCircle,
   FaStopCircle,
   FaUserClock,
@@ -1560,6 +1561,7 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
+  const isCurrent = currentMinutes >= startMinutes && currentMinutes < endMinutes;
   
   // ✅ Check backend status first (highest priority)
   const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
