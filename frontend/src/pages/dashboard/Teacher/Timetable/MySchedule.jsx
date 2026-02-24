@@ -1747,13 +1747,13 @@ function ScheduleRow({
           </div>
         </div>
         <div className="content-bottom">
-          <div className="teacher-info">
+          {/* <div className="teacher-info">
             <FaChalkboardTeacher
               size={isMobile ? 14 : 16}
               className="teacher-icon"
             />
             <span>{slot.teacher_id?.name || "N/A"}</span>
-          </div>
+          </div> */}
           {buttonState === "creating" ? (
             <motion.button 
               disabled 
