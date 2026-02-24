@@ -335,7 +335,7 @@ export default function TeacherDashboard() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/profile/my-profile")}
+                  onClick={() => navigate("/profile/edit-profile")}
                   style={{
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,
