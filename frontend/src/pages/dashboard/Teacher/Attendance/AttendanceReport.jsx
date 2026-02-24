@@ -92,6 +92,7 @@ export default function AttendanceReport() {
   const [error, setError] = useState(null);
   const [fetchingReport, setFetchingReport] = useState(false);
   const [generatingCSV, setGeneratingCSV] = useState(false);
+  const [collegeInfo, setCollegeInfo] = useState(null);
 
   const [filters, setFilters] = useState({
     courseId: "",
@@ -99,6 +100,21 @@ export default function AttendanceReport() {
     startDate: "",
     endDate: "",
   });
+
+  /* ================= FETCH COLLEGE INFO ================= */
+  const fetchCollegeInfo = async () => {
+    try {
+      const res = await api.get("/teachers/my-profile");
+      if (res.data?.college_id) {
+        setCollegeInfo({
+          name: res.data.college_id.name,
+          code: res.data.college_id.code || "N/A"
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load college info:", err);
+    }
+  };
 
   /* ================= FETCH COURSES ================= */
   const fetchCourses = async () => {
@@ -154,6 +170,7 @@ export default function AttendanceReport() {
   useEffect(() => {
     fetchCourses();
     fetchReport();
+    fetchCollegeInfo();
   }, []);
 
   const handleCourseChange = (e) => {
@@ -225,7 +242,11 @@ export default function AttendanceReport() {
   /* ================= PRINT REPORT ================= */
   const printReport = () => {
     if (!report) return;
-    
+
+    // Use college from report API, fallback to collegeInfo from profile
+    const collegeName = report.college?.name !== "N/A" ? report.college?.name : collegeInfo?.name || "N/A";
+    const collegeCode = report.college?.code !== "N/A" ? report.college?.code : collegeInfo?.code || "N/A";
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -246,6 +267,8 @@ export default function AttendanceReport() {
             tr:hover { background-color: #edf2f7; }
             .footer { margin-top: 50px; text-align: center; font-style: italic; color: #64748b; padding-top: 20px; border-top: 1px solid #e2e8f0; }
             .header-info { text-align: center; margin-bottom: 20px; color: #64748b; }
+            .college-name { font-size: 1.4rem; font-weight: 700; color: #1a4b6d; }
+            .college-code { font-size: 0.9rem; color: #64748b; margin-top: 4px; }
             @media print {
               body { margin: 20px; }
               .no-print { display: none; }
@@ -255,7 +278,8 @@ export default function AttendanceReport() {
         </head>
         <body>
           <div class="header-info">
-            <div style="font-size: 1.2rem; font-weight: 600;">NOVAA Attendance Management System</div>
+            <div class="college-name">${collegeName}</div>
+            ${collegeCode !== 'N/A' ? `<div class="college-code">${collegeCode}</div>` : ''}
             <div>Report generated on ${new Date().toLocaleString()}</div>
           </div>
           <h1>Attendance Analytics Report</h1>
@@ -309,7 +333,7 @@ export default function AttendanceReport() {
           </table>
           
           <div class="footer">
-            <p>NOVAA Attendance Management System • Comprehensive attendance analytics for educational institutions</p>
+            <p>${collegeName} • Comprehensive attendance analytics for educational institutions</p>
             <p>Report generated on ${new Date().toLocaleString()} • Page <span class="page-number"></span></p>
           </div>
           
