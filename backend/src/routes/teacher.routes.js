@@ -101,7 +101,7 @@ router.delete(
 router.get(
   "/department/:departmentId",
   auth,
-  role("TEACHER"),
+  role("COLLEGE_ADMIN", "TEACHER"),
   collegeMiddleware,
   getTeachersByDepartment
 );
