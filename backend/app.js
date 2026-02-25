@@ -6,6 +6,7 @@ const morgan = require("morgan");
 
 const { securityMiddleware } = require("./src/middlewares/security.middleware");
 const {
+  globalLimiter,
   healthCheckLimiter,
   apiLimiter,
   publicLimiter,
@@ -43,13 +44,16 @@ app.use(express.json());
 app.use(securityMiddleware);
 
 /* ================= RATE LIMITING ================= */
+// Global limiter applied to ALL /api/* routes
+app.use("/api/", globalLimiter);
+
+// Specific limiters for specific routes (these override global for their paths)
 app.use("/health-check", healthCheckLimiter);
 app.use("/api/public", publicLimiter);
 app.use("/api/stripe", paymentLimiter);
 app.use("/api/student/payments", paymentLimiter);
 app.use("/api/admin/payments", paymentLimiter);
 app.use("/api/fees/structure", paymentLimiter);
-app.use("/api/", apiLimiter);
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
