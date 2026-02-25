@@ -23,4 +23,3 @@ router.post("/forgot-password", passwordResetLimiter, requestPasswordReset);
 router.post("/verify-otp-reset", authLimiter, verifyOTPAndResetPassword);
 
 module.exports = router;
-
