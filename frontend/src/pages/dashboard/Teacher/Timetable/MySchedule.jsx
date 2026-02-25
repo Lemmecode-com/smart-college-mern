@@ -119,6 +119,15 @@ const TIMES = [
   "16:00 - 17:00",
 ];
 
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
 // CSS Styles
 const componentStyles = `
 .schedule-container {
@@ -696,6 +705,16 @@ const componentStyles = `
     transform: rotate(360deg);
   }
 }
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
 @media (max-width: 1024px) {
   .schedule-container {
     padding: 1rem;
@@ -785,6 +804,7 @@ export default function MySchedule() {
   const [attendanceSessions, setAttendanceSessions] = useState({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
+  const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
   const navigate = useNavigate();
   const toastIds = useRef({});
 
@@ -830,10 +850,17 @@ export default function MySchedule() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Load weekly schedule (all slots for teacher)
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
+        
+        // Fetch today's slots with attendance status (NEW)
+        await loadTodaySlots();
+        
         // Fetch active attendance sessions
         await loadActiveSessions();
+        
         if (!toastIds.current.success) {
           toast.success("Schedule loaded successfully!", {
             toastId: "schedule-success",
@@ -864,6 +891,20 @@ export default function MySchedule() {
     };
     load();
   }, []);
+
+  // Load today's slots with attendance status (NEW FUNCTION)
+  const loadTodaySlots = async () => {
+    try {
+      const res = await api.get("/attendance/today-slots");
+      setTodaySlotsData(res.data);
+      // Store today's slots in localStorage for quick access
+      const today = new Date().toISOString().split("T")[0];
+      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+    } catch (err) {
+      console.error("Failed to load today's slots:", err);
+      // Don't fail the entire load, just use weekly data
+    }
+  };
 
   // Load active attendance sessions
   const loadActiveSessions = async () => {
@@ -948,7 +989,13 @@ export default function MySchedule() {
   /* ================= CREATE ATTENDANCE ================= */
   const startAttendance = async (slot, timeSlot) => {
     const today = new Date();
-    const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
+    
+    // ✅ CORRECT: Get today's day abbreviation
+    const dayMap = {
+      0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+    };
+    const currentDayAbbr = dayMap[today.getDay()];
+    
     // Check if it's today's lecture
     if (slot.day !== currentDayAbbr) {
       toast.error("Attendance can only be started for today's lectures.", {
@@ -959,27 +1006,8 @@ export default function MySchedule() {
       });
       return;
     }
-    // Check if attendance is already active
-    if (activeSessions[slot._id]) {
-      toast.warning("Attendance session is already active for this lecture.", {
-        toastId: "already-active",
-        position: "top-right",
-        autoClose: 4000,
-        icon: <FaInfoCircle />,
-      });
-      return;
-    }
-    // Check if attendance already exists
-    if (attendanceSessions[slot._id]) {
-      toast.warning("Attendance already created for this lecture.", {
-        toastId: "already-exists",
-        position: "top-right",
-        autoClose: 4000,
-        icon: <FaInfoCircle />,
-      });
-      return;
-    }
-    // Check if class time is currently active
+    
+    // ✅ STRICT TIME CHECK: Verify current time is within slot time
     const [startTime, endTime] = timeSlot.split(" - ");
     const [startHour, startMin] = startTime.split(":").map(Number);
     const [endHour, endMin] = endTime.split(":").map(Number);
@@ -987,7 +1015,8 @@ export default function MySchedule() {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
-    // STRICT TIME CHECK: Only allow during active class time
+    
+    // ✅ Check if class time has started
     if (currentMinutes < startMinutes) {
       toast.error(
         `Class hasn't started yet. Attendance can be started from ${startTime}.`,
@@ -1000,6 +1029,8 @@ export default function MySchedule() {
       );
       return;
     }
+    
+    // ✅ Check if class time has ended
     if (currentMinutes >= endMinutes) {
       toast.error(
         `Class has ended at ${endTime}. Attendance cannot be started after class time.`,
@@ -1012,6 +1043,29 @@ export default function MySchedule() {
       );
       return;
     }
+    
+    // Check if attendance is already active (from backend data)
+    if (slot.hasOpenSession) {
+      toast.warning("Attendance session is already active for this lecture.", {
+        toastId: "already-active",
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaInfoCircle />,
+      });
+      return;
+    }
+    
+    // Check if attendance already exists (closed session)
+    if (slot.hasClosedSession) {
+      toast.warning("Attendance session is already closed for this lecture.", {
+        toastId: "already-closed",
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaInfoCircle />,
+      });
+      return;
+    }
+    
     // Confirm before creating
     const confirmed = window.confirm(
       `Start attendance for ${slot.subject_id?.name}?\n` +
@@ -1020,16 +1074,20 @@ export default function MySchedule() {
         `This will create a new attendance session for today's lecture.`
     );
     if (!confirmed) return;
+    
     try {
       setCreating(slot._id);
       const todayDate = today.toISOString().split("T")[0];
+      
       const res = await api.post("/attendance/sessions", {
         slot_id: slot._id,
         lectureDate: todayDate,
         lectureNumber: 1,
       });
+      
       const newSession = res.data.session;
       const slotId = slot._id;
+      
       // Update state
       const newActiveSessions = {
         ...activeSessions,
@@ -1041,6 +1099,7 @@ export default function MySchedule() {
       };
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
+      
       // Store in localStorage
       if (isClient) {
         const todayStr = today.toISOString().split("T")[0];
@@ -1053,12 +1112,17 @@ export default function MySchedule() {
           JSON.stringify(newAttendanceSessions)
         );
       }
+      
       toast.success("Attendance session started successfully! Redirecting...", {
         toastId: "start-success",
         position: "top-right",
         autoClose: 2000,
         icon: <FaCheckCircle />,
       });
+      
+      // Refresh today's slots data
+      await loadTodaySlots();
+      
       // Navigate to session page
       setTimeout(() => {
         navigate(`/attendance/session/${newSession._id}`);
@@ -1074,10 +1138,12 @@ export default function MySchedule() {
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
       });
+      
       // If error says attendance already exists, update the state
       if (
         message.toLowerCase().includes("already") ||
-        message.toLowerCase().includes("exists")
+        message.toLowerCase().includes("exists") ||
+        message.toLowerCase().includes("duplicate")
       ) {
         const slotId = slot._id;
         const newActiveSessions = {
@@ -1109,12 +1175,18 @@ export default function MySchedule() {
 
   // Get current day and time for highlighting
   const today = new Date();
-  const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)];
+  
+  // ✅ CORRECT: Get today's day abbreviation
+  const dayMap = {
+    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+  };
+  const currentDayAbbr = dayMap[today.getDay()];
+  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
-  // Filter today's slots only
-  const todaysSlots = weekly[currentDayAbbr] || [];
+
+  // Filter today's slots only - Use todaySlotsData if available, otherwise fall back to weekly
+  const todaysSlots = todaySlotsData?.slots || (weekly[currentDayAbbr] || []);
 
   // Responsive styles
   const getResponsiveStyles = () => {
@@ -1322,12 +1394,10 @@ export default function MySchedule() {
                 />
                 <StatItem
                   icon={<FaCheckCircle />}
-                  label="Published"
-                  value={
-                    todaysSlots.filter(
-                      (s) => s.timetable_id?.status === "PUBLISHED"
-                    ).length
-                  }
+                  label="Available for Attendance"
+                  value={todaySlotsData?.availableForAttendance || todaysSlots.filter(
+                    (s) => s.timetable_id?.status === "PUBLISHED"
+                  ).length}
                   color={BRAND_COLORS.success.main}
                   styles={styles}
                 />
@@ -1393,25 +1463,22 @@ export default function MySchedule() {
                 />
               ) : (
                 <div className="slots-list">
-                  {TIMES.map((time, idx) => {
-                    const slot = todaysSlots.find((s) => {
-                      const slotTime = `${s.startTime} - ${s.endTime}`;
-                      return slotTime === time;
-                    });
-                    if (!slot) return null;
+                  {todaysSlots.map((slot, idx) => {
+                    const time = `${slot.startTime} - ${slot.endTime}`;
                     return (
                       <ScheduleRow
-                        key={time}
+                        key={slot._id || time}
                         time={time}
                         slot={slot}
                         isCurrent={isCurrentTimeSlot(time)}
                         onStartAttendance={startAttendance}
                         creating={creating === slot._id}
                         delay={idx * 0.05}
-                        hasActiveSession={!!activeSessions[slot._id]}
-                        hasAttendanceSession={!!attendanceSessions[slot._id]}
+                        hasActiveSession={!!activeSessions[slot._id] || slot.hasOpenSession}
+                        hasAttendanceSession={!!attendanceSessions[slot._id] || slot.hasClosedSession}
                         sessionTimer={sessionTimers[slot._id]}
                         styles={styles}
+                        attendanceMessage={slot.message}
                       />
                     );
                   })}
@@ -1502,11 +1569,13 @@ function ScheduleRow({
   hasAttendanceSession,
   sessionTimer,
   styles,
+  attendanceMessage,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   const isPublished = slot.timetable_id?.status === "PUBLISHED";
   const isMobile = typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  
   // Determine slot status
   const [startTime, endTime] = time.split(" - ");
   const [startHour, startMin] = startTime.split(":").map(Number);
@@ -1515,23 +1584,39 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
+  
+  // ✅ Check backend status first (highest priority)
+  const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
+  const hasOpenSession = slot.hasOpenSession || hasActiveSession;
+  
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
   } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
     slotStatus = "active";
   }
-  // Button is enabled ONLY if: published AND currently active AND no existing session
+  
+  // ✅ Button is enabled ONLY if ALL conditions are met:
+  // 1. Timetable is published
+  // 2. Currently within class time (not before, not after)
+  // 3. No existing open session
+  // 4. No existing closed session
   const canStartAttendance =
-    isPublished && isCurrent && !hasActiveSession && !hasAttendanceSession;
-  // Determine button state
+    isPublished && 
+    slotStatus === "active" &&  // ✅ STRICT: Must be within time window
+    !hasOpenSession && 
+    !hasClosedSession;
+  
+  // Determine button state (priority order)
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
-  } else if (hasActiveSession || hasAttendanceSession) {
-    buttonState = "active";
+  } else if (hasOpenSession) {
+    buttonState = "active";  // ✅ Backend says session is open
+  } else if (hasClosedSession) {
+    buttonState = "ended";  // ✅ Backend says session is closed
   } else if (slotStatus === "past") {
-    buttonState = "ended";
+    buttonState = "ended";  // ✅ Time-based: class ended
   } else if (!isPublished) {
     buttonState = "unpublished";
   } else if (slotStatus === "upcoming") {
@@ -1578,8 +1663,8 @@ function ScheduleRow({
           marginBottom: isMobile ? "0.5rem" : "0",
         }}
       >
-        <div className="time-start">{time.split(" - ")[0]}</div>
-        <div className="time-end">to {time.split(" - ")[1]}</div>
+        <div className="time-start">{formatTime12Hour(time.split(" - ")[0])}</div>
+        <div className="time-end">to {formatTime12Hour(time.split(" - ")[1])}</div>
         {isCurrent && !hasActiveSession && (
           <motion.div
             variants={floatVariants}
@@ -1662,67 +1747,135 @@ function ScheduleRow({
           </div>
         </div>
         <div className="content-bottom">
-          <div className="teacher-info">
+          {/* <div className="teacher-info">
             <FaChalkboardTeacher
               size={isMobile ? 14 : 16}
               className="teacher-icon"
             />
             <span>{slot.teacher_id?.name || "N/A"}</span>
-          </div>
+          </div> */}
           {buttonState === "creating" ? (
-            <motion.button disabled className="btn-action btn-creating">
+            <motion.button 
+              disabled 
+              className="btn-action btn-creating"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.8
+              }}
+            >
               <motion.div variants={spinVariants} animate="animate">
                 <FaSyncAlt />
               </motion.div>
               Starting Session...
             </motion.button>
           ) : buttonState === "active" ? (
-            <div className="btn-action btn-active">
+            <motion.div 
+              className="btn-action btn-active"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.4)',
+                cursor: 'default'
+              }}
+            >
               <FaCheckCircle size={isMobile ? 18 : 20} />
-              Attendance Session Active
-            </div>
+              <span style={{ fontWeight: 600 }}>Attendance Active</span>
+            </motion.div>
           ) : buttonState === "ended" ? (
-            <button disabled className="btn-action btn-ended">
-              <FaPauseCircle />
-              Class Ended
-            </button>
+            <motion.div 
+              className="btn-action btn-ended"
+              style={{
+                background: 'linear-gradient(135deg, #6c757d, #5a6268)',
+                color: 'white',
+                cursor: 'not-allowed',
+                opacity: 0.7
+              }}
+            >
+              <FaTimesCircle size={isMobile ? 18 : 20} />
+              <span>Session Closed</span>
+            </motion.div>
           ) : buttonState === "unpublished" ? (
-            <div className="btn-action btn-unpublished">
+            <div className="btn-action btn-unpublished"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
               <FaExclamationTriangle size={16} />
-              Timetable not published - Attendance unavailable
+              <span>Timetable Not Published</span>
             </div>
           ) : buttonState === "upcoming" ? (
-            <div className="btn-action btn-upcoming">
+            <div className="btn-action btn-upcoming"
+              style={{
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
               <FaHourglassStart size={16} />
-              Wait for class to start
+              <span>Starts at {startTime}</span>
             </div>
-          ) : (
+          ) : canStartAttendance ? (
             <motion.button
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ 
+                scale: 1.03,
+                boxShadow: '0 6px 20px rgba(40, 167, 69, 0.45)'
+              }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onStartAttendance(slot, time)}
               className="btn-action btn-start"
+              style={{
+                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
+                color: 'white',
+                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.35)',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
             >
               <FaPlay />
-              Start Attendance Now
+              <span style={{ fontWeight: 600 }}>Start Attendance</span>
             </motion.button>
+          ) : (
+            <button 
+              disabled 
+              className="btn-action btn-start"
+              style={{
+                background: '#e9ecef',
+                color: '#6c757d',
+                cursor: 'not-allowed',
+                opacity: 0.6,
+                boxShadow: 'none'
+              }}
+            >
+              <FaPlay />
+              <span>Not Available</span>
+            </button>
           )}
           {/* Info Messages */}
-          {buttonState === "ended" && isPublished && (
-            <div className="info-message info-error">
+          {attendanceMessage && (
+            <div className={`info-message info-${
+              attendanceMessage.includes('already') ? 'warning' :
+              attendanceMessage.includes('ended') || attendanceMessage.includes('closed') ? 'error' :
+              'info'
+            }`}>
               <FaInfoCircle size={16} />
+              <span>{attendanceMessage}</span>
+            </div>
+          )}
+          {buttonState === "ended" && isPublished && !attendanceMessage && (
+            <div className="info-message info-error">
+              <FaTimesCircle size={16} />
               <span>
-                This class ended at {endTime}. Attendance cannot be started for
-                past classes.
+                This class ended at {endTime}. Attendance session is closed.
               </span>
             </div>
           )}
           {buttonState === "active" && (
             <div className="info-message info-success">
-              <FaInfoCircle size={16} />
+              <FaCheckCircle size={16} />
               <span>
-                Attendance is currently active for this class. You can now mark
-                Student's attendance.
+                Attendance is active. Click the button above to mark student attendance.
               </span>
             </div>
           )}
@@ -1736,8 +1889,8 @@ function ScheduleRow({
           )}
           {buttonState === "unpublished" && (
             <div className="info-message info-warning">
-              <FaInfoCircle size={16} />
-              <span>Please publish the timetable to enable attendance.</span>
+              <FaExclamationTriangle size={16} />
+              <span>Please ask HOD to publish the timetable to enable attendance.</span>
             </div>
           )}
         </div>

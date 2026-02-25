@@ -90,6 +90,16 @@ const scaleVariants = {
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Helper function to format time in 12-hour format with AM/PM
+const formatTime12Hour = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
 const TIMES = [
   { start: "09:00", end: "10:00" },
   { start: "10:00", end: "11:00" },
@@ -104,6 +114,21 @@ const TIMES = [
 export default function WeeklyTimetable() {
   const { timetableId } = useParams();
   const navigate = useNavigate();
+
+  // ✅ Validate timetableId - redirect if missing
+  useEffect(() => {
+    if (!timetableId) {
+      toast.error("Timetable ID is required. Redirecting to timetable list...", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaExclamationTriangle />,
+      });
+      setTimeout(() => {
+        navigate("/timetable");
+      }, 3000);
+      return;
+    }
+  }, [timetableId, navigate]);
   const { user } = useContext(AuthContext);
   const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
@@ -133,24 +158,54 @@ export default function WeeklyTimetable() {
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
-    if (!timetableId) return;
-    
+    // If no timetableId, fetch teacher's weekly timetable instead
+    if (!timetableId) {
+      const loadTeacherWeekly = async () => {
+        try {
+          setLoading(true);
+          const res = await api.get("/timetable/weekly");
+          setTimetable(res.data.timetable || null);
+          setWeekly(res.data.weekly || {});
+          
+          if (res.data.timetable) {
+            setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
+          }
+          
+          setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
+        } catch (err) {
+          console.error("Failed to load teacher weekly timetable:", err);
+          setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadTeacherWeekly();
+      return;
+    }
+
     const load = async () => {
+      // ✅ Don't load if timetableId is missing
+      if (!timetableId) {
+        console.warn("No timetableId provided, skipping load");
+        return;
+      }
+      
       try {
         setLoading(true);
         const res = await api.get(`/timetable/${timetableId}/weekly`);
         setTimetable(res.data.timetable);
         setWeekly(res.data.weekly || {});
         setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
-        
+
         // Set HOD status based on user role
         setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
-        
+
         const [subRes, teachRes] = await Promise.all([
           api.get(`/subjects/course/${res.data.timetable.course_id}`),
           api.get(`/teachers/department/${res.data.timetable.department_id}`)
         ]);
-        
+
         setSubjects(subRes.data || []);
         setTeachers(teachRes.data || []);
       } catch (err) {
@@ -160,7 +215,7 @@ export default function WeeklyTimetable() {
         setLoading(false);
       }
     };
-    
+
     load();
   }, [timetableId, user]);
 
@@ -658,7 +713,7 @@ export default function WeeklyTimetable() {
                         fontSize: '0.95rem',
                         borderRight: '1px solid #e2e8f0'
                       }}>
-                        {timeSlot.start} - {timeSlot.end}
+                        {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
                       </td>
                       {DAYS.map((day) => {
                         const slots = weekly[day] || [];

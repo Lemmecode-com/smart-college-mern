@@ -22,10 +22,11 @@ const {
   rejectStudent,
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
+const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
 
 
 // 🌍 PUBLIC STUDENT REGISTRATION
-router.post("/register/:collegeCode", registerStudent);
+router.post("/register/:collegeCode", uploadStudentDocuments, registerStudent);
 
 // 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
 router.get(

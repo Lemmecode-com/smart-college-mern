@@ -234,6 +234,7 @@ exports.teacherDashboard = async (req, res) => {
     })
       .populate("course_id", "name code")
       .populate("subject_id", "name code")
+      .populate("department_id", "name code")
       .sort({ createdAt: -1 });
 
     // 🔹 Attendance Records
