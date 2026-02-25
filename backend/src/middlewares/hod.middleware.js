@@ -1,6 +1,7 @@
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const Timetable = require("../models/timetable.model");
+const TimetableSlot = require("../models/timetableSlot.model");
 const AppError = require("../utils/AppError");
 
 module.exports = async (req, res, next) => {
@@ -18,7 +19,18 @@ module.exports = async (req, res, next) => {
 
     /* ================= STEP 3: Resolve timetable ================= */
     let timetableId =
-      req.body?.timetable_id || req.params?.id || req.params?.timetableId || null;
+      req.body?.timetable_id ||
+      req.params?.id ||
+      req.params?.timetableId ||
+      null;
+
+    // If slotId is provided (for slot delete/update), fetch the slot to get timetable_id
+    if (req.params?.slotId) {
+      const slot = await TimetableSlot.findById(req.params.slotId);
+      if (slot) {
+        timetableId = slot.timetable_id;
+      }
+    }
 
     if (!timetableId) {
       throw new AppError("Timetable ID missing", 400, "TIMETABLE_ID_MISSING");
