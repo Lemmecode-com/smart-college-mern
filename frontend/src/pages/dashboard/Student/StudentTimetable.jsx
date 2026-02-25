@@ -78,6 +78,29 @@ const TIME_SLOTS = [
   { start: "16:00", end: "17:00" },
 ];
 
+/**
+ * Convert 24-hour format to 12-hour AM/PM format
+ */
+const convertTo12Hour = (time24h) => {
+  if (!time24h) return time24h;
+  
+  const [hours, minutes] = time24h.split(':');
+  let h = parseInt(hours);
+  const modifier = h >= 12 ? 'PM' : 'AM';
+  
+  h = h % 12;
+  h = h ? h : 12;
+  
+  return `${h.toString().padStart(2, '0')}:${minutes} ${modifier}`;
+};
+
+/**
+ * Format time range for display
+ */
+const formatTimeRange = (startTime, endTime) => {
+  return `${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}`;
+};
+
 export default function StudentTimetable() {
   const navigate = useNavigate();
   const [weekly, setWeekly] = useState({});
@@ -961,7 +984,7 @@ const componentStyles = `
     padding: 0.5rem;
     border: 1px solid #e2e8f0;
     vertical-align: top;
-    height: 110px;
+    height: 140px;
   }
 
   .st-empty-cell {
@@ -976,12 +999,13 @@ const componentStyles = `
   /* ================= WEEKLY SLOT ================= */
   .st-weekly-slot {
     border-radius: 8px;
-    padding: 0.6rem;
+    padding: 0.4rem;
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.25rem;
     transition: all 0.3s ease;
+    overflow: hidden;
   }
 
   .st-weekly-slot:hover {
@@ -995,38 +1019,44 @@ const componentStyles = `
   }
 
   .st-weekly-type {
-    font-size: 0.65rem;
+    font-size: 0.5rem;
     font-weight: 700;
     text-transform: uppercase;
-    padding: 0.2rem 0.5rem;
+    padding: 0.1rem 0.3rem;
     border-radius: 4px;
   }
 
   .st-weekly-slot-subject {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 700;
     color: #1a4b6d;
-    line-height: 1.2;
+    line-height: 1.1;
     flex: 1;
+    word-break: break-word;
+    overflow: visible;
   }
 
   .st-weekly-slot-footer {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.2rem;
   }
 
   .st-weekly-detail {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.25rem;
     font-size: 0.7rem;
     color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .st-weekly-icon {
     color: #1a4b6d;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    flex-shrink: 0;
   }
 
   .st-weekly-teacher {
