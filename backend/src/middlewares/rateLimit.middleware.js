@@ -6,18 +6,6 @@ const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (15 * 60 * 1000)
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
 /**
- * Helper function to safely extract IP addresses
- * Properly handles both IPv4 and IPv6 addresses by removing IPv6 prefix
- * This prevents IPv6 users from bypassing rate limits
- */
-const getIp = (req) => {
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  // Remove IPv6 prefix (::ffff:) for IPv4-mapped addresses
-  // This ensures consistent IP format for rate limiting
-  return ip.replace(/^::ffff:/, '');
-};
-
-/**
  * Global Rate Limiter - Applied to all API routes
  * For development: Shorter window (1 minute) for easier testing
  */
@@ -60,8 +48,9 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
-  // Use helper function to properly handle IPv6 addresses
-  keyGenerator: (req) => getIp(req),
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
       ip: req.ip,
