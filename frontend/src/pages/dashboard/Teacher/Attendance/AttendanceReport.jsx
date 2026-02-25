@@ -91,11 +91,6 @@ export default function AttendanceReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fetchingReport, setFetchingReport] = useState(false);
-<<<<<<< HEAD
-=======
-  const [generatingCSV, setGeneratingCSV] = useState(false);
-  const [collegeInfo, setCollegeInfo] = useState(null);
->>>>>>> f506e5799649f827b610cf100ccc4cb22c07494b
 
   const [filters, setFilters] = useState({
     courseId: "",
