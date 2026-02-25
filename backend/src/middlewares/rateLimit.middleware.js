@@ -1,42 +1,67 @@
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
 
-/**
- * Global Rate Limiter - Applied to all API routes
- * Limits each IP to 100 requests per 15 minutes
- */
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    error: 'Too many requests from this IP, please try again after 15 minutes',
-    statusCode: 429
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
+// Use environment variables for configuration (defaults for production)
+const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (15 * 60 * 1000); // 15 minutes default
+const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
 /**
- * Strict Rate Limiter - For authentication routes
- * Limits each IP to 5 requests per 15 minutes (prevent brute force)
+ * Helper function to safely extract IP addresses
+ * Properly handles both IPv4 and IPv6 addresses by removing IPv6 prefix
+ * This prevents IPv6 users from bypassing rate limits
  */
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+const getIp = (req) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  // Remove IPv6 prefix (::ffff:) for IPv4-mapped addresses
+  // This ensures consistent IP format for rate limiting
+  return ip.replace(/^::ffff:/, '');
+};
+
+/**
+ * Global Rate Limiter - Applied to all API routes
+ * For development: Shorter window (1 minute) for easier testing
+ */
+const globalLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : WINDOW_MS, // 1 min in dev, 15 min in prod
+  max: process.env.NODE_ENV === 'development' ? 20 : MAX_REQUESTS, // 20 in dev, 100 in prod
   message: {
     success: false,
-    message: 'Too many login attempts, please try again after 15 minutes',
+    message: process.env.NODE_ENV === 'development' 
+      ? 'Too many requests, please slow down (Development Mode)' 
+      : 'Too many requests from this IP, please try again after 15 minutes',
     code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false, // Count all requests (failed logins too)
-  // Ensure we're tracking by IP address
-  keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress || 'unknown';
+  handler: (req, res, next, options) => {
+    logger.logWarning(`RATE LIMIT HIT - Global from IP: ${req.ip}`, {
+      ip: req.ip,
+      endpoint: req.originalUrl
+    });
+    res.status(options.statusCode).json(options.message);
   },
-  // Log when limit is hit
+});
+
+/**
+ * Strict Rate Limiter - For authentication routes
+ * For development: 10 requests per minute (easier testing)
+ * For production: 5 requests per 15 minutes (security)
+ */
+const authLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
+  max: process.env.NODE_ENV === 'development' ? 10 : 5, // 10 in dev, 5 in prod
+  message: {
+    success: false,
+    message: process.env.NODE_ENV === 'development'
+      ? 'Too many login attempts, please wait 1 minute (Development Mode)'
+      : 'Too many login attempts, please try again after 15 minutes',
+    code: 'RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  // Use helper function to properly handle IPv6 addresses
+  keyGenerator: (req) => getIp(req),
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
       ip: req.ip,
@@ -46,27 +71,30 @@ const authLimiter = rateLimit({
     });
     res.status(options.statusCode).json({
       success: false,
-      message: 'Too many login attempts, please try again after 15 minutes',
+      message: process.env.NODE_ENV === 'development'
+        ? 'Too many login attempts, please wait 1 minute (Development Mode)'
+        : 'Too many login attempts, please try again after 15 minutes',
       code: 'RATE_LIMIT_EXCEEDED'
     });
   },
-  // Log request count for debugging
   requestWasSuccessful: (req, res) => {
-    // Always count the request (regardless of success/failure)
     return false;
   },
 });
 
 /**
  * Password Reset Rate Limiter - Very strict to prevent email spam
- * Limits each IP to 3 requests per hour
+ * For development: 5 requests per minute
+ * For production: 3 requests per hour
  */
 const passwordResetLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 requests per hour
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 60 * 60 * 1000, // 1 min in dev, 1 hour in prod
+  max: process.env.NODE_ENV === 'development' ? 5 : 3, // 5 in dev, 3 in prod
   message: {
     success: false,
-    message: 'Too many password reset requests, please try again after 1 hour',
+    message: process.env.NODE_ENV === 'development'
+      ? 'Too many password reset requests, please wait 1 minute (Development Mode)'
+      : 'Too many password reset requests, please try again after 1 hour',
     code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
@@ -80,7 +108,9 @@ const passwordResetLimiter = rateLimit({
     });
     res.status(options.statusCode).json({
       success: false,
-      message: 'Too many password reset requests, please try again after 1 hour',
+      message: process.env.NODE_ENV === 'development'
+        ? 'Too many password reset requests, please wait 1 minute (Development Mode)'
+        : 'Too many password reset requests, please try again after 1 hour',
       code: 'RATE_LIMIT_EXCEEDED'
     });
   },
@@ -88,14 +118,17 @@ const passwordResetLimiter = rateLimit({
 
 /**
  * Payment Rate Limiter - For Stripe/payment routes
- * Limits each IP to 20 requests per 15 minutes (prevent fraud)
+ * For development: 30 requests per minute (testing friendly)
+ * For production: 20 requests per 15 minutes (fraud prevention)
  */
 const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per windowMs
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
+  max: process.env.NODE_ENV === 'development' ? 30 : 20, // 30 in dev, 20 in prod
   message: {
     success: false,
-    message: 'Too many payment requests, please try again after 15 minutes',
+    message: process.env.NODE_ENV === 'development'
+      ? 'Too many payment requests, please wait 1 minute (Development Mode)'
+      : 'Too many payment requests, please try again after 15 minutes',
     code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
@@ -109,7 +142,9 @@ const paymentLimiter = rateLimit({
     });
     res.status(options.statusCode).json({
       success: false,
-      message: 'Too many payment requests, please try again after 15 minutes',
+      message: process.env.NODE_ENV === 'development'
+        ? 'Too many payment requests, please wait 1 minute (Development Mode)'
+        : 'Too many payment requests, please try again after 15 minutes',
       code: 'RATE_LIMIT_EXCEEDED'
     });
   },
@@ -149,14 +184,17 @@ const apiLimiter = rateLimit({
 
 /**
  * Public Routes Limiter - For public endpoints
- * Limits each IP to 50 requests per 15 minutes (prevent scraping)
+ * For development: 100 requests per minute
+ * For production: 50 requests per 15 minutes
  */
 const publicLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 50 requests per windowMs
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
+  max: process.env.NODE_ENV === 'development' ? 100 : 50, // 100 in dev, 50 in prod
   message: {
     success: false,
-    message: 'Too many requests, please try again after 15 minutes',
+    message: process.env.NODE_ENV === 'development'
+      ? 'Too many requests, please wait 1 minute (Development Mode)'
+      : 'Too many requests, please try again after 15 minutes',
     code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
