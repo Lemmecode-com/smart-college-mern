@@ -772,12 +772,12 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                   >
                     <FaChartLine /> Attendance Report
                   </NavLink>
-                  <NavLink
+                  {/* <NavLink
                     to="/attendance/list"
                     style={getNavLinkStyle}
                   >
                     <FaListOl /> Attendance List
-                  </NavLink>
+                  </NavLink> */}
                 </div>
 
                 {/* NOTIFICATIONS DROPDOWN */}

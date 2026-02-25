@@ -1352,7 +1352,8 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
     }
   };
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  // Get base URL from environment variable with proper /api suffix as fallback
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   // Ensure filePath starts with /uploads/ for correct URL
   const normalizedPath = filePath ? filePath.replace(/^\/?uploads/, '/uploads') : null;
   const documentUrl = normalizedPath ? `${baseUrl}${normalizedPath}` : null;
