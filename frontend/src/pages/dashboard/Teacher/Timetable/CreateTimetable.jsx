@@ -164,12 +164,21 @@ export default function CreateTimetable() {
         semester: Number(form.semester),
         academicYear: form.academicYear,
       });
-      
+
       setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
+
+      // ✅ FIXED: Access timetable object from response
+      const timetableId = response.data.timetable?._id || response.data._id;
       
+      if (!timetableId) {
+        console.error("No timetable ID in response:", response.data);
+        setError("Timetable created but failed to get ID. Please navigate manually.");
+        return;
+      }
+
       // Auto-redirect after 2 seconds
       setTimeout(() => {
-        navigate(`/timetable/${response.data._id}/weekly`);
+        navigate(`/timetable/${timetableId}/weekly`);
       }, 2000);
     } catch (err) {
       console.error("Timetable creation failed:", err);
