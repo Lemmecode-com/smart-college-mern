@@ -312,6 +312,7 @@ const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const User = require("../models/user.model");
+const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 
 /* =========================================================
@@ -434,12 +435,83 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    res.json(teacher);
+    // ✅ Fetch subjects assigned to this teacher
+    const subjects = await Subject.find({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    }).populate("course_id", "name code");
+
+    // ✅ Convert to plain object and add subjects
+    const teacherObj = teacher.toObject();
+    teacherObj.subjects = subjects;
+
+    res.json(teacherObj);
   } catch (error) {
     console.error("PROFILE ERROR:", error);
     res.status(500).json({
       message: "Failed to fetch profile",
     });
+  }
+};
+
+/* =========================================================
+   UPDATE MY PROFILE (Logged-in Teacher)
+   PUT /teachers/my-profile
+   ⚠️ Teachers can ONLY edit: name, email, experienceYears
+   ❌ Cannot edit: employeeId, designation, qualification, department_id, courses (admin only)
+========================================================= */
+exports.updateMyProfile = async (req, res, next) => {
+  try {
+    const {
+      name,
+      email,
+      experienceYears,
+    } = req.body;
+
+    // Find teacher by user_id (logged-in user)
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    // Update teacher fields (ONLY editable fields)
+    const updateFields = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(experienceYears !== undefined && { experienceYears }),
+    };
+
+    const updatedTeacher = await Teacher.findOneAndUpdate(
+      {
+        _id: teacher._id,
+        college_id: req.college_id,
+      },
+      updateFields,
+      { new: true }
+    )
+      .populate("department_id", "name")
+      .populate("courses", "name code");
+
+    // Update user name/email if provided
+    if (name || email) {
+      await User.findByIdAndUpdate(req.user.id, {
+        ...(name && { name }),
+        ...(email && { email }),
+      });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      teacher: updatedTeacher,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 

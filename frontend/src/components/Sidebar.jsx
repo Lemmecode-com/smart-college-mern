@@ -28,6 +28,8 @@ import {
   FaCheckCircle,
   FaChartPie,
   FaFileAlt,
+  FaUser,
+  FaEdit,
 } from "react-icons/fa";
 
 export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
@@ -539,8 +541,6 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                   <NavLink to="/college-admin/reports-dashboard" style={getNavLinkStyle}>
                     <FaChartBar /> Reports Dashboard
                   </NavLink>
-                </div>
-                <div style={sectionBodyStyle(openSections.reports)}>
                   <NavLink to="/college-admin/reports" style={getNavLinkStyle}>
                     <FaGraduationCap /> Admission Reports
                   </NavLink>
@@ -637,9 +637,37 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
             {role === "TEACHER" && (
               <>
                 {/* MY PROFILE SECTION */}
-                <NavLink to="/profile/my-profile" style={getNavLinkStyle}>
-                  <FaCog /> My Profile
-                </NavLink>
+                <div
+                  className={`sidebar-section-title ${
+                    openSections["profile-teacher"] ? "open" : ""
+                  }`}
+                  onClick={() => toggleSection("profile-teacher")}
+                  style={sectionTitleStyle}
+                >
+                  <div className="section-title-content">
+                    <FaCog /> My Profile
+                  </div>
+                  {openSections["profile-teacher"] ? (
+                    <FaChevronUp size={12} />
+                  ) : (
+                    <FaChevronDown size={12} />
+                  )}
+                </div>
+                <div style={sectionBodyStyle(openSections["profile-teacher"])}>
+                  <NavLink
+                    to="/profile/my-profile"
+                    style={getNavLinkStyle}
+                  >
+                    <FaUser /> Profile Details
+                  </NavLink>
+                  <NavLink
+                    to="/profile/edit-profile"
+                    style={getNavLinkStyle}
+                  >
+                    <FaEdit /> Edit Profile
+                  </NavLink>
+                </div>
+
                 {/* TIMETABLE DROPDOWN */}
                 <div
                   className={`sidebar-section-title ${
@@ -662,37 +690,25 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                 >
                   <NavLink
                     to="/timetable/create-timetable"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaPlus /> Create Timetable
                   </NavLink>
                   <NavLink
                     to="/timetable/list"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaListOl /> View Timetables
                   </NavLink>
                   <NavLink
                     to="/timetable/add-slot"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaPlus /> Add Timetable Slot
                   </NavLink>
                   <NavLink
                     to="/timetable/weekly-timetable"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaCalendarAlt /> My Schedule
                   </NavLink>
@@ -718,12 +734,15 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                 <div style={sectionBodyStyle(openSections["sessions-teacher"])}>
                   <NavLink
                     to="/attendance/my-sessions-list"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
-                    <FaUserGraduate /> My Sessions
+                    <FaListOl /> My Sessions
+                  </NavLink>
+                  <NavLink
+                    to="/attendance/create-session"
+                    style={getNavLinkStyle}
+                  >
+                    <FaPlus /> Create Session
                   </NavLink>
                 </div>
 
@@ -749,12 +768,15 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                 >
                   <NavLink
                     to="/attendance/report"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaChartLine /> Attendance Report
+                  </NavLink>
+                  <NavLink
+                    to="/attendance/list"
+                    style={getNavLinkStyle}
+                  >
+                    <FaListOl /> Attendance List
                   </NavLink>
                 </div>
 
@@ -782,19 +804,13 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                 >
                   <NavLink
                     to="/teacher/notifications/create"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
-                    <FaBell /> Create Notification
+                    <FaPlus /> Create Notification
                   </NavLink>
                   <NavLink
                     to="/teacher/notifications/list"
-                    style={subLinkStyle}
-                    className={({ isActive }) =>
-                      isActive ? "active-sublink" : ""
-                    }
+                    style={getNavLinkStyle}
                   >
                     <FaEnvelope /> All Notifications
                   </NavLink>
