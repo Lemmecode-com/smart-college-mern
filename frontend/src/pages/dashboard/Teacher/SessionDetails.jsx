@@ -490,18 +490,6 @@ export default function SessionDetails() {
                     {session.course_id?.name || 'N/A'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaUniversity style={{ color: BRAND_COLORS.warning.main }} />
-                  <span style={{ color: '#4a5568', fontWeight: 500 }}>
-                    {session.timetable_id?.department_id?.name || 'N/A'}
-                  </span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FaChalkboardTeacher style={{ color: BRAND_COLORS.primary.main }} />
-                <span style={{ color: '#4a5568', fontWeight: 500 }}>
-                  {session.teacher_id?.name || 'N/A'}
-                </span>
               </div>
             </div>
           </motion.div>
@@ -695,7 +683,6 @@ export default function SessionDetails() {
                       <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
                         <th style={headerCellStyle}>Student</th>
                         <th style={headerCellStyle}>Email</th>
-                        <th style={headerCellStyle}>Roll No.</th>
                         <th style={headerCellStyle}>Status</th>
                       </tr>
                     </thead>
@@ -728,7 +715,6 @@ export default function SessionDetails() {
                       <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
                         <th style={headerCellStyle}>Student</th>
                         <th style={headerCellStyle}>Email</th>
-                        <th style={headerCellStyle}>Roll No.</th>
                         <th style={headerCellStyle}>Status</th>
                         <th style={headerCellStyle}>Marked At</th>
                       </tr>
@@ -946,18 +932,6 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
         </div>
       </td>
       <td style={cellStyle}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem',
-          color: '#4a5568',
-          fontSize: '0.95rem'
-        }}>
-          <FaUserGraduate size={14} />
-          {student.rollNumber || 'N/A'}
-        </div>
-      </td>
-      <td style={cellStyle}>
         <select
           value={attendance || ""}
           onChange={(e) => onChange(e.target.value)}
@@ -1016,18 +990,6 @@ function RecordRow({ record, delay = 0 }) {
         }}>
           <FaEnvelope size={14} />
           {record.student_id?.email || 'N/A'}
-        </div>
-      </td>
-      <td style={cellStyle}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem',
-          color: '#4a5568',
-          fontSize: '0.95rem'
-        }}>
-          <FaUserGraduate size={14} />
-          {record.student_id?.rollNumber || 'N/A'}
         </div>
       </td>
       <td style={cellStyle}>

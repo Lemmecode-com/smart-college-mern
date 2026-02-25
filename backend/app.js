@@ -2,15 +2,54 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const cookieParser = require("cookie-parser");
+const morgan = require("morgan");
+
+const { securityMiddleware } = require("./src/middlewares/security.middleware");
+const {
+  healthCheckLimiter,
+  apiLimiter,
+  publicLimiter,
+  paymentLimiter
+} = require("./src/middlewares/rateLimit.middleware");
+const logger = require("./src/utils/logger");
 
 const app = express();
 
+/* ================= CORS CONFIGURATION ================= */
 app.use(cors({
   credentials: true,
   origin: process.env.CLIENT_URL || "http://localhost:5173"  // Adjust this to your frontend URL
 }));
-app.use(express.json());
 app.use(cookieParser());
+
+/* ================= REQUEST LOGGING (MORGAN) ================= */
+// Log all HTTP requests with Morgan
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => {
+      logger.http(message.trim());
+    }
+  }
+}));
+
+/* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
+// Stripe webhook needs raw body, so we handle it separately
+app.use("/api/stripe/webhook", require("./src/webhooks/stripe.webhook").handleStripeWebhook);
+
+/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
+app.use(express.json());
+
+/* ================= SECURITY MIDDLEWARE ================= */
+app.use(securityMiddleware);
+
+/* ================= RATE LIMITING ================= */
+app.use("/health-check", healthCheckLimiter);
+app.use("/api/public", publicLimiter);
+app.use("/api/stripe", paymentLimiter);
+app.use("/api/student/payments", paymentLimiter);
+app.use("/api/admin/payments", paymentLimiter);
+app.use("/api/fees/structure", paymentLimiter);
+app.use("/api/", apiLimiter);
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
@@ -34,6 +73,7 @@ app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
+app.use("/api/reports/dashboard", require("./src/routes/reportDashboard.routes"));
 app.use("/api/reports", require("./src/routes/reports.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
 app.use("/api/notifications", require("./src/routes/notification.routes"));
@@ -44,6 +84,9 @@ app.use("/api/stripe", require("./src/routes/stripe.routes"));
 
 /* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
 app.use("/api/public", require("./src/routes/public.department.course.routes"));
+
+/* ================= DOCUMENT CONFIGURATION ================= */
+app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));

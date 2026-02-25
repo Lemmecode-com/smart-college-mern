@@ -42,8 +42,6 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ❌ REMOVED: password field (authentication is handled by User collection)
-
     mobileNumber: {
       type: String,
       required: true,
@@ -110,6 +108,42 @@ const studentSchema = new mongoose.Schema(
     bloodGroup: String,
 
     alternateMobile: String,
+
+    // 👨‍👩‍👧 Parent/Guardian Details
+    fatherName: String,
+    fatherMobile: String,
+    motherName: String,
+    motherMobile: String,
+
+    // 📚 10th (SSC) Academic Details
+    sscSchoolName: String,
+    sscBoard: String,
+    sscPassingYear: Number,
+    sscPercentage: Number,
+    sscRollNumber: String,
+
+    // 📚 12th (HSC) Academic Details
+    hscSchoolName: String,
+    hscBoard: String,
+    hscStream: {
+      type: String,
+      enum: ["Science", "Commerce", "Arts", "Vocational", "Other"],
+    },
+    hscPassingYear: Number,
+    hscPercentage: Number,
+    hscRollNumber: String,
+
+    // 📎 Document Uploads (File Paths) - Backward compatibility
+    sscMarksheetPath: String,
+    hscMarksheetPath: String,
+    passportPhotoPath: String,
+    categoryCertificatePath: String,
+
+    // 📎 Dynamic Documents (flexible storage for all document types)
+    documents: {
+      type: Map,
+      of: String
+    },
 
     // 🔐 System
     status: {

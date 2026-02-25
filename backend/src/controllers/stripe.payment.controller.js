@@ -1,6 +1,9 @@
 const stripe = require("../services/stripe.service");
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
+const College = require("../models/college.model");
+const Course = require("../models/course.model");
+const { sendPaymentReceiptEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 exports.createCheckoutSession = async (req, res, next) => {
@@ -147,6 +150,31 @@ exports.confirmStripePayment = async (req, res, next) => {
       .reduce((sum, i) => sum + i.amount, 0);
 
     await studentFee.save();
+
+    // 📧 Send payment confirmation email (non-blocking)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select('name email');
+        const course = await Course.findById(student.course_id).select('name');
+        
+        await sendPaymentReceiptEmail({
+          to: student.email,
+          studentName: student.fullName,
+          installment: {
+            name: installment.name,
+            amount: installment.amount,
+            paidAt: installment.paidAt,
+            transactionId: installment.transactionId
+          },
+          totalFee: studentFee.totalFee,
+          paidAmount: studentFee.paidAmount,
+          remainingAmount: studentFee.totalFee - studentFee.paidAmount
+        });
+        console.log(`✅ Payment receipt email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send payment receipt email:', emailError.message);
+      }
+    })();
 
     return res.json({
       installment: {
