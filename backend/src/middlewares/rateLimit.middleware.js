@@ -2,6 +2,16 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
 
 /**
+ * Helper function to safely extract IP addresses
+ * Properly handles both IPv4 and IPv6 addresses by removing IPv6 prefix
+ */
+const getIp = (req) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  // Remove IPv6 prefix (::ffff:) for IPv4-mapped addresses
+  return ip.replace(/^::ffff:/, '');
+};
+
+/**
  * Global Rate Limiter - Applied to all API routes
  * Limits each IP to 100 requests per 15 minutes
  */
@@ -32,10 +42,8 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false, // Count all requests (failed logins too)
-  // Ensure we're tracking by IP address
-  keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress || 'unknown';
-  },
+  // Use safe IP extraction that handles IPv6 properly
+  keyGenerator: (req) => getIp(req),
   // Log when limit is hit
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
