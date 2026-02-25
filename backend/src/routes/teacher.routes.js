@@ -13,6 +13,7 @@ const {
   updateTeacher,
   deleteTeacher,
   getMyProfile,
+  updateMyProfile, // ✅ NEW
   getTeachersByDepartment,
   getTeachersByCourse, // ✅ NEW
 } = require("../controllers/teacher.controller");
@@ -26,6 +27,17 @@ router.get(
   collegeMiddleware,
   teacherMiddleware,
   getMyProfile
+);
+
+/* =========================================================
+   TEACHER – UPDATE MY PROFILE
+========================================================= */
+router.put(
+  "/my-profile",
+  auth,
+  collegeMiddleware,
+  teacherMiddleware,
+  updateMyProfile
 );
 
 /* =========================================================

@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 
 export default function Login() {
@@ -144,17 +144,12 @@ export default function Login() {
 
               <div className="d-flex justify-content-between align-items-center mb-4">
                 {!forgotMode ? (
-                  <button
-                    type="button"
+                  <Link
+                    to="/forgot-password"
                     className="btn btn-link p-0 text-decoration-none"
-                    onClick={() => {
-                      setForgotMode(true);
-                      setError("");
-                      setSuccessMsg("");
-                    }}
                   >
                     Forgot Password?
-                  </button>
+                  </Link>
                 ) : (
                   <button
                     type="button"
@@ -183,20 +178,6 @@ export default function Login() {
                 </button>
               </div>
             </form>
-
-            {!forgotMode && (
-              <div className="text-center">
-                <span className="text-muted small">
-                  Don’t have an account?
-                </span>{" "}
-                <span
-                  className="fw-semibold text-decoration-none"
-                  style={{ color: "#1f6f8b" }}
-                >
-                  Students use College QR / Link
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>
