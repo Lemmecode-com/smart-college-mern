@@ -1,10 +1,12 @@
 const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
 const { login, logout, requestPasswordReset, verifyOTPAndResetPassword } = require("../controllers/auth.controller");
+const { authLimiter, passwordResetLimiter } = require("../middlewares/rateLimit.middleware");
 
-router.post("/login", login);
+// Login - strict rate limit to prevent brute force
+router.post("/login", authLimiter, login);
 
-// 🔐 Protected routes
+// 🔐 Protected routes (no rate limit - already authenticated)
 router.post("/logout", auth, logout);
 
 // Get user info (for checking authentication status)
@@ -16,9 +18,9 @@ router.get("/me", auth, (req, res) => {
   });
 });
 
-// 🔐 Password Reset (Public)
-router.post("/forgot-password", requestPasswordReset);
-router.post("/verify-otp-reset", verifyOTPAndResetPassword);
+// 🔐 Password Reset (Public) - very strict to prevent email spam
+router.post("/forgot-password", passwordResetLimiter, requestPasswordReset);
+router.post("/verify-otp-reset", authLimiter, verifyOTPAndResetPassword);
 
 module.exports = router;
 
