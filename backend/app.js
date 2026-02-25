@@ -8,7 +8,6 @@ const { securityMiddleware } = require("./src/middlewares/security.middleware");
 const {
   globalLimiter,
   healthCheckLimiter,
-  apiLimiter,
   publicLimiter,
   paymentLimiter
 } = require("./src/middlewares/rateLimit.middleware");
@@ -44,10 +43,10 @@ app.use(express.json());
 app.use(securityMiddleware);
 
 /* ================= RATE LIMITING ================= */
-// Global limiter applied to ALL /api/* routes
+// Global limiter applied to ALL /api/* routes (development-friendly)
 app.use("/api/", globalLimiter);
 
-// Specific limiters for specific routes (these override global for their paths)
+// Specific limiters override global for their specific paths
 app.use("/health-check", healthCheckLimiter);
 app.use("/api/public", publicLimiter);
 app.use("/api/stripe", paymentLimiter);
