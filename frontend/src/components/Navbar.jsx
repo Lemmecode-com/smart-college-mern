@@ -52,8 +52,11 @@ export default function Navbar({ onToggleSidebar }) {
             }
           }
         } catch (error) {
-          console.error("Error fetching college info:", error);
-          console.error("Error details:", error.response?.data || error.message);
+          // Silently handle auth errors - don't log to console
+          // This prevents console spam when session expires
+          if (error.response?.status !== 403 && error.response?.status !== 401) {
+            console.error("Error fetching college info:", error);
+          }
         }
       }
     };

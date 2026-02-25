@@ -16,6 +16,7 @@ const {
   getWeeklyTimetableById,
   getWeeklyTimetableForTeacher,
   getStudentTimetable,
+  getStudentTodayTimetable,
 } = require("../controllers/timetable.controller");
 
 const {
@@ -52,6 +53,15 @@ router.get(
 );
 
 router.get(
+  "/student/today",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentTodayTimetable,
+);
+
+router.get(
   "/:timetableId/weekly",
   auth,
   collegeMiddleware,
@@ -77,7 +87,7 @@ router.delete(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  // hod,
+  hod, // ✅ FIXED: Uncommented HOD middleware
   deleteTimetable,
 );
 
@@ -90,6 +100,13 @@ router.put(
   updateSlot,
 );
 
-router.delete("/slot/:slotId", auth, collegeMiddleware, deleteTimetableSlot);
+router.delete(
+  "/slot/:slotId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  hod, // ✅ FIXED: Added role + HOD check
+  deleteTimetableSlot
+);
 
 module.exports = router;
