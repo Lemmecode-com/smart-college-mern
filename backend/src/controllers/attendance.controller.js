@@ -795,6 +795,10 @@ exports.getStudentAttendanceReport = async (req, res) => {
         subject: session.subject_id.name,
         subjectCode: session.subject_id.code,
         lectureNumber: session.lectureNumber,
+        startTime: session.slotSnapshot?.startTime || "N/A",
+        endTime: session.slotSnapshot?.endTime || "N/A",
+        room: session.slotSnapshot?.room || "N/A",
+        teacher: session.slotSnapshot?.teacher_name || "N/A",
         status: record.status,
       });
 
