@@ -29,6 +29,7 @@ import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 import ViewCourse from "./pages/dashboard/College-Admin/ViewCourse";
 /* ================= STUDENTS ================= */
 import StudentList from "./pages/dashboard/College-Admin/StudentList";
+import StudentPromotion from "./pages/dashboard/College-Admin/StudentPromotion";
 
 /* ================= ATTENDANCE ================= */
 import MarkAttendance from "./pages/dashboard/Teacher/Attendance/MarkAttendance";
@@ -631,6 +632,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <StudentList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/promotion"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <StudentPromotion />
                 </ProtectedRoute>
               }
             />

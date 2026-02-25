@@ -197,7 +197,7 @@ const studentSchema = new mongoose.Schema(
       enum: ["SELF"],
       default: "SELF",
     },
-    
+
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -209,6 +209,31 @@ const studentSchema = new mongoose.Schema(
 
     rejectionReason: {
       type: String,
+    },
+
+    // 🎓 Promotion Management
+    currentAcademicYear: {
+      type: String,
+      required: true,
+      default: function() {
+        // Format: "2024-2025"
+        const year = new Date().getFullYear();
+        return `${year}-${year + 1}`;
+      }
+    },
+
+    isPromotionEligible: {
+      type: Boolean,
+      default: true,
+    },
+
+    promotionHistory: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PromotionHistory",
+    }],
+
+    lastPromotionDate: {
+      type: Date,
     },
   },
   { timestamps: true },
