@@ -67,6 +67,7 @@ import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 
 /* ================= PROFILES ================= */
 import MyProfile from "./pages/dashboard/Teacher/MyProfile";
+import EditTeacherProfile from "./pages/dashboard/Teacher/EditTeacherProfile";
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
 
@@ -915,6 +916,14 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <MyProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/edit-profile"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <EditTeacherProfile />
                 </ProtectedRoute>
               }
             />
