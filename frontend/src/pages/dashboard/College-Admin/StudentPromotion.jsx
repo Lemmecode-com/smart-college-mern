@@ -7,21 +7,17 @@ import {
   bulkPromoteStudents,
   getCollegePromotionHistory,
 } from "../../../api/promotion";
-import api from "../../../api/axios";
 
 import {
   FaGraduationCap,
-  FaMoneyBillWave,
   FaCheckCircle,
   FaExclamationTriangle,
   FaSearch,
-  FaFilter,
-  FaChevronLeft,
-  FaChevronRight,
   FaArrowUp,
-  FaUsers,
-  FaHistory,
-  FaClipboardCheck,
+  FaTimes,
+  FaRupeeSign,
+  FaSyncAlt,
+  FaSpinner,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
@@ -31,55 +27,45 @@ export default function StudentPromotion() {
   const navigate = useNavigate();
 
   const [students, setStudents] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
-  const [courseFilter, setCourseFilter] = useState("ALL");
-  const [feeStatusFilter, setFeeStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
-  const [showBulkPromoteModal, setShowBulkPromoteModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [promotionRemarks, setPromotionRemarks] = useState("");
   const [overrideFeeCheck, setOverrideFeeCheck] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [viewMode, setViewMode] = useState("LIST"); // LIST or HISTORY
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Security check
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
-  // Fetch eligible students
   const fetchEligibleStudents = async () => {
     try {
       setLoading(true);
       setError("");
       const res = await getPromotionEligibleStudents();
       setStudents(res.students || []);
-      
-      // Extract unique courses for filter
-      const uniqueCourses = [...new Set(res.students.map(s => s.course_id?.name).filter(Boolean))];
-      setCourses(uniqueCourses);
+      setRetryCount(0);
     } catch (err) {
-      console.error("Error fetching eligible students:", err);
+      console.error("Error fetching students:", err);
       setError(err.response?.data?.message || "Failed to load students for promotion.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch promotion history
   const fetchPromotionHistory = async () => {
     try {
       const res = await getCollegePromotionHistory({ limit: 50 });
       setPromotionHistory(res.promotions || []);
     } catch (err) {
-      console.error("Error fetching promotion history:", err);
+      console.error("Error fetching history:", err);
     }
   };
 
@@ -87,49 +73,37 @@ export default function StudentPromotion() {
     fetchEligibleStudents();
   }, []);
 
-  // Filter students
+  const handleRetry = () => {
+    if (retryCount < 3) {
+      setRetryCount(prev => prev + 1);
+      fetchEligibleStudents();
+    } else {
+      setError("Maximum retry attempts reached.");
+    }
+  };
+
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const matchesSearch =
-        `${student.fullName} ${student.email} ${student.course_id?.name || ""}`
+        `${student.fullName} ${student.email} ${student.course_id?.name || ''}`
           .toLowerCase()
           .includes(search.toLowerCase());
-
       const matchesSemester =
         semesterFilter === "ALL" || student.currentSemester.toString() === semesterFilter;
-
-      const matchesCourse =
-        courseFilter === "ALL" || student.course_id?.name === courseFilter;
-
-      const matchesFeeStatus =
-        feeStatusFilter === "ALL" || student.feeStatus === feeStatusFilter;
-
-      return matchesSearch && matchesSemester && matchesCourse && matchesFeeStatus;
+      return matchesSearch && matchesSemester;
     });
-  }, [students, search, semesterFilter, courseFilter, feeStatusFilter]);
+  }, [students, search, semesterFilter]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
   );
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, semesterFilter, courseFilter, feeStatusFilter]);
+  }, [search, semesterFilter]);
 
-  // Handle select all
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedStudents(paginatedStudents.map((s) => s._id));
-    } else {
-      setSelectedStudents([]);
-    }
-  };
-
-  // Handle select individual
   const handleSelectStudent = (studentId) => {
     setSelectedStudents((prev) =>
       prev.includes(studentId)
@@ -138,7 +112,14 @@ export default function StudentPromotion() {
     );
   };
 
-  // Open promote modal for single student
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedStudents(paginatedStudents.map(s => s._id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
   const openPromoteModal = (student) => {
     setSelectedStudent(student);
     setPromotionRemarks("");
@@ -146,7 +127,6 @@ export default function StudentPromotion() {
     setShowPromoteModal(true);
   };
 
-  // Handle single promotion
   const handlePromoteStudent = async () => {
     try {
       setLoading(true);
@@ -154,7 +134,7 @@ export default function StudentPromotion() {
         remarks: promotionRemarks,
         overrideFeeCheck,
       });
-      setSuccessMessage(`Successfully promoted ${selectedStudent.fullName} to Semester ${selectedStudent.currentSemester + 1}`);
+      setSuccessMessage(`${selectedStudent.fullName} promoted successfully to Semester ${selectedStudent.currentSemester + 1}`);
       setShowPromoteModal(false);
       fetchEligibleStudents();
       setTimeout(() => setSuccessMessage(""), 5000);
@@ -165,296 +145,335 @@ export default function StudentPromotion() {
     }
   };
 
-  // Handle bulk promotion
   const handleBulkPromote = async () => {
-    if (selectedStudents.length === 0) {
-      setError("Please select at least one student for promotion.");
-      return;
-    }
-
     try {
       setLoading(true);
       const res = await bulkPromoteStudents({
         studentIds: selectedStudents,
-        remarks: promotionRemarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
         overrideFeeCheck,
       });
-      
-      setSuccessMessage(res.message);
-      setShowBulkPromoteModal(false);
+      setSuccessMessage(`${res.results.success.length} students promoted successfully!`);
       setSelectedStudents([]);
       fetchEligibleStudents();
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to promote students.");
+      setError(err.response?.data?.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get fee status badge color
+  const viewHistory = async () => {
+    await fetchPromotionHistory();
+    setShowHistory(true);
+  };
+
+  const fullyPaidCount = students.filter((s) => s.feeStatus === "FULLY_PAID").length;
+  const pendingCount = students.filter((s) => s.feeStatus !== "FULLY_PAID").length;
+
   const getFeeStatusBadge = (status) => {
     switch (status) {
       case "FULLY_PAID":
-        return "bg-green-100 text-green-800";
+        return "badge badge-success";
       case "PARTIALLY_PAID":
-        return "bg-yellow-100 text-yellow-800";
+        return "badge badge-warning";
       default:
-        return "bg-red-100 text-red-800";
+        return "badge badge-danger";
     }
   };
 
-  // Statistics
-  const stats = useMemo(() => {
-    const total = students.length;
-    const fullyPaid = students.filter((s) => s.feeStatus === "FULLY_PAID").length;
-    const partiallyPaid = students.filter((s) => s.feeStatus === "PARTIALLY_PAID").length;
-    const pending = students.filter((s) => s.feeStatus === "PENDING").length;
-    const eligibleForPromotion = students.filter((s) => s.allInstallmentsPaid).length;
-
-    return { total, fullyPaid, partiallyPaid, pending, eligibleForPromotion };
-  }, [students]);
+  if (error && !loading && students.length === 0) {
+    return (
+      <div className="erp-error-container">
+        <div className="erp-error-icon">
+          <FaExclamationTriangle />
+        </div>
+        <h3>Student Promotion Error</h3>
+        <p>{error}</p>
+        <button onClick={handleRetry} className="btn btn-primary">
+          <FaSyncAlt /> Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <FaGraduationCap className="text-indigo-600" />
+    <div className="page-container">
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="header-content">
+          <h1 className="page-title">
+            <FaGraduationCap className="header-icon" />
             Student Promotion
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="page-subtitle">
             Promote students to next semester based on fee payment status
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setViewMode("HISTORY");
-              fetchPromotionHistory();
-            }}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-          >
-            <FaHistory />
-            Promotion History
+        <div className="header-actions">
+          <button onClick={viewHistory} className="btn btn-outline-primary">
+            <FaGraduationCap /> View History
           </button>
-          {selectedStudents.length > 0 && (
-            <button
-              onClick={() => setShowBulkPromoteModal(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-            >
-              <FaArrowUp />
-              Bulk Promote ({selectedStudents.length})
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Success/Error Messages */}
+      {/* Success Message */}
       {successMessage && (
-        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
-          <FaCheckCircle />
-          {successMessage}
+        <div className="alert alert-success">
+          <FaCheckCircle /> {successMessage}
         </div>
       )}
 
+      {/* Error Message */}
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
-          <FaExclamationTriangle />
-          {error}
+        <div className="alert alert-danger">
+          <FaExclamationTriangle /> {error}
         </div>
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Total Students</div>
-          <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">
+            <FaGraduationCap />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Total Students</div>
+            <div className="stat-value">{students.length}</div>
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Fully Paid</div>
-          <div className="text-2xl font-bold text-green-600">{stats.fullyPaid}</div>
+
+        <div className="stat-card stat-success">
+          <div className="stat-icon">
+            <FaCheckCircle />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Fees Paid</div>
+            <div className="stat-value">{fullyPaidCount}</div>
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Partially Paid</div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.partiallyPaid}</div>
+
+        <div className="stat-card stat-danger">
+          <div className="stat-icon">
+            <FaExclamationTriangle />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Fees Pending</div>
+            <div className="stat-value">{pendingCount}</div>
+          </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Fee Pending</div>
-          <div className="text-2xl font-bold text-red-600">{stats.pending}</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-gray-500 text-sm">Eligible for Promotion</div>
-          <div className="text-2xl font-bold text-indigo-600">{stats.eligibleForPromotion}</div>
+
+        <div className="stat-card stat-info">
+          <div className="stat-icon">
+            <FaArrowUp />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Selected</div>
+            <div className="stat-value">{selectedStudents.length}</div>
+          </div>
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedStudents.length > 0 && (
+        <div className="bulk-action-bar">
+          <span className="bulk-action-text">
+            {selectedStudents.length} student(s) selected for promotion
+          </span>
+          <button
+            onClick={handleBulkPromote}
+            disabled={loading}
+            className="btn btn-primary"
+          >
+            <FaArrowUp /> {loading ? "Processing..." : "Promote All Selected"}
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or course..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
+      <div className="filter-bar">
+        <div className="search-box">
+          <FaSearch className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search by student name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="search-input"
+          />
+        </div>
+        <div className="filter-group">
           <select
             value={semesterFilter}
-            onChange={(e) => setSemesterFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            onChange={(e) => {
+              setSemesterFilter(e.target.value);
+              setPage(1);
+            }}
+            className="filter-select"
           >
             <option value="ALL">All Semesters</option>
-            {[1, 2, 3, 4, 5, 6, 7].map((sem) => (
-              <option key={sem} value={sem}>
-                Semester {sem}
-              </option>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+              <option key={sem} value={sem}>Semester {sem}</option>
             ))}
           </select>
-
-          <select
-            value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="ALL">All Courses</option>
-            {courses.map((course) => (
-              <option key={course} value={course}>
-                {course}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={feeStatusFilter}
-            onChange={(e) => setFeeStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="ALL">All Fee Status</option>
-            <option value="FULLY_PAID">Fully Paid</option>
-            <option value="PARTIALLY_PAID">Partially Paid</option>
-            <option value="PENDING">Pending</option>
-          </select>
-
-          <div className="flex items-center gap-2 text-gray-600">
-            <FaFilter />
-            <span className="text-sm">
-              {filteredStudents.length} of {students.length} students
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* Students Table */}
-      {viewMode === "LIST" && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading students...</p>
+      {/* History View */}
+      {showHistory ? (
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <FaGraduationCap /> Promotion History
+            </h3>
+            <button onClick={() => setShowHistory(false)} className="btn btn-outline-secondary">
+              ← Back to Students
+            </button>
+          </div>
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Promotion</th>
+                    <th>Fee Status</th>
+                    <th>Date</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotionHistory.map((record) => (
+                    <tr key={record._id}>
+                      <td>
+                        <div className="student-name">{record.student_id?.fullName}</div>
+                        <div className="student-email">{record.student_id?.email}</div>
+                      </td>
+                      <td>
+                        <span className="text-muted">Sem {record.fromSemester}</span>
+                        <span className="mx-2">→</span>
+                        <span className="text-primary fw-bold">Sem {record.toSemester}</span>
+                      </td>
+                      <td>
+                        <span className={`badge ${getFeeStatusBadge(record.feeStatus)}`}>
+                          {record.feeStatus.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="text-muted">
+                        {new Date(record.promotionDate).toLocaleDateString()}
+                      </td>
+                      <td className="text-muted">
+                        {record.remarks || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ) : filteredStudents.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              <FaUsers className="text-6xl text-gray-300 mx-auto mb-4" />
-              <p>No students found matching your criteria.</p>
+          </div>
+        </div>
+      ) : (
+        /* Students Table */
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Eligible Students</h3>
+            <div className="card-header-actions">
+              <span className="text-muted">
+                {filteredStudents.length} of {students.length} students
+              </span>
             </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
+          </div>
+          <div className="card-body">
+            {loading && students.length === 0 ? (
+              <div className="loading-container">
+                <FaSpinner className="spinner-icon" />
+                <p>Loading students...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="empty-state">
+                <FaGraduationCap className="empty-icon" />
+                <p className="empty-title">No students found</p>
+                <p className="empty-text">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <th className="px-4 py-3 text-left">
+                      <th className="checkbox-column">
                         <input
                           type="checkbox"
                           checked={selectedStudents.length === paginatedStudents.length && paginatedStudents.length > 0}
                           onChange={handleSelectAll}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          className="custom-checkbox"
                         />
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Student
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Current Semester
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Course
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Total Fee
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Paid Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Fee Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Action
-                      </th>
+                      <th>Student</th>
+                      <th>Current Sem</th>
+                      <th>Total Fee</th>
+                      <th>Paid Amount</th>
+                      <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody>
                     {paginatedStudents.map((student) => (
-                      <tr key={student._id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={student._id}>
+                        <td>
                           <input
                             type="checkbox"
                             checked={selectedStudents.includes(student._id)}
                             onChange={() => handleSelectStudent(student._id)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            className="custom-checkbox"
                           />
                         </td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {student.fullName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {student.email}
-                            </div>
-                          </div>
+                        <td>
+                          <div className="student-name">{student.fullName}</div>
+                          <div className="student-email">{student.email}</div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
+                        <td>
+                          <span className="badge badge-info">
                             Sem {student.currentSemester}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {student.course_id?.name || "N/A"}
+                        <td>
+                          <div className="fee-amount">
+                            <FaRupeeSign className="rupee-icon" />
+                            {student.fee?.totalFee || 0}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          ₹{student.fee?.totalFee || 0}
+                        <td>
+                          <div className={`fee-amount ${
+                            student.fee?.paidAmount >= student.fee?.totalFee 
+                              ? "text-success fw-bold" 
+                              : "text-muted"
+                          }`}>
+                            <FaRupeeSign className="rupee-icon" />
+                            {student.fee?.paidAmount || 0}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={student.fee?.paidAmount >= (student.fee?.totalFee || 0) ? "text-green-600 font-medium" : "text-gray-600"}>
-                            ₹{student.fee?.paidAmount || 0}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getFeeStatusBadge(student.feeStatus)}`}>
+                        <td>
+                          <span className={`badge ${getFeeStatusBadge(student.feeStatus)}`}>
+                            {student.feeStatus === "FULLY_PAID" && <FaCheckCircle className="badge-icon" />}
                             {student.feeStatus.replace("_", " ")}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td>
                           <button
                             onClick={() => openPromoteModal(student)}
-                            disabled={!student.allInstallmentsPaid && !overrideFeeCheck}
-                            className={`px-3 py-1 rounded text-sm font-medium flex items-center gap-1 ${
+                            disabled={!student.allInstallmentsPaid}
+                            className={`btn btn-sm ${
                               student.allInstallmentsPaid
-                                ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                ? "btn-primary"
+                                : "btn-secondary disabled"
                             }`}
-                            title={!student.allInstallmentsPaid ? "Student has pending fees" : "Promote to next semester"}
+                            title={
+                              student.allInstallmentsPaid 
+                                ? "Click to promote" 
+                                : "Fees pending - cannot promote"
+                            }
                           >
-                            <FaArrowUp />
-                            Promote
+                            <FaArrowUp /> Promote
                           </button>
                         </td>
                       </tr>
@@ -462,212 +481,145 @@ export default function StudentPromotion() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
-                    Showing {(page - 1) * PAGE_SIZE + 1} to{" "}
-                    {Math.min(page * PAGE_SIZE, filteredStudents.length)} of{" "}
-                    {filteredStudents.length} students
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FaChevronLeft />
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPage(i + 1)}
-                        className={`px-3 py-1 border rounded ${
-                          page === i + 1
-                            ? "bg-indigo-600 text-white border-indigo-600"
-                            : "border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FaChevronRight />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="card-footer">
+              <div className="pagination-info">
+                Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, filteredStudents.length)} of {filteredStudents.length} students
+              </div>
+              <div className="pagination">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="btn btn-outline-secondary btn-sm"
+                >
+                  Previous
+                </button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i + 1)}
+                    className={`btn btn-sm ${
+                      page === i + 1 ? "btn-primary" : "btn-outline-secondary"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="btn btn-outline-secondary btn-sm"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* Promotion History View */}
-      {viewMode === "HISTORY" && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <FaHistory />
-              Promotion History
-            </h2>
-            <button
-              onClick={() => setViewMode("LIST")}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              Back to Students
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Student
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    From → To
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Fee Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Promoted By
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Remarks
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {promotionHistory.map((record) => (
-                  <tr key={record._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {record.student_id?.fullName || "N/A"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {record.student_id?.email || "N/A"}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="text-gray-600">Sem {record.fromSemester}</span>
-                      <FaChevronRight className="inline mx-1 text-xs" />
-                      <span className="text-indigo-600 font-medium">Sem {record.toSemester}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getFeeStatusBadge(record.feeStatus)}`}>
-                        {record.feeStatus.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {record.promotedByName || "Admin"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(record.promotionDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {record.remarks || "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Single Promote Modal */}
+      {/* Promote Modal */}
       {showPromoteModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FaGraduationCap className="text-indigo-600" />
-              Promote Student
-            </h3>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4 className="modal-title">
+                <FaGraduationCap /> Promote Student
+              </h4>
+              <button onClick={() => setShowPromoteModal(false)} className="modal-close">
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {/* Student Info */}
+              <div className="student-info-card">
+                <div className="student-name">{selectedStudent.fullName}</div>
+                <div className="student-email">{selectedStudent.email}</div>
+                <div className="promotion-info">
+                  <span className="badge badge-info">
+                    Sem {selectedStudent.currentSemester} → Sem {selectedStudent.currentSemester + 1}
+                  </span>
+                  <span className={`badge ${getFeeStatusBadge(selectedStudent.feeStatus)}`}>
+                    {selectedStudent.feeStatus.replace("_", " ")}
+                  </span>
+                </div>
+              </div>
 
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="font-medium text-gray-900">{selectedStudent.fullName}</div>
-              <div className="text-sm text-gray-600">
-                Current: Semester {selectedStudent.currentSemester} → Next: Semester{" "}
-                {selectedStudent.currentSemester + 1}
+              {/* Fee Details */}
+              <div className="fee-details">
+                <div className="fee-row">
+                  <span className="fee-label">Total Fee:</span>
+                  <span className="fee-value">₹{selectedStudent.fee?.totalFee || 0}</span>
+                </div>
+                <div className="fee-row">
+                  <span className="fee-label">Paid Amount:</span>
+                  <span className={`fee-value ${
+                    selectedStudent.fee?.paidAmount >= selectedStudent.fee?.totalFee 
+                      ? "text-success" 
+                      : ""
+                  }`}>₹{selectedStudent.fee?.paidAmount || 0}</span>
+                </div>
+                {selectedStudent.pendingAmount > 0 && (
+                  <div className="fee-row">
+                    <span className="fee-label">Pending:</span>
+                    <span className="fee-value text-danger">₹{selectedStudent.pendingAmount}</span>
+                  </div>
+                )}
               </div>
-              <div className="mt-2 text-sm">
-                <span className="text-gray-600">Fee Status: </span>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getFeeStatusBadge(selectedStudent.feeStatus)}`}>
-                  {selectedStudent.feeStatus.replace("_", " ")}
-                </span>
+
+              {/* Remarks */}
+              <div className="form-group">
+                <label className="form-label">Remarks (Optional)</label>
+                <textarea
+                  value={promotionRemarks}
+                  onChange={(e) => setPromotionRemarks(e.target.value)}
+                  rows={2}
+                  className="form-control"
+                  placeholder="Add any notes..."
+                />
               </div>
+
+              {/* Override Checkbox */}
               {!selectedStudent.allInstallmentsPaid && (
-                <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                  <FaExclamationTriangle />
-                  Pending Amount: ₹{selectedStudent.pendingAmount}
+                <div className="alert alert-warning">
+                  <label className="custom-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={overrideFeeCheck}
+                      onChange={(e) => setOverrideFeeCheck(e.target.checked)}
+                      className="custom-checkbox"
+                    />
+                    <span>Override fee check</span>
+                  </label>
+                  <p className="alert-text">
+                    ⚠️ Promote student despite pending fees of ₹{selectedStudent.pendingAmount}
+                  </p>
                 </div>
               )}
             </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Remarks (Optional)
-              </label>
-              <textarea
-                value={promotionRemarks}
-                onChange={(e) => setPromotionRemarks(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                placeholder="Add any notes about this promotion..."
-              />
-            </div>
-
-            {!selectedStudent.allInstallmentsPaid && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={overrideFeeCheck}
-                    onChange={(e) => setOverrideFeeCheck(e.target.checked)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Override fee check (Admin discretion)
-                  </span>
-                </label>
-                <p className="text-xs text-gray-500 mt-1">
-                  ⚠️ Enable this to promote students with pending fees
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-3">
+            <div className="modal-footer">
               <button
                 onClick={handlePromoteStudent}
                 disabled={loading}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn btn-primary"
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Promoting...
+                    <FaSpinner className="spinner-icon" /> Processing...
                   </>
                 ) : (
                   <>
-                    <FaCheckCircle />
-                    Confirm Promotion
+                    <FaCheckCircle /> Confirm Promotion
                   </>
                 )}
               </button>
               <button
                 onClick={() => setShowPromoteModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="btn btn-secondary"
               >
                 Cancel
               </button>
@@ -676,82 +628,482 @@ export default function StudentPromotion() {
         </div>
       )}
 
-      {/* Bulk Promote Modal */}
-      {showBulkPromoteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FaClipboardCheck className="text-indigo-600" />
-              Bulk Promotion
-            </h3>
+      {/* Custom Styles */}
+      <style>{`
+        .page-container {
+          padding: 24px;
+          background: #f5f7fa;
+          min-height: 100vh;
+        }
 
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-gray-700">
-                You are about to promote <strong>{selectedStudents.length}</strong> students to their next semester.
-              </div>
-              <div className="mt-2 text-sm text-gray-600">
-                Students with pending fees will be skipped unless you enable the override option.
-              </div>
-            </div>
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Remarks (Optional)
-              </label>
-              <textarea
-                value={promotionRemarks}
-                onChange={(e) => setPromotionRemarks(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                placeholder="Add any notes about this bulk promotion..."
-              />
-            </div>
+        .page-title {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1a1a2e;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 0;
+        }
 
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={overrideFeeCheck}
-                  onChange={(e) => setOverrideFeeCheck(e.target.checked)}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-sm text-gray-700">
-                  Override fee check for all students
-                </span>
-              </label>
-              <p className="text-xs text-gray-500 mt-1">
-                ⚠️ Enable this to promote students with pending fees
-              </p>
-            </div>
+        .header-icon {
+          color: #4f46e5;
+          font-size: 32px;
+        }
 
-            <div className="flex gap-3">
-              <button
-                onClick={handleBulkPromote}
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Promoting...
-                  </>
-                ) : (
-                  <>
-                    <FaArrowUp />
-                    Promote All
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowBulkPromoteModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        .page-subtitle {
+          color: #666;
+          font-size: 14px;
+          margin-top: 4px;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .stat-card {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .stat-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          background: #e0e7ff;
+          color: #4f46e5;
+        }
+
+        .stat-success .stat-icon {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .stat-danger .stat-icon {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .stat-info .stat-icon {
+          background: #dbeafe;
+          color: #2563eb;
+        }
+
+        .stat-label {
+          font-size: 13px;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1a1a2e;
+        }
+
+        .filter-bar {
+          background: white;
+          padding: 16px;
+          border-radius: 12px;
+          margin-bottom: 16px;
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .search-box {
+          flex: 1;
+          min-width: 250px;
+          position: relative;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #999;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 10px 12px 10px 40px;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+
+        .filter-select {
+          padding: 10px 16px;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 14px;
+          background: white;
+          cursor: pointer;
+        }
+
+        .card {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+
+        .card-header {
+          padding: 16px 20px;
+          border-bottom: 1px solid #e0e0e0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .card-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1a2e;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .card-body {
+          padding: 20px;
+        }
+
+        .data-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .data-table thead th {
+          padding: 12px 16px;
+          text-align: left;
+          font-size: 12px;
+          font-weight: 600;
+          color: #666;
+          text-transform: uppercase;
+          background: #f8f9fa;
+          border-bottom: 2px solid #e0e0e0;
+        }
+
+        .data-table tbody td {
+          padding: 14px 16px;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        .student-name {
+          font-weight: 600;
+          color: #1a1a2e;
+        }
+
+        .student-email {
+          font-size: 13px;
+          color: #666;
+          margin-top: 2px;
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .badge-success {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+
+        .badge-warning {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        .badge-danger {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .badge-info {
+          background: #dbeafe;
+          color: #2563eb;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          border: none;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+
+        .btn-primary {
+          background: #4f46e5;
+          color: white;
+        }
+
+        .btn-primary:hover {
+          background: #4338ca;
+        }
+
+        .btn-outline-primary {
+          background: white;
+          color: #4f46e5;
+          border: 2px solid #4f46e5;
+        }
+
+        .btn-outline-secondary {
+          background: white;
+          color: #666;
+          border: 1px solid #e0e0e0;
+        }
+
+        .btn-secondary {
+          background: #666;
+          color: white;
+        }
+
+        .btn-sm {
+          padding: 6px 12px;
+          font-size: 13px;
+        }
+
+        .bulk-action-bar {
+          background: #dbeafe;
+          border: 1px solid #93c5fd;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        .modal-header {
+          padding: 20px;
+          border-bottom: 1px solid #e0e0e0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .modal-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1a2e;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 20px;
+          color: #999;
+          cursor: pointer;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-footer {
+          padding: 20px;
+          border-top: 1px solid #e0e0e0;
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+        }
+
+        .student-info-card {
+          background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+        }
+
+        .fee-details {
+          background: #f8f9fa;
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+        }
+
+        .fee-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+        }
+
+        .fee-label {
+          color: #666;
+          font-size: 14px;
+        }
+
+        .fee-value {
+          font-weight: 600;
+          color: #1a1a2e;
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .form-label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 500;
+          color: #333;
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 14px;
+          resize: vertical;
+        }
+
+        .alert {
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .alert-success {
+          background: #dcfce7;
+          color: #16a34a;
+          border-left: 4px solid #16a34a;
+        }
+
+        .alert-danger {
+          background: #fee2e2;
+          color: #dc2626;
+          border-left: 4px solid #dc2626;
+        }
+
+        .alert-warning {
+          background: #fef3c7;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+
+        .loading-container {
+          text-align: center;
+          padding: 40px;
+        }
+
+        .spinner-icon {
+          font-size: 32px;
+          animation: spin 1s linear infinite;
+          color: #4f46e5;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+        }
+
+        .empty-icon {
+          font-size: 64px;
+          color: #e0e0e0;
+          margin-bottom: 16px;
+        }
+
+        .custom-checkbox {
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+        }
+
+        .fee-amount {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .rupee-icon {
+          font-size: 12px;
+        }
+
+        .card-footer {
+          padding: 16px 20px;
+          border-top: 1px solid #e0e0e0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .pagination {
+          display: flex;
+          gap: 8px;
+        }
+
+        .pagination-info {
+          font-size: 13px;
+          color: #666;
+        }
+      `}</style>
     </div>
   );
 }
