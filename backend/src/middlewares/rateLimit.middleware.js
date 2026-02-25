@@ -6,15 +6,16 @@ const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (15 * 60 * 1000)
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
 /**
- * Helper function to safely extract IP addresses
- * Properly handles both IPv4 and IPv6 addresses by removing IPv6 prefix
- * This prevents IPv6 users from bypassing rate limits
+ * Helper function to normalize IP addresses (IPv4 and IPv6)
+ * Properly handles IPv6 addresses to prevent rate limit bypass
  */
-const getIp = (req) => {
+const normalizeIp = (req) => {
   const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  // Remove IPv6 prefix (::ffff:) for IPv4-mapped addresses
-  // This ensures consistent IP format for rate limiting
-  return ip.replace(/^::ffff:/, '');
+  // Handle IPv6 mapped to IPv4 (::ffff:127.0.0.1 -> 127.0.0.1)
+  if (ip.startsWith('::ffff:')) {
+    return ip.substring(7);
+  }
+  return ip;
 };
 
 /**
@@ -26,13 +27,14 @@ const globalLimiter = rateLimit({
   max: process.env.NODE_ENV === 'development' ? 20 : MAX_REQUESTS, // 20 in dev, 100 in prod
   message: {
     success: false,
-    message: process.env.NODE_ENV === 'development' 
-      ? 'Too many requests, please slow down (Development Mode)' 
+    message: process.env.NODE_ENV === 'development'
+      ? 'Too many requests, please slow down (Development Mode)'
       : 'Too many requests from this IP, please try again after 15 minutes',
     code: 'RATE_LIMIT_EXCEEDED'
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Global from IP: ${req.ip}`, {
       ip: req.ip,
@@ -60,8 +62,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
-  // Use helper function to properly handle IPv6 addresses
-  keyGenerator: (req) => getIp(req),
+  keyGenerator: (req) => normalizeIp(req),
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
       ip: req.ip,
