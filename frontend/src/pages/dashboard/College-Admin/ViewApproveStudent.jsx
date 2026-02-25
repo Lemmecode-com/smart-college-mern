@@ -1619,7 +1619,8 @@ function DocumentRow({ label, path, icon }) {
   };
 
   const fileName = getFileName(path);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  // Get base URL from environment variable with proper /api suffix as fallback
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   return (
     <tr className="detail-row">
