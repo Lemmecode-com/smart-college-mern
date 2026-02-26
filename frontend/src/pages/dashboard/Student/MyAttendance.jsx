@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import {
@@ -79,6 +79,7 @@ const scaleVariants = {
 
 export default function StudentAttendanceReport() {
   const { user } = useContext(AuthContext);
+  const loadTimeoutRef = useRef(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -94,11 +95,35 @@ export default function StudentAttendanceReport() {
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
 
+  /* ================= DATA VALIDATION HELPER ================= */
+  const validateAttendanceData = (data) => {
+    const errors = [];
+    
+    if (!data) return ["Attendance data is missing"];
+    
+    if (!data.summary) {
+      errors.push("Summary data is missing");
+    } else {
+      if (typeof data.summary.totalLectures === 'undefined') {
+        errors.push("Total lectures count is missing");
+      }
+      if (typeof data.summary.percentage === 'undefined') {
+        errors.push("Attendance percentage is missing");
+      }
+    }
+    
+    if (!Array.isArray(data.sessions)) {
+      errors.push("Sessions array is missing");
+    }
+    
+    return errors;
+  };
+
   /* ================= TOAST MANAGEMENT ================= */
   const addToast = (message, type = "success") => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
-    
+
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3000);
@@ -108,35 +133,125 @@ export default function StudentAttendanceReport() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  /* ================= RETRY & REFRESH HANDLERS ================= */
+  const handleRetry = () => {
+    setError("");
+    setLoading(true);
+    addToast("Retrying...", "info");
+    
+    setFilters(prev => ({
+      ...prev,
+      _retry: Date.now()
+    }));
+  };
+
+  const refreshData = () => {
+    setLoading(true);
+    addToast("Refreshing attendance data...", "info");
+    
+    setFilters(prev => ({
+      ...prev,
+      _timestamp: Date.now()
+    }));
+  };
+
+  /* ================= DOWNLOAD & PRINT HANDLERS ================= */
+  const handleDownloadReport = async () => {
+    try {
+      addToast("Generating PDF report...", "info");
+      
+      const response = await api.get("/attendance/student/report", {
+        params: filters,
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      addToast("Report downloaded successfully!", "success");
+    } catch (err) {
+      console.error("Download error:", err);
+      addToast("Failed to download report. Please try again.", "error");
+    }
+  };
+
+  const handlePrintReport = () => {
+    window.print();
+    addToast("Opening print dialog...", "info");
+  };
+
   /* ================= LOAD DATA ================= */
   useEffect(() => {
+    // Clear any existing timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set timeout for 30 seconds
+    loadTimeoutRef.current = setTimeout(() => {
+      setError("Request timed out. Please check your connection and try again.");
+      setLoading(false);
+      addToast("Request timed out. Please try again.", "error");
+    }, 30000);
+
     const fetchData = async () => {
       try {
-        setLoading(true);
         const [reportRes, subjectRes] = await Promise.all([
           api.get("/attendance/student", { params: filters }),
-          api.get("/subjects/student").catch(() => ({ data: [] })) // Fallback if endpoint not ready
+          api.get("/subjects/student").catch((err) => {
+            console.error("Failed to load subjects:", err);
+            return { data: [] };
+          })
         ]);
-        
+
+        // Validate data
+        const validation = validateAttendanceData(reportRes.data);
+        if (validation.length > 0) {
+          throw new Error(`Invalid attendance data: ${validation.join(', ')}`);
+        }
+
         setData(reportRes.data);
         setSubjects(subjectRes.data || []);
         setError("");
-        
+
         // Show success toast only on subsequent loads (not initial)
         if (data) {
           addToast("Attendance report updated successfully!", "success");
         }
+
+        // Clear timeout on success
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
+        }
       } catch (err) {
         console.error("Failed to load attendance report:", err);
-        const errorMsg = err.response?.data?.message || "Failed to load attendance report. Please try again later.";
+        
+        // Clear timeout on error
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
+        }
+
+        const errorMsg = err.response?.data?.message || err.message || "Failed to load attendance report. Please try again later.";
         setError(errorMsg);
         addToast(errorMsg, "error");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
   }, [filters]);
 
   /* ================= HANDLE FILTERS ================= */
@@ -159,23 +274,25 @@ export default function StudentAttendanceReport() {
     addToast("Filters reset successfully!", "info");
   };
 
-  const refreshData = () => {
-    setLoading(true);
-    addToast("Refreshing attendance data...", "info");
-    
-    // Trigger reload by resetting loading state
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
-  };
-
-  /* ================= TOOLTIP HANDLERS ================= */
+  /* ================= TOOLTIP HANDLERS WITH BOUNDARY CHECKS ================= */
   const handleTooltip = (e, content) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipWidth = 300; // Approximate tooltip width
+    
+    // Calculate position with boundary checks
+    let left = rect.left + window.scrollX + (rect.width / 2);
+    
+    // Prevent tooltip from going off-screen
+    if (left + tooltipWidth / 2 > window.innerWidth) {
+      left = window.innerWidth - tooltipWidth - 20;
+    } else if (left - tooltipWidth / 2 < 0) {
+      left = 20;
+    }
+    
     setTooltipContent(content);
     setTooltipPosition({
       top: rect.top + window.scrollY - 40,
-      left: rect.left + window.scrollX + rect.width / 2
+      left: left
     });
     setShowTooltip(true);
   };
@@ -193,18 +310,19 @@ export default function StudentAttendanceReport() {
         alignItems: 'center',
         background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
         padding: '2rem'
-      }}>
+      }} role="status" aria-live="polite">
         <div style={{ textAlign: 'center' }}>
           <motion.div
             variants={spinVariants}
             animate="animate"
             style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
+            aria-hidden="true"
           >
             <FaSyncAlt />
           </motion.div>
-          <h3 style={{ 
-            margin: '0 0 0.5rem 0', 
-            color: '#1e293b', 
+          <h3 style={{
+            margin: '0 0 0.5rem 0',
+            color: '#1e293b',
             fontWeight: 700,
             fontSize: '1.5rem'
           }}>
@@ -243,8 +361,25 @@ export default function StudentAttendanceReport() {
           paddingLeft: '1rem',
           paddingRight: '1rem'
         }}
+        role="main"
+        aria-label="Attendance report"
       >
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Skip Link for Screen Readers */}
+        <a href="#attendance-content" className="sr-only sr-only-focusable" style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+          whiteSpace: 'nowrap',
+          border: 0
+        }}>
+          Skip to attendance content
+        </a>
+
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }} id="attendance-content">
           {/* ================= TOAST CONTAINER ================= */}
           <div style={{
             position: 'fixed',
@@ -439,8 +574,10 @@ export default function StudentAttendanceReport() {
                     gap: '0.5rem',
                     transition: 'all 0.3s ease'
                   }}
+                  aria-expanded={showFilters}
+                  aria-label={showFilters ? "Hide filters" : "Apply filters"}
                 >
-                  <FaFilter /> {showFilters ? 'Hide Filters' : 'Apply Filters'}
+                  <FaFilter aria-hidden="true" /> {showFilters ? 'Hide Filters' : 'Apply Filters'}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -460,8 +597,9 @@ export default function StudentAttendanceReport() {
                     gap: '0.5rem',
                     transition: 'all 0.3s ease'
                   }}
+                  aria-label="Refresh attendance data"
                 >
-                  <FaSyncAlt /> Refresh
+                  <FaSyncAlt aria-hidden="true" /> Refresh
                 </motion.button>
               </div>
             </div>
@@ -632,13 +770,15 @@ export default function StudentAttendanceReport() {
                 fontSize: '1.05rem',
                 fontWeight: 500
               }}
+              role="alert"
+              aria-live="assertive"
             >
-              <FaExclamationTriangle size={24} />
+              <FaExclamationTriangle size={24} aria-hidden="true" />
               <div style={{ flex: 1 }}>{error}</div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 style={{
                   background: BRAND_COLORS.danger.main,
                   color: 'white',
@@ -651,8 +791,9 @@ export default function StudentAttendanceReport() {
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}
+                aria-label="Retry loading attendance report"
               >
-                <FaSyncAlt /> Retry
+                <FaSyncAlt aria-hidden="true" /> Retry
               </motion.button>
             </motion.div>
           )}
@@ -904,16 +1045,16 @@ export default function StudentAttendanceReport() {
               </div>
               
               <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle}>
+                <table style={tableStyle} role="table" aria-label="Subject-wise attendance">
                   <thead>
                     <tr>
-                      <th style={headerCellStyle}>Subject</th>
-                      <th style={headerCellStyle}>Code</th>
-                      <th style={headerCellStyle}>Total</th>
-                      <th style={headerCellStyle}>Present</th>
-                      <th style={headerCellStyle}>Absent</th>
-                      <th style={headerCellStyle}>Percentage</th>
-                      <th style={headerCellStyle}>Status</th>
+                      <th style={headerCellStyle} scope="col">Subject</th>
+                      <th style={headerCellStyle} scope="col">Code</th>
+                      <th style={headerCellStyle} scope="col">Total</th>
+                      <th style={headerCellStyle} scope="col">Present</th>
+                      <th style={headerCellStyle} scope="col">Absent</th>
+                      <th style={headerCellStyle} scope="col">Percentage</th>
+                      <th style={headerCellStyle} scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1070,7 +1211,7 @@ export default function StudentAttendanceReport() {
                 </table>
               </div>
               
-              <div style={{ 
+              <div style={{
                 padding: '1.5rem',
                 borderTop: '1px solid #f1f5f9',
                 backgroundColor: '#f8fafc',
@@ -1080,7 +1221,7 @@ export default function StudentAttendanceReport() {
                 gap: '1rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <FaLightbulb style={{ color: BRAND_COLORS.warning.main }} />
+                  <FaLightbulb style={{ color: BRAND_COLORS.warning.main }} aria-hidden="true" />
                   <span style={{ color: '#4a5568', fontSize: '0.95rem' }}>
                     <strong>Important:</strong> Minimum 75% attendance required in each subject to be eligible for exams
                   </span>
@@ -1089,6 +1230,7 @@ export default function StudentAttendanceReport() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={handleDownloadReport}
                     style={{
                       padding: '0.625rem 1.25rem',
                       borderRadius: '10px',
@@ -1103,12 +1245,14 @@ export default function StudentAttendanceReport() {
                       gap: '0.5rem',
                       transition: 'all 0.2s ease'
                     }}
+                    aria-label="Download attendance report as PDF"
                   >
-                    <FaDownload size={16} /> Download Report
+                    <FaDownload size={16} aria-hidden="true" /> Download Report
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={handlePrintReport}
                     style={{
                       padding: '0.625rem 1.25rem',
                       borderRadius: '10px',
@@ -1123,8 +1267,9 @@ export default function StudentAttendanceReport() {
                       gap: '0.5rem',
                       transition: 'all 0.2s ease'
                     }}
+                    aria-label="Print attendance report"
                   >
-                    <FaPrint size={16} /> Print Report
+                    <FaPrint size={16} aria-hidden="true" /> Print Report
                   </motion.button>
                 </div>
               </div>
@@ -1182,15 +1327,15 @@ export default function StudentAttendanceReport() {
               </div>
               
               <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle}>
+                <table style={tableStyle} role="table" aria-label="Session-wise attendance records">
                   <thead>
                     <tr>
-                      <th style={headerCellStyle}>Date</th>
-                      <th style={headerCellStyle}>Subject</th>
-                      <th style={headerCellStyle}>Lecture</th>
-                      <th style={headerCellStyle}>Time</th>
-                      <th style={headerCellStyle}>Room</th>
-                      <th style={headerCellStyle}>Status</th>
+                      <th style={headerCellStyle} scope="col">Date</th>
+                      <th style={headerCellStyle} scope="col">Subject</th>
+                      <th style={headerCellStyle} scope="col">Lecture</th>
+                      <th style={headerCellStyle} scope="col">Time</th>
+                      <th style={headerCellStyle} scope="col">Room</th>
+                      <th style={headerCellStyle} scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1376,9 +1521,9 @@ function FormField({ icon, label, children }) {
 /* ================= SUMMARY CARD COMPONENT ================= */
 function SummaryCard({ title, value, icon, color, tooltip, onTooltip, onTooltipLeave }) {
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
       gap: '1rem',
       padding: '1rem',
       borderRadius: '16px',
@@ -1398,13 +1543,13 @@ function SummaryCard({ title, value, icon, color, tooltip, onTooltip, onTooltipL
         color: color,
         fontSize: '1.5rem',
         flexShrink: 0
-      }}>
+      }} aria-hidden="true">
         {icon}
       </div>
       <div>
-        <div style={{ 
-          fontSize: '0.85rem', 
-          color: '#64748b', 
+        <div style={{
+          fontSize: '0.85rem',
+          color: '#64748b',
           fontWeight: 500,
           marginBottom: '0.25rem',
           display: 'flex',
@@ -1419,16 +1564,19 @@ function SummaryCard({ title, value, icon, color, tooltip, onTooltip, onTooltipL
               color: BRAND_COLORS.info.main,
               fontSize: '0.85rem'
             }}
-            onMouseEnter={onTooltip}
+            onMouseEnter={(e) => onTooltip(e, tooltip)}
             onMouseLeave={onTooltipLeave}
             onMouseMove={(e) => onTooltip(e, tooltip)}
+            aria-label={`More information about ${title}`}
+            role="button"
+            tabIndex={0}
           >
-            <FaQuestionCircle />
+            <FaQuestionCircle aria-hidden="true" />
           </motion.span>
         </div>
-        <div style={{ 
-          fontSize: '1.75rem', 
-          fontWeight: 800, 
+        <div style={{
+          fontSize: '1.75rem',
+          fontWeight: 800,
           color: '#0f172a',
           lineHeight: 1
         }}>
@@ -1493,4 +1641,17 @@ const selectStyle = {
   backgroundPosition: 'right 1.25rem center',
   backgroundSize: '20px',
   transition: 'all 0.3s ease'
+};
+
+/* ================= SCREEN READER ONLY STYLES ================= */
+const srOnlyStyle = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0,0,0,0)',
+  whiteSpace: 'nowrap',
+  border: 0
 };
