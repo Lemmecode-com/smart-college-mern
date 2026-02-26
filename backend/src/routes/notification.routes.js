@@ -17,6 +17,7 @@ const {
   getStudentNotificationCount,
   markAsRead,
   getUnreadForBell,
+  sendPromotionNotification,
 } = require("../controllers/notification.controller");
 
 router.post(
@@ -92,5 +93,18 @@ router.post("/:notificationId/read", auth, markAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);
+
+/**
+ * ================================
+ * PROMOTION NOTIFICATION
+ * ================================
+ */
+router.post(
+  "/promotion/send",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  sendPromotionNotification
+);
 
 module.exports = router;
