@@ -25,6 +25,8 @@ import {
   FaTrophy,
   FaStar,
   FaSync,
+  FaUniversity,
+  FaClipboardCheck,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -40,7 +42,10 @@ import {
   Legend,
   AreaChart,
   Area,
+  ReferenceLine,
 } from "recharts";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function StudentDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -58,14 +63,26 @@ export default function StudentDashboard() {
       setError(null);
       const response = await api.get("/dashboard/student");
       setDashboardData(response.data);
+      
+      // Show success toast only on successful load (not initial)
+      if (dashboardData) {
+        toast.success("Dashboard loaded successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />
+        });
+      }
     } catch (err) {
       // Silently handle auth errors
       if (err.response?.status !== 403 && err.response?.status !== 401) {
         console.error("Dashboard fetch error:", err);
-        setError(
-          err.response?.data?.message ||
-            "Failed to load dashboard data. Please check your connection and try again."
-        );
+        const errorMsg = err.response?.data?.message || "Failed to load dashboard. Please check your connection and try again.";
+        setError(errorMsg);
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
       }
     } finally {
       setLoading(false);
@@ -73,6 +90,11 @@ export default function StudentDashboard() {
   };
 
   const handleRetry = () => {
+    toast.info("Refreshing dashboard...", {
+      position: "top-right",
+      autoClose: 2000,
+      icon: <FaSync />
+    });
     setRetryCount((prev) => prev + 1);
   };
 
@@ -139,6 +161,19 @@ export default function StudentDashboard() {
           <div className="loading-bar">
             <div className="loading-progress"></div>
           </div>
+        </div>
+        {/* Skeleton Cards */}
+        <div className="skeleton-cards">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton-card" />
+          ))}
+        </div>
+        {/* Skeleton Table */}
+        <div className="skeleton-table">
+          <div className="skeleton-table-header" />
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="skeleton-table-row" />
+          ))}
         </div>
       </div>
     );
@@ -213,6 +248,19 @@ export default function StudentDashboard() {
 
   return (
     <div className="student-dashboard-container">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+      
       {/* ================= HEADER ================= */}
       <div className="dashboard-header fade-in">
         <div className="header-left">
@@ -233,6 +281,42 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* ================= QUICK ACTIONS (MOVED TO TOP) ================= */}
+      <div className="dashboard-card quick-actions-card fade-in-up" style={{ marginBottom: '1.5rem' }}>
+        <div className="card-header">
+          <div className="card-title-wrapper">
+            <FaStar className="card-icon blink-fast" />
+            <h3>Quick Actions</h3>
+            <InfoTooltip message="Frequently used actions" />
+          </div>
+        </div>
+
+        <div className="card-body">
+          <div className="quick-actions-grid">
+            <Link to="/my-attendance" className="quick-action-item quick-action-blink">
+              <FaChartPie className="action-icon" />
+              <span>Attendance</span>
+            </Link>
+            <Link to="/student/timetable" className="quick-action-item quick-action-blink">
+              <FaCalendarAlt className="action-icon" />
+              <span>Timetable</span>
+            </Link>
+            <Link to="/student/fees" className="quick-action-item quick-action-blink">
+              <FaWallet className="action-icon" />
+              <span>Fees</span>
+            </Link>
+            <Link to="/student/profile" className="quick-action-item quick-action-blink">
+              <FaUserGraduate className="action-icon" />
+              <span>Profile</span>
+            </Link>
+            <Link to="/notification/student" className="quick-action-item quick-action-blink">
+              <FaBell className="action-icon" />
+              <span>Notifications</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* ================= INFO CARDS ROW ================= */}
       <div className="info-cards-row">
         <div className="info-card fade-in-up">
@@ -242,40 +326,36 @@ export default function StudentDashboard() {
           <div className="card-content">
             <h3>{student.name}</h3>
             <p>Student Name</p>
-            <InfoTooltip message="Your registered name in the system" />
           </div>
         </div>
 
         <div className="info-card fade-in-up">
           <div className="card-icon-wrapper green">
-            <FaBook />
+            <FaGraduationCap />
           </div>
           <div className="card-content">
             <h3>{student.course}</h3>
             <p>Current Course</p>
-            <InfoTooltip message="Your enrolled course/subject" />
           </div>
         </div>
 
         <div className="info-card fade-in-up">
           <div className="card-icon-wrapper purple">
-            <FaBuilding />
+            <FaUniversity />
           </div>
           <div className="card-content">
             <h3>{student.department}</h3>
             <p>Department</p>
-            <InfoTooltip message="Your academic department" />
           </div>
         </div>
 
         <div className="info-card fade-in-up">
           <div className="card-icon-wrapper orange">
-            <FaAward />
+            <FaClipboardCheck />
           </div>
           <div className="card-content">
             <h3>{attendanceSummary.percentage}%</h3>
             <p>Attendance</p>
-            <InfoTooltip message="Overall attendance percentage" />
           </div>
         </div>
       </div>
@@ -296,42 +376,44 @@ export default function StudentDashboard() {
           </div>
 
           <div className="card-body">
+            {/* Enhanced Stats with Hover Effects */}
             <div className="attendance-stats">
-              <div className="stat-item">
-                <FaCheckCircle className="stat-icon present" />
+              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.present} lectures present`}>
+                <FaCheckCircle className="stat-icon present" aria-hidden="true" />
                 <div>
-                  <span className="stat-value">{attendanceSummary.present}</span>
+                  <span className="stat-value stat-value-large">{attendanceSummary.present}</span>
                   <span className="stat-label">Present</span>
                 </div>
               </div>
-              <div className="stat-item">
-                <FaTimesCircle className="stat-icon absent" />
+              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.absent} lectures absent`}>
+                <FaTimesCircle className="stat-icon absent" aria-hidden="true" />
                 <div>
-                  <span className="stat-value">{attendanceSummary.absent}</span>
+                  <span className="stat-value stat-value-large">{attendanceSummary.absent}</span>
                   <span className="stat-label">Absent</span>
                 </div>
               </div>
-              <div className="stat-item">
-                <FaClock className="stat-icon total" />
+              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.total} total lectures`}>
+                <FaClock className="stat-icon total" aria-hidden="true" />
                 <div>
-                  <span className="stat-value">{attendanceSummary.total}</span>
+                  <span className="stat-value stat-value-large">{attendanceSummary.total}</span>
                   <span className="stat-label">Total</span>
                 </div>
               </div>
             </div>
 
+            {/* Enhanced Pie Chart with better dimensions */}
             <div className="attendance-chart">
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
                     data={attendancePieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={5}
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={2}
                     dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
                   >
                     {attendancePieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -343,10 +425,34 @@ export default function StudentDashboard() {
               </ResponsiveContainer>
             </div>
 
+            {/* Enhanced Progress Bar with Integrated Warning */}
             <div className="attendance-percentage">
-              <div className="progress-bar-wrapper">
+              <div className="percentage-header">
+                <span
+                  className="percentage-text percentage-text-large"
+                  style={{
+                    color: getAttendanceWarningColor(attendanceSummary.percentage),
+                  }}
+                >
+                  {attendanceSummary.percentage}% Overall Attendance
+                </span>
+                {attendanceSummary.warning && (
+                  <div className="attendance-warning attendance-warning-inline">
+                    <FaExclamationTriangle aria-hidden="true" /> 
+                    <span>Low Attendance! Minimum 75% required for exam eligibility.</span>
+                  </div>
+                )}
+              </div>
+              <div
+                className="progress-bar-wrapper progress-bar-thick"
+                role="progressbar"
+                aria-valuenow={attendanceSummary.percentage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
+              >
                 <div
-                  className="progress-bar"
+                  className="progress-bar progress-bar-animated"
                   style={{
                     width: `${attendanceSummary.percentage}%`,
                     backgroundColor: getAttendanceWarningColor(
@@ -355,19 +461,12 @@ export default function StudentDashboard() {
                   }}
                 />
               </div>
-              <span
-                className="percentage-text"
-                style={{
-                  color: getAttendanceWarningColor(attendanceSummary.percentage),
-                }}
-              >
-                {attendanceSummary.percentage}% Overall Attendance
-              </span>
-              {attendanceSummary.warning && (
-                <div className="attendance-warning">
-                  <FaExclamationTriangle /> Low Attendance! Minimum 75% required.
-                </div>
-              )}
+              <div className="progress-thresholds">
+                <span className="threshold-marker" style={{ left: '75%' }}>
+                  <span className="threshold-line"></span>
+                  <span className="threshold-label">75% Min</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -378,61 +477,121 @@ export default function StudentDashboard() {
             <div className="card-title-wrapper">
               <FaChartBar className="card-icon" />
               <h3>Subject-wise Attendance</h3>
-              <InfoTooltip message="Attendance breakdown by subject" />
+              <InfoTooltip message="Attendance breakdown by subject. Subjects with low attendance are highlighted in red." />
             </div>
           </div>
 
           <div className="card-body">
+            {/* Enhanced Bar Chart with Risk-Based Colors */}
             <div className="subject-chart">
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={subjectBarData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis
                     dataKey="code"
-                    tick={{ fontSize: 11 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
+                    tick={{ fontSize: 11, fontWeight: 500 }}
+                    interval={0}
+                    height={50}
+                    tickLine={false}
                   />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    label={{ value: 'Lectures', angle: -90, position: 'insideLeft', fontSize: 11 }}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar dataKey="present" fill="#28a745" name="Present" />
-                  <Bar dataKey="total" fill="#6c757d" name="Total" />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <ReferenceLine
+                    y={Math.max(...subjectBarData.map(s => s.total)) * 0.75}
+                    stroke="#dc3545"
+                    strokeDasharray="3 3"
+                    label={{ value: '75% Target', fill: '#dc3545', fontSize: 10, position: 'right' }}
+                  />
+                  <Bar
+                    dataKey="present"
+                    name="Present"
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={1000}
+                  >
+                    {subjectBarData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.percentage >= 75 ? '#28a745' : entry.percentage >= 60 ? '#ffc107' : '#dc3545'}
+                      />
+                    ))}
+                  </Bar>
+                  <Bar
+                    dataKey="total"
+                    name="Total"
+                    fill="#80adda"
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={1000}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="subject-list">
-              {subjectWiseAttendance.map((subject, index) => (
-                <div key={index} className="subject-item">
-                  <div className="subject-info">
-                    <span className="subject-name">{subject.subject}</span>
-                    <span className="subject-code">{subject.code}</span>
-                  </div>
-                  <div className="subject-progress">
-                    <div className="progress-bar-wrapper">
-                      <div
-                        className="progress-bar"
-                        style={{
-                          width: `${subject.percentage}%`,
-                          backgroundColor: getAttendanceWarningColor(
-                            subject.percentage
-                          ),
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="percentage-text"
-                      style={{
-                        color: getAttendanceWarningColor(subject.percentage),
-                      }}
+            {/* Enhanced Subject List with Teacher Info and Trends */}
+            <div className="subject-list" role="list" aria-label="Subject-wise attendance list">
+              {subjectWiseAttendance
+                .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
+                .map((subject, index) => {
+                  const attendanceColor = getAttendanceWarningColor(subject.percentage);
+                  const needsAttention = subject.percentage < 75;
+                  const lecturesNeeded = Math.ceil(
+                    ((75 * (subject.present + subject.total - subject.present)) / 25) - subject.present
+                  );
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`subject-item subject-item-hover ${needsAttention ? 'subject-item-warning' : ''}`}
+                      role="listitem"
+                      aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
                     >
-                      {subject.percentage}%
-                    </span>
-                  </div>
-                </div>
-              ))}
+                      <div className="subject-info">
+                        <div className="subject-info-main">
+                          <span className="subject-name">{subject.subject}</span>
+                          <span className="subject-code">{subject.code}</span>
+                        </div>
+                        {needsAttention && (
+                          <div className="subject-attention-badge">
+                            <FaExclamationTriangle size={12} />
+                            <span>Needs Attention</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="subject-progress">
+                        <div className="progress-bar-wrapper progress-bar-thick" role="progressbar" aria-valuenow={subject.percentage} aria-valuemin={0} aria-valuemax={100}>
+                          <div
+                            className="progress-bar progress-bar-animated"
+                            style={{
+                              width: `${subject.percentage}%`,
+                              backgroundColor: attendanceColor,
+                            }}
+                          />
+                        </div>
+                        <div className="subject-progress-info">
+                          <span
+                            className="percentage-text percentage-text-bold"
+                            style={{ color: attendanceColor }}
+                          >
+                            {subject.percentage}%
+                          </span>
+                          <span className="subject-lectures-count">
+                            {subject.present}/{subject.total}
+                          </span>
+                        </div>
+                        {needsAttention && lecturesNeeded > 0 && lecturesNeeded < subject.total && (
+                          <div className="subject-action-needed">
+                            Need {lecturesNeeded} more to reach 75%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -611,46 +770,6 @@ export default function StudentDashboard() {
             )}
           </div>
         </div>
-
-        {/* ================= QUICK ACTIONS ================= */}
-        <div className="dashboard-card quick-actions-card fade-in-up">
-          <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaStar className="card-icon" />
-              <h3>Quick Actions</h3>
-              <InfoTooltip message="Frequently used actions" />
-            </div>
-          </div>
-
-          <div className="card-body">
-            <div className="quick-actions-grid">
-              <Link to="/my-attendance" className="quick-action-item">
-                <FaChartPie className="action-icon" />
-                <span>Attendance</span>
-              </Link>
-              <Link to="/student/timetable" className="quick-action-item">
-                <FaCalendarAlt className="action-icon" />
-                <span>Timetable</span>
-              </Link>
-              <Link to="/student/fees" className="quick-action-item">
-                <FaWallet className="action-icon" />
-                <span>Fees</span>
-              </Link>
-              <Link to="/student/profile" className="quick-action-item">
-                <FaUserGraduate className="action-icon" />
-                <span>Profile</span>
-              </Link>
-              <Link to="/notification/student" className="quick-action-item">
-                <FaBell className="action-icon" />
-                <span>Notifications</span>
-              </Link>
-              <Link to="/student/fee-receipt" className="quick-action-item">
-                <FaDownload className="action-icon" />
-                <span>Receipts</span>
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ================= STYLES ================= */}
@@ -665,10 +784,13 @@ export default function StudentDashboard() {
         /* ================= LOADING STATE ================= */
         .dashboard-loading {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           min-height: 100vh;
           background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+          gap: 2rem;
+          padding: 2rem;
         }
 
         .loading-spinner {
@@ -702,6 +824,54 @@ export default function StudentDashboard() {
           height: 100%;
           background: linear-gradient(90deg, #1a4b6d, #2d6f8f);
           animation: loading 1.5s ease-in-out infinite;
+        }
+
+        /* ================= SKELETON LOADERS ================= */
+        .skeleton-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.5rem;
+          width: 100%;
+          max-width: 1200px;
+        }
+
+        .skeleton-card {
+          background: white;
+          border-radius: 12px;
+          height: 150px;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .skeleton-table {
+          width: 100%;
+          max-width: 1200px;
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .skeleton-table-header {
+          height: 40px;
+          background: #e0e0e0;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+        }
+
+        .skeleton-table-row {
+          height: 60px;
+          background: #f0f0f0;
+          border-radius: 8px;
+          margin-bottom: 0.75rem;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
         }
 
         @keyframes loading {
@@ -739,7 +909,7 @@ export default function StudentDashboard() {
         }
 
         .error-message {
-          color: #6c757d;
+          color: #4a5568;
           margin-bottom: 2rem;
           font-size: 1rem;
           line-height: 1.6;
@@ -814,7 +984,7 @@ export default function StudentDashboard() {
 
         .dashboard-subtitle {
           margin: 0.25rem 0 0;
-          color: #6c757d;
+          color: #4a5568;
           font-size: 1rem;
         }
 
@@ -916,7 +1086,7 @@ export default function StudentDashboard() {
         .card-content p {
           margin: 0.25rem 0 0;
           font-size: 0.85rem;
-          color: #6c757d;
+          color: #4a5568;
         }
 
         /* ================= TOOLTIP ================= */
@@ -928,7 +1098,7 @@ export default function StudentDashboard() {
         }
 
         .info-icon {
-          color: #6c757d;
+          color: #4a5568;
           font-size: 1rem;
           transition: color 0.3s ease;
         }
@@ -1051,26 +1221,51 @@ export default function StudentDashboard() {
           padding: 1rem;
           background: #f8f9fa;
           border-radius: 8px;
+          transition: all 0.3s ease;
+        }
+
+        /* Enhanced Stat Item Hover Effect */
+        .stat-item-hover:hover {
+          transform: translateY(-3px);
+          background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+          cursor: pointer;
         }
 
         .stat-icon {
           font-size: 1.5rem;
+          flex-shrink: 0;
         }
 
         .stat-icon.present { color: #28a745; }
         .stat-icon.absent { color: #dc3545; }
-        .stat-icon.total { color: #17a2b8; }
+        .stat-icon.total { color: #1a4b6d; }
 
         .stat-value {
           display: block;
           font-size: 1.5rem;
           font-weight: 700;
           color: #1a4b6d;
+          transition: all 0.3s ease;
+        }
+
+        /* Enhanced Stat Value - Larger and More Prominent */
+        .stat-value-large {
+          font-size: 2rem;
+          line-height: 1.2;
+        }
+
+        .stat-item-hover:hover .stat-value-large {
+          transform: scale(1.05);
+          display: inline-block;
         }
 
         .stat-label {
           font-size: 0.75rem;
-          color: #6c757d;
+          color: #4a5568;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .attendance-chart {
@@ -1081,24 +1276,108 @@ export default function StudentDashboard() {
           text-align: center;
         }
 
-        .progress-bar-wrapper {
-          width: 100%;
-          height: 10px;
-          background: #e9ecef;
-          border-radius: 5px;
-          overflow: hidden;
-          margin-bottom: 0.5rem;
+        /* Enhanced Percentage Header with Integrated Warning */
+        .percentage-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
         }
 
-        .progress-bar {
+        /* Enhanced Percentage Text - Larger and More Prominent */
+        .percentage-text-large {
+          font-size: 1.25rem;
+          font-weight: 700;
+        }
+
+        /* Enhanced Inline Warning */
+        .attendance-warning-inline {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+          color: #856404;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+          animation: warning-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes warning-pulse {
+          0%, 100% {
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+          }
+          50% {
+            box-shadow: 0 2px 12px rgba(255, 193, 7, 0.5);
+          }
+        }
+
+        /* Enhanced Progress Bar - Thicker and Animated */
+        .progress-bar-thick {
+          width: 100%;
+          height: 16px;
+          background: linear-gradient(90deg, #e9ecef 0%, #dee2e6 100%);
+          border-radius: 10px;
+          overflow: hidden;
+          margin-bottom: 0.5rem;
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar-animated {
           height: 100%;
-          border-radius: 5px;
-          transition: width 0.5s ease;
+          border-radius: 10px;
+          transition: width 1s ease-in-out;
+          background: linear-gradient(90deg, currentColor 0%, currentColor 100%);
+          animation: progress-shimmer 2s linear infinite;
+          background-size: 200% 100%;
+        }
+
+        @keyframes progress-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+
+        /* Progress Threshold Marker */
+        .progress-thresholds {
+          position: relative;
+          width: 100%;
+          height: 20px;
+          margin-top: 0.25rem;
+        }
+
+        .threshold-marker {
+          position: absolute;
+          top: 0;
+          transform: translateX(-50%);
+        }
+
+        .threshold-line {
+          display: block;
+          width: 2px;
+          height: 10px;
+          background: #dc3545;
+          margin: 0 auto 0.25rem;
+        }
+
+        .threshold-label {
+          display: block;
+          font-size: 0.7rem;
+          color: #dc3545;
+          font-weight: 600;
+          white-space: nowrap;
         }
 
         .percentage-text {
           font-size: 0.9rem;
           font-weight: 600;
+          color: #4a5568;
         }
 
         .attendance-warning {
@@ -1108,11 +1387,12 @@ export default function StudentDashboard() {
           gap: 0.5rem;
           margin-top: 0.75rem;
           padding: 0.75rem;
-          background: #fff3cd;
+          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
           color: #856404;
           border-radius: 6px;
           font-size: 0.85rem;
           font-weight: 600;
+          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
         }
 
         /* ================= SUBJECT ATTENDANCE ================= */
@@ -1126,43 +1406,126 @@ export default function StudentDashboard() {
           gap: 1rem;
         }
 
+        /* Enhanced Subject Item */
         .subject-item {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
-          padding: 1rem;
+          gap: 0.75rem;
+          padding: 1.25rem;
           background: #f8f9fa;
-          border-radius: 8px;
+          border-radius: 10px;
+          transition: all 0.3s ease;
+          border-left: 4px solid transparent;
+        }
+
+        /* Subject Item Hover Effect */
+        .subject-item-hover:hover {
+          transform: translateX(5px);
+          background: linear-gradient(135deg, #f8f9fa 0%, #e8f4f8 100%);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          cursor: pointer;
+        }
+
+        /* Subject Item Warning State (Low Attendance) */
+        .subject-item-warning {
+          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+          border-left-color: #dc3545;
+        }
+
+        .subject-item-warning:hover {
+          box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2);
         }
 
         .subject-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .subject-info-main {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
         }
 
         .subject-name {
           font-weight: 600;
           color: #1a4b6d;
+          font-size: 1rem;
         }
 
         .subject-code {
           font-size: 0.75rem;
-          color: #6c757d;
+          color: #4a5568;
+          background: #e9ecef;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-weight: 500;
+        }
+
+        /* Subject Attention Badge */
+        .subject-attention-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          padding: 0.375rem 0.75rem;
+          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+          color: white;
+          border-radius: 12px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        /* Enhanced Subject Progress */
+        .subject-progress {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          width: 100%;
+        }
+
+        .subject-progress .progress-bar-wrapper {
+          width: 100%;
+          margin-bottom: 0;
+        }
+
+        /* Subject Progress Info (Percentage + Count) */
+        .subject-progress-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 0.25rem;
+        }
+
+        .percentage-text-bold {
+          font-size: 1rem;
+          font-weight: 700;
+        }
+
+        .subject-lectures-count {
+          font-size: 0.85rem;
+          color: #4a5568;
+          font-weight: 600;
           background: #e9ecef;
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
         }
 
-        .subject-progress {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .subject-progress .progress-bar-wrapper {
-          flex: 1;
-          margin-bottom: 0;
+        /* Subject Action Needed Text */
+        .subject-action-needed {
+          font-size: 0.75rem;
+          color: #dc3545;
+          font-weight: 600;
+          background: rgba(220, 53, 69, 0.1);
+          padding: 0.375rem 0.75rem;
+          border-radius: 6px;
+          text-align: center;
+          margin-top: 0.25rem;
         }
 
         /* ================= TIMETABLE ================= */
@@ -1215,7 +1578,7 @@ export default function StudentDashboard() {
         }
 
         .time-separator {
-          color: #6c757d;
+          color: #4a5568;
         }
 
         .slot-details {
@@ -1241,7 +1604,8 @@ export default function StudentDashboard() {
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
           background: #e9ecef;
-          color: #6c757d;
+          color: #4a5568;
+          font-weight: 500;
         }
 
         .slot-type {
@@ -1254,7 +1618,7 @@ export default function StudentDashboard() {
           flex-wrap: wrap;
           gap: 1rem;
           font-size: 0.85rem;
-          color: #6c757d;
+          color: #4a5568;
         }
 
         .slot-teacher,
@@ -1282,8 +1646,9 @@ export default function StudentDashboard() {
         .fee-label {
           display: block;
           font-size: 0.75rem;
-          color: #6c757d;
+          color: #4a5568;
           margin-bottom: 0.5rem;
+          font-weight: 500;
         }
 
         .fee-value {
@@ -1319,7 +1684,7 @@ export default function StudentDashboard() {
           justify-content: space-between;
           margin-bottom: 0.5rem;
           font-size: 0.85rem;
-          color: #6c757d;
+          color: #4a5568;
           font-weight: 600;
         }
 
@@ -1363,8 +1728,8 @@ export default function StudentDashboard() {
         }
 
         .notification-item.unread {
-          background: linear-gradient(135deg, #e7f3ff 0%, #d0e8ff 100%);
-          border-left-color: #007bff;
+          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+          border-left-color: #1a4b6d;
         }
 
         .notification-item:hover {
@@ -1383,8 +1748,8 @@ export default function StudentDashboard() {
           flex-shrink: 0;
         }
 
-        .notification-icon .unread { color: #007bff; }
-        .notification-icon .read { color: #6c757d; }
+        .notification-icon .unread { color: #1a4b6d; }
+        .notification-icon .read { color: #4a5568; }
 
         .notification-content {
           flex: 1;
@@ -1400,7 +1765,7 @@ export default function StudentDashboard() {
         .notification-message {
           margin: 0 0 0.5rem;
           font-size: 0.85rem;
-          color: #6c757d;
+          color: #4a5568;
           line-height: 1.5;
         }
 
@@ -1408,13 +1773,15 @@ export default function StudentDashboard() {
           display: flex;
           justify-content: space-between;
           font-size: 0.75rem;
-          color: #6c757d;
+          color: #4a5568;
         }
 
         .notification-type {
           background: #e9ecef;
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
+          color: #4a5568;
+          font-weight: 500;
         }
 
         /* ================= QUICK ACTIONS ================= */
@@ -1457,7 +1824,7 @@ export default function StudentDashboard() {
         .no-data {
           text-align: center;
           padding: 3rem 1rem;
-          color: #6c757d;
+          color: #4a5568;
         }
 
         .no-data-icon {
@@ -1527,6 +1894,65 @@ export default function StudentDashboard() {
           50% {
             transform: translateY(-10px);
           }
+        }
+
+        /* ================= BLINKING ANIMATIONS ================= */
+        @keyframes blink-fast {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(0.95);
+          }
+        }
+
+        @keyframes blink-slow {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
+
+        .blink-fast {
+          animation: blink-fast 1.5s ease-in-out infinite;
+        }
+
+        .blink-slow {
+          animation: blink-slow 2s ease-in-out infinite;
+        }
+
+        /* Quick Actions Blinking Effect */
+        .quick-action-blink {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .quick-action-blink::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+          0% {
+            left: -100%;
+          }
+          100% {
+            left: 100%;
+          }
+        }
+
+        .quick-action-blink:hover::before {
+          animation: none;
         }
 
         /* ================= RESPONSIVE ================= */
