@@ -5,6 +5,28 @@ const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 
 /**
+ * Helper function to get academic year label based on semester
+ * Returns: 1st Year, 2nd Year, 3rd Year, 4th Year, etc.
+ */
+function getAcademicYearLabel(semester) {
+  const year = Math.ceil(semester / 2);
+  const suffix = getOrdinalSuffix(year);
+  return `${year}${suffix} Year`;
+}
+
+/**
+ * Helper function to get ordinal suffix (st, nd, rd, th)
+ */
+function getOrdinalSuffix(num) {
+  const j = num % 10;
+  const k = num % 100;
+  if (j === 1 && k !== 11) return "st";
+  if (j === 2 && k !== 12) return "nd";
+  if (j === 3 && k !== 13) return "rd";
+  return "th";
+}
+
+/**
  * GET all students with their fee status and promotion eligibility
  * Only accessible by COLLEGE_ADMIN
  */
@@ -32,7 +54,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
 
     // Get all eligible students
     const students = await Student.find(filter)
-      .populate("course_id", "name code")
+      .populate("course_id", "name code semester")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
 
@@ -50,7 +72,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
 
         if (fee) {
           pendingAmount = fee.totalFee - fee.paidAmount;
-          
+
           if (fee.paidAmount >= fee.totalFee) {
             feeStatus = "FULLY_PAID";
             allInstallmentsPaid = true;
@@ -66,6 +88,11 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           }
         }
 
+        // Get max semester from course
+        const maxSemester = student.course_id?.semester || 8;
+        const academicYearLabel = getAcademicYearLabel(student.currentSemester);
+        const isFinalYear = student.currentSemester >= maxSemester - 1;
+
         return {
           ...student.toObject(),
           fee: fee || {
@@ -77,6 +104,9 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           feeStatus,
           pendingAmount,
           allInstallmentsPaid,
+          academicYearLabel,
+          isFinalYear,
+          maxSemester,
         };
       })
     );
@@ -185,13 +215,15 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
 /**
  * PROMOTE STUDENT to next semester
  * Only accessible by COLLEGE_ADMIN
- * 
+ *
  * Logic:
  * 1. Check if student exists and is approved
- * 2. Check fee payment status
- * 3. If all installments are paid OR admin overrides, allow promotion
- * 4. Update student's semester and academic year
- * 5. Create promotion history record
+ * 2. Get max semester from course
+ * 3. Check if student is in final semester - if yes, move to Alumni
+ * 4. Check fee payment status
+ * 5. If all installments are paid OR admin overrides, allow promotion
+ * 6. Update student's semester and academic year
+ * 7. Create promotion history record
  */
 exports.promoteStudent = async (req, res, next) => {
   try {
@@ -204,24 +236,29 @@ exports.promoteStudent = async (req, res, next) => {
       college_id: req.college_id,
       status: "APPROVED",
     })
-      .populate("course_id", "name code")
+      .populate("course_id", "name code semester")
       .populate("department_id", "name code");
 
     if (!student) {
       throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 2. Check if already at max semester
-    const maxSemester = 8; // Adjust based on your program structure
+    // 2. Get max semester from course (dynamic based on course)
+    const maxSemester = student.course_id?.semester || 8;
+    
+    // 3. Check if already at max semester - move to Alumni
     if (student.currentSemester >= maxSemester) {
       throw new AppError(
-        "Student is already in the final semester",
+        "Student has completed the course. Moving to Alumni status requires separate process.",
         400,
         "ALREADY_FINAL_SEMESTER"
       );
     }
 
-    // 3. Get fee details
+    // 3b. Check if this is the last semester promotion (moving to final sem)
+    const isMovingToFinalSemester = (student.currentSemester + 1) === maxSemester;
+
+    // 4. Get fee details
     const fee = await StudentFee.findOne({
       student_id: studentId,
     });
@@ -247,7 +284,7 @@ exports.promoteStudent = async (req, res, next) => {
       }
     }
 
-    // 4. Check fee payment (can be overridden by admin)
+    // 5. Check fee payment (can be overridden by admin)
     if (!allInstallmentsPaid && !overrideFeeCheck) {
       throw new AppError(
         `Student has pending fees of ₹${pendingAmount}. Please clear all dues or use override option.`,
@@ -256,18 +293,13 @@ exports.promoteStudent = async (req, res, next) => {
       );
     }
 
-    // 5. Calculate new semester and academic year
+    // 6. Calculate new semester and academic year
     const fromSemester = student.currentSemester;
     const toSemester = fromSemester + 1;
-    
-    // Calculate academic year based on semester
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth(); // 0-11
-    const academicYearStart = currentMonth >= 6 ? currentYear : currentYear - 1;
-    
+
     // Parse current academic year
     const [currentAcademicYearStart] = student.currentAcademicYear.split('-').map(Number);
-    
+
     // Calculate new academic year (increment if moving to odd semester after even)
     let newAcademicYearStart = currentAcademicYearStart;
     if (fromSemester % 2 === 0) {
@@ -276,15 +308,17 @@ exports.promoteStudent = async (req, res, next) => {
     }
     const newAcademicYear = `${newAcademicYearStart}-${newAcademicYearStart + 1}`;
 
-    // 6. Update student record
+    // 7. Update student record
     student.currentSemester = toSemester;
     student.currentAcademicYear = newAcademicYear;
     student.lastPromotionDate = new Date();
+    
+    // If moving beyond max semester, mark as not eligible (Alumni track)
     student.isPromotionEligible = toSemester < maxSemester;
 
     await student.save();
 
-    // 7. Create promotion history record
+    // 8. Create promotion history record
     const promotionRecord = await PromotionHistory.create({
       student_id: student._id,
       college_id: req.college_id,
@@ -302,18 +336,27 @@ exports.promoteStudent = async (req, res, next) => {
       promotionDate: new Date(),
       remarks: remarks || null,
       status: "ACTIVE",
+      isFinalSemesterPromotion: isMovingToFinalSemester,
     });
 
-    // 8. Add to student's promotion history array
+    // 9. Add to student's promotion history array
     student.promotionHistory.push(promotionRecord._id);
     await student.save();
 
+    // 10. Calculate year labels for response
+    const fromYearLabel = getAcademicYearLabel(fromSemester);
+    const toYearLabel = getAcademicYearLabel(toSemester);
+
     res.json({
       success: true,
-      message: `Student promoted successfully from Semester ${fromSemester} to Semester ${toSemester}`,
+      message: isMovingToFinalSemester
+        ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
+        : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`,
       promotion: {
         fromSemester,
         toSemester,
+        fromYearLabel,
+        toYearLabel,
         fromAcademicYear: student.currentAcademicYear,
         toAcademicYear: newAcademicYear,
         feeStatus,
@@ -321,6 +364,8 @@ exports.promoteStudent = async (req, res, next) => {
         promotedBy: req.user.name,
         promotionDate: promotionRecord.promotionDate,
         remarks,
+        isFinalSemesterPromotion,
+        maxSemester,
       },
     });
   } catch (error) {
@@ -352,7 +397,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           _id: studentId,
           college_id: req.college_id,
           status: "APPROVED",
-        });
+        }).populate("course_id", "name code semester");
 
         if (!student) {
           results.failed.push({
@@ -362,14 +407,19 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           continue;
         }
 
-        const maxSemester = 8;
+        // Get max semester from course
+        const maxSemester = student.course_id?.semester || 8;
+        
         if (student.currentSemester >= maxSemester) {
           results.failed.push({
             studentId,
-            reason: "Already in final semester",
+            reason: "Already in final semester - ready for Alumni",
           });
           continue;
         }
+
+        // Check if this is the last semester promotion
+        const isMovingToFinalSemester = (student.currentSemester + 1) === maxSemester;
 
         // Check fee
         const fee = await StudentFee.findOne({ student_id: studentId });
@@ -379,7 +429,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
 
         if (fee) {
           pendingAmount = fee.totalFee - fee.paidAmount;
-          
+
           if (fee.paidAmount >= fee.totalFee) {
             feeStatus = "FULLY_PAID";
             allInstallmentsPaid = true;
@@ -433,20 +483,27 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           paidAmount: fee ? fee.paidAmount : 0,
           pendingAmount,
           promotedBy: req.user.id,
-          promotedByName: req.user.name,
+          promotedByName: req.user.name || req.user.email || 'Admin',
           promotionDate: new Date(),
           remarks: remarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
           status: "ACTIVE",
+          isFinalSemesterPromotion: isMovingToFinalSemester,
         });
 
         student.promotionHistory.push(promotionRecord._id);
         await student.save();
+
+        const fromYearLabel = getAcademicYearLabel(fromSemester);
+        const toYearLabel = getAcademicYearLabel(toSemester);
 
         results.success.push({
           studentId,
           studentName: student.fullName,
           fromSemester,
           toSemester,
+          fromYearLabel,
+          toYearLabel,
+          isFinalSemesterPromotion,
         });
       } catch (error) {
         results.failed.push({
