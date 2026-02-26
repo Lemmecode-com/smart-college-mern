@@ -116,31 +116,6 @@ export default function CollegeList() {
     }
   };
 
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    if (filteredColleges.length === 0) return;
-    
-    const headers = ["Name", "Email", "Contact", "Status"];
-    const rows = filteredColleges.map(college => [
-      college.name || "N/A",
-      college.email || "N/A",
-      college.contactNumber || "N/A",
-      college.isActive ? "Active" : "Inactive"
-    ]);
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `colleges_list_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
@@ -281,19 +256,10 @@ export default function CollegeList() {
                 </div>
               </div>
             </div>
-            
+
             <div className="actions-group">
-              <button 
-                className="export-btn" 
-                onClick={exportCSV}
-                title="Export filtered colleges to CSV"
-                aria-label="Export colleges to CSV"
-              >
-                <FaDownload className="export-icon" />
-                <span>Export CSV</span>
-              </button>
-              <button 
-                className="refresh-btn" 
+              <button
+                className="refresh-btn"
                 onClick={fetchColleges}
                 title="Refresh college list"
                 aria-label="Refresh colleges"

@@ -2,12 +2,20 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { exportToPDF, exportToExcel } from "../../../utils/exportHelpers";
+import { toast } from "react-toastify";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 import {
   FaMoneyBillWave,
   FaLayerGroup,
   FaUsers,
-  FaArrowLeft
+  FaArrowLeft,
+  FaDownload,
+  FaFilePdf,
+  FaFileExcel,
+  FaFileCsv
 } from "react-icons/fa";
 
 export default function ViewFeeStructure() {
@@ -27,8 +35,8 @@ export default function ViewFeeStructure() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get(`/fees/structure/${id}`); // ✅ fixed
-        setFee(res.data);                                  // ✅ fixed
+        const res = await api.get(`/fees/structure/${id}`);
+        setFee(res.data);
       } catch (err) {
         console.error(err);
         setError("Failed to load fee structure");
@@ -38,6 +46,69 @@ export default function ViewFeeStructure() {
     };
     load();
   }, [id]);
+
+  /* ================= EXPORT HANDLERS ================= */
+  const handleExport = async (format) => {
+    if (!fee) {
+      toast.warning('No data to export!');
+      return;
+    }
+
+    try {
+      // Prepare flattened data with installments
+      const columns = [
+        { header: 'Course', key: 'course' },
+        { header: 'Category', key: 'category' },
+        { header: 'Installment #', key: 'installmentNum' },
+        { header: 'Installment Name', key: 'installmentName' },
+        { header: 'Amount (₹)', key: 'amount' },
+        { header: 'Due Date', key: 'dueDate' }
+      ];
+
+      const rows = fee.installments.map((inst, idx) => ({
+        course: fee.course_id?.name || 'N/A',
+        category: fee.category || 'N/A',
+        installmentNum: idx + 1,
+        installmentName: inst.name,
+        amount: `₹ ${inst.amount}`,
+        dueDate: new Date(inst.dueDate).toLocaleDateString()
+      }));
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `fee_structure_${fee.course_id?.name?.replace(/\s+/g, '_') || 'unknown'}_${timestamp}`;
+
+      let result;
+      switch (format) {
+        case 'pdf':
+          result = await exportToPDF(
+            `Fee Structure: ${fee.course_id?.name || 'Unknown'}`,
+            columns,
+            rows,
+            `${filename}.pdf`
+          );
+          break;
+        case 'excel':
+          result = await exportToExcel(
+            `Fee Structure: ${fee.course_id?.name || 'Unknown'}`,
+            columns,
+            rows,
+            `${filename}.xlsx`
+          );
+          break;
+        default:
+          result = { success: false, message: 'Unknown format' };
+      }
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message || 'Export failed');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed. Please try again.');
+    }
+  };
 
   /* ================= LOADING ================= */
   if (loading) {
@@ -67,13 +138,43 @@ export default function ViewFeeStructure() {
           </p>
         </div>
 
-        <button
-          className="btn btn-light fw-semibold"
-          onClick={() => navigate(-1)}
-        >
-          <FaArrowLeft className="me-1" />
-          Back
-        </button>
+        <div className="d-flex gap-2">
+          {/* Export Dropdown */}
+          <div className="dropdown">
+            <button
+              className="btn btn-light fw-semibold dropdown-toggle"
+              type="button"
+              id="exportDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <FaDownload className="me-1" />
+              Export
+            </button>
+            <ul className="dropdown-menu" aria-labelledby="exportDropdown">
+              <li>
+                <button className="dropdown-item" onClick={() => handleExport('pdf')}>
+                  <FaFilePdf className="me-2 text-danger" />
+                  PDF
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item" onClick={() => handleExport('excel')}>
+                  <FaFileExcel className="me-2 text-success" />
+                  Excel
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <button
+            className="btn btn-light fw-semibold"
+            onClick={() => navigate(-1)}
+          >
+            <FaArrowLeft className="me-1" />
+            Back
+          </button>
+        </div>
       </div>
 
       {/* ================= CARD ================= */}
