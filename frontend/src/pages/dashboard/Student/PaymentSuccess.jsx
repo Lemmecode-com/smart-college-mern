@@ -2,9 +2,13 @@ import { useEffect, useState, useContext } from "react";
 import { useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { AuthContext } from "../../../auth/AuthContext";
+import { motion } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaCheckCircle,
+  FaTimesCircle,
   FaSpinner,
   FaMoneyBillWave,
   FaArrowLeft,
@@ -34,9 +38,20 @@ export default function PaymentSuccess() {
         });
 
         setPayment(res.data);
+        toast.success("Payment confirmed successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />
+        });
       } catch (err) {
         console.error(err);
-        setError(err.response?.data?.message || "Payment confirmation failed");
+        const errorMsg = err.response?.data?.message || "Payment confirmation failed";
+        setError(errorMsg);
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
       } finally {
         setLoading(false);
       }
@@ -48,9 +63,86 @@ export default function PaymentSuccess() {
   /* ================= LOADING UI ================= */
   if (loading) {
     return (
-      <div className="vh-100 d-flex flex-column justify-content-center align-items-center">
-        <FaSpinner className="spin text-primary mb-3" size={40} />
-        <h5>Confirming your payment…</h5>
+      <div className="payment-loading-wrapper">
+        <ToastContainer position="top-right" />
+        <motion.div
+          className="loading-content"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <FaSpinner className="spin-icon" />
+          <h3>Confirming your payment...</h3>
+          <p>Please wait while we process your transaction</p>
+          <div className="loading-progress-bar">
+            <div className="loading-progress"></div>
+          </div>
+          <div className="security-badges">
+            <span>🔒 Secure Payment</span>
+            <span>✅ PCI Compliant</span>
+          </div>
+        </motion.div>
+        <style>{`
+          .payment-loading-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          }
+          .loading-content {
+            text-align: center;
+            background: white;
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+          }
+          .spin-icon {
+            font-size: 4rem;
+            color: #3b82f6;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+          }
+          .loading-content h3 {
+            margin: 0 0 0.5rem 0;
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 1.5rem;
+          }
+          .loading-content p {
+            color: #64748b;
+            margin: 0 0 1.5rem 0;
+          }
+          .loading-progress-bar {
+            width: 200px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin: 0 auto 1.5rem;
+            overflow: hidden;
+          }
+          .loading-progress {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            animation: loading 1.5s ease-in-out infinite;
+          }
+          .security-badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #059669;
+            font-weight: 600;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -58,15 +150,93 @@ export default function PaymentSuccess() {
   /* ================= ERROR UI ================= */
   if (error) {
     return (
-      <div className="vh-100 d-flex flex-column justify-content-center align-items-center text-center">
-        <h4 className="text-danger mb-2">Payment Failed</h4>
-        <p>{error}</p>
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => navigate("/student/fees")}
+      <div className="payment-error-wrapper">
+        <ToastContainer position="top-right" />
+        <motion.div
+          className="error-card"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          Go Back
-        </button>
+          <div className="error-icon-wrapper">
+            <motion.div
+              animate={{ 
+                rotate: [0, -10, 10, -10, 10, 0],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ duration: 0.5 }}
+            >
+              <FaTimesCircle className="error-icon" />
+            </motion.div>
+          </div>
+          <h4 className="error-title">Payment Failed</h4>
+          <p className="error-message">{error}</p>
+          <button
+            className="btn-back"
+            onClick={() => navigate("/student/fees")}
+          >
+            <FaArrowLeft /> Go Back
+          </button>
+        </motion.div>
+        <style>{`
+          .payment-error-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            padding: 20px;
+          }
+          .error-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(220, 53, 69, 0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+          }
+          .error-icon-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .error-icon {
+            font-size: 50px;
+            color: #dc3545;
+          }
+          .error-title {
+            margin: 0 0 10px 0;
+            color: #dc3545;
+            font-weight: 700;
+          }
+          .error-message {
+            color: #6b7280;
+            margin: 0 0 25px 0;
+          }
+          .btn-back {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+          }
+          .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(15, 58, 74, 0.4);
+          }
+        `}</style>
       </div>
     );
   }
@@ -74,6 +244,7 @@ export default function PaymentSuccess() {
   /* ================= SUCCESS UI ================= */
   return (
     <div className="payment-success-wrapper">
+      <ToastContainer position="top-right" />
       <div className="success-card">
         {/* SUCCESS ICON */}
         <div className="success-icon-wrapper">

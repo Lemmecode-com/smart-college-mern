@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef, useContext } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import {
   FaCalendarAlt,
@@ -55,8 +56,28 @@ const slideDownVariants = {
   },
 };
 
+// Day mapping constant (exported for reuse)
+export const DAY_MAP = {
+  0: "SUN",
+  1: "MON",
+  2: "TUE",
+  3: "WED",
+  4: "THU",
+  5: "FRI",
+  6: "SAT",
+};
+
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Validation helper function
+const validateTimetableSlot = (slot) => {
+  if (!slot) return false;
+  if (!slot.day || !slot.startTime || !slot.endTime) return false;
+  if (!slot.subject_id?.name) return false;
+  if (slot.startTime >= slot.endTime) return false;
+  return true;
+};
 
 // Helper function to format time in 12-hour format with AM/PM
 const formatTime12Hour = (time24) => {
@@ -102,13 +123,19 @@ const formatTimeRange = (startTime, endTime) => {
 };
 
 export default function StudentTimetable() {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [weekly, setWeekly] = useState({});
   const [todaySlots, setTodaySlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const toastIds = useRef({});
+  const [toastShown, setToastShown] = useState({ success: false, error: false });
+  const loadTimeoutRef = useRef(null);
+
+  // Security check
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
   const isClient = typeof window !== "undefined";
 
@@ -120,78 +147,113 @@ export default function StudentTimetable() {
     return () => clearInterval(timer);
   }, []);
 
+  // Cleanup timeout on unmount
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Load weekly schedule
-        const weeklyRes = await api.get("/timetable/student");
-        const allSlots = weeklyRes.data || [];
-
-        // Group by day
-        const weeklyData = {};
-        DAYS.forEach((day) => {
-          weeklyData[day] = allSlots.filter((slot) => slot.day === day);
-        });
-        setWeekly(weeklyData);
-
-        // Load today's slots
-        const today = new Date();
-        const dayMap = {
-          0: "SUN",
-          1: "MON",
-          2: "TUE",
-          3: "WED",
-          4: "THU",
-          5: "FRI",
-          6: "SAT",
-        };
-        const currentDayAbbr = dayMap[today.getDay()];
-        setTodaySlots(weeklyData[currentDayAbbr] || []);
-
-        if (!toastIds.current.success && allSlots.length > 0) {
-          toast.success("Timetable loaded successfully!", {
-            toastId: "schedule-success",
-            position: "top-right",
-            autoClose: 3000,
-            icon: <FaCheckCircle />,
-          });
-          toastIds.current.success = true;
-        }
-      } catch (err) {
-        console.error("Failed to load timetable:", err);
-        const errorMsg = err.response?.data?.message || "Failed to load timetable.";
-        setError(errorMsg);
-        if (!toastIds.current.error) {
-          toast.error(errorMsg, {
-            toastId: "schedule-error",
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />,
-          });
-          toastIds.current.error = true;
-        }
-      } finally {
-        setLoading(false);
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
       }
     };
-    load();
   }, []);
+
+  // Load timetable function
+  const loadTimetable = async () => {
+    // Clear any existing timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set timeout for 30 seconds
+    loadTimeoutRef.current = setTimeout(() => {
+      setError("Request timed out. Please check your connection and try again.");
+      setLoading(false);
+      toast.error("Request timed out. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
+    }, 30000);
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load weekly schedule
+      const weeklyRes = await api.get("/timetable/student");
+      let allSlots = weeklyRes.data || [];
+
+      // Validate slots
+      allSlots = allSlots.filter(validateTimetableSlot);
+
+      // Group by day
+      const weeklyData = {};
+      DAYS.forEach((day) => {
+        weeklyData[day] = allSlots.filter((slot) => slot.day === day);
+      });
+      setWeekly(weeklyData);
+
+      // Load today's slots
+      const today = new Date();
+      const currentDayAbbr = DAY_MAP[today.getDay()];
+      setTodaySlots(weeklyData[currentDayAbbr] || []);
+
+      // Clear timeout on success
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+
+      // Show success toast only once per session
+      if (!toastShown.success && allSlots.length > 0) {
+        toast.success("Timetable loaded successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        });
+        setToastShown({ ...toastShown, success: true });
+      }
+    } catch (err) {
+      console.error("Failed to load timetable:", err);
+      
+      // Clear timeout on error
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+
+      const errorMsg = err.response?.data?.message || "Failed to load timetable. Please check your connection.";
+      setError(errorMsg);
+      
+      if (!toastShown.error) {
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+        setToastShown({ ...toastShown, error: true });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTimetable();
+  }, []);
+
+  // Retry handler
+  const handleRetry = () => {
+    setError(null);
+    setToastShown({ success: false, error: false });
+    toast.info("Retrying...", {
+      position: "top-right",
+      autoClose: 1000,
+      icon: <FaSyncAlt />
+    });
+    loadTimetable();
+  };
 
   // Get current day
   const today = new Date();
-  const dayMap = {
-    0: "SUN",
-    1: "MON",
-    2: "TUE",
-    3: "WED",
-    4: "THU",
-    5: "FRI",
-    6: "SAT",
-  };
-  const currentDayAbbr = dayMap[today.getDay()];
+  const currentDayAbbr = DAY_MAP[today.getDay()];
 
   // Get course info
   const courseName = todaySlots.length > 0 ? todaySlots[0]?.course_id?.name : "";
@@ -200,13 +262,14 @@ export default function StudentTimetable() {
 
   if (loading) {
     return (
-      <div className="st-container">
+      <div className="st-container" role="main">
         <ToastContainer position="top-right" theme="colored" />
-        <div className="st-loading">
+        <div className="st-loading" role="status" aria-live="polite">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="st-loading-icon"
+            aria-hidden="true"
           >
             <FaSyncAlt />
           </motion.div>
@@ -219,21 +282,28 @@ export default function StudentTimetable() {
   }
 
   return (
-    <div className="st-container">
+    <div className="st-container" role="main">
       <style>{componentStyles}</style>
       <ToastContainer position="top-right" theme="colored" />
-      
+
+      {/* Skip Link for Screen Readers */}
+      <a href="#timetable-content" className="sr-only sr-only-focusable">
+        Skip to timetable content
+      </a>
+
       {/* Breadcrumb */}
       <motion.div
         variants={slideDownVariants}
         initial="hidden"
         animate="visible"
         className="st-breadcrumb"
+        role="navigation"
+        aria-label="Breadcrumb"
       >
-        <button onClick={() => navigate("/student/dashboard")} className="st-breadcrumb-btn">
-          <FaArrowLeft /> Back to Dashboard
+        <button onClick={() => navigate("/student/dashboard")} className="st-breadcrumb-btn" aria-label="Go back to Dashboard">
+          <FaArrowLeft aria-hidden="true" /> Back to Dashboard
         </button>
-        <span className="st-breadcrumb-sep">›</span>
+        <span className="st-breadcrumb-sep" aria-hidden="true">›</span>
         <span className="st-breadcrumb-current">My Timetable</span>
       </motion.div>
 
@@ -323,15 +393,32 @@ export default function StudentTimetable() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="st-error-banner"
+          role="alert"
+          aria-live="assertive"
         >
-          <FaExclamationTriangle className="st-error-icon" />
+          <FaExclamationTriangle className="st-error-icon" aria-hidden="true" />
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="st-error-close">×</button>
+          <button onClick={handleRetry} className="st-error-close" aria-label="Retry loading timetable">
+            <FaSyncAlt /> Retry
+          </button>
         </motion.div>
       )}
 
       {/* Today's Classes */}
-      {todaySlots.length > 0 && (
+      {todaySlots.length === 0 ? (
+        <motion.div
+          variants={fadeInVariants}
+          initial="hidden"
+          animate="visible"
+          className="st-section st-section-today"
+        >
+          <div className="st-empty-state">
+            <FaSun className="st-empty-icon" aria-hidden="true" />
+            <h3>No Classes Today</h3>
+            <p>Enjoy your free day or catch up on studies!</p>
+          </div>
+        </motion.div>
+      ) : (
         <motion.div
           variants={fadeInVariants}
           initial="hidden"
@@ -340,15 +427,15 @@ export default function StudentTimetable() {
         >
           <div className="st-section-header">
             <div className="st-section-title-wrapper">
-              <FaSun className="st-section-icon st-sun-icon" />
-              <h2 className="st-section-title">Today's Classes</h2>
+              <FaSun className="st-section-icon st-sun-icon" aria-hidden="true" />
+              <h2 id="todays-classes-heading">Today's Classes</h2>
             </div>
-            <div className="st-section-badge">
-              <FaInfoCircle />
+            <div className="st-section-badge" aria-label={`${todaySlots.length} classes today`}>
+              <FaInfoCircle aria-hidden="true" />
               <span>{todaySlots.length} {todaySlots.length === 1 ? 'class' : 'classes'}</span>
             </div>
           </div>
-          <div className="st-today-grid">
+          <div className="st-today-grid" aria-labelledby="todays-classes-heading">
             {todaySlots.map((slot, idx) => (
               <TodaySlotCard key={slot._id} slot={slot} index={idx} />
             ))}
@@ -362,26 +449,32 @@ export default function StudentTimetable() {
         initial="hidden"
         animate="visible"
         className="st-section st-section-weekly"
+        id="timetable-content"
       >
         <div className="st-section-header">
           <div className="st-section-title-wrapper">
-            <FaCalendarAlt className="st-section-icon" />
-            <h2 className="st-section-title">Weekly Schedule</h2>
+            <FaCalendarAlt className="st-section-icon" aria-hidden="true" />
+            <h2 id="weekly-schedule-heading">Weekly Schedule</h2>
           </div>
-          <div className="st-section-badge">
-            <FaBook />
+          <div className="st-section-badge" aria-label="Full week view">
+            <FaBook aria-hidden="true" />
             <span>Full Week View</span>
           </div>
         </div>
-        <div className="st-table-container">
-          <table className="st-timetable-table">
+        <div className="st-table-container" role="region" aria-labelledby="weekly-schedule-heading" aria-label="Weekly timetable">
+          <table className="st-timetable-table" role="table">
             <thead>
               <tr>
-                <th className="st-time-col-header">
-                  <FaClock /> Time
+                <th className="st-time-col-header" scope="col">
+                  <FaClock aria-hidden="true" /> Time
                 </th>
                 {DAYS.map((day, idx) => (
-                  <th key={day} className={`st-day-col-header ${day === currentDayAbbr ? 'st-today-col' : ''}`}>
+                  <th 
+                    key={day} 
+                    className={`st-day-col-header ${day === currentDayAbbr ? 'st-today-col' : ''}`}
+                    scope="col"
+                    aria-label={`${DAY_NAMES[idx]}${day === currentDayAbbr ? ' (Today)' : ''}`}
+                  >
                     {DAY_NAMES[idx]}
                     {day === currentDayAbbr && <span className="st-today-marker"> (Today)</span>}
                   </th>
@@ -393,14 +486,14 @@ export default function StudentTimetable() {
                 const timeStr = `${formatTime12Hour(timeSlot.start)} - ${formatTime12Hour(timeSlot.end)}`;
                 return (
                   <tr key={timeSlot.start}>
-                    <td className="st-time-cell">{timeStr}</td>
+                    <td className="st-time-cell" scope="row">{timeStr}</td>
                     {DAYS.map((day) => {
                       const slot = (weekly[day] || []).find(
                         (s) => s.startTime === timeSlot.start
                       );
                       return (
                         <td key={`${day}-${timeSlot.start}`} className="st-slot-cell">
-                          {slot ? <WeeklySlotCard slot={slot} /> : <div className="st-empty-cell">—</div>}
+                          {slot ? <WeeklySlotCard slot={slot} /> : <div className="st-empty-cell" aria-label="No class">—</div>}
                         </td>
                       );
                     })}
@@ -767,6 +860,61 @@ const componentStyles = `
     font-size: 1.5rem;
     padding: 0.25rem;
     line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  /* ================= EMPTY STATE ================= */
+  .st-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #64748b;
+  }
+
+  .st-empty-icon {
+    font-size: 4rem;
+    color: #f59e0b;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+  }
+
+  .st-empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 1.5rem;
+  }
+
+  .st-empty-state p {
+    margin: 0;
+    color: #64748b;
+    font-size: 1rem;
+  }
+
+  /* ================= SCREEN READER ONLY ================= */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .sr-only-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
   }
 
   /* ================= SECTIONS ================= */
