@@ -128,31 +128,6 @@ export default function StudentList() {
     }
   };
 
-  /* ================= EXPORT CSV ================= */
-  const exportCSV = () => {
-    const headers = ["Name", "Email", "Department", "Course", "Status", "Registration Date"];
-    const rows = filteredStudents.map((s) => [
-      s.fullName,
-      s.email,
-      s.department_id?.name || "N/A",
-      s.course_id?.name || "N/A",
-      s.status,
-      new Date(s.createdAt).toLocaleDateString('en-US')
-    ]);
-
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `students_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= EXPORT PDF ================= */
   const exportPDF = () => {
     window.print();
@@ -352,19 +327,10 @@ export default function StudentList() {
                 </div>
               </div>
             </div>
-            
+
             <div className="export-group">
-              <button 
-                className="export-btn excel-btn" 
-                onClick={exportCSV}
-                title="Export to Excel"
-                aria-label="Export to Excel"
-              >
-                <FaFileExcel className="export-icon" />
-                <span>Export Excel</span>
-              </button>
-              <button 
-                className="export-btn pdf-btn" 
+              <button
+                className="export-btn pdf-btn"
                 onClick={exportPDF}
                 title="Export to PDF"
                 aria-label="Export to PDF"

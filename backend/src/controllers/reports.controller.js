@@ -1,6 +1,48 @@
 const reportsService = require("../services/reports.service");
 
 /**
+ * COMBINED DASHBOARD REPORTS (ALL IN ONE)
+ */
+exports.allDashboardReports = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+
+    if (role !== "COLLEGE_ADMIN") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    // Fetch all reports in parallel
+    const [
+      admissionSummary,
+      paymentSummary,
+      studentPaymentStatus,
+      attendanceSummary,
+      lowAttendanceStudents
+    ] = await Promise.all([
+      reportsService.admissionSummary(college_id),
+      reportsService.paymentSummary(college_id),
+      reportsService.studentPaymentStatus(college_id),
+      reportsService.attendanceSummary(college_id),
+      reportsService.studentAttendanceReport(college_id, 75)
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        admissionSummary,
+        paymentSummary,
+        studentPaymentStatus: studentPaymentStatus || [],
+        attendanceSummary,
+        lowAttendanceStudents: lowAttendanceStudents || []
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard reports:", error);
+    res.status(500).json({ message: "Failed to fetch dashboard reports" });
+  }
+};
+
+/**
  * ADMISSION SUMMARY
  */
 exports.admissionSummary = async (req, res) => {
@@ -145,5 +187,26 @@ exports.studentAttendanceReport = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch student attendance report" });
+  }
+};
+
+/**
+ * LOW ATTENDANCE STUDENTS (for export)
+ */
+exports.lowAttendanceStudents = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const minPercentage = Number(req.query.minPercentage || 75);
+
+    if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
+      return res.json(
+        await reportsService.studentAttendanceReport(college_id, minPercentage)
+      );
+    }
+
+    res.status(403).json({ message: "Access denied" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch low attendance students" });
   }
 };
