@@ -53,33 +53,6 @@ export default function SuperAdminReports() {
     }
   };
 
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    if (!data) return;
-    
-    const headers = ["Metric", "Count"];
-    const rows = [
-      ["Total Students", data.totalStudents || 0],
-      ["Approved Students", data.approved || 0],
-      ["Pending Approvals", data.pending || 0],
-      ["Rejected Students", data.rejected || 0],
-      ["Total Colleges", data.totalColleges || 0],
-      ["Active Colleges", data.activeColleges || 0]
-    ];
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `admission_summary_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
     <div className="skeleton-container">
@@ -174,14 +147,6 @@ export default function SuperAdminReports() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-outline-primary"
-            onClick={exportCSV}
-            title="Export report data to CSV"
-          >
-            <FaDownload className="erp-btn-icon" />
-            <span>Export CSV</span>
-          </button>
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchSummary}
