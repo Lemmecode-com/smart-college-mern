@@ -12,11 +12,14 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
   try {
     const { course_id, currentSemester } = req.query;
 
-    // Build filter
+    // Build filter - include students with isPromotionEligible = true OR field doesn't exist (backward compatibility)
     const filter = {
       college_id: req.college_id,
       status: "APPROVED",
-      isPromotionEligible: true,
+      $or: [
+        { isPromotionEligible: true },
+        { isPromotionEligible: { $exists: false } }
+      ]
     };
 
     if (course_id) {
@@ -295,7 +298,7 @@ exports.promoteStudent = async (req, res, next) => {
       paidAmount: fee ? fee.paidAmount : 0,
       pendingAmount,
       promotedBy: req.user.id,
-      promotedByName: req.user.name,
+      promotedByName: req.user.name || req.user.email || 'Admin',
       promotionDate: new Date(),
       remarks: remarks || null,
       status: "ACTIVE",
