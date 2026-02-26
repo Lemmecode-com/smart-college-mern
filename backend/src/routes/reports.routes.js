@@ -10,8 +10,21 @@ const {
   studentPaymentStatus,
   attendanceSummary,
   courseWiseAdmissions,
+  allDashboardReports,
+  lowAttendanceStudents,
 } = require("../controllers/reports.controller");
 
+
+/* ===============================
+   COMBINED DASHBOARD REPORTS
+================================ */
+router.get(
+  "/dashboard/all",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  allDashboardReports,
+);
 
 /* ===============================
    ADMISSIONS
@@ -65,6 +78,14 @@ router.get(
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   attendanceSummary,
+);
+
+router.get(
+  "/attendance/low-attendance",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  lowAttendanceStudents,
 );
 
 module.exports = router;

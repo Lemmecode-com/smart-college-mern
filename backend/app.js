@@ -75,6 +75,9 @@ app.use("/api/student/payments", require("./src/routes/student.payment.routes"))
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
+/* ================= STUDENT PROMOTION ================= */
+app.use("/api/promotion", require("./src/routes/promotion.routes"));
+
 /* ================= REPORTS & DASHBOARD ================= */
 app.use("/api/reports/dashboard", require("./src/routes/reportDashboard.routes"));
 app.use("/api/reports", require("./src/routes/reports.routes"));

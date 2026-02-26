@@ -204,7 +204,15 @@ export default function StudentDashboard() {
     todayTimetable,
     feeSummary,
     latestNotifications,
-  } = dashboardData;
+  } = dashboardData || {};
+
+  // Set default values for feeSummary if not available
+  const safeFeeSummary = feeSummary || {
+    totalFee: 0,
+    paid: 0,
+    due: 0,
+    paymentStatus: "NOT_GENERATED",
+  };
 
   // Utility Functions
   const getFeeStatusColor = (status) => {
@@ -659,19 +667,19 @@ export default function StudentDashboard() {
               <div className="fee-stat">
                 <span className="fee-label">Total Fee</span>
                 <span className="fee-value">
-                  {formatCurrency(feeSummary.totalFee)}
+                  {formatCurrency(safeFeeSummary.totalFee)}
                 </span>
               </div>
               <div className="fee-stat">
                 <span className="fee-label">Paid</span>
                 <span className="fee-value paid">
-                  {formatCurrency(feeSummary.paid)}
+                  {formatCurrency(safeFeeSummary.paid)}
                 </span>
               </div>
               <div className="fee-stat">
                 <span className="fee-label">Due</span>
                 <span className="fee-value due">
-                  {formatCurrency(feeSummary.due)}
+                  {formatCurrency(safeFeeSummary.due)}
                 </span>
               </div>
             </div>
@@ -679,9 +687,9 @@ export default function StudentDashboard() {
             <div className="fee-status">
               <div
                 className="status-badge"
-                style={{ backgroundColor: getFeeStatusColor(feeSummary.paymentStatus) }}
+                style={{ backgroundColor: getFeeStatusColor(safeFeeSummary.paymentStatus) }}
               >
-                {feeSummary.paymentStatus}
+                {safeFeeSummary.paymentStatus}
               </div>
             </div>
 
@@ -689,21 +697,21 @@ export default function StudentDashboard() {
               <div className="progress-label">
                 <span>Payment Progress</span>
                 <span>
-                  {Math.round((feeSummary.paid / feeSummary.totalFee) * 100)}%
+                  {Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)}%
                 </span>
               </div>
               <div className="progress-bar-wrapper">
                 <div
                   className="progress-bar"
                   style={{
-                    width: `${(feeSummary.paid / feeSummary.totalFee) * 100}%`,
-                    backgroundColor: getFeeStatusColor(feeSummary.paymentStatus),
+                    width: `${(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}%`,
+                    backgroundColor: getFeeStatusColor(safeFeeSummary.paymentStatus),
                   }}
                 />
               </div>
             </div>
 
-            {feeSummary.paymentStatus !== "PAID" && (
+            {safeFeeSummary.paymentStatus !== "PAID" && (
               <Link to="/student/make-payment" className="btn-pay-now">
                 <FaRupeeSign /> Pay Now
               </Link>

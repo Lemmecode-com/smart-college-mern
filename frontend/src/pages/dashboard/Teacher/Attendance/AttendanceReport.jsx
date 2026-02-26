@@ -91,8 +91,6 @@ export default function AttendanceReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fetchingReport, setFetchingReport] = useState(false);
-  const [generatingCSV, setGeneratingCSV] = useState(false);
-  const [collegeInfo, setCollegeInfo] = useState(null);
 
   const [filters, setFilters] = useState({
     courseId: "",
@@ -188,55 +186,6 @@ export default function AttendanceReport() {
       ...filters,
       [e.target.name]: e.target.value,
     });
-  };
-
-  /* ================= EXPORT TO CSV ================= */
-  const exportToCSV = () => {
-    if (!report?.sessions || report.sessions.length === 0) return;
-    
-    setGeneratingCSV(true);
-    
-    try {
-      // Create CSV header
-      const headers = ['Date', 'Subject', 'Course', 'Lecture Number', 'Total Students', 'Present', 'Absent', 'Attendance %'];
-      
-      // Create CSV rows
-      const rows = report.sessions.map(session => [
-        new Date(session.date).toLocaleDateString('en-US'),
-        `"${session.subject}"`,
-        `"${session.course || 'N/A'}"`,
-        session.lectureNumber,
-        session.totalStudents || 0,
-        session.present || 0,
-        session.absent || 0,
-        `${(session.percentage ?? 0).toFixed(2)}%`
-      ]);
-      
-      // Generate CSV content
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-      ].join('\n');
-      
-      // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `Attendance_Report_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Cleanup
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("CSV export failed:", err);
-      alert("Failed to export report. Please try again.");
-    } finally {
-      setTimeout(() => setGeneratingCSV(false), 300);
-    }
   };
 
   /* ================= PRINT REPORT ================= */
@@ -984,39 +933,6 @@ export default function AttendanceReport() {
                   <strong>{sessions.length}</strong> session{sessions.length !== 1 ? 's' : ''} displayed • Last updated: {new Date().toLocaleTimeString()}
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={exportToCSV}
-                    disabled={generatingCSV}
-                    style={{
-                      backgroundColor: generatingCSV ? '#cbd5e1' : BRAND_COLORS.success.main,
-                      color: 'white',
-                      border: 'none',
-                      padding: '0.5rem 1.25rem',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                      cursor: generatingCSV ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {generatingCSV ? (
-                      <>
-                        <motion.div variants={spinVariants} animate="animate">
-                          <FaSyncAlt size={12} />
-                        </motion.div>
-                        Exporting...
-                      </>
-                    ) : (
-                      <>
-                        <FaFileExport size={14} /> Export Data
-                      </>
-                    )}
-                  </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaUsers,
   FaCheckCircle,
@@ -14,6 +16,7 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaUniversity,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 export default function AdminReports() {
@@ -55,25 +58,48 @@ export default function AdminReports() {
     }
   };
 
-  /* ================= EXPORT HANDLER ================= */
+  /* ================= EXPORT DATA PREPARATION ================= */
+  const getExportData = () => {
+    if (!data) return [];
+    return [
+      { metric: "Total Students", value: data.total || 0 },
+      { metric: "Approved Students", value: data.approved || 0 },
+      { metric: "Pending Approvals", value: data.pending || 0 },
+      { metric: "Rejected", value: data.rejected || 0 },
+      {
+        metric: "Approval Rate",
+        value: data.approved && data.total
+          ? `${Math.round((data.approved / data.total) * 100)}%`
+          : "0%",
+      },
+      {
+        metric: "Pending Rate",
+        value: data.pending && data.total
+          ? `${Math.round((data.pending / data.total) * 100)}%`
+          : "0%",
+      },
+    ];
+  };
+
+  /* ================= LEGACY EXPORT HANDLER (Keep for backward compatibility) ================= */
   const exportCSV = () => {
     if (!data) return;
 
     const headers = ["Metric", "Count"];
     const rows = [
-      ["Total Students", data.totalStudents || 0],
+      ["Total Students", data.total || 0],
       ["Approved Students", data.approved || 0],
       ["Pending Approvals", data.pending || 0],
       [
         "Approval Rate",
-        data.approved && data.totalStudents
-          ? `${Math.round((data.approved / data.totalStudents) * 100)}%`
+        data.approved && data.total
+          ? `${Math.round((data.approved / data.total) * 100)}%`
           : "0%",
       ],
       [
         "Pending Rate",
-        data.pending && data.totalStudents
-          ? `${Math.round((data.pending / data.totalStudents) * 100)}%`
+        data.pending && data.total
+          ? `${Math.round((data.pending / data.total) * 100)}%`
           : "0%",
       ],
     ];
@@ -98,13 +124,13 @@ export default function AdminReports() {
 
   /* ================= CALCULATED METRICS ================= */
   const approvalRate =
-    data?.approved && data?.totalStudents
-      ? Math.round((data.approved / data.totalStudents) * 100)
+    data?.approved && data?.total
+      ? Math.round((data.approved / data.total) * 100)
       : 0;
 
   const pendingRate =
-    data?.pending && data?.totalStudents
-      ? Math.round((data.pending / data.totalStudents) * 100)
+    data?.pending && data?.total
+      ? Math.round((data.pending / data.total) * 100)
       : 0;
 
   /* ================= LOADING SKELETON ================= */
@@ -202,14 +228,17 @@ export default function AdminReports() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-outline-primary"
-            onClick={exportCSV}
-            title="Export report data to CSV"
-          >
-            <FaDownload className="erp-btn-icon" />
-            <span>Export CSV</span>
-          </button>
+          <ExportButtons
+            title="College Admission Analytics Report"
+            columns={[
+              { header: 'Metric', key: 'metric' },
+              { header: 'Value', key: 'value' }
+            ]}
+            data={getExportData()}
+            filename="admission_report"
+            showPDF={true}
+            showExcel={true}
+          />
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchSummary}
@@ -245,7 +274,7 @@ export default function AdminReports() {
           </div>
           <div className="stat-card-body">
             <div className="stat-value">
-              {data.totalStudents?.toLocaleString() || 0}
+              {data.total?.toLocaleString() || 0}
             </div>
             <div className="stat-trend neutral">
               <FaGraduationCap className="trend-icon" />
@@ -311,7 +340,7 @@ export default function AdminReports() {
                 <div className="metric-label">Approval Rate</div>
                 <div className="metric-value">{approvalRate}%</div>
                 <div className="metric-description">
-                  {data.approved || 0} out of {data.totalStudents || 0}{" "}
+                  {data.approved || 0} out of {data.total || 0}{" "}
                   applications approved
                 </div>
               </div>
@@ -337,7 +366,7 @@ export default function AdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Total Applications</div>
                 <div className="metric-value">
-                  {data.totalStudents?.toLocaleString() || 0}
+                  {data.total?.toLocaleString() || 0}
                 </div>
                 <div className="metric-description">
                   All student applications received this academic year
@@ -391,7 +420,7 @@ export default function AdminReports() {
                 <FaUsers />
               </div>
               <div className="status-content">
-                <div className="status-count">{data.totalStudents || 0}</div>
+                <div className="status-count">{data.total || 0}</div>
                 <div className="status-label">Total Students</div>
               </div>
               <div className="status-bar total-bar"></div>
