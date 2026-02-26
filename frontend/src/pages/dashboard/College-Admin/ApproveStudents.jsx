@@ -152,32 +152,6 @@ export default function ApproveStudents() {
     page * PAGE_SIZE
   );
 
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    const headers = ["Name", "Email", "Department", "Course", "Admission Year", "Status", "Approved Date"];
-    const rows = filteredStudents.map((s) => [
-      s.fullName,
-      s.email,
-      s.department_id?.name || "N/A",
-      s.course_id?.name || "N/A",
-      s.admissionYear || "N/A",
-      "APPROVED",
-      new Date(s.approvedAt || s.updatedAt).toLocaleDateString('en-US')
-    ]);
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `approved_students_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
     <div className="skeleton-container">
@@ -346,16 +320,6 @@ export default function ApproveStudents() {
                 aria-label="Search approved students"
               />
             </div>
-            
-            <button 
-              className="export-btn" 
-              onClick={exportCSV}
-              title="Export to CSV"
-              aria-label="Export approved students to CSV"
-            >
-              <FaDownload className="export-icon" />
-              <span>Export CSV</span>
-            </button>
           </div>
         </div>
       </div>

@@ -153,30 +153,6 @@ export default function FeeStructureList() {
     }
   };
 
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    const headers = ["Course", "Category", "Total Fee", "Installments", "Created At"];
-    const rows = filteredStructures.map((s) => [
-      s.course_id?.name || "N/A",
-      s.category || "N/A",
-      s.totalFee || "0",
-      s.installments?.length || "0",
-      new Date(s.createdAt).toLocaleDateString('en-US')
-    ]);
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `fee_structures_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
     <div className="skeleton-container">
@@ -352,19 +328,10 @@ export default function FeeStructureList() {
                 aria-label="Search fee structures"
               />
             </div>
-            
+
             <div className="actions-group">
-              <button 
-                className="export-btn" 
-                onClick={exportCSV}
-                title="Export to CSV"
-                aria-label="Export fee structures to CSV"
-              >
-                <FaDownload className="export-icon" />
-                <span>Export CSV</span>
-              </button>
-              <button 
-                className="refresh-btn" 
+              <button
+                className="refresh-btn"
                 onClick={loadStructures}
                 title="Refresh data"
                 aria-label="Refresh fee structures"

@@ -423,3 +423,30 @@ exports.markAsRead = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * ================================
+ * SEND PROMOTION NOTIFICATION
+ * Rule: Only COLLEGE_ADMIN can send promotion notifications
+ * ================================
+ */
+exports.sendPromotionNotification = async (req, res) => {
+  try {
+    const { studentId, studentName, newSemester, newAcademicYear, adminName } = req.body;
+    
+    await Notification.create({
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      createdByRole: "COLLEGE_ADMIN",
+      target: "STUDENTS",
+      title: "🎓 Promotion Approved",
+      message: `Congratulations ${studentName}! You have been promoted to Semester ${newSemester} (${newAcademicYear}) by ${adminName}.`,
+      type: "ACADEMIC",
+      actionUrl: "/dashboard/student/profile"
+    });
+
+    res.json({ message: "Notification sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

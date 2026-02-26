@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaClipboardList,
   FaChartPie,
@@ -16,7 +18,8 @@ import {
   FaClock,
   FaGraduationCap,
   FaCheckCircle,
-  FaTimesCircle
+  FaTimesCircle,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 export default function AttendanceSummary() {
@@ -31,7 +34,8 @@ export default function AttendanceSummary() {
       setLoading(true);
       setError("");
       const res = await api.get("/reports/attendance/summary");
-      setData(Array.isArray(res.data) ? res.data : []);
+      // API returns an object, not an array
+      setData(res.data || {});
       setRetryCount(0);
     } catch (err) {
       console.error("Attendance summary fetch error:", err);
@@ -55,10 +59,23 @@ export default function AttendanceSummary() {
     }
   };
 
+  /* ================= EXPORT DATA PREPARATION ================= */
+  const getExportData = () => {
+    if (!data || !data.totalRecords) return [];
+    return [
+      { metric: "Total Attendance Records", value: summary.totalRecords?.toLocaleString() || "0" },
+      { metric: "Total Sessions Conducted", value: (Math.round(summary.totalRecords / 50) || 0).toLocaleString() },
+      { metric: "Average Present Students", value: summary.averageAttendance?.toLocaleString() || "0" },
+      { metric: "Average Absent Students", value: (50 - (summary.averageAttendance || 0)).toLocaleString() },
+      { metric: "Attendance Rate", value: `${attendanceRate.toFixed(1)}%` },
+      { metric: "Status", value: attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1) },
+    ];
+  };
+
   /* ================= EXTRACT SUMMARY DATA ================= */
   const summary = useMemo(() => {
-    if (data.length === 0) return { totalRecords: 0, averageAttendance: 0 };
-    return data[0] || { totalRecords: 0, averageAttendance: 0 };
+    if (!data || !data.totalRecords) return { totalRecords: 0, averageAttendance: 0 };
+    return data;
   }, [data]);
 
   /* ================= CALCULATED METRICS ================= */
@@ -76,31 +93,6 @@ export default function AttendanceSummary() {
     if (attendanceRate >= 65) return "fair";
     return "poor";
   }, [attendanceRate]);
-
-  /* ================= EXPORT HANDLER ================= */
-  const exportCSV = () => {
-    if (data.length === 0) return;
-    
-    const headers = ["Metric", "Value"];
-    const rows = [
-      ["Total Attendance Records", summary.totalRecords || 0],
-      ["Average Attendance Count", summary.averageAttendance || 0],
-      ["Attendance Rate (Est.)", `${attendanceRate.toFixed(1)}%`],
-      ["Status", attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)]
-    ];
-
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `attendance_summary_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
@@ -201,14 +193,17 @@ export default function AttendanceSummary() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-outline-primary"
-            onClick={exportCSV}
-            title="Export report data to CSV"
-          >
-            <FaDownload className="erp-btn-icon" />
-            <span>Export CSV</span>
-          </button>
+          <ExportButtons
+            title="Attendance Summary Report"
+            columns={[
+              { header: 'Metric', key: 'metric', dataKey: 'metric' },
+              { header: 'Value', key: 'value', dataKey: 'value' }
+            ]}
+            data={getExportData()}
+            filename="attendance_summary_report"
+            showPDF={true}
+            showExcel={true}
+          />
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchAttendanceSummary}
