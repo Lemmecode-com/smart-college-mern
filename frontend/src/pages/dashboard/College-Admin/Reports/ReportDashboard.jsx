@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaGraduationCap,
   FaCheckCircle,
@@ -51,7 +52,6 @@ export default function ReportDashboard() {
   const [attendanceData, setAttendanceData] = useState(null);
   const [studentPayments, setStudentPayments] = useState([]);
   const [lowAttendanceStudents, setLowAttendanceStudents] = useState([]);
-  const [courses, setCourses] = useState([]); // Dynamic courses list
 
   // Filter States
   const [courseFilter, setCourseFilter] = useState("");
@@ -59,10 +59,85 @@ export default function ReportDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [attendanceCourseFilter, setAttendanceCourseFilter] = useState("");
 
+  // ================= EXPORT HELPER FUNCTIONS =================
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const classes = {
+      PAID: "badge-paid",
+      PARTIAL: "badge-partial",
+      DUE: "badge-due",
+      WARNING: "badge-warning",
+      CRITICAL: "badge-critical",
+    };
+    return classes[status] || "badge-default";
+  };
+
+  // Prepare admission data for export
+  const getAdmissionExportData = () => {
+    if (!admissionData) return [];
+    return [
+      { metric: "Total Students", value: admissionData.total || 0 },
+      { metric: "Approved", value: admissionData.approved || 0 },
+      { metric: "Pending", value: admissionData.pending || 0 },
+      { metric: "Rejected", value: admissionData.rejected || 0 },
+      { metric: "Approval Rate", value: `${admissionData.approvedPercentage || 0}%` },
+      { metric: "Pending Rate", value: `${admissionData.pendingPercentage || 0}%` },
+    ];
+  };
+
+  // Prepare payment data for export
+  const getPaymentExportData = () => {
+    if (!paymentData) return [];
+    return [
+      { metric: "Total Expected Fee", value: formatCurrency(paymentData.total || 0) },
+      { metric: "Total Collected", value: formatCurrency(paymentData.collected || 0) },
+      { metric: "Total Pending", value: formatCurrency(paymentData.pending || 0) },
+      { metric: "Collection Rate", value: `${paymentData.collectionRate || 0}%` },
+    ];
+  };
+
+  // Prepare student payment details for export
+  const getStudentPaymentsExportData = () => {
+    return filteredStudentPayments.map(student => ({
+      name: student.name,
+      course: student.course,
+      totalFee: formatCurrency(student.totalFee),
+      paid: formatCurrency(student.paid),
+      pending: formatCurrency(student.pending),
+      status: student.status
+    }));
+  };
+
+  // Prepare attendance data for export
+  const getAttendanceExportData = () => {
+    if (!attendanceData) return [];
+    return [
+      { metric: "Overall Attendance", value: `${attendanceData.percentage || 0}%` },
+      { metric: "Total Sessions", value: attendanceData.totalSessions || 0 },
+      { metric: "Average Attendance", value: attendanceData.averageAttendance || 0 },
+    ];
+  };
+
+  // Prepare low attendance students data for export
+  const getLowAttendanceExportData = () => {
+    return filteredLowAttendance.map(student => ({
+      name: student.name,
+      course: student.course,
+      attendance: `${student.attendance}%`,
+      status: student.status
+    }));
+  };
+
   // ================= FETCH DATA =================
   useEffect(() => {
     fetchAllReports();
-    fetchCourses(); // Fetch courses for filter dropdown
   }, []);
 
   const fetchAllReports = async () => {
@@ -70,21 +145,31 @@ export default function ReportDashboard() {
       setLoading(true);
       setError(null);
 
-      // SINGLE API CALL - Fetch all reports from one endpoint
-      const res = await api.get("/reports/dashboard/all");
+      // Fetch all reports in parallel from API endpoints
+      const [admissionRes, paymentRes, attendanceRes] = await Promise.all([
+        api.get("/reports/admissions/college-admin-summary"),
+        api.get("/reports/payments/summary"),
+        api.get("/reports/attendance/summary"),
+      ]);
 
-      if (res.data.success) {
-        const data = res.data.data;
-        
-        // Set all report data
-        setAdmissionData(data.admissionSummary);
-        setPaymentData(data.paymentSummary);
-        setStudentPayments(data.studentPaymentStatus || []);
-        setAttendanceData(data.attendanceSummary);
-        setLowAttendanceStudents(data.lowAttendanceStudents || []);
+      setAdmissionData(admissionRes.data);
+      setPaymentData(paymentRes.data);
+      setAttendanceData(attendanceRes.data);
 
-        showToast("Reports loaded successfully!", "success");
+      // Extract low attendance students from attendance data if available
+      // Or fetch from a separate endpoint if needed
+      if (attendanceRes.data?.lowAttendanceStudents) {
+        setLowAttendanceStudents(attendanceRes.data.lowAttendanceStudents);
+      } else {
+        // Fallback to static data if API doesn't provide it
+        setLowAttendanceStudents(getStaticLowAttendanceStudents());
       }
+
+      // Fetch student payment data from API if available
+      // For now using static data - replace with actual API call
+      setStudentPayments(getStaticStudentPayments());
+
+      showToast("Reports loaded successfully!", "success");
     } catch (err) {
       console.error("Error fetching reports:", err);
       setError(
@@ -96,57 +181,69 @@ export default function ReportDashboard() {
     }
   };
 
-  const fetchCourses = async () => {
-    try {
-      const res = await api.get("/courses");
-      if (res.data && Array.isArray(res.data)) {
-        setCourses(res.data);
-      }
-    } catch (err) {
-      console.error("Error fetching courses:", err);
-      // Silently fail - filters will still work
-    }
-  };
+  // ================= STATIC DATA (Replace with API when available) =================
+  const getStaticStudentPayments = () => [
+    {
+      _id: "1",
+      name: "Rahul Sharma",
+      course: "Computer Science",
+      totalFee: 95000,
+      paid: 45000,
+      pending: 50000,
+      status: "PARTIAL",
+    },
+    {
+      _id: "2",
+      name: "Priya Patel",
+      course: "Information Technology",
+      totalFee: 95000,
+      paid: 95000,
+      pending: 0,
+      status: "PAID",
+    },
+    {
+      _id: "3",
+      name: "Amit Kumar",
+      course: "Computer Science",
+      totalFee: 95000,
+      paid: 0,
+      pending: 95000,
+      status: "DUE",
+    },
+    {
+      _id: "4",
+      name: "Sneha Singh",
+      course: "Mechanical Engineering",
+      totalFee: 85000,
+      paid: 85000,
+      pending: 0,
+      status: "PAID",
+    },
+  ];
 
-  // ================= FILTER HANDLERS =================
-  const handleCourseFilter = (course) => {
-    setCourseFilter(course);
-    // Refetch with filter
-    fetchReportsWithFilters(course, paymentStatusFilter, searchQuery);
-  };
-
-  const handlePaymentStatusFilter = (status) => {
-    setPaymentStatusFilter(status);
-    // Refetch with filter
-    fetchReportsWithFilters(courseFilter, status, searchQuery);
-  };
-
-  const handleSearch = (search) => {
-    setSearchQuery(search);
-    // Debounced search
-    setTimeout(() => {
-      fetchReportsWithFilters(courseFilter, paymentStatusFilter, search);
-    }, 500);
-  };
-
-  const fetchReportsWithFilters = async (course, status, search) => {
-    try {
-      const params = new URLSearchParams();
-      if (course) params.append('course', course);
-      if (status) params.append('status', status);
-      if (search) params.append('search', search);
-
-      const res = await api.get(`/reports/dashboard/all?${params}`);
-
-      if (res.data.success) {
-        const data = res.data.data;
-        setStudentPayments(data.studentPaymentStatus || []);
-        setLowAttendanceStudents(data.lowAttendanceStudents || []);
-      }
-    } catch (err) {
-      console.error("Error filtering reports:", err);
-    }
-  };
+  const getStaticLowAttendanceStudents = () => [
+    {
+      _id: "1",
+      name: "Vikram Yadav",
+      course: "Computer Science",
+      attendance: 65,
+      status: "WARNING",
+    },
+    {
+      _id: "2",
+      name: "Anjali Desai",
+      course: "Information Technology",
+      attendance: 70,
+      status: "WARNING",
+    },
+    {
+      _id: "3",
+      name: "Rohan Mehta",
+      course: "Mechanical Engineering",
+      attendance: 58,
+      status: "CRITICAL",
+    },
+  ];
 
   // ================= TOAST NOTIFICATIONS =================
   const showToast = (message, type = "info") => {
@@ -196,6 +293,21 @@ export default function ReportDashboard() {
       ]
     : [];
 
+  const paymentBarData = paymentData
+    ? [
+        {
+          name: "Collected",
+          amount: paymentData.collected || 0,
+          fill: "#28a745",
+        },
+        {
+          name: "Pending",
+          amount: paymentData.pending || 0,
+          fill: "#dc3545",
+        },
+      ]
+    : [];
+
   const attendanceLineData = attendanceData?.trend || [
     { month: "Jan", attendance: 75 },
     { month: "Feb", attendance: 78 },
@@ -204,26 +316,6 @@ export default function ReportDashboard() {
     { month: "May", attendance: 85 },
     { month: "Jun", attendance: 88 },
   ];
-
-  // ================= UTILITY FUNCTIONS =================
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusBadgeClass = (status) => {
-    const classes = {
-      PAID: "badge-paid",
-      PARTIAL: "badge-partial",
-      DUE: "badge-due",
-      WARNING: "badge-warning",
-      CRITICAL: "badge-critical",
-    };
-    return classes[status] || "badge-default";
-  };
 
   // ================= LOADING STATE =================
   if (loading) {
@@ -339,9 +431,21 @@ export default function ReportDashboard() {
               <FaGraduationCap className="card-icon" />
               <h3>Admission Summary</h3>
             </div>
-            <Link to="/reports/admissions" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Admission Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getAdmissionExportData()}
+                filename="admission_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/admissions" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -412,9 +516,21 @@ export default function ReportDashboard() {
               <FaWallet className="card-icon" />
               <h3>Payment Summary</h3>
             </div>
-            <Link to="/reports/payments" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Payment Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getPaymentExportData()}
+                filename="payment_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/payments" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -422,19 +538,19 @@ export default function ReportDashboard() {
               <div className="payment-stat">
                 <span className="payment-label">Total Expected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.totalExpectedFee || 0)}
+                  {formatCurrency(paymentData?.total || 0)}
                 </span>
               </div>
               <div className="payment-stat collected">
                 <span className="payment-label">Total Collected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.totalCollected || 0)}
+                  {formatCurrency(paymentData?.collected || 0)}
                 </span>
               </div>
               <div className="payment-stat pending">
                 <span className="payment-label">Total Pending</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.totalPending || 0)}
+                  {formatCurrency(paymentData?.pending || 0)}
                 </span>
               </div>
               <div className="payment-stat rate">
@@ -447,13 +563,13 @@ export default function ReportDashboard() {
 
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={paymentData?.barChartData || []}>
+                <BarChart data={paymentBarData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip formatter={(value) => formatCurrency(value)} />
                   <Legend />
-                  <Bar dataKey="amount" name="Amount (₹)" fill="#28a745" />
+                  <Bar dataKey="amount" name="Amount (₹)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -467,9 +583,21 @@ export default function ReportDashboard() {
               <FaTable className="card-icon" />
               <h3>Student Payment Status</h3>
             </div>
-            <button className="btn-filter">
-              <FaFilter /> Filter
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Student Payment Status Report"
+                columns={[
+                  { header: 'Student Name', key: 'name' },
+                  { header: 'Course', key: 'course' },
+                  { header: 'Total Fee', key: 'totalFee' },
+                  { header: 'Paid', key: 'paid' },
+                  { header: 'Pending', key: 'pending' },
+                  { header: 'Status', key: 'status' }
+                ]}
+                data={getStudentPaymentsExportData()}
+                filename="student_payment_status"
+              />
+            </div>
           </div>
 
           <div className="card-body">
@@ -492,11 +620,9 @@ export default function ReportDashboard() {
                 className="filter-select"
               >
                 <option value="">All Courses</option>
-                {courses.map(course => (
-                  <option key={course._id} value={course.name}>
-                    {course.name}
-                  </option>
-                ))}
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">IT</option>
+                <option value="Mechanical Engineering">Mechanical</option>
               </select>
 
               <select
@@ -560,9 +686,21 @@ export default function ReportDashboard() {
               <FaCalendarCheck className="card-icon" />
               <h3>Attendance Summary</h3>
             </div>
-            <Link to="/reports/attendance" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Attendance Summary Report"
+                columns={[
+                  { header: 'Metric', key: 'metric' },
+                  { header: 'Value', key: 'value' }
+                ]}
+                data={getAttendanceExportData()}
+                filename="attendance_summary"
+                showCSV={false}
+              />
+              <Link to="/reports/attendance" className="view-all-link" style={{ marginLeft: '0.5rem' }}>
+                <FaEye /> View Details
+              </Link>
+            </div>
           </div>
 
           <div className="card-body">
@@ -616,18 +754,30 @@ export default function ReportDashboard() {
               <FaExclamationTriangle className="card-icon" />
               <h3>Low Attendance Students</h3>
             </div>
-            <select
-              value={attendanceCourseFilter}
-              onChange={(e) => setAttendanceCourseFilter(e.target.value)}
-              className="filter-select-small"
-            >
-              <option value="">All Courses</option>
-              {courses.map(course => (
-                <option key={course._id} value={course.name}>
-                  {course.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <ExportButtons
+                title="Low Attendance Students Report"
+                columns={[
+                  { header: 'Student Name', key: 'name' },
+                  { header: 'Course', key: 'course' },
+                  { header: 'Attendance %', key: 'attendance' },
+                  { header: 'Status', key: 'status' }
+                ]}
+                data={getLowAttendanceExportData()}
+                filename="low_attendance_students"
+              />
+              <select
+                value={attendanceCourseFilter}
+                onChange={(e) => setAttendanceCourseFilter(e.target.value)}
+                className="filter-select-small"
+                style={{ marginLeft: '0.5rem' }}
+              >
+                <option value="">All Courses</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">IT</option>
+                <option value="Mechanical Engineering">Mechanical</option>
+              </select>
+            </div>
           </div>
 
           <div className="card-body">
@@ -639,6 +789,7 @@ export default function ReportDashboard() {
                     <th>Course</th>
                     <th>Attendance %</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -670,6 +821,11 @@ export default function ReportDashboard() {
                         >
                           {student.status}
                         </span>
+                      </td>
+                      <td>
+                        <button className="btn-action">
+                          <FaEye /> View
+                        </button>
                       </td>
                     </tr>
                   ))}

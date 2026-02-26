@@ -139,10 +139,50 @@ const studentSchema = new mongoose.Schema(
     passportPhotoPath: String,
     categoryCertificatePath: String,
 
-    // 📎 Dynamic Documents (flexible storage for all document types)
+    // 📎 Dynamic Documents - All possible document types (based on DocumentConfig)
+    // These fields store file paths for documents uploaded during registration
+    incomeCertificatePath: String,
+    characterCertificatePath: String,
+    transferCertificatePath: String,
+    aadharCardPath: String,
+    entranceExamScorePath: String,
+    migrationCertificatePath: String,
+    domicileCertificatePath: String,
+    casteCertificatePath: String,
+    nonCreamyLayerCertificatePath: String,
+    physicallyChallengedCertificatePath: String,
+    sportsQuotaCertificatePath: String,
+    nriSponsorCertificatePath: String,
+    gapCertificatePath: String,
+    affidavitPath: String,
+    
+    // 📎 Generic documents storage (flexible Map for any document type)
     documents: {
       type: Map,
       of: String
+    },
+
+    // 📝 Additional Profile Fields (for profile completion)
+    addressLine2: String,
+    country: {
+      type: String,
+      default: "India"
+    },
+    religion: String,
+    alternateMobileNumber: String,
+    emergencyContactName: String,
+    emergencyContactNumber: String,
+    parentGuardianOccupation: String,
+    parentGuardianIncome: String,
+    minorityType: String, // For minority category students
+    pwdDisability: String, // Percentage of disability if applicable
+    hostelRequired: {
+      type: Boolean,
+      default: false
+    },
+    libraryRequired: {
+      type: Boolean,
+      default: true
     },
 
     // 🔐 System
@@ -157,7 +197,7 @@ const studentSchema = new mongoose.Schema(
       enum: ["SELF"],
       default: "SELF",
     },
-    
+
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -169,6 +209,31 @@ const studentSchema = new mongoose.Schema(
 
     rejectionReason: {
       type: String,
+    },
+
+    // 🎓 Promotion Management
+    currentAcademicYear: {
+      type: String,
+      required: true,
+      default: function() {
+        // Format: "2024-2025"
+        const year = new Date().getFullYear();
+        return `${year}-${year + 1}`;
+      }
+    },
+
+    isPromotionEligible: {
+      type: Boolean,
+      default: true,
+    },
+
+    promotionHistory: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PromotionHistory",
+    }],
+
+    lastPromotionDate: {
+      type: Date,
     },
   },
   { timestamps: true },
