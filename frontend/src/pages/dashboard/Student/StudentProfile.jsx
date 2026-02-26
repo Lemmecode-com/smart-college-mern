@@ -1,7 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
 // import { ..., FaFileCertificate, ... } from "react-icons/fa";
@@ -45,6 +47,8 @@ import {
 export default function StudentProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const loadTimeoutRef = useRef(null);
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,14 +61,58 @@ export default function StudentProfile() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
 
+  /* ================= DATA VALIDATION HELPER ================= */
+  const validateProfileData = (data) => {
+    const errors = [];
+    
+    if (!data) {
+      errors.push("Profile data is missing");
+    } else {
+      if (!data.student) {
+        errors.push("Student information is missing");
+      } else {
+        if (!data.student.fullName) errors.push("Student name is missing");
+        if (!data.student.email) errors.push("Student email is missing");
+        if (!data.student.mobileNumber) errors.push("Student mobile number is missing");
+      }
+      
+      if (!data.department) errors.push("Department information is missing");
+      if (!data.course) errors.push("Course information is missing");
+    }
+    
+    return errors;
+  };
+
   /* ================= FETCH PROFILE ================= */
   useEffect(() => {
+    // Clear any existing timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set timeout for 30 seconds
+    loadTimeoutRef.current = setTimeout(() => {
+      setError("Request timed out. Please check your connection and try again.");
+      setLoading(false);
+      toast.error("Request timed out. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
+    }, 30000);
+
     const fetchProfile = async () => {
       try {
         const res = await api.get("/students/my-profile");
 
         if (!res.data || !res.data.student) {
           throw new Error("Invalid profile response structure");
+        }
+
+        // Validate profile data
+        const validation = validateProfileData(res.data);
+        if (validation.length > 0) {
+          throw new Error(`Invalid profile data: ${validation.join(', ')}`);
         }
 
         setProfile(res.data);
@@ -82,15 +130,43 @@ export default function StudentProfile() {
       } catch (err) {
         console.error("PROFILE ERROR:", err);
 
+        // Clear timeout on error
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
+        }
+
         if (err.response?.status === 401) {
           setError("Session expired. Please login again.");
+          toast.error("Session expired. Please login again.", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaTimesCircle />
+          });
           setTimeout(() => navigate("/login"), 3000);
         } else if (err.response?.status === 404) {
-          setError("Student profile not found. Please contact administration.");
+          const errorMsg = "Student profile not found. Please contact administration.";
+          setError(errorMsg);
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
         } else if (err.response?.status === 500) {
-          setError("Server error while loading profile. Please try again later.");
+          const errorMsg = "Server error while loading profile. Please try again later.";
+          setError(errorMsg);
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
         } else {
-          setError(err.response?.data?.message || "Failed to load student profile. Please try again.");
+          const errorMsg = err.response?.data?.message || "Failed to load student profile. Please try again.";
+          setError(errorMsg);
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
         }
       } finally {
         setLoading(false);
@@ -98,12 +174,31 @@ export default function StudentProfile() {
     };
 
     fetchProfile();
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
   }, [user, navigate]);
+
+  /* ================= RETRY HANDLER ================= */
+  const handleRetry = () => {
+    setError("");
+    setLoading(true);
+    toast.info("Retrying...", {
+      position: "top-right",
+      autoClose: 1000,
+      icon: <FaSync />
+    });
+  };
 
   /* ================= LOADING STATE ================= */
   if (loading) {
     return (
-      <div className="container-fluid py-5">
+      <div className="container-fluid py-5" role="main">
+        <ToastContainer position="top-right" />
         <div className="row justify-content-center">
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
@@ -124,28 +219,31 @@ export default function StudentProfile() {
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <div className="container-fluid py-5">
+      <div className="container-fluid py-5" role="main">
+        <ToastContainer position="top-right" />
         <div className="row justify-content-center">
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body text-center p-5">
+              <div className="card-body text-center p-5" role="alert" aria-live="assertive">
                 <div className="text-danger mb-3">
-                  <FaTimesCircle size={64} />
+                  <FaTimesCircle size={64} aria-hidden="true" />
                 </div>
                 <h4 className="fw-bold mb-2">Profile Loading Error</h4>
                 <p className="text-muted mb-4">{error}</p>
                 <div className="d-flex justify-content-center gap-3">
-                  <button 
-                    onClick={() => window.location.reload()}
+                  <button
+                    onClick={handleRetry}
                     className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
+                    aria-label="Retry loading profile"
                   >
-                    <FaSync className="spin-icon" /> Retry
+                    <FaSync className="spin-icon" aria-hidden="true" /> Retry
                   </button>
-                  <button 
+                  <button
                     onClick={() => navigate("/student/dashboard")}
                     className="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-2"
+                    aria-label="Go back to student dashboard"
                   >
-                    <FaArrowLeft /> Back to Dashboard
+                    <FaArrowLeft aria-hidden="true" /> Back to Dashboard
                   </button>
                 </div>
               </div>
@@ -158,19 +256,21 @@ export default function StudentProfile() {
 
   if (!profile) {
     return (
-      <div className="container-fluid py-5">
+      <div className="container-fluid py-5" role="main">
+        <ToastContainer position="top-right" />
         <div className="row justify-content-center">
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
               <div className="card-body text-center p-5">
-                <FaUserGraduate className="text-muted mb-3" size={64} />
+                <FaUserGraduate className="text-muted mb-3" size={64} aria-hidden="true" />
                 <h4 className="fw-bold mb-2">No Profile Data Found</h4>
                 <p className="text-muted mb-4">Your profile information could not be retrieved. Please contact your college administrator.</p>
-                <button 
+                <button
                   onClick={() => navigate("/student/dashboard")}
                   className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
+                  aria-label="Go back to student dashboard"
                 >
-                  <FaArrowLeft /> Back to Dashboard
+                  <FaArrowLeft aria-hidden="true" /> Back to Dashboard
                 </button>
               </div>
             </div>
@@ -310,16 +410,23 @@ export default function StudentProfile() {
 ];
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
+      <ToastContainer position="top-right" />
+
+      {/* Skip Link for Screen Readers */}
+      <a href="#profile-content" className="sr-only sr-only-focusable">
+        Skip to profile content
+      </a>
+
       {/* ================= TOP NAVIGATION BAR ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-
         <div className="d-flex justify-content-end align-items-center flex-wrap w-100">
           <button
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button "
+            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
             onClick={() => navigate("/student/edit-profile")}
+            aria-label="Edit your profile"
           >
-            <FaEdit size={16} /> Edit Profile
+            <FaEdit size={16} aria-hidden="true" /> Edit Profile
           </button>
         </div>
       </div>
@@ -402,36 +509,41 @@ export default function StudentProfile() {
         <div className="card-body p-0">
           <div className="d-flex flex-column flex-lg-row">
             {/* Tab Navigation - Vertical on desktop, horizontal on mobile */}
-            <div className="tabs-navigation bg-light border-end border-bottom border-lg-end-0 border-lg-bottom-0">
+            <div className="tabs-navigation bg-light border-end border-bottom border-lg-end-0 border-lg-bottom-0" role="tablist" aria-label="Profile sections">
               <TabItem
                 icon={<FaUserGraduate />}
                 label="Personal Information"
                 active={activeTab === 'personal'}
                 onClick={() => setActiveTab('personal')}
+                id="personal"
               />
               <TabItem
                 icon={<FaUserFriends />}
                 label="Parent Details"
                 active={activeTab === 'parent'}
                 onClick={() => setActiveTab('parent')}
+                id="parent"
               />
               <TabItem
                 icon={<FaBook />}
                 label="Academic Information"
                 active={activeTab === 'academic'}
                 onClick={() => setActiveTab('academic')}
+                id="academic"
               />
               <TabItem
                 icon={<FaPhoneAlt />}
                 label="Contact Information"
                 active={activeTab === 'contact'}
                 onClick={() => setActiveTab('contact')}
+                id="contact"
               />
               <TabItem
                 icon={<FaHome />}
                 label="Address Information"
                 active={activeTab === 'address'}
                 onClick={() => setActiveTab('address')}
+                id="address"
               />
               <TabItem
                 icon={<FaGraduationCap />}
@@ -452,17 +564,19 @@ export default function StudentProfile() {
                 label="Uploaded Documents"
                 active={activeTab === 'documents'}
                 onClick={() => setActiveTab('documents')}
+                id="documents"
               />
               <TabItem
                 icon={<FaUniversity />}
                 label="College Information"
                 active={activeTab === 'college'}
                 onClick={() => setActiveTab('college')}
+                id="college"
               />
             </div>
-            
+
             {/* Tab Content */}
-            <div className="tabs-content flex-grow-1 p-4">
+            <div className="tabs-content flex-grow-1 p-4" role="tabpanel" aria-label="Profile information">
               {activeTab === 'personal' && (
                 <SectionContent title="Personal Information" icon={<FaUserGraduate />} color="info">
                   <div className="row g-3">
@@ -879,23 +993,24 @@ export default function StudentProfile() {
             <div className="text-center text-md-start">
               <p className="mb-1">
                 <small className="text-muted">
-                  <FaUserGraduate className="me-1" />
-                  Student Profile | NOVAA College ERP System
+                  <FaUserGraduate className="me-1" aria-hidden="true" />
+                  Student Profile | Smart College ERP System
                 </small>
               </p>
               <p className="mb-0">
                 <small className="text-muted">
-                  <FaSync className="spin-icon me-1" />
-                  Profile last updated: <strong>{student?.updatedAt ? new Date(student.updatedAt).toLocaleString() : "N/A"}</strong>
+                  <FaSync className="spin-icon me-1" aria-hidden="true" />
+                  Profile last updated: <strong>{lastRefreshed.toLocaleString()}</strong>
                 </small>
               </p>
             </div>
             <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button 
+              <button
                 className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                 onClick={() => navigate("/student/dashboard")}
+                aria-label="Go back to student dashboard"
               >
-                <FaArrowLeft size={12} /> Back to Dashboard
+                <FaArrowLeft size={12} aria-hidden="true" /> Back to Dashboard
               </button>
             </div>
           </div>
@@ -1275,26 +1390,61 @@ export default function StudentProfile() {
             padding: 1rem;
           }
         }
+
+        /* ================= SCREEN READER ONLY ================= */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
+        .sr-only-focusable:focus {
+          position: static;
+          width: auto;
+          height: auto;
+          margin: 0;
+          overflow: visible;
+          clip: auto;
+          white-space: normal;
+        }
       `}</style>
     </div>
   );
 }
 
 /* ================= TAB ITEM COMPONENT ================= */
-function TabItem({ icon, label, active, onClick, badge, hidden }) {
+function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
   if (hidden) return null;
-  
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       className={`tab-item ${active ? 'active' : ''}`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role="tab"
+      aria-selected={active}
+      tabIndex={active ? 0 : -1}
     >
-      <span className="fs-4">{icon}</span>
+      <span className="fs-4" aria-hidden="true">{icon}</span>
       <div className="flex-grow-1">
         <div className="fw-medium">{label}</div>
       </div>
       {badge && (
-        <span className="tab-badge">
+        <span className="tab-badge" aria-label={`${badge} items`}>
           {badge}
         </span>
       )}
@@ -1305,9 +1455,9 @@ function TabItem({ icon, label, active, onClick, badge, hidden }) {
 /* ================= SECTION CONTENT COMPONENT ================= */
 function SectionContent({ title, icon, color, children }) {
   return (
-    <div className="section-content">
+    <div className="section-content" role="tabpanel">
       <h2 className="section-title text-primary">
-        {icon}
+        <span aria-hidden="true">{icon}</span>
         {title}
       </h2>
       {children}
@@ -1320,7 +1470,7 @@ function InfoItem({ label, value, icon, col = 6 }) {
   return (
     <div className={`col-md-${col} info-item animate-fade-in`} style={{ animationDelay: "0.1s" }}>
       <div className="info-label">
-        {icon}
+        <span aria-hidden="true">{icon}</span>
         {label}
       </div>
       <div className="info-value">{value}</div>
@@ -1361,17 +1511,57 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
   const handleView = () => {
     if (documentUrl) {
       window.open(documentUrl, '_blank');
+    } else {
+      toast.error("Document not available for viewing", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaExclamationTriangle />
+      });
     }
   };
 
-  const handleDownload = () => {
-    if (documentUrl) {
+  const handleDownload = async () => {
+    if (!documentUrl) {
+      toast.error("Document not available for download", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaExclamationTriangle />
+      });
+      return;
+    }
+
+    try {
+      toast.info("Downloading document...", {
+        position: "top-right",
+        autoClose: 1000,
+        icon: <FaDownload />
+      });
+      
+      const response = await fetch(documentUrl);
+      if (!response.ok) throw new Error("Download failed");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = documentUrl;
+      link.href = url;
       link.setAttribute('download', file);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Document downloaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download document. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />
+      });
     }
   };
 
@@ -1383,11 +1573,12 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
           backgroundColor: getDocumentColor(),
           color: getDocumentIconColor()
         }}
+        aria-label={`${type} document icon`}
       >
         {icon}
       </div>
       <div className="document-type">
-        <FaFileAlt /> {type}
+        <FaFileAlt aria-hidden="true" /> {type}
       </div>
       <div className="document-name">{name}</div>
       <div className="document-meta">
@@ -1404,8 +1595,9 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
             opacity: filePath ? 1 : 0.5,
             cursor: filePath ? 'pointer' : 'not-allowed'
           }}
+          aria-label={`View ${type}`}
         >
-          <FaFilePdf size={14} /> View
+          <FaFilePdf size={14} aria-hidden="true" /> View
         </button>
         <button
           className="btn btn-sm btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
@@ -1415,8 +1607,9 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
             opacity: filePath ? 1 : 0.5,
             cursor: filePath ? 'pointer' : 'not-allowed'
           }}
+          aria-label={`Download ${type}`}
         >
-          <FaDownload size={14} /> Download
+          <FaDownload size={14} aria-hidden="true" /> Download
         </button>
       </div>
     </div>

@@ -17,15 +17,14 @@ import {
   FaArrowLeft,
   FaBell,
   FaSun,
-  FaTimesCircle,
   FaPauseCircle,
-  FaStopCircle,
-  FaUserClock,
-  FaChartLine,
-  FaUsers,
+  FaHourglassStart,
+  FaHourglassEnd,
+  FaLightbulb,
+  FaTimesCircle,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Brand Color Palette
@@ -86,13 +85,6 @@ const pulseVariants = {
     transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
   },
 };
-const blinkVariants = {
-  initial: { opacity: 1 },
-  blink: {
-    opacity: [1, 0.7, 1],
-    transition: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
-  },
-};
 const floatVariants = {
   initial: { y: 0 },
   float: {
@@ -105,11 +97,6 @@ const spinVariants = {
     rotate: 360,
     transition: { duration: 1, repeat: Infinity, ease: "linear" },
   },
-};
-const scaleVariants = {
-  hidden: { scale: 0.95, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2 } },
 };
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -134,36 +121,27 @@ const TIMES = [
 
 // Helper function to format time in 12-hour format with AM/PM
 const formatTime12Hour = (time24) => {
-  if (!time24) return '';
-  const [hours, minutes] = time24.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
   const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
 };
 
 // CSS Styles
 const componentStyles = `
-/* ================= CONTAINER ================= */
 .schedule-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+  padding: 1.5rem;
 }
 .schedule-content {
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  display: flex;
-  justify-content: center;
-}
-.schedule-wrapper {
-  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
 }
-/* ================= LOADING ================= */
 .loading-wrapper {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 80vh;
@@ -186,7 +164,6 @@ const componentStyles = `
   color: #64748b;
   margin: 0;
 }
-/* ================= BREADCRUMB ================= */
 .breadcrumb {
   margin-bottom: 1rem;
   display: flex;
@@ -194,7 +171,7 @@ const componentStyles = `
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-.btn-back {
+.btn-breadcrumb {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -208,7 +185,7 @@ const componentStyles = `
   border-radius: 8px;
   transition: all 0.3s ease;
 }
-.btn-back:hover {
+.btn-breadcrumb:hover {
   background-color: #f1f5f9;
 }
 .breadcrumb-separator {
@@ -219,15 +196,14 @@ const componentStyles = `
   font-weight: 600;
   font-size: 1rem;
 }
-/* ================= HEADER ================= */
 .schedule-header {
   margin-bottom: 1.5rem;
-  background-color: white;
+  background: white;
   border-radius: 1.5rem;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(26, 75, 109, 0.15);
 }
-.header-main {
+.header-top {
   padding: 1.75rem 2rem;
   background: linear-gradient(180deg, #0f3a4a, #134952);
   color: white;
@@ -244,27 +220,22 @@ const componentStyles = `
   flex-wrap: wrap;
 }
 .header-icon-wrapper {
-  width: 72px;
-  height: 72px;
-  background-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
   flex-shrink: 0;
   box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
 }
 .header-title {
   margin: 0;
-  font-size: 2rem;
   font-weight: 700;
   line-height: 1.2;
 }
 .header-subtitle {
   margin: 0.5rem 0 0 0;
   opacity: 0.9;
-  font-size: 1.1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -275,11 +246,9 @@ const componentStyles = `
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
-  width: auto;
-  justify-content: flex-end;
 }
 .current-time-badge {
-  background-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.15);
   padding: 0.6rem 1rem;
   border-radius: 12px;
   text-align: center;
@@ -295,7 +264,7 @@ const componentStyles = `
   font-weight: 700;
 }
 .btn-refresh {
-  background-color: white;
+  background: white;
   color: #1a4b6d;
   border: 2px solid white;
   padding: 0.6rem 1rem;
@@ -311,7 +280,6 @@ const componentStyles = `
   white-space: nowrap;
 }
 .btn-refresh:hover {
-  background-color: #f1f5f9;
   transform: translateY(-2px);
 }
 .btn-text {
@@ -322,10 +290,9 @@ const componentStyles = `
     display: inline;
   }
 }
-/* Stats Bar */
 .stats-bar {
   padding: 1rem 2rem;
-  background-color: #f8fafc;
+  background: #f8fafc;
   border-top: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
@@ -345,18 +312,16 @@ const componentStyles = `
   align-items: center;
   gap: 0.75rem;
 }
-.stat-icon-wrapper {
+.stat-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
   flex-shrink: 0;
 }
-.stat-content {
+.stat-info {
   display: flex;
   flex-direction: column;
 }
@@ -373,7 +338,7 @@ const componentStyles = `
 .day-badge {
   padding: 0.5rem 1rem;
   border-radius: 20px;
-  background-color: rgba(40, 167, 69, 0.1);
+  background: rgba(40, 167, 69, 0.1);
   color: #28a745;
   font-weight: 600;
   font-size: 0.85rem;
@@ -382,24 +347,31 @@ const componentStyles = `
   gap: 0.5rem;
   white-space: nowrap;
 }
-/* ================= ERROR STATE ================= */
 .error-banner {
   margin-bottom: 1.5rem;
   padding: 1rem;
   border-radius: 12px;
-  background-color: rgba(220, 53, 69, 0.05);
+  background: rgba(220, 53, 69, 0.05);
   border: 1px solid #dc3545;
   color: #dc3545;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
-/* ================= SCHEDULE CARD ================= */
+.error-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1.25rem;
+}
 .schedule-card {
-  background-color: white;
+  background: white;
   border-radius: 1.5rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  margin-bottom: 1.5rem;
 }
 .card-header {
   padding: 1.5rem;
@@ -411,7 +383,7 @@ const componentStyles = `
   gap: 1rem;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 }
-.card-title {
+.card-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
@@ -420,11 +392,14 @@ const componentStyles = `
   align-items: center;
   gap: 0.75rem;
 }
+.sun-icon {
+  color: #ffc107;
+}
 .info-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #dbeafe;
+  background: #dbeafe;
   color: #1a4b6d;
   padding: 0.4rem 0.875rem;
   border-radius: 20px;
@@ -439,33 +414,24 @@ const componentStyles = `
     display: none;
   }
 }
-.card-body {
-  padding: 1.5rem;
-}
-/* ================= SLOTS GRID ================= */
-.slots-grid {
+.slots-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-/* ================= SCHEDULE ROW ================= */
 .schedule-row {
-  background-color: white;
-  border: 1px solid #e2e8f0;
+  background: white;
+  border: 1px solid;
   border-radius: 16px;
   padding: 1.25rem;
   display: flex;
-  flex-direction: row;
-  gap: 1.5rem;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
-.schedule-row.past {
-  opacity: 0.7;
-}
-.schedule-row.active {
-  box-shadow: 0 0 0 3px rgba(26, 75, 109, 0.1);
+.schedule-row:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 .active-indicator {
   position: absolute;
@@ -473,21 +439,19 @@ const componentStyles = `
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
+  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
   z-index: 1;
 }
 .time-column {
-  min-width: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  border-right: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px;
+  margin-bottom: 0;
 }
 .time-start {
-  font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
@@ -496,9 +460,7 @@ const componentStyles = `
   color: #64748b;
   font-weight: 500;
 }
-.status-badge-live,
-.status-badge-past,
-.status-badge-session {
+.status-badge {
   margin-top: 0.75rem;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
@@ -509,25 +471,24 @@ const componentStyles = `
   gap: 0.375rem;
   justify-content: center;
 }
-.status-badge-live {
-  background-color: rgba(26, 75, 109, 0.1);
+.status-active {
+  background: rgba(26, 75, 109, 0.1);
   color: #1a4b6d;
 }
-.status-badge-past {
-  background-color: #fee2e2;
+.status-completed {
+  background: #fee2e2;
   color: #b91c1c;
 }
-.status-badge-session {
-  background-color: #dcfce7;
+.status-session-active {
+  background: #dcfce7;
   color: #166534;
 }
 .content-column {
   flex: 1;
   width: 100%;
 }
-.content-header {
+.content-top {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
@@ -535,11 +496,9 @@ const componentStyles = `
 }
 .subject-info {
   flex: 1;
-  width: 100%;
 }
 .subject-name {
   font-weight: 700;
-  color: #1e40af;
   font-size: 1.25rem;
   margin-bottom: 0.25rem;
   display: flex;
@@ -552,11 +511,10 @@ const componentStyles = `
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0;
 }
-.slot-type-badge,
-.room-badge,
-.publish-badge {
+.badge-type,
+.badge-room,
+.badge-status {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -564,22 +522,21 @@ const componentStyles = `
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
-  border: 1px solid;
 }
-.room-badge {
-  background-color: #f1f5f9;
+.badge-room {
+  background: #f1f5f9;
   color: #4a5568;
-  border-color: #e2e8f0;
+  border: 1px solid #e2e8f0;
 }
-.publish-badge.published {
-  background-color: #dcfce7;
+.badge-status.published {
+  background: #dcfce7;
   color: #166534;
-  border-color: #bbf7d0;
+  border: 1px solid #bbf7d0;
 }
-.publish-badge.draft {
-  background-color: #fee2e2;
+.badge-status.draft {
+  background: #fee2e2;
   color: #b91c1c;
-  border-color: #fecaca;
+  border: 1px solid #fecaca;
 }
 .timetable-info {
   display: flex;
@@ -598,7 +555,7 @@ const componentStyles = `
   font-size: 0.85rem;
   color: #64748b;
 }
-.content-footer {
+.content-bottom {
   padding-top: 0.75rem;
   border-top: 1px dashed #e2e8f0;
   display: flex;
@@ -612,9 +569,8 @@ const componentStyles = `
   color: #4a5568;
   font-size: 0.95rem;
 }
-.action-section {
-  display: flex;
-  gap: 0.75rem;
+.teacher-icon {
+  color: #1a4b6d;
 }
 .btn-action {
   width: 100%;
@@ -630,40 +586,42 @@ const componentStyles = `
   gap: 0.75rem;
   transition: all 0.3s ease;
 }
-.btn-action.btn-start {
-  background: linear-gradient(135deg, #28a745, #218838);
+.btn-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+.btn-creating {
+  background: #28a745;
+  color: white;
+}
+.btn-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 2px solid #86efac;
+}
+.btn-ended {
+  background: #cbd5e1;
+  color: #64748b;
+}
+.btn-unpublished {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.btn-upcoming {
+  background: #f0f9ff;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+.btn-start {
+  background: #28a745;
   color: white;
   box-shadow: 0 4px 15px rgba(40, 167, 69, 0.35);
 }
-.btn-action.btn-start:hover {
+.btn-start:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(40, 167, 69, 0.45);
 }
-.btn-action.btn-creating {
-  background-color: #28a745;
-  color: white;
-  opacity: 0.8;
-  cursor: not-allowed;
-}
-.btn-action.btn-active {
-  background-color: #dcfce7;
-  color: #166534;
-  border: 2px solid #86efac;
-  cursor: default;
-}
-.btn-action.btn-ended,
-.btn-action.btn-upcoming {
-  background-color: #cbd5e1;
-  color: #64748b;
-  cursor: not-allowed;
-}
-.btn-action.btn-unpublished {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-  cursor: default;
-}
-/* Info Messages */
 .info-message {
   padding: 0.75rem;
   border-radius: 10px;
@@ -672,45 +630,53 @@ const componentStyles = `
   align-items: center;
   gap: 0.5rem;
 }
-.info-message.error {
-  background-color: #fee2e2;
+.info-error {
+  background: #fee2e2;
   color: #b91c1c;
   border: 1px solid #fecaca;
 }
-.info-message.success {
-  background-color: #dcfce7;
+.info-success {
+  background: #dcfce7;
   color: #166534;
   border: 1px solid #86efac;
 }
-.info-message.info {
-  background-color: #f0f9ff;
+.info-info {
+  background: #f0f9ff;
   color: #0c4a6e;
   border: 1px solid #bae6fd;
 }
-/* ================= INFO BANNER ================= */
+.info-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
 .info-banner {
   margin-top: 1.5rem;
   padding: 1.25rem;
   border-radius: 16px;
-  background-color: #fffbeb;
+  background: #fffbeb;
   border: 1px solid #f59e0b;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
 }
-.info-content {
+.info-banner-icon {
+  color: #ffc107;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+}
+.info-banner-content {
   color: #92400e;
   font-size: 0.95rem;
   line-height: 1.6;
 }
-/* ================= EMPTY STATE ================= */
 .empty-state {
   padding: 3rem 1.5rem;
   text-align: center;
   color: #64748b;
 }
 .empty-icon {
-  font-size: 5rem;
   margin-bottom: 1.5rem;
   opacity: 0.3;
   color: #e2e8f0;
@@ -728,24 +694,32 @@ const componentStyles = `
   margin: 0 auto;
   line-height: 1.6;
 }
-/* ================= UTILITIES ================= */
 .spin {
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
   to {
     transform: rotate(360deg);
   }
 }
-/* ================= RESPONSIVE ================= */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
 @media (max-width: 1024px) {
   .schedule-container {
     padding: 1rem;
   }
-  .schedule-content {
-    padding: 1rem;
-  }
-  .header-main {
+  .header-top {
     padding: 1.25rem;
     flex-direction: column;
     text-align: center;
@@ -757,40 +731,29 @@ const componentStyles = `
     width: 100%;
     justify-content: center;
   }
-  .schedule-row {
-    padding: 1rem;
-  }
-  .content-header {
-    flex-direction: column;
-  }
-  .timetable-info {
-    align-items: flex-start;
-    margin-top: 0.5rem;
-  }
-}
-@media (max-width: 768px) {
-  .schedule-row {
-    flex-direction: column;
-  }
-  .time-column {
-    min-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #e2e8f0;
-    margin-bottom: 0.5rem;
-    flex-direction: row;
-    justify-content: space-between;
-  }
-  .btn-action {
-    font-size: 0.95rem;
-    padding: 0.75rem;
+  .stats-bar {
+    padding: 0.75rem 1rem;
   }
   .stats-items {
     gap: 0.75rem;
   }
-  .stat-icon-wrapper {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
+}
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  .content-top {
+    flex-direction: column;
+  }
+  .timetable-info {
+    align-items: flex-start;
+    min-width: 100%;
+    margin-top: 0.5rem;
+  }
+  .btn-action {
+    font-size: 0.95rem;
+    padding: 0.75rem;
   }
 }
 @media (max-width: 480px) {
@@ -805,17 +768,13 @@ const componentStyles = `
     height: 50px;
     font-size: 1.5rem;
   }
-  .card-title {
-    font-size: 1.25rem;
-  }
   .subject-name {
     font-size: 1.1rem;
   }
-  .time-start {
-    font-size: 1.2rem;
+  .schedule-row {
+    padding: 1rem;
   }
 }
-/* ================= TOASTIFY OVERRIDES ================= */
 .Toastify__toast {
   border-radius: 10px;
   font-weight: 500;
@@ -849,20 +808,25 @@ export default function MySchedule() {
   const navigate = useNavigate();
   const toastIds = useRef({});
 
-  // Update current time every second for accurate slot checking
+  // Safe window check
+  const isClient = typeof window !== "undefined";
+  const getWindowWidth = () => (isClient ? window.innerWidth : 1024);
+
+  // Update current time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
+    if (!isClient) return;
     const today = new Date().toISOString().split("T")[0];
     const storedSessions = localStorage.getItem(`activeSessions_${today}`);
     const storedAttendance = localStorage.getItem(
-      `attendanceSessions_${today}`
+      `attendanceSessions_${today}`,
     );
     if (storedSessions) {
       try {
@@ -875,33 +839,52 @@ export default function MySchedule() {
       try {
         setAttendanceSessions(JSON.parse(storedAttendance));
       } catch (e) {
-        console.error("Failed to parse attendance sessions:", e);
+        console.error("Failed to parse stored attendance:", e);
       }
     }
     setSessionsLoaded(true);
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
+        setError(null);
+
+        // Load weekly schedule (all slots for teacher)
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
-        
+
         // Fetch today's slots with attendance status (NEW)
         await loadTodaySlots();
-        
+
         // Fetch active attendance sessions
         await loadActiveSessions();
+
+        if (!toastIds.current.success) {
+          toast.success("Schedule loaded successfully!", {
+            toastId: "schedule-success",
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaCheckCircle />,
+          });
+          toastIds.current.success = true;
+        }
       } catch (err) {
         console.error("Failed to load schedule:", err);
-        setError("Failed to load your schedule. Please try again.");
-        // Removed toastIds check to allow error notification on retry/load
-        toast.error("Failed to load schedule", {
-          toastId: "schedule-error",
-          position: "top-right",
-          autoClose: 5000,
-        });
+        const errorMsg =
+          err.response?.data?.message ||
+          "Failed to load your schedule. Please try again.";
+        setError(errorMsg);
+        if (!toastIds.current.error) {
+          toast.error(errorMsg, {
+            toastId: "schedule-error",
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />,
+          });
+          toastIds.current.error = true;
+        }
       } finally {
         setLoading(false);
       }
@@ -949,22 +932,25 @@ export default function MySchedule() {
       setActiveSessions(sessionsMap);
       setAttendanceSessions(attendanceMap);
       // Store in localStorage
-      localStorage.setItem(
-        `activeSessions_${todayStr}`,
-        JSON.stringify(sessionsMap)
-      );
-      localStorage.setItem(
-        `attendanceSessions_${todayStr}`,
-        JSON.stringify(attendanceMap)
-      );
+      if (isClient) {
+        localStorage.setItem(
+          `activeSessions_${todayStr}`,
+          JSON.stringify(sessionsMap),
+        );
+        localStorage.setItem(
+          `attendanceSessions_${todayStr}`,
+          JSON.stringify(attendanceMap),
+        );
+      }
     } catch (err) {
       console.error("Failed to load active sessions:", err);
-      // Don't throw error, just use localStorage data
+      // Don't show error toast for this, just use empty state
     }
   };
 
   // Calculate time remaining for active sessions
   useEffect(() => {
+    if (!isClient) return;
     const timer = setInterval(() => {
       const newTimers = {};
       Object.keys(activeSessions).forEach((slotId) => {
@@ -988,7 +974,7 @@ export default function MySchedule() {
       setSessionTimers(newTimers);
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeSessions, weekly]);
+  }, [activeSessions, weekly, isClient]);
 
   // Find slot by ID
   const findSlotById = (slotId) => {
@@ -1001,10 +987,22 @@ export default function MySchedule() {
   };
 
   /* ================= CREATE ATTENDANCE ================= */
-  const startAttendance = async (slot) => {
+  const startAttendance = async (slot, timeSlot) => {
     const today = new Date();
-    const currentDayAbbr = DAYS[today.getDay() - 1] || "MON";
-    // STRICT VALIDATION 1: Only today's classes
+
+    // ✅ CORRECT: Get today's day abbreviation
+    const dayMap = {
+      0: "SUN",
+      1: "MON",
+      2: "TUE",
+      3: "WED",
+      4: "THU",
+      5: "FRI",
+      6: "SAT",
+    };
+    const currentDayAbbr = dayMap[today.getDay()];
+
+    // Check if it's today's lecture
     if (slot.day !== currentDayAbbr) {
       toast.error("Attendance can only be started for today's lectures.", {
         toastId: "day-error",
@@ -1014,8 +1012,46 @@ export default function MySchedule() {
       });
       return;
     }
-    // STRICT VALIDATION 2: Check if already active
-    if (activeSessions[slot._id]) {
+
+    // ✅ STRICT TIME CHECK: Verify current time is within slot time
+    const [startTime, endTime] = timeSlot.split(" - ");
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    // ✅ Check if class time has started
+    if (currentMinutes < startMinutes) {
+      toast.error(
+        `Class hasn't started yet. Attendance can be started from ${startTime}.`,
+        {
+          toastId: "before-time",
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaHourglassStart />,
+        },
+      );
+      return;
+    }
+
+    // ✅ Check if class time has ended
+    if (currentMinutes >= endMinutes) {
+      toast.error(
+        `Class has ended at ${endTime}. Attendance cannot be started after class time.`,
+        {
+          toastId: "after-time",
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaHourglassEnd />,
+        },
+      );
+      return;
+    }
+
+    // Check if attendance is already active (from backend data)
+    if (slot.hasOpenSession) {
       toast.warning("Attendance session is already active for this lecture.", {
         toastId: "already-active",
         position: "top-right",
@@ -1024,92 +1060,40 @@ export default function MySchedule() {
       });
       return;
     }
-    // STRICT VALIDATION 3: Check if attendance already exists
-    if (attendanceSessions[slot._id]) {
-      toast.warning("Attendance already created for this lecture.", {
-        toastId: "already-exists",
-        position: "top-right",
-        autoClose: 4000,
-        icon: <FaInfoCircle />,
-      });
-      return;
-    }
-    // STRICT VALIDATION 4: Check if timetable is published
-    if (slot.timetable_id?.status !== "PUBLISHED") {
-      toast.error("Cannot start attendance for unpublished timetable.", {
-        toastId: "unpublished",
-        position: "top-right",
-        autoClose: 4000,
-        icon: <FaExclamationTriangle />,
-      });
-      return;
-    }
-    // STRICT VALIDATION 5: Check current time is within slot time
-    const [startHour, startMin] = slot.startTime.split(":").map(Number);
-    const [endHour, endMin] = slot.endTime.split(":").map(Number);
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    if (currentMinutes < startMinutes) {
-      const minsUntilStart = startMinutes - currentMinutes;
-      toast.error(
-        `Attendance cannot be started before lecture time. Starts in ${minsUntilStart} minutes.`,
-        {
-          toastId: "before-time",
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaClock />,
-        }
-      );
-      return;
-    }
-    
-    // ✅ Check if class time has ended
-    if (currentMinutes >= endMinutes) {
-      toast.error(
-        "Attendance cannot be started after lecture end time. Class has ended.",
-        {
-          toastId: "after-time",
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaClock />,
-        }
-      );
-      return;
-    }
-    // Show confirmation toast instead of window.confirm
-    toast.info(
-      `Start attendance for ${slot.subject_id?.name}? This will create a new attendance session.`,
-      {
-        toastId: "confirm-start",
-        position: "top-center",
-        autoClose: 8000,
-        icon: <FaInfoCircle />,
-        action: {
-          label: "Start",
-          onClick: () => confirmStartAttendance(slot),
-        },
-      }
-    );
-  };
 
-  // Confirm start attendance (called from toast action)
-  const confirmStartAttendance = async (slot) => {
-    const today = new Date(); // Fixed: Added missing definition
+    // Check if attendance already exists (closed session)
+    if (slot.hasClosedSession) {
+      toast.warning("Attendance session is already closed for this lecture.", {
+        toastId: "already-closed",
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaInfoCircle />,
+      });
+      return;
+    }
+
+    // Confirm before creating
+    const confirmed = window.confirm(
+      `Start attendance for ${slot.subject_id?.name}?\n` +
+        `Time: ${timeSlot}\n` +
+        `Room: ${slot.room || "N/A"}\n` +
+        `This will create a new attendance session for today's lecture.`,
+    );
+    if (!confirmed) return;
+
     try {
       setCreating(slot._id);
       const todayDate = today.toISOString().split("T")[0];
-      
+
       const res = await api.post("/attendance/sessions", {
         slot_id: slot._id,
         lectureDate: todayDate,
         lectureNumber: 1,
       });
-      
+
       const newSession = res.data.session;
       const slotId = slot._id;
-      
+
       // Update state
       const newActiveSessions = {
         ...activeSessions,
@@ -1121,29 +1105,36 @@ export default function MySchedule() {
       };
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
-      
+
       // Store in localStorage
-      const todayStr = today.toISOString().split("T")[0];
-      localStorage.setItem(
-        `activeSessions_${todayStr}`,
-        JSON.stringify(newActiveSessions)
-      );
-      localStorage.setItem(
-        `attendanceSessions_${todayStr}`,
-        JSON.stringify(newAttendanceSessions)
-      );
-      // Success toast
-      toast.success("Attendance session started successfully!", {
+      if (isClient) {
+        const todayStr = today.toISOString().split("T")[0];
+        localStorage.setItem(
+          `activeSessions_${todayStr}`,
+          JSON.stringify(newActiveSessions),
+        );
+        localStorage.setItem(
+          `attendanceSessions_${todayStr}`,
+          JSON.stringify(newAttendanceSessions),
+        );
+      }
+
+      toast.success("Attendance session started successfully! Redirecting...", {
         toastId: "start-success",
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 2000,
         icon: <FaCheckCircle />,
       });
-      // Navigate to attendance marking
+
+      // Refresh today's slots data
+      await loadTodaySlots();
+
+      // Navigate to session page
       setTimeout(() => {
         navigate(`/attendance/session/${newSession._id}`);
-      }, 1500);
+      }, 2000);
     } catch (err) {
+      console.error("Failed to create attendance session:", err);
       const message =
         err.response?.data?.message ||
         "Failed to create attendance session. Please try again.";
@@ -1153,9 +1144,13 @@ export default function MySchedule() {
         autoClose: 5000,
         icon: <FaExclamationTriangle />,
       });
-      
+
       // If error says attendance already exists, update the state
-      if (message.includes("already") || message.includes("exists")) {
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("exists") ||
+        message.toLowerCase().includes("duplicate")
+      ) {
         const slotId = slot._id;
         const newActiveSessions = {
           ...activeSessions,
@@ -1167,15 +1162,17 @@ export default function MySchedule() {
         };
         setActiveSessions(newActiveSessions);
         setAttendanceSessions(newAttendanceSessions);
-        const todayStr = today.toISOString().split("T")[0];
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(newActiveSessions)
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(newAttendanceSessions)
-        );
+        if (isClient) {
+          const todayStr = today.toISOString().split("T")[0];
+          localStorage.setItem(
+            `activeSessions_${todayStr}`,
+            JSON.stringify(newActiveSessions),
+          );
+          localStorage.setItem(
+            `attendanceSessions_${todayStr}`,
+            JSON.stringify(newAttendanceSessions),
+          );
+        }
       }
     } finally {
       setCreating(null);
@@ -1184,23 +1181,29 @@ export default function MySchedule() {
 
   // Get current day and time for highlighting
   const today = new Date();
-  
+
   // ✅ CORRECT: Get today's day abbreviation
   const dayMap = {
-    0: 'SUN', 1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT'
+    0: "SUN",
+    1: "MON",
+    2: "TUE",
+    3: "WED",
+    4: "THU",
+    5: "FRI",
+    6: "SAT",
   };
   const currentDayAbbr = dayMap[today.getDay()];
-  const currentDayName = DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
+  const currentDayName =
+    DAY_NAMES[DAYS.indexOf(currentDayAbbr)] || currentDayAbbr;
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
 
   // Filter today's slots only - Use todaySlotsData if available, otherwise fall back to weekly
-  const todaysSlots = todaySlotsData?.slots || (weekly[currentDayAbbr] || []);
+  const todaysSlots = todaySlotsData?.slots || weekly[currentDayAbbr] || [];
 
   // Responsive styles
   const getResponsiveStyles = () => {
-    // Fixed: Added window check
-    const width = typeof window !== 'undefined' ? window.innerWidth : 1024;
+    const width = getWindowWidth();
     const isMobile = width < 768;
     const isTablet = width >= 768 && width < 1024;
     return {
@@ -1267,257 +1270,300 @@ export default function MySchedule() {
             <p>Fetching your teaching schedule for {currentDayName}</p>
           </div>
         </div>
-        {/* Inject Styles */}
         <style>{componentStyles}</style>
       </div>
     );
   }
 
   return (
-    <div className="schedule-container">
-      {/* Inject Styles */}
-      <style>{componentStyles}</style>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-      <AnimatePresence mode="wait">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="schedule-container"
+      >
+        <style>{componentStyles}</style>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+        <div
           className="schedule-content"
+          style={{ maxWidth: styles.container.maxWidth }}
         >
-          <div className="schedule-wrapper">
-            {/* ================= BREADCRUMB ================= */}
-            <motion.div
-              variants={slideDownVariants}
-              initial="hidden"
-              animate="visible"
-              className="breadcrumb"
+          {/* ================= BREADCRUMB ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            className="breadcrumb"
+          >
+            <motion.button
+              whileHover={{ x: -5 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/teacher/dashboard")}
+              className="btn-breadcrumb"
             >
-              <motion.button
-                whileHover={{ x: -5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/teacher/dashboard")}
-                className="btn-back"
-              >
-                <FaArrowLeft /> Back to Dashboard
-              </motion.button>
-              <span className="breadcrumb-separator">›</span>
-              <span className="breadcrumb-current">Today's Schedule</span>
-            </motion.div>
-            {/* ================= HEADER ================= */}
-            <motion.div
-              variants={slideDownVariants}
-              initial="hidden"
-              animate="visible"
-              className="schedule-header"
-            >
-              <div className="header-main">
-                <div className="header-left">
-                  <motion.div
-                    variants={pulseVariants}
-                    initial="initial"
-                    animate="pulse"
-                    className="header-icon-wrapper"
+              <FaArrowLeft /> Back to Dashboard
+            </motion.button>
+            <span className="breadcrumb-separator">›</span>
+            <span className="breadcrumb-current">Today's Schedule</span>
+          </motion.div>
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            className="schedule-header"
+          >
+            <div className="header-top">
+              <div className="header-left">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="header-icon-wrapper"
+                  style={{
+                    width: styles.headerIcon.width,
+                    height: styles.headerIcon.height,
+                    fontSize: styles.headerIcon.fontSize,
+                  }}
+                >
+                  <FaCalendarAlt />
+                </motion.div>
+                <div>
+                  <h1
+                    className="header-title"
+                    style={{ fontSize: styles.headerTitle.fontSize }}
                   >
-                    <FaCalendarAlt />
-                  </motion.div>
-                  <div>
-                    <h1 className="header-title">Today's Schedule</h1>
-                    <p className="header-subtitle">
-                      <FaSun /> {currentDayName},{" "}
-                      {today.toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <div className="header-right">
-                  <div className="current-time-badge">
-                    <div className="time-label">Current Time</div>
-                    <div className="time-value">
-                      {currentTime.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </div>
-                  </div>
-                  <motion.button
-                    whileHover={{
-                      scale: 1.05,
-                      boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
-                    }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={async () => {
-                      await loadActiveSessions();
-                      window.location.reload();
-                    }}
-                    className="btn-refresh"
+                    Today's Schedule
+                  </h1>
+                  <p
+                    className="header-subtitle"
+                    style={{ fontSize: styles.headerSubtitle.fontSize }}
                   >
-                    <FaSyncAlt className={loading ? "spin" : ""} />
-                    <span className="btn-text">Refresh</span>
-                  </motion.button>
+                    <FaSun /> {currentDayName},{" "}
+                    {today.toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
                 </div>
               </div>
-              {/* Stats Bar */}
-              <div className="stats-bar">
-                <div className="stats-items">
-                  <StatItem
-                    icon={<FaUniversity />}
-                    label="Total Classes"
-                    value={todaysSlots.length}
-                    color={BRAND_COLORS.primary.main}
-                    styles={styles}
-                  />
-                  <StatItem
-                    icon={<FaCheckCircle />}
-                    label="Published"
-                    value={
-                      todaysSlots.filter(
-                        (s) => s.timetable_id?.status === "PUBLISHED"
-                      ).length
-                    }
-                    color={BRAND_COLORS.success.main}
-                    styles={styles}
-                  />
-                  <StatItem
-                    icon={<FaBell />}
-                    label="Active Sessions"
-                    value={Object.keys(activeSessions).length}
-                    color={BRAND_COLORS.warning.main}
-                    styles={styles}
-                  />
-                  <StatItem
-                    icon={<FaUserClock />}
-                    label="Time Remaining"
-                    value={getSessionTimeRemaining()}
-                    color={BRAND_COLORS.info.main}
-                    styles={styles}
-                  />
-                </div>
-                <div className="day-badge">
-                  <FaCalendarAlt size={14} />
-                  {currentDayName}
-                </div>
-              </div>
-            </motion.div>
-            {/* ================= ERROR STATE ================= */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="error-banner"
-              >
-                <FaExclamationTriangle size={20} />
-                <span>{error}</span>
-              </motion.div>
-            )}
-            {/* ================= TODAY'S SCHEDULE ================= */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              className="schedule-card"
-            >
-              <div className="card-header">
-                <h2 className="card-title">
-                  <FaSun style={{ color: BRAND_COLORS.warning.main }} /> Today's
-                  Classes
-                </h2>
-                <div className="info-badge">
-                  <FaInfoCircle />
-                  <span className="info-text">
-                    Only today's classes are shown
-                  </span>
-                </div>
-              </div>
-              <div className="card-body">
-                {todaysSlots.length === 0 ? (
-                  <EmptyState
-                    icon={<FaCalendarAlt />}
-                    title="No Classes Today"
-                    message={`You don't have any scheduled classes for ${currentDayName}. Enjoy your day off!`}
-                  />
-                ) : (
-                  <div className="slots-grid">
-                    {todaysSlots.map((slot, idx) => {
-                      const time = `${slot.startTime} - ${slot.endTime}`;
-                      return (
-                        <ScheduleRow
-                          key={slot._id}
-                          time={time}
-                          slot={slot}
-                          onStartAttendance={startAttendance}
-                          creating={creating === slot._id}
-                          delay={idx * 0.05}
-                          hasActiveSession={!!activeSessions[slot._id]}
-                          hasAttendanceSession={!!attendanceSessions[slot._id]}
-                          sessionTimer={sessionTimers[slot._id]}
-                          styles={styles}
-                        />
-                      );
+              <div className="header-right">
+                <div className="current-time-badge">
+                  <div className="time-label">Current Time</div>
+                  <div className="time-value">
+                    {currentTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
                     })}
                   </div>
-                )}
+                </div>
+                <motion.button
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={async () => {
+                    setLoading(true);
+                    await loadActiveSessions();
+                    setLoading(false);
+                    toast.info("Schedule refreshed!", {
+                      position: "top-right",
+                      autoClose: 2000,
+                      icon: <FaSyncAlt />,
+                    });
+                  }}
+                  className="btn-refresh"
+                >
+                  <FaSyncAlt className={loading ? "spin" : ""} />
+                  <span className="btn-text">Refresh</span>
+                </motion.button>
               </div>
-            </motion.div>
-            {/* Info Banner */}
+            </div>
+            {/* Stats Bar */}
+            <div className="stats-bar">
+              <div className="stats-items">
+                <StatItem
+                  icon={<FaUniversity />}
+                  label="Total Classes"
+                  value={todaysSlots.length}
+                  color={BRAND_COLORS.primary.main}
+                  styles={styles}
+                />
+                <StatItem
+                  icon={<FaCheckCircle />}
+                  label="Available for Attendance"
+                  value={
+                    todaySlotsData?.availableForAttendance ||
+                    todaysSlots.filter(
+                      (s) => s.timetable_id?.status === "PUBLISHED",
+                    ).length
+                  }
+                  color={BRAND_COLORS.success.main}
+                  styles={styles}
+                />
+                <StatItem
+                  icon={<FaBell />}
+                  label="Active Sessions"
+                  value={Object.keys(activeSessions).length}
+                  color={BRAND_COLORS.warning.main}
+                  styles={styles}
+                />
+              </div>
+              <div className="day-badge">
+                <FaCalendarAlt size={14} />
+                {currentDayName}
+              </div>
+            </div>
+          </motion.div>
+          {/* ================= ERROR STATE ================= */}
+          {error && (
             <motion.div
-              variants={fadeInVariants}
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              className="info-banner"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="error-banner"
             >
-              <FaInfoCircle
-                size={24}
-                style={{ color: BRAND_COLORS.warning.main, flexShrink: 0 }}
-              />
-              <div className="info-content">
-                <strong>Attendance Policy:</strong> Attendance can ONLY be
-                started during the actual lecture time (between start and end
-                time). Attendance cannot be marked before the class starts or
-                after it ends. The Start Attendance button will automatically
-                enable at start time and disable after end time.
-              </div>
+              <FaExclamationTriangle size={getWindowWidth() < 768 ? 16 : 20} />
+              <span>{error}</span>
+              <button
+                onClick={() => {
+                  setError(null);
+                  toastIds.current.error = false;
+                }}
+                className="error-close"
+              >
+                <FaTimesCircle />
+              </button>
             </motion.div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+          )}
+          {/* ================= TODAY'S SCHEDULE ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            className="schedule-card"
+          >
+            <div className="card-header">
+              <h2>
+                <FaSun className="sun-icon" /> Today's Classes
+              </h2>
+              <div className="info-badge">
+                <FaInfoCircle />
+                <span className="info-text">
+                  Only today's classes are shown
+                </span>
+              </div>
+            </div>
+            <div
+              className="card-body"
+              style={{ padding: styles.cardPadding.padding }}
+            >
+              {todaysSlots.length === 0 ? (
+                <EmptyState
+                  icon={<FaCalendarAlt />}
+                  title="No Classes Today"
+                  message={`You don't have any scheduled classes for ${currentDayName}. Enjoy your day off!`}
+                />
+              ) : (
+                <div className="slots-list">
+                  {todaysSlots.map((slot, idx) => {
+                    const time = `${slot.startTime} - ${slot.endTime}`;
+                    return (
+                      <ScheduleRow
+                        key={slot._id || time}
+                        time={time}
+                        slot={slot}
+                        isCurrent={isCurrentTimeSlot(time)}
+                        onStartAttendance={startAttendance}
+                        creating={creating === slot._id}
+                        delay={idx * 0.05}
+                        hasActiveSession={
+                          !!activeSessions[slot._id] || slot.hasOpenSession
+                        }
+                        hasAttendanceSession={
+                          !!attendanceSessions[slot._id] ||
+                          slot.hasClosedSession
+                        }
+                        sessionTimer={sessionTimers[slot._id]}
+                        styles={styles}
+                        attendanceMessage={slot.message}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+          {/* Info Banner */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            className="info-banner"
+          >
+            <FaLightbulb className="info-banner-icon" />
+            <div className="info-banner-content">
+              <strong>Attendance Policy:</strong> You can only start attendance
+              for currently active classes (between start and end time). The
+              button will automatically enable at start time and disable after
+              end time. Once started, attendance cannot be created again.
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
 /* ================= HELPER FUNCTIONS ================= */
-function getSessionTimeRemaining() {
-  // Calculate total time remaining across all active sessions
-  return "Active";
+function isCurrentTimeSlot(timeSlot) {
+  const [startTime, endTime] = timeSlot.split(" - ");
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  const currentMinutes = currentHour * 60 + currentMinute;
+  return currentMinutes >= startMinutes && currentMinutes < endMinutes;
 }
 
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color, styles }) {
-  // Fixed: Added window check
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  const isMobile =
+    typeof window !== "undefined" ? window.innerWidth < 768 : false;
   return (
     <div className="stat-item">
-      <div className="stat-icon-wrapper" style={{ color }}>
+      <div
+        className="stat-icon"
+        style={{
+          width: isMobile ? "32px" : "36px",
+          height: isMobile ? "32px" : "36px",
+          backgroundColor: `${color}15`,
+          color: color,
+          fontSize: isMobile ? "1rem" : "1.1rem",
+        }}
+      >
         {icon}
       </div>
-      <div className="stat-content">
+      <div className="stat-info">
         <div
           className="stat-label"
           style={{ fontSize: styles.statsLabel.fontSize }}
@@ -1539,6 +1585,7 @@ function StatItem({ icon, label, value, color, styles }) {
 function ScheduleRow({
   time,
   slot,
+  isCurrent,
   onStartAttendance,
   creating,
   delay = 0,
@@ -1551,9 +1598,10 @@ function ScheduleRow({
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
   const isPublished = slot.timetable_id?.status === "PUBLISHED";
-  // Fixed: Added window check
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-  // Determine slot status with STRICT time validation
+  const isMobile =
+    typeof window !== "undefined" ? window.innerWidth < 768 : false;
+
+  // Determine slot status
   const [startTime, endTime] = time.split(" - ");
   const [startHour, startMin] = startTime.split(":").map(Number);
   const [endHour, endMin] = endTime.split(":").map(Number);
@@ -1561,97 +1609,112 @@ function ScheduleRow({
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
-  const isCurrent = currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  
+
   // ✅ Check backend status first (highest priority)
   const hasClosedSession = slot.hasClosedSession || hasAttendanceSession;
   const hasOpenSession = slot.hasOpenSession || hasActiveSession;
-  
+
   let slotStatus = "upcoming";
   if (currentMinutes >= endMinutes) {
     slotStatus = "past";
   } else if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
     slotStatus = "active";
   }
-  // Button is enabled ONLY if: published AND currently active time AND no existing session
+
+  // ✅ Button is enabled ONLY if ALL conditions are met:
+  // 1. Timetable is published
+  // 2. Currently within class time (not before, not after)
+  // 3. No existing open session
+  // 4. No existing closed session
   const canStartAttendance =
     isPublished &&
-    slotStatus === "active" &&
-    !hasActiveSession &&
-    !hasAttendanceSession;
-  // Determine button state
+    slotStatus === "active" && // ✅ STRICT: Must be within time window
+    !hasOpenSession &&
+    !hasClosedSession;
+
+  // Determine button state (priority order)
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
   } else if (hasOpenSession) {
-    buttonState = "active";  // ✅ Backend says session is open
+    buttonState = "active"; // ✅ Backend says session is open
   } else if (hasClosedSession) {
-    buttonState = "ended";  // ✅ Backend says session is closed
+    buttonState = "ended"; // ✅ Backend says session is closed
   } else if (slotStatus === "past") {
-    buttonState = "ended";
-  } else if (slotStatus === "upcoming") {
-    buttonState = "upcoming";
+    buttonState = "ended"; // ✅ Time-based: class ended
   } else if (!isPublished) {
     buttonState = "unpublished";
+  } else if (slotStatus === "upcoming") {
+    buttonState = "upcoming";
   }
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.5 }}
+      transition={{ delay: delay, duration: 0.5 }}
       whileHover={{
         y: isMobile ? 0 : -3,
         boxShadow: isMobile
           ? "0 2px 8px rgba(0, 0, 0, 0.06)"
           : "0 8px 20px rgba(0, 0, 0, 0.1)",
       }}
-      className={`schedule-row ${slotStatus}`}
+      className="schedule-row"
       style={{
         borderColor: slotType.border,
-        backgroundColor:
-          slotStatus === "active" && !hasActiveSession
-            ? `${BRAND_COLORS.primary.main}08`
-            : "white",
+        flexDirection: isMobile ? "column" : "row",
+        gap: isMobile ? "1rem" : "1.5rem",
+        padding: isMobile ? "1rem" : "1.25rem",
+        boxShadow:
+          isCurrent && !hasActiveSession
+            ? `0 0 0 3px ${BRAND_COLORS.primary.main}20`
+            : "0 2px 8px rgba(0, 0, 0, 0.06)",
+        opacity: slotStatus === "past" ? 0.7 : 1,
       }}
     >
-      {slotStatus === "active" && !hasActiveSession && (
-        <div className="active-indicator" />
-      )}
+      {isCurrent && !hasActiveSession && <div className="active-indicator" />}
       {/* Time Column */}
       <div
         className="time-column"
         style={{
+          minWidth: isMobile ? "100%" : styles.timeColumn.minWidth,
+          fontSize: styles.timeColumn.fontSize,
+          borderRight: isMobile ? "none" : `1px solid ${slotType.border}`,
+          borderBottom: isMobile ? `1px solid ${slotType.border}` : "none",
           backgroundColor: `${slotType.bg}30`,
-          borderColor: slotType.border,
+          marginBottom: isMobile ? "0.5rem" : "0",
         }}
       >
-        <div className="time-start">{formatTime12Hour(time.split(" - ")[0])}</div>
-        <div className="time-end">to {formatTime12Hour(time.split(" - ")[1])}</div>
+        <div className="time-start">
+          {formatTime12Hour(time.split(" - ")[0])}
+        </div>
+        <div className="time-end">
+          to {formatTime12Hour(time.split(" - ")[1])}
+        </div>
         {isCurrent && !hasActiveSession && (
           <motion.div
-            variants={pulseVariants}
+            variants={floatVariants}
             initial="initial"
-            animate="pulse"
-            className="status-badge-live"
+            animate="float"
+            className="status-badge status-active"
           >
             <FaClock size={12} />
             Currently Active
           </motion.div>
         )}
         {slotStatus === "past" && (
-          <div className="status-badge-past">
+          <div className="status-badge status-completed">
             <FaClock size={12} />
             Completed
           </div>
         )}
         {hasActiveSession && sessionTimer && sessionTimer.isActive && (
-          <div className="status-badge-session">
+          <div className="status-badge status-session-active">
             <FaCheckCircle size={12} />
             {sessionTimer.minutes}m {sessionTimer.seconds}s remaining
           </div>
         )}
         {hasActiveSession && (!sessionTimer || !sessionTimer.isActive) && (
-          <div className="status-badge-session">
+          <div className="status-badge status-session-active">
             <FaCheckCircle size={12} />
             Attendance Active
           </div>
@@ -1659,7 +1722,7 @@ function ScheduleRow({
       </div>
       {/* Content Column */}
       <div className="content-column">
-        <div className="content-header">
+        <div className="content-top">
           <div className="subject-info">
             <div className="subject-name">
               <FaBook size={isMobile ? 16 : 18} />
@@ -1667,7 +1730,7 @@ function ScheduleRow({
             </div>
             <div className="subject-meta">
               <span
-                className="slot-type-badge"
+                className="badge-type"
                 style={{
                   backgroundColor: slotType.bg,
                   color: slotType.text,
@@ -1678,13 +1741,13 @@ function ScheduleRow({
                 {slot.slotType}
               </span>
               {slot.room && (
-                <span className="room-badge">
+                <span className="badge-room">
                   <FaDoorOpen size={12} />
                   Room {slot.room}
                 </span>
               )}
               <span
-                className={`publish-badge ${isPublished ? "published" : "draft"}`}
+                className={`badge-status ${isPublished ? "published" : "draft"}`}
               >
                 {isPublished ? (
                   <>
@@ -1712,19 +1775,19 @@ function ScheduleRow({
           {/* <div className="teacher-info">
             <FaChalkboardTeacher
               size={isMobile ? 14 : 16}
-              style={{ color: BRAND_COLORS.primary.main }}
+              className="teacher-icon"
             />
             <span>{slot.teacher_id?.name || "N/A"}</span>
           </div> */}
           {buttonState === "creating" ? (
-            <motion.button 
-              disabled 
+            <motion.button
+              disabled
               className="btn-action btn-creating"
               style={{
-                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
-                color: 'white',
-                cursor: 'not-allowed',
-                opacity: 0.8
+                background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                color: "white",
+                cursor: "not-allowed",
+                opacity: 0.8,
               }}
             >
               <motion.div variants={spinVariants} animate="animate">
@@ -1733,46 +1796,48 @@ function ScheduleRow({
               Starting Session...
             </motion.button>
           ) : buttonState === "active" ? (
-            <motion.div 
+            <motion.div
               className="btn-action btn-active"
               style={{
-                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
-                color: 'white',
-                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.4)',
-                cursor: 'default'
+                background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                color: "white",
+                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.4)",
+                cursor: "default",
               }}
             >
               <FaCheckCircle size={isMobile ? 18 : 20} />
               <span style={{ fontWeight: 600 }}>Attendance Active</span>
             </motion.div>
           ) : buttonState === "ended" ? (
-            <motion.div 
+            <motion.div
               className="btn-action btn-ended"
               style={{
-                background: 'linear-gradient(135deg, #6c757d, #5a6268)',
-                color: 'white',
-                cursor: 'not-allowed',
-                opacity: 0.7
+                background: "linear-gradient(135deg, #6c757d, #5a6268)",
+                color: "white",
+                cursor: "not-allowed",
+                opacity: 0.7,
               }}
             >
               <FaTimesCircle size={isMobile ? 18 : 20} />
               <span>Session Closed</span>
             </motion.div>
           ) : buttonState === "unpublished" ? (
-            <div className="btn-action btn-unpublished"
+            <div
+              className="btn-action btn-unpublished"
               style={{
-                cursor: 'not-allowed',
-                opacity: 0.6
+                cursor: "not-allowed",
+                opacity: 0.6,
               }}
             >
               <FaExclamationTriangle size={16} />
               <span>Timetable Not Published</span>
             </div>
           ) : buttonState === "upcoming" ? (
-            <div className="btn-action btn-upcoming"
+            <div
+              className="btn-action btn-upcoming"
               style={{
-                cursor: 'not-allowed',
-                opacity: 0.6
+                cursor: "not-allowed",
+                opacity: 0.6,
               }}
             >
               <FaHourglassStart size={16} />
@@ -1780,34 +1845,34 @@ function ScheduleRow({
             </div>
           ) : canStartAttendance ? (
             <motion.button
-              whileHover={{ 
+              whileHover={{
                 scale: 1.03,
-                boxShadow: '0 6px 20px rgba(40, 167, 69, 0.45)'
+                boxShadow: "0 6px 20px rgba(40, 167, 69, 0.45)",
               }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onStartAttendance(slot, time)}
               className="btn-action btn-start"
               style={{
-                background: 'linear-gradient(135deg, #28a745, #1e7e34)',
-                color: 'white',
-                boxShadow: '0 4px 15px rgba(40, 167, 69, 0.35)',
+                background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                color: "white",
+                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.35)",
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: "pointer",
               }}
             >
               <FaPlay />
               <span style={{ fontWeight: 600 }}>Start Attendance</span>
             </motion.button>
           ) : (
-            <button 
-              disabled 
+            <button
+              disabled
               className="btn-action btn-start"
               style={{
-                background: '#e9ecef',
-                color: '#6c757d',
-                cursor: 'not-allowed',
+                background: "#e9ecef",
+                color: "#6c757d",
+                cursor: "not-allowed",
                 opacity: 0.6,
-                boxShadow: 'none'
+                boxShadow: "none",
               }}
             >
               <FaPlay />
@@ -1816,11 +1881,16 @@ function ScheduleRow({
           )}
           {/* Info Messages */}
           {attendanceMessage && (
-            <div className={`info-message info-${
-              attendanceMessage.includes('already') ? 'warning' :
-              attendanceMessage.includes('ended') || attendanceMessage.includes('closed') ? 'error' :
-              'info'
-            }`}>
+            <div
+              className={`info-message info-${
+                attendanceMessage.includes("already")
+                  ? "warning"
+                  : attendanceMessage.includes("ended") ||
+                      attendanceMessage.includes("closed")
+                    ? "error"
+                    : "info"
+              }`}
+            >
               <FaInfoCircle size={16} />
               <span>{attendanceMessage}</span>
             </div>
@@ -1837,7 +1907,8 @@ function ScheduleRow({
             <div className="info-message info-success">
               <FaCheckCircle size={16} />
               <span>
-                Attendance is active. Click the button above to mark student attendance.
+                Attendance is active. Click the button above to mark student
+                attendance.
               </span>
             </div>
           )}
@@ -1852,46 +1923,12 @@ function ScheduleRow({
           {buttonState === "unpublished" && (
             <div className="info-message info-warning">
               <FaExclamationTriangle size={16} />
-              <span>Please ask HOD to publish the timetable to enable attendance.</span>
+              <span>
+                Please ask HOD to publish the timetable to enable attendance.
+              </span>
             </div>
           )}
         </div>
-        {/* Info Messages */}
-        {buttonState === "ended" && isPublished && (
-          <div className="info-message error">
-            <FaInfoCircle size={16} />
-            <span>
-              This class ended at {endTime}. Attendance cannot be started for
-              past classes.
-            </span>
-          </div>
-        )}
-        {buttonState === "active" && (
-          <div className="info-message success">
-            <FaInfoCircle size={16} />
-            <span>
-              Attendance is currently active for this class. You can now mark
-              student attendance.
-            </span>
-          </div>
-        )}
-        {buttonState === "upcoming" && (
-          <div className="info-message info">
-            <FaInfoCircle size={16} />
-            <span>
-              Attendance will be available from {startTime} to {endTime}. Please
-              wait until class starts.
-            </span>
-          </div>
-        )}
-        {buttonState === "unpublished" && (
-          <div className="info-message error">
-            <FaInfoCircle size={16} />
-            <span>
-              Timetable must be published before attendance can be started.
-            </span>
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -1899,15 +1936,20 @@ function ScheduleRow({
 
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message }) {
-  // Fixed: Added window check
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  const isMobile =
+    typeof window !== "undefined" ? window.innerWidth < 768 : false;
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="empty-state"
     >
-      <div className="empty-icon">{icon}</div>
+      <div
+        className="empty-icon"
+        style={{ fontSize: isMobile ? "3.5rem" : "5rem" }}
+      >
+        {icon}
+      </div>
       <h3 className="empty-title">{title}</h3>
       <p className="empty-message">{message}</p>
     </motion.div>
