@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaMoneyBillWave,
   FaChartPie,
@@ -15,7 +17,8 @@ import {
   FaArrowDown,
   FaPercentage,
   FaFileInvoice,
-  FaWallet
+  FaWallet,
+  FaArrowLeft,
 } from "react-icons/fa";
 
 export default function PaymentReports() {
@@ -52,6 +55,27 @@ export default function PaymentReports() {
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
     }
+  };
+
+  /* ================= EXPORT DATA PREPARATION ================= */
+  const formatCurrency = (amount) => {
+    // Use "Rs." prefix instead of ₹ symbol for better PDF compatibility
+    const formatted = new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+    return `Rs. ${formatted}`;
+  };
+
+  const getExportData = () => {
+    if (!data) return [];
+    return [
+      { metric: "Total Expected Fee", value: formatCurrency(data.totalExpectedFee || 0) },
+      { metric: "Total Collected", value: formatCurrency(data.totalCollected || 0) },
+      { metric: "Total Pending", value: formatCurrency(data.totalPending || 0) },
+      { metric: "Collection Rate", value: `${collectionRate.toFixed(1)}%` },
+      { metric: "Pending Rate", value: `${pendingRate.toFixed(1)}%` },
+    ];
   };
 
   /* ================= CALCULATED METRICS ================= */
@@ -197,14 +221,17 @@ export default function PaymentReports() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-outline-primary"
-            onClick={exportCSV}
-            title="Export report data to CSV"
-          >
-            <FaDownload className="erp-btn-icon" />
-            <span>Export CSV</span>
-          </button>
+          <ExportButtons
+            title="Payment Summary Report"
+            columns={[
+              { header: 'Metric', key: 'metric' },
+              { header: 'Value', key: 'value' }
+            ]}
+            data={getExportData()}
+            filename="payment_summary_report"
+            showPDF={true}
+            showExcel={true}
+          />
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchPaymentSummary}
