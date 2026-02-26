@@ -492,6 +492,9 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }) {
                   <NavLink to="/students/promotion" style={getNavLinkStyle}>
                     <FaGraduationCap /> Student Promotion
                   </NavLink>
+                  <NavLink to="/students/alumni" style={getNavLinkStyle}>
+                    <FaGraduationCap /> Alumni Records
+                  </NavLink>
                 </div>
 
                 {/* FEE STRUCTURE SECTION */}

@@ -693,3 +693,116 @@ exports.getStudentsForTeacher = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch students", error: error.message });
   }
 };
+
+/**
+ * 🎓 MOVE STUDENT TO ALUMNI
+ * Only accessible by COLLEGE_ADMIN
+ * Moves a student who has completed their course to Alumni status
+ */
+exports.moveToAlumni = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { graduationYear } = req.body;
+
+    console.log("Moving student to Alumni:", studentId);
+    console.log("Graduation year from request:", graduationYear);
+
+    // Find student
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: "APPROVED",
+    }).populate("course_id", "name code semester");
+
+    if (!student) {
+      throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
+    }
+
+    console.log("Student found:", {
+      fullName: student.fullName,
+      course_id: student.course_id,
+      currentSemester: student.currentSemester,
+    });
+
+    // Check if student is in final semester
+    const maxSemester = student.course_id?.semester || 8;
+    if (student.currentSemester < maxSemester) {
+      throw new AppError(
+        "Student has not completed the course yet. Cannot move to Alumni.",
+        400,
+        "NOT_ELIGIBLE_FOR_ALUMNI"
+      );
+    }
+
+    // Move to Alumni status
+    student.status = "ALUMNI";
+    student.alumniStatus = true;
+    student.alumniDate = new Date();
+    student.graduationYear = graduationYear || new Date().getFullYear();
+
+    console.log("Saving alumni with graduationYear:", student.graduationYear);
+
+    await student.save();
+
+    console.log("Student saved as Alumni successfully");
+
+    res.json({
+      success: true,
+      message: `${student.fullName} has been moved to Alumni successfully`,
+      student: {
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        alumniStatus: student.alumniStatus,
+        alumniDate: student.alumniDate,
+        graduationYear: student.graduationYear,
+        course_id: student.course_id,
+      },
+    });
+  } catch (error) {
+    console.error("Move to Alumni error:", error);
+    next(error);
+  }
+};
+
+/**
+ * 🎓 GET ALL ALUMNI
+ * Only accessible by COLLEGE_ADMIN
+ */
+exports.getAlumni = async (req, res, next) => {
+  try {
+    const { graduationYear, course_id } = req.query;
+
+    const filter = {
+      college_id: req.college_id,
+      status: "ALUMNI",
+    };
+
+    if (graduationYear) {
+      filter.graduationYear = parseInt(graduationYear);
+    }
+
+    if (course_id) {
+      filter.course_id = course_id;
+    }
+
+    const alumni = await Student.find(filter)
+      .populate("course_id", "name code")
+      .populate("department_id", "name code")
+      .sort({ alumniDate: -1 });
+
+    console.log("Alumni fetched:", alumni.length);
+    if (alumni.length > 0) {
+      console.log("First alumni course_id:", alumni[0].course_id);
+      console.log("First alumni graduationYear:", alumni[0].graduationYear);
+    }
+
+    res.json({
+      success: true,
+      count: alumni.length,
+      alumni,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
