@@ -16,6 +16,8 @@ const {
   getRegisteredStudents,
   getRegisteredStudentById,
   getStudentsForTeacher,
+  moveToAlumni,
+  getAlumni,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -135,6 +137,24 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getStudentsForTeacher
+);
+
+// 🎓 ADMIN: Move student to Alumni (for students who completed course)
+router.post(
+  "/:studentId/to-alumni",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  moveToAlumni
+);
+
+// 🎓 ADMIN: Get all Alumni
+router.get(
+  "/alumni",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getAlumni
 );
 
 module.exports = router;
