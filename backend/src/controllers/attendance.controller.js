@@ -1948,6 +1948,7 @@ exports.getStudentAttendanceReport = async (req, res) => {
           code: session.subject_id.code,
           total: 0,
           present: 0,
+          absent: 0, // ✅ Initialize absent count
         };
       }
 
@@ -1955,6 +1956,8 @@ exports.getStudentAttendanceReport = async (req, res) => {
 
       if (record.status === "PRESENT") {
         subjectMap[subjectId].present++;
+      } else if (record.status === "ABSENT") {
+        subjectMap[subjectId].absent++; // ✅ Increment absent count
       }
     }
 
@@ -1970,6 +1973,44 @@ exports.getStudentAttendanceReport = async (req, res) => {
       };
     });
 
+    // 🔥 Get today's sessions
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+    const todaySessions = await AttendanceSession.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+      lectureDate: {
+        $gte: todayDate,
+        $lt: tomorrowDate,
+      },
+    }).populate("subject_id", "name code");
+
+    const todayReport = [];
+    for (const session of todaySessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      if (record) {
+        todayReport.push({
+          date: session.lectureDate,
+          subject: session.subject_id.name,
+          subjectCode: session.subject_id.code,
+          lectureNumber: session.lectureNumber,
+          startTime: session.slotSnapshot?.startTime || "N/A",
+          endTime: session.slotSnapshot?.endTime || "N/A",
+          room: session.slotSnapshot?.room || "Room not assigned",
+          teacher: session.slotSnapshot?.teacher_name || "N/A",
+          status: record.status,
+        });
+      }
+    }
+
     res.json({
       summary: {
         totalLectures: total,
@@ -1979,6 +2020,7 @@ exports.getStudentAttendanceReport = async (req, res) => {
       },
       sessions: sessionReport,
       subjectWise: subjectBreakdown,
+      today: todayReport,
     });
   } catch (error) {
     console.error(error);
