@@ -48,12 +48,13 @@ export default function ViewApproveStudent() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get(`/students/approved-stud/${id}`);
+      // Use registered/:id endpoint for PENDING students (includes all document paths)
+      const res = await api.get(`/students/registered/${id}`);
       setStudent(res.data);
       setRetryCount(0);
     } catch (err) {
       console.error("Student fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load approved student. Please try again.");
+      setError(err.response?.data?.message || "Failed to load student. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -62,6 +63,69 @@ export default function ViewApproveStudent() {
   useEffect(() => {
     fetchStudent();
   }, [id]);
+
+  /* ================= HELPER FUNCTIONS ================= */
+  // Check if 10th details exist (must have at least one non-empty field)
+  const has10thDetails = () => {
+    if (!student) return false;
+    return !!(student.sscSchoolName?.trim() || 
+              student.sscBoard?.trim() || 
+              student.sscPassingYear || 
+              student.sscPercentage || 
+              student.sscRollNumber?.trim());
+  };
+
+  // Check if 12th details exist (must have at least one non-empty field)
+  const has12thDetails = () => {
+    if (!student) return false;
+    return !!(student.hscSchoolName?.trim() || 
+              student.hscBoard?.trim() || 
+              student.hscStream || 
+              student.hscPassingYear || 
+              student.hscPercentage || 
+              student.hscRollNumber?.trim());
+  };
+
+  // Check if any documents were uploaded
+  const hasDocuments = () => {
+    if (!student) return false;
+    return !!(student.sscMarksheetPath || student.hscMarksheetPath || 
+           student.passportPhotoPath || student.categoryCertificatePath ||
+           student.incomeCertificatePath || student.characterCertificatePath ||
+           student.transferCertificatePath || student.aadharCardPath ||
+           student.entranceExamScorePath || student.migrationCertificatePath ||
+           student.domicileCertificatePath || student.casteCertificatePath ||
+           student.nonCreamyLayerCertificatePath || student.physicallyChallengedCertificatePath ||
+           student.sportsQuotaCertificatePath || student.nriSponsorCertificatePath ||
+           student.gapCertificatePath || student.affidavitPath);
+  };
+
+  // Get all uploaded documents as array
+  const getUploadedDocuments = () => {
+    if (!student) return [];
+    
+    const docs = [];
+    if (student.sscMarksheetPath) docs.push({ label: "10th Marksheet", path: student.sscMarksheetPath, icon: <FaFileAlt /> });
+    if (student.hscMarksheetPath) docs.push({ label: "12th Marksheet", path: student.hscMarksheetPath, icon: <FaFileAlt /> });
+    if (student.passportPhotoPath) docs.push({ label: "Passport Photo", path: student.passportPhotoPath, icon: <FaImage /> });
+    if (student.categoryCertificatePath) docs.push({ label: "Category Certificate", path: student.categoryCertificatePath, icon: <FaFileAlt /> });
+    if (student.incomeCertificatePath) docs.push({ label: "Income Certificate", path: student.incomeCertificatePath, icon: <FaFileAlt /> });
+    if (student.characterCertificatePath) docs.push({ label: "Character Certificate", path: student.characterCertificatePath, icon: <FaFileAlt /> });
+    if (student.transferCertificatePath) docs.push({ label: "Transfer Certificate", path: student.transferCertificatePath, icon: <FaFileAlt /> });
+    if (student.aadharCardPath) docs.push({ label: "Aadhar Card", path: student.aadharCardPath, icon: <FaFileAlt /> });
+    if (student.entranceExamScorePath) docs.push({ label: "Entrance Exam Score", path: student.entranceExamScorePath, icon: <FaFileAlt /> });
+    if (student.migrationCertificatePath) docs.push({ label: "Migration Certificate", path: student.migrationCertificatePath, icon: <FaFileAlt /> });
+    if (student.domicileCertificatePath) docs.push({ label: "Domicile Certificate", path: student.domicileCertificatePath, icon: <FaFileAlt /> });
+    if (student.casteCertificatePath) docs.push({ label: "Caste Certificate", path: student.casteCertificatePath, icon: <FaFileAlt /> });
+    if (student.nonCreamyLayerCertificatePath) docs.push({ label: "Non-Creamy Layer Certificate", path: student.nonCreamyLayerCertificatePath, icon: <FaFileAlt /> });
+    if (student.physicallyChallengedCertificatePath) docs.push({ label: "Physically Challenged Certificate", path: student.physicallyChallengedCertificatePath, icon: <FaFileAlt /> });
+    if (student.sportsQuotaCertificatePath) docs.push({ label: "Sports Quota Certificate", path: student.sportsQuotaCertificatePath, icon: <FaFileAlt /> });
+    if (student.nriSponsorCertificatePath) docs.push({ label: "NRI Sponsor Certificate", path: student.nriSponsorCertificatePath, icon: <FaFileAlt /> });
+    if (student.gapCertificatePath) docs.push({ label: "Gap Certificate", path: student.gapCertificatePath, icon: <FaFileAlt /> });
+    if (student.affidavitPath) docs.push({ label: "Affidavit", path: student.affidavitPath, icon: <FaFileAlt /> });
+    
+    return docs;
+  };
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
@@ -370,134 +434,131 @@ export default function ViewApproveStudent() {
             </div>
           </div>
 
-          {/* 10TH (SSC) ACADEMIC DETAILS */}
-          <div className="erp-card">
-            <div className="erp-card-header">
-              <h3>
-                <FaGraduationCap className="erp-card-icon" />
-                10th (SSC) Academic Details
-              </h3>
-            </div>
-            <div className="erp-card-body">
-              <div className="erp-table-container">
-                <table className="erp-detail-table">
-                  <tbody>
-                    <DetailRow
-                      label="School Name"
-                      value={student.sscSchoolName || "N/A"}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.sscBoard || "N/A"}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.sscPassingYear || "N/A"}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={student.sscPercentage ? `${student.sscPercentage}%` : "N/A"}
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.sscRollNumber || "N/A"}
-                      icon={<FaBookOpen />}
-                    />
-                  </tbody>
-                </table>
+          {/* 10TH (SSC) ACADEMIC DETAILS (Conditional) */}
+          {has10thDetails() && (
+            <div className="erp-card">
+              <div className="erp-card-header">
+                <h3>
+                  <FaGraduationCap className="erp-card-icon" />
+                  10th (SSC) Academic Details
+                </h3>
+              </div>
+              <div className="erp-card-body">
+                <div className="erp-table-container">
+                  <table className="erp-detail-table">
+                    <tbody>
+                      <DetailRow
+                        label="School Name"
+                        value={student.sscSchoolName || "N/A"}
+                        icon={<FaUniversity />}
+                      />
+                      <DetailRow
+                        label="Board"
+                        value={student.sscBoard || "N/A"}
+                        icon={<FaUniversity />}
+                      />
+                      <DetailRow
+                        label="Passing Year"
+                        value={student.sscPassingYear || "N/A"}
+                        icon={<FaCalendarAlt />}
+                      />
+                      <DetailRow
+                        label="Percentage / CGPA"
+                        value={student.sscPercentage ? `${student.sscPercentage}%` : "N/A"}
+                        icon={<FaGraduationCap />}
+                      />
+                      <DetailRow
+                        label="Roll Number"
+                        value={student.sscRollNumber || "N/A"}
+                        icon={<FaBookOpen />}
+                      />
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* 12TH (HSC) ACADEMIC DETAILS */}
-          <div className="erp-card">
-            <div className="erp-card-header">
-              <h3>
-                <FaGraduationCap className="erp-card-icon" />
-                12th (HSC) Academic Details
-              </h3>
-            </div>
-            <div className="erp-card-body">
-              <div className="erp-table-container">
-                <table className="erp-detail-table">
-                  <tbody>
-                    <DetailRow
-                      label="School / College Name"
-                      value={student.hscSchoolName || "N/A"}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.hscBoard || "N/A"}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Stream"
-                      value={student.hscStream || "N/A"}
-                      icon={<FaBookOpen />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.hscPassingYear || "N/A"}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={student.hscPercentage ? `${student.hscPercentage}%` : "N/A"}
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.hscRollNumber || "N/A"}
-                      icon={<FaBookOpen />}
-                    />
-                  </tbody>
-                </table>
+          {/* 12TH (HSC) ACADEMIC DETAILS (Conditional) */}
+          {has12thDetails() && (
+            <div className="erp-card">
+              <div className="erp-card-header">
+                <h3>
+                  <FaGraduationCap className="erp-card-icon" />
+                  12th (HSC) Academic Details
+                </h3>
+              </div>
+              <div className="erp-card-body">
+                <div className="erp-table-container">
+                  <table className="erp-detail-table">
+                    <tbody>
+                      <DetailRow
+                        label="School / College Name"
+                        value={student.hscSchoolName || "N/A"}
+                        icon={<FaUniversity />}
+                      />
+                      <DetailRow
+                        label="Board"
+                        value={student.hscBoard || "N/A"}
+                        icon={<FaUniversity />}
+                      />
+                      <DetailRow
+                        label="Stream"
+                        value={student.hscStream || "N/A"}
+                        icon={<FaBookOpen />}
+                      />
+                      <DetailRow
+                        label="Passing Year"
+                        value={student.hscPassingYear || "N/A"}
+                        icon={<FaCalendarAlt />}
+                      />
+                      <DetailRow
+                        label="Percentage / CGPA"
+                        value={student.hscPercentage ? `${student.hscPercentage}%` : "N/A"}
+                        icon={<FaGraduationCap />}
+                      />
+                      <DetailRow
+                        label="Roll Number"
+                        value={student.hscRollNumber || "N/A"}
+                        icon={<FaBookOpen />}
+                      />
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* UPLOADED DOCUMENTS */}
-          <div className="erp-card">
-            <div className="erp-card-header">
-              <h3>
-                <FaFileAlt className="erp-card-icon" />
-                Uploaded Documents
-              </h3>
-            </div>
-            <div className="erp-card-body">
-              <div className="erp-table-container">
-                <table className="erp-detail-table">
-                  <tbody>
-                    <DocumentRow
-                      label="10th Marksheet"
-                      path={student.sscMarksheetPath}
-                      icon={<FaFileAlt />}
-                    />
-                    <DocumentRow
-                      label="12th Marksheet"
-                      path={student.hscMarksheetPath}
-                      icon={<FaFileAlt />}
-                    />
-                    <DocumentRow
-                      label="Passport Photo"
-                      path={student.passportPhotoPath}
-                      icon={<FaImage />}
-                    />
-                    <DocumentRow
-                      label="Category Certificate"
-                      path={student.categoryCertificatePath}
-                      icon={<FaFileAlt />}
-                    />
-                  </tbody>
-                </table>
+          {/* UPLOADED DOCUMENTS (Conditional) */}
+          {hasDocuments() && (
+            <div className="erp-card">
+              <div className="erp-card-header">
+                <h3>
+                  <FaFileAlt className="erp-card-icon" />
+                  Uploaded Documents
+                </h3>
+              </div>
+              <div className="erp-card-body">
+                <p className="text-muted small mb-3 px-3">
+                  {getUploadedDocuments().length} document(s) uploaded
+                </p>
+                <div className="erp-table-container">
+                  <table className="erp-detail-table">
+                    <tbody>
+                      {getUploadedDocuments().map((doc, index) => (
+                        <DocumentRow
+                          key={index}
+                          label={doc.label}
+                          path={doc.path}
+                          icon={doc.icon}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ACADEMIC DETAILS */}
           <div className="erp-card">
