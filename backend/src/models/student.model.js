@@ -188,8 +188,20 @@ const studentSchema = new mongoose.Schema(
     // 🔐 System
     status: {
       type: String,
-      enum: ["PENDING", "APPROVED", "REJECTED"],
+      enum: ["PENDING", "APPROVED", "REJECTED", "ALUMNI"],
       default: "PENDING",
+    },
+
+    // 🎓 Alumni Information
+    alumniStatus: {
+      type: Boolean,
+      default: false,
+    },
+    alumniDate: {
+      type: Date,
+    },
+    graduationYear: {
+      type: Number,
     },
 
     registeredVia: {
