@@ -346,17 +346,17 @@ export default function CollegeProfile() {
           </motion.div>
 
           {/* ================= MAIN CONTENT GRID ================= */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="row g-4">
             {/* LEFT COLUMN - PROFILE DETAILS */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <div className="col-12">
+              <div className="row g-4">
                 {/* ================= BASIC INFO CARD ================= */}
                 <motion.div
                   variants={fadeInVariants}
                   custom={0}
                   initial="hidden"
                   animate="visible"
-                  style={{ gridColumn: '1 / -1' }}
+                  className="col-12"
                 >
                   <div style={{
                     backgroundColor: 'white',
@@ -381,51 +381,63 @@ export default function CollegeProfile() {
                         <FaInfoCircle /> Institute Information
                       </h2>
                     </div>
-                    <div style={{ padding: '1.5rem' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                        <InfoItem 
-                          icon={<FaEnvelope />} 
-                          label="Official Email" 
-                          value={college.email} 
-                          copyable 
-                          color={BRAND_COLORS.primary.main}
-                        />
-                        <InfoItem 
-                          icon={<FaPhoneAlt />} 
-                          label="Contact Number" 
-                          value={college.contactNumber} 
-                          copyable 
-                          color={BRAND_COLORS.success.main}
-                        />
-                        <InfoItem 
-                          icon={<FaMapMarkerAlt />} 
-                          label="Full Address" 
-                          value={college.address} 
-                          fullWidth 
-                          color={BRAND_COLORS.danger.main}
-                        />
-                        <InfoItem 
-                          icon={<FaCalendarAlt />} 
-                          label="Established Year" 
-                          value={college.establishedYear?.toString() || "N/A"} 
-                          color={BRAND_COLORS.warning.main}
-                        />
-                        <InfoItem 
-                          icon={<FaShieldAlt />} 
-                          label="College Type" 
-                          value={college.collegeType || "Private"} 
-                          color={BRAND_COLORS.info.main}
-                        />
-                        <InfoItem 
-                          icon={<FaCalendarAlt />} 
-                          label="Member Since" 
-                          value={new Date(college.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })} 
-                          color={BRAND_COLORS.secondary.main}
-                        />
+                    <div className="p-4">
+                      <div className="row g-4">
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaEnvelope />}
+                            label="Official Email"
+                            value={college.email}
+                            copyable
+                            color={BRAND_COLORS.primary.main}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaPhoneAlt />}
+                            label="Contact Number"
+                            value={college.contactNumber}
+                            copyable
+                            color={BRAND_COLORS.success.main}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaMapMarkerAlt />}
+                            label="Full Address"
+                            value={college.address}
+                            fullWidth
+                            color={BRAND_COLORS.danger.main}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaCalendarAlt />}
+                            label="Established Year"
+                            value={college.establishedYear?.toString() || "N/A"}
+                            color={BRAND_COLORS.warning.main}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaShieldAlt />}
+                            label="College Type"
+                            value={college.collegeType || "Private"}
+                            color={BRAND_COLORS.info.main}
+                          />
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-4">
+                          <InfoItem
+                            icon={<FaCalendarAlt />}
+                            label="Member Since"
+                            value={new Date(college.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                            color={BRAND_COLORS.secondary.main}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -461,14 +473,14 @@ export default function CollegeProfile() {
                         <FaBolt /> Quick Actions
                       </h2>
                     </div>
-                    <div style={{ padding: '1.5rem' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="p-4">
+                      <div className="row g-3">
                         {quickActions.map((action, idx) => (
                           <motion.div
                             key={idx}
                             whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}
                             whileTap={{ scale: 0.98 }}
-                            style={{ gridColumn: 'span 1' }}
+                            className="col-6 col-md-4 col-lg-2"
                           >
                             <button
                               onClick={() => navigate(action.path)}

@@ -2,8 +2,9 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
 
-import { FaEdit, FaSave } from "react-icons/fa";
+import { FaEdit, FaSave, FaCheckCircle } from "react-icons/fa";
 
 export default function EditAttendance() {
   const { user } = useContext(AuthContext);
@@ -78,9 +79,17 @@ export default function EditAttendance() {
         `/attendance/sessions/${sessionId}/edit`,
         payload
       );
-      alert("Attendance updated successfully");
+      toast.success("Attendance updated successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Update failed");
+      toast.error(err.response?.data?.message || "Update failed", {
+        position: "top-right",
+        autoClose: 5000
+      });
     } finally {
       setSubmitting(false);
     }
