@@ -38,6 +38,10 @@ export default function ViewStudent() {
     try {
       setLoading(true);
       const res = await api.get(`/students/registered/${studentId}`);
+      console.log('✅ Student received:', res.data);
+      console.log('📄 Aadhar Path:', res.data.aadharCardPath);
+      console.log('📄 SSC Path:', res.data.sscMarksheetPath);
+      console.log('📄 Category Cert:', res.data.categoryCertificatePath);
       setStudent(res.data);
     } catch (err) {
       console.error(err);
@@ -51,7 +55,103 @@ export default function ViewStudent() {
     fetchStudent();
   }, [studentId]);
 
-  /* ================= ACTIONS ================= */
+  /* ================= HELPER FUNCTIONS ================= */
+  // Check if 10th details exist (must have at least one non-empty field)
+  const has10thDetails = () => {
+    if (!student) return false;
+    return !!(student.sscSchoolName?.trim() || 
+              student.sscBoard?.trim() || 
+              student.sscPassingYear || 
+              student.sscPercentage || 
+              student.sscRollNumber?.trim());
+  };
+
+  // Check if 12th details exist (must have at least one non-empty field)
+  const has12thDetails = () => {
+    if (!student) return false;
+    return !!(student.hscSchoolName?.trim() || 
+              student.hscBoard?.trim() || 
+              student.hscStream || 
+              student.hscPassingYear || 
+              student.hscPercentage || 
+              student.hscRollNumber?.trim());
+  };
+
+  // Check if any documents were uploaded
+  const hasDocuments = () => {
+    if (!student) return false;
+    return !!(student.sscMarksheetPath || student.hscMarksheetPath || 
+           student.passportPhotoPath || student.categoryCertificatePath ||
+           student.incomeCertificatePath || student.characterCertificatePath ||
+           student.transferCertificatePath || student.aadharCardPath ||
+           student.entranceExamScorePath || student.migrationCertificatePath ||
+           student.domicileCertificatePath || student.casteCertificatePath ||
+           student.nonCreamyLayerCertificatePath || student.physicallyChallengedCertificatePath ||
+           student.sportsQuotaCertificatePath || student.nriSponsorCertificatePath ||
+           student.gapCertificatePath || student.affidavitPath);
+  };
+
+  // Get all uploaded documents as array
+  const getUploadedDocuments = () => {
+    const docs = [];
+    
+    if (student.sscMarksheetPath) {
+      docs.push({ label: "10th Marksheet", path: student.sscMarksheetPath, icon: <FaFileAlt /> });
+    }
+    if (student.hscMarksheetPath) {
+      docs.push({ label: "12th Marksheet", path: student.hscMarksheetPath, icon: <FaFileAlt /> });
+    }
+    if (student.passportPhotoPath) {
+      docs.push({ label: "Passport Photo", path: student.passportPhotoPath, icon: <FaImage /> });
+    }
+    if (student.categoryCertificatePath) {
+      docs.push({ label: "Category Certificate", path: student.categoryCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.incomeCertificatePath) {
+      docs.push({ label: "Income Certificate", path: student.incomeCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.characterCertificatePath) {
+      docs.push({ label: "Character Certificate", path: student.characterCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.transferCertificatePath) {
+      docs.push({ label: "Transfer Certificate", path: student.transferCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.aadharCardPath) {
+      docs.push({ label: "Aadhar Card", path: student.aadharCardPath, icon: <FaFileAlt /> });
+    }
+    if (student.entranceExamScorePath) {
+      docs.push({ label: "Entrance Exam Score", path: student.entranceExamScorePath, icon: <FaFileAlt /> });
+    }
+    if (student.migrationCertificatePath) {
+      docs.push({ label: "Migration Certificate", path: student.migrationCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.domicileCertificatePath) {
+      docs.push({ label: "Domicile Certificate", path: student.domicileCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.casteCertificatePath) {
+      docs.push({ label: "Caste Certificate", path: student.casteCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.nonCreamyLayerCertificatePath) {
+      docs.push({ label: "Non-Creamy Layer Certificate", path: student.nonCreamyLayerCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.physicallyChallengedCertificatePath) {
+      docs.push({ label: "Physically Challenged Certificate", path: student.physicallyChallengedCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.sportsQuotaCertificatePath) {
+      docs.push({ label: "Sports Quota Certificate", path: student.sportsQuotaCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.nriSponsorCertificatePath) {
+      docs.push({ label: "NRI Sponsor Certificate", path: student.nriSponsorCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.gapCertificatePath) {
+      docs.push({ label: "Gap Certificate", path: student.gapCertificatePath, icon: <FaFileAlt /> });
+    }
+    if (student.affidavitPath) {
+      docs.push({ label: "Affidavit", path: student.affidavitPath, icon: <FaFileAlt /> });
+    }
+    
+    return docs;
+  };
   const approveStudent = async () => {
     try {
       await api.put(`/students/${studentId}/approve`);
@@ -140,75 +240,72 @@ export default function ViewStudent() {
         </div>
       </div>
 
-      {/* ================= 10TH ACADEMIC DETAILS ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-3 text-primary">
-            <FaGraduationCap className="me-2" />
-            10th (SSC) Academic Details
-          </h5>
+      {/* ================= 10TH ACADEMIC DETAILS (Conditional) ================= */}
+      {has10thDetails() && (
+        <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-3 text-primary">
+              <FaGraduationCap className="me-2" />
+              10th (SSC) Academic Details
+            </h5>
 
-          <div className="row g-3">
-            <Info label="School Name" value={student.sscSchoolName} />
-            <Info label="Board" value={student.sscBoard} />
-            <Info label="Passing Year" value={student.sscPassingYear} />
-            <Info label="Percentage / CGPA" value={student.sscPercentage ? `${student.sscPercentage}%` : '-'} />
-            <Info label="Roll Number" value={student.sscRollNumber} />
+            <div className="row g-3">
+              <Info label="School Name" value={student.sscSchoolName} />
+              <Info label="Board" value={student.sscBoard} />
+              <Info label="Passing Year" value={student.sscPassingYear} />
+              <Info label="Percentage / CGPA" value={student.sscPercentage ? `${student.sscPercentage}%` : '-'} />
+              <Info label="Roll Number" value={student.sscRollNumber} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ================= 12TH ACADEMIC DETAILS ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-3 text-primary">
-            <FaGraduationCap className="me-2" />
-            12th (HSC) Academic Details
-          </h5>
+      {/* ================= 12TH ACADEMIC DETAILS (Conditional) ================= */}
+      {has12thDetails() && (
+        <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-3 text-primary">
+              <FaGraduationCap className="me-2" />
+              12th (HSC) Academic Details
+            </h5>
 
-          <div className="row g-3">
-            <Info label="School / College Name" value={student.hscSchoolName} />
-            <Info label="Board" value={student.hscBoard} />
-            <Info label="Stream" value={student.hscStream} />
-            <Info label="Passing Year" value={student.hscPassingYear} />
-            <Info label="Percentage / CGPA" value={student.hscPercentage ? `${student.hscPercentage}%` : '-'} />
-            <Info label="Roll Number" value={student.hscRollNumber} />
+            <div className="row g-3">
+              <Info label="School / College Name" value={student.hscSchoolName} />
+              <Info label="Board" value={student.hscBoard} />
+              <Info label="Stream" value={student.hscStream} />
+              <Info label="Passing Year" value={student.hscPassingYear} />
+              <Info label="Percentage / CGPA" value={student.hscPercentage ? `${student.hscPercentage}%` : '-'} />
+              <Info label="Roll Number" value={student.hscRollNumber} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ================= DOCUMENTS UPLOADED ================= */}
-      <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-3 text-primary">
-            <FaFileAlt className="me-2" />
-            Uploaded Documents
-          </h5>
+      {/* ================= DOCUMENTS UPLOADED (Conditional) ================= */}
+      {hasDocuments() && (
+        <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">
+          <div className="card-body p-4">
+            <h5 className="fw-bold mb-3 text-primary">
+              <FaFileAlt className="me-2" />
+              Uploaded Documents
+            </h5>
+            <p className="text-muted small mb-3">
+              {getUploadedDocuments().length} document(s) uploaded by student
+            </p>
 
-          <div className="row g-3">
-            <DocumentInfo 
-              label="10th Marksheet" 
-              path={student.sscMarksheetPath} 
-              icon={<FaFileAlt />}
-            />
-            <DocumentInfo 
-              label="12th Marksheet" 
-              path={student.hscMarksheetPath} 
-              icon={<FaFileAlt />}
-            />
-            <DocumentInfo 
-              label="Passport Photo" 
-              path={student.passportPhotoPath} 
-              icon={<FaImage />}
-            />
-            <DocumentInfo 
-              label="Category Certificate" 
-              path={student.categoryCertificatePath} 
-              icon={<FaFileAlt />}
-            />
+            <div className="row g-3">
+              {getUploadedDocuments().map((doc, index) => (
+                <DocumentInfo
+                  key={index}
+                  label={doc.label}
+                  path={doc.path}
+                  icon={doc.icon}
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ================= BASIC INFO ================= */}
       <div className="card shadow-lg border-0 rounded-4 glass-card mb-4">

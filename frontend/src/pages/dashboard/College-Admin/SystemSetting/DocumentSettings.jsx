@@ -149,13 +149,8 @@ export default function DocumentSettings() {
       setSaving(true);
       setMessage({ type: "", text: "" });
 
-      // Validate: At least one document should be enabled
-      const enabledDocs = documents.filter(doc => doc.enabled);
-      if (enabledDocs.length === 0) {
-        setMessage({ type: "error", text: "At least one document must be enabled" });
-        setSaving(false);
-        return;
-      }
+      // ✅ NO validation for minimum documents - allows ZERO documents for coaching classes
+      // College admin can enable/disable documents as per their requirements
 
       // Validate: Mandatory documents must be enabled
       for (const doc of documents) {
@@ -172,9 +167,11 @@ export default function DocumentSettings() {
         order: index
       }));
 
+      const enabledCount = documents.filter(doc => doc.enabled).length;
       console.log("💾 Saving document config:", {
         documentsCount: documentsWithOrder.length,
-        enabledCount: enabledDocs.length
+        enabledCount: enabledCount,
+        message: enabledCount === 0 ? "⚠️ NO documents enabled - students will NOT need to upload any files" : ""
       });
 
       await api.put("/document-config/admin/college", {
@@ -182,7 +179,12 @@ export default function DocumentSettings() {
       });
 
       console.log("✅ Config saved successfully");
-      setMessage({ type: "success", text: "Document configuration saved successfully!" });
+      setMessage({ 
+        type: "success", 
+        text: enabledCount === 0 
+          ? "Document configuration saved! No documents required for registration." 
+          : "Document configuration saved successfully!" 
+      });
     } catch (error) {
       console.error("❌ Error saving config:", error);
       setMessage({ type: "error", text: error.response?.data?.message || "Failed to save configuration" });
@@ -191,16 +193,16 @@ export default function DocumentSettings() {
     }
   };
 
-  // Reset to default
+  // Reset to empty (remove all document requirements)
   const handleReset = async () => {
-    if (!window.confirm("Are you sure you want to reset to default configuration? This will remove all customizations.")) {
+    if (!window.confirm("⚠️ Are you sure you want to remove ALL document requirements?\n\nThis will:\n- Remove all document upload requirements\n- Students will NOT need to upload any files\n- You can reconfigure documents later")) {
       return;
     }
 
     try {
       setSaving(true);
       await api.post("/document-config/admin/college/reset");
-      setMessage({ type: "success", text: "Configuration reset to default successfully!" });
+      setMessage({ type: "success", text: "Configuration reset! No documents are now required for registration." });
       loadDocumentConfig();
     } catch (error) {
       setMessage({ type: "error", text: "Failed to reset configuration" });
@@ -237,15 +239,21 @@ export default function DocumentSettings() {
             <FaFileAlt className="me-2 text-primary" />
             Document Settings
           </h4>
-          <p className="text-muted mb-0">Configure which documents students need to upload during registration</p>
+          <p className="text-muted mb-0">
+            Configure which documents students need to upload during registration
+            <br />
+            <small className="text-info">
+              💡 Tip: For coaching classes with no document requirements, disable all documents or use "Reset to Empty"
+            </small>
+          </p>
         </div>
         <div className="d-flex gap-2">
           <button
-            className="btn btn-outline-secondary d-flex align-items-center gap-2"
+            className="btn btn-outline-danger d-flex align-items-center gap-2"
             onClick={handleReset}
             disabled={saving}
           >
-            <FaUndo /> Reset to Default
+            <FaUndo /> Reset to Empty
           </button>
           <button
             className="btn btn-primary d-flex align-items-center gap-2"
