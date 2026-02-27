@@ -66,7 +66,7 @@ export default function StudentRegister() {
     // STEP 5 - 12th Academic Details
     hscSchoolName: "",
     hscBoard: "",
-    hscStream: "Science",
+    hscStream: "",  // ✅ Empty by default - only filled if 12th is required
     hscPassingYear: "",
     hscPercentage: "",
     hscRollNumber: "",
@@ -458,21 +458,25 @@ export default function StudentRegister() {
       formData.append("fatherMobile", form.fatherMobile);
       formData.append("motherName", form.motherName);
       formData.append("motherMobile", form.motherMobile);
-      
-      // 10th (SSC) Academic Details
-      formData.append("sscSchoolName", form.sscSchoolName);
-      formData.append("sscBoard", form.sscBoard);
-      formData.append("sscPassingYear", form.sscPassingYear);
-      formData.append("sscPercentage", form.sscPercentage);
-      formData.append("sscRollNumber", form.sscRollNumber);
-      
-      // 12th (HSC) Academic Details
-      formData.append("hscSchoolName", form.hscSchoolName);
-      formData.append("hscBoard", form.hscBoard);
-      formData.append("hscStream", form.hscStream);
-      formData.append("hscPassingYear", form.hscPassingYear);
-      formData.append("hscPercentage", form.hscPercentage);
-      formData.append("hscRollNumber", form.hscRollNumber);
+
+      // 10th (SSC) Academic Details - ONLY if enabled
+      if (steps.ssc) {
+        formData.append("sscSchoolName", form.sscSchoolName);
+        formData.append("sscBoard", form.sscBoard);
+        formData.append("sscPassingYear", form.sscPassingYear);
+        formData.append("sscPercentage", form.sscPercentage);
+        formData.append("sscRollNumber", form.sscRollNumber);
+      }
+
+      // 12th (HSC) Academic Details - ONLY if enabled
+      if (steps.hsc) {
+        formData.append("hscSchoolName", form.hscSchoolName);
+        formData.append("hscBoard", form.hscBoard);
+        formData.append("hscStream", form.hscStream);
+        formData.append("hscPassingYear", form.hscPassingYear);
+        formData.append("hscPercentage", form.hscPercentage);
+        formData.append("hscRollNumber", form.hscRollNumber);
+      }
       
       // Course & Department
       formData.append("department_id", form.department_id);
@@ -1195,16 +1199,11 @@ export default function StudentRegister() {
               // Conditional rendering for category certificate
               if (doc.type === 'category_certificate') {
                 // Show category certificate only if category is not GEN
-                const shouldShow = doc.enabled && form.category !== 'GEN';
-                console.log("📋 Category Certificate - Enabled:", doc.enabled, "Category:", form.category, "Show:", shouldShow);
-                return shouldShow;
+                return doc.enabled && form.category !== 'GEN';
               }
               return doc.enabled;
             });
-            
-            console.log("📄 Filtered documents to render:", filteredDocs.length);
-            console.log("📄 Documents:", filteredDocs.map(d => d.type));
-            
+
             return filteredDocs.map((doc) => (
               <div className="col-md-6" key={doc.type}>
                 <label className="form-label fw-semibold">

@@ -1502,14 +1502,29 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
     }
   };
 
-  // Get base URL from environment variable with proper /api suffix as fallback
+  // Get base URL from environment variable
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  // Ensure filePath starts with /uploads/ for correct URL
-  const normalizedPath = filePath ? filePath.replace(/^\/?uploads/, '/uploads') : null;
-  const documentUrl = normalizedPath ? `${baseUrl}${normalizedPath}` : null;
+  
+  // Construct document URL properly
+  // Backend serves static files at /uploads (NOT /api/uploads)
+  // Backend returns: "uploads/filename.pdf"
+  // We need: "http://localhost:5000/uploads/filename.pdf"
+  const documentUrl = filePath ? (() => {
+    // Get server root URL (remove /api if present)
+    let serverUrl = baseUrl.replace(/\/api\/?$/, '');
+    // Ensure filePath starts with /uploads/
+    let cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+    if (!cleanPath.startsWith('/uploads')) {
+      cleanPath = '/uploads/' + cleanPath;
+    }
+    return serverUrl + cleanPath;
+  })() : null;
+
+  // Check if file actually exists (not null, not undefined, not empty string)
+  const hasFile = filePath && String(filePath).trim() !== '' && filePath !== 'null' && filePath !== 'undefined';
 
   const handleView = () => {
-    if (documentUrl) {
+    if (documentUrl && hasFile) {
       window.open(documentUrl, '_blank');
     } else {
       toast.error("Document not available for viewing", {
@@ -1520,28 +1535,8 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
     }
   };
 
-  const handleDownload = async () => {
-    if (!documentUrl) {
-      toast.error("Document not available for download", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaExclamationTriangle />
-      });
-      return;
-    }
-
-    try {
-      toast.info("Downloading document...", {
-        position: "top-right",
-        autoClose: 1000,
-        icon: <FaDownload />
-      });
-      
-      const response = await fetch(documentUrl);
-      if (!response.ok) throw new Error("Download failed");
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+  const handleDownload = () => {
+    if (documentUrl && hasFile) {
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', file);
@@ -1590,10 +1585,10 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
         <button
           className="btn btn-sm btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
           onClick={handleView}
-          disabled={!filePath}
+          disabled={!hasFile}
           style={{
-            opacity: filePath ? 1 : 0.5,
-            cursor: filePath ? 'pointer' : 'not-allowed'
+            opacity: hasFile ? 1 : 0.5,
+            cursor: hasFile ? 'pointer' : 'not-allowed'
           }}
           aria-label={`View ${type}`}
         >
@@ -1602,10 +1597,10 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
         <button
           className="btn btn-sm btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
           onClick={handleDownload}
-          disabled={!filePath}
+          disabled={!hasFile}
           style={{
-            opacity: filePath ? 1 : 0.5,
-            cursor: filePath ? 'pointer' : 'not-allowed'
+            opacity: hasFile ? 1 : 0.5,
+            cursor: hasFile ? 'pointer' : 'not-allowed'
           }}
           aria-label={`Download ${type}`}
         >
