@@ -318,52 +318,73 @@ export default function StudentDashboard() {
       </div>
 
       {/* ================= INFO CARDS ROW ================= */}
-      <div className="info-cards-row">
-        <div className="info-card fade-in-up">
-          <div className="card-icon-wrapper blue">
-            <FaUserGraduate />
-          </div>
-          <div className="card-content">
-            <h3>{student.name}</h3>
-            <p>Student Name</p>
-          </div>
-        </div>
-
-        <div className="info-card fade-in-up">
-          <div className="card-icon-wrapper green">
-            <FaGraduationCap />
-          </div>
-          <div className="card-content">
-            <h3>{student.course}</h3>
-            <p>Current Course</p>
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-sm-6 col-lg-3">
+          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-body d-flex align-items-center gap-3 p-3">
+              <div className="card-icon-wrapper blue bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+                <FaUserGraduate />
+              </div>
+              <div className="card-content">
+                <h3 className="h6 mb-0 fw-bold">{student.name}</h3>
+                <p className="text-muted small mb-0">Student Name</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="info-card fade-in-up">
-          <div className="card-icon-wrapper purple">
-            <FaUniversity />
-          </div>
-          <div className="card-content">
-            <h3>{student.department}</h3>
-            <p>Department</p>
+        <div className="col-12 col-sm-6 col-lg-3">
+          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-body d-flex align-items-center gap-3 p-3">
+              <div className="card-icon-wrapper green bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+                <FaGraduationCap />
+              </div>
+              <div className="card-content">
+                <h3 className="h6 mb-0 fw-bold">{student.course}</h3>
+                <p className="text-muted small mb-0">Current Course</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="info-card fade-in-up">
-          <div className="card-icon-wrapper orange">
-            <FaClipboardCheck />
+        <div className="col-12 col-sm-6 col-lg-3">
+          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-body d-flex align-items-center gap-3 p-3">
+              <div className="card-icon-wrapper purple bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+                <FaUniversity />
+              </div>
+              <div className="card-content">
+                <h3 className="h6 mb-0 fw-bold">{student.department}</h3>
+                <p className="text-muted small mb-0">Department</p>
+              </div>
+            </div>
           </div>
-          <div className="card-content">
-            <h3>{attendanceSummary.percentage}%</h3>
-            <p>Attendance</p>
+        </div>
+
+        <div className="col-12 col-sm-6 col-lg-3">
+          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-body d-flex align-items-center gap-3 p-3">
+              <div className="card-icon-wrapper orange bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+                <FaClipboardCheck />
+              </div>
+              <div className="card-content">
+                <h3 className="h6 mb-0 fw-bold">{attendanceSummary.percentage}%</h3>
+                <p className="text-muted small mb-0">Attendance</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ================= MAIN CONTENT GRID ================= */}
-      <div className="dashboard-grid">
+      {/* ================= MAIN CONTENT GRID - Bootstrap Row/Col ================= */}
+      <div className="row g-3 g-md-4">
         {/* ================= ATTENDANCE SUMMARY ================= */}
-        <div className="dashboard-card attendance-card fade-in-up">
+        <div className="col-12 col-lg-8">
+          <div className="dashboard-card attendance-card fade-in-up card border-0 shadow-sm h-100">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaChartPie className="card-icon" />
@@ -403,7 +424,7 @@ export default function StudentDashboard() {
 
             {/* Enhanced Pie Chart with better dimensions */}
             <div className="attendance-chart">
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={280}>
                 <PieChart>
                   <Pie
                     data={attendancePieData}
@@ -470,10 +491,12 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* ================= SUBJECT-WISE ATTENDANCE ================= */}
-        <div className="dashboard-card subject-attendance-card fade-in-up">
-          <div className="card-header">
+        <div className="col-12 col-lg-4">
+          <div className="dashboard-card subject-attendance-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-header">
             <div className="card-title-wrapper">
               <FaChartBar className="card-icon" />
               <h3>Subject-wise Attendance</h3>
@@ -484,7 +507,7 @@ export default function StudentDashboard() {
           <div className="card-body">
             {/* Enhanced Bar Chart with Risk-Based Colors */}
             <div className="subject-chart">
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height="100%" minHeight={350}>
                 <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis
@@ -595,19 +618,21 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
+        </div>
 
         {/* ================= TODAY'S TIMETABLE ================= */}
-        <div className="dashboard-card timetable-card fade-in-up">
-          <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaCalendarAlt className="card-icon" />
-              <h3>Today's Timetable</h3>
-              <InfoTooltip message="Your scheduled classes for today" />
+        <div className="col-12 col-lg-6">
+          <div className="dashboard-card timetable-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-header">
+              <div className="card-title-wrapper">
+                <FaCalendarAlt className="card-icon" />
+                <h3>Today's Timetable</h3>
+                <InfoTooltip message="Your scheduled classes for today" />
+              </div>
+              <Link to="/student/timetable" className="view-all-link">
+                <FaEye /> Full Timetable
+              </Link>
             </div>
-            <Link to="/student/timetable" className="view-all-link">
-              <FaEye /> Full Timetable
-            </Link>
-          </div>
 
           <div className="card-body">
             {todayTimetable.length === 0 ? (
@@ -648,19 +673,21 @@ export default function StudentDashboard() {
             )}
           </div>
         </div>
+        </div>
 
         {/* ================= FEE SUMMARY ================= */}
-        <div className="dashboard-card fee-card fade-in-up">
-          <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaWallet className="card-icon" />
-              <h3>Fee Summary</h3>
-              <InfoTooltip message="Your fee payment status" />
+        <div className="col-12 col-lg-6">
+          <div className="dashboard-card fee-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-header">
+              <div className="card-title-wrapper">
+                <FaWallet className="card-icon" />
+                <h3>Fee Summary</h3>
+                <InfoTooltip message="Your fee payment status" />
+              </div>
+              <Link to="/student/fees" className="view-all-link">
+                <FaEye /> View Details
+              </Link>
             </div>
-            <Link to="/student/fees" className="view-all-link">
-              <FaEye /> View Details
-            </Link>
-          </div>
 
           <div className="card-body">
             <div className="fee-overview">
@@ -718,19 +745,21 @@ export default function StudentDashboard() {
             )}
           </div>
         </div>
+        </div>
 
         {/* ================= LATEST NOTIFICATIONS ================= */}
-        <div className="dashboard-card notifications-card fade-in-up">
-          <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaBell className="card-icon" />
-              <h3>Latest Notifications</h3>
-              <InfoTooltip message="Recent announcements and updates" />
+        <div className="col-12 col-lg-6">
+          <div className="dashboard-card notifications-card fade-in-up card border-0 shadow-sm h-100">
+            <div className="card-header">
+              <div className="card-title-wrapper">
+                <FaBell className="card-icon" />
+                <h3>Latest Notifications</h3>
+                <InfoTooltip message="Recent announcements and updates" />
+              </div>
+              <Link to="/notification/student" className="view-all-link">
+                <FaEye /> View All
+              </Link>
             </div>
-            <Link to="/notification/student" className="view-all-link">
-              <FaEye /> View All
-            </Link>
-          </div>
 
           <div className="card-body">
             {latestNotifications.length === 0 ? (
@@ -769,6 +798,7 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 
@@ -1270,6 +1300,7 @@ export default function StudentDashboard() {
 
         .attendance-chart {
           margin: 1.5rem 0;
+          height: 300px;
         }
 
         .attendance-percentage {
@@ -1398,6 +1429,7 @@ export default function StudentDashboard() {
         /* ================= SUBJECT ATTENDANCE ================= */
         .subject-chart {
           margin-bottom: 1.5rem;
+          height: 380px;
         }
 
         .subject-list {
@@ -2033,9 +2065,12 @@ export default function StudentDashboard() {
             font-size: 1.25rem;
           }
 
-          .attendance-chart,
+          .attendance-chart {
+            height: 250px;
+          }
+          
           .subject-chart {
-            height: 180px;
+            height: 320px;
           }
         }
       `}</style>

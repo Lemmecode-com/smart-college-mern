@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
+import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 
 export default function EditAttendanceModal() {
   const { sessionId } = useParams();
@@ -19,7 +21,11 @@ export default function EditAttendanceModal() {
         );
         setStudents(res.data);
       } catch {
-        alert("Failed to load students");
+        toast.error("Failed to load students", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
       } finally {
         setLoading(false);
       }
@@ -43,10 +49,18 @@ export default function EditAttendanceModal() {
         payload
       );
 
-      alert(res.data.message);
+      toast.success(res.data.message || "Attendance updated successfully", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       navigate(`/attendance/session/${sessionId}`);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update");
+      toast.error(err.response?.data?.message || "Failed to update", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     }
   };
 
