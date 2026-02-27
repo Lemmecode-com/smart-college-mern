@@ -60,16 +60,16 @@ exports.getDocumentConfigForAdmin = async (req, res) => {
     }).populate("updatedBy", "name email");
 
     if (!config) {
-      // Create default config if not exists
+      // Create EMPTY config if not exists - NO defaults
       const college = await College.findById(college_id);
-      const newConfig = await DocumentConfig.createDefaultConfig(
-        college_id, 
+      const newConfig = await DocumentConfig.createEmptyConfig(
+        college_id,
         college.code
       );
-      
+
       return res.json({
         config: newConfig,
-        message: "Default configuration created"
+        message: "Empty document configuration created. Admin must configure documents manually."
       });
     }
 
@@ -111,6 +111,15 @@ exports.upsertDocumentConfig = async (req, res) => {
       "transfer_certificate",
       "aadhar_card",
       "entrance_exam_score",
+      "migration_certificate",
+      "domicile_certificate",
+      "caste_certificate",
+      "non_creamy_layer_certificate",
+      "physically_challenged_certificate",
+      "sports_quota_certificate",
+      "nri_sponsor_certificate",
+      "gap_certificate",
+      "affidavit",
       "custom_document"
     ];
 
@@ -151,15 +160,29 @@ exports.upsertDocumentConfig = async (req, res) => {
       config.updatedAt = new Date();
       await config.save();
     } else {
-      // Create new config
-      console.log("✨ Creating new config");
-      config = await DocumentConfig.create({
-        college_id,
-        collegeCode,
-        documents,
-        isActive: true,
-        updatedBy: userId
-      });
+      // Check if there's an inactive config
+      const inactiveConfig = await DocumentConfig.findOne({ college_id, isActive: false });
+      
+      if (inactiveConfig) {
+        // Reactivate and update the inactive config
+        console.log("♻️ Reactivating inactive config");
+        inactiveConfig.documents = documents;
+        inactiveConfig.updatedBy = userId;
+        inactiveConfig.isActive = true;
+        inactiveConfig.updatedAt = new Date();
+        await inactiveConfig.save();
+        config = inactiveConfig;
+      } else {
+        // Create new config
+        console.log("✨ Creating new config");
+        config = await DocumentConfig.create({
+          college_id,
+          collegeCode,
+          documents,
+          isActive: true,
+          updatedBy: userId
+        });
+      }
     }
 
     console.log("✅ Config saved successfully");
@@ -175,10 +198,10 @@ exports.upsertDocumentConfig = async (req, res) => {
 };
 
 /**
- * Reset to default configuration
+ * Reset to empty configuration (remove all documents)
  * POST /api/document-config/admin/college/reset
  */
-exports.resetToDefault = async (req, res) => {
+exports.resetToEmpty = async (req, res) => {
   try {
     const college_id = req.college_id;
     const collegeCode = req.collegeCode;
@@ -190,18 +213,14 @@ exports.resetToDefault = async (req, res) => {
       { isActive: false, updatedAt: new Date() }
     );
 
-    // Create new default config
-    const defaultDocuments = DocumentConfig.getDefaultConfig();
-    const config = await DocumentConfig.create({
+    // Create EMPTY config (no documents)
+    const config = await DocumentConfig.createEmptyConfig(
       college_id,
-      collegeCode,
-      documents: defaultDocuments,
-      isActive: true,
-      updatedBy: userId
-    });
+      collegeCode
+    );
 
     res.json({
-      message: "Configuration reset to default successfully",
+      message: "Configuration reset to empty successfully. No documents are required.",
       config
     });
   } catch (error) {

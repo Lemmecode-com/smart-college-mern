@@ -17,11 +17,17 @@ exports.registerStudent = async (req, res, next) => {
     // Extract category early from req.body for validation
     const { category } = req.body;
 
-    // Load document configuration for this college
-    const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
-
     // Get uploaded files
     const files = req.files || {};
+
+    console.log("📁 UPLOADED FILES:", Object.keys(files));
+    console.log("📁 Aadhar Card:", files.aadharCard);
+    console.log("📁 Category Certificate:", files.categoryCertificate);
+    console.log("📁 SSC Marksheet:", files.sscMarksheet);
+
+    // Load document configuration for this college
+    const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
+    console.log("📋 Doc Config loaded:", docConfig ? "YES" : "NO", "- Documents:", docConfig?.documents?.length);
 
     // Map document type to field name (backward compatibility)
     const documentFieldMap = {
@@ -96,8 +102,13 @@ exports.registerStudent = async (req, res, next) => {
           console.log("💾 Saved uploaded document:", docType, documentPaths[docType]);
         }
       }
+
+      console.log("📄 FINAL documentPaths:", documentPaths);
+      console.log("📄 Aadhar Path to save:", documentPaths["aadhar_card"]);
+      console.log("📄 SSC Path to save:", documentPaths["10th_marksheet"]);
     } else {
       // Use default document fields (backward compatibility)
+      // Also handle ALL uploaded files dynamically
       const sscMarksheetPath = files.sscMarksheet?.[0]?.path ?
         files.sscMarksheet[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
       const hscMarksheetPath = files.hscMarksheet?.[0]?.path ?
@@ -111,6 +122,17 @@ exports.registerStudent = async (req, res, next) => {
       documentPaths["12th_marksheet"] = hscMarksheetPath;
       documentPaths["passport_photo"] = passportPhotoPath;
       documentPaths["category_certificate"] = categoryCertificatePath;
+
+      // Also save any other uploaded files (aadhar, etc.)
+      for (const [fieldName, fieldFiles] of Object.entries(files)) {
+        if (fieldFiles && fieldFiles[0]?.path) {
+          const filePath = fieldFiles[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
+          // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
+          const docType = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
+          documentPaths[docType] = filePath;
+          console.log("💾 Saved (fallback):", docType, filePath);
+        }
+      }
     }
 
     const {
@@ -627,22 +649,68 @@ exports.getRegisteredStudents = async (req, res) => {
 
 // ADMIN GETS REGISTERED (PENDING) INDIVUDUAL STUDENT
 exports.getRegisteredStudentById = async (req, res) => {
-  const student = await Student.findOne({
-    _id: req.params.id,
-    college_id: req.college_id,
-    status: "PENDING"
-  })
-    .populate("college_id", "name code")
-    .populate("department_id", "name")
-    .populate("course_id", "name");
+  try {
+    const student = await Student.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+      status: "PENDING"
+    })
+      .populate("college_id", "name code")
+      .populate("department_id", "name")
+      .populate("course_id", "name");
 
-  if (!student) {
-    return res.status(404).json({
-      message: "Registered student not found"
-    });
+    if (!student) {
+      return res.status(404).json({
+        message: "Registered student not found"
+      });
+    }
+
+    // Format document paths properly for frontend
+    const studentData = {
+      ...student.toObject(),
+      // Normalize all document paths
+      sscMarksheetPath: student.sscMarksheetPath ? 
+        student.sscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      hscMarksheetPath: student.hscMarksheetPath ? 
+        student.hscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      passportPhotoPath: student.passportPhotoPath ? 
+        student.passportPhotoPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      categoryCertificatePath: student.categoryCertificatePath ? 
+        student.categoryCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      incomeCertificatePath: student.incomeCertificatePath ? 
+        student.incomeCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      characterCertificatePath: student.characterCertificatePath ? 
+        student.characterCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      transferCertificatePath: student.transferCertificatePath ? 
+        student.transferCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      aadharCardPath: student.aadharCardPath ? 
+        student.aadharCardPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      entranceExamScorePath: student.entranceExamScorePath ? 
+        student.entranceExamScorePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      migrationCertificatePath: student.migrationCertificatePath ? 
+        student.migrationCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      domicileCertificatePath: student.domicileCertificatePath ? 
+        student.domicileCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      casteCertificatePath: student.casteCertificatePath ? 
+        student.casteCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      nonCreamyLayerCertificatePath: student.nonCreamyLayerCertificatePath ? 
+        student.nonCreamyLayerCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      physicallyChallengedCertificatePath: student.physicallyChallengedCertificatePath ? 
+        student.physicallyChallengedCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      sportsQuotaCertificatePath: student.sportsQuotaCertificatePath ? 
+        student.sportsQuotaCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      nriSponsorCertificatePath: student.nriSponsorCertificatePath ? 
+        student.nriSponsorCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      gapCertificatePath: student.gapCertificatePath ? 
+        student.gapCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      affidavitPath: student.affidavitPath ? 
+        student.affidavitPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+    };
+
+    res.json(studentData);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(student);
 };
 
 /**
