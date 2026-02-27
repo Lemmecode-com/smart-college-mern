@@ -383,71 +383,89 @@ export default function MyProfile() {
             </div>
           </motion.div>
 
-          {/* ================= MAIN CONTENT GRID ================= */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {/* ================= MAIN CONTENT GRID - Bootstrap ================= */}
+          <div className="row g-4">
             {/* LEFT COLUMN - PERSONAL INFO */}
             <motion.div
               variants={fadeInVariants}
               custom={0}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
               <SectionCard
                 title="Personal Information"
                 icon={<FaUserTie />}
                 color={BRAND_COLORS.primary.main}
               >
-                <div style={{ padding: '1.5rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.25rem' }}>
-                    <InfoItem
-                      icon={<FaEnvelope />}
-                      label="Email Address"
-                      value={profile.email}
-                      copyable
-                    />
-                    <InfoItem
-                      icon={<FaPhoneAlt />}
-                      label="Contact Number"
-                      value={profile.contactNumber || 'N/A'}
-                      copyable
-                    />
-                    <InfoItem
-                      icon={<FaMapMarkerAlt />}
-                      label="Address"
-                      value={profile.address || 'N/A'}
-                      fullWidth
-                    />
-                    <InfoItem
-                      icon={<FaCalendarAlt />}
-                      label="Date of Birth"
-                      value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
-                    />
-                    <InfoItem
-                      icon={<FaGraduationCap />}
-                      label="Highest Qualification"
-                      value={profile.qualification || 'N/A'}
-                    />
-                    <InfoItem
-                      icon={<FaAward />}
-                      label="Specialization"
-                      value={profile.specialization || 'N/A'}
-                    />
-                    <InfoItem
-                      icon={<FaBriefcase />}
-                      label="Total Experience"
-                      value={`${profile.experienceYears || 0} years`}
-                    />
-                    <InfoItem
-                      icon={<FaClock />}
-                      label="Joining Date"
-                      value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
-                    />
-                    <InfoItem
-                      icon={<FaShieldAlt />}
-                      label="Employment Type"
-                      value={profile.employmentType || 'Permanent'}
-                    />
+                <div className="p-4">
+                  <div className="row g-3">
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaEnvelope />}
+                        label="Email Address"
+                        value={profile.email}
+                        copyable
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaPhoneAlt />}
+                        label="Contact Number"
+                        value={profile.contactNumber || 'N/A'}
+                        copyable
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaMapMarkerAlt />}
+                        label="Address"
+                        value={profile.address || 'N/A'}
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaCalendarAlt />}
+                        label="Date of Birth"
+                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaGraduationCap />}
+                        label="Highest Qualification"
+                        value={profile.qualification || 'N/A'}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaAward />}
+                        label="Specialization"
+                        value={profile.specialization || 'N/A'}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaBriefcase />}
+                        label="Total Experience"
+                        value={`${profile.experienceYears || 0} years`}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaClock />}
+                        label="Joining Date"
+                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-4">
+                      <InfoItem
+                        icon={<FaShieldAlt />}
+                        label="Employment Type"
+                        value={profile.employmentType || 'Permanent'}
+                      />
+                    </div>
                   </div>
                 </div>
               </SectionCard>
@@ -459,7 +477,7 @@ export default function MyProfile() {
               custom={1}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
               <SectionCard
                 title="Assigned Courses"
@@ -467,21 +485,23 @@ export default function MyProfile() {
                 color={BRAND_COLORS.info.main}
                 subtitle={`${profile.courses?.length || 0} course${(profile.courses?.length || 0) !== 1 ? 's' : ''} assigned`}
               >
-                <div style={{ padding: '1.5rem' }}>
+                <div className="p-4">
                   {profile.courses && profile.courses.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                    <div className="row g-3">
                       {profile.courses.map((course, idx) => (
-                        <CourseCard 
-                          key={course._id} 
-                          course={course} 
-                          delay={idx * 0.05}
-                        />
+                        <div className="col-12 col-sm-6 col-lg-4" key={course._id}>
+                          <CourseCard
+                            key={course._id}
+                            course={course}
+                            delay={idx * 0.05}
+                          />
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <EmptySection 
-                      icon={<FaGraduationCap style={{ color: BRAND_COLORS.info.main }} />} 
-                      title="No Courses Assigned" 
+                    <EmptySection
+                      icon={<FaGraduationCap style={{ color: BRAND_COLORS.info.main }} />}
+                      title="No Courses Assigned"
                       message="You haven't been assigned any courses yet. Contact your college admin for course allocation."
                     />
                   )}
@@ -495,7 +515,7 @@ export default function MyProfile() {
               custom={2}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
               <SectionCard
                 title="Teaching Subjects"
@@ -503,15 +523,17 @@ export default function MyProfile() {
                 color={BRAND_COLORS.warning.main}
                 subtitle={`${profile.subjects?.length || 0} subject${(profile.subjects?.length || 0) !== 1 ? 's' : ''} taught`}
               >
-                <div style={{ padding: '1.5rem' }}>
+                <div className="p-4">
                   {profile.subjects && profile.subjects.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                    <div className="row g-3">
                       {profile.subjects.map((subject, idx) => (
-                        <SubjectCard 
-                          key={subject._id} 
-                          subject={subject} 
-                          delay={idx * 0.05}
-                        />
+                        <div className="col-12 col-sm-6 col-lg-4" key={subject._id}>
+                          <SubjectCard
+                            key={subject._id}
+                            subject={subject}
+                            delay={idx * 0.05}
+                          />
+                        </div>
                       ))}
                     </div>
                   ) : (

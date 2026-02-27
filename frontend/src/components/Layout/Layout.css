@@ -1,0 +1,352 @@
+/* =====================================================
+   LAYOUT SYSTEM - Enterprise Sidebar Architecture
+   Flex-based, no margin hacks, smooth transitions
+   ===================================================== */
+
+/* ================= CSS VARIABLES ================= */
+:root {
+  --sidebar-width-expanded: 250px;
+  --sidebar-width-collapsed: 80px;
+  --sidebar-transition-duration: 0.3s;
+  --sidebar-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --navbar-height: 60px;
+}
+
+/* ================= LAYOUT WRAPPER ================= */
+/* Flex container holding sidebar + main content */
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+/* ================= SIDEBAR ================= */
+/* Fixed position, no flex gap issues */
+.sidebar-container {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: var(--sidebar-width-expanded);
+  z-index: 1030;
+  transition: width var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+  /* No border that could create ghost gap */
+  border-right: none;
+}
+
+/* Desktop collapsed state */
+@media (min-width: 768px) {
+  .layout-wrapper.layout-collapsed .sidebar-container {
+    width: var(--sidebar-width-collapsed) !important;
+  }
+}
+
+/* Mobile: Hide fixed sidebar */
+@media (max-width: 767.98px) {
+  .sidebar-container.d-none {
+    display: none !important;
+  }
+}
+
+/* ================= MAIN CONTENT AREA ================= */
+/* Flex container that fills remaining space */
+.layout-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Critical: prevents flex overflow */
+  margin-left: var(--sidebar-width-expanded);
+  transition: margin-left var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+  width: calc(100% - var(--sidebar-width-expanded));
+}
+
+/* Collapsed state - content expands */
+@media (min-width: 768px) {
+  .layout-wrapper.layout-collapsed .layout-main {
+    margin-left: var(--sidebar-width-collapsed);
+    width: calc(100% - var(--sidebar-width-collapsed));
+  }
+}
+
+/* Mobile: Full width, no margin */
+@media (max-width: 767.98px) {
+  .layout-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* ================= NAVBAR ================= */
+/* Navbar width matches main content */
+.layout-main .navbar {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ================= CONTENT AREA ================= */
+.layout-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-x: hidden;
+  min-height: calc(100vh - var(--navbar-height));
+}
+
+/* Mobile: Compact padding */
+@media (max-width: 767.98px) {
+  .layout-content {
+    padding: 1rem;
+    min-height: calc(100vh - var(--navbar-height) - 2rem);
+  }
+}
+
+/* ================= TRANSITION LOCK ================= */
+/* Prevent stutter during collapse animation */
+body.layout-transitioning .sidebar-container,
+body.layout-transitioning .layout-main {
+  transition: 
+    width var(--sidebar-transition-duration) var(--sidebar-transition-timing),
+    margin-left var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+}
+
+body.layout-transitioning .layout-content {
+  overflow: hidden; /* Prevent content clip during transition */
+}
+
+/* ================= COLLAPSED STATE STYLES ================= */
+@media (min-width: 768px) {
+  /* Hide text elements when collapsed */
+  .layout-wrapper.layout-collapsed .sidebar-logo-text,
+  .layout-wrapper.layout-collapsed .logo-role,
+  .layout-wrapper.layout-collapsed .section-title-text,
+  .layout-wrapper.layout-collapsed .nav-link-text,
+  .layout-wrapper.layout-collapsed .sidebar-footer-text {
+    display: none !important;
+    width: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Center icons in collapsed mode */
+  .layout-wrapper.layout-collapsed .sidebar-logo {
+    padding: 1rem 0;
+    justify-content: center;
+  }
+
+  .layout-wrapper.layout-collapsed .sidebar-logo .logo-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .layout-wrapper.layout-collapsed .logo-icon {
+    margin: 0 auto;
+  }
+
+  .layout-wrapper.layout-collapsed .sidebar-section-title {
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .layout-wrapper.layout-collapsed .nav-link {
+    padding: 0.875rem !important;
+    justify-content: center;
+  }
+
+  .layout-wrapper.layout-collapsed .submenu {
+    display: none;
+  }
+
+  .layout-wrapper.layout-collapsed .sidebar-content {
+    padding: 0.5rem;
+    align-items: center;
+  }
+}
+
+/* ================= TOGGLE BUTTON ================= */
+/* Attached to sidebar right edge */
+.sidebar-collapse-toggle {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1a4b6d;
+  color: white;
+  border: 2px solid #0f3a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-toggle:hover {
+  background: #2a6b8d;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 2px 8px rgba(26, 75, 109, 0.3);
+}
+
+.sidebar-collapse-toggle:focus {
+  outline: 2px solid #4fc3f7;
+  outline-offset: 2px;
+}
+
+/* Navbar toggle button */
+.sidebar-collapse-toggle-navbar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #1a4b6d;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.sidebar-collapse-toggle-navbar:hover {
+  background: #e2e8f0;
+  color: #0f3a4a;
+}
+
+.sidebar-collapse-toggle-navbar:focus {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+/* Hide navbar toggle on mobile */
+@media (max-width: 767.98px) {
+  .sidebar-collapse-toggle-navbar {
+    display: none;
+  }
+}
+
+/* ================= NO GHOST GAPS ================= */
+/* Ensure no leftover spacing */
+.layout-wrapper {
+  position: relative;
+}
+
+.sidebar-container {
+  /* Overlap by 1px to prevent ghost gap */
+  margin-right: -1px;
+}
+
+.layout-main {
+  /* No left margin - handled by parent */
+  padding-left: 0;
+}
+
+/* ================= SMOOTH TRANSITIONS ================= */
+.sidebar-container,
+.layout-main {
+  will-change: width, margin-left;
+}
+
+/* Disable transitions on initial load */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .layout-main {
+    transition: none;
+  }
+}
+
+/* ================= KPI CARD FIXES ================= */
+/* Prevent text wrapping issues */
+.stat-card {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.stat-card-icon {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+}
+
+.stat-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-card-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #64748b;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  word-break: normal !important;
+  white-space: normal !important;
+}
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+.stat-card-subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+/* Mobile: Compact KPI */
+@media (max-width: 575.98px) {
+  .stat-card {
+    gap: 0.75rem;
+  }
+  
+  .stat-card-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .stat-card-value {
+    font-size: 1.75rem;
+  }
+}
+
+/* ================= BODY STATE CLASSES ================= */
+body.has-sidebar {
+  /* Desktop/tablet with sidebar */
+}
+
+body.sidebar-collapsed {
+  /* Sidebar collapsed */
+}
+
+body.layout-mobile {
+  /* Mobile layout */
+}
+
+body.layout-transitioning {
+  /* During collapse animation */
+}

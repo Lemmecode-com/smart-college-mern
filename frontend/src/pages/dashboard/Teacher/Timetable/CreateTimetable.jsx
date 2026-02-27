@@ -386,14 +386,14 @@ export default function CreateTimetable() {
             </div>
           </motion.div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div className="row g-4">
             {/* ================= FORM CARD ================= */}
             <motion.div
               variants={fadeInVariants}
               custom={0}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
               <div style={{
                 backgroundColor: 'white',

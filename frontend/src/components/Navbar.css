@@ -1,0 +1,289 @@
+/* =====================================================
+   NAVBAR RESPONSIVE FIXES - All Devices
+   Ensures proper touch targets and layout
+   ===================================================== */
+
+/* ================= NAVBAR CONTAINER ================= */
+.navbar {
+  min-height: 56px;
+}
+
+/* Mobile: Adjust navbar height */
+@media (max-width: 575.98px) {
+  .navbar {
+    min-height: 52px;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* ================= TOGGLER BUTTON ================= */
+.navbar-toggler {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+/* Mobile: Ensure proper touch target */
+@media (max-width: 575.98px) {
+  .navbar-toggler {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* ================= DROPDOWN TOGGLES ================= */
+.notification-toggle,
+.profile-toggle {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+/* ================= DROPDOWN MENUS ================= */
+.dropdown-menu {
+  max-width: 95vw;
+}
+
+/* Mobile: Adjust dropdown width */
+@media (max-width: 575.98px) {
+  .dropdown-menu {
+    min-width: 280px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+  
+  .notification-dropdown {
+    min-width: 280px !important;
+  }
+  
+  .profile-dropdown {
+    min-width: 220px !important;
+  }
+}
+
+/* ================= DROPDOWN ITEMS ================= */
+.dropdown-item,
+.dropdown-btn {
+  min-height: 44px !important;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+}
+
+/* Mobile: Ensure touch targets */
+@media (max-width: 575.98px) {
+  .dropdown-item,
+  .dropdown-btn {
+    min-height: 48px !important;
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* ================= BADGE POSITIONING ================= */
+.badge-notification {
+  position: absolute;
+  top: 0;
+  left: 75%;
+  transform: translate(-50%, -50%);
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  padding: 3px 6px;
+}
+
+/* ================= USER AVATAR ================= */
+.user-avatar {
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Mobile: Smaller avatar but still touch-friendly */
+@media (max-width: 575.98px) {
+  .user-avatar {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* ================= BRAND/LOGO ================= */
+.navbar-brand {
+  max-width: calc(100vw - 150px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mobile: Adjust brand size */
+@media (max-width: 575.98px) {
+  .navbar-brand {
+    max-width: calc(100vw - 120px);
+    font-size: 0.9rem !important;
+  }
+}
+
+/* ================= ROLE BADGE ================= */
+.role-badge {
+  font-size: 0.65rem;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* ================= EMAIL TEXT ================= */
+.user-email {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide email below 768px to prevent layout jump */
+@media (max-width: 767.98px) {
+  .user-email {
+    display: none;
+  }
+}
+
+/* ================= BREAKPOINT SYNC (768px) ================= */
+/* Ensure smooth transition at 768px breakpoint */
+@media (min-width: 768px) {
+  .navbar-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* Prevent layout shift at breakpoint */
+.navbar-content-wrapper {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ================= TOAST NOTIFICATION ================= */
+.toast-notification {
+  min-width: 200px;
+  max-width: calc(100vw - 2rem);
+  word-wrap: break-word;
+}
+
+/* Mobile: Full width toast */
+@media (max-width: 575.98px) {
+  .toast-notification {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    max-width: calc(100vw - 1rem) !important;
+  }
+}
+
+/* ================= NAV SPACING ================= */
+.nav-gap {
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .nav-gap {
+    gap: 1rem;
+  }
+}
+
+/* ================= CONSISTENT NAVBAR SPACING ================= */
+/* Standardize spacing across all navbar elements */
+.navbar-fluid-container {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+@media (min-width: 768px) {
+  .navbar-fluid-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .navbar-fluid-container {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+}
+
+/* ================= SIDEBAR COLLAPSE TOGGLE (Navbar) ================= */
+/* Desktop collapse toggle button in navbar */
+.sidebar-collapse-toggle-navbar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #1a4b6d;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-toggle-navbar:hover {
+  background: #e2e8f0;
+  color: #0f3a4a;
+  transform: translateX(-2px);
+}
+
+.sidebar-collapse-toggle-navbar:focus {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+.sidebar-collapse-toggle-navbar:active {
+  transform: translateX(0);
+}
+
+/* Mobile: Hide navbar collapse toggle */
+@media (max-width: 767.98px) {
+  .sidebar-collapse-toggle-navbar {
+    display: none;
+  }
+}
+
+/* Consistent gap between navbar items */
+.nav-items-gap {
+  gap: 0.5rem !important;
+}
+
+@media (min-width: 576px) {
+  .nav-items-gap {
+    gap: 0.75rem !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-items-gap {
+    gap: 1rem !important;
+  }
+}
+
+/* Prevent uneven spacing in dropdown headers */
+.dropdown-header {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0;
+}
+
+/* Consistent footer padding in dropdowns */
+.dropdown-footer {
+  padding: 0.75rem 1rem;
+  margin-top: 0;
+}

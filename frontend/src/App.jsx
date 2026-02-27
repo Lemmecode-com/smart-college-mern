@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { AuthContext } from "./auth/AuthContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Sidebar from "./components/Sidebar";
-import Navbar from "./components/Navbar";
+import Layout from "./components/Layout/Layout";
 
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
@@ -155,12 +157,12 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <AppContent 
-        user={user} 
-        isMobileOpen={isMobileOpen} 
-        setIsMobileOpen={setIsMobileOpen} 
-        isMobileDevice={isMobileDevice} 
-        toggleSidebar={toggleSidebar} 
+      <AppContent
+        user={user}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+        isMobileDevice={isMobileDevice}
+        toggleSidebar={toggleSidebar}
       />
     </BrowserRouter>
   );
@@ -180,29 +182,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
   const isAuthenticated = !!user;
 
   return (
-    <div className="app-wrapper">
-      {/* ================= SIDEBAR ================= */}
-      {isAuthenticated && !hideLayout && (
-        <Sidebar 
-          isMobileOpen={isMobileOpen} 
-          setIsMobileOpen={setIsMobileOpen} 
-        />
-      )}
-
-      {/* ================= MAIN CONTENT ================= */}
-      <main
-        className={`main-content ${isAuthenticated && !hideLayout ? "with-sidebar" : "full-width"}`}
-        style={{
-          marginLeft: isAuthenticated && !hideLayout && !isMobileDevice ? "280px" : "0",
-          transition: "margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-          width: isAuthenticated && !hideLayout && !isMobileDevice ? "calc(100% - 280px)" : "100%",
-          minHeight: "100vh"
-        }}
-      >
-        {isAuthenticated && !hideLayout && <Navbar onToggleSidebar={toggleSidebar} />}
-
-        <div className="content-wrapper p-3 p-md-4">
-          <Routes>
+    <ErrorBoundary>
+      <div className="app-wrapper">
+        {/* ================= LAYOUT WRAPPER ================= */}
+        {isAuthenticated && !hideLayout ? (
+          <Layout
+            isMobileOpen={isMobileOpen}
+            setIsMobileOpen={setIsMobileOpen}
+          >
+            <Routes>
             {/* ================= ROOT DECIDER ================= */}
             <Route
               path="/"
@@ -951,77 +939,31 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             {/* ================= FALLBACK ================= */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-        </div>
-      </main>
+          </Layout>
+        ) : (
+          <Routes>
+            {/* Public routes without layout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
+            <Route path="/register/:collegeCode" element={<StudentRegister />} />
+          </Routes>
+        )}
+      </div>
 
-      {/* ================= GLOBAL STYLES ================= */}
-      <style>{`
-        /* App Wrapper */
-        .app-wrapper {
-          min-height: 100vh;
-          background: #f5f7fa;
-        }
-
-        /* Main Content */
-        .main-content {
-          transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          min-height: 100vh;
-        }
-
-        .main-content.with-sidebar {
-          margin-left: 280px;
-          width: calc(100% - 280px);
-        }
-
-        .main-content.full-width {
-          margin-left: 0;
-          width: 100%;
-        }
-
-        /* Content Wrapper */
-        .content-wrapper {
-          min-height: calc(100vh - 70px);
-        }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 767.98px) {
-          .main-content.with-sidebar {
-            margin-left: 0 !important;
-            width: 100% !important;
-          }
-
-          .content-wrapper {
-            padding: 1rem !important;
-          }
-        }
-
-        @media (min-width: 768px) and (max-width: 991.98px) {
-          .content-wrapper {
-            padding: 1.5rem !important;
-          }
-        }
-
-        @media (min-width: 992px) {
-          .content-wrapper {
-            padding: 2rem !important;
-          }
-        }
-
-        /* Bootstrap Override for Better Spacing */
-        .p-3 {
-          padding: 1rem !important;
-        }
-
-        .p-4 {
-          padding: 1.5rem !important;
-        }
-
-        @media (min-width: 768px) {
-          .p-md-4 {
-            padding: 1.5rem !important;
-          }
-        }
-      `}</style>
-    </div>
+      {/* ================= GLOBAL TOAST CONTAINER ================= */}
+      <ToastContainer
+        position="top-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </ErrorBoundary>
   );
 }
