@@ -9,7 +9,7 @@ const {
   getDocumentConfig,
   getDocumentConfigForAdmin,
   upsertDocumentConfig,
-  resetToDefault,
+  resetToEmpty,
   validateDocuments
 } = require("../controllers/documentConfig.controller");
 
@@ -30,7 +30,7 @@ router.get(
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   getDocumentConfigForAdmin
-);
+);  
 
 // Create or update document configuration
 router.put(
@@ -41,13 +41,13 @@ router.put(
   upsertDocumentConfig
 );
 
-// Reset to default configuration
+// Reset to empty configuration (remove all documents)
 router.post(
   "/admin/college/reset",
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  resetToDefault
+  resetToEmpty
 );
 
 module.exports = router;

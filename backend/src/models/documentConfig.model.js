@@ -96,14 +96,15 @@ const documentConfigSchema = new mongoose.Schema({
 // Index for efficient queries
 documentConfigSchema.index({ college_id: 1, isActive: 1 });
 
-// Static method to get default document configuration
-documentConfigSchema.statics.getDefaultConfig = function() {
+// Static method to get AVAILABLE document templates (NOT enabled by default)
+// These are just templates/suggestions - admin must explicitly enable them
+documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
   return [
     {
       type: "10th_marksheet",
       label: "10th Marksheet",
-      enabled: true,
-      mandatory: true,
+      enabled: false,        // ✅ NOT enabled by default
+      mandatory: false,      // ✅ NOT mandatory by default
       allowedFormats: ["pdf", "jpg", "png"],
       maxFileSize: 5,
       description: "Upload your 10th standard marksheet/certificate",
@@ -112,8 +113,8 @@ documentConfigSchema.statics.getDefaultConfig = function() {
     {
       type: "12th_marksheet",
       label: "12th Marksheet",
-      enabled: true,
-      mandatory: true,
+      enabled: false,
+      mandatory: false,
       allowedFormats: ["pdf", "jpg", "png"],
       maxFileSize: 5,
       description: "Upload your 12th standard marksheet/certificate",
@@ -122,8 +123,8 @@ documentConfigSchema.statics.getDefaultConfig = function() {
     {
       type: "passport_photo",
       label: "Passport Size Photo",
-      enabled: true,
-      mandatory: true,
+      enabled: false,
+      mandatory: false,
       allowedFormats: ["jpg", "jpeg", "png"],
       maxFileSize: 2,
       description: "Recent passport size photograph (max 2MB)",
@@ -132,7 +133,7 @@ documentConfigSchema.statics.getDefaultConfig = function() {
     {
       type: "category_certificate",
       label: "Category Certificate",
-      enabled: true,
+      enabled: false,
       mandatory: false,
       allowedFormats: ["pdf", "jpg", "png"],
       maxFileSize: 3,
@@ -188,27 +189,127 @@ documentConfigSchema.statics.getDefaultConfig = function() {
       maxFileSize: 3,
       description: "JEE/NEET/CUET or other entrance exam score card",
       order: 9
+    },
+    {
+      type: "migration_certificate",
+      label: "Migration Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Migration certificate from previous board/university",
+      order: 10
+    },
+    {
+      type: "domicile_certificate",
+      label: "Domicile Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Domicile/residence certificate",
+      order: 11
+    },
+    {
+      type: "caste_certificate",
+      label: "Caste Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Caste certificate (if applicable)",
+      order: 12
+    },
+    {
+      type: "non_creamy_layer_certificate",
+      label: "Non-Creamy Layer Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Non-creamy layer certificate (for OBC)",
+      order: 13
+    },
+    {
+      type: "physically_challenged_certificate",
+      label: "Physically Challenged Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Disability certificate (if applicable)",
+      order: 14
+    },
+    {
+      type: "sports_quota_certificate",
+      label: "Sports Quota Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Sports quota certificate (if applicable)",
+      order: 15
+    },
+    {
+      type: "nri_sponsor_certificate",
+      label: "NRI Sponsor Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "NRI sponsorship certificate",
+      order: 16
+    },
+    {
+      type: "gap_certificate",
+      label: "Gap Certificate",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Gap year affidavit/certificate",
+      order: 17
+    },
+    {
+      type: "affidavit",
+      label: "Affidavit",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf"],
+      maxFileSize: 3,
+      description: "Any required affidavit",
+      order: 18
+    },
+    {
+      type: "custom_document",
+      label: "Custom Document",
+      enabled: false,
+      mandatory: false,
+      allowedFormats: ["pdf", "jpg", "png"],
+      maxFileSize: 5,
+      description: "Upload any other document",
+      order: 19
     }
   ];
 };
 
-// Static method to create default config for a college
-documentConfigSchema.statics.createDefaultConfig = async function(college_id, collegeCode) {
+// Static method to create EMPTY config for a college (NO defaults)
+// Admin must manually configure documents based on their needs
+documentConfigSchema.statics.createEmptyConfig = async function(college_id, collegeCode) {
   const existingConfig = await this.findOne({ college_id });
-  
+
   if (existingConfig) {
     return existingConfig;
   }
-  
-  const defaultDocuments = this.getDefaultConfig();
-  
+
+  // Create EMPTY config - admin must configure documents manually
   const config = await this.create({
     college_id,
     collegeCode,
-    documents: defaultDocuments,
+    documents: [],  // ✅ Empty array - NO default documents
     isActive: true
   });
-  
+
   return config;
 };
 

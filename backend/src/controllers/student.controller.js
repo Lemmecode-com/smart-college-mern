@@ -17,11 +17,17 @@ exports.registerStudent = async (req, res, next) => {
     // Extract category early from req.body for validation
     const { category } = req.body;
 
-    // Load document configuration for this college
-    const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
-
     // Get uploaded files
     const files = req.files || {};
+
+    console.log("📁 UPLOADED FILES:", Object.keys(files));
+    console.log("📁 Aadhar Card:", files.aadharCard);
+    console.log("📁 Category Certificate:", files.categoryCertificate);
+    console.log("📁 SSC Marksheet:", files.sscMarksheet);
+
+    // Load document configuration for this college
+    const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
+    console.log("📋 Doc Config loaded:", docConfig ? "YES" : "NO", "- Documents:", docConfig?.documents?.length);
 
     // Map document type to field name (backward compatibility)
     const documentFieldMap = {
@@ -96,8 +102,13 @@ exports.registerStudent = async (req, res, next) => {
           console.log("💾 Saved uploaded document:", docType, documentPaths[docType]);
         }
       }
+
+      console.log("📄 FINAL documentPaths:", documentPaths);
+      console.log("📄 Aadhar Path to save:", documentPaths["aadhar_card"]);
+      console.log("📄 SSC Path to save:", documentPaths["10th_marksheet"]);
     } else {
       // Use default document fields (backward compatibility)
+      // Also handle ALL uploaded files dynamically
       const sscMarksheetPath = files.sscMarksheet?.[0]?.path ?
         files.sscMarksheet[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : "";
       const hscMarksheetPath = files.hscMarksheet?.[0]?.path ?
@@ -111,6 +122,17 @@ exports.registerStudent = async (req, res, next) => {
       documentPaths["12th_marksheet"] = hscMarksheetPath;
       documentPaths["passport_photo"] = passportPhotoPath;
       documentPaths["category_certificate"] = categoryCertificatePath;
+
+      // Also save any other uploaded files (aadhar, etc.)
+      for (const [fieldName, fieldFiles] of Object.entries(files)) {
+        if (fieldFiles && fieldFiles[0]?.path) {
+          const filePath = fieldFiles[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
+          // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
+          const docType = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
+          documentPaths[docType] = filePath;
+          console.log("💾 Saved (fallback):", docType, filePath);
+        }
+      }
     }
 
     const {
@@ -627,22 +649,68 @@ exports.getRegisteredStudents = async (req, res) => {
 
 // ADMIN GETS REGISTERED (PENDING) INDIVUDUAL STUDENT
 exports.getRegisteredStudentById = async (req, res) => {
-  const student = await Student.findOne({
-    _id: req.params.id,
-    college_id: req.college_id,
-    status: "PENDING"
-  })
-    .populate("college_id", "name code")
-    .populate("department_id", "name")
-    .populate("course_id", "name");
+  try {
+    const student = await Student.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+      status: "PENDING"
+    })
+      .populate("college_id", "name code")
+      .populate("department_id", "name")
+      .populate("course_id", "name");
 
-  if (!student) {
-    return res.status(404).json({
-      message: "Registered student not found"
-    });
+    if (!student) {
+      return res.status(404).json({
+        message: "Registered student not found"
+      });
+    }
+
+    // Format document paths properly for frontend
+    const studentData = {
+      ...student.toObject(),
+      // Normalize all document paths
+      sscMarksheetPath: student.sscMarksheetPath ? 
+        student.sscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      hscMarksheetPath: student.hscMarksheetPath ? 
+        student.hscMarksheetPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      passportPhotoPath: student.passportPhotoPath ? 
+        student.passportPhotoPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      categoryCertificatePath: student.categoryCertificatePath ? 
+        student.categoryCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      incomeCertificatePath: student.incomeCertificatePath ? 
+        student.incomeCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      characterCertificatePath: student.characterCertificatePath ? 
+        student.characterCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      transferCertificatePath: student.transferCertificatePath ? 
+        student.transferCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      aadharCardPath: student.aadharCardPath ? 
+        student.aadharCardPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      entranceExamScorePath: student.entranceExamScorePath ? 
+        student.entranceExamScorePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      migrationCertificatePath: student.migrationCertificatePath ? 
+        student.migrationCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      domicileCertificatePath: student.domicileCertificatePath ? 
+        student.domicileCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      casteCertificatePath: student.casteCertificatePath ? 
+        student.casteCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      nonCreamyLayerCertificatePath: student.nonCreamyLayerCertificatePath ? 
+        student.nonCreamyLayerCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      physicallyChallengedCertificatePath: student.physicallyChallengedCertificatePath ? 
+        student.physicallyChallengedCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      sportsQuotaCertificatePath: student.sportsQuotaCertificatePath ? 
+        student.sportsQuotaCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      nriSponsorCertificatePath: student.nriSponsorCertificatePath ? 
+        student.nriSponsorCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      gapCertificatePath: student.gapCertificatePath ? 
+        student.gapCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+      affidavitPath: student.affidavitPath ? 
+        student.affidavitPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
+    };
+
+    res.json(studentData);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  res.json(student);
 };
 
 /**
@@ -691,5 +759,118 @@ exports.getStudentsForTeacher = async (req, res) => {
   } catch (error) {
     console.error("Get Students For Teacher Error:", error);
     res.status(500).json({ message: "Failed to fetch students", error: error.message });
+  }
+};
+
+/**
+ * 🎓 MOVE STUDENT TO ALUMNI
+ * Only accessible by COLLEGE_ADMIN
+ * Moves a student who has completed their course to Alumni status
+ */
+exports.moveToAlumni = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { graduationYear } = req.body;
+
+    console.log("Moving student to Alumni:", studentId);
+    console.log("Graduation year from request:", graduationYear);
+
+    // Find student
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: "APPROVED",
+    }).populate("course_id", "name code semester");
+
+    if (!student) {
+      throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
+    }
+
+    console.log("Student found:", {
+      fullName: student.fullName,
+      course_id: student.course_id,
+      currentSemester: student.currentSemester,
+    });
+
+    // Check if student is in final semester
+    const maxSemester = student.course_id?.semester || 8;
+    if (student.currentSemester < maxSemester) {
+      throw new AppError(
+        "Student has not completed the course yet. Cannot move to Alumni.",
+        400,
+        "NOT_ELIGIBLE_FOR_ALUMNI"
+      );
+    }
+
+    // Move to Alumni status
+    student.status = "ALUMNI";
+    student.alumniStatus = true;
+    student.alumniDate = new Date();
+    student.graduationYear = graduationYear || new Date().getFullYear();
+
+    console.log("Saving alumni with graduationYear:", student.graduationYear);
+
+    await student.save();
+
+    console.log("Student saved as Alumni successfully");
+
+    res.json({
+      success: true,
+      message: `${student.fullName} has been moved to Alumni successfully`,
+      student: {
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        alumniStatus: student.alumniStatus,
+        alumniDate: student.alumniDate,
+        graduationYear: student.graduationYear,
+        course_id: student.course_id,
+      },
+    });
+  } catch (error) {
+    console.error("Move to Alumni error:", error);
+    next(error);
+  }
+};
+
+/**
+ * 🎓 GET ALL ALUMNI
+ * Only accessible by COLLEGE_ADMIN
+ */
+exports.getAlumni = async (req, res, next) => {
+  try {
+    const { graduationYear, course_id } = req.query;
+
+    const filter = {
+      college_id: req.college_id,
+      status: "ALUMNI",
+    };
+
+    if (graduationYear) {
+      filter.graduationYear = parseInt(graduationYear);
+    }
+
+    if (course_id) {
+      filter.course_id = course_id;
+    }
+
+    const alumni = await Student.find(filter)
+      .populate("course_id", "name code")
+      .populate("department_id", "name code")
+      .sort({ alumniDate: -1 });
+
+    console.log("Alumni fetched:", alumni.length);
+    if (alumni.length > 0) {
+      console.log("First alumni course_id:", alumni[0].course_id);
+      console.log("First alumni graduationYear:", alumni[0].graduationYear);
+    }
+
+    res.json({
+      success: true,
+      count: alumni.length,
+      alumni,
+    });
+  } catch (error) {
+    next(error);
   }
 };
