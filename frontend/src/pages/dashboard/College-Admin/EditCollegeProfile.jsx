@@ -39,6 +39,7 @@ export default function EditCollegeProfile() {
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
   // ================= LOAD COLLEGE =================
   useEffect(() => {
@@ -64,22 +65,53 @@ export default function EditCollegeProfile() {
   const fetchCollege = async () => {
     try {
       setLoading(true);
+      setFetchError(false);
       const res = await api.get("/college/my-college");
 
-      if (res.data) {
+      // Defensive: Check if response data exists and is valid
+      const collegeData = res?.data;
+      
+      if (!collegeData) {
+        toast.error("No college profile found. Please contact admin.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+        setFetchError(true);
         setForm({
-          name: res.data.name || "",
-          code: res.data.code || "",
-          email: res.data.email || "",
-          contactNumber: res.data.contactNumber || "",
-          address: res.data.address || "",
-          establishedYear: res.data.establishedYear?.toString() || "",
+          name: "",
+          code: "",
+          email: "",
+          contactNumber: "",
+          address: "",
+          establishedYear: "",
           logo: null,
         });
+        return;
       }
+
+      // Defensive: Safely extract each field with fallbacks
+      setForm({
+        name: typeof collegeData.name === "string" ? collegeData.name : "",
+        code: typeof collegeData.code === "string" ? collegeData.code : "",
+        email: typeof collegeData.email === "string" ? collegeData.email : "",
+        contactNumber: typeof collegeData.contactNumber === "string" ? collegeData.contactNumber : "",
+        address: typeof collegeData.address === "string" ? collegeData.address : "",
+        establishedYear: collegeData.establishedYear != null 
+          ? String(collegeData.establishedYear) 
+          : "",
+        logo: null,
+      });
     } catch (err) {
       console.error("Fetch college error:", err);
-      toast.error(err.response?.data?.message || "Failed to load college profile", {
+      
+      // Defensive: Handle different error types
+      const errorMessage = 
+        err?.response?.data?.message || 
+        err?.message || 
+        "Failed to load college profile";
+      
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -87,6 +119,19 @@ export default function EditCollegeProfile() {
         pauseOnHover: true,
         draggable: true,
         icon: <FaExclamationTriangle />,
+      });
+      
+      setFetchError(true);
+      
+      // Set empty form state on error
+      setForm({
+        name: "",
+        code: "",
+        email: "",
+        contactNumber: "",
+        address: "",
+        establishedYear: "",
+        logo: null,
       });
     } finally {
       setLoading(false);
@@ -304,6 +349,90 @@ export default function EditCollegeProfile() {
           draggable
           pauseOnHover
         />
+      </div>
+    );
+  }
+
+  // ================= ERROR STATE =================
+  if (fetchError) {
+    return (
+      <div className="edit-college-profile-container">
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
+        <header className="glass-header mb-4">
+          <div className="header-content">
+            <div className="header-left">
+              <button
+                className="btn-back"
+                onClick={handleBack}
+                aria-label="Go back"
+              >
+                <FaArrowLeft />
+              </button>
+              <div>
+                <h1 className="header-title">
+                  <FaUniversity className="header-icon blink" aria-hidden="true" />
+                  Edit Institute Profile
+                </h1>
+                <p className="header-subtitle">Unable to load profile data</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="form-wrapper">
+          <div className="row justify-content-center">
+            <div className="col-lg-8">
+              <div className="glass-card">
+                <div className="error-state">
+                  <FaExclamationTriangle className="error-icon" size={48} />
+                  <h3>Failed to Load Profile</h3>
+                  <p>Unable to fetch college profile data. This could be due to:</p>
+                  <ul className="error-reasons">
+                    <li>No college profile exists yet</li>
+                    <li>Network connectivity issues</li>
+                    <li>Server is temporarily unavailable</li>
+                  </ul>
+                  <div className="error-actions">
+                    <button
+                      className="btn btn-outline-secondary"
+                      onClick={handleBack}
+                    >
+                      <FaArrowLeft className="me-2" aria-hidden="true" />
+                      Go Back
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={fetchCollege}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <FaSpinner className="spin me-2" aria-hidden="true" />
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle className="me-2" aria-hidden="true" />
+                          Try Again
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -1050,6 +1179,68 @@ export default function EditCollegeProfile() {
 
         .Toastify__progress-bar {
           background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ================= ERROR STATE ================= */
+        .error-state {
+          text-align: center;
+          padding: 3rem 2rem;
+          color: #475569;
+        }
+
+        .error-icon {
+          color: #dc3545;
+          margin-bottom: 1.5rem;
+          animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .error-state h3 {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 0.75rem;
+        }
+
+        .error-state > p {
+          color: #64748b;
+          margin-bottom: 1.5rem;
+        }
+
+        .error-reasons {
+          text-align: left;
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 1.25rem 1.25rem 1.25rem 2.5rem;
+          margin: 1.5rem auto;
+          max-width: 500px;
+          color: #475569;
+        }
+
+        .error-reasons li {
+          margin-bottom: 0.5rem;
+          line-height: 1.6;
+        }
+
+        .error-reasons li:last-child {
+          margin-bottom: 0;
+        }
+
+        .error-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 2rem;
+          flex-wrap: wrap;
+        }
+
+        .error-actions .btn {
+          min-width: 140px;
         }
 
         /* ================= RESPONSIVE ================= */

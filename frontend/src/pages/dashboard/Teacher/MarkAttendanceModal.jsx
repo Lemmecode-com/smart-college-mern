@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
+import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 
 export default function MarkAttendanceModal() {
   const { sessionId } = useParams();
@@ -19,7 +21,11 @@ export default function MarkAttendanceModal() {
         );
         setStudents(res.data);
       } catch {
-        alert("Failed to load students");
+        toast.error("Failed to load students. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
       } finally {
         setLoading(false);
       }
@@ -42,10 +48,18 @@ export default function MarkAttendanceModal() {
         `/attendance/sessions/${sessionId}/mark`,
         payload
       );
-      alert("Attendance marked successfully");
+      toast.success("Attendance marked successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       navigate(`/attendance/session/${sessionId}`);
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to mark");
+      toast.error(err.response?.data?.message || "Failed to mark attendance. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     }
   };
 
