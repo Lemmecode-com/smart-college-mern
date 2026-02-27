@@ -125,12 +125,14 @@ exports.registerStudent = async (req, res, next) => {
 
       // Also save any other uploaded files (aadhar, etc.)
       for (const [fieldName, fieldFiles] of Object.entries(files)) {
-        if (fieldFiles && fieldFiles[0]?.path) {
+        if (fieldFiles && Array.isArray(fieldFiles) && fieldFiles[0] && fieldFiles[0].path) {
           const filePath = fieldFiles[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
           // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
           const docType = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
           documentPaths[docType] = filePath;
           console.log("💾 Saved (fallback):", docType, filePath);
+        } else {
+          console.log("⚠️ Skipped file (no path):", fieldName, fieldFiles);
         }
       }
     }
