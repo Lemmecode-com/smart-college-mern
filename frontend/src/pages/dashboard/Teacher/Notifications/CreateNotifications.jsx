@@ -331,14 +331,14 @@ export default function CreateNotifications() {
             </div>
           </motion.div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div className="row g-4">
             {/* ================= FORM CARD ================= */}
             <motion.div
               variants={fadeInVariants}
               custom={0}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: showPreview ? '1 / 2' : '1 / -1' }}
+              className={showPreview ? 'col-lg-6' : 'col-12'}
             >
               <div style={{
                 backgroundColor: 'white',
@@ -647,7 +647,7 @@ export default function CreateNotifications() {
                 custom={1}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
                 <div style={{
                   backgroundColor: 'white',

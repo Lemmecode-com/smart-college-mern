@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
+import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 
 export default function AddEditSlotModal({ 
   mode, 
@@ -86,12 +88,22 @@ export default function AddEditSlotModal({
       } else {
         await api.post("/timetable/slot", payload);
       }
-      
+
+      toast.success(mode === "edit" ? "Slot updated successfully!" : "Slot added successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
+
       onSuccess();
       onClose();
     } catch (error) {
       console.error("Failed to save slot:", error);
-      alert(mode === "edit" ? "Failed to update slot" : "Failed to add slot");
+      toast.error(mode === "edit" ? "Failed to update slot" : "Failed to add slot", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     } finally {
       setLoading(false);
     }
@@ -99,8 +111,8 @@ export default function AddEditSlotModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div 
-        className="modal-box" 
+      <div
+        className="modal-box"
         onClick={(e) => e.stopPropagation()}
       >
         <h4 className="mb-4">{mode === "edit" ? "Edit Slot" : "Add New Slot"}</h4>

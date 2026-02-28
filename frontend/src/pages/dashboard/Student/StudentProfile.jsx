@@ -1536,20 +1536,22 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
   };
 
   const handleDownload = () => {
-    if (documentUrl && hasFile) {
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', file);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success("Document downloaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />
-      });
+    try {
+      if (documentUrl && hasFile) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', file);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast.success("Document downloaded successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />
+        });
+      }
     } catch (err) {
       console.error("Download error:", err);
       toast.error("Failed to download document. Please try again.", {

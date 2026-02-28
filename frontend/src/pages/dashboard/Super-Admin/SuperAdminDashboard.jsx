@@ -314,50 +314,51 @@ export default function SuperAdminDashboard() {
               </button>
             </div>
           ) : (
-            <div className="colleges-grid">
+            <div className="row g-3 g-md-4">
               {collegesToDisplay.map((college, index) => (
-                <div 
-                  key={college._id} 
-                  className="college-card"
-                  onClick={() => navigate(`/super-admin/colleges/view/${college._id}`)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`View details for ${college.name}`}
-                >
-                  <div className="college-card-header">
-                    <div className="college-badge">
-                      <span>{index + 1}</span>
-                    </div>
-                    <div className="college-status">
-                      <span className="status-active">Active</span>
-                    </div>
-                  </div>
-                  
-                  <div className="college-card-body">
-                    <h4 className="college-name">{college.name || "Unnamed College"}</h4>
-                    <div className="college-meta">
-                      <div className="meta-item">
-                        <FaMapMarkerAlt className="meta-icon" />
-                        <span>Pune, Maharashtra</span>
+                <div className="col-12 col-md-6 col-lg-4" key={college._id}>
+                  <div
+                    className="college-card card border-0 shadow-sm h-100"
+                    onClick={() => navigate(`/super-admin/colleges/view/${college._id}`)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${college.name}`}
+                  >
+                    <div className="college-card-header p-3">
+                      <div className="college-badge">
+                        <span>{index + 1}</span>
                       </div>
-                      <div className="meta-item">
-                        <FaCalendarAlt className="meta-icon" />
-                        <span>Since 2024</span>
+                      <div className="college-status">
+                        <span className="status-active">Active</span>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="college-card-footer">
-                    <button 
-                      className="view-details-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/super-admin/colleges/view/${college._id}`);
-                      }}
-                      aria-label={`View details for ${college.name}`}
-                    >
-                      View Details
-                    </button>
+
+                    <div className="college-card-body p-3">
+                      <h4 className="college-name h6 mb-2 fw-bold">{college.name || "Unnamed College"}</h4>
+                      <div className="college-meta d-flex flex-wrap gap-2">
+                        <div className="meta-item d-flex align-items-center gap-1">
+                          <FaMapMarkerAlt className="text-muted" />
+                          <span className="small text-muted">Pune, Maharashtra</span>
+                        </div>
+                        <div className="meta-item d-flex align-items-center gap-1">
+                          <FaCalendarAlt className="text-muted" />
+                          <span className="small text-muted">Since 2024</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="college-card-footer p-3 pt-0">
+                      <button
+                        className="view-details-btn btn btn-sm btn-primary w-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/super-admin/colleges/view/${college._id}`);
+                        }}
+                        aria-label={`View details for ${college.name}`}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -375,52 +376,67 @@ export default function SuperAdminDashboard() {
           </h3>
         </div>
         <div className="erp-card-body">
-          <div className="quick-actions-grid">
-            <div 
-              className="quick-action-card"
-              onClick={() => navigate("/super-admin/create-college")}
-              role="button"
-              tabIndex={0}
-              aria-label="Add new college"
-            >
-              <div className="quick-action-icon add-college">
-                <FaPlus />
-              </div>
-              <div className="quick-action-content">
-                <div className="quick-action-title">Add New College</div>
-                <div className="quick-action-description">Register a new educational institution</div>
-              </div>
-            </div>
-            
-            <div 
-              className="quick-action-card"
-              onClick={() => navigate("/super-admin/reports/admission")}
-              role="button"
-              tabIndex={0}
-              aria-label="View admission reports"
-            >
-              <div className="quick-action-icon reports">
-                <FaChartPie />
-              </div>
-              <div className="quick-action-content">
-                <div className="quick-action-title">Admission Reports</div>
-                <div className="quick-action-description">View analytics across all colleges</div>
+          <div className="row g-3 g-md-4">
+            <div className="col-12 col-md-4">
+              <div
+                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
+                onClick={() => navigate("/super-admin/create-college")}
+                role="button"
+                tabIndex={0}
+                aria-label="Add new college"
+              >
+                <div className="card-body text-center p-4">
+                  <div className="quick-action-icon add-college bg-primary bg-opacity-10 text-primary rounded-3 d-inline-flex align-items-center justify-content-center mb-3"
+                       style={{ width: '64px', height: '64px', fontSize: '1.75rem' }}>
+                    <FaPlus />
+                  </div>
+                  <div className="quick-action-content">
+                    <div className="quick-action-title h6 mb-2 fw-bold">Add New College</div>
+                    <div className="quick-action-description small text-muted">Register a new educational institution</div>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <div 
-              className="quick-action-card"
-              onClick={() => navigate("/super-admin/settings")}
-              role="button"
-              tabIndex={0}
-              aria-label="System settings"
-            >
-              <div className="quick-action-icon settings">
-                <FaCog />
+
+            <div className="col-12 col-md-4">
+              <div
+                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
+                onClick={() => navigate("/super-admin/reports/admission")}
+                role="button"
+                tabIndex={0}
+                aria-label="View admission reports"
+              >
+                <div className="card-body text-center p-4">
+                  <div className="quick-action-icon reports bg-info bg-opacity-10 text-info rounded-3 d-inline-flex align-items-center justify-content-center mb-3"
+                       style={{ width: '64px', height: '64px', fontSize: '1.75rem' }}>
+                    <FaChartPie />
+                  </div>
+                  <div className="quick-action-content">
+                    <div className="quick-action-title h6 mb-2 fw-bold">Admission Reports</div>
+                    <div className="quick-action-description small text-muted">View analytics across all colleges</div>
+                  </div>
+                </div>
               </div>
-              <div className="quick-action-content">
-                <div className="quick-action-title">System Settings</div>
-                <div className="quick-action-description">Configure global system parameters</div>
+            </div>
+
+            <div className="col-12 col-md-4">
+              <div
+                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
+                onClick={() => navigate("/super-admin/settings")}
+                role="button"
+                tabIndex={0}
+                aria-label="System settings"
+              >
+                <div className="card-body text-center p-4">
+                  <div className="quick-action-icon settings bg-secondary bg-opacity-10 text-secondary rounded-3 d-inline-flex align-items-center justify-content-center mb-3"
+                       style={{ width: '64px', height: '64px', fontSize: '1.75rem' }}>
+                    <FaCog />
+                  </div>
+                  <div className="quick-action-content">
+                    <div className="quick-action-title h6 mb-2 fw-bold">System Settings</div>
+                    <div className="quick-action-description small text-muted">Configure global system parameters</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

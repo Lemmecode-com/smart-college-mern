@@ -332,14 +332,14 @@ export default function AddTimetableSlot() {
             <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600 }}>Add Timetable Slot</span>
           </motion.div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div className="row g-4">
             {/* Form Card */}
             <motion.div
               variants={fadeInVariants}
               custom={0}
               initial="hidden"
               animate="visible"
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
               <div style={{
                 backgroundColor: 'white',
@@ -494,54 +494,40 @@ export default function AddTimetableSlot() {
                     </FormField>
 
                     {/* Time Selection */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                      <FormField
-                        icon={<FaClock />}
-                        label="Start Time"
-                        required
-                        error={!form.startTime && form.startTime !== ""}
-                      >
-                        <input
-                          type="time"
-                          name="startTime"
-                          value={form.startTime}
-                          onChange={handleChange}
-                          style={{
-                            width: '100%',
-                            padding: '0.875rem 1.25rem',
-                            borderRadius: '12px',
-                            border: `1px solid ${(!form.startTime && form.startTime !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
-                            fontSize: '1rem',
-                            backgroundColor: 'white',
-                            color: '#1e293b',
-                            fontWeight: 500
-                          }}
-                        />
-                      </FormField>
+                    <div className="row g-4 mb-4">
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          icon={<FaClock />}
+                          label="Start Time"
+                          required
+                          error={!form.startTime && form.startTime !== ""}
+                        >
+                          <input
+                            type="time"
+                            name="startTime"
+                            value={form.startTime}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
 
-                      <FormField
-                        icon={<FaClock />}
-                        label="End Time"
-                        required
-                        error={!form.endTime && form.endTime !== ""}
-                      >
-                        <input
-                          type="time"
-                          name="endTime"
-                          value={form.endTime}
-                          onChange={handleChange}
-                          style={{
-                            width: '100%',
-                            padding: '0.875rem 1.25rem',
-                            borderRadius: '12px',
-                            border: `1px solid ${(!form.endTime && form.endTime !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
-                            fontSize: '1rem',
-                            backgroundColor: 'white',
-                            color: '#1e293b',
-                            fontWeight: 500
-                          }}
-                        />
-                      </FormField>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          icon={<FaClock />}
+                          label="End Time"
+                          required
+                          error={!form.endTime && form.endTime !== ""}
+                        >
+                          <input
+                            type="time"
+                            name="endTime"
+                            value={form.endTime}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
                     </div>
 
                     {/* Subject Selection */}

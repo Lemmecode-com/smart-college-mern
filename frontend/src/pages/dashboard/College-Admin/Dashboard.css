@@ -1,0 +1,742 @@
+/* =====================================================
+   DASHBOARD RESPONSIVE FIXES - All Devices
+   Ensures proper card stacking from 320px to desktop
+   ===================================================== */
+
+/* ================= HOVER/FOCUS STATES - CONSISTENT ================= */
+/* Standardize all hover and focus states across dashboard */
+
+/* Card hover states */
+.stat-card,
+.quick-action-card,
+.section-card,
+.student-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.stat-card:hover,
+.stat-card:focus-within {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.quick-action-card:hover,
+.quick-action-card:focus-within {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.student-item:hover,
+.student-item:focus-within {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Button hover states */
+.dashboard-btn:hover,
+.dashboard-btn:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 75, 109, 0.3);
+}
+
+.dashboard-btn:active {
+  transform: translateY(0);
+}
+
+/* Focus visible for keyboard navigation */
+.dashboard-btn:focus-visible,
+.quick-action-card:focus-visible,
+.student-item:focus-visible {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+/* Icon button hover */
+.btn-icon:hover,
+.btn-icon:focus {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+}
+
+/* Link hover states */
+a:hover,
+a:focus {
+  text-decoration: underline;
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+/* Mobile: Reduce hover effects for touch devices */
+@media (hover: none) {
+  .stat-card:hover,
+  .quick-action-card:hover,
+  .student-item:hover {
+    transform: none;
+  }
+  
+  .dashboard-btn:hover {
+    transform: none;
+  }
+}
+
+/* ================= SIDEBAR CONTENT SYNC ================= */
+/* Fix: Main content padding syncs with sidebar width */
+.dashboard-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  transition: padding-left 0.3s ease, padding-right 0.3s ease;
+}
+
+/* Mobile: Full width, no sidebar offset */
+@media (max-width: 767.98px) {
+  .dashboard-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Desktop: Content aligns with sidebar edge */
+@media (min-width: 768px) {
+  .dashboard-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  /* When sidebar is present, adjust content */
+  body.has-sidebar .dashboard-container {
+    margin-left: 0;
+    padding-left: 1rem;
+  }
+}
+
+/* Large desktop: More padding */
+@media (min-width: 1024px) {
+  .dashboard-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ================= GRID SPACING - CONSISTENT GAPS ================= */
+/* Standardize all row gaps across breakpoints */
+.dashboard-row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.dashboard-row .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Consistent gap using Bootstrap spacing scale */
+.g-dashboard {
+  gap: 1rem !important;
+}
+
+@media (min-width: 768px) {
+  .g-dashboard {
+    gap: 1.5rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .g-dashboard {
+    gap: 2rem !important;
+  }
+}
+
+/* ================= STAT CARD CONTAINER ================= */
+.stat-card {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+/* Fix: Cards stack properly on all screen sizes */
+@media (max-width: 575.98px) {
+  .stat-card {
+    margin-bottom: 0.75rem;
+  }
+  
+  .stat-card-wrapper {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+/* ================= QUICK ACTION CARDS ================= */
+.quick-action-card {
+  width: 100%;
+  min-height: 130px;
+  padding: 1rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Mobile: Compact height, full width */
+@media (max-width: 575.98px) {
+  .quick-action-card {
+    min-height: 120px;
+    padding: 0.875rem;
+    margin-bottom: 0;
+  }
+
+  .quick-action-card .quick-action-icon {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.25rem !important;
+  }
+
+  .quick-action-card .quick-action-label {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .quick-action-wrapper {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+}
+
+/* Tablet: 2 per row */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .quick-action-card {
+    min-height: 130px;
+    padding: 1rem;
+  }
+}
+
+/* Desktop: Standard size */
+@media (min-width: 768px) {
+  .quick-action-card {
+    min-height: 140px;
+    padding: 1.25rem;
+  }
+}
+
+/* ================= SECTION CARDS ================= */
+.section-card {
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+/* Mobile: Adjust padding for smaller screens */
+@media (max-width: 575.98px) {
+  .section-card {
+    margin-bottom: 0.75rem;
+  }
+
+  .section-card-header {
+    padding: 1rem !important;
+  }
+
+  .section-card-body {
+    padding: 1rem !important;
+  }
+}
+
+/* ================= GRID LAYOUT FIXES ================= */
+/* Force single column on extra small screens */
+@media (max-width: 575.98px) {
+  .dashboard-row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  .dashboard-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Tablet: 2 columns with consistent spacing */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .dashboard-col-sm {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+/* Desktop: Standard grid with consistent gaps */
+@media (min-width: 768px) {
+  .dashboard-col {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-bottom: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-col {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* ================= STUDENT ITEM ================= */
+.student-item {
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mobile: Stack avatar, content, and button vertically */
+@media (max-width: 575.98px) {
+  .student-item {
+    padding: 0.75rem !important;
+    gap: 0.625rem !important;
+  }
+
+  .student-item-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    flex-shrink: 0;
+  }
+
+  .student-item .student-item-status {
+    font-size: 0.75rem !important;
+    flex-wrap: wrap;
+  }
+
+  .student-item .student-item-status span {
+    font-size: 0.75rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+
+  .student-item-name {
+    font-size: 0.875rem !important;
+    word-break: break-word;
+    max-width: 100%;
+  }
+}
+
+/* Tablet: Adjust layout */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .student-item {
+    padding: 0.875rem !important;
+  }
+  
+  .student-item-avatar {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+/* ================= BUTTON & TOUCH TARGETS ================= */
+/* Ensure all buttons meet 44px minimum touch target */
+.dashboard-btn,
+.quick-action-btn,
+.stat-card-btn,
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-secondary,
+.btn-outline-primary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-outline-secondary {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  touch-action: manipulation;
+}
+
+/* Icon buttons */
+.btn-icon {
+  width: 44px !important;
+  height: 44px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+
+/* Mobile: Ensure touch targets remain 44px */
+@media (max-width: 575.98px) {
+  .dashboard-btn,
+  .quick-action-btn,
+  .stat-card-btn,
+  .btn-primary,
+  .btn-success,
+  .btn-danger,
+  .btn-warning,
+  .btn-info,
+  .btn-secondary,
+  .btn-icon {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    padding: 0.875rem 1rem;
+  }
+  
+  .btn-icon {
+    width: 48px !important;
+    height: 48px !important;
+  }
+}
+
+/* ================= LINK & CLICKABLE AREAS ================= */
+/* Ensure clickable areas meet minimum touch target */
+a,
+.clickable,
+[role="button"],
+[tabindex="0"] {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+/* Mobile: Larger touch targets */
+@media (max-width: 575.98px) {
+  a,
+  .clickable,
+  [role="button"],
+  [tabindex="0"] {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 0.75rem;
+  }
+}
+
+/* ================= CARD CONTENT WRAPPING ================= */
+/* Prevent text overflow and ensure proper wrapping */
+.card-label,
+.card-value,
+.card-subtitle {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  hyphens: auto;
+}
+
+/* Stat Card specific styles */
+.stat-card .card-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #64748b;
+  /* Allow natural text wrapping, no forced breaks */
+  word-break: normal !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.stat-card .card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+.stat-card .card-subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+/* Mobile: Adjust stat card typography */
+@media (max-width: 575.98px) {
+  .stat-card .card-label {
+    font-size: 0.8125rem;
+  }
+  
+  .stat-card .card-value {
+    font-size: 1.75rem;
+  }
+  
+  .stat-card .card-subtitle {
+    font-size: 0.75rem;
+  }
+}
+
+/* Tablet: Balanced typography */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .stat-card .card-label {
+    font-size: 0.875rem;
+  }
+  
+  .stat-card .card-value {
+    font-size: 1.875rem;
+  }
+}
+
+/* ================= STAT CARD LAYOUT ================= */
+/* Clean enterprise SaaS styling */
+.stat-card {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem !important;
+  border-radius: 12px !important;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  min-width: 0; /* Allow flex shrink */
+}
+
+.stat-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Icon container in stat card */
+.stat-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Never shrink icon */
+  font-size: 1.5rem;
+}
+
+/* Content area */
+.stat-card-content {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Label - natural wrapping, no forced breaks */
+.stat-card .card-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #64748b;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  /* Explicitly prevent bad breaking */
+  word-break: normal !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+/* Value - no wrapping */
+.stat-card .card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+/* Subtitle */
+.stat-card .card-subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+/* Mobile: Compact stat card */
+@media (max-width: 575.98px) {
+  .stat-card {
+    padding: 1rem !important;
+    gap: 0.75rem;
+  }
+  
+  .stat-card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+  
+  .stat-card .card-value {
+    font-size: 1.75rem;
+  }
+  
+  .stat-card .card-label {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Tablet: Balanced sizing */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .stat-card {
+    padding: 1.125rem !important;
+  }
+  
+  .stat-card-icon {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .stat-card .card-value {
+    font-size: 1.875rem;
+  }
+}
+
+/* ================= CONTAINER PADDING ================= */
+/* Adjust container padding for mobile */
+@media (max-width: 575.98px) {
+  .dashboard-container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* ================= MODAL OVERFLOW FIXES ================= */
+/* Fix: Modals don't overflow on small screens */
+.modal-content {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: 1rem;
+}
+
+/* Mobile: Full-screen modal with proper margins */
+@media (max-width: 575.98px) {
+  .modal-content {
+    max-height: calc(100vh - 1.5rem);
+    margin: 0.75rem;
+    border-radius: 0.75rem;
+  }
+  
+  .modal-dialog {
+    margin: 0.75rem;
+    max-width: calc(100% - 1.5rem);
+  }
+  
+  .modal-header {
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+    max-height: calc(100vh - 10rem);
+    overflow-y: auto;
+  }
+  
+  .modal-footer {
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+}
+
+/* Tablet: Centered modal with max height */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .modal-dialog {
+    max-width: 90%;
+    margin: 1.5rem auto;
+  }
+  
+  .modal-body {
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
+  }
+}
+
+/* Desktop: Standard modal sizing */
+@media (min-width: 768px) {
+  .modal-dialog {
+    max-width: 600px;
+    margin: 1.75rem auto;
+  }
+  
+  .modal-lg {
+    max-width: 800px;
+  }
+  
+  .modal-xl {
+    max-width: 1140px;
+  }
+}
+
+/* Fix: Modal backdrop covers full height */
+.modal-backdrop {
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix: Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  padding-right: 0 !important;
+}
+
+/* Mobile modal animations */
+@media (max-width: 575.98px) {
+  .modal.fade .modal-dialog {
+    transform: translate(0, 20px);
+  }
+  
+  .modal.show .modal-dialog {
+    transform: translate(0, 0);
+  }
+}
+
+/* ================= LOADING & ERROR STATES ================= */
+.loading-container,
+.error-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+/* Mobile: Adjust loading state */
+@media (max-width: 575.98px) {
+  .loading-container,
+  .error-container {
+    padding: 1.5rem 0.75rem;
+  }
+  
+  .loading-icon {
+    font-size: 3rem !important;
+  }
+}
+
+/* ================= EMPTY STATE ================= */
+.empty-state {
+  width: 100%;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+@media (max-width: 575.98px) {
+  .empty-state {
+    padding: 1.5rem 1rem;
+  }
+  
+  .empty-state-icon {
+    font-size: 2.5rem !important;
+  }
+  
+  .empty-state-title {
+    font-size: 1.1rem !important;
+  }
+  
+  .empty-state-message {
+    font-size: 0.9rem !important;
+  }
+}
