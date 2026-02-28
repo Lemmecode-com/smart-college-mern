@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
+import ConfirmModal from "../../../../components/ConfirmModal";
 
 import {
   FaCalendarAlt,
@@ -77,6 +79,14 @@ export default function TimetableList() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    action: null,
+    id: null,
+    title: "",
+    message: "",
+    type: "warning"
+  });
 
   /* ================= FETCH TIMETABLES ================= */
   useEffect(() => {
@@ -98,32 +108,72 @@ export default function TimetableList() {
   };
 
   /* ================= PUBLISH TIMETABLE ================= */
-  const publishTimetable = async (id) => {
-    if (!window.confirm("Are you sure you want to publish this timetable? Students will be able to view it immediately after publishing.")) return;
+  const showPublishConfirm = (id) => {
+    setConfirmModal({
+      isOpen: true,
+      action: "publish",
+      id: id,
+      title: "Publish Timetable?",
+      message: "Are you sure you want to publish this timetable? Students will be able to view it immediately after publishing.",
+      type: "warning"
+    });
+  };
 
-    setPublishingId(id);
+  const confirmPublishTimetable = async () => {
+    setPublishingId(confirmModal.id);
     try {
-      await api.put(`/timetable/${id}/publish`);
+      await api.put(`/timetable/${confirmModal.id}/publish`);
       fetchTimetables();
+      toast.success("Timetable published successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to publish timetable. Please try again.");
+      const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     } finally {
       setPublishingId(null);
+      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
     }
   };
 
   /* ================= DELETE TIMETABLE ================= */
-  const deleteTimetable = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this timetable? This action cannot be undone.")) return;
+  const showDeleteConfirm = (id) => {
+    setConfirmModal({
+      isOpen: true,
+      action: "delete",
+      id: id,
+      title: "Delete Timetable?",
+      message: "Are you sure you want to delete this timetable? This action cannot be undone.",
+      type: "danger"
+    });
+  };
 
-    setDeletingId(id);
+  const confirmDeleteTimetable = async () => {
+    setDeletingId(confirmModal.id);
     try {
-      await api.delete(`/timetable/${id}`);
+      await api.delete(`/timetable/${confirmModal.id}`);
       fetchTimetables();
+      toast.success("Timetable deleted successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete timetable. Please try again.");
+      const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     } finally {
       setDeletingId(null);
+      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
     }
   };
 
@@ -588,7 +638,7 @@ export default function TimetableList() {
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => publishTimetable(t._id)}
+                                onClick={() => showPublishConfirm(t._id)}
                                 disabled={publishingId === t._id}
                                 title="Publish Timetable"
                                 style={{
@@ -622,7 +672,7 @@ export default function TimetableList() {
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              onClick={() => deleteTimetable(t._id)}
+                              onClick={() => showDeleteConfirm(t._id)}
                               disabled={deletingId === t._id}
                               title="Delete Timetable"
                               style={{
@@ -687,6 +737,18 @@ export default function TimetableList() {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* ================= CONFIRM MODAL ================= */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" })}
+        onConfirm={confirmModal.action === "publish" ? confirmPublishTimetable : confirmDeleteTimetable}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.action === "publish" ? "Publish" : "Delete"}
+        isLoading={confirmModal.action === "publish" ? publishingId === confirmModal.id : deletingId === confirmModal.id}
+      />
     </AnimatePresence>
   );
 }
