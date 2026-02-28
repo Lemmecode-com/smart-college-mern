@@ -331,62 +331,52 @@ export default function ViewCollegeDetails() {
             </div>
           </motion.div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+          <div className="row g-4">
             {/* College Information Card */}
             <motion.div
               variants={itemVariants}
-              style={{ gridColumn: '1 / -1' }}
+              className="col-12"
             >
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '18px',
-                boxShadow: '0 2px 15px rgba(0, 0, 0, 0.05)',
-                height: '100%',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  padding: '1rem 1.5rem',
-                  background: 'linear-gradient(to right, #eff6ff, #e0e7ff)',
-                  borderBottom: '1px solid #e2e8f0'
-                }}>
-                  <h2 style={{
-                    margin: 0,
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    color: '#1e293b',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <FaUniversity style={{ color: '#3b82f6' }} /> College Information
+              <div className="card border-0 shadow-sm" style={{ borderRadius: '18px', overflow: 'hidden' }}>
+                <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #eff6ff, #e0e7ff)', borderBottom: '1px solid #e2e8f0' }}>
+                  <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#1e293b' }}>
+                    <FaUniversity className="text-primary me-2" /> College Information
                   </h2>
                 </div>
-                <div style={{ padding: '1.5rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                    <InfoItem 
-                      icon={<FaEnvelope />}
-                      label="Official Email"
-                      value={college.email}
-                      gradient={gradientColors['from-blue-400 to-cyan-400']}
-                    />
-                    <InfoItem 
-                      icon={<FaPhone />}
-                      label="Contact Number"
-                      value={college.contactNumber}
-                      gradient={gradientColors['from-green-400 to-emerald-400']}
-                    />
-                    <InfoItem 
-                      icon={<FaMapMarkerAlt />}
-                      label="Address"
-                      value={college.address}
-                      gradient={gradientColors['from-amber-400 to-orange-400']}
-                    />
-                    <InfoItem 
-                      icon={<FaCalendarAlt />}
-                      label="Established Year"
-                      value={college.establishedYear?.toString() || 'N/A'}
-                      gradient={gradientColors['from-purple-400 to-pink-400']}
-                    />
+                <div className="p-4">
+                  <div className="row g-4">
+                    <div className="col-12 col-sm-6 col-lg-3">
+                      <InfoItem
+                        icon={<FaEnvelope />}
+                        label="Official Email"
+                        value={college.email}
+                        gradient={gradientColors['from-blue-400 to-cyan-400']}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-3">
+                      <InfoItem
+                        icon={<FaPhone />}
+                        label="Contact Number"
+                        value={college.contactNumber}
+                        gradient={gradientColors['from-green-400 to-emerald-400']}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-3">
+                      <InfoItem
+                        icon={<FaMapMarkerAlt />}
+                        label="Address"
+                        value={college.address}
+                        gradient={gradientColors['from-amber-400 to-orange-400']}
+                      />
+                    </div>
+                    <div className="col-12 col-sm-6 col-lg-3">
+                      <InfoItem
+                        icon={<FaCalendarAlt />}
+                        label="Established Year"
+                        value={college.establishedYear?.toString() || 'N/A'}
+                        gradient={gradientColors['from-purple-400 to-pink-400']}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -398,76 +388,70 @@ export default function ViewCollegeDetails() {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
-                <div style={{
-                  backgroundColor: 'white',
-                  borderRadius: '18px',
-                  boxShadow: '0 2px 15px rgba(0, 0, 0, 0.05)',
-                  marginBottom: '1.5rem',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    padding: '1rem 1.5rem',
-                    background: 'linear-gradient(to right, #f0f9ff, #ede9fe)',
-                    borderBottom: '1px solid #e2e8f0'
-                  }}>
-                    <h2 style={{
-                      margin: 0,
-                      fontSize: '1.25rem',
-                      fontWeight: 700,
-                      color: '#1e293b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      <FaClipboardList style={{ color: '#4f46e5' }} /> College Statistics
+                <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '18px', overflow: 'hidden' }}>
+                  <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #f0f9ff, #ede9fe)', borderBottom: '1px solid #e2e8f0' }}>
+                    <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#1e293b' }}>
+                      <FaClipboardList className="text-indigo me-2" /> College Statistics
                     </h2>
                   </div>
-                  <div style={{ padding: '0.5rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                      <StatCard 
-                        icon={<FaLayerGroup />}
-                        label="Departments"
-                        value={stats.totalDepartments}
-                        gradient={gradientColors['from-blue-500 to-cyan-400']}
-                        delay={0.1}
-                      />
-                      <StatCard 
-                        icon={<FaBook />}
-                        label="Courses"
-                        value={stats.totalCourses}
-                        gradient={gradientColors['from-indigo-500 to-purple-500']}
-                        delay={0.2}
-                      />
-                      <StatCard 
-                        icon={<FaChalkboardTeacher />}
-                        label="Teachers"
-                        value={stats.totalTeachers}
-                        gradient={gradientColors['from-amber-500 to-orange-400']}
-                        delay={0.3}
-                      />
-                      <StatCard 
-                        icon={<FaUsers />}
-                        label="Total Students"
-                        value={stats.totalStudents}
-                        gradient={gradientColors['from-green-500 to-emerald-400']}
-                        delay={0.4}
-                      />
-                      <StatCard 
-                        icon={<FaCheckCircle />}
-                        label="Approved Students"
-                        value={stats.approvedStudents}
-                        gradient={gradientColors['from-teal-500 to-cyan-500']}
-                        delay={0.5}
-                      />
-                      <StatCard 
-                        icon={<FaCalendarAlt />}
-                        label="Active Timetables"
-                        value={stats.totalTimetables}
-                        gradient={gradientColors['from-pink-500 to-rose-400']}
-                        delay={0.6}
-                      />
+                  <div className="p-2">
+                    <div className="row g-3">
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaLayerGroup />}
+                          label="Departments"
+                          value={stats.totalDepartments}
+                          gradient={gradientColors['from-blue-500 to-cyan-400']}
+                          delay={0.1}
+                        />
+                      </div>
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaBook />}
+                          label="Courses"
+                          value={stats.totalCourses}
+                          gradient={gradientColors['from-indigo-500 to-purple-500']}
+                          delay={0.2}
+                        />
+                      </div>
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaChalkboardTeacher />}
+                          label="Teachers"
+                          value={stats.totalTeachers}
+                          gradient={gradientColors['from-amber-500 to-orange-400']}
+                          delay={0.3}
+                        />
+                      </div>
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaUsers />}
+                          label="Total Students"
+                          value={stats.totalStudents}
+                          gradient={gradientColors['from-green-500 to-emerald-400']}
+                          delay={0.4}
+                        />
+                      </div>
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaCheckCircle />}
+                          label="Approved Students"
+                          value={stats.approvedStudents}
+                          gradient={gradientColors['from-teal-500 to-cyan-500']}
+                          delay={0.5}
+                        />
+                      </div>
+                      <div className="col-6 col-md-4 col-lg-2">
+                        <StatCard
+                          icon={<FaCalendarAlt />}
+                          label="Active Timetables"
+                          value={stats.totalTimetables}
+                          gradient={gradientColors['from-pink-500 to-rose-400']}
+                          delay={0.6}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

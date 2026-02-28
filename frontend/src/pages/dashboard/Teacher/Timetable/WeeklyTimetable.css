@@ -1,40 +1,58 @@
 .weekly-container {
-  padding: 20px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+  min-height: 100vh;
 }
 
 .controls {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
+/* Responsive Grid - Mobile First */
 .grid {
   display: grid;
-  grid-template-columns: 120px repeat(6, 1fr);
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
   background: #f5f6f8;
-  padding: 12px;
+  padding: 0.75rem;
   border-radius: 12px;
+}
+
+/* Tablet and up - show full timetable grid */
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 120px repeat(6, 1fr);
+    gap: 0.5rem;
+    padding: 1rem;
+  }
 }
 
 .header {
   font-weight: 600;
   text-align: center;
+  font-size: 0.875rem;
+  padding: 0.75rem;
 }
 
 .time {
   font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem;
 }
 
 .cell {
   background: #fff;
   border: 1px dashed #ccc;
   border-radius: 8px;
-  padding: 8px;
+  padding: 0.75rem;
   min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.875rem;
 }
 
 .add-btn {
@@ -42,83 +60,113 @@
   background: transparent;
   color: #007bff;
   cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+  background-color: #f0f0f0;
 }
 
 .slot-card {
   width: 100%;
   background: #eaf2ff;
-  padding: 8px;
+  padding: 0.75rem;
   border-radius: 8px;
+  font-size: 0.875rem;
 }
 
 .slot-card .teacher {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #555;
+  margin-top: 0.25rem;
 }
 
 .actions {
-  margin-top: 6px;
+  margin-top: 0.5rem;
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-/* MODAL */
+/* MODAL - Responsive */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  z-index: 9999;
 }
 
 .modal-box {
   background: white;
-  padding: 20px;
+  padding: 1.5rem;
   border-radius: 12px;
-  width: 380px;
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-box input,
 .modal-box select {
   width: 100%;
-  margin-bottom: 10px;
-  padding: 8px;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1rem;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-
-
-.weekly-container {
-  padding: 24px;
-}
-
+/* Second set of styles (merged) */
 .tt-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .tt-grid {
   border-radius: 12px;
   background: #f9fafb;
-  padding: 12px;
+  padding: 0.75rem;
 }
 
+/* Mobile: Stack vertically */
 .tt-row {
   display: grid;
-  grid-template-columns: 120px repeat(6, 1fr);
-  gap: 10px;
-  margin-bottom: 10px;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Tablet and up: Full grid */
+@media (min-width: 768px) {
+  .tt-row {
+    grid-template-columns: 120px repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tt-grid {
+    padding: 1rem;
+  }
 }
 
 .tt-row.header {
   font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .cell {
@@ -126,24 +174,28 @@
   border: 1px dashed #e5e7eb;
   min-height: 90px;
   border-radius: 10px;
-  padding: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .empty {
   color: #9ca3af;
   text-align: center;
   cursor: pointer;
+  padding: 1rem;
 }
 
 .slot-card {
   background: #eef2ff;
   border-left: 4px solid;
-  padding: 8px;
+  padding: 0.75rem;
   border-radius: 8px;
+  font-size: 0.875rem;
 }
-  
+
 .actions {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
 }

@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
+import AttendanceToggle from "../../../../components/AttendanceToggle";
 
 import {
   FaUsers,
@@ -9,7 +11,11 @@ import {
   FaBookOpen,
   FaEdit,
   FaLock,
-  FaCheckCircle
+  FaCheckCircle,
+  FaSearch,
+  FaCheck,
+  FaTimes,
+  FaUndo
 } from "react-icons/fa";
 
 export default function MarkAttendance() {
@@ -25,6 +31,17 @@ export default function MarkAttendance() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  
+  // NEW: Search and filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // NEW: Mark All state
+  const [markAllStatus, setMarkAllStatus] = useState(null); // 'PRESENT', 'ABSENT', or null
+  
+  // NEW: Undo state
+  const [previousAttendance, setPreviousAttendance] = useState(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const [undoTimer, setUndoTimer] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -52,6 +69,10 @@ export default function MarkAttendance() {
     setStudents([]);
     setAttendance({});
     setAttendanceSaved(false);
+    setSearchTerm("");
+    setMarkAllStatus(null);
+    setPreviousAttendance(null);
+    setShowUndo(false);
 
     const session = sessions.find((s) => s._id === sessionId);
     if (!session?.course_id) return;
@@ -62,20 +83,89 @@ export default function MarkAttendance() {
       );
 
       const list = res.data || [];
+
+      // ✅ Step 1: Set students first
       setStudents(list);
 
+      // ✅ Step 2: Create default PRESENT attendance
       const initial = {};
-      list.forEach((s) => (initial[s._id] = "ABSENT"));
-      setAttendance(initial);
+      list.forEach((s) => {
+        initial[s._id] = "PRESENT";
+      });
 
-    } catch {
+      // ✅ Step 3: Use setTimeout to ensure React processes students first
+      setTimeout(() => {
+        setAttendance(initial);
+      }, 0);
+
+    } catch (err) {
+      console.error("Failed to load students:", err);
       setError("Failed to load students");
     }
   };
 
   /* ================= MARK STATUS ================= */
   const handleStatusChange = (studentId, status) => {
-    setAttendance((prev) => ({ ...prev, [studentId]: status }));
+    setAttendance((prev) => {
+      const updated = { ...prev, [studentId]: status };
+      return updated;
+    });
+  };
+
+  /* ================= MARK ALL ================= */
+  const handleMarkAll = (status) => {
+    // Save current state for undo
+    setPreviousAttendance({ ...attendance });
+    setShowUndo(true);
+    
+    // Mark all students
+    const allMarked = {};
+    students.forEach((s) => {
+      allMarked[s._id] = status;
+    });
+    setAttendance(allMarked);
+    setMarkAllStatus(status);
+    
+    // Auto-hide undo after 5 seconds
+    if (undoTimer) clearTimeout(undoTimer);
+    const timer = setTimeout(() => {
+      setShowUndo(false);
+      setPreviousAttendance(null);
+    }, 5000);
+    setUndoTimer(timer);
+  };
+
+  /* ================= UNDO ================= */
+  const handleUndo = () => {
+    if (previousAttendance) {
+      setAttendance(previousAttendance);
+      setPreviousAttendance(null);
+      setShowUndo(false);
+      setMarkAllStatus(null);
+      if (undoTimer) clearTimeout(undoTimer);
+      toast.info("Changes undone", {
+        position: "top-right",
+        autoClose: 2000
+      });
+    }
+  };
+
+  /* ================= CLEAR SEARCH ================= */
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  /* ================= FILTERED STUDENTS ================= */
+  const filteredStudents = students.filter((student) =>
+    student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  /* ================= ATTENDANCE COUNT ================= */
+  const attendanceCount = {
+    present: Object.values(attendance).filter((s) => s === "PRESENT").length,
+    absent: Object.values(attendance).filter((s) => s === "ABSENT").length,
+    total: students.length
   };
 
   /* ================= SAVE ATTENDANCE (ONLY ONCE) ================= */
@@ -98,14 +188,30 @@ export default function MarkAttendance() {
       );
 
       setAttendanceSaved(true);
-      alert("✅ Attendance saved successfully");
+      setShowUndo(false);
+      setPreviousAttendance(null);
+      if (undoTimer) clearTimeout(undoTimer);
+      
+      toast.success("Attendance saved successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
 
     } catch (err) {
       if (err.response?.status === 409 || err.response?.status === 500) {
         setAttendanceSaved(true);
         setError("Attendance already saved. Use Edit option.");
+        toast.warning("Attendance already saved for this session. Use Edit to modify.", {
+          position: "top-right",
+          autoClose: 5000
+        });
       } else {
         setError("Failed to save attendance");
+        toast.error("Failed to save attendance. Please try again.", {
+          position: "top-right",
+          autoClose: 5000
+        });
       }
     } finally {
       setSaving(false);
@@ -148,8 +254,25 @@ return (
 
     {attendanceSaved && (
       <div className="alert alert-success text-center mb-4">
-        Attendance already saved for this session.  
+        Attendance already saved for this session.
         Use <strong>Edit</strong> to modify.
+      </div>
+    )}
+
+    {/* ================= UNDO BANNER ================= */}
+    {showUndo && previousAttendance && (
+      <div className="alert alert-info d-flex justify-content-between align-items-center mb-4">
+        <span>
+          <FaUndo className="me-2" />
+          Changes made! Want to undo?
+        </span>
+        <button
+          className="btn btn-sm btn-outline-secondary"
+          onClick={handleUndo}
+        >
+          <FaUndo className="me-1" />
+          Undo
+        </button>
       </div>
     )}
 
@@ -185,55 +308,129 @@ return (
       <div className="card section-card">
         <div className="card-body p-0">
 
-          {/* Table Header */}
+          {/* Table Header with Search and Mark All */}
           <div className="table-header px-4 py-3">
-            <h5 className="fw-bold mb-0">Student Attendance</h5>
+            <div className="row g-3 align-items-center">
+              <div className="col-md-4">
+                <h5 className="fw-bold mb-0">Student Attendance</h5>
+              </div>
+              
+              {/* Search */}
+              <div className="col-md-4">
+                <div className="input-group">
+                  <span className="input-group-text bg-white border-end-0">
+                    <FaSearch className="text-muted" />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    aria-label="Search students"
+                  />
+                  {searchTerm && (
+                    <button
+                      className="btn btn-outline-secondary"
+                      type="button"
+                      onClick={handleClearSearch}
+                      aria-label="Clear search"
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Attendance Summary */}
+              <div className="col-md-4">
+                <div className="d-flex gap-2 justify-content-md-end">
+                  <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                    <FaCheck className="me-1" />
+                    Present: {attendanceCount.present}
+                  </span>
+                  <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2">
+                    <FaTimes className="me-1" />
+                    Absent: {attendanceCount.absent}
+                  </span>
+                  <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">
+                    Total: {attendanceCount.total}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mark All Buttons */}
+            <div className="row g-2 mt-3">
+              <div className="col-12">
+                <div className="d-flex gap-2 flex-wrap">
+                  <span className="text-muted small align-self-center">Mark All:</span>
+                  <button
+                    className="btn btn-sm btn-outline-success"
+                    onClick={() => handleMarkAll("PRESENT")}
+                    disabled={attendanceSaved || markAllStatus === "PRESENT"}
+                  >
+                    <FaCheck className="me-1" />
+                    Present
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleMarkAll("ABSENT")}
+                    disabled={attendanceSaved || markAllStatus === "ABSENT"}
+                  >
+                    <FaTimes className="me-1" />
+                    Absent
+                  </button>
+                  {showUndo && (
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={handleUndo}
+                    >
+                      <FaUndo className="me-1" />
+                      Undo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Table */}
           <div className="table-responsive">
-            <table className="table align-middle mb-0">
+            <table className="table align-middle mb-0" role="grid" aria-label="Student attendance table">
               <thead className="table-dark">
                 <tr>
-                  <th>#</th>
-                  <th>Student</th>
-                  <th>Email</th>
-                  <th className="text-center">Present</th>
-                  <th className="text-center">Absent</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Student</th>
+                  <th scope="col">Email</th>
+                  <th scope="col" className="text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {students.map((s, i) => (
-                  <tr key={s._id}>
-                    <td>{i + 1}</td>
-                    <td className="fw-semibold">{s.fullName}</td>
-                    <td className="text-muted">{s.email}</td>
-
-                    <td className="text-center">
-                      <input
-                        type="radio"
-                        name={s._id}
-                        disabled={attendanceSaved}
-                        checked={attendance[s._id] === "PRESENT"}
-                        onChange={() =>
-                          handleStatusChange(s._id, "PRESENT")
-                        }
-                      />
-                    </td>
-
-                    <td className="text-center">
-                      <input
-                        type="radio"
-                        name={s._id}
-                        disabled={attendanceSaved}
-                        checked={attendance[s._id] === "ABSENT"}
-                        onChange={() =>
-                          handleStatusChange(s._id, "ABSENT")
-                        }
-                      />
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="text-center py-5 text-muted">
+                      <FaSearch className="me-2" />
+                      No students found matching "{searchTerm}"
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredStudents.map((s, i) => (
+                    <tr key={s._id}>
+                      <td>{i + 1}</td>
+                      <td className="fw-semibold">{s.fullName}</td>
+                      <td className="text-muted">{s.email}</td>
+                      <td className="text-center">
+                        <AttendanceToggle
+                          studentId={s._id}
+                          status={attendance[s._id]}
+                          onStatusChange={handleStatusChange}
+                          disabled={attendanceSaved}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -316,9 +513,38 @@ return (
         border-top: 1px solid #dee2e6;
       }
 
+      .input-group-text {
+        border-radius: 8px 0 0 8px;
+      }
+
+      .form-control.border-start-0 {
+        border-radius: 0 8px 8px 0;
+      }
+
+      .form-control.border-start-0:focus {
+        border-left: 1px solid #86b7fe;
+      }
+
+      .badge {
+        font-weight: 600;
+        border-radius: 8px;
+      }
+
       @media (max-width: 768px) {
         .page-header {
           padding: 16px;
+        }
+        
+        .table-header .row.g-3 {
+          flex-direction: column;
+        }
+        
+        .table-header .col-md-4 {
+          width: 100%;
+        }
+        
+        .d-flex.gap-2.flex-wrap {
+          justify-content: center !important;
         }
       }
     `}</style>

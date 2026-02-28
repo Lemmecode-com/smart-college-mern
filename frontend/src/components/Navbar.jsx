@@ -1,325 +1,18 @@
-// import { useContext, useEffect, useRef, useState } from "react";
-// import { AuthContext } from "../auth/AuthContext";
-// import { useNavigate } from "react-router-dom";
-// import api from "../api/axios";
-// import { FaBell, FaCheck, FaBars } from "react-icons/fa";
-
-// export default function Navbar({ onToggleSidebar }) {
-//   const { user, logout } = useContext(AuthContext);
-//   const navigate = useNavigate();
-
-//   const [count, setCount] = useState(0);
-//   const [open, setOpen] = useState(false);
-//   const [notes, setNotes] = useState([]);
-//   const [toast, setToast] = useState(null);
-//   const [college, setCollege] = useState(null);
-//   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-//   const prevCount = useRef(0);
-//   const dropdownRef = useRef();
-
-//   // Handle window resize
-//   useEffect(() => {
-//     const handleResize = () => {
-//       setIsMobile(window.innerWidth < 768);
-//     };
-
-//     window.addEventListener("resize", handleResize);
-//     return () => window.removeEventListener("resize", handleResize);
-//   }, []);
-
-//   if (!user) return null;
-
-//   // Fetch college information when user is available
-//   useEffect(() => {
-//     const fetchCollegeInfo = async () => {
-//       if (user.college_id) {
-//         try {
-//           let response;
-
-//           if (user.role === "COLLEGE_ADMIN") {
-//             response = await api.get("/college/my-college");
-//             setCollege(response.data);
-//           } else if (user.role === "TEACHER") {
-//             response = await api.get("/teachers/my-profile");
-//             if (response.data && response.data.college_id) {
-//               setCollege(response.data.college_id);
-//             }
-//           } else if (user.role === "STUDENT") {
-//             response = await api.get("/students/my-profile");
-//             if (response.data && response.data.college) {
-//               setCollege(response.data.college);
-//             }
-//           }
-//         } catch (error) {
-//           // Silently handle auth errors - don't log to console
-//           // This prevents console spam when session expires
-//           if (error.response?.status !== 403 && error.response?.status !== 401) {
-//             console.error("Error fetching college info:", error);
-//           }
-//         }
-//       }
-//     };
-
-//     fetchCollegeInfo();
-//   }, [user.college_id, user.role]);
-
-//   /* ================= FETCH COUNT (UNREAD ONLY) ================= */
-//   const fetchCount = async () => {
-//     try {
-//       let res;
-
-//       if (user.role === "COLLEGE_ADMIN")
-//         res = await api.get("/notifications/count/admin");
-//       if (user.role === "TEACHER")
-//         res = await api.get("/notifications/count/teacher");
-//       if (user.role === "STUDENT")
-//         res = await api.get("/notifications/count/student");
-
-//       const total = res?.data?.total || 0;
-
-//       if (prevCount.current && total > prevCount.current) {
-//         setToast("🔔 New notification received!");
-//         setTimeout(() => setToast(null), 3000);
-//       }
-
-//       prevCount.current = total;
-//       setCount(total);
-//     } catch (err) {
-//       console.error("Notification count error", err);
-//     }
-//   };
-
-//   /* ================= FETCH UNREAD FOR BELL ================= */
-//   const fetchNotes = async () => {
-//     try {
-//       const res = await api.get("/notifications/unread/bell");
-//       setNotes(res.data || []);
-//     } catch (err) {
-//       console.error("Bell fetch error", err);
-//     }
-//   };
-
-//   /* ================= MARK AS READ ================= */
-//   const markAsRead = async (id) => {
-//     try {
-//       await api.post(`/notifications/${id}/read`);
-//       fetchNotes();
-//       fetchCount();
-//     } catch (err) {
-//       console.error("Mark read failed", err);
-//     }
-//   };
-
-//   /* ================= ROLE BASED VIEW ALL ================= */
-//   const goToNotificationList = () => {
-//     if (user.role === "COLLEGE_ADMIN") {
-//       navigate("/notification/list");
-//     } else if (user.role === "TEACHER") {
-//       navigate("/teacher/notifications/list");
-//     } else if (user.role === "STUDENT") {
-//       navigate("/notification/student");
-//     }
-//   };
-
-//   /* ================= INITIAL ================= */
-//   useEffect(() => {
-//     fetchCount();
-//     const interval = setInterval(fetchCount, 15000);
-//     return () => clearInterval(interval);
-//   }, [user]);
-
-//   /* ================= CLOSE DROPDOWN ON OUTSIDE ================= */
-//   useEffect(() => {
-//     const handleClick = (e) => {
-//       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-//         setOpen(false);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClick);
-//     return () => document.removeEventListener("mousedown", handleClick);
-//   }, []);
-
-//   /* ================= LOGOUT ================= */
-//   const handleLogout = () => {
-//     if (!window.confirm("Are you sure you want to logout?")) return;
-//     logout();
-//     navigate("/login");
-//   };
-
-//   return (
-//     <>
-//       {toast && (
-//         <div
-//           className="position-fixed top-0 end-0 m-3 alert alert-success shadow"
-//           style={{ zIndex: 3000 }}
-//         >
-//           {toast}
-//         </div>
-//       )}
-
-//       <nav className="navbar navbar-light bg-white px-3 px-md-4 shadow-sm d-flex justify-content-between align-items-center" style={{ position: "relative", zIndex: 1060 }}>
-//         {/* LEFT - With Mobile Toggle */}
-//         <div className="d-flex align-items-center gap-3">
-//           {/* MOBILE HAMBURGER BUTTON */}
-//           {isMobile && (
-//             <button
-//               className="btn btn-link text-dark p-0 me-2"
-//               onClick={onToggleSidebar}
-//               style={{ fontSize: "1.5rem", border: "none", zIndex: 1070 }}
-//               aria-label="Toggle sidebar"
-//             >
-//               <FaBars />
-//             </button>
-//           )}
-
-//           {college ? (
-//             <h5 className="mb-0 fw-bold text-primary" style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}>
-//               {college.name}
-//             </h5>
-//           ) : (
-//             <h5 className="mb-0 fw-bold text-primary" style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}>
-//               NOVAA
-//             </h5>
-//           )}
-
-//           <div className="d-flex flex-wrap gap-2">
-//             <span className="badge bg-dark" style={{ fontSize: isMobile ? "0.65rem" : "0.75rem" }}>
-//               {user.role.replace("_", " ")}
-//             </span>
-//           </div>
-//         </div>
-
-//         {/* RIGHT */}
-//         <div className="d-flex align-items-center gap-2 gap-md-4 position-relative">
-//           {/* BELL */}
-//           <div
-//             className="position-relative"
-//             ref={dropdownRef}
-//             style={{ cursor: "pointer", zIndex: 3000 }}
-//           >
-//             <FaBell
-//               size={isMobile ? 18 : 20}
-//               onClick={() => {
-//                 setOpen(!open);
-//                 fetchNotes();
-//               }}
-//             />
-
-//             {count > 0 && (
-//               <span
-//                 className="badge bg-danger rounded-pill"
-//                 style={{
-//                   position: "absolute",
-//                   top: "-6px",
-//                   right: "-8px",
-//                   fontSize: "10px",
-//                   padding: "2px 5px",
-//                   minWidth: "18px",
-//                   height: "18px",
-//                   display: "flex",
-//                   alignItems: "center",
-//                   justifyContent: "center"
-//                 }}
-//               >
-//                 {count}
-//               </span>
-//             )}
-
-//             {open && (
-//               <div
-//                 className="card shadow border-0 position-absolute"
-//                 style={{ 
-//                   width: isMobile ? "280px" : "320px",
-//                   zIndex: 3000,
-//                   top: "calc(100% + 10px)",
-//                   right: isMobile ? "-120px" : "0",
-//                   left: isMobile ? "auto" : "auto",
-//                   maxHeight: "80vh",
-//                   overflowY: "auto"
-//                 }}
-//               >
-//                 <div className="card-body p-2">
-//                   <h6 className="fw-bold text-center mb-3" style={{ fontSize: "0.9rem" }}>
-//                     Unread Notifications
-//                   </h6>
-
-//                   {notes.length === 0 && (
-//                     <p className="text-muted small text-center py-3">
-//                       No new notifications
-//                     </p>
-//                   )}
-
-//                   {notes.map((n) => (
-//                     <div
-//                       key={n._id}
-//                       className="p-2 rounded mb-1 small bg-warning bg-opacity-25"
-//                       style={{ fontSize: "0.8rem" }}
-//                     >
-//                       <strong className="d-block mb-1">{n.title}</strong>
-//                       <div className="text-muted small mb-2">
-//                         {n.message}
-//                       </div>
-
-//                       <div className="text-end">
-//                         <button
-//                           className="btn btn-sm btn-link text-success p-0"
-//                           onClick={() => markAsRead(n._id)}
-//                           style={{ fontSize: "0.75rem" }}
-//                         >
-//                           <FaCheck /> Mark read
-//                         </button>
-//                       </div>
-//                     </div>
-//                   ))}
-
-//                   <div className="text-center mt-3">
-//                     <button
-//                       className="btn btn-sm btn-primary w-100"
-//                       onClick={goToNotificationList}
-//                       style={{ fontSize: "0.8rem" }}
-//                     >
-//                       View All
-//                     </button>
-//                   </div>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* USER EMAIL - Hidden on very small screens */}
-//           <span className="text-muted small d-none d-md-block" style={{ fontSize: "0.8rem" }}>
-//             {user.email}
-//           </span>
-
-//           {/* LOGOUT */}
-//           <button
-//             className="btn btn-outline-danger btn-sm"
-//             onClick={handleLogout}
-//             style={{ fontSize: isMobile ? "0.7rem" : "0.875rem", padding: isMobile ? "0.25rem 0.5rem" : "0.25rem 0.75rem" }}
-//           >
-//             <span className="d-none d-md-inline">Logout</span>
-//             <span className="d-md-none">🚪</span>
-//           </button>
-//         </div>
-//       </nav>
-//     </>
-//   );
-// }
-
-
 import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaTimes } from "react-icons/fa";
+import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
+import ConfirmModal from "./ConfirmModal";
+import "./Navbar.css";
 
-export default function Navbar({ onToggleSidebar }) {
+export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isSidebarCollapsed }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [count, setCount] = useState(0);
-  const [open, setOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notes, setNotes] = useState([]);
   const [toast, setToast] = useState(null);
@@ -328,10 +21,10 @@ export default function Navbar({ onToggleSidebar }) {
   const [loading, setLoading] = useState(true);
   const [fetchingNotes, setFetchingNotes] = useState(false);
   const [markingRead, setMarkingRead] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const prevCount = useRef(0);
-  const dropdownRef = useRef();
-  const profileDropdownRef = useRef();
 
   // Handle window resize
   useEffect(() => {
@@ -367,8 +60,6 @@ export default function Navbar({ onToggleSidebar }) {
           }
         }
       } catch (error) {
-        // Silently handle auth errors - don't log to console
-        // This prevents console spam when session expires
         if (error.response?.status !== 403 && error.response?.status !== 401) {
           console.error("Error fetching college info:", error);
         }
@@ -451,7 +142,7 @@ export default function Navbar({ onToggleSidebar }) {
 
   /* ================= ROLE BASED VIEW ALL ================= */
   const goToNotificationList = () => {
-    setOpen(false);
+    setNotifOpen(false);
     if (user.role === "COLLEGE_ADMIN") {
       navigate("/notification/list");
     } else if (user.role === "TEACHER") {
@@ -480,45 +171,43 @@ export default function Navbar({ onToggleSidebar }) {
     return () => clearInterval(interval);
   }, [user]);
 
-  /* ================= CLOSE DROPDOWNS ON OUTSIDE CLICK ================= */
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   /* ================= KEYBOARD SHORTCUTS ================= */
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl+B or Cmd+B for notifications
       if ((e.ctrlKey || e.metaKey) && e.key === "b") {
         e.preventDefault();
-        setOpen(!open);
-        if (!open) fetchNotes();
+        setNotifOpen((prev) => !prev);
+        if (!notifOpen) fetchNotes();
       }
-      // Escape to close dropdowns
       if (e.key === "Escape") {
-        setOpen(false);
+        setNotifOpen(false);
         setProfileOpen(false);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [notifOpen]);
 
   /* ================= LOGOUT ================= */
-  const handleLogout = () => {
-    if (!window.confirm("Are you sure you want to logout?")) return;
+  const handleLogoutClick = () => {
     setProfileOpen(false);
-    logout();
-    navigate("/login");
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logout();
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
   };
 
   /* ================= GET USER INITIALS ================= */
@@ -549,147 +238,156 @@ export default function Navbar({ onToggleSidebar }) {
       {toast && (
         <div
           className="position-fixed top-0 end-0 m-3 alert alert-success shadow animate__animated animate__fadeInDown"
-          style={{ zIndex: 3000 }}
+          style={{ zIndex: 1080 }}
           role="alert"
         >
           {toast}
         </div>
       )}
 
-      <nav
-        className="navbar navbar-light bg-white px-3 px-md-4 shadow-sm d-flex justify-content-between align-items-center"
-        style={{ position: "relative", zIndex: 1060 }}
+      <Navbar
+        expand="md"
+        className="bg-white shadow-sm"
+        style={{ 
+          zIndex: 1020,
+          width: '100%',
+          minHeight: 'var(--navbar-height, 60px)'
+        }}
         role="navigation"
         aria-label="Main navigation"
       >
-        {/* LEFT - With Mobile Toggle */}
-        <div className="d-flex align-items-center gap-3">
-          {/* MOBILE HAMBURGER BUTTON */}
-          {isMobile && (
-            <button
-              className="btn btn-link text-dark p-0 me-2"
-              onClick={onToggleSidebar}
-              style={{ fontSize: "1.5rem", border: "none", zIndex: 1070 }}
-              aria-label="Toggle sidebar"
-              aria-expanded="false"
-            >
-              <FaBars />
-            </button>
-          )}
-
-          {/* College Name / Logo */}
-          {loading ? (
-            <div
-              className="spinner-border spinner-border-sm text-primary"
-              role="status"
-              aria-label="Loading"
-            >
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          ) : college ? (
-            <h5
-              className="mb-0 fw-bold text-primary"
-              style={{ fontSize: isMobile ? "0.9rem" : "1.1rem", cursor: "pointer" }}
-              onClick={() => navigate("/dashboard")}
-              title="Go to Dashboard"
-            >
-              {college.name}
-            </h5>
-          ) : (
-            <h5
-              className="mb-0 fw-bold text-primary"
-              style={{ fontSize: isMobile ? "0.9rem" : "1.1rem", cursor: "pointer" }}
-              onClick={() => navigate("/dashboard")}
-              title="Go to Dashboard"
-            >
-              NOVAA
-            </h5>
-          )}
-
-          {/* Role Badge */}
-          <span
-            className="badge bg-dark"
-            style={{ fontSize: isMobile ? "0.65rem" : "0.75rem" }}
-            title="User Role"
-          >
-            {user.role.replace("_", " ")}
-          </span>
-        </div>
-
-        {/* RIGHT */}
-        <div className="d-flex align-items-center gap-2 gap-md-4 position-relative">
-          {/* BELL NOTIFICATION */}
-          <div
-            className="position-relative"
-            ref={dropdownRef}
-            style={{ cursor: "pointer", zIndex: 3000 }}
-            role="button"
-            tabIndex={0}
-            aria-label="Notifications"
-            aria-expanded={open}
-            onClick={() => {
-              setOpen(!open);
-              setProfileOpen(false);
-              if (!open) fetchNotes();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setOpen(!open);
-                setProfileOpen(false);
-                if (!open) fetchNotes();
-              }
-            }}
-          >
-            <FaBell
-              size={isMobile ? 18 : 20}
-              className={`transition-all ${open ? "text-primary" : "text-dark"}`}
-              aria-hidden="true"
-            />
-
-            {count > 0 && (
-              <span
-                className="badge bg-danger rounded-pill animate__animated animate__bounceIn"
-                style={{
-                  position: "absolute",
-                  top: "-6px",
-                  right: "-8px",
-                  fontSize: "10px",
-                  padding: "2px 5px",
-                  minWidth: "18px",
-                  height: "18px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                aria-label={`${count} unread notifications`}
+        <Container fluid className="navbar-fluid-container d-flex justify-content-between align-items-center">
+          {/* LEFT - With Mobile Toggle */}
+          <div className="d-flex align-items-center gap-3">
+            {/* MOBILE HAMBURGER BUTTON - Visible only on mobile */}
+            {isMobile && (
+              <button
+                className="navbar-toggler border-0 p-2"
+                onClick={onToggleSidebar}
+                aria-label="Toggle sidebar"
+                aria-expanded="false"
+                style={{ minWidth: "44px", minHeight: "44px" }}
               >
-                {count}
-              </span>
+                <FaBars size={20} />
+              </button>
             )}
 
-            {/* Notification Dropdown */}
-            {open && (
+            {/* DESKTOP SIDEBAR COLLAPSE TOGGLE - Visible only on desktop/tablet */}
+            {!isMobile && onToggleCollapse && (
+              <button
+                className="sidebar-collapse-toggle-navbar"
+                onClick={onToggleCollapse}
+                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!isSidebarCollapsed}
+                type="button"
+                title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isSidebarCollapsed ? <FaChevronRight size={16} /> : <FaChevronLeft size={16} />}
+              </button>
+            )}
+
+            {/* College Name / Logo */}
+            {loading ? (
               <div
-                className="card shadow border-0 position-absolute"
+                className="spinner-border spinner-border-sm text-primary"
+                role="status"
+                aria-label="Loading"
+              >
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            ) : college ? (
+              <Navbar.Brand
+                className="mb-0 fw-bold text-primary cursor-pointer"
+                onClick={() => navigate("/dashboard")}
+                title="Go to Dashboard"
+                style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}
+              >
+                {college.name}
+              </Navbar.Brand>
+            ) : (
+              <Navbar.Brand
+                className="mb-0 fw-bold text-primary cursor-pointer"
+                onClick={() => navigate("/dashboard")}
+                title="Go to Dashboard"
+                style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}
+              >
+                NOVAA
+              </Navbar.Brand>
+            )}
+          </div>
+
+          {/* RIGHT */}
+          <Nav className="nav-items-gap d-flex align-items-center flex-row">
+            {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
+            <Dropdown
+              show={notifOpen}
+              onToggle={(isOpen) => {
+                setNotifOpen(isOpen);
+                if (isOpen) {
+                  setProfileOpen(false);
+                  fetchNotes();
+                }
+              }}
+              align="end"
+            >
+              <div
+                className="d-flex align-items-center justify-content-center cursor-pointer"
+                style={{
+                  minWidth: "44px",
+                  minHeight: "44px",
+                  borderRadius: "50%",
+                  transition: "background-color 0.2s",
+                }}
+                onClick={() => setNotifOpen(!notifOpen)}
+                role="button"
+                aria-label="Notifications"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setNotifOpen((prev) => !prev);
+                    if (!notifOpen) fetchNotes();
+                  }
+                }}
+              >
+                <FaBell
+                  size={isMobile ? 18 : 20}
+                  className={notifOpen ? "text-primary" : "text-dark"}
+                  aria-hidden="true"
+                />
+
+                {count > 0 && (
+                  <Badge
+                    bg="danger"
+                    pill
+                    className="position-absolute top-0 start-100 translate-middle"
+                    style={{
+                      fontSize: "10px",
+                      padding: "3px 6px",
+                      minWidth: "20px",
+                    }}
+                    aria-label={`${count} unread notifications`}
+                  >
+                    {count}
+                  </Badge>
+                )}
+              </div>
+
+              <Dropdown.Menu
+                className="shadow-lg border-0"
                 style={{
                   width: isMobile ? "280px" : "350px",
-                  zIndex: 3000,
-                  top: "calc(100% + 10px)",
-                  right: isMobile ? "-120px" : "0",
-                  left: isMobile ? "auto" : "auto",
-                  maxHeight: "80vh",
+                  maxHeight: "70vh",
                   overflowY: "auto",
-                  animation: "fadeIn 0.2s ease-in-out",
                 }}
                 role="menu"
                 aria-label="Notification menu"
               >
                 {/* Header */}
-                <div className="card-header bg-light d-flex justify-content-between align-items-center p-2">
-                  <h6 className="fw-bold mb-0" style={{ fontSize: "0.9rem" }}>
+                <Dropdown.Header className="bg-light d-flex justify-content-between align-items-center p-2">
+                  <span className="fw-bold mb-0" style={{ fontSize: "0.9rem" }}>
                     🔔 Unread Notifications
-                  </h6>
+                  </span>
                   {notes.length > 0 && (
                     <button
                       className="btn btn-sm btn-link text-primary p-0"
@@ -700,10 +398,10 @@ export default function Navbar({ onToggleSidebar }) {
                       Mark all read
                     </button>
                   )}
-                </div>
+                </Dropdown.Header>
 
                 {/* Body */}
-                <div className="card-body p-2">
+                <div className="p-2">
                   {fetchingNotes ? (
                     <div className="text-center py-4">
                       <div
@@ -724,7 +422,7 @@ export default function Navbar({ onToggleSidebar }) {
                       <div
                         key={n._id}
                         className="p-2 rounded mb-2 small bg-light border border-light"
-                        style={{ fontSize: "0.8rem", transition: "all 0.2s" }}
+                        style={{ fontSize: "0.8rem" }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "#f8f9fa";
                           e.currentTarget.style.transform = "translateX(2px)";
@@ -773,62 +471,60 @@ export default function Navbar({ onToggleSidebar }) {
                   <button
                     className="btn btn-sm btn-primary w-100"
                     onClick={goToNotificationList}
-                    style={{ fontSize: "0.8rem" }}
+                    style={{ fontSize: "0.8rem", minHeight: "44px" }}
                   >
                     View All Notifications →
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
+              </Dropdown.Menu>
+            </Dropdown>
 
-          {/* User Profile Dropdown */}
-          <div
-            className="position-relative"
-            ref={profileDropdownRef}
-            style={{ cursor: "pointer", zIndex: 3001 }}
-            role="button"
-            tabIndex={0}
-            aria-label="User menu"
-            aria-expanded={profileOpen}
-            onClick={() => {
-              setProfileOpen(!profileOpen);
-              setOpen(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setProfileOpen(!profileOpen);
-                setOpen(false);
-              }
-            }}
-          >
-            {/* Avatar Circle */}
-            <div
-              className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
-              style={{
-                width: isMobile ? "32px" : "36px",
-                height: isMobile ? "32px" : "36px",
-                fontSize: isMobile ? "0.8rem" : "0.9rem",
-                fontWeight: "bold",
-                transition: "all 0.2s",
-                boxShadow: profileOpen ? "0 0 0 3px rgba(13, 110, 253, 0.25)" : "none",
+            {/* User Profile Dropdown - Clickable Icon */}
+            <Dropdown
+              show={profileOpen}
+              onToggle={(isOpen) => {
+                setProfileOpen(isOpen);
+                if (isOpen) setNotifOpen(false);
               }}
-              title={user.email}
+              align="end"
             >
-              {getUserInitials()}
-            </div>
-
-            {/* Profile Dropdown Menu */}
-            {profileOpen && (
               <div
-                className="card shadow border-0 position-absolute"
+                className="d-flex align-items-center justify-content-center cursor-pointer"
                 style={{
-                  width: isMobile ? "200px" : "220px",
-                  zIndex: 3001,
-                  top: "calc(100% + 10px)",
-                  right: "0",
-                  animation: "fadeIn 0.2s ease-in-out",
+                  minWidth: "44px",
+                  minHeight: "44px",
+                }}
+                onClick={() => setProfileOpen(!profileOpen)}
+                role="button"
+                aria-label="User menu"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setProfileOpen((prev) => !prev);
+                  }
+                }}
+              >
+                {/* Avatar Circle */}
+                <div
+                  className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
+                  style={{
+                    width: isMobile ? "36px" : "40px",
+                    height: isMobile ? "36px" : "40px",
+                    fontSize: isMobile ? "0.85rem" : "0.95rem",
+                    transition: "all 0.2s",
+                    boxShadow: profileOpen ? "0 0 0 3px rgba(13, 110, 253, 0.25)" : "none",
+                  }}
+                  title={user.email}
+                >
+                  {getUserInitials()}
+                </div>
+              </div>
+
+              <Dropdown.Menu
+                className="shadow-lg border-0"
+                style={{
+                  width: isMobile ? "220px" : "240px",
                 }}
                 role="menu"
                 aria-label="Profile menu"
@@ -837,16 +533,13 @@ export default function Navbar({ onToggleSidebar }) {
                 <div className="card-header bg-light p-3 text-center">
                   <div
                     className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2"
-                    style={{ width: "50px", height: "50px", fontSize: "1.2rem", fontWeight: "bold" }}
+                    style={{ width: "56px", height: "56px", fontSize: "1.3rem", fontWeight: "bold" }}
                   >
                     {getUserInitials()}
                   </div>
                   <h6 className="fw-bold mb-1 text-truncate" style={{ fontSize: "0.9rem" }} title={user.email}>
                     {user.email}
                   </h6>
-                  <span className="badge bg-dark" style={{ fontSize: "0.7rem" }}>
-                    {user.role.replace("_", " ")}
-                  </span>
                 </div>
 
                 {/* Menu Items */}
@@ -854,7 +547,7 @@ export default function Navbar({ onToggleSidebar }) {
                   <button
                     className="btn btn-sm btn-light w-100 text-start d-flex align-items-center gap-2 mb-1"
                     onClick={goToProfile}
-                    style={{ fontSize: "0.85rem" }}
+                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
                     role="menuitem"
                   >
                     <FaUser /> My Profile
@@ -865,7 +558,7 @@ export default function Navbar({ onToggleSidebar }) {
                       setProfileOpen(false);
                       navigate("/settings");
                     }}
-                    style={{ fontSize: "0.85rem" }}
+                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
                     role="menuitem"
                   >
                     <FaCog /> Settings
@@ -876,7 +569,7 @@ export default function Navbar({ onToggleSidebar }) {
                       setProfileOpen(false);
                       navigate("/change-password");
                     }}
-                    style={{ fontSize: "0.85rem" }}
+                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
                     role="menuitem"
                   >
                     <FaKey /> Change Password
@@ -884,28 +577,46 @@ export default function Navbar({ onToggleSidebar }) {
                   <hr className="my-2" />
                   <button
                     className="btn btn-sm btn-outline-danger w-100 text-start d-flex align-items-center gap-2"
-                    onClick={handleLogout}
-                    style={{ fontSize: "0.85rem" }}
+                    onClick={handleLogoutClick}
+                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
                     role="menuitem"
                   >
                     <FaSignOutAlt /> Logout
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
+              </Dropdown.Menu>
+            </Dropdown>
 
-          {/* User Email - Hidden on mobile */}
-          <span
-            className="text-muted small d-none d-md-block"
-            style={{ fontSize: "0.8rem", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-            title={user.email}
-          >
-            {user.email}
-          </span>
+            {/* User Email - Hidden on mobile */}
+            <span
+              className="text-muted small d-none d-md-block"
+              style={{
+                fontSize: "0.8rem",
+                maxWidth: "150px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={user.email}
+            >
+              {user.email}
+            </span>
+          </Nav>
+        </Container>
+      </Navbar>
 
-        </div>
-      </nav>
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={handleCancelLogout}
+        onConfirm={handleConfirmLogout}
+        title="Logout Confirmation"
+        message="Are you sure you want to logout? You will need to sign in again to access your account."
+        type="danger"
+        confirmText="Logout"
+        cancelText="Cancel"
+        isLoading={loggingOut}
+      />
 
       {/* CSS Animations */}
       <style>{`
@@ -920,8 +631,8 @@ export default function Navbar({ onToggleSidebar }) {
           }
         }
 
-        .transition-all {
-          transition: all 0.2s ease-in-out;
+        .cursor-pointer {
+          cursor: pointer;
         }
 
         .animate__animated {
@@ -933,10 +644,6 @@ export default function Navbar({ onToggleSidebar }) {
           animation-name: fadeInDown;
         }
 
-        .animate__bounceIn {
-          animation-name: bounceIn;
-        }
-
         @keyframes fadeInDown {
           from {
             opacity: 0;
@@ -945,18 +652,6 @@ export default function Navbar({ onToggleSidebar }) {
           to {
             opacity: 1;
             transform: translate3d(0, 0, 0);
-          }
-        }
-
-        @keyframes bounceIn {
-          0% {
-            transform: scale(0);
-          }
-          50% {
-            transform: scale(1.2);
-          }
-          100% {
-            transform: scale(1);
           }
         }
       `}</style>

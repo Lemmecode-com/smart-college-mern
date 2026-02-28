@@ -181,33 +181,28 @@ export default function TeacherDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
-          paddingBottom: '1.5rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem'
-        }}
+        className="min-vh-100"
+        style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}
       >
-        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <div className="container-fluid px-3 px-md-4 py-3 py-md-4">
           {/* ================= BREADCRUMB ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '0.75rem 1.5rem',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
-            }}
+            className="card shadow-sm mb-3 mb-md-4"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Dashboard</span>
-              <span style={{ color: '#94a3b8' }}>›</span>
-              <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '0.9rem' }}>Teacher Overview</span>
+            <div className="card-body py-2 py-md-3 px-3 px-md-4">
+              <nav aria-label="breadcrumb">
+                <ol className="breadcrumb mb-0">
+                  <li className="breadcrumb-item">
+                    <span className="text-muted small">Dashboard</span>
+                  </li>
+                  <li className="breadcrumb-item active" aria-current="page">
+                    <span className="fw-semibold small" style={{ color: BRAND_COLORS.primary.main }}>Teacher Overview</span>
+                  </li>
+                </ol>
+              </nav>
             </div>
           </motion.div>
 
@@ -216,142 +211,100 @@ export default function TeacherDashboard() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
-            }}
+            className="card shadow-lg border-0 mb-3 mb-md-4 overflow-hidden"
+            style={{ borderRadius: '1rem' }}
           >
-            <div style={{
-              padding: '1.75rem 2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem',
-                    flexShrink: 0,
-                    boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
-                  }}
-                >
-                  <FaChalkboardTeacher />
-                </motion.div>
-                <div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '2rem',
-                    fontWeight: 700,
-                    lineHeight: 1.2
-                  }}>
-                    Welcome, {teacher.name}
-                  </h1>
-                  <p style={{
-                    margin: '0.5rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.1rem'
-                  }}>
-                    Empowering Education Through Technology
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: '0.25rem' }}>Current Time</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                    {currentTime.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: true 
-                    })}
+            <div
+              className="p-3 p-md-4 text-white"
+              style={{ background: BRAND_COLORS.primary.gradient }}
+            >
+              <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  <motion.div
+                    variants={pulseVariants}
+                    initial="initial"
+                    animate="pulse"
+                    className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                    style={{
+                      width: '72px',
+                      height: '72px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      fontSize: '2rem',
+                      boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
+                    }}
+                  >
+                    <FaChalkboardTeacher />
+                  </motion.div>
+                  <div>
+                    <h1 className="mb-0 fw-bold" style={{ fontSize: '1.75rem' }}>
+                      Welcome, {teacher.name}
+                    </h1>
+                    <p className="mb-0 mt-1" style={{ opacity: 0.9, fontSize: '1rem' }}>
+                      Empowering Education Through Technology
+                    </p>
                   </div>
                 </div>
-                <div style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: '0.25rem' }}>Employee ID</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                    {teacher.employeeId}
+                <div className="d-flex gap-2 align-items-center">
+                  <div
+                    className="text-center px-3 py-2"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <div className="small mb-1" style={{ opacity: 0.85, fontSize: '0.75rem' }}>Current Time</div>
+                    <div className="fw-bold" style={{ fontSize: '1.125rem' }}>
+                      {currentTime.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </div>
+                  </div>
+                  <div
+                    className="text-center px-3 py-2"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <div className="small mb-1" style={{ opacity: 0.85, fontSize: '0.75rem' }}>Employee ID</div>
+                    <div className="fw-bold" style={{ fontSize: '1.125rem' }}>
+                      {teacher.employeeId}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Teacher Info Bar */}
-            <div style={{
-              padding: '1rem 2rem',
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="px-3 px-md-4 py-3 bg-light border-top">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div className="d-flex align-items-center gap-2">
                   <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
-                  <span style={{ 
-                    backgroundColor: '#dcfce7', 
-                    color: '#166534', 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: '9999px',
-                    fontWeight: 600,
-                    fontSize: '0.85rem'
-                  }}>
+                  <span
+                    className="px-3 py-1 rounded-pill fw-semibold small"
+                    style={{
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      fontSize: '0.8rem'
+                    }}
+                  >
                     Active Faculty
                   </span>
                 </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/profile/edit-profile")}
+                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
                   style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid ' + BRAND_COLORS.primary.main,
-                    padding: '0.5rem 1.25rem',
                     borderRadius: '12px',
-                    fontSize: '0.9rem',
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    fontSize: '0.875rem'
                   }}
                 >
-                  <FaEdit /> Edit Profile
+                  <FaEdit /> <span className="d-none d-sm-inline">Edit Profile</span>
                 </motion.button>
               </div>
             </div>
@@ -363,45 +316,49 @@ export default function TeacherDashboard() {
             custom={0}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '1.25rem'
-            }}
           >
-            <StatCard
-              icon={FaCalendarAlt}
-              label="Total Lectures"
-              value={stats.totalLecturesTaken || 0}
-              color={BRAND_COLORS.primary.main}
-              gradient={BRAND_COLORS.primary.gradient}
-              subtitle="Lectures conducted"
-            />
-            <StatCard
-              icon={FaQrcode}
-              label="Open Sessions"
-              value={stats.openSessions || 0}
-              color={BRAND_COLORS.success.main}
-              gradient={BRAND_COLORS.success.gradient}
-              subtitle="Active attendance sessions"
-            />
-            <StatCard
-              icon={FaCheckCircle}
-              label="Closed Sessions"
-              value={stats.closedSessions || 0}
-              color={BRAND_COLORS.info.main}
-              gradient={BRAND_COLORS.info.gradient}
-              subtitle="Completed sessions"
-            />
-            <StatCard
-              icon={FaChartBar}
-              label="Attendance %"
-              value={`${stats.attendancePercentage || 0}%`}
-              color={BRAND_COLORS.warning.main}
-              gradient={BRAND_COLORS.warning.gradient}
-              subtitle="Overall attendance rate"
-            />
+            <div className="row g-3 g-md-4 mb-3 mb-md-4">
+              <div className="col-12 col-sm-6 col-lg-3">
+                <StatCard
+                  icon={FaCalendarAlt}
+                  label="Total Lectures"
+                  value={stats.totalLecturesTaken || 0}
+                  color={BRAND_COLORS.primary.main}
+                  gradient={BRAND_COLORS.primary.gradient}
+                  subtitle="Lectures conducted"
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-3">
+                <StatCard
+                  icon={FaQrcode}
+                  label="Open Sessions"
+                  value={stats.openSessions || 0}
+                  color={BRAND_COLORS.success.main}
+                  gradient={BRAND_COLORS.success.gradient}
+                  subtitle="Active attendance sessions"
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-3">
+                <StatCard
+                  icon={FaCheckCircle}
+                  label="Closed Sessions"
+                  value={stats.closedSessions || 0}
+                  color={BRAND_COLORS.info.main}
+                  gradient={BRAND_COLORS.info.gradient}
+                  subtitle="Completed sessions"
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-3">
+                <StatCard
+                  icon={FaChartBar}
+                  label="Attendance %"
+                  value={`${stats.attendancePercentage || 0}%`}
+                  color={BRAND_COLORS.warning.main}
+                  gradient={BRAND_COLORS.warning.gradient}
+                  subtitle="Overall attendance rate"
+                />
+              </div>
+            </div>
           </motion.div>
 
           {/* ================= QUICK ACTIONS GRID ================= */}
@@ -410,7 +367,7 @@ export default function TeacherDashboard() {
             custom={1}
             initial="hidden"
             animate="visible"
-            style={{ marginBottom: '1.5rem' }}
+            className="mb-3 mb-md-4"
           >
             <SectionCard
               title="Quick Actions"
@@ -418,44 +375,47 @@ export default function TeacherDashboard() {
               subtitle="Frequently used operations"
               color={BRAND_COLORS.primary.main}
             >
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1.25rem',
-                padding: '1.25rem'
-              }}>
-                <ActionCard
-                  icon={FaQrcode}
-                  title="Create Attendance Session"
-                  desc="Start a new lecture attendance session"
-                  link="/timetable/weekly-timetable"
-                  color={BRAND_COLORS.success.main}
-                  gradient={BRAND_COLORS.success.gradient}
-                />
-                <ActionCard
-                  icon={FaUsers}
-                  title="Mark Attendance"
-                  desc="Record student attendance for active sessions"
-                  link="/attendance/my-sessions-list"
-                  color={BRAND_COLORS.info.main}
-                  gradient={BRAND_COLORS.info.gradient}
-                />
-                <ActionCard
-                  icon={FaChartBar}
-                  title="View Attendance Report"
-                  desc="Analyze your attendance statistics and trends"
-                  link="/attendance/report"
-                  color={BRAND_COLORS.warning.main}
-                  gradient={BRAND_COLORS.warning.gradient}
-                />
-                <ActionCard
-                  icon={FaBell}
-                  title="Send Notifications"
-                  desc="Communicate with students and parents"
-                  link="/teacher/notifications/create"
-                  color={BRAND_COLORS.danger.main}
-                  gradient={BRAND_COLORS.danger.gradient}
-                />
+              <div className="row g-3 g-md-4 p-3 p-md-4">
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <ActionCard
+                    icon={FaQrcode}
+                    title="Create Attendance Session"
+                    desc="Start a new lecture attendance session"
+                    link="/timetable/weekly-timetable"
+                    color={BRAND_COLORS.success.main}
+                    gradient={BRAND_COLORS.success.gradient}
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <ActionCard
+                    icon={FaUsers}
+                    title="Mark Attendance"
+                    desc="Record student attendance for active sessions"
+                    link="/attendance/my-sessions-list"
+                    color={BRAND_COLORS.info.main}
+                    gradient={BRAND_COLORS.info.gradient}
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <ActionCard
+                    icon={FaChartBar}
+                    title="View Attendance Report"
+                    desc="Analyze your attendance statistics and trends"
+                    link="/attendance/report"
+                    color={BRAND_COLORS.warning.main}
+                    gradient={BRAND_COLORS.warning.gradient}
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <ActionCard
+                    icon={FaBell}
+                    title="Send Notifications"
+                    desc="Communicate with students and parents"
+                    link="/teacher/notifications/create"
+                    color={BRAND_COLORS.danger.main}
+                    gradient={BRAND_COLORS.danger.gradient}
+                  />
+                </div>
               </div>
             </SectionCard>
           </motion.div>
@@ -473,25 +433,25 @@ export default function TeacherDashboard() {
               subtitle="Your latest teaching sessions"
               color={BRAND_COLORS.info.main}
             >
-              <div style={{ padding: '1rem' }}>
+              <div className="p-3 p-md-4">
                 {recentLectures && recentLectures.length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-                          <th style={tableHeaderStyle}>Date</th>
-                          <th style={tableHeaderStyle}>Course</th>
-                          <th style={tableHeaderStyle}>Subject</th>
-                          <th style={tableHeaderStyle}>Department</th>
-                          <th style={tableHeaderStyle}>Status</th>
-                          <th style={tableHeaderStyle}>Actions</th>
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Date</th>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Course</th>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Subject</th>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Department</th>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Status</th>
+                          <th className="py-3 px-3 fw-semibold text-uppercase small">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {recentLectures.map((lec, idx) => (
-                          <LectureRow 
-                            key={lec._id} 
-                            lecture={lec} 
+                          <LectureRow
+                            key={lec._id}
+                            lecture={lec}
                             delay={idx * 0.05}
                           />
                         ))}
@@ -499,9 +459,9 @@ export default function TeacherDashboard() {
                     </table>
                   </div>
                 ) : (
-                  <EmptyState 
-                    icon={<FaCalendarAlt style={{ color: BRAND_COLORS.info.main }} />} 
-                    title="No Recent Lectures" 
+                  <EmptyState
+                    icon={<FaCalendarAlt style={{ color: BRAND_COLORS.info.main }} />}
+                    title="No Recent Lectures"
                     message="You haven't conducted any lectures yet. Start by creating your first attendance session!"
                   />
                 )}
@@ -528,31 +488,21 @@ const tableHeaderStyle = {
 /* ================= LOADING DISPLAY ================= */
 function LoadingDisplay() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{ textAlign: 'center' }}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center p-4"
+      style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}>
+      <div className="text-center">
         <motion.div
           variants={spinVariants}
           animate="animate"
-          style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
+          className="mb-4"
+          style={{ color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
         >
           <FaSyncAlt />
         </motion.div>
-        <h3 style={{ 
-          margin: '0 0 0.5rem 0', 
-          color: '#1e293b', 
-          fontWeight: 700,
-          fontSize: '1.5rem'
-        }}>
+        <h3 className="fw-bold mb-2" style={{ color: '#1e293b', fontSize: '1.5rem' }}>
           Loading Teacher Dashboard...
         </h3>
-        <p style={{ color: '#64748b', margin: 0 }}>
+        <p className="text-muted mb-0">
           Please wait while we fetch your teaching data
         </p>
       </div>
@@ -563,69 +513,36 @@ function LoadingDisplay() {
 /* ================= ERROR DISPLAY ================= */
 function ErrorDisplay({ message, onRetry }) {
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '1.5rem',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-        maxWidth: '500px',
-        width: '100%',
-        padding: '2.5rem',
-        textAlign: 'center'
-      }}>
-        <div style={{ 
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(220, 53, 69, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          color: BRAND_COLORS.danger.main,
-          fontSize: '3rem'
-        }}>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center p-4"
+      style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}>
+      <div className="card border-0 shadow-lg text-center p-4 p-md-5" style={{ maxWidth: '500px', width: '100%', borderRadius: '1.5rem' }}>
+        <div
+          className="d-flex align-items-center justify-content-center rounded-circle mb-4 mx-auto"
+          style={{
+            width: '80px',
+            height: '80px',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            color: BRAND_COLORS.danger.main,
+            fontSize: '3rem'
+          }}
+        >
           <FaTimesCircle />
         </div>
-        <h3 style={{ 
-          margin: '0 0 0.5rem 0', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          fontSize: '1.75rem'
-        }}>
+        <h3 className="fw-bold mb-2" style={{ color: '#1e293b', fontSize: '1.75rem' }}>
           Dashboard Error
         </h3>
-        <p style={{ 
-          color: '#64748b', 
-          marginBottom: '1.5rem',
-          lineHeight: 1.6
-        }}>
+        <p className="text-muted mb-4" style={{ lineHeight: 1.6 }}>
           {message}
         </p>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onRetry}
+          className="btn btn-primary d-flex align-items-center gap-2 mx-auto px-4 py-3"
           style={{
-            backgroundColor: BRAND_COLORS.primary.main,
-            color: 'white',
-            border: 'none',
-            padding: '0.875rem 2rem',
             borderRadius: '12px',
-            fontSize: '1rem',
             fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            margin: '0 auto',
+            fontSize: '1rem',
             boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
           }}
         >
@@ -645,54 +562,44 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
     <motion.div
       whileHover={{ y: -5, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
       whileTap={{ scale: 0.98 }}
+      className="card h-100 border-0"
       style={{
-        backgroundColor: 'white',
         borderRadius: '16px',
-        padding: '1.5rem',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1.25rem',
         borderLeft: `4px solid ${color}`,
-        transition: 'all 0.3s ease',
         cursor: 'default'
       }}
     >
-      <div style={{
-        width: '56px',
-        height: '56px',
-        borderRadius: '14px',
-        background: gradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        flexShrink: 0,
-        fontSize: '1.75rem',
-        boxShadow: `0 4px 12px ${color}30`
-      }}>
-        <Icon />
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{
-          fontSize: '0.9rem',
-          color: '#64748b',
-          fontWeight: 600,
-          marginBottom: '0.25rem'
-        }}>{label}</div>
-        <div style={{
-          fontSize: '2rem',
-          fontWeight: 800,
-          color: '#1e293b',
-          lineHeight: 1
-        }}>{value}</div>
-        {subtitle && (
-          <div style={{
-            fontSize: '0.85rem',
-            color: '#94a3b8',
-            marginTop: '0.25rem'
-          }}>{subtitle}</div>
-        )}
+      <div className="card-body p-4">
+        <div className="d-flex align-items-center gap-3">
+          <div
+            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              background: gradient,
+              color: 'white',
+              fontSize: '1.75rem',
+              boxShadow: `0 4px 12px ${color}30`
+            }}
+          >
+            <Icon />
+          </div>
+          <div className="flex-grow-1">
+            <div className="small fw-semibold text-muted mb-1" style={{ fontSize: '0.875rem' }}>
+              {label}
+            </div>
+            <div className="h2 mb-0 fw-bold" style={{ fontSize: '1.75rem', color: '#1e293b' }}>
+              {value}
+            </div>
+            {subtitle && (
+              <div className="small text-muted mt-1" style={{ fontSize: '0.8rem' }}>
+                {subtitle}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -701,40 +608,29 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 /* ================= SECTION CARD ================= */
 function SectionCard({ title, icon, subtitle, color, children }) {
   return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease'
-    }}>
-      <div style={{
-        padding: '1.25rem 1.5rem',
-        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-        borderBottom: '1px solid #eaeaea'
-      }}>
-        <h3 style={{
-          margin: 0,
-          fontSize: '1.25rem',
-          fontWeight: 700,
-          color: '#1e293b',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem'
-        }}>
-          <span style={{ color: color, fontSize: '1.2rem' }}>{icon}</span>
+    <div
+      className="card border-0 h-100"
+      style={{
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        className="px-4 py-3"
+        style={{
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+          borderBottom: '1px solid #eaeaea'
+        }}
+      >
+        <h3 className="mb-0 fw-bold" style={{ fontSize: '1.125rem', color: '#1e293b' }}>
+          <span className="me-2" style={{ color: color, fontSize: '1.1rem' }}>{icon}</span>
           {title}
         </h3>
         {subtitle && (
-          <span style={{
-            fontSize: '0.875rem',
-            color: '#64748b',
-            marginLeft: '1.9rem',
-            display: 'block',
-            marginTop: '0.25rem'
-          }}>
+          <p className="text-muted small mb-0 mt-1 ms-4">
             {subtitle}
-          </span>
+          </p>
         )}
       </div>
       {children}
@@ -751,86 +647,62 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
       whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(link)}
+      className="card border-0 h-100 text-center cursor-pointer"
       style={{
-        backgroundColor: 'white',
         borderRadius: '16px',
         padding: '1.75rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: '1rem',
-        cursor: 'pointer',
         transition: 'all 0.3s ease',
-        border: `2px solid transparent`,
-        position: 'relative',
+        border: '2px solid transparent',
         overflow: 'hidden'
       }}
     >
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '4px',
-        background: gradient,
-        zIndex: 1
-      }} />
-      
+      <div
+        className="position-absolute top-0 start-0 w-100"
+        style={{
+          height: '4px',
+          background: gradient,
+          zIndex: 1
+        }}
+      />
+
       <motion.div
         variants={pulseVariants}
         initial="initial"
         animate="pulse"
+        className="d-flex align-items-center justify-content-center mb-3"
         style={{
           width: '64px',
           height: '64px',
           borderRadius: '16px',
           background: gradient,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
           color: 'white',
           fontSize: '2rem',
-          flexShrink: 0,
+          margin: '0 auto',
           boxShadow: `0 6px 20px ${color}40`
         }}
       >
         <Icon />
       </motion.div>
-      
-      <h4 style={{
-        margin: 0,
-        fontSize: '1.25rem',
-        fontWeight: 700,
-        color: '#1e293b'
-      }}>
+
+      <h4 className="fw-bold mb-2" style={{ fontSize: '1.125rem', color: '#1e293b' }}>
         {title}
       </h4>
-      
-      <p style={{
-        margin: 0,
-        color: '#64748b',
-        fontSize: '0.95rem',
-        lineHeight: 1.5
-      }}>
+
+      <p className="text-muted mb-3" style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
         {desc}
       </p>
-      
-      <div style={{
-        marginTop: '0.5rem',
-        padding: '0.5rem 1.25rem',
-        backgroundColor: `${color}10`,
-        color: color,
-        borderRadius: '20px',
-        fontSize: '0.85rem',
-        fontWeight: 600,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.375rem'
-      }}>
+
+      <span
+        className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small"
+        style={{
+          backgroundColor: `${color}10`,
+          color: color,
+          fontSize: '0.8rem'
+        }}
+      >
         <FaArrowRight size={12} />
         Get Started
-      </div>
+      </span>
     </motion.div>
   );
 }
@@ -854,54 +726,45 @@ function LectureRow({ lecture, delay = 0 }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: delay, duration: 0.5 }}
-      whileHover={{ backgroundColor: '#f8fafc' }}
-      style={{
-        borderBottom: '1px solid #e2e8f0',
-        transition: 'background-color 0.2s ease'
-      }}
+      className="table-row-hover"
     >
-      <td style={tableCellStyle}>
+      <td className="py-3 px-3 align-middle">
         {new Date(lecture.lectureDate).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
         })}
       </td>
-      <td style={tableCellStyle}>
-        <div style={{ fontWeight: 600, color: '#1e293b' }}>
+      <td className="py-3 px-3 align-middle">
+        <div className="fw-semibold" style={{ color: '#1e293b' }}>
           {lecture.course_id?.name || 'N/A'}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
+        <div className="small text-muted mt-1">
           {lecture.course_id?.code || ''}
         </div>
       </td>
-      <td style={tableCellStyle}>
-        <div style={{ fontWeight: 600, color: '#1e293b' }}>
+      <td className="py-3 px-3 align-middle">
+        <div className="fw-semibold" style={{ color: '#1e293b' }}>
           {lecture.subject_id?.name || 'N/A'}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
+        <div className="small text-muted mt-1">
           {lecture.subject_id?.code || ''}
         </div>
       </td>
-      <td style={tableCellStyle}>
+      <td className="py-3 px-3 align-middle">
         {lecture.department_id?.name || 'N/A'}
       </td>
-      <td style={tableCellStyle}>
+      <td className="py-3 px-3 align-middle">
         <motion.span
           variants={blinkVariants}
           initial="initial"
           animate="blink"
+          className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.375rem 0.875rem',
-            borderRadius: '20px',
             backgroundColor: `${getStatusColor(lecture.status)}15`,
             color: getStatusColor(lecture.status),
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            border: `1px solid ${getStatusColor(lecture.status)}30`
+            border: `1px solid ${getStatusColor(lecture.status)}30`,
+            fontSize: '0.8rem'
           }}
         >
           {lecture.status === "OPEN" && <FaQrcode size={12} />}
@@ -909,7 +772,7 @@ function LectureRow({ lecture, delay = 0 }) {
           {lecture.status}
         </motion.span>
       </td>
-      <td style={tableCellStyle}>
+      <td className="py-3 px-3 align-middle">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -917,19 +780,14 @@ function LectureRow({ lecture, delay = 0 }) {
             e.stopPropagation();
             navigate(`/timetable/weekly-timetable`);
           }}
+          className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
           style={{
             width: '36px',
             height: '36px',
             borderRadius: '10px',
             background: BRAND_COLORS.primary.gradient,
             color: 'white',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            flexShrink: 0
+            border: 'none'
           }}
         >
           <FaEye size={16} />
@@ -939,44 +797,17 @@ function LectureRow({ lecture, delay = 0 }) {
   );
 }
 
-const tableCellStyle = {
-  padding: '1rem',
-  fontSize: '0.95rem',
-  color: '#1e293b',
-  borderBottom: '1px solid #e2e8f0'
-};
-
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message }) {
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: '3rem 1.5rem',
-      color: '#64748b'
-    }}>
-      <div style={{
-        fontSize: '4rem',
-        marginBottom: '1.5rem',
-        opacity: 0.6,
-        color: '#e2e8f0'
-      }}>
+    <div className="text-center py-5" style={{ color: '#64748b' }}>
+      <div className="mb-4" style={{ fontSize: '4rem', opacity: 0.6, color: '#e2e8f0' }}>
         {icon}
       </div>
-      <h4 style={{
-        margin: '0 0 0.75rem 0',
-        color: '#1e293b',
-        fontWeight: 700,
-        fontSize: '1.5rem'
-      }}>
+      <h4 className="fw-bold mb-3" style={{ color: '#1e293b', fontSize: '1.5rem' }}>
         {title}
       </h4>
-      <p style={{ 
-        margin: 0, 
-        fontSize: '1rem',
-        maxWidth: '600px',
-        margin: '0 auto',
-        lineHeight: 1.6
-      }}>
+      <p className="mb-0" style={{ fontSize: '1rem', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
         {message}
       </p>
     </div>
