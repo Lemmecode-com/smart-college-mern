@@ -531,18 +531,14 @@ export default function AddTeacher() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-              gap: '2rem'
-            }}>
+            <div className="row g-4">
               {/* ================= BASIC INFO CARD ================= */}
               <motion.div
                 variants={fadeInVariants}
                 custom={0}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
                 <div style={{
                   backgroundColor: 'white',
@@ -581,101 +577,111 @@ export default function AddTeacher() {
                       Basic Information
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaUserTie />} 
-                        label="Full Name" 
-                        required
-                        error={validationErrors.name}
-                      >
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Dr. Rajesh Kumar"
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaUserTie />}
+                          label="Full Name"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaGraduationCap />} 
-                        label="Designation" 
-                        required
-                        error={validationErrors.designation}
-                      >
-                        <input
-                          type="text"
-                          name="designation"
-                          value={formData.designation}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Associate Professor"
-                          required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaUniversity />} 
-                        label="Qualification" 
-                        required
-                        error={validationErrors.qualification}
-                      >
-                        <input
-                          type="text"
-                          name="qualification"
-                          value={formData.qualification}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Ph.D. Computer Science"
-                          required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaRegClock />} 
-                        label="Experience (Years)" 
-                        required
-                        error={validationErrors.experienceYears}
-                        helperText="Total teaching experience in years"
-                      >
-                        <input
-                          type="number"
-                          name="experienceYears"
-                          value={formData.experienceYears}
-                          onChange={handleChange}
-                          min="0"
-                          max="50"
-                          style={inputStyle}
-                          placeholder="e.g., 12"
-                          required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaVial />} 
-                        label="Blood Group" 
-                        required
-                        error={validationErrors.bloodGroup}
-                      >
-                        <select
-                          name="bloodGroup"
-                          value={formData.bloodGroup}
-                          onChange={handleChange}
-                          style={selectStyle}
-                          required
+                          error={validationErrors.name}
                         >
-                          <option value="">Select blood group</option>
-                          {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map(group => (
-                            <option key={group} value={group}>{group}</option>
-                          ))}
-                        </select>
-                      </FormField>
-                      
-                      <FormField 
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Dr. Rajesh Kumar"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaGraduationCap />}
+                          label="Designation"
+                          required
+                          error={validationErrors.designation}
+                        >
+                          <input
+                            type="text"
+                            name="designation"
+                            value={formData.designation}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Associate Professor"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaUniversity />}
+                          label="Qualification"
+                          required
+                          error={validationErrors.qualification}
+                        >
+                          <input
+                            type="text"
+                            name="qualification"
+                            value={formData.qualification}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Ph.D. Computer Science"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaRegClock />}
+                          label="Experience (Years)"
+                          required
+                          error={validationErrors.experienceYears}
+                          helperText="Total teaching experience in years"
+                        >
+                          <input
+                            type="number"
+                            name="experienceYears"
+                            value={formData.experienceYears}
+                            onChange={handleChange}
+                            min="0"
+                            max="50"
+                            className="form-control"
+                            placeholder="e.g., 12"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaVial />}
+                          label="Blood Group"
+                          required
+                          error={validationErrors.bloodGroup}
+                        >
+                          <select
+                            name="bloodGroup"
+                            value={formData.bloodGroup}
+                            onChange={handleChange}
+                            className="form-select"
+                            required
+                          >
+                            <option value="">Select blood group</option>
+                            {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map(group => (
+                              <option key={group} value={group}>{group}</option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
+
+                      <FormField
                         icon={<FaTransgender />} 
                         label="Gender" 
                         required
@@ -705,7 +711,7 @@ export default function AddTeacher() {
                 custom={1}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
                 <div style={{
                   backgroundColor: 'white',
@@ -744,62 +750,66 @@ export default function AddTeacher() {
                       Contact & Security
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaEnvelope />} 
-                        label="Email Address" 
-                        required
-                        error={validationErrors.email}
-                        helperText="Will be used for login and notifications"
-                      >
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., rajesh.kumar@college.edu"
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaEnvelope />}
+                          label="Email Address"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaKey />} 
-                        label="Password" 
-                        required
-                        error={validationErrors.password}
-                        helperText="Minimum 8 characters required"
-                      >
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="Create secure password"
+                          error={validationErrors.email}
+                          helperText="Will be used for login and notifications"
+                        >
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., rajesh.kumar@college.edu"
+                            required
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaKey />}
+                          label="Password"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaBriefcase />} 
-                        label="Employment Type" 
-                        required
-                      >
-                        <select
-                          name="employmentType"
-                          value={formData.employmentType}
-                          onChange={handleChange}
-                          style={selectStyle}
+                          error={validationErrors.password}
+                          helperText="Minimum 8 characters required"
+                        >
+                          <input
+                            type="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="Create secure password"
+                            required
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaBriefcase />}
+                          label="Employment Type"
                           required
                         >
-                          <option value="FULL_TIME">Full Time</option>
-                          <option value="PART_TIME">Part Time</option>
-                          <option value="VISITING">Visiting Faculty</option>
-                        </select>
-                      </FormField>
+                          <select
+                            name="employmentType"
+                            value={formData.employmentType}
+                            onChange={handleChange}
+                            className="form-select"
+                            required
+                          >
+                            <option value="FULL_TIME">Full Time</option>
+                            <option value="PART_TIME">Part Time</option>
+                            <option value="VISITING">Visiting Faculty</option>
+                          </select>
+                        </FormField>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -811,94 +821,83 @@ export default function AddTeacher() {
                 custom={2}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
-                <div style={{
-                  backgroundColor: 'white',
-                  borderRadius: '20px',
-                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    padding: '1.75rem',
-                    background: 'linear-gradient(135deg, #ffedd5 0%, #ffeddb 100%)',
-                    borderBottom: '1px solid #fed7aa',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem'
-                  }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      backgroundColor: `${BRAND_COLORS.warning.main}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: BRAND_COLORS.warning.main,
-                      fontSize: '1.5rem',
-                      flexShrink: 0
-                    }}>
+                <div className="card border-0 shadow-sm" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+                  <div
+                    className="px-4 py-3 d-flex align-items-center gap-3"
+                    style={{ background: 'linear-gradient(135deg, #ffedd5 0%, #ffeddb 100%)', borderBottom: '1px solid #fed7aa' }}
+                  >
+                    <div
+                      className="d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        backgroundColor: `${BRAND_COLORS.warning.main}15`,
+                        color: BRAND_COLORS.warning.main,
+                        fontSize: '1.5rem'
+                      }}
+                    >
                       <FaUsers />
                     </div>
-                    <h2 style={{ 
-                      margin: 0, 
-                      fontSize: '1.5rem', 
-                      fontWeight: 700,
-                      color: '#1e293b'
-                    }}>
+                    <h2 className="mb-0 fw-bold" style={{ fontSize: '1.5rem', color: '#1e293b' }}>
                       Department & Course Assignment
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaUniversity />} 
-                        label="Department" 
-                        required
-                        error={validationErrors.department_id}
-                        helperText="Select department first to load available courses"
-                      >
-                        <select
-                          name="department_id"
-                          value={formData.department_id}
-                          onChange={handleChange}
-                          style={selectStyle}
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-6">
+                        <FormField
+                          icon={<FaUniversity />}
+                          label="Department"
                           required
+                          error={validationErrors.department_id}
+                          helperText="Select department first to load available courses"
                         >
-                          <option value="">Select department</option>
-                          {departments.map(dept => (
-                            <option key={dept._id} value={dept._id}>
-                              {dept.name}
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaBookOpen />} 
-                        label="Course" 
-                        required
-                        error={validationErrors.course_id}
-                        helperText={formData.department_id ? `${courses.length} courses available` : "Select department first"}
-                      >
-                        <select
-                          name="course_id"
-                          value={formData.course_id}
-                          onChange={handleChange}
-                          style={selectStyle}
-                          disabled={!formData.department_id}
+                          <select
+                            name="department_id"
+                            value={formData.department_id}
+                            onChange={handleChange}
+                            className="form-select"
+                            required
+                          >
+                            <option value="">Select department</option>
+                            {departments.map(dept => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-6">
+                        <FormField
+                          icon={<FaBookOpen />}
+                          label="Course"
                           required
+                          error={validationErrors.course_id}
+                          helperText={formData.department_id ? `${courses.length} courses available` : "Select department first"}
                         >
-                          <option value="">Select course</option>
-                          {courses.map(course => (
-                            <option key={course._id} value={course._id}>
-                              {course.name} ({course.code})
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
+                          <select
+                            name="course_id"
+                            value={formData.course_id}
+                            onChange={handleChange}
+                            className="form-select"
+                            disabled={!formData.department_id}
+                            required
+                          >
+                            <option value="">Select course</option>
+                            {courses.map(course => (
+                              <option key={course._id} value={course._id}>
+                                {course.name} ({course.code})
+                              </option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
                     </div>
                     
                     <div style={{ 
@@ -926,7 +925,7 @@ export default function AddTeacher() {
                 custom={3}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
                 <div style={{
                   backgroundColor: 'white',
@@ -965,59 +964,65 @@ export default function AddTeacher() {
                       Address Details
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaMapMarkedAlt />} 
-                        label="Address Line" 
-                        required
-                        error={validationErrors.address}
-                      >
-                        <input
-                          type="text"
-                          name="address"
-                          value={formData.address}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="Street address, building name"
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaMapMarkedAlt />}
+                          label="Address Line"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaCity />} 
-                        label="City" 
-                        required
-                        error={validationErrors.city}
-                      >
-                        <input
-                          type="text"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Mumbai"
+                          error={validationErrors.address}
+                        >
+                          <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="Street address, building name"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaCity />}
+                          label="City"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaBuilding />} 
-                        label="State" 
-                        required
-                        error={validationErrors.state}
-                      >
-                        <input
-                          type="text"
-                          name="state"
-                          value={formData.state}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Maharashtra"
+                          error={validationErrors.city}
+                        >
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Mumbai"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaBuilding />}
+                          label="State"
                           required
-                        />
-                      </FormField>
+                          error={validationErrors.state}
+                        >
+                          <input
+                            type="text"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Maharashtra"
+                            required
+                          />
+                        </FormField>
+                      </div>
                     </div>
                   </div>
                 </div>
