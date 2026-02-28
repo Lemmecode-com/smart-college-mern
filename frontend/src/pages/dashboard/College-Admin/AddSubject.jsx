@@ -504,18 +504,14 @@ export default function AddSubject() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-              gap: '2rem'
-            }}>
+            <div className="row g-4">
               {/* ================= ACADEMIC HIERARCHY CARD ================= */}
               <motion.div
                 variants={fadeInVariants}
                 custom={0}
                 initial="hidden"
                 animate="visible"
-                style={{ gridColumn: '1 / -1' }}
+                className="col-12"
               >
                 <div style={{
                   backgroundColor: 'white',
@@ -554,76 +550,82 @@ export default function AddSubject() {
                       Academic Hierarchy
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaUniversity />} 
-                        label="Department" 
-                        required
-                        error={validationErrors.department_id}
-                        helperText="Select the academic department"
-                      >
-                        <select
-                          name="department_id"
-                          value={formData.department_id}
-                          onChange={handleChange}
-                          style={selectStyle}
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaUniversity />}
+                          label="Department"
                           required
+                          error={validationErrors.department_id}
+                          helperText="Select the academic department"
                         >
-                          <option value="">Select department</option>
-                          {departments.map(dept => (
-                            <option key={dept._id} value={dept._id}>
-                              {dept.name}
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaGraduationCap />} 
-                        label="Course" 
-                        required
-                        error={validationErrors.course_id}
-                        helperText={formData.department_id ? `${courses.length} courses available` : "Select department first"}
-                      >
-                        <select
-                          name="course_id"
-                          value={formData.course_id}
-                          onChange={handleChange}
-                          style={selectStyle}
-                          disabled={!formData.department_id}
+                          <select
+                            name="department_id"
+                            value={formData.department_id}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          >
+                            <option value="">Select department</option>
+                            {departments.map(dept => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaGraduationCap />}
+                          label="Course"
                           required
+                          error={validationErrors.course_id}
+                          helperText={formData.department_id ? `${courses.length} courses available` : "Select department first"}
                         >
-                          <option value="">Select course</option>
-                          {courses.map(course => (
-                            <option key={course._id} value={course._id}>
-                              {course.name} ({course.code})
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaChalkboardTeacher />} 
-                        label="Teacher (Optional)" 
-                        helperText="Assign a teacher now or later"
-                      >
-                        <select
-                          name="teacher_id"
-                          value={formData.teacher_id}
-                          onChange={handleChange}
-                          style={selectStyle}
-                          disabled={!formData.course_id}
+                          <select
+                            name="course_id"
+                            value={formData.course_id}
+                            onChange={handleChange}
+                            className="form-control"
+                            disabled={!formData.department_id}
+                            required
+                          >
+                            <option value="">Select course</option>
+                            {courses.map(course => (
+                              <option key={course._id} value={course._id}>
+                                {course.name} ({course.code})
+                              </option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaChalkboardTeacher />}
+                          label="Teacher (Optional)"
+                          helperText="Assign a teacher now or later"
                         >
-                          <option value="">Select teacher (optional)</option>
-                          {teachers.map(teacher => (
-                            <option key={teacher._id} value={teacher._id}>
-                              {teacher.name} - {teacher.designation}
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
+                          <select
+                            name="teacher_id"
+                            value={formData.teacher_id}
+                            onChange={handleChange}
+                            className="form-control"
+                            disabled={!formData.course_id}
+                          >
+                            <option value="">Select teacher (optional)</option>
+                            {teachers.map(teacher => (
+                              <option key={teacher._id} value={teacher._id}>
+                                {teacher.name} - {teacher.designation}
+                              </option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -674,67 +676,73 @@ export default function AddSubject() {
                       Subject Details
                     </h2>
                   </div>
-                  
-                  <div style={{ padding: '2rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                      <FormField 
-                        icon={<FaBookOpen />} 
-                        label="Subject Name" 
-                        required
-                        error={validationErrors.name}
-                      >
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          style={inputStyle}
-                          placeholder="e.g., Data Structures and Algorithms"
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-8">
+                        <FormField
+                          icon={<FaBookOpen />}
+                          label="Subject Name"
                           required
-                        />
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaLayerGroup />} 
-                        label="Semester" 
-                        required
-                        error={validationErrors.semester}
-                        helperText="Academic semester (1-8)"
-                      >
-                        <select
-                          name="semester"
-                          value={formData.semester}
-                          onChange={handleChange}
-                          style={selectStyle}
-                          required
+                          error={validationErrors.name}
                         >
-                          <option value="">Select semester</option>
-                          {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
-                            <option key={sem} value={sem}>Semester {sem}</option>
-                          ))}
-                        </select>
-                      </FormField>
-                      
-                      <FormField 
-                        icon={<FaCreditCard />} 
-                        label="Credits" 
-                        required
-                        error={validationErrors.credits}
-                        helperText="Academic credits (1-6)"
-                      >
-                        <select
-                          name="credits"
-                          value={formData.credits}
-                          onChange={handleChange}
-                          style={selectStyle}
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., Data Structures and Algorithms"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaLayerGroup />}
+                          label="Semester"
                           required
+                          error={validationErrors.semester}
+                          helperText="Academic semester (1-8)"
                         >
-                          <option value="">Select credits</option>
-                          {[1, 2, 3, 4, 5, 6].map(credit => (
-                            <option key={credit} value={credit}>{credit} Credit{credit > 1 ? 's' : ''}</option>
-                          ))}
-                        </select>
-                      </FormField>
+                          <select
+                            name="semester"
+                            value={formData.semester}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          >
+                            <option value="">Select semester</option>
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                              <option key={sem} value={sem}>Semester {sem}</option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaCreditCard />}
+                          label="Credits"
+                          required
+                          error={validationErrors.credits}
+                          helperText="Academic credits (1-6)"
+                        >
+                          <select
+                            name="credits"
+                            value={formData.credits}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          >
+                            <option value="">Select credits</option>
+                            {[1, 2, 3, 4, 5, 6].map(credit => (
+                              <option key={credit} value={credit}>{credit} Credit{credit > 1 ? 's' : ''}</option>
+                            ))}
+                          </select>
+                        </FormField>
+                      </div>
                     </div>
                   </div>
                 </div>
