@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
+import { FaCheckCircle, FaExclamationTriangle, FaLock, FaInfoCircle } from "react-icons/fa";
 
 export default function CreateSessionModal({ onClose, onSuccess, slots }) {
   const [form, setForm] = useState({
@@ -30,25 +32,53 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
 
     try {
       await api.post("/attendance/sessions", form);
-      alert("✅ Session created successfully!");
+      toast.success("Session created successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       onSuccess();
       onClose();
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to create session";
-      
+
       // ✅ Show specific validation errors
       if (err.response?.data?.code === 'ONLY_TODAY_ALLOWED') {
-        alert("⚠️ Attendance sessions can only be created for today");
+        toast.warning("Attendance sessions can only be created for today", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaInfoCircle />
+        });
       } else if (err.response?.data?.code === 'DATE_DAY_MISMATCH') {
-        alert("⚠️ Selected date does not match slot's day");
+        toast.warning("Selected date does not match slot's day", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaInfoCircle />
+        });
       } else if (err.response?.data?.code === 'NOT_SUBJECT_TEACHER') {
-        alert("🔒 Access denied: You are not the assigned teacher for this subject");
+        toast.error("Access denied: You are not the assigned teacher for this subject", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaLock />
+        });
       } else if (err.response?.data?.code === 'PAST_DATE_NOT_ALLOWED') {
-        alert("⚠️ Cannot create session for past dates");
+        toast.warning("Cannot create session for past dates", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaInfoCircle />
+        });
       } else if (err.response?.data?.code === 'DUPLICATE_SESSION') {
-        alert("⚠️ Attendance session already created for this lecture");
+        toast.warning("Attendance session already created for this lecture", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaInfoCircle />
+        });
       } else {
-        alert("❌ " + errorMsg);
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
       }
     } finally {
       setLoading(false);
