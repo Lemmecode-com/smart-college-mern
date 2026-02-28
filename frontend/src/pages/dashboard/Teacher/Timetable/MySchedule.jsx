@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -24,8 +25,6 @@ import {
   FaTimesCircle,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -775,22 +774,66 @@ const componentStyles = `
     padding: 1rem;
   }
 }
+
+/* ================= TOAST NOTIFICATIONS ================= */
 .Toastify__toast {
-  border-radius: 10px;
-  font-weight: 500;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 14px 18px;
+  min-width: 320px;
 }
+
 .Toastify__toast--success {
-  background: linear-gradient(135deg, #28a745, #1e7e34);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
 }
+
+.Toastify__toast--success .Toastify__progress-bar {
+  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+}
+
 .Toastify__toast--error {
-  background: linear-gradient(135deg, #dc3545, #c82333);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
 }
+
+.Toastify__toast--error .Toastify__progress-bar {
+  background: linear-gradient(90deg, #f87171 0%, #ef4444 100%);
+}
+
 .Toastify__toast--warning {
-  background: linear-gradient(135deg, #ffc107, #e0a800);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
 }
+
+.Toastify__toast--warning .Toastify__progress-bar {
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+}
+
 .Toastify__toast--info {
-  background: linear-gradient(135deg, #17a2b8, #117a8b);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+}
+
+.Toastify__toast--info .Toastify__progress-bar {
+  background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.Toastify__toast-body {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.Toastify__close-button {
+  color: rgba(255, 255, 255, 0.8);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
 }
 `;
 
@@ -1245,18 +1288,6 @@ export default function MySchedule() {
   if (loading || !sessionsLoaded) {
     return (
       <div className="schedule-container">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
         <div className="loading-wrapper">
           <div className="loading-spinner">
             <motion.div
@@ -1284,18 +1315,6 @@ export default function MySchedule() {
         className="schedule-container"
       >
         <style>{componentStyles}</style>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
         <div
           className="schedule-content"
           style={{ maxWidth: styles.container.maxWidth }}

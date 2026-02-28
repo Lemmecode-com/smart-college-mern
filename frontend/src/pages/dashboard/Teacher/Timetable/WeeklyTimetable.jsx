@@ -2,6 +2,8 @@ import React, { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
+import { toast } from "react-toastify";
+import ConfirmModal from "../../../../components/ConfirmModal";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -155,6 +157,13 @@ export default function WeeklyTimetable() {
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoContent, setInfoContent] = useState("");
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    slotId: null,
+    title: "Delete Slot?",
+    message: "Are you sure you want to delete this timetable slot? This action cannot be undone.",
+    type: "danger"
+  });
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
@@ -274,27 +283,50 @@ export default function WeeklyTimetable() {
       } else {
         await api.post("/timetable/slot", form);
       }
-      
+
       setShowModal(false);
       window.location.reload();
     } catch (err) {
       console.error("Failed to save slot:", err);
-      setError(err.response?.data?.message || "Cannot modify published timetable or only HOD has access.");
-      alert(err.response?.data?.message || "Cannot modify published timetable or only HOD has access.");
+      const errorMsg = err.response?.data?.message || "Cannot modify published timetable or only HOD has access.";
+      setError(errorMsg);
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const deleteSlot = async (slotId) => {
-    if (!window.confirm("Are you sure you want to delete this timetable slot? This action cannot be undone.")) return;
-    
+  const showDeleteConfirm = (slotId) => {
+    setConfirmModal({
+      isOpen: true,
+      slotId: slotId,
+      title: "Delete Slot?",
+      message: "Are you sure you want to delete this timetable slot? This action cannot be undone.",
+      type: "danger"
+    });
+  };
+
+  const confirmDeleteSlot = async () => {
     try {
-      await api.delete(`/timetable/slot/${slotId}`);
+      await api.delete(`/timetable/slot/${confirmModal.slotId}`);
+      toast.success("Slot deleted successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       window.location.reload();
     } catch (err) {
       console.error("Failed to delete slot:", err);
-      alert(err.response?.data?.message || "Delete failed. Only HOD can delete slots or timetable may be published.");
+      const errorMsg = err.response?.data?.message || "Delete failed. Only HOD can delete slots or timetable may be published.";
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
     }
   };
 
@@ -638,49 +670,26 @@ export default function WeeklyTimetable() {
                 <FaInfoCircle /> {Object.values(weekly).flat().length} slots scheduled
               </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                minWidth: '900px'
-              }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={headerCellStyle}>Time</th>
+            <div className="table-responsive">
+              <table className="table table-bordered align-middle mb-0" style={{ minWidth: '900px' }}>
+                <thead className="table-light">
+                  <tr>
+                    <th className="py-3 px-3 fw-semibold text-center" style={headerCellStyle}>Time</th>
                     {DAYS.map((day, idx) => (
                       <th
                         key={day}
-                        style={{
-                          ...headerCellStyle,
-                          backgroundColor: '#f1f5f9',
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
+                        className="py-3 px-3 fw-semibold text-center position-relative"
+                        style={{ ...headerCellStyle, overflow: 'hidden' }}
                       >
-                        <div style={{ position: 'relative' }}>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem',
-                            justifyContent: 'center'
-                          }}>
+                        <div>
+                          <div className="d-flex align-items-center justify-content-center gap-2">
                             {day}
-                            <div style={{ 
-                              fontSize: '0.8rem', 
-                              opacity: 0.9, 
-                              marginTop: '0.25rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}>
+                            <div className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '0.25rem' }}>
                               {DAY_NAMES[idx]}
                               <motion.span
                                 whileHover={{ scale: 1.2 }}
-                                style={{
-                                  cursor: 'pointer',
-                                  color: BRAND_COLORS.info.main,
-                                  fontSize: '0.85rem'
-                                }}
+                                className="text-info"
+                                style={{ cursor: 'pointer', fontSize: '0.85rem' }}
                                 onMouseEnter={(e) => handleTooltip(e, `Monday is the first day of the academic week. Timetable slots for Monday are displayed in this column.`)}
                                 onMouseLeave={handleTooltipLeave}
                               >
@@ -701,18 +710,9 @@ export default function WeeklyTimetable() {
                       custom={timeIdx + 1}
                       initial="hidden"
                       animate="visible"
-                      style={{ 
-                        backgroundColor: 'white',
-                        cursor: 'default'
-                      }}
+                      className="bg-white"
                     >
-                      <td style={{
-                        ...cellStyle,
-                        fontWeight: 600,
-                        color: '#1e293b',
-                        fontSize: '0.95rem',
-                        borderRight: '1px solid #e2e8f0'
-                      }}>
+                      <td className="py-3 px-3 fw-semibold border-end" style={{ color: '#1e293b', fontSize: '0.95rem' }}>
                         {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
                       </td>
                       {DAYS.map((day) => {
@@ -721,10 +721,10 @@ export default function WeeklyTimetable() {
                         return (
                           <td
                             key={`${day}-${timeSlot.start}`}
+                            className="py-2 px-2 align-top"
                             style={{
                               ...cellStyle,
                               padding: '0.5rem',
-                              verticalAlign: 'top',
                               backgroundColor: slot ? 'white' : '#f8fafc',
                               borderLeft: slot ? `3px solid ${BRAND_COLORS.primary.main}` : '1px solid #e2e8f0'
                             }}
@@ -734,7 +734,7 @@ export default function WeeklyTimetable() {
                                 slot={slot}
                                 isHOD={isHOD}
                                 onEdit={() => openEdit(slot, day)}
-                                onDelete={() => deleteSlot(slot._id)}
+                                onDelete={() => showDeleteConfirm(slot._id)}
                                 handleTooltip={handleTooltip}
                                 handleTooltipLeave={handleTooltipLeave}
                               />
@@ -1262,6 +1262,18 @@ export default function WeeklyTimetable() {
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* ================= CONFIRM MODAL ================= */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, slotId: null, title: "", message: "", type: "danger" })}
+        onConfirm={confirmDeleteSlot}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText="Delete"
+        isLoading={submitting}
+      />
     </AnimatePresence>
   );
 }

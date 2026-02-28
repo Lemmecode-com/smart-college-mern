@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
+import "./Dashboard.css";
 
 import {
   FaUniversity,
@@ -285,167 +287,151 @@ export default function CollegeAdminDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="min-vh-100 bg-gradient"
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
-          paddingBottom: '1.5rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem'
         }}
       >
-        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <Container fluid className="dashboard-container px-2 px-sm-3 px-md-4 px-lg-5 py-3 py-sm-4">
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="mb-3 mb-sm-4 bg-white rounded-3 rounded-sm-4 overflow-hidden shadow"
             style={{
-              marginBottom: '1.5rem',
+              marginBottom: '1.25rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '1rem',
               overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
+              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)'
             }}
           >
-            <div style={{
-              padding: '1.75rem 2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem',
-                    flexShrink: 0
-                  }}
-                >
-                  <FaUniversity />
-                </motion.div>
-                <div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '2rem',
-                    fontWeight: 700,
-                    lineHeight: 1.2
-                  }}>
-                    {college?.name || 'College Dashboard'}
-                  </h1>
-                  <p style={{
-                    margin: '0.5rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.1rem'
-                  }}>
-                    Real-time overview of institution's key metrics
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginBottom: '0.25rem' }}>Current Time</div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                    {currentTime.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: true 
-                    })}
+            {/* Hero Section */}
+            <div
+              className="p-3 p-sm-4 p-lg-5"
+              style={{
+                padding: '1.5rem',
+                background: BRAND_COLORS.primary.gradient,
+                color: 'white'
+              }}
+            >
+              <Row className="g-3 g-sm-4 align-items-center">
+                <Col xs={12} md={7} lg={8}>
+                  <div className="d-flex align-items-center gap-2 gap-sm-3">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="initial"
+                      animate="pulse"
+                      className="d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{
+                        width: 'clamp(50px, 12vw, 64px)',
+                        height: 'clamp(50px, 12vw, 64px)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        borderRadius: 'clamp(10px, 3vw, 14px)',
+                        fontSize: 'clamp(1.25rem, 3.5vw, 1.75rem)'
+                      }}
+                    >
+                      <FaUniversity />
+                    </motion.div>
+                    <div>
+                      <h1 className="mb-0 fw-bold" style={{
+                        fontSize: 'clamp(1.1rem, 3.5vw, 1.5rem)',
+                        fontWeight: 700,
+                        lineHeight: 1.2
+                      }}>
+                        {college?.name || 'College Dashboard'}
+                      </h1>
+                      <p className="mt-1 mt-sm-2 mb-0 d-none d-lg-block" style={{
+                        opacity: 0.9,
+                        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)'
+                      }}>
+                        Real-time overview of institution's key metrics
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/college/profile")}
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: 'none',
-                    padding: '0.875rem 1.75rem',
-                    borderRadius: '12px',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <FaEye /> View College Profile
-                </motion.button>
-              </div>
+                </Col>
+                <Col xs={12} md={5} lg={4}>
+                  <div className="d-flex align-items-center gap-2 gap-sm-3 justify-content-center justify-content-md-end">
+                    <div
+                      className="text-center px-2 px-sm-3 py-1 py-sm-2 rounded-2 rounded-sm-3"
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        borderRadius: '10px',
+                        minWidth: '100px'
+                      }}
+                    >
+                      <div className="small mb-0 mb-sm-1" style={{ fontSize: '0.65rem', opacity: 0.85 }}>Time</div>
+                      <div className="fw-bold" style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)' }}>
+                        {currentTime.toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </div>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => navigate("/college/profile")}
+                      className="dashboard-btn btn btn-light text-primary fw-semibold"
+                      style={{
+                        padding: 'clamp(0.5rem, 1.5vw, 0.625rem) clamp(0.75rem, 2vw, 1rem)',
+                        borderRadius: '10px',
+                        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
+                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.3s ease',
+                        minHeight: '40px',
+                        outline: 'none',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.outline = '2px solid #1a4b6d';
+                        e.target.style.outlineOffset = '2px';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.outline = 'none';
+                      }}
+                    >
+                      <FaEye className="me-1" /> <span className="d-none d-sm-inline">View Profile</span><span className="d-inline d-sm-none">Profile</span>
+                    </motion.button>
+                  </div>
+                </Col>
+              </Row>
             </div>
             
             {/* College Info Bar */}
             {college && (
-              <div style={{
-                padding: '1rem 2rem',
-                backgroundColor: '#f8fafc',
-                borderTop: '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1.5rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaEnvelope style={{ color: BRAND_COLORS.primary.main }} />
-                    <span style={{ color: '#4a5568', fontWeight: 500 }}>{college.email}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaMapMarkerAlt style={{ color: BRAND_COLORS.primary.main }} />
-                    <span style={{ color: '#4a5568', fontWeight: 500 }}>Est. {college.establishedYear}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaShieldAlt style={{ color: BRAND_COLORS.success.main }} />
-                    <span style={{ 
-                      backgroundColor: '#dcfce7', 
-                      color: '#166534', 
-                      padding: '0.25rem 0.75rem', 
-                      borderRadius: '9999px',
-                      fontWeight: 600,
-                      fontSize: '0.85rem'
-                    }}>
+              <div
+                className="p-2 p-sm-3 p-md-4 bg-light border-top"
+                style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#f8fafc',
+                  borderTop: '1px solid #e2e8f0'
+                }}
+              >
+                <Row className="g-2 g-sm-3">
+                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
+                    <FaEnvelope style={{ color: BRAND_COLORS.primary.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
+                    <span className="text-dark fw-medium text-truncate" title={college.email} style={{ fontSize: 'clamp(0.8rem, 2vw, 0.9rem)' }}>{college.email}</span>
+                  </Col>
+                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
+                    <FaMapMarkerAlt style={{ color: BRAND_COLORS.primary.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
+                    <span className="text-dark fw-medium" style={{ fontSize: 'clamp(0.8rem, 2vw, 0.9rem)' }}>Est. {college.establishedYear}</span>
+                  </Col>
+                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
+                    <FaShieldAlt style={{ color: BRAND_COLORS.success.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
+                    <Badge bg="success" bgOpacity={10} className="fw-semibold" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)' }}>
                       Active Institution
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: BRAND_COLORS.primary.main, 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: '9999px',
-                    fontWeight: 600,
-                    fontSize: '0.85rem'
-                  }}>
-                    Code: {college.code}
-                  </span>
-                </div>
+                    </Badge>
+                  </Col>
+                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2 justify-content-sm-end">
+                    <Badge bg="primary" bgOpacity={10} className="fw-semibold" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)' }}>
+                      Code: {college.code}
+                    </Badge>
+                  </Col>
+                </Row>
               </div>
             )}
           </motion.div>
@@ -456,230 +442,226 @@ export default function CollegeAdminDashboard() {
             custom={0}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '1.25rem'
-            }}
+            className="mb-3 mb-sm-4"
           >
-            <StatCard
-              icon={FaUsers}
-              label="Total Students"
-              value={stats.totalStudents}
-              color={BRAND_COLORS.success.main}
-              gradient={BRAND_COLORS.success.gradient}
-              subtitle="Enrolled students"
-            />
-            <StatCard
-              icon={FaChalkboardTeacher}
-              label="Total Teachers"
-              value={stats.totalTeachers}
-              color={BRAND_COLORS.info.main}
-              gradient={BRAND_COLORS.info.gradient}
-              subtitle="Active faculty members"
-            />
-            <StatCard
-              icon={FaLayerGroup}
-              label="Total Departments"
-              value={stats.totalDepartments}
-              color={BRAND_COLORS.warning.main}
-              gradient={BRAND_COLORS.warning.gradient}
-              subtitle="Academic departments"
-            />
-            <StatCard
-              icon={FaGraduationCap}
-              label="Total Courses"
-              value={stats.totalCourses}
-              color={BRAND_COLORS.primary.main}
-              gradient={BRAND_COLORS.primary.gradient}
-              subtitle="Active courses"
-            />
-            <StatCard
-              icon={FaUserCheck}
-              label="Pending Admissions"
-              value={stats.pendingAdmissions}
-              color={BRAND_COLORS.danger.main}
-              gradient={BRAND_COLORS.danger.gradient}
-              subtitle="Awaiting approval"
-            />
+            <Row className="g-2 g-sm-3">
+              <Col xs={12} sm={6} lg={4}>
+                <StatCard
+                  icon={FaUsers}
+                  label="Total Students"
+                  value={stats.totalStudents}
+                  color={BRAND_COLORS.success.main}
+                  gradient={BRAND_COLORS.success.gradient}
+                  subtitle="Enrolled students"
+                />
+              </Col>
+              <Col xs={12} sm={6} lg={4}>
+                <StatCard
+                  icon={FaChalkboardTeacher}
+                  label="Total Teachers"
+                  value={stats.totalTeachers}
+                  color={BRAND_COLORS.info.main}
+                  gradient={BRAND_COLORS.info.gradient}
+                  subtitle="Active faculty members"
+                />
+              </Col>
+              <Col xs={12} sm={6} lg={4}>
+                <StatCard
+                  icon={FaLayerGroup}
+                  label="Total Departments"
+                  value={stats.totalDepartments}
+                  color={BRAND_COLORS.warning.main}
+                  gradient={BRAND_COLORS.warning.gradient}
+                  subtitle="Academic departments"
+                />
+              </Col>
+              <Col xs={12} sm={6} lg={4}>
+                <StatCard
+                  icon={FaGraduationCap}
+                  label="Total Courses"
+                  value={stats.totalCourses}
+                  color={BRAND_COLORS.primary.main}
+                  gradient={BRAND_COLORS.primary.gradient}
+                  subtitle="Active courses"
+                />
+              </Col>
+              <Col xs={12} sm={6} lg={4}>
+                <StatCard
+                  icon={FaUserCheck}
+                  label="Pending Admissions"
+                  value={stats.pendingAdmissions}
+                  color={BRAND_COLORS.danger.main}
+                  gradient={BRAND_COLORS.danger.gradient}
+                  subtitle="Awaiting approval"
+                />
+              </Col>
+            </Row>
           </motion.div>
 
           {/* ================= MAIN CONTENT GRID ================= */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '1.5rem'
-          }}>
-            {/* LEFT COLUMN - QUICK ACTIONS & RECENT ACTIVITIES */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {/* QUICK ACTIONS */}
-                <motion.div
-                  variants={fadeInVariants}
-                  custom={1}
-                  initial="hidden"
-                  animate="visible"
-                  style={{ gridColumn: '1 / -1' }}
+          <Row className="g-3 g-sm-4">
+            {/* QUICK ACTIONS - Full width on mobile, 8/12 on desktop */}
+            <Col xs={12} lg={8}>
+              <motion.div
+                variants={fadeInVariants}
+                custom={1}
+                initial="hidden"
+                animate="visible"
+              >
+                <SectionCard
+                  title="Quick Actions"
+                  icon={<FaArrowRight />}
+                  subtitle="Frequently used operations"
+                  color={BRAND_COLORS.primary.main}
                 >
-                  <SectionCard
-                    title="Quick Actions"
-                    icon={<FaArrowRight />}
-                    subtitle="Frequently used operations"
-                    color={BRAND_COLORS.primary.main}
-                  >
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                      gap: '1rem',
-                      padding: '1rem'
-                    }}>
+                  <div className="p-2 p-sm-3">
+                    <Row className="g-2 g-sm-3">
                       {quickActions.map((action, idx) => (
-                        <QuickActionCard
-                          key={action.id}
-                          icon={action.icon}
-                          label={action.label}
-                          color={action.color}
-                          gradient={action.gradient}
-                          path={action.path}
-                          delay={idx * 0.05}
-                        />
+                        <Col xs={6} sm={6} lg={4} key={action.id}>
+                          <QuickActionCard
+                            icon={action.icon}
+                            label={action.label}
+                            color={action.color}
+                            gradient={action.gradient}
+                            path={action.path}
+                            delay={idx * 0.05}
+                          />
+                        </Col>
                       ))}
-                    </div>
-                  </SectionCard>
-                </motion.div>
+                    </Row>
+                  </div>
+                </SectionCard>
+              </motion.div>
+            </Col>
 
-                {/* RECENT STUDENT ACTIVITIES */}
-                <motion.div
-                  variants={fadeInVariants}
-                  custom={2}
-                  initial="hidden"
-                  animate="visible"
-                  style={{ gridColumn: '1 / -1' }}
+            {/* PENDING ADMISSIONS - Full width on mobile, 4/12 on desktop */}
+            <Col xs={12} lg={4}>
+              <motion.div
+                variants={fadeInVariants}
+                custom={3}
+                initial="hidden"
+                animate="visible"
+              >
+                <SectionCard
+                  title="Pending Admissions"
+                  icon={<FaUserCheck />}
+                  subtitle={`${pendingAdmissions.length} student${pendingAdmissions.length !== 1 ? 's' : ''} awaiting approval`}
+                  color={BRAND_COLORS.warning.main}
                 >
-                  <SectionCard
-                    title="Recent Student Activities"
-                    icon={<FaClock />}
-                    subtitle="Latest student applications"
-                    color={BRAND_COLORS.info.main}
-                  >
-                    <div style={{ padding: '1rem' }}>
-                      {recentStudents.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          {recentStudents.slice(0, 5).map((student) => (
-                            <StudentItem 
-                              key={student._id} 
-                              student={student} 
-                              onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState 
-                          icon={<FaUsers />} 
-                          title="No recent activities" 
-                          message="No student activities to display at the moment."
-                        />
-                      )}
-                      
-                      {recentStudents.length > 5 && (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => navigate("/students")}
-                          style={{
-                            width: '100%',
-                            marginTop: '1rem',
-                            padding: '0.875rem',
-                            backgroundColor: BRAND_COLORS.primary.main,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            transition: 'all 0.3s ease'
-                          }}
-                        >
-                          <FaEye /> View All Students
-                        </motion.button>
-                      )}
-                    </div>
-                  </SectionCard>
-                </motion.div>
-              </div>
-            </div>
+                  <div className="p-2 p-sm-3">
+                    {pendingAdmissions.length > 0 ? (
+                      <div className="d-flex flex-column gap-2 gap-sm-3">
+                        {pendingAdmissions.slice(0, 4).map((student) => (
+                          <StudentItem
+                            key={student._id}
+                            student={{ ...student, status: 'PENDING' }}
+                            isPending={true}
+                            onClick={() => navigate(`/college/view-student/${student._id}`)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={<FaCheckCircle style={{ color: BRAND_COLORS.success.main }} />}
+                        title="No pending admissions"
+                        message="All student applications have been processed."
+                        success={true}
+                      />
+                    )}
+                    {pendingAdmissions.length > 4 && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate("/students")}
+                        className="dashboard-btn btn btn-success w-100 mt-3"
+                        style={{
+                          padding: 'clamp(0.625rem, 2vw, 0.75rem)',
+                          borderRadius: '12px',
+                          fontWeight: 600,
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)',
+                          minHeight: '44px',
+                          outline: 'none'
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.outline = '2px solid #1a4b6d';
+                          e.target.style.outlineOffset = '2px';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.outline = 'none';
+                        }}
+                      >
+                        <FaCheckCircle className="me-2" /> Approve All ({pendingAdmissions.length})
+                      </motion.button>
+                    )}
+                  </div>
+                </SectionCard>
+              </motion.div>
+            </Col>
 
-            {/* RIGHT COLUMN - PENDING ADMISSIONS */}
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {/* PENDING ADMISSIONS */}
-                <motion.div
-                  variants={fadeInVariants}
-                  custom={3}
-                  initial="hidden"
-                  animate="visible"
+            {/* RECENT STUDENT ACTIVITIES - Full width */}
+            <Col xs={12}>
+              <motion.div
+                variants={fadeInVariants}
+                custom={2}
+                initial="hidden"
+                animate="visible"
+              >
+                <SectionCard
+                  title="Recent Student Activities"
+                  icon={<FaClock />}
+                  subtitle="Latest student applications"
+                  color={BRAND_COLORS.info.main}
                 >
-                  <SectionCard
-                    title="Pending Admissions"
-                    icon={<FaUserCheck />}
-                    subtitle={`${pendingAdmissions.length} student${pendingAdmissions.length !== 1 ? 's' : ''} awaiting approval`}
-                    color={BRAND_COLORS.warning.main}
-                  >
-                    <div style={{ padding: '1rem' }}>
-                      {pendingAdmissions.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          {pendingAdmissions.map((student) => (
-                            <StudentItem 
-                              key={student._id} 
-                              student={{ ...student, status: 'PENDING' }} 
-                              isPending={true}
-                              onClick={() => navigate(`/college/view-student/${student._id}`)}
-                            />
-                          ))}
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => navigate("/students")}
-                            style={{
-                              width: '100%',
-                              marginTop: '1.25rem',
-                              padding: '0.875rem',
-                              backgroundColor: BRAND_COLORS.success.main,
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '12px',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.5rem',
-                              transition: 'all 0.3s ease',
-                              boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
-                            }}
-                          >
-                            <FaCheckCircle /> Approve Pending Students
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <EmptyState 
-                          icon={<FaCheckCircle style={{ color: BRAND_COLORS.success.main }} />} 
-                          title="No pending admissions" 
-                          message="All student applications have been processed."
-                          success={true}
-                        />
-                      )}
-                    </div>
-                  </SectionCard>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-        </div>
+                  <div className="p-2 p-sm-3">
+                    {recentStudents.length > 0 ? (
+                      <div className="d-flex flex-column gap-2 gap-sm-3">
+                        {recentStudents.slice(0, 5).map((student) => (
+                          <StudentItem
+                            key={student._id}
+                            student={student}
+                            onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={<FaUsers />}
+                        title="No recent activities"
+                        message="No student activities to display at the moment."
+                      />
+                    )}
+                    {recentStudents.length > 5 && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate("/students")}
+                        className="dashboard-btn btn btn-primary w-100 mt-3"
+                        style={{
+                          padding: 'clamp(0.625rem, 2vw, 0.75rem)',
+                          borderRadius: '12px',
+                          fontWeight: 600,
+                          transition: 'all 0.3s ease',
+                          minHeight: '44px',
+                          outline: 'none'
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.outline = '2px solid #1a4b6d';
+                          e.target.style.outlineOffset = '2px';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.outline = 'none';
+                        }}
+                      >
+                        <FaEye className="me-2" /> View All Students
+                      </motion.button>
+                    )}
+                  </div>
+                </SectionCard>
+              </motion.div>
+            </Col>
+          </Row>
+        </Container>
       </motion.div>
     </AnimatePresence>
   );
@@ -773,11 +755,12 @@ function ErrorDisplay({ message, onRetry }) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onRetry}
+          className="dashboard-btn"
           style={{
             backgroundColor: BRAND_COLORS.primary.main,
             color: 'white',
             border: 'none',
-            padding: '0.875rem 2rem',
+            padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1.5rem, 3vw, 2rem)',
             borderRadius: '12px',
             fontSize: '1rem',
             fontWeight: 600,
@@ -786,7 +769,8 @@ function ErrorDisplay({ message, onRetry }) {
             alignItems: 'center',
             gap: '0.5rem',
             margin: '0 auto',
-            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
+            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
+            minHeight: '48px'
           }}
         >
           <motion.div variants={spinVariants} animate="animate">
@@ -803,55 +787,52 @@ function ErrorDisplay({ message, onRetry }) {
 function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
   return (
     <motion.div
-      whileHover={{ y: -5, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
+      whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}
       whileTap={{ scale: 0.98 }}
+      className="stat-card"
+      tabIndex={0}
+      role="region"
+      aria-label={`${label}: ${value}`}
       style={{
         backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1.25rem',
+        borderRadius: '12px',
+        padding: 'clamp(0.875rem, 2vw, 1.125rem)',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
         borderLeft: `4px solid ${color}`,
-        transition: 'all 0.3s ease',
-        cursor: 'default'
+        outline: 'none',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center'
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.08)';
+        e.currentTarget.style.outline = '2px solid #1a4b6d';
+        e.currentTarget.style.outlineOffset = '2px';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.04)';
+        e.currentTarget.style.outline = 'none';
       }}
     >
-      <div style={{
-        width: '56px',
-        height: '56px',
-        borderRadius: '14px',
+      <div className="stat-card-icon" style={{
+        width: 'clamp(36px, 8vw, 44px)',
+        height: 'clamp(36px, 8vw, 44px)',
+        borderRadius: '10px',
         background: gradient,
+        color: 'white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'white',
-        flexShrink: 0,
-        fontSize: '1.75rem'
+        fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)',
+        marginBottom: 'clamp(0.5rem, 1.5vw, 0.625rem)'
       }}>
         <Icon />
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{
-          fontSize: '0.9rem',
-          color: '#64748b',
-          fontWeight: 600,
-          marginBottom: '0.25rem'
-        }}>{label}</div>
-        <div style={{
-          fontSize: '2rem',
-          fontWeight: 800,
-          color: '#1e293b',
-          lineHeight: 1
-        }}>{value}</div>
-        {subtitle && (
-          <div style={{
-            fontSize: '0.85rem',
-            color: '#94a3b8',
-            marginTop: '0.25rem'
-          }}>{subtitle}</div>
-        )}
+      <div className="stat-card-content">
+        <div className="card-label" style={{ fontSize: 'clamp(0.75rem, 1.8vw, 0.8rem)', color: '#64748b', marginBottom: '0.1875rem', lineHeight: 1.3 }}>{label}</div>
+        <div className="card-value" style={{ fontSize: 'clamp(1.35rem, 4vw, 1.6rem)', fontWeight: 700, color: '#1e293b', lineHeight: 1.1 }}>{value}</div>
+        {subtitle && <div className="card-subtitle" style={{ fontSize: 'clamp(0.65rem, 1.5vw, 0.7rem)', color: '#94a3b8', marginTop: '0.25rem', lineHeight: 1.3 }}>{subtitle}</div>}
       </div>
     </motion.div>
   );
@@ -860,33 +841,34 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 /* ================= SECTION CARD ================= */
 function SectionCard({ title, icon, subtitle, color, children }) {
   return (
-    <div style={{
+    <div className="section-card" style={{
       backgroundColor: 'white',
       borderRadius: '16px',
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
       overflow: 'hidden',
-      transition: 'all 0.3s ease'
+      transition: 'all 0.3s ease',
+      width: '100%'
     }}>
-      <div style={{
-        padding: '1.25rem 1.5rem',
+      <div className="section-card-header" style={{
+        padding: 'clamp(1rem, 2vw, 1.25rem) clamp(1rem, 2vw, 1.5rem)',
         background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
         borderBottom: '1px solid #eaeaea'
       }}>
         <h3 style={{
           margin: 0,
-          fontSize: '1.25rem',
+          fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
           fontWeight: 700,
           color: '#1e293b',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem'
+          gap: 'clamp(0.5rem, 1.5vw, 0.75rem)'
         }}>
-          <span style={{ color: color, fontSize: '1.2rem' }}>{icon}</span>
+          <span style={{ color: color, fontSize: 'clamp(1rem, 2.5vw, 1.2rem)' }}>{icon}</span>
           {title}
         </h3>
         {subtitle && (
           <span style={{
-            fontSize: '0.875rem',
+            fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
             color: '#64748b',
             marginLeft: '1.9rem',
             display: 'block',
@@ -913,31 +895,51 @@ function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }
       whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)', borderColor: color }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(path)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(path);
+        }
+      }}
+      className="quick-action-card"
+      tabIndex={0}
+      role="button"
+      aria-label={label}
       style={{
         backgroundColor: 'white',
         border: '2px solid transparent',
         borderRadius: '14px',
-        padding: '1.25rem',
+        padding: 'clamp(1rem, 2.5vw, 1.25rem)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         textAlign: 'center',
-        gap: '0.75rem',
+        gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
-        minHeight: '130px'
+        minHeight: 'clamp(120px, 28vw, 140px)',
+        width: '100%',
+        outline: 'none',
+        height: '100%'
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.outline = '2px solid #1a4b6d';
+        e.currentTarget.style.outlineOffset = '2px';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.outline = 'none';
       }}
     >
       <div style={{
-        width: '52px',
-        height: '52px',
+        width: 'clamp(48px, 11vw, 56px)',
+        height: 'clamp(48px, 11vw, 56px)',
         borderRadius: '14px',
         background: gradient,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         color: 'white',
-        fontSize: '1.5rem',
+        fontSize: 'clamp(1.25rem, 3.5vw, 1.5rem)',
         flexShrink: 0
       }}>
         <Icon />
@@ -945,8 +947,14 @@ function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }
       <div style={{
         fontWeight: 600,
         color: '#1e293b',
-        fontSize: '0.95rem',
-        lineHeight: 1.4
+        fontSize: 'clamp(0.85rem, 2.8vw, 0.95rem)',
+        lineHeight: 1.4,
+        wordWrap: 'break-word',
+        width: '100%',
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
         {label}
       </div>
@@ -954,7 +962,8 @@ function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }
         color: color,
         opacity: 0,
         transition: 'all 0.3s ease',
-        marginTop: '0.25rem'
+        marginTop: '0.25rem',
+        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
       }}>
         <FaArrowRight />
       </div>
@@ -995,21 +1004,46 @@ function StudentItem({ student, isPending = false, onClick }) {
       whileHover={{ x: 5, backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }}
       whileTap={{ scale: 0.99 }}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="student-item"
+      tabIndex={0}
+      role="button"
+      aria-label={`View ${student.fullName}`}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
-        padding: '1rem',
+        gap: '0.75rem',
+        padding: '0.75rem',
         borderRadius: '12px',
         backgroundColor: 'white',
         border: '1px solid #e2e8f0',
         cursor: 'pointer',
-        transition: 'all 0.25s ease'
+        transition: 'all 0.25s ease',
+        minWidth: 0,
+        outline: 'none',
+        height: 'auto'
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.outline = '2px solid #1a4b6d';
+        e.currentTarget.style.outlineOffset = '2px';
+        e.currentTarget.style.backgroundColor = '#f8fafc';
+        e.currentTarget.style.borderColor = '#cbd5e1';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.outline = 'none';
+        e.currentTarget.style.backgroundColor = 'white';
+        e.currentTarget.style.borderColor = '#e2e8f0';
       }}
     >
-      <div style={{
-        width: '44px',
-        height: '44px',
+      {/* Avatar - Fixed size, never shrinks */}
+      <div className="student-item-avatar" style={{
+        width: '42px',
+        height: '42px',
         borderRadius: '50%',
         background: BRAND_COLORS.primary.gradient,
         color: 'white',
@@ -1017,45 +1051,51 @@ function StudentItem({ student, isPending = false, onClick }) {
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: 600,
-        fontSize: '1.1rem',
+        fontSize: '1.05rem',
         flexShrink: 0
       }}>
         {student.fullName.charAt(0).toUpperCase()}
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{
+
+      {/* Content - Flexible width */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <div className="student-item-name" style={{
           fontWeight: 600,
           color: '#1e293b',
-          fontSize: '0.95rem',
-          marginBottom: '0.25rem'
+          fontSize: '0.9rem',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
         }}>
           {student.fullName}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="student-item-status" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           {isPending ? (
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
-              padding: '0.25rem 0.75rem',
+              padding: '0.25rem 0.625rem',
               borderRadius: '20px',
               backgroundColor: `${BRAND_COLORS.warning.main}15`,
               color: BRAND_COLORS.warning.main,
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 600
             }}>
-              <FaClock /> Pending Admission
+              <FaClock size={14} />
+              <span className="d-none d-sm-inline">Pending Admission</span>
+              <span className="d-inline d-sm-none">Pending</span>
             </span>
           ) : (
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
-              padding: '0.25rem 0.75rem',
+              padding: '0.25rem 0.625rem',
               borderRadius: '20px',
               backgroundColor: `${getStatusColor(student.status)}15`,
               color: getStatusColor(student.status),
-              fontSize: '0.85rem',
+              fontSize: '0.8rem',
               fontWeight: 600
             }}>
               {getStatusIcon(student.status)}
@@ -1064,9 +1104,11 @@ function StudentItem({ student, isPending = false, onClick }) {
           )}
         </div>
       </div>
+
+      {/* View Button - Fixed size, never shrinks */}
       <div style={{
-        width: '38px',
-        height: '38px',
+        width: '40px',
+        height: '40px',
         borderRadius: '10px',
         background: BRAND_COLORS.primary.gradient,
         color: 'white',
@@ -1074,7 +1116,9 @@ function StudentItem({ student, isPending = false, onClick }) {
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        touchAction: 'manipulation'
       }}>
         <FaEye size={16} />
       </div>
@@ -1085,28 +1129,28 @@ function StudentItem({ student, isPending = false, onClick }) {
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message, success = false }) {
   return (
-    <div style={{
+    <div className="empty-state" style={{
       textAlign: 'center',
-      padding: '2.5rem 1.5rem',
+      padding: 'clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 2vw, 1.5rem)',
       color: '#64748b'
     }}>
-      <div style={{
-        fontSize: '3.5rem',
+      <div className="empty-state-icon" style={{
+        fontSize: 'clamp(2.5rem, 6vw, 3.5rem)',
         marginBottom: '1rem',
         opacity: success ? 0.9 : 0.6,
         color: success ? BRAND_COLORS.success.main : '#e2e8f0'
       }}>
         {icon}
       </div>
-      <h4 style={{
+      <h4 className="empty-state-title" style={{
         margin: '0 0 0.5rem 0',
         color: '#1e293b',
         fontWeight: 600,
-        fontSize: '1.25rem'
+        fontSize: 'clamp(1.1rem, 3vw, 1.25rem)'
       }}>
         {title}
       </h4>
-      <p style={{ margin: 0, fontSize: '0.95rem' }}>
+      <p className="empty-state-message" style={{ margin: 0, fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
         {message}
       </p>
     </div>
