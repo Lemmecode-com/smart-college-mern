@@ -2,8 +2,9 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import { toast } from "react-toastify";
 
-import { FaQrcode, FaCalendarAlt, FaClock, FaBookOpen } from "react-icons/fa";
+import { FaQrcode, FaCalendarAlt, FaClock, FaBookOpen, FaCheckCircle } from "react-icons/fa";
 
 export default function CreateSession() {
   const { user } = useContext(AuthContext);
@@ -29,7 +30,6 @@ export default function CreateSession() {
     const fetchMyTimetable = async () => {
       try {
         const res = await api.get("/timetable/teacher");
-        console.log("TIMETABLE RESPONSE:", res.data);
 
         // Works with any backend response shape
         const data =
@@ -68,13 +68,21 @@ export default function CreateSession() {
     try {
       const res = await api.post("/attendance/sessions", form);
 
-      alert("Attendance session created successfully");
+      toast.success("Attendance session created successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
 
       // Redirect to Mark Attendance
       navigate(`/attendance/mark?sessionId=${res.data.session._id}`);
     } catch (err) {
       console.error("Create session error:", err);
       setError(err.response?.data?.message || "Failed to create session");
+      toast.error(err.response?.data?.message || "Failed to create session", {
+        position: "top-right",
+        autoClose: 5000
+      });
     } finally {
       setSubmitting(false);
     }
