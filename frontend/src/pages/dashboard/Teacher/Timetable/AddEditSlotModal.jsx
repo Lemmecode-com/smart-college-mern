@@ -56,8 +56,10 @@ export default function AddEditSlotModal({
           api.get("/subjects"),
           api.get("/teachers")
         ]);
-        setSubjects(subjectsRes.data);
-        setTeachers(teachersRes.data);
+        
+        // 🔧 Handle paginated response
+        setSubjects(subjectsRes.data.data || subjectsRes.data || []);
+        setTeachers(teachersRes.data.data || teachersRes.data || []);
       } catch (error) {
         console.error("Failed to load subjects/teachers:", error);
       }

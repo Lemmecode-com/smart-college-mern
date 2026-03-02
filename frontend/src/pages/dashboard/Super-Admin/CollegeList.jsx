@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useMemo } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaUniversity,
@@ -148,27 +149,7 @@ export default function CollegeList() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading colleges...</h4>
-        <div className="skeleton-table">
-          {[...Array(ITEMS_PER_PAGE)].map((_, i) => (
-            <div key={i} className="skeleton-row">
-              <div className="skeleton-cell"></div>
-              <div className="skeleton-cell"></div>
-              <div className="skeleton-cell"></div>
-              <div className="skeleton-cell"></div>
-              <div className="skeleton-cell"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading colleges..." />;
   }
 
   return (
