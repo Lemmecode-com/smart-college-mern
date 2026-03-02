@@ -1,5 +1,6 @@
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
+const AppError = require("../utils/AppError");
 
 const getValidExpiryCondition = () => ({
   $or: [
@@ -27,68 +28,185 @@ const getReadNotificationIds = async (userId) => {
 /**
  * ================================
  * COLLEGE ADMIN – CREATE NOTIFICATION
- * Visible to: Admin + Teachers + Students
+ * Enhanced with granular targeting (FIX: Issue #7)
  * ================================
  */
-exports.createAdminNotification = async (req, res) => {
+exports.createAdminNotification = async (req, res, next) => {
   try {
+    const { title, message, type, target, actionUrl, expiresAt, 
+            target_department, target_course, target_semester, target_users } = req.body;
+
+    // Validate target field
+    const validTargets = ["ALL", "STUDENTS", "TEACHERS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
+    if (target && !validTargets.includes(target)) {
+      throw new AppError(`Invalid target. Must be one of: ${validTargets.join(", ")}`, 400, "INVALID_TARGET");
+    }
+
+    // Validate granular targeting fields based on target type
+    if (target === "DEPARTMENT" && !target_department) {
+      throw new AppError("target_department is required when target is DEPARTMENT", 400, "MISSING_TARGET_DEPARTMENT");
+    }
+
+    if (target === "COURSE" && !target_course) {
+      throw new AppError("target_course is required when target is COURSE", 400, "MISSING_TARGET_COURSE");
+    }
+
+    if (target === "SEMESTER" && (!target_semester || target_semester < 1 || target_semester > 8)) {
+      throw new AppError("target_semester (1-8) is required when target is SEMESTER", 400, "MISSING_TARGET_SEMESTER");
+    }
+
+    if (target === "INDIVIDUAL" && (!target_users || !Array.isArray(target_users) || target_users.length === 0)) {
+      throw new AppError("target_users array is required when target is INDIVIDUAL", 400, "MISSING_TARGET_USERS");
+    }
+
     const notification = await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
       createdByRole: "COLLEGE_ADMIN",
-      target: "ALL",
-      title: req.body.title,
-      message: req.body.message,
-      type: req.body.type || "GENERAL",
-      actionUrl: req.body.actionUrl,
-      expiresAt: req.body.expiresAt
+      target: target || "ALL",
+      title,
+      message,
+      type: type || "GENERAL",
+      actionUrl,
+      expiresAt,
+      target_department,
+      target_course,
+      target_semester,
+      target_users
     });
 
-    res.status(201).json(notification);
+    res.status(201).json({
+      success: true,
+      message: "Notification created successfully",
+      notification
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * ================================
  * TEACHER – CREATE NOTIFICATION
- * Visible to: Students only
+ * Enhanced with granular targeting (FIX: Issue #7)
  * ================================
  */
-exports.createTeacherNotification = async (req, res) => {
+exports.createTeacherNotification = async (req, res, next) => {
   try {
+    const { title, message, type, target, actionUrl, expiresAt,
+            target_department, target_course, target_semester, target_users } = req.body;
+
+    // Teachers can only target STUDENTS, DEPARTMENT, COURSE, or SEMESTER
+    const validTeacherTargets = ["STUDENTS", "DEPARTMENT", "COURSE", "SEMESTER"];
+    const effectiveTarget = target || "STUDENTS";
+    
+    if (!validTeacherTargets.includes(effectiveTarget)) {
+      throw new AppError(`Teachers can only target: ${validTeacherTargets.join(", ")}`, 400, "INVALID_TEACHER_TARGET");
+    }
+
+    // Validate granular targeting fields
+    if (effectiveTarget === "DEPARTMENT" && !target_department) {
+      throw new AppError("target_department is required when target is DEPARTMENT", 400, "MISSING_TARGET_DEPARTMENT");
+    }
+
+    if (effectiveTarget === "COURSE" && !target_course) {
+      throw new AppError("target_course is required when target is COURSE", 400, "MISSING_TARGET_COURSE");
+    }
+
+    if (effectiveTarget === "SEMESTER" && (!target_semester || target_semester < 1 || target_semester > 8)) {
+      throw new AppError("target_semester (1-8) is required when target is SEMESTER", 400, "MISSING_TARGET_SEMESTER");
+    }
+
     const notification = await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
       createdByRole: "TEACHER",
-      target: "STUDENTS",
-      title: req.body.title,
-      message: req.body.message,
-      type: req.body.type || "GENERAL",
-      actionUrl: req.body.actionUrl,
-      expiresAt: req.body.expiresAt
+      target: effectiveTarget,
+      title,
+      message,
+      type: type || "GENERAL",
+      actionUrl,
+      expiresAt,
+      target_department,
+      target_course,
+      target_semester,
+      target_users
     });
 
-    res.status(201).json(notification);
+    res.status(201).json({
+      success: true,
+      message: "Notification created successfully",
+      notification
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * ================================
  * STUDENT – VIEW NOTIFICATIONS
- * Sees: Admin + Teacher notifications
+ * Sees: Admin + Teacher notifications (with granular targeting - FIX: Issue #7)
  * ================================
  */
-exports.getStudentNotifications = async (req, res) => {
+exports.getStudentNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({
+    const Student = require("../models/student.model");
+    
+    // Get student profile to know their department, course, semester
+    const student = await Student.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: "APPROVED"
+    }).select("department_id course_id currentSemester");
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found"
+      });
+    }
+
+    // Build query for targeted notifications
+    const targetQuery = {
       college_id: req.college_id,
       isActive: true,
       createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
-    }).sort({ createdAt: -1 });
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $gte: new Date() } }
+      ],
+      // Target audience filtering
+      $or: [
+        { target: "ALL" },
+        { target: "STUDENTS" },
+        // Department-specific notifications
+        { 
+          target: "DEPARTMENT", 
+          target_department: student.department_id 
+        },
+        // Course-specific notifications
+        { 
+          target: "COURSE", 
+          target_course: student.course_id 
+        },
+        // Semester-specific notifications
+        { 
+          target: "SEMESTER", 
+          target_semester: student.currentSemester 
+        },
+        // Individual notifications (if student is in target_users)
+        {
+          target: "INDIVIDUAL",
+          target_users: req.user.id
+        }
+      ]
+    };
+
+    const notifications = await Notification.find(targetQuery)
+      .populate("target_department", "name code")
+      .populate("target_course", "name code")
+      .sort({ createdAt: -1 });
 
     const adminNotifications = [];
     const teacherNotifications = [];
@@ -102,11 +220,13 @@ exports.getStudentNotifications = async (req, res) => {
     });
 
     res.json({
+      success: true,
+      count: notifications.length,
       adminNotifications,
       teacherNotifications,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -30,11 +30,23 @@ const attendanceRecordSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
       required: true
+    },
+
+    // Audit trail fields (FIX: Issue #9 - Add audit trail for attendance changes)
+    lastModified: {
+      type: Date,
+      default: Date.now
+    },
+
+    lastModifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Teacher"
     }
   },
   { timestamps: true }
 );
 
+// Unique index to prevent duplicate attendance records for same student in same session
 attendanceRecordSchema.index(
   { session_id: 1, student_id: 1 },
   { unique: true }
