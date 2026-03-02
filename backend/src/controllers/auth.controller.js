@@ -1,15 +1,18 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
 const User = require("../models/user.model");
+const RefreshToken = require("../models/refreshToken.model");
 const PasswordReset = require("../models/passwordReset.model");
 const AppError = require("../utils/AppError");
 const { createAndSendOTP, verifyOTP, markOTPAsUsed, checkRateLimit } = require("../services/otp.service");
 
 /**
  * COMMON LOGIN
+ * Now generates both access token (short-lived) and refresh token (long-lived)
  */
 exports.login = async (req, res, next) => {
   try {
@@ -22,7 +25,7 @@ exports.login = async (req, res, next) => {
       if (!isMatch) {
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      return sendToken(res, user._id, user.role, user.college_id);
+      return sendTokens(res, user._id, user.role, user.college_id, req);
     }
 
     // 2️⃣ TEACHER
@@ -32,7 +35,7 @@ exports.login = async (req, res, next) => {
       if (!isMatch) {
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      return sendToken(res, teacher._id, "TEACHER", teacher.college_id);
+      return sendTokens(res, teacher._id, "TEACHER", teacher.college_id, req);
     }
 
     // 3️⃣ STUDENT (APPROVED ONLY)
@@ -40,7 +43,7 @@ exports.login = async (req, res, next) => {
     if (student) {
       // ✅ Find the User record for password verification
       const user = await User.findOne({ email, role: "STUDENT" });
-      
+
       if (user) {
         // Use User.password (hashed) for verification
         const isMatch = await bcrypt.compare(password, user.password);
@@ -52,7 +55,7 @@ exports.login = async (req, res, next) => {
           throw new AppError("Student account not linked. Please contact admin.", 403, "USER_NOT_LINKED");
         }
         // Send student.user_id in token (consistent User._id for all students)
-        return sendToken(res, student.user_id, "STUDENT", student.college_id);
+        return sendTokens(res, student.user_id, "STUDENT", student.college_id, req);
       } else {
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
@@ -65,17 +68,91 @@ exports.login = async (req, res, next) => {
 };
 
 /**
- * LOGOUT
+ * LOGOUT - Clear tokens and revoke refresh token
  */
-exports.logout = async (req, res) => {
-  // Clear the token cookie
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  });
-  
-  res.json({ message: "Logout successful" });
+exports.logout = async (req, res, next) => {
+  try {
+    // Clear the token cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    // Revoke refresh token if exists
+    if (req.cookies?.refreshToken) {
+      await RefreshToken.findOneAndUpdate(
+        { token: req.cookies.refreshToken },
+        { isRevoked: true }
+      );
+    }
+
+    res.json({ 
+      success: true,
+      message: "Logout successful" 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * REFRESH ACCESS TOKEN
+ * Generate new access token using valid refresh token
+ */
+exports.refreshToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      throw new AppError("Refresh token missing", 401, "REFRESH_TOKEN_MISSING");
+    }
+
+    // Find and verify refresh token
+    const tokenRecord = await RefreshToken.findOne({ token: refreshToken, isRevoked: false });
+
+    if (!tokenRecord) {
+      throw new AppError("Invalid or revoked refresh token", 401, "INVALID_REFRESH_TOKEN");
+    }
+
+    // Check expiration
+    if (new Date() > tokenRecord.expiresAt) {
+      await RefreshToken.deleteOne({ _id: tokenRecord._id });
+      throw new AppError("Refresh token expired", 401, "REFRESH_TOKEN_EXPIRED");
+    }
+
+    // Generate new access token
+    const newAccessToken = jwt.sign(
+      { 
+        id: tokenRecord.user_id, 
+        role: req.user.role, 
+        college_id: req.user.college_id 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: getAccessTokenExpiry() }
+    );
+
+    // Set new access token cookie
+    res.cookie('token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: getAccessTokenExpiryMs(),
+      sameSite: 'strict'
+    });
+
+    res.json({
+      success: true,
+      message: "Token refreshed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
@@ -193,43 +270,61 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 };
 
 /**
- * JWT GENERATOR
+ * JWT GENERATOR - Access Token Only (Short-lived: 15 minutes)
  */
-const sendToken = (res, id, role, college_id) => {
-  // 🔒 SECURITY: Configurable token expiry via environment variables
-  // Default: 1 day for all roles
-  // Can be overridden: JWT_STUDENT_EXPIRY, JWT_TEACHER_EXPIRY, etc.
-  const expiryMap = {
-    "STUDENT": process.env.JWT_STUDENT_EXPIRY || "1d",
-    "TEACHER": process.env.JWT_TEACHER_EXPIRY || "1d",
-    "COLLEGE_ADMIN": process.env.JWT_ADMIN_EXPIRY || "1d",
-    "SUPER_ADMIN": process.env.JWT_SUPER_ADMIN_EXPIRY || "1d"
-  };
+const sendTokens = async (res, id, role, college_id, req) => {
+  // 🔒 SECURITY: Short-lived access token (15 minutes)
+  const accessExpiry = process.env.JWT_ACCESS_EXPIRY || "15m";
   
-  const expiresIn = expiryMap[role] || "1d";
-  
-  const token = jwt.sign(
+  // 🔒 SECURITY: Long-lived refresh token (7 days)
+  const refreshExpiry = "7d";
+
+  // Generate access token
+  const accessToken = jwt.sign(
     { id, role, college_id },
     process.env.JWT_SECRET,
-    { expiresIn }
+    { expiresIn: accessExpiry }
   );
 
-  // Set httpOnly cookie with the token
-  // Parse expiry time for cookie maxAge
-  const cookieMaxAge = parseExpiryToMilliseconds(expiresIn);
-  
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    maxAge: cookieMaxAge,
-    sameSite: 'strict' // Prevent CSRF
+  // Generate refresh token
+  const refreshToken = jwt.sign(
+    { id, role, college_id },
+    process.env.JWT_SECRET + "_REFRESH", // Different secret for refresh tokens
+    { expiresIn: refreshExpiry }
+  );
+
+  // Hash refresh token before storing
+  const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+  // Store refresh token in database
+  await RefreshToken.create({
+    user_id: id,
+    token: hashedRefreshToken,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    userAgent: req?.headers?.['user-agent'],
+    ipAddress: req?.ip
   });
 
-  // Send user info in the response (not the token)
+  // Set httpOnly cookies
+  res.cookie('token', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: parseExpiryToMilliseconds(accessExpiry),
+    sameSite: 'strict'
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: parseExpiryToMilliseconds(refreshExpiry),
+    sameSite: 'strict'
+  });
+
+  // Send user info in the response (not the tokens)
   res.json({
-    token,
     user: { id, role, college_id },
-    success: true
+    success: true,
+    message: "Login successful"
   });
 };
 
@@ -241,10 +336,10 @@ const sendToken = (res, id, role, college_id) => {
 const parseExpiryToMilliseconds = (expiry) => {
   const match = /^(\d+)([smhd])$/.exec(expiry);
   if (!match) return 24 * 60 * 60 * 1000; // Default 1 day
-  
+
   const value = parseInt(match[1]);
   const unit = match[2];
-  
+
   switch (unit) {
     case 's': return value * 1000;
     case 'm': return value * 60 * 1000;
@@ -253,3 +348,13 @@ const parseExpiryToMilliseconds = (expiry) => {
     default: return 24 * 60 * 60 * 1000;
   }
 };
+
+/**
+ * Get access token expiry string
+ */
+const getAccessTokenExpiry = () => process.env.JWT_ACCESS_EXPIRY || "15m";
+
+/**
+ * Get access token expiry in milliseconds
+ */
+const getAccessTokenExpiryMs = () => parseExpiryToMilliseconds(getAccessTokenExpiry());

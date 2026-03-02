@@ -85,6 +85,7 @@ exports.studentDashboard = async (req, res, next) => {
     // Calculate overall attendance
     const total = attendanceStats.reduce((sum, s) => sum + s.total, 0);
     const present = attendanceStats.reduce((sum, s) => sum + s.present, 0);
+    const absent = total - present; // ✅ FIX: Calculate absent
     const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
     // Format subject-wise attendance
