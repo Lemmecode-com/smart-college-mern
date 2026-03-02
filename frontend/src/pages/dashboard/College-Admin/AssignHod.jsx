@@ -39,9 +39,12 @@ export default function AssignHod() {
 
         // Teachers (same college)
         const teacherRes = await api.get("/teachers");
+        
+        // 🔧 Handle paginated response
+        const teachersData = teacherRes.data.data || teacherRes.data || [];
 
         // Filter teachers only of this department
-        const filtered = teacherRes.data.filter(
+        const filtered = teachersData.filter(
           (t) => t.department_id?._id === departmentId
         );
 

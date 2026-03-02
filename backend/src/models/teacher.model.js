@@ -1,4 +1,10 @@
 const mongoose = require("mongoose");
+const { 
+  validateEmail, 
+  emailValidatorMessage,
+  validateIndianMobile, 
+  mobileValidatorMessage
+} = require("../utils/validators");
 
 const teacherSchema = new mongoose.Schema(
   {
@@ -37,6 +43,10 @@ const teacherSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      validate: {
+        validator: validateEmail,
+        message: emailValidatorMessage
+      }
     },
 
     employeeId: {
@@ -57,6 +67,8 @@ const teacherSchema = new mongoose.Schema(
     experienceYears: {
       type: Number,
       required: true,
+      min: [0, "Experience years cannot be negative"],
+      max: [50, "Experience years cannot exceed 50"]
     },
 
     status: {
@@ -76,5 +88,11 @@ const teacherSchema = new mongoose.Schema(
 
 // Prevent duplicate employeeId per college
 teacherSchema.index({ college_id: 1, employeeId: 1 }, { unique: true });
+
+// ⚡ PERFORMANCE: Indexes for common queries
+teacherSchema.index({ college_id: 1, status: 1 }); // Filter by college and status
+teacherSchema.index({ college_id: 1, department_id: 1 }); // Department-wise teachers
+teacherSchema.index({ user_id: 1 }); // Teacher lookup by user_id
+teacherSchema.index({ email: 1 }); // Email lookup
 
 module.exports = mongoose.model("Teacher", teacherSchema);
