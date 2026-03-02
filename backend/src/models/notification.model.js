@@ -70,4 +70,10 @@ const notificationSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// ⚡ PERFORMANCE: Indexes for common queries
+notificationSchema.index({ college_id: 1, target: 1 }); // College and target filtering
+notificationSchema.index({ college_id: 1, createdAt: -1 }); // Latest notifications
+notificationSchema.index({ college_id: 1, isActive: 1 }); // Active notifications
+notificationSchema.index({ target: 1, type: 1 }); // Target and type filtering
+
 module.exports = mongoose.model("Notification", notificationSchema);
