@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 
@@ -183,37 +184,7 @@ export default function TimetableList() {
   };
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-        padding: '2rem'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <motion.div
-            variants={spinVariants}
-            animate="animate"
-            style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
-          >
-            <FaSyncAlt />
-          </motion.div>
-          <h3 style={{ 
-            margin: '0 0 0.5rem 0', 
-            color: '#1e293b', 
-            fontWeight: 700,
-            fontSize: '1.5rem'
-          }}>
-            Loading Timetables...
-          </h3>
-          <p style={{ color: '#64748b', margin: 0 }}>
-            Fetching your academic schedules
-          </p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Timetables..." />;
   }
 
   return (
