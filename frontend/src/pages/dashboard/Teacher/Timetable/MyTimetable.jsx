@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 
 import {
   FaCalendarAlt,
@@ -41,11 +42,7 @@ export default function MyTimetable() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading My Timetable...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading My Timetable..." />;
   }
 
   return (

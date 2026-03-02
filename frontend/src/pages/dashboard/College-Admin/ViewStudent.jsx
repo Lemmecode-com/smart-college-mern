@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaUserGraduate,
@@ -180,11 +181,7 @@ export default function ViewStudent() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Student Profile...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Student Profile..." />;
   }
 
   if (error) {
