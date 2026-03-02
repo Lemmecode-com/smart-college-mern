@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import {
   FaFileAlt,
   FaSave,
@@ -212,22 +213,7 @@ export default function DocumentSettings() {
   };
 
   if (loading) {
-    return (
-      <div className="container-fluid py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-6">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body p-5 text-center">
-                <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <h5 className="text-muted">Loading Document Settings...</h5>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Document Settings..." />;
   }
 
   return (

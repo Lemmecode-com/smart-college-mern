@@ -23,6 +23,8 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   const [markingRead, setMarkingRead] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [rateLimitBackoff, setRateLimitBackoff] = useState(false);
+  const [backoffUntil, setBackoffUntil] = useState(null);
 
   const prevCount = useRef(0);
 
@@ -37,6 +39,19 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   }, []);
 
   if (!user) return null;
+
+  // Auto-clear backoff when time expires
+  useEffect(() => {
+    if (rateLimitBackoff && backoffUntil) {
+      const checkBackoff = setInterval(() => {
+        if (Date.now() >= backoffUntil) {
+          setRateLimitBackoff(false);
+          setBackoffUntil(null);
+        }
+      }, 1000);
+      return () => clearInterval(checkBackoff);
+    }
+  }, [rateLimitBackoff, backoffUntil]);
 
   // Fetch college information when user is available
   useEffect(() => {
@@ -72,7 +87,12 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   }, [user.college_id, user.role]);
 
   /* ================= FETCH COUNT (UNREAD ONLY) ================= */
-  const fetchCount = async () => {
+  const fetchCount = async (silent = false) => {
+    // Skip if in backoff period
+    if (rateLimitBackoff && backoffUntil && Date.now() < backoffUntil) {
+      return;
+    }
+
     try {
       let res;
 
@@ -92,8 +112,26 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
       prevCount.current = total;
       setCount(total);
+      
+      // Clear backoff on success
+      if (rateLimitBackoff) {
+        setRateLimitBackoff(false);
+        setBackoffUntil(null);
+      }
     } catch (err) {
-      console.error("Notification count error", err);
+      // Handle rate limit (429) - stop polling temporarily
+      if (err.response?.status === 429) {
+        const backoffMs = 30000; // 30 second backoff for notification polling
+        setRateLimitBackoff(true);
+        setBackoffUntil(Date.now() + backoffMs);
+        if (!silent) {
+          setToast("⏳ Too many requests. Pausing notifications...");
+          setTimeout(() => setToast(null), 3000);
+        }
+        console.warn("Notification polling rate limited - backing off for 30s");
+      } else if (err.response?.status !== 403 && err.response?.status !== 401) {
+        if (!silent) console.error("Notification count error", err);
+      }
     }
   };
 
@@ -166,10 +204,15 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
   /* ================= INITIAL ================= */
   useEffect(() => {
-    fetchCount();
-    const interval = setInterval(fetchCount, 15000);
+    fetchCount(true); // Silent initial fetch
+    const interval = setInterval(() => {
+      // Skip polling if in backoff period
+      if (!rateLimitBackoff) {
+        fetchCount(true); // Silent polling
+      }
+    }, 15000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, rateLimitBackoff]);
 
   /* ================= KEYBOARD SHORTCUTS ================= */
   useEffect(() => {

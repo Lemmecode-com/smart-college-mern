@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import { toast } from "react-toastify";
 
 import { FaEdit, FaSave, FaCheckCircle } from "react-icons/fa";
@@ -96,11 +97,7 @@ export default function EditAttendance() {
   };
 
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Attendance...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Attendance..." />;
   }
 
   if (!session || session.status !== "OPEN") {

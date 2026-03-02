@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaChalkboardTeacher,
@@ -60,9 +61,21 @@ export default function TeachersList() {
     setError(null);
     try {
       const res = await api.get("/teachers");
-      const data = res.data || [];
-      setTeachers(data);
       
+      // 🔧 Handle new paginated response structure
+      let data;
+      if (res.data.data) {
+        // New format: { success: true, data: [...], pagination: {...} }
+        data = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        // Old format: [...]
+        data = res.data;
+      } else {
+        data = [];
+      }
+      
+      setTeachers(data);
+
       // Calculate stats from fetched data (client-side only)
       setStats({
         total: data.length,
@@ -210,20 +223,7 @@ export default function TeachersList() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading teachers...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading teachers..." />;
   }
 
   const filteredTeachers = getFilteredTeachers();
