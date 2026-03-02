@@ -1517,29 +1517,43 @@ exports.getStudentsForAttendance = async (req, res) => {
 /* =========================================================
    MARK ATTENDANCE (Initial)
    POST /attendance/sessions/:sessionId/mark
+   
+   FIX: Issue #9 - Duplicate Attendance Record Prevention
+   - Use MongoDB transaction for atomic operations
+   - Handle duplicate key errors gracefully
+   - Add audit trail with timestamps
 ========================================================= */
 exports.markAttendance = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { attendance } = req.body;
     const collegeId = req.college_id;
 
+    if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
+      throw new AppError("Attendance data is required", 400, "MISSING_ATTENDANCE");
+    }
+
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
       college_id: collegeId,
-    });
+    }).session(session);
 
     if (!teacher) {
+      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
-    const session = await AttendanceSession.findOne({
+    const attendanceSession = await AttendanceSession.findOne({
       _id: req.params.sessionId,
       college_id: collegeId,
       teacher_id: teacher._id,
       status: "OPEN",
-    });
+    }).session(session);
 
-    if (!session) {
+    if (!attendanceSession) {
+      await session.abortTransaction();
       throw new AppError(
         "Session not found or closed",
         404,
@@ -1547,59 +1561,114 @@ exports.markAttendance = async (req, res, next) => {
       );
     }
 
+    const operations = [];
+    const timestamp = new Date();
+
     for (let item of attendance) {
-      await AttendanceRecord.findOneAndUpdate(
-        {
-          session_id: session._id,
-          student_id: item.student_id,
+      if (!item.student_id || !item.status) {
+        await session.abortTransaction();
+        throw new AppError(`Invalid attendance data for student: ${item.student_id}`, 400, "INVALID_ATTENDANCE_DATA");
+      }
+
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        await session.abortTransaction();
+        throw new AppError(`Invalid status "${item.status}" for student: ${item.student_id}`, 400, "INVALID_STATUS");
+      }
+
+      operations.push({
+        updateOne: {
+          filter: {
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+          },
+          update: {
+            college_id: collegeId,
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+            status: item.status,
+            markedBy: teacher._id,
+            lastModified: timestamp,
+            lastModifiedBy: teacher._id,
+          },
+          upsert: true,
         },
-        {
-          college_id: collegeId,
-          session_id: session._id,
-          student_id: item.student_id,
-          status: item.status,
-          markedBy: teacher._id,
-        },
-        { upsert: true, new: true },
-      );
+      });
     }
 
+    // Execute all operations in a single bulkWrite for atomicity
+    const result = await AttendanceRecord.bulkWrite(operations, { session });
+
+    // Commit transaction
+    await session.commitTransaction();
+
     res.status(200).json({
-      message: "Attendance saved successfully",
+      message: "Attendance marked successfully",
+      markedCount: result.modifiedCount + result.upsertedCount,
+      timestamp,
     });
   } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+
+    // Handle duplicate key error gracefully (race condition)
+    if (error.code === 11000) {
+      return next(
+        new AppError(
+          "Duplicate attendance record detected. Please refresh and try again.",
+          409,
+          "DUPLICATE_ATTENDANCE_RECORD",
+        ),
+      );
+    }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
 /* =========================================================
    EDIT ATTENDANCE (While OPEN)
    PUT /attendance/sessions/:sessionId/edit
+   
+   FIX: Issue #9 - Duplicate Attendance Record Prevention
+   - Use MongoDB transaction for atomic operations
+   - Handle duplicate key errors gracefully
+   - Add audit trail with timestamps
 ========================================================= */
 exports.editAttendance = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { attendance } = req.body;
     const collegeId = req.college_id;
+
+    if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
+      await session.abortTransaction();
+      throw new AppError("Attendance data is required", 400, "MISSING_ATTENDANCE");
+    }
 
     // Resolve teacher
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
       college_id: collegeId,
-    });
+    }).session(session);
 
     if (!teacher) {
+      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
     // Validate session
-    const session = await AttendanceSession.findOne({
+    const attendanceSession = await AttendanceSession.findOne({
       _id: req.params.sessionId,
       college_id: collegeId,
       teacher_id: teacher._id,
       status: "OPEN",
-    });
+    }).session(session);
 
-    if (!session) {
+    if (!attendanceSession) {
+      await session.abortTransaction();
       throw new AppError(
         "Session not found or already closed",
         404,
@@ -1607,32 +1676,65 @@ exports.editAttendance = async (req, res, next) => {
       );
     }
 
-    const updated = [];
+    const operations = [];
+    const timestamp = new Date();
 
     for (const item of attendance) {
-      const record = await AttendanceRecord.findOneAndUpdate(
-        {
-          session_id: session._id,
-          student_id: item.student_id,
-          college_id: collegeId,
-        },
-        {
-          status: item.status,
-          markedBy: teacher._id,
-        },
-        { upsert: true, new: true },
-      );
+      if (!item.student_id || !item.status) {
+        await session.abortTransaction();
+        throw new AppError(`Invalid attendance data for student: ${item.student_id}`, 400, "INVALID_ATTENDANCE_DATA");
+      }
 
-      updated.push(record);
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        await session.abortTransaction();
+        throw new AppError(`Invalid status "${item.status}" for student: ${item.student_id}`, 400, "INVALID_STATUS");
+      }
+
+      operations.push({
+        updateOne: {
+          filter: {
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+            college_id: collegeId,
+          },
+          update: {
+            status: item.status,
+            markedBy: teacher._id,
+            lastModified: timestamp,
+            lastModifiedBy: teacher._id,
+          },
+        },
+      });
     }
+
+    // Execute all operations in a single bulkWrite for atomicity
+    const result = await AttendanceRecord.bulkWrite(operations, { session });
+
+    // Commit transaction
+    await session.commitTransaction();
 
     res.status(200).json({
       message: "Attendance updated successfully",
-      updatedCount: updated.length,
-      attendance: updated,
+      updatedCount: result.modifiedCount,
+      timestamp,
     });
   } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+
+    // Handle duplicate key error gracefully (race condition)
+    if (error.code === 11000) {
+      return next(
+        new AppError(
+          "Duplicate attendance record detected. Please refresh and try again.",
+          409,
+          "DUPLICATE_ATTENDANCE_RECORD",
+        ),
+      );
+    }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
