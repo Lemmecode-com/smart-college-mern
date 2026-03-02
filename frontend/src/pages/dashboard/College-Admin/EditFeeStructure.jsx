@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaMoneyBillWave,
@@ -141,16 +142,7 @@ export default function EditFeeStructure() {
   };
 
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="text-center">
-          <div className="spinner-border text-primary mb-3" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted fw-medium">Loading fee structure details...</p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading fee structure details..." />;
   }
 
   return (

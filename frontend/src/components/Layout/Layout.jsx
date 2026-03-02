@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
+import { Outlet } from "react-router-dom";
 import Sidebar from "../Sidebar/SidebarContainer";
 import NavbarComponent from "../Navbar";
 import "./Layout.css";
 
-export default function Layout({ children, isMobileOpen, setIsMobileOpen }) {
+export default function Layout({ isMobileOpen, setIsMobileOpen }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -75,7 +76,7 @@ export default function Layout({ children, isMobileOpen, setIsMobileOpen }) {
           isMobile={isMobile}
         />
         <main className="layout-content">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

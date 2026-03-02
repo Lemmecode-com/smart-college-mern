@@ -5,6 +5,10 @@ const logger = require('../utils/logger');
 const WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (15 * 60 * 1000); // 15 minutes default
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
+// Development-specific settings (more relaxed for testing)
+const DEV_WINDOW_MS = 60 * 1000; // 1 minute
+const DEV_MAX_REQUESTS = 100; // 100 requests per minute in development
+
 /**
  * Helper function to normalize IP addresses (IPv4 and IPv6)
  * Properly handles IPv6 addresses to prevent rate limit bypass
@@ -20,11 +24,12 @@ const normalizeIp = (req) => {
 
 /**
  * Global Rate Limiter - Applied to all API routes
- * For development: Shorter window (1 minute) for easier testing
+ * For development: More relaxed limits (100 req/min) for easier testing
+ * For production: Standard limits (100 req/15min)
  */
 const globalLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : WINDOW_MS, // 1 min in dev, 15 min in prod
-  max: process.env.NODE_ENV === 'development' ? 20 : MAX_REQUESTS, // 20 in dev, 100 in prod
+  windowMs: process.env.NODE_ENV === 'development' ? DEV_WINDOW_MS : WINDOW_MS,
+  max: process.env.NODE_ENV === 'development' ? DEV_MAX_REQUESTS : MAX_REQUESTS,
   message: {
     success: false,
     message: process.env.NODE_ENV === 'development'

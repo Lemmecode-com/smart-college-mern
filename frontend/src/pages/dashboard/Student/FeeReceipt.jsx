@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -242,76 +243,7 @@ export default function FeeReceipt() {
   };
 
   if (loading) {
-    return (
-      <div className="receipt-loading">
-        <ToastContainer position="top-right" />
-        <motion.div
-          className="loading-content"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <FaSpinner className="spin-icon" />
-          <h3>Loading Receipt...</h3>
-          <p>Fetching your payment details</p>
-          <div className="loading-progress-bar">
-            <div className="loading-progress"></div>
-          </div>
-        </motion.div>
-        <style>{`
-          .receipt-loading {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-          }
-          .loading-content {
-            text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-          }
-          .spin-icon {
-            font-size: 4rem;
-            color: #1a4b6d;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1.5rem;
-          }
-          .loading-content h3 {
-            margin: 0 0 0.5rem 0;
-            color: #1e293b;
-            font-weight: 700;
-          }
-          .loading-content p {
-            color: #64748b;
-            margin: 0 0 1.5rem 0;
-          }
-          .loading-progress-bar {
-            width: 200px;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
-            margin: 0 auto;
-            overflow: hidden;
-          }
-          .loading-progress {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #1a4b6d, #2d6f8f);
-            animation: loading 1.5s ease-in-out infinite;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-          @keyframes loading {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-        `}</style>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Receipt..." />;
   }
 
   /* ================= ERROR STATE ================= */
@@ -330,9 +262,9 @@ export default function FeeReceipt() {
           </div>
           <h3 className="error-title">Unable to Load Receipt</h3>
           <p className="error-message">{error}</p>
-          
+
           <div className="error-actions">
-            <button 
+            <button
               className="btn-retry"
               onClick={() => {
                 setError(null);

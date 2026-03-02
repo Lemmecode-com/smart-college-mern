@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaUniversity,
   FaSave,
@@ -311,46 +312,7 @@ export default function EditCollegeProfile() {
 
   // ================= LOADING STATE =================
   if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-skeleton">
-          <div className="skeleton-header" />
-          <div className="skeleton-card">
-            <div className="skeleton-row">
-              <div className="skeleton-label" />
-              <div className="skeleton-input" />
-            </div>
-            <div className="skeleton-row">
-              <div className="skeleton-label" />
-              <div className="skeleton-input" />
-            </div>
-            <div className="skeleton-row">
-              <div className="skeleton-label" />
-              <div className="skeleton-input" />
-            </div>
-            <div className="skeleton-row">
-              <div className="skeleton-label" />
-              <div className="skeleton-input" />
-            </div>
-            <div className="skeleton-buttons">
-              <div className="skeleton-btn" />
-              <div className="skeleton-btn" />
-            </div>
-          </div>
-        </div>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading college profile..." />;
   }
 
   // ================= ERROR STATE =================

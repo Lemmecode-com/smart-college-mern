@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useContext } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaCalendarAlt,
   FaClock,
@@ -261,24 +262,7 @@ export default function StudentTimetable() {
   const academicYear = todaySlots.length > 0 ? todaySlots[0]?.timetable_id?.academicYear : "";
 
   if (loading) {
-    return (
-      <div className="st-container" role="main">
-        <ToastContainer position="top-right" theme="colored" />
-        <div className="st-loading" role="status" aria-live="polite">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="st-loading-icon"
-            aria-hidden="true"
-          >
-            <FaSyncAlt />
-          </motion.div>
-          <h3>Loading Your Timetable...</h3>
-          <p>Fetching your course schedule</p>
-        </div>
-        <style>{componentStyles}</style>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Your Timetable..." />;
   }
 
   return (

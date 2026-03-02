@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import {
   FaGraduationCap,
@@ -319,14 +320,7 @@ export default function ReportDashboard() {
 
   // ================= LOADING STATE =================
   if (loading) {
-    return (
-      <div className="reports-loading">
-        <div className="loading-spinner">
-          <FaSpinner className="spin-icon" />
-          <p>Loading Reports...</p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Reports..." />;
   }
 
   // ================= ERROR STATE =================
