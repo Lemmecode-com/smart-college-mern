@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaBookOpen,
@@ -53,16 +54,7 @@ export default function ViewCourse() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="course-detail-loading-container">
-        <div className="course-detail-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4>Loading course details...</h4>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading course details..." />;
   }
 
   /* ================= ERROR/NOT FOUND STATE ================= */

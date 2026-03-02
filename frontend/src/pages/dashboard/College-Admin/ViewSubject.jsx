@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaBook,
   FaArrowLeft,
@@ -48,12 +49,7 @@ export default function ViewSubject() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <FaSpinner className="spin-icon" />
-        <h4>Loading subject details...</h4>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading subject details..." />;
   }
 
   /* ================= ERROR ================= */
