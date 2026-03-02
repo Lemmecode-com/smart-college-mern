@@ -3,7 +3,7 @@ const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const College = require("../models/college.model");
 const Course = require("../models/course.model");
-const { sendPaymentReceiptEmail } = require("../services/email.service");
+const { sendPaymentReceiptEmail, sendPaymentFailureEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 exports.createCheckoutSession = async (req, res, next) => {
@@ -41,6 +41,26 @@ exports.createCheckoutSession = async (req, res, next) => {
       throw new AppError("Invalid or already paid installment", 404, "INSTALLMENT_NOT_FOUND");
     }
 
+    // 🔒 RECOVERY: Check if there's already an active session for this installment
+    if (installment.stripeSessionId) {
+      try {
+        // Retrieve existing session to check its status
+        const existingSession = await stripe.checkout.sessions.retrieve(installment.stripeSessionId);
+        
+        if (existingSession.status === 'open' || existingSession.status === 'complete') {
+          // Session still active, return existing URL
+          return res.json({ 
+            checkoutUrl: existingSession.url,
+            message: "Existing payment session found",
+            existingSession: true
+          });
+        }
+      } catch (error) {
+        // Session not found or expired, continue with new session
+        console.log("Creating new session - previous one expired or invalid");
+      }
+    }
+
     // ✅ Step 4: Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -62,10 +82,22 @@ exports.createCheckoutSession = async (req, res, next) => {
       metadata: {
         studentId: student._id.toString(),
         installmentName,
+        studentFeeId: studentFee._id.toString(),
+        installmentId: installment._id.toString()
       },
+      expires_at: Math.floor(Date.now() / 1000) + (60 * 60), // Session expires in 1 hour
     });
 
-    res.json({ checkoutUrl: session.url });
+    // 🔒 RECOVERY: Store session ID for tracking
+    installment.stripeSessionId = session.id;
+    installment.paymentAttemptAt = new Date();
+    await studentFee.save();
+
+    res.json({ 
+      checkoutUrl: session.url,
+      sessionId: session.id,
+      expiresAt: new Date(session.expires_at * 1000)
+    });
   } catch (error) {
     next(error);
   }

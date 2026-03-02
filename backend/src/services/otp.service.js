@@ -59,12 +59,14 @@ exports.createAndSendOTP = async (email, userType = "User") => {
     } catch (emailError) {
       console.warn("⚠️  Email failed:", emailError.message);
       // console.log(`🔑 OTP for ${email}: ${otp} (valid for 10 min)`);
+      // Don't fail the request if email fails - OTP is still stored in database
     }
 
+    // ✅ SECURITY: NEVER return OTP in API response
+    // OTP should only be sent via email, not exposed in API
     return {
       success: true,
-      message: "OTP sent successfully",
-      otp: process.env.NODE_ENV === 'development' ? otp : undefined, // Show OTP in dev only
+      message: "OTP sent successfully to your email",
     };
   } catch (error) {
     console.error("Create OTP Error:", error);

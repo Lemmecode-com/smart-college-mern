@@ -48,8 +48,11 @@ export default function CreateTimetable() {
         const deptRes = await api.get("/departments");
         const teacherRes = await api.get("/teachers");
 
+        // 🔧 Handle paginated response
+        const teachersData = teacherRes.data.data || teacherRes.data || [];
+        
         setDepartments(deptRes.data || []);
-        setTeachers(teacherRes.data || []);
+        setTeachers(teachersData);
       } catch (err) {
         console.error(err);
       } finally {

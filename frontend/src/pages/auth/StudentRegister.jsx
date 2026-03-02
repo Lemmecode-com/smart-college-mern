@@ -570,12 +570,26 @@ export default function StudentRegister() {
       console.error("❌ Registration Error:", err);
       console.error("❌ Error Response:", err.response?.data);
       console.error("❌ Error Status:", err.response?.status);
+
+      // 🔧 IMPROVED: Extract and show actual validation error
+      let errorMessage = "Registration failed";
       
-      const errorMessage = err.response?.data?.message || "Registration failed";
-      console.error("❌ Error Message:", errorMessage);
-      
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        // Validation errors - show the first error message
+        const validationError = err.response.data.errors[0];
+        errorMessage = `${validationError.field}: ${validationError.message}`;
+        
+        console.error("❌ Validation Error Details:", {
+          field: validationError.field,
+          message: validationError.message
+        });
+      } else if (err.response?.data?.message) {
+        // Other error messages
+        errorMessage = err.response.data.message;
+      }
+
       setError(errorMessage);
-      alert("Registration Failed: " + errorMessage);
+      alert("❌ Registration Failed:\n\n" + errorMessage);
     } finally {
       setLoading(false);
     }

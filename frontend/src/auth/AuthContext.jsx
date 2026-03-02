@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }) => {
         });
       } catch (error) {
         // If the request fails (401/403), the user is not authenticated
+        // This is expected behavior when not logged in, so we don't log it as an error
         setUser(null);
       } finally {
         setLoading(false);

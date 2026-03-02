@@ -1,9 +1,9 @@
 const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
-const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const { getValidDatesForSlot, getDayName } = require("../utils/date.utils");
+const teacherService = require("../services/teacher.service");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -14,15 +14,12 @@ exports.createTimetable = async (req, res) => {
       return res.status(403).json({ message: "Only teachers can create timetable" });
     }
 
-    const teacher = await Teacher.findOne({
-      user_id: req.user.id,
-      college_id: req.college_id,
-      status: "ACTIVE",
-    });
-
-    if (!teacher) {
-      return res.status(403).json({ message: "Teacher profile not found" });
-    }
+    // 🔧 Use teacher service (centralized logic)
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      true // check active status
+    );
 
     const { department_id, course_id, semester, academicYear } = req.body;
 
@@ -159,18 +156,12 @@ exports.getTimetables = async (req, res) => {
     
     // If teacher, restrict to their department OR courses they teach
     if (req.user.role === "TEACHER") {
-      const teacher = await Teacher.findOne({ user_id: req.user.id });
-      if (!teacher) {
-        return res.status(404).json({ message: "Teacher profile not found" });
-      }
+      const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
       
-      // Check if teacher is HOD of their department
-      const isHod = await Department.findOne({
-        _id: teacher.department_id,
-        hod_id: teacher._id
-      });
-      
-      if (isHod) {
+      // Check if teacher is HOD
+      const { isHOD } = await teacherService.getHODStatus(teacher);
+
+      if (isHOD) {
         // HOD can see all timetables in their department
         filter.department_id = teacher.department_id;
       } else {
@@ -187,15 +178,12 @@ exports.getTimetables = async (req, res) => {
     if (req.query.department_id) {
       // Only allow if user is HOD of that department or admin
       if (req.user.role === "TEACHER") {
-        const teacher = await Teacher.findOne({ user_id: req.user.id });
-        const department = await Department.findOne({
-          _id: req.query.department_id,
-          hod_id: teacher._id
-        });
-        
-        if (!department) {
-          return res.status(403).json({ 
-            message: "Access denied: You can only view timetables for your department" 
+        const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
+        const { isHOD, department: hodDepartment } = await teacherService.getHODStatus(teacher);
+
+        if (!isHOD) {
+          return res.status(403).json({
+            message: "Access denied: You can only view timetables for your department"
           });
         }
       }
@@ -221,10 +209,7 @@ exports.getTimetables = async (req, res) => {
  */
 exports.getWeeklyTimetableForTeacher = async (req, res) => {
   try {
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
-    if (!teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
-    }
+    const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
 
     const slots = await TimetableSlot.find({
       teacher_id: teacher._id,
@@ -368,18 +353,12 @@ exports.getWeeklyTimetableById = async (req, res) => {
 
     // 🔒 SECURITY: Check if user has access to this department's timetable
     if (req.user.role === "TEACHER") {
-      const teacher = await Teacher.findOne({ user_id: req.user.id });
-      if (!teacher) {
-        return res.status(404).json({ message: "Teacher profile not found" });
-      }
-
+      const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
+      
+      const { isHOD } = await teacherService.getHODStatus(teacher);
       const isSameDepartment = teacher.department_id.toString() === timetable.department_id.toString();
-      const isHodOfDepartment = await Department.findOne({
-        _id: timetable.department_id,
-        hod_id: teacher._id
-      });
 
-      if (!isSameDepartment && !isHodOfDepartment) {
+      if (!isSameDepartment && !isHOD) {
         return res.status(403).json({
           message: "Access denied: You can only view timetables for your department"
         });
@@ -421,19 +400,11 @@ exports.deleteTimetable = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // 2️⃣ Find teacher profile
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
-    if (!teacher) {
-      return res.status(403).json({ message: "Teacher profile not found" });
-    }
+    // 2️⃣ Find teacher profile and check HOD status
+    const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
+    const { isHOD } = await teacherService.getHODStatus(teacher);
 
-    // 3️⃣ Verify HOD of that department
-    const department = await Department.findOne({
-      _id: timetable.department_id,
-      hod_id: teacher._id,
-    });
-
-    if (!department) {
+    if (!isHOD) {
       return res.status(403).json({
         message: "Access denied: Only HOD can delete timetable",
       });

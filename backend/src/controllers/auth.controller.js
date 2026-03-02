@@ -47,8 +47,12 @@ exports.login = async (req, res, next) => {
         if (!isMatch) {
           throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
         }
-        // Send student.user_id in token
-        return sendToken(res, student.user_id || student._id, "STUDENT", student.college_id);
+        // ✅ Ensure student has a linked User account
+        if (!student.user_id) {
+          throw new AppError("Student account not linked. Please contact admin.", 403, "USER_NOT_LINKED");
+        }
+        // Send student.user_id in token (consistent User._id for all students)
+        return sendToken(res, student.user_id, "STUDENT", student.college_id);
       } else {
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
@@ -192,24 +196,60 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
  * JWT GENERATOR
  */
 const sendToken = (res, id, role, college_id) => {
+  // 🔒 SECURITY: Configurable token expiry via environment variables
+  // Default: 1 day for all roles
+  // Can be overridden: JWT_STUDENT_EXPIRY, JWT_TEACHER_EXPIRY, etc.
+  const expiryMap = {
+    "STUDENT": process.env.JWT_STUDENT_EXPIRY || "1d",
+    "TEACHER": process.env.JWT_TEACHER_EXPIRY || "1d",
+    "COLLEGE_ADMIN": process.env.JWT_ADMIN_EXPIRY || "1d",
+    "SUPER_ADMIN": process.env.JWT_SUPER_ADMIN_EXPIRY || "1d"
+  };
+  
+  const expiresIn = expiryMap[role] || "1d";
+  
   const token = jwt.sign(
     { id, role, college_id },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn }
   );
 
   // Set httpOnly cookie with the token
+  // Parse expiry time for cookie maxAge
+  const cookieMaxAge = parseExpiryToMilliseconds(expiresIn);
+  
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    maxAge: cookieMaxAge,
     sameSite: 'strict' // Prevent CSRF
   });
 
   // Send user info in the response (not the token)
-  res.json({ 
+  res.json({
     token,
     user: { id, role, college_id },
-    success: true 
+    success: true
   });
+};
+
+/**
+ * Parse JWT expiry string to milliseconds
+ * @param {string} expiry - Expiry string (e.g., "1d", "2h", "30m")
+ * @returns {number} Milliseconds
+ */
+const parseExpiryToMilliseconds = (expiry) => {
+  const match = /^(\d+)([smhd])$/.exec(expiry);
+  if (!match) return 24 * 60 * 60 * 1000; // Default 1 day
+  
+  const value = parseInt(match[1]);
+  const unit = match[2];
+  
+  switch (unit) {
+    case 's': return value * 1000;
+    case 'm': return value * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    default: return 24 * 60 * 60 * 1000;
+  }
 };
