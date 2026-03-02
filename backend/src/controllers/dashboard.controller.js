@@ -36,65 +36,64 @@ exports.studentDashboard = async (req, res, next) => {
     }
 
     /* =====================================================
-       2️⃣ ATTENDANCE RECORDS
+       2️⃣ ATTENDANCE RECORDS (OPTIMIZED WITH AGGREGATION)
     ===================================================== */
 
-    const attendanceRecords = await AttendanceRecord.find({
-      student_id: student._id,  // ✅ Use student._id (not user_id)
-      college_id: collegeId,
-    }).populate({
-      path: "session_id",
-      populate: {
-        path: "subject_id",
-        select: "name code",
+    // ⚡ PERFORMANCE: Use aggregation instead of loading all records
+    const attendanceStats = await AttendanceRecord.aggregate([
+      {
+        $match: {
+          student_id: student._id,
+          college_id: collegeId
+        }
       },
-    });
+      {
+        $lookup: {
+          from: "attendancesessions",
+          localField: "session_id",
+          foreignField: "_id",
+          as: "session"
+        }
+      },
+      {
+        $unwind: "$session"
+      },
+      {
+        $lookup: {
+          from: "subjects",
+          localField: "session.subject_id",
+          foreignField: "_id",
+          as: "subject"
+        }
+      },
+      {
+        $unwind: "$subject"
+      },
+      {
+        $group: {
+          _id: "$subject._id",
+          subjectName: { $first: "$subject.name" },
+          subjectCode: { $first: "$subject.code" },
+          total: { $sum: 1 },
+          present: {
+            $sum: { $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
 
-    const total = attendanceRecords.length;
-    const present = attendanceRecords.filter(
-      (a) => a.status === "PRESENT",
-    ).length;
-    const absent = attendanceRecords.filter(
-      (a) => a.status === "ABSENT",
-    ).length;
-
+    // Calculate overall attendance
+    const total = attendanceStats.reduce((sum, s) => sum + s.total, 0);
+    const present = attendanceStats.reduce((sum, s) => sum + s.present, 0);
     const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
-    /* =====================================================
-       3️⃣ SUBJECT-WISE ATTENDANCE
-    ===================================================== */
-
-    const subjectMap = {};
-
-    attendanceRecords.forEach((record) => {
-      const subject = record.session_id?.subject_id;
-      if (!subject) return;
-
-      const key = subject._id.toString();
-
-      if (!subjectMap[key]) {
-        subjectMap[key] = {
-          subject: subject.name,
-          code: subject.code,
-          total: 0,
-          present: 0,
-        };
-      }
-
-      subjectMap[key].total++;
-
-      if (record.status === "PRESENT") {
-        subjectMap[key].present++;
-      }
-    });
-
-    const subjectWiseAttendance = Object.values(subjectMap).map((sub) => ({
-      subject: sub.subject,
-      code: sub.code,
-      total: sub.total,
-      present: sub.present,
-      percentage:
-        sub.total > 0 ? Math.round((sub.present / sub.total) * 100) : 0,
+    // Format subject-wise attendance
+    const subjectWiseAttendance = attendanceStats.map(stat => ({
+      subject: stat.subjectName,
+      code: stat.subjectCode,
+      total: stat.total,
+      present: stat.present,
+      percentage: stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0
     }));
 
     /* =====================================================
