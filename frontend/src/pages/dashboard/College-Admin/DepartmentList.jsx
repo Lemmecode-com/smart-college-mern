@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
+import Pagination from "../../../components/Pagination";
 
 import {
   FaBuilding,
@@ -132,29 +134,7 @@ export default function DepartmentList() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="container-fluid py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body p-5 text-center">
-                <div
-                  className="spinner-border text-primary mb-3"
-                  role="status"
-                  style={{ width: "3rem", height: "3rem" }}
-                >
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <h5 className="text-muted">Loading Departments...</h5>
-                <p className="text-muted small">
-                  Fetching department data from server
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Departments..." />;
   }
 
   return (
@@ -536,85 +516,11 @@ export default function DepartmentList() {
                 Showing <strong>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
                 <strong>{filteredDepartments.length}</strong> departments
               </div>
-              <nav>
-                <ul className="pagination mb-0">
-                  <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                    <button 
-                      className="page-link" 
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                  </li>
-                  
-                  {/* Show first page */}
-                  {totalPages > 0 && (
-                    <li className={`page-item ${currentPage === 1 ? 'active' : ''}`}>
-                      <button 
-                        className="page-link" 
-                        onClick={() => setCurrentPage(1)}
-                      >
-                        1
-                      </button>
-                    </li>
-                  )}
-                  
-                  {/* Show ellipsis if needed */}
-                  {currentPage > 3 && totalPages > 5 && (
-                    <li className="page-item disabled">
-                      <span className="page-link">...</span>
-                    </li>
-                  )}
-                  
-                  {/* Show pages around current page */}
-                  {totalPages > 1 && Array.from({ length: Math.min(totalPages - 2, 3) }, (_, i) => {
-                    const pageNum = Math.max(2, currentPage - 1) + i;
-                    if (pageNum < totalPages) {
-                      return (
-                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                          <button 
-                            className="page-link" 
-                            onClick={() => setCurrentPage(pageNum)}
-                          >
-                            {pageNum}
-                          </button>
-                        </li>
-                      );
-                    }
-                    return null;
-                  })}
-                  
-                  {/* Show ellipsis if needed */}
-                  {currentPage < totalPages - 2 && totalPages > 5 && (
-                    <li className="page-item disabled">
-                      <span className="page-link">...</span>
-                    </li>
-                  )}
-                  
-                  {/* Show last page if there are more than 1 page */}
-                  {totalPages > 1 && (
-                    <li className={`page-item ${currentPage === totalPages ? 'active' : ''}`}>
-                      <button 
-                        className="page-link" 
-                        onClick={() => setCurrentPage(totalPages)}
-                      >
-                        {totalPages}
-                      </button>
-                    </li>
-                  )}
-                  
-                  <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                    <button 
-                      className="page-link" 
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+              <Pagination 
+                page={currentPage} 
+                totalPages={totalPages} 
+                setPage={setCurrentPage} 
+              />
             </div>
           </div>
         )}

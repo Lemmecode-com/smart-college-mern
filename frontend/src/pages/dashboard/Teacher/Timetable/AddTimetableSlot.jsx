@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import {
   FaCalendarAlt,
   FaClock,
@@ -263,23 +264,7 @@ export default function AddTimetableSlot() {
   };
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)'
-      }}>
-        <motion.div
-          variants={spinVariants}
-          animate="animate"
-          style={{ color: BRAND_COLORS.primary.main, fontSize: '3rem' }}
-        >
-          <FaSyncAlt />
-        </motion.div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading timetable slot..." />;
   }
 
   return (

@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaUniversity,
@@ -190,7 +191,7 @@ export default function CollegeProfile() {
   ];
 
   if (loading) {
-    return <LoadingSkeleton />;
+    return <Loading fullScreen size="lg" text="Loading College Profile..." />;
   }
 
   if (error) return <ErrorDisplay message={error} onRetry={() => window.location.reload()} />;
@@ -711,37 +712,6 @@ export default function CollegeProfile() {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ================= LOADING SKELETON ================= */
-function LoadingSkeleton() {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)'
-    }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1.5rem'
-      }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          style={{ color: '#1a4b6d', fontSize: '3rem' }}
-        >
-          <FaSyncAlt />
-        </motion.div>
-        <div style={{ fontSize: '1.25rem', color: '#64748b', fontWeight: 500 }}>
-          Loading college profile...
-        </div>
-      </div>
-    </div>
   );
 }
 

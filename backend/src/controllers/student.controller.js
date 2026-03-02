@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const College = require("../models/college.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const Student = require("../models/student.model");
@@ -9,6 +8,8 @@ const AttendanceRecord = require("../models/attendanceRecord.model");
 const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
+const { sendRegistrationSuccessEmail } = require("../services/email.service");
+const collegeService = require("../services/college.service");
 
 exports.registerStudent = async (req, res, next) => {
   try {
@@ -21,6 +22,7 @@ exports.registerStudent = async (req, res, next) => {
     const files = req.files || {};
 
     console.log("📁 UPLOADED FILES:", Object.keys(files));
+    console.log("📁 All files details:", files);
     console.log("📁 Aadhar Card:", files.aadharCard);
     console.log("📁 Category Certificate:", files.categoryCertificate);
     console.log("📁 SSC Marksheet:", files.sscMarksheet);
@@ -28,6 +30,9 @@ exports.registerStudent = async (req, res, next) => {
     // Load document configuration for this college
     const docConfig = await DocumentConfig.findOne({ collegeCode, isActive: true });
     console.log("📋 Doc Config loaded:", docConfig ? "YES" : "NO", "- Documents:", docConfig?.documents?.length);
+    if (docConfig) {
+      console.log("📋 Enabled documents:", docConfig.documents.filter(d => d.enabled).map(d => d.type));
+    }
 
     // Map document type to field name (backward compatibility)
     const documentFieldMap = {
@@ -125,12 +130,14 @@ exports.registerStudent = async (req, res, next) => {
 
       // Also save any other uploaded files (aadhar, etc.)
       for (const [fieldName, fieldFiles] of Object.entries(files)) {
-        if (fieldFiles && fieldFiles[0]?.path) {
+        if (fieldFiles && Array.isArray(fieldFiles) && fieldFiles[0] && fieldFiles[0].path) {
           const filePath = fieldFiles[0].path.replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/');
           // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
           const docType = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
           documentPaths[docType] = filePath;
           console.log("💾 Saved (fallback):", docType, filePath);
+        } else {
+          console.log("⚠️ Skipped file (no path):", fieldName, fieldFiles);
         }
       }
     }
@@ -176,11 +183,8 @@ exports.registerStudent = async (req, res, next) => {
       hscRollNumber,
     } = req.body;
 
-    // 1️⃣ Resolve college
-    const college = await College.findOne({ code: collegeCode });
-    if (!college) {
-      throw new AppError("Invalid college registration link", 404, "COLLEGE_NOT_FOUND");
-    }
+    // 1️⃣ Resolve college (using service)
+    const college = await collegeService.findCollegeByCode(collegeCode);
 
     // 2️⃣ Validate department & course (same as before)
 
@@ -285,6 +289,25 @@ exports.registerStudent = async (req, res, next) => {
       documents: documentPaths,
       status: "PENDING",
     });
+
+    // 📧 Send registration success email (non-blocking)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select('name');
+        const course = await Course.findById(student.course_id).select('name');
+        
+        await sendRegistrationSuccessEmail({
+          to: student.email,
+          studentName: student.fullName,
+          collegeName: college?.name || 'Our College',
+          courseName: course?.name,
+          admissionYear: student.admissionYear
+        });
+        console.log(`✅ Registration success email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send registration email:', emailError.message);
+      }
+    })();
 
     res.status(201).json({
       message: "Registration successful. Await college approval.",
@@ -524,11 +547,13 @@ exports.updateStudentByAdmin = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // 🔐 Handle password update separately
+    // 🔐 Password cannot be updated via this endpoint
+    // Student passwords are stored in the User model, not Student model
+    // Admins should use the password reset feature to update passwords
     if (req.body.password) {
-      const hashedPassword = await bcrypt.hash(req.body.password, 10);
-      student.password = hashedPassword;
-      delete req.body.password; // prevent overwrite
+      return res.status(400).json({ 
+        message: "Password cannot be updated here. Use the password reset feature." 
+      });
     }
 
     // Update remaining fields safely
@@ -572,31 +597,70 @@ exports.deleteStudent = async (req, res) => {
   }
 };
 
-// GET APPROVED STUDENTS FOR COLLEGE ADMIN (WITH FEES)
+// GET APPROVED STUDENTS FOR COLLEGE ADMIN (WITH FEES) - WITH PAGINATION
 exports.getApprovedStudents = async (req, res) => {
   try {
-    const students = await Student.find({
+    // 📄 Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // 🔍 Filter options
+    const { department_id, course_id, semester, search } = req.query;
+
+    // Build filter
+    const filter = {
       college_id: req.college_id,
       status: "APPROVED"
-    })
+    };
+
+    if (department_id) filter.department_id = department_id;
+    if (course_id) filter.course_id = course_id;
+    if (semester) filter.currentSemester = parseInt(semester);
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { mobileNumber: { $regex: search } }
+      ];
+    }
+
+    // Get total count
+    const total = await Student.countDocuments(filter);
+
+    // Get paginated students
+    const students = await Student.find(filter)
       .populate("department_id", "name code")
-      .populate("course_id", "name");
+      .populate("course_id", "name")
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 });
 
-    // Attach fee info for each student
-    const studentsWithFee = await Promise.all(
-      students.map(async (student) => {
-        const fee = await StudentFee.findOne({
-          student_id: student._id
-        }).select("totalFee paidAmount installments");
+    // Attach fee info for each student (optimized)
+    const studentIds = students.map(s => s._id);
+    const fees = await StudentFee.find({ 
+      student_id: { $in: studentIds },
+      college_id: req.college_id 
+    });
+    
+    const feeMap = new Map(fees.map(f => [f.student_id.toString(), f]));
 
-        return {
-          ...student.toObject(),
-          fee: fee || null
-        };
-      })
-    );
+    const studentsWithFee = students.map(student => ({
+      ...student.toObject(),
+      fee: feeMap.get(student._id.toString()) || null
+    }));
 
-    res.json(studentsWithFee);
+    res.json({
+      success: true,
+      data: studentsWithFee,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -635,16 +699,57 @@ exports.getStudentById = async (req, res) => {
 };
 
 
-// REGISTERED (PENDING) STUDENTS
+// REGISTERED (PENDING) STUDENTS - WITH PAGINATION
 exports.getRegisteredStudents = async (req, res) => {
-  const students = await Student.find({
-    college_id: req.college_id,
-    status: "PENDING"
-  })
-    .populate("department_id", "name code")
-    .populate("course_id", "name");
+  try {
+    // 📄 Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-  res.json(students);
+    // 🔍 Filter options
+    const { department_id, course_id, search } = req.query;
+
+    // Build filter
+    const filter = {
+      college_id: req.college_id,
+      status: "PENDING"
+    };
+
+    if (department_id) filter.department_id = department_id;
+    if (course_id) filter.course_id = course_id;
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // Get total count
+    const total = await Student.countDocuments(filter);
+
+    // Get paginated students
+    const students = await Student.find(filter)
+      .populate("department_id", "name code")
+      .populate("course_id", "name")
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: students,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // ADMIN GETS REGISTERED (PENDING) INDIVUDUAL STUDENT
