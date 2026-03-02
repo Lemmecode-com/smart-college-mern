@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaQrcode,
   FaUsers,
@@ -164,7 +165,7 @@ export default function TeacherDashboard() {
   }, []);
 
   if (loading) {
-    return <LoadingDisplay />;
+    return <Loading fullScreen size="lg" text="Loading Teacher Dashboard..." />;
   }
 
   if (error) {
@@ -484,31 +485,6 @@ const tableHeaderStyle = {
   textTransform: 'uppercase',
   letterSpacing: '0.5px'
 };
-
-/* ================= LOADING DISPLAY ================= */
-function LoadingDisplay() {
-  return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center p-4"
-      style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}>
-      <div className="text-center">
-        <motion.div
-          variants={spinVariants}
-          animate="animate"
-          className="mb-4"
-          style={{ color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
-        >
-          <FaSyncAlt />
-        </motion.div>
-        <h3 className="fw-bold mb-2" style={{ color: '#1e293b', fontSize: '1.5rem' }}>
-          Loading Teacher Dashboard...
-        </h3>
-        <p className="text-muted mb-0">
-          Please wait while we fetch your teaching data
-        </p>
-      </div>
-    </div>
-  );
-}
 
 /* ================= ERROR DISPLAY ================= */
 function ErrorDisplay({ message, onRetry }) {

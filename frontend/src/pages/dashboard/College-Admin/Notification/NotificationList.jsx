@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import {
   FaBell,
   FaTrash,
@@ -47,12 +48,7 @@ export default function NotificationList() {
   };
 
   if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <FaBell className="fs-2 text-muted" />
-        <p className="text-muted mt-2">Loading notifications...</p>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading notifications..." />;
   }
 
   if (error) {

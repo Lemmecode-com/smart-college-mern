@@ -2,6 +2,8 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
+import Pagination from "../../../components/Pagination";
 
 import {
   FaUsers,
@@ -233,20 +235,7 @@ export default function ApproveStudents() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading approved students...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading approved students..." />;
   }
 
   return (
@@ -421,41 +410,15 @@ export default function ApproveStudents() {
               </table>
             </div>
           )}
-          
+
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="erp-pagination">
-              <button
-                className="page-btn prev-btn"
-                onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                disabled={page === 1}
-                aria-label="Previous page"
-              >
-                <FaChevronLeft />
-              </button>
-              
-              <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
-                  <button
-                    key={num}
-                    className={`page-btn ${page === num ? 'active' : ''}`}
-                    onClick={() => setPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={page === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ))}
-              </div>
-              
-              <button
-                className="page-btn next-btn"
-                onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={page === totalPages}
-                aria-label="Next page"
-              >
-                <FaChevronRight />
-              </button>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                setPage={setPage}
+              />
             </div>
           )}
         </div>

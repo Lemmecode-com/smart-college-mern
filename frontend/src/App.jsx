@@ -185,104 +185,109 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
   return (
     <ErrorBoundary>
       <div className="app-wrapper">
-        {/* ================= LAYOUT WRAPPER ================= */}
-        {isAuthenticated && !hideLayout ? (
-          <Layout
-            isMobileOpen={isMobileOpen}
-            setIsMobileOpen={setIsMobileOpen}
-          >
-            <Routes>
-            {/* ================= ROOT DECIDER ================= */}
-            <Route
-              path="/"
-              element={
-                !user ? (
-                  <Navigate to="/login" />
-                ) : user.role === "SUPER_ADMIN" ? (
-                  <Navigate to="/super-admin/dashboard" />
-                ) : user.role === "COLLEGE_ADMIN" ? (
-                  <Navigate to="/dashboard" />
-                ) : user.role === "TEACHER" ? (
-                  <Navigate to="/teacher/dashboard" />
-                ) : user.role === "STUDENT" ? (
-                  <Navigate to="/student/dashboard" />
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
-            />
+        {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
+        <Routes>
+          {/* ================= ROOT DECIDER ================= */}
+          <Route
+            path="/"
+            element={
+              !user ? (
+                <Navigate to="/login" />
+              ) : user.role === "SUPER_ADMIN" ? (
+                <Navigate to="/super-admin/dashboard" />
+              ) : user.role === "COLLEGE_ADMIN" ? (
+                <Navigate to="/dashboard" />
+              ) : user.role === "TEACHER" ? (
+                <Navigate to="/teacher/dashboard" />
+              ) : user.role === "STUDENT" ? (
+                <Navigate to="/student/dashboard" />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
 
-            {/* ================= PUBLIC ================= */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/verify-otp" element={<VerifyOTP />} />
-            <Route
-              path="/register/:collegeCode"
-              element={<StudentRegister />}
-            />
+          {/* ================= PUBLIC ROUTES (ALWAYS ACCESSIBLE) ================= */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route
+            path="/register/:collegeCode"
+            element={<StudentRegister />}
+          />
 
-            {/* ================= SUPER ADMIN ================= */}
+          {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
+          {isAuthenticated && !hideLayout ? (
             <Route
-              path="/super-admin/dashboard"
               element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <SuperAdminDashboard />
-                </ProtectedRoute>
+                <Layout
+                  isMobileOpen={isMobileOpen}
+                  setIsMobileOpen={setIsMobileOpen}
+                />
               }
-            />
+            >
+              {/* ================= SUPER ADMIN ================= */}
+              <Route
+                path="/super-admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <SuperAdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/super-admin/create-college"
-              element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <CreateNewCollege />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/super-admin/create-college"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <CreateNewCollege />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/super-admin/colleges-list"
-              element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <CollegeList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/super-admin/college/:id"
-              element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <ViewCollegeDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/super-admin/college/:id/edit"
-              element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <EditCollege />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/super-admin/colleges-list"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <CollegeList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/super-admin/college/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <ViewCollegeDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/super-admin/college/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <EditCollege />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/super-admin/reports"
-              element={
-                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                  <SuperAdminReports />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/super-admin/reports"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <SuperAdminReports />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* ================= COLLEGE ADMIN ================= */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <CollegeAdminDashboard />
-                </ProtectedRoute>
-              }
-            />
+              {/* ================= COLLEGE ADMIN ================= */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                    <CollegeAdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
             <Route
               path="/college/profile"
@@ -948,17 +953,9 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
 
             {/* ================= FALLBACK ================= */}
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-          </Layout>
-        ) : (
-          <Routes>
-            {/* Public routes without layout */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/verify-otp" element={<VerifyOTP />} />
-            <Route path="/register/:collegeCode" element={<StudentRegister />} />
-          </Routes>
-        )}
+            </Route>
+          ) : null}
+        </Routes>
       </div>
 
       {/* ================= GLOBAL TOAST CONTAINER ================= */}

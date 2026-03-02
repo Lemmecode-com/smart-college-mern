@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaUserTie,
   FaEnvelope,
@@ -220,7 +221,7 @@ export default function EditTeacherProfile() {
   };
 
   if (loading) {
-    return <LoadingDisplay />;
+    return <Loading fullScreen size="lg" text="Loading Profile..." />;
   }
 
   return (
@@ -802,45 +803,5 @@ export default function EditTeacherProfile() {
         }
       `}</style>
     </motion.div>
-  );
-}
-
-function LoadingDisplay() {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <div
-          className="spin"
-          style={{
-            fontSize: "3rem",
-            color: BRAND_COLORS.primary.main,
-            marginBottom: "1rem",
-          }}
-        >
-          <FaSpinner />
-        </div>
-        <h3 style={{ margin: "0 0 0.5rem 0", color: "#1e293b", fontWeight: 700 }}>
-          Loading Profile...
-        </h3>
-        <p style={{ color: "#64748b", margin: 0 }}>Please wait</p>
-        <style>{`
-          .spin {
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    </div>
   );
 }

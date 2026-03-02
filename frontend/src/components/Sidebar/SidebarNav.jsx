@@ -324,6 +324,12 @@ export default function SidebarNav({
               label="Student Promotion"
               onClick={handleNavClick}
             />
+            <SidebarSubItem
+              to="/students/alumni"
+              icon={FaUserGraduate}
+              label="Alumni List"
+              onClick={handleNavClick}
+            />
           </SidebarSection>
 
           <SidebarSection
