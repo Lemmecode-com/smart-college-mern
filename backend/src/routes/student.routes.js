@@ -4,6 +4,13 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { 
+  validateStudentRegistration, 
+  validateStudentUpdateByAdmin,
+  validateStudentProfileUpdate,
+  validateStudentId,
+  validateCollegeCode
+} = require("../middlewares/validators/student.validator");
 
 const {
   registerStudent,
@@ -28,7 +35,7 @@ const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
 
 
 // 🌍 PUBLIC STUDENT REGISTRATION
-router.post("/register/:collegeCode", uploadStudentDocuments, registerStudent);
+router.post("/register/:collegeCode", validateCollegeCode, uploadStudentDocuments, validateStudentRegistration, registerStudent);
 
 // 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
 router.get(
@@ -45,6 +52,7 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
+  validateStudentId,
   approveStudent,
 );
 
@@ -53,6 +61,7 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
+  validateStudentId,
   rejectStudent,
 );
 
@@ -73,6 +82,7 @@ router.put(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
+  validateStudentProfileUpdate,
   updateMyProfile,
 );
 
@@ -82,6 +92,8 @@ router.put(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
+  validateStudentId,
+  validateStudentUpdateByAdmin,
   updateStudentByAdmin,
 );
 
@@ -91,6 +103,7 @@ router.delete(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
+  validateStudentId,
   deleteStudent,
 );
 

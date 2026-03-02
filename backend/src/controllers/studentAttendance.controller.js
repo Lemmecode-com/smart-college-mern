@@ -89,7 +89,7 @@ exports.getStudentAttendanceSummary = async (req, res, next) => {
     );
 
     res.json({
-      studentId: student.user_id || student._id,
+      studentId: student.user_id,  // ✅ Consistent User._id for all students
       attendance: finalSummary
     });
 

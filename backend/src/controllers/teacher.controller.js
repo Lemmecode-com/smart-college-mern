@@ -211,14 +211,50 @@ exports.updateMyProfile = async (req, res, next) => {
 ========================================================= */
 exports.getTeachers = async (req, res) => {
   try {
-    const teachers = await Teacher.find({
-      college_id: req.college_id,
-    })
+    // 📄 Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // 🔍 Filter options
+    const { department_id, status, search } = req.query;
+
+    // Build filter
+    const filter = { college_id: req.college_id };
+
+    if (department_id) filter.department_id = department_id;
+    if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { employeeId: { $regex: search } }
+      ];
+    }
+
+    // Get total count
+    const total = await Teacher.countDocuments(filter);
+
+    // Get paginated teachers
+    const teachers = await Teacher.find(filter)
       .populate("department_id", "name code")
       .populate("courses", "name code")
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 })
       .select("-__v");
 
-    res.json(teachers);
+    res.json({
+      success: true,
+      data: teachers,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch teachers" });
   }

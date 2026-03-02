@@ -61,9 +61,21 @@ export default function TeachersList() {
     setError(null);
     try {
       const res = await api.get("/teachers");
-      const data = res.data || [];
-      setTeachers(data);
       
+      // 🔧 Handle new paginated response structure
+      let data;
+      if (res.data.data) {
+        // New format: { success: true, data: [...], pagination: {...} }
+        data = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        // Old format: [...]
+        data = res.data;
+      } else {
+        data = [];
+      }
+      
+      setTeachers(data);
+
       // Calculate stats from fetched data (client-side only)
       setStats({
         total: data.length,
