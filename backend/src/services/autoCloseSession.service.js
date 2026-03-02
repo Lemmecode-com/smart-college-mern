@@ -2,15 +2,18 @@ const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const Student = require("../models/student.model");
 const TimetableSlot = require("../models/timetableSlot.model");
+const Teacher = require("../models/teacher.model");
+const Notification = require("../models/notification.model");
 
 /**
  * AUTO-CLOSE ATTENDANCE SESSIONS
- * 
+ *
  * Purpose:
  * - Automatically close sessions after slot end time + 5 minutes
  * - Mark all unmarked students as PRESENT
  * - Preserve session history
- * 
+ * - Notify teacher about auto-closed session (FIX: Flow 3)
+ *
  * Run: Every 5 minutes
  */
 exports.autoCloseAttendanceSessions = async () => {
@@ -41,6 +44,7 @@ exports.autoCloseAttendanceSessions = async () => {
 
     let closedCount = 0;
     let errorCount = 0;
+    const notifiedTeachers = new Set();
 
     // ✅ Step 2: Process each session
     for (const session of openSessions) {
@@ -118,7 +122,36 @@ exports.autoCloseAttendanceSessions = async () => {
 
         // ✅ Step 7: Close the session
         session.status = 'CLOSED';
+        session.autoClosedAt = autoCloseTime;
+        session.autoClosed = true;
         await session.save();
+
+        // 🔔 Step 8: Notify teacher about auto-close (FIX: Flow 3)
+        if (!notifiedTeachers.has(session.teacher_id.toString())) {
+          try {
+            const teacher = await Teacher.findById(session.teacher_id);
+            
+            if (teacher && teacher.user_id) {
+              await Notification.create({
+                college_id: session.college_id,
+                createdBy: session.teacher_id, // System notification
+                createdByRole: "COLLEGE_ADMIN",
+                target: "INDIVIDUAL",
+                target_users: [teacher.user_id],
+                title: "Attendance Session Auto-Closed",
+                message: `Your attendance session for ${session.slotSnapshot?.subject_name || 'the subject'} has been automatically closed. ${unmarkedCount > 0 ? `${unmarkedCount} unmarked students were marked as PRESENT.` : 'All students were marked.'}`,
+                type: "ATTENDANCE",
+                actionUrl: `/attendance/my-sessions-list`,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+              });
+              // console.log(`   🔔 Teacher ${teacher.name} notified about auto-close`);
+            }
+          } catch (notifError) {
+            console.error(`   ❌ Failed to notify teacher for session ${session._id}:`, notifError.message);
+          }
+          
+          notifiedTeachers.add(session.teacher_id.toString());
+        }
 
         closedCount++;
         // console.log(`   ✅ Session ${session._id} closed successfully`);
@@ -135,6 +168,7 @@ exports.autoCloseAttendanceSessions = async () => {
     // console.log('='.repeat(50));
     // console.log(`✅ Sessions closed: ${closedCount}`);
     // console.log(`❌ Errors: ${errorCount}`);
+    // console.log(`🔔 Teachers notified: ${notifiedTeachers.size}`);
     // console.log('='.repeat(50));
     // console.log('🕐 [Auto-Close] Job completed\n');
 
