@@ -285,6 +285,20 @@ const studentSchema = new mongoose.Schema(
       type: String,
     },
 
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    rejectedAt: {
+      type: Date,
+    },
+
+    canReapply: {
+      type: Boolean,
+      default: true,
+    },
+
     // 🎓 Promotion Management
     currentAcademicYear: {
       type: String,
