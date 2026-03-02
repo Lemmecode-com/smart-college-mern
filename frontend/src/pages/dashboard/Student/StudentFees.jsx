@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -255,27 +256,7 @@ export default function StudentFees() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="fees-container" role="main">
-        <div className="loading-wrapper" role="status" aria-live="polite">
-          <div className="loading-spinner">
-            <FaSpinner className="spin-icon" aria-hidden="true" />
-            <p>Loading Fee Dashboard...</p>
-          </div>
-          <div className="skeleton-cards" aria-hidden="true">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="skeleton-card" />
-            ))}
-          </div>
-          <div className="skeleton-table" aria-hidden="true">
-            <div className="skeleton-table-header" />
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="skeleton-table-row" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Fee Dashboard..." />;
   }
 
   /* ================= ERROR STATE ================= */

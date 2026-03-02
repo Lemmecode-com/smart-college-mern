@@ -64,7 +64,12 @@ export const AuthProvider = ({ children }) => {
           college_id: res.data.college_id || null
         });
       } catch (error) {
-        // If the request fails (401/403), the user is not authenticated
+        // 401 is expected for unauthenticated users - don't log it as error
+        // Only log if it's a different error (network issue, server error, etc.)
+        if (error.response?.status !== 401) {
+          console.error("Auth check error:", error.response?.status || error.message);
+        }
+        // User is not authenticated - this is normal, not an error
         setUser(null);
       } finally {
         setLoading(false);

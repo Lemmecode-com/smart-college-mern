@@ -14,6 +14,16 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// ✅ Test email connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ Email transporter verification failed:', error.message);
+    console.error('❌ Check EMAIL_USER and EMAIL_PASS in .env file');
+  } else {
+    console.log('✅ Email transporter ready and connected');
+  }
+});
+
 exports.sendPaymentReminderEmail = async ({ to, studentName, installment }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -109,6 +119,86 @@ exports.sendPaymentReceiptEmail = async ({
 };
 
 /**
+ * Send Student Registration Success Email
+ */
+exports.sendRegistrationSuccessEmail = async ({
+  to,
+  studentName,
+  collegeName,
+  courseName,
+  admissionYear
+}) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: `📝 Registration Successful - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #17a2b8;">📝 Registration Successful!</h2>
+
+        <p>Dear <b>${studentName}</b>,</p>
+        <p>Thank you for registering with <b>${collegeName}</b>.</p>
+        <p>Your registration has been successfully submitted and is currently <b style="color: #ffc107;">pending approval</b> by the admission office.</p>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #1a4b6d;">Registration Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>College:</b></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Course:</b></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName || 'To be allocated'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Academic Year:</b></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${admissionYear}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Status:</b></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;"><span style="color: #ffc107; font-weight: bold;">⏳ Pending Approval</span></td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #1a4b6d;">📋 What Happens Next?</h4>
+          <ul style="margin: 10px 0; padding-left: 20px; color: #495057;">
+            <li>The admission office will review your application</li>
+            <li>You will receive an email once your application is approved</li>
+            <li>After approval, you can log in to the student portal</li>
+            <li>Complete the fee payment process to confirm your admission</li>
+          </ul>
+        </div>
+
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <h4 style="margin-top: 0; color: #856404;">⏱️ Expected Timeline</h4>
+          <p style="color: #856404; margin-bottom: 0;">
+            Your application will be reviewed within <b>3-5 working days</b>. 
+            Please keep checking your email for updates.
+          </p>
+        </div>
+
+        <p style="color: #6c757d; font-size: 14px;">
+          If you have any questions, please contact the admission office.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;"/>
+        <p style="color: #6c757d; font-size: 12px; text-align: center;">This is an automated message. Please do not reply.</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Registration success email sent to ${to}`);
+  } catch (error) {
+    console.error(`❌ Failed to send registration email to ${to}:`, error.message);
+  }
+};
+
+/**
  * Send Admission Approval Email
  */
 exports.sendAdmissionApprovalEmail = async ({
@@ -177,6 +267,73 @@ exports.sendAdmissionApprovalEmail = async ({
     console.log(`✅ Admission approval email sent to ${to}`);
   } catch (error) {
     console.error(`❌ Failed to send admission approval email to ${to}:`, error.message);
+  }
+};
+
+/**
+ * Send Admission Rejection Email
+ */
+exports.sendAdmissionRejectionEmail = async ({
+  to,
+  studentName,
+  collegeName,
+  reason
+}) => {
+  console.log('📧 [EMAIL SERVICE] sendAdmissionRejectionEmail called');
+  console.log('📧 [EMAIL SERVICE] Email config:', {
+    EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
+    EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
+    to,
+    studentName,
+    collegeName,
+    reason
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: `Admission Application Status - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #6c757d;">Admission Application Update</h2>
+
+        <p>Dear <b>${studentName}</b>,</p>
+        <p>Thank you for applying to ${collegeName}.</p>
+        <p>After careful review, we regret to inform you that your admission application has been <b style="color: #dc3545;">not approved</b> at this time.</p>
+
+        ${reason ? `
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <h4 style="margin-top: 0; color: #856404;">Reason for Rejection</h4>
+          <p style="color: #856404; margin-bottom: 0;">${reason}</p>
+        </div>
+        ` : ''}
+
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #1a4b6d;">📝 What's Next?</h4>
+          <ul style="margin: 10px 0; padding-left: 20px; color: #495057;">
+            <li>You can reapply with corrected/updated information if applicable</li>
+            <li>Contact the admission office for clarification</li>
+            <li>Check if you meet all eligibility criteria for your chosen course</li>
+          </ul>
+        </div>
+
+        <p style="color: #6c757d; font-size: 14px;">If you have any questions, please contact our admission office.</p>
+
+        <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;"/>
+        <p style="color: #6c757d; font-size: 12px; text-align: center;">This is an automated message. Please do not reply.</p>
+      </div>
+    `
+  };
+
+  try {
+    console.log('📧 [EMAIL SERVICE] Sending email via transporter...');
+    const info = await transporter.sendMail(mailOptions);
+    console.log('📧 [EMAIL SERVICE] Email sent successfully! Message ID:', info.messageId);
+    console.log(`✅ Admission rejection email sent to ${to}`);
+  } catch (error) {
+    console.error('❌ [EMAIL SERVICE] Failed to send email:', error.message);
+    console.error('❌ [EMAIL SERVICE] Error stack:', error.stack);
+    throw error; // Re-throw so the caller knows it failed
   }
 };
 

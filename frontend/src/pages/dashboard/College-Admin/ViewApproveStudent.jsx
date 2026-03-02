@@ -48,8 +48,8 @@ export default function ViewApproveStudent() {
     setLoading(true);
     setError("");
     try {
-      // Use registered/:id endpoint for PENDING students (includes all document paths)
-      const res = await api.get(`/students/registered/${id}`);
+      // Use approved-stud/:id endpoint for APPROVED students (includes fee details)
+      const res = await api.get(`/students/approved-stud/${id}`);
       setStudent(res.data);
       setRetryCount(0);
     } catch (err) {

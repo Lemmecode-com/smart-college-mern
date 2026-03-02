@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 
 import {
   FaListAlt,
@@ -44,11 +45,7 @@ export default function MySessions() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading My Sessions...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading My Sessions..." />;
   }
 
   return (

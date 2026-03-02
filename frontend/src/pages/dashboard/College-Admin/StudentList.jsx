@@ -2,6 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaUsers,
@@ -52,7 +53,18 @@ export default function StudentList() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/registered");
-      setStudents(res.data || []);
+      
+      // 🔧 Handle new paginated response structure
+      if (res.data.data) {
+        // New format: { success: true, data: [...], pagination: {...} }
+        setStudents(res.data.data || []);
+      } else if (Array.isArray(res.data)) {
+        // Old format: [...]
+        setStudents(res.data);
+      } else {
+        setStudents([]);
+      }
+      
       setRetryCount(0);
     } catch (err) {
       console.error("Students fetch error:", err);
@@ -205,20 +217,7 @@ export default function StudentList() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading student records...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading student records..." />;
   }
 
   return (

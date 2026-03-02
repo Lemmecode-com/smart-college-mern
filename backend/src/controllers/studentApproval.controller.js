@@ -3,7 +3,7 @@ const Course = require("../models/course.model");
 const College = require("../models/college.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
-const { sendAdmissionApprovalEmail } = require("../services/email.service");
+const { sendAdmissionApprovalEmail, sendAdmissionRejectionEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 exports.approveStudent = async (req, res, next) => {
@@ -133,27 +133,77 @@ exports.approveStudent = async (req, res, next) => {
 
 /**
  * REJECT STUDENT
+ * Sends email notification to student with rejection reason
  */
-exports.rejectStudent = async (req, res) => {
-  const { studentId } = req.params;
-  const { reason } = req.body;
+exports.rejectStudent = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const { reason } = req.body;
 
-  const student = await Student.findOne({
-    _id: studentId,
-    college_id: req.college_id,
-    status: "PENDING",
-  });
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: "PENDING",
+    });
 
-  if (!student) {
-    return res
-      .status(404)
-      .json({ message: "Student not found or already processed" });
+    if (!student) {
+      throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
+    }
+
+    student.status = "REJECTED";
+    student.rejectionReason = reason || "Not specified";
+    student.approvedBy = req.user.id;
+    student.approvedAt = new Date();
+
+    await student.save();
+
+    console.log('📧 REJECTION EMAIL TRIGGERED for:', student.email);
+    console.log('📧 Student data:', {
+      email: student.email,
+      fullName: student.fullName,
+      college_id: student.college_id,
+      status: student.status
+    });
+
+    // 📧 Send rejection email (non-blocking)
+    (async () => {
+      try {
+        console.log('📧 [1/4] Fetching college details...');
+        const college = await College.findById(student.college_id).select('name');
+        console.log('📧 [2/4] College found:', college?.name);
+        
+        console.log('📧 [3/4] Preparing email data:', {
+          to: student.email,
+          studentName: student.fullName,
+          collegeName: college?.name,
+          reason: student.rejectionReason
+        });
+
+        console.log('📧 [4/4] Calling sendAdmissionRejectionEmail...');
+        await sendAdmissionRejectionEmail({
+          to: student.email,
+          studentName: student.fullName,
+          collegeName: college?.name || 'Our College',
+          reason: student.rejectionReason !== "Not specified" ? student.rejectionReason : null
+        });
+        console.log(`✅ Admission rejection email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send admission rejection email:', emailError.message);
+        console.error('❌ Email error stack:', emailError.stack);
+      }
+    })();
+
+    res.json({
+      message: "Student rejected successfully",
+      student: {
+        id: student._id,
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        rejectionReason: student.rejectionReason
+      }
+    });
+  } catch (error) {
+    next(error);
   }
-
-  student.status = "REJECTED";
-  student.rejectionReason = reason || "Not specified";
-
-  await student.save();
-
-  res.json({ message: "Student rejected successfully" });
 };

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import { toast } from "react-toastify";
 import AttendanceToggle from "../../../../components/AttendanceToggle";
 
@@ -224,7 +225,7 @@ export default function MarkAttendance() {
   };
 
   if (loading) {
-    return <h5 className="text-center">Loading...</h5>;
+    return <Loading fullScreen size="lg" text="Loading..." />;
   }
 
 return (

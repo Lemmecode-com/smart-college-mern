@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import {
   FaBell,
   FaCalendarAlt,
@@ -95,12 +96,7 @@ export default function UpdateNotifications() {
   };
 
   if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <FaBell className="fs-2 text-muted" />
-        <p className="text-muted mt-2">Loading notification...</p>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading notification..." />;
   }
 
   if (error) {
