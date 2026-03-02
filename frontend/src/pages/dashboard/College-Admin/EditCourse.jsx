@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaBookOpen,
@@ -79,7 +80,7 @@ export default function EditCourse() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <div className="text-center mt-5">Loading...</div>;
+    return <Loading fullScreen size="lg" text="Loading course details..." />;
   }
 
   if (!formData) {

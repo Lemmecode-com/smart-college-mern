@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
 import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import Loading from "../../../components/Loading";
 
 export default function MarkAttendanceModal() {
   const { sessionId } = useParams();
@@ -63,7 +64,7 @@ export default function MarkAttendanceModal() {
     }
   };
 
-  if (loading) return <p>Loading students...</p>;
+  if (loading) return <Loading size="sm" text="Loading students..." />;
 
   return (
     <div className="container py-4">
