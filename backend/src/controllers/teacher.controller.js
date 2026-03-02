@@ -335,6 +335,10 @@ exports.getTeachersByCourse = async (req, res) => {
 /* =========================================================
    UPDATE TEACHER (Admin / HOD)
    PUT /teachers/:id
+   
+   FIX: Edge Case 5 - Teacher Deactivation
+   - Block deactivation if teacher has assigned subjects
+   - Require subject reassignment before deactivation
 ========================================================= */
 exports.updateTeacher = async (req, res, next) => {
   try {
@@ -345,6 +349,47 @@ exports.updateTeacher = async (req, res, next) => {
     delete updateData.password;
     delete updateData.user_id;
     delete updateData.college_id;
+
+    // ✅ FIX: Edge Case 5 - Check if trying to deactivate teacher
+    if (updateData.status === "INACTIVE") {
+      const teacher = await Teacher.findOne({
+        _id: id,
+        college_id: req.college_id,
+      }).populate("department_id");
+
+      if (!teacher) {
+        throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+      }
+
+      // Check if teacher has assigned subjects
+      const Subject = require("../models/subject.model");
+      const assignedSubjects = await Subject.countDocuments({
+        teacher_id: teacher._id,
+        status: "ACTIVE",
+      });
+
+      if (assignedSubjects > 0) {
+        throw new AppError(
+          `Cannot deactivate teacher: ${assignedSubjects} subject(s) still assigned. Please reassign subjects to another teacher before deactivation.`,
+          400,
+          "SUBJECTS_STILL_ASSIGNED"
+        );
+      }
+
+      // Check if teacher is HOD of department
+      const Department = require("../models/department.model");
+      const isHod = await Department.findOne({
+        hod_id: teacher._id,
+      });
+
+      if (isHod) {
+        throw new AppError(
+          "Cannot deactivate teacher: Teacher is currently HOD of department. Please assign a new HOD first.",
+          400,
+          "TEACHER_IS_HOD"
+        );
+      }
+    }
 
     const teacher = await Teacher.findOneAndUpdate(
       { _id: id, college_id: req.college_id },
