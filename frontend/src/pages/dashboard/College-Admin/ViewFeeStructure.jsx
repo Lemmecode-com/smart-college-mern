@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import { exportToPDF, exportToExcel } from "../../../utils/exportHelpers";
 import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -112,11 +113,7 @@ export default function ViewFeeStructure() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Fee Structure...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Fee Structure..." />;
   }
 
   if (!fee) {
