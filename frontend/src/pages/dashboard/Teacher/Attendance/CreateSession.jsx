@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import { toast } from "react-toastify";
 
 import { FaQrcode, FaCalendarAlt, FaClock, FaBookOpen, FaCheckCircle } from "react-icons/fa";
@@ -90,11 +91,7 @@ export default function CreateSession() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Timetable...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Timetable..." />;
   }
 
   return (

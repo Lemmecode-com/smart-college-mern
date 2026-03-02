@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import {
   FaCalendarAlt,
@@ -48,8 +49,11 @@ export default function CreateTimetable() {
         const deptRes = await api.get("/departments");
         const teacherRes = await api.get("/teachers");
 
+        // 🔧 Handle paginated response
+        const teachersData = teacherRes.data.data || teacherRes.data || [];
+        
         setDepartments(deptRes.data || []);
-        setTeachers(teacherRes.data || []);
+        setTeachers(teachersData);
       } catch (err) {
         console.error(err);
       } finally {
@@ -116,11 +120,7 @@ export default function CreateTimetable() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <h5 className="text-muted">Loading Timetable Module...</h5>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Timetable Module..." />;
   }
 
   return (

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 
 import { FaBookOpen, FaSave, FaArrowLeft } from "react-icons/fa";
 
@@ -46,6 +47,9 @@ export default function EditSubject() {
           api.get("/teachers"),
         ]);
 
+        // 🔧 Handle paginated response for teachers
+        const teachersData = teacherRes.data.data || teacherRes.data || [];
+
         // 4️⃣ Set Form Data
         setFormData({
           course_id: subject.course_id?._id || subject.course_id,
@@ -57,7 +61,7 @@ export default function EditSubject() {
         });
 
         setCourses(courseRes.data || []);
-        setTeachers(teacherRes.data || []);
+        setTeachers(teachersData);
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || "Failed to load subject data");
@@ -100,7 +104,7 @@ export default function EditSubject() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <div className="text-center mt-5">Loading...</div>;
+    return <Loading fullScreen size="lg" text="Loading subject details..." />;
   }
 
   if (!formData) {

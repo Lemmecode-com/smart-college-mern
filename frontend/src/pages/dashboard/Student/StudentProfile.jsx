@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -196,24 +197,7 @@ export default function StudentProfile() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return (
-      <div className="container-fluid py-5" role="main">
-        <ToastContainer position="top-right" />
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body p-5 text-center">
-                <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}>
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <h5 className="text-muted">Loading Student Profile...</h5>
-                <p className="text-muted small">Fetching your personal and academic information</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Student Profile..." />;
   }
 
   /* ================= ERROR STATE ================= */
@@ -1417,6 +1401,7 @@ export default function StudentProfile() {
     </div>
   );
 }
+
 
 /* ================= TAB ITEM COMPONENT ================= */
 function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
