@@ -47,6 +47,9 @@ export default function EditSubject() {
           api.get("/teachers"),
         ]);
 
+        // 🔧 Handle paginated response for teachers
+        const teachersData = teacherRes.data.data || teacherRes.data || [];
+
         // 4️⃣ Set Form Data
         setFormData({
           course_id: subject.course_id?._id || subject.course_id,
@@ -58,7 +61,7 @@ export default function EditSubject() {
         });
 
         setCourses(courseRes.data || []);
-        setTeachers(teacherRes.data || []);
+        setTeachers(teachersData);
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || "Failed to load subject data");
