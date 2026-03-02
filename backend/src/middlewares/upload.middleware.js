@@ -1,6 +1,7 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, "../../uploads/students");
@@ -8,21 +9,32 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+// Allowed file extensions mapping
+const allowedExtensions = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/jpg": ".jpg",
+  "application/pdf": ".pdf"
+};
+
 // Storage configuration for student documents
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Create unique filename: timestamp-fieldname-originalname
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    const fieldName = file.fieldname.replace(/[^a-zA-Z0-9]/g, "");
-    cb(null, `${fieldName}-${uniqueSuffix}${ext}`);
+    // 🔒 SECURITY: Generate completely random filename
+    // Don't use original filename to prevent path traversal attacks
+    const randomString = crypto.randomBytes(16).toString('hex');
+    const ext = allowedExtensions[file.mimetype] || '.bin';
+    const fieldName = file.fieldname.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    
+    // Format: fieldname-timestamp-randomstring.ext
+    cb(null, `${fieldName}-${Date.now()}-${randomString}${ext}`);
   }
 });
 
-// File filter - only allow images and PDFs
+// File filter - only allow images and PDFs with double validation
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     "image/jpeg",
@@ -31,11 +43,20 @@ const fileFilter = (req, file, cb) => {
     "application/pdf"
   ];
 
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
+  // 🔒 SECURITY: Validate MIME type
+  if (!allowedMimes.includes(file.mimetype)) {
+    return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
   }
+
+  // 🔒 SECURITY: Validate file extension matches MIME type
+  const ext = path.extname(file.originalname).toLowerCase();
+  const expectedExt = allowedExtensions[file.mimetype];
+  
+  if (ext && ext !== expectedExt) {
+    return cb(new Error(`File extension ${ext} does not match content type ${file.mimetype}`), false);
+  }
+
+  cb(null, true);
 };
 
 // Upload middleware configuration
