@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaUserGraduate,
   FaBook,
@@ -153,30 +154,7 @@ export default function StudentDashboard() {
 
   // Loading State
   if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="loading-spinner">
-          <FaGraduationCap className="spinner-icon" />
-          <div className="loading-text">Loading your dashboard...</div>
-          <div className="loading-bar">
-            <div className="loading-progress"></div>
-          </div>
-        </div>
-        {/* Skeleton Cards */}
-        <div className="skeleton-cards">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="skeleton-card" />
-          ))}
-        </div>
-        {/* Skeleton Table */}
-        <div className="skeleton-table">
-          <div className="skeleton-table-header" />
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="skeleton-table-row" />
-          ))}
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading your dashboard..." />;
   }
 
   // Error State

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaUniversity,
   FaEnvelope,
@@ -125,23 +126,7 @@ export default function ViewCollegeDetails() {
 
   // Loading state with animated spinner
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc'
-      }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          style={{ color: '#3b82f6' }}
-        >
-          <FaSyncAlt size={48} />
-        </motion.div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading college details..." />;
   }
 
   // Error state

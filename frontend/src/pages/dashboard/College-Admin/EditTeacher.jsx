@@ -2,6 +2,7 @@
 // import { Navigate, useNavigate, useParams } from "react-router-dom";
 // import { AuthContext } from "../../../auth/AuthContext";
 // import api from "../../../api/axios";
+// import Loading from "../../../components/Loading";
 
 // import {
 //   FaChalkboardTeacher,
@@ -353,11 +354,7 @@ export default function EditTeacher() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-75">
-        <span>Loading...</span>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading teacher details..." />;
   }
 
   return (

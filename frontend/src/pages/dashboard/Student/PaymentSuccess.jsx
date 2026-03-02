@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import { AuthContext } from "../../../auth/AuthContext";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
@@ -62,89 +63,7 @@ export default function PaymentSuccess() {
 
   /* ================= LOADING UI ================= */
   if (loading) {
-    return (
-      <div className="payment-loading-wrapper">
-        <ToastContainer position="top-right" />
-        <motion.div
-          className="loading-content"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <FaSpinner className="spin-icon" />
-          <h3>Confirming your payment...</h3>
-          <p>Please wait while we process your transaction</p>
-          <div className="loading-progress-bar">
-            <div className="loading-progress"></div>
-          </div>
-          <div className="security-badges">
-            <span>🔒 Secure Payment</span>
-            <span>✅ PCI Compliant</span>
-          </div>
-        </motion.div>
-        <style>{`
-          .payment-loading-wrapper {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-          }
-          .loading-content {
-            text-align: center;
-            background: white;
-            padding: 50px;
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-          }
-          .spin-icon {
-            font-size: 4rem;
-            color: #3b82f6;
-            animation: spin 1s linear infinite;
-            margin-bottom: 1.5rem;
-          }
-          .loading-content h3 {
-            margin: 0 0 0.5rem 0;
-            color: #1e293b;
-            font-weight: 700;
-            font-size: 1.5rem;
-          }
-          .loading-content p {
-            color: #64748b;
-            margin: 0 0 1.5rem 0;
-          }
-          .loading-progress-bar {
-            width: 200px;
-            height: 4px;
-            background: #e0e0e0;
-            border-radius: 2px;
-            margin: 0 auto 1.5rem;
-            overflow: hidden;
-          }
-          .loading-progress {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #2563eb);
-            animation: loading 1.5s ease-in-out infinite;
-          }
-          .security-badges {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            font-size: 0.85rem;
-            color: #059669;
-            font-weight: 600;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-          @keyframes loading {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-        `}</style>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Confirming your payment..." />;
   }
 
   /* ================= ERROR UI ================= */

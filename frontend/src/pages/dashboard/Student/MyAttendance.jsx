@@ -1,6 +1,7 @@
 import { useEffect, useState, useContext, useRef } from "react";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import {
   FaUserGraduate,
   FaClipboardList,
@@ -302,38 +303,7 @@ export default function StudentAttendanceReport() {
   };
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-        padding: '2rem'
-      }} role="status" aria-live="polite">
-        <div style={{ textAlign: 'center' }}>
-          <motion.div
-            variants={spinVariants}
-            animate="animate"
-            style={{ marginBottom: '1.5rem', color: BRAND_COLORS.primary.main, fontSize: '4rem' }}
-            aria-hidden="true"
-          >
-            <FaSyncAlt />
-          </motion.div>
-          <h3 style={{
-            margin: '0 0 0.5rem 0',
-            color: '#1e293b',
-            fontWeight: 700,
-            fontSize: '1.5rem'
-          }}>
-            Loading Attendance Report...
-          </h3>
-          <p style={{ color: '#64748b', margin: 0 }}>
-            Fetching your attendance records and statistics
-          </p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen size="lg" text="Loading Attendance Report..." />;
   }
 
   const summary = data?.summary || {
