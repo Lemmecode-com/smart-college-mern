@@ -53,7 +53,18 @@ export default function StudentList() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/registered");
-      setStudents(res.data || []);
+      
+      // 🔧 Handle new paginated response structure
+      if (res.data.data) {
+        // New format: { success: true, data: [...], pagination: {...} }
+        setStudents(res.data.data || []);
+      } else if (Array.isArray(res.data)) {
+        // Old format: [...]
+        setStudents(res.data);
+      } else {
+        setStudents([]);
+      }
+      
       setRetryCount(0);
     } catch (err) {
       console.error("Students fetch error:", err);
