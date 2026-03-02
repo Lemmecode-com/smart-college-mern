@@ -59,9 +59,21 @@ export default function ApproveStudents() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/approved-students");
-      const data = res.data || [];
-      setStudents(data);
       
+      // 🔧 Handle new paginated response structure
+      let data;
+      if (res.data.data) {
+        // New format: { success: true, data: [...], pagination: {...} }
+        data = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        // Old format: [...]
+        data = res.data;
+      } else {
+        data = [];
+      }
+      
+      setStudents(data);
+
       // Calculate stats client-side (no API changes)
       calculateStats(data);
       setRetryCount(0);

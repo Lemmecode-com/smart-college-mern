@@ -1,4 +1,22 @@
 const mongoose = require("mongoose");
+const {
+  validateEmail,
+  emailValidatorMessage,
+  validateIndianMobile,
+  mobileValidatorMessage,
+  validateIndianPincode,
+  pincodeValidatorMessage,
+  validatePercentage,
+  percentageValidatorMessage,
+  validateAge,
+  ageValidatorMessage,
+  validateAdmissionYear,
+  admissionYearValidatorMessage,
+  validateYear,
+  yearValidatorMessage
+} = require("../utils/validators");
+
+const { STUDENT_STATUS, CATEGORY, GENDER } = require("../utils/constants");
 
 const studentSchema = new mongoose.Schema(
   {
@@ -40,22 +58,34 @@ const studentSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
+      validate: {
+        validator: validateEmail,
+        message: emailValidatorMessage
+      }
     },
 
     mobileNumber: {
       type: String,
       required: true,
+      validate: {
+        validator: validateIndianMobile,
+        message: mobileValidatorMessage
+      }
     },
 
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
+      enum: Object.values(GENDER),
       required: true,
     },
 
     dateOfBirth: {
       type: Date,
       required: true,
+      validate: {
+        validator: (value) => validateAge(value, 14, 100),
+        message: ageValidatorMessage(14, 100)
+      }
     },
 
     // 📍 Address
@@ -77,12 +107,20 @@ const studentSchema = new mongoose.Schema(
     pincode: {
       type: String,
       required: true,
+      validate: {
+        validator: validateIndianPincode,
+        message: pincodeValidatorMessage
+      }
     },
 
     // 🎓 Academic Info
     admissionYear: {
-      type: Number, 
+      type: Number,
       required: true,
+      validate: {
+        validator: validateAdmissionYear,
+        message: admissionYearValidatorMessage
+      }
     },
 
     currentSemester: {
@@ -96,7 +134,7 @@ const studentSchema = new mongoose.Schema(
     // 🧾 Additional
     category: {
       type: String,
-      enum: ["GEN", "OBC", "SC", "ST", "OTHER"],
+      enum: Object.values(CATEGORY),
       required: true,
     },
 
@@ -118,8 +156,20 @@ const studentSchema = new mongoose.Schema(
     // 📚 10th (SSC) Academic Details
     sscSchoolName: String,
     sscBoard: String,
-    sscPassingYear: Number,
-    sscPercentage: Number,
+    sscPassingYear: {
+      type: Number,
+      validate: {
+        validator: (value) => validateYear(value, 1950, 5),
+        message: yearValidatorMessage(1950, 5)
+      }
+    },
+    sscPercentage: {
+      type: Number,
+      validate: {
+        validator: validatePercentage,
+        message: percentageValidatorMessage
+      }
+    },
     sscRollNumber: String,
 
     // 📚 12th (HSC) Academic Details
@@ -129,8 +179,20 @@ const studentSchema = new mongoose.Schema(
       type: String,
       enum: ["Science", "Commerce", "Arts", "Vocational", "Other"],
     },
-    hscPassingYear: Number,
-    hscPercentage: Number,
+    hscPassingYear: {
+      type: Number,
+      validate: {
+        validator: (value) => validateYear(value, 1950, 5),
+        message: yearValidatorMessage(1950, 5)
+      }
+    },
+    hscPercentage: {
+      type: Number,
+      validate: {
+        validator: validatePercentage,
+        message: percentageValidatorMessage
+      }
+    },
     hscRollNumber: String,
 
     // 📎 Document Uploads (File Paths) - Backward compatibility
@@ -188,8 +250,8 @@ const studentSchema = new mongoose.Schema(
     // 🔐 System
     status: {
       type: String,
-      enum: ["PENDING", "APPROVED", "REJECTED", "ALUMNI"],
-      default: "PENDING",
+      enum: Object.values(STUDENT_STATUS),
+      default: STUDENT_STATUS.PENDING,
     },
 
     // 🎓 Alumni Information
@@ -253,5 +315,13 @@ const studentSchema = new mongoose.Schema(
 
 // Prevent duplicate registration per college
 studentSchema.index({ college_id: 1, email: 1 }, { unique: true });
+
+// ⚡ PERFORMANCE: Indexes for common queries
+studentSchema.index({ college_id: 1, status: 1 }); // Filter by college and status
+studentSchema.index({ college_id: 1, department_id: 1 }); // Department-wise students
+studentSchema.index({ college_id: 1, course_id: 1 }); // Course-wise students
+studentSchema.index({ user_id: 1 }); // Student lookup by user_id
+studentSchema.index({ college_id: 1, currentSemester: 1 }); // Semester-wise students
+studentSchema.index({ status: 1, admissionYear: 1 }); // Admission year filtering
 
 module.exports = mongoose.model("Student", studentSchema);

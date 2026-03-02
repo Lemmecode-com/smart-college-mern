@@ -39,7 +39,7 @@ const studentFeeSchema = new mongoose.Schema({
 
     status: {
       type: String,
-      enum: ["PENDING", "PAID"],
+      enum: ["PENDING", "PAID", "FAILED", "CANCELLED"],
       default: "PENDING",
     },
 
@@ -60,6 +60,15 @@ const studentFeeSchema = new mongoose.Schema({
 
     paidAt: Date,
 
+    // 🔒 RECOVERY: Payment attempt tracking
+    paymentAttemptAt: {
+      type: Date,
+    },
+
+    paymentFailureReason: {
+      type: String,
+    },
+
     reminderSent: {
       type: Boolean,
       default: false,
@@ -68,5 +77,12 @@ const studentFeeSchema = new mongoose.Schema({
 ],
 
 });
+
+// ⚡ PERFORMANCE: Indexes for common queries
+studentFeeSchema.index({ student_id: 1, college_id: 1 }); // Student-wise fee
+studentFeeSchema.index({ college_id: 1, course_id: 1 }); // Course-wise fee
+studentFeeSchema.index({ college_id: 1 }); // College-wise fees
+studentFeeSchema.index({ "installments.dueDate": 1 }); // Due date filtering
+studentFeeSchema.index({ "installments.status": 1 }); // Payment status filtering
 
 module.exports = mongoose.model("StudentFee", studentFeeSchema);
