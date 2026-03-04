@@ -136,4 +136,23 @@ attendanceSessionSchema.index(
   { unique: true }
 );
 
+// 🔥 PERFORMANCE: Indexes for common queries
+// Teacher dashboard - find sessions by teacher
+attendanceSessionSchema.index({ teacher_id: 1, college_id: 1 });
+
+// Teacher dashboard - find open/closed sessions by teacher
+attendanceSessionSchema.index({ teacher_id: 1, status: 1, college_id: 1 });
+
+// Date-based queries - recent sessions
+attendanceSessionSchema.index({ lectureDate: -1 });
+
+// College-wise date filtering
+attendanceSessionSchema.index({ college_id: 1, lectureDate: -1 });
+
+// Common filter combinations
+attendanceSessionSchema.index({ college_id: 1, status: 1 });
+
+// Course-wise sessions
+attendanceSessionSchema.index({ college_id: 1, course_id: 1, lectureDate: -1 });
+
 module.exports = mongoose.model("AttendanceSession", attendanceSessionSchema);
