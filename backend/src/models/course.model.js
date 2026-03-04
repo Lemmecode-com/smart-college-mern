@@ -45,12 +45,15 @@ const courseSchema = new mongoose.Schema(
 
     semester: {
       type: Number,
-      required: true
+      required: true,
+      min: [1, "Semester must be at least 1"],
+      max: [8, "Semester cannot exceed 8"]
     },
 
     credits: {
       type: Number,
-      required: true
+      required: true,
+      min: [0, "Credits cannot be negative"]
     },
 
     maxStudents: {
