@@ -26,7 +26,6 @@ const studentSchema = new mongoose.Schema(
       ref: "User",
       required: false, // Made optional for backward compatibility during migration
       unique: true,
-      index: true,
       sparse: true // Allows documents without user_id during migration
     },
 
