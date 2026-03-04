@@ -3,6 +3,21 @@ import { useContext, useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// Suppress specific React Router development warnings for cleaner console
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const message = typeof args[0] === "string" ? args[0] : String(args[0]);
+    if (
+      message.includes("No routes matched") ||
+      message.includes("react-i18next")
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
 import { AuthContext } from "./auth/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";

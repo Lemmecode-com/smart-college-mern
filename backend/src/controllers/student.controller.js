@@ -1,10 +1,13 @@
 const bcrypt = require("bcryptjs");
+
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const Student = require("../models/student.model");
 const User = require("../models/user.model");
+const College = require("../models/college.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
+const TimetableSlot = require("../models/timetableSlot.model");
 const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
@@ -320,15 +323,39 @@ exports.registerStudent = async (req, res, next) => {
 
 /**
  * GET FULL STUDENT PROFILE (360 VIEW)
+ * FIX: Risk 3 - Large Array Operations in Memory
+ * - Use MongoDB aggregation for attendance calculation
+ * - Limit data to current semester (optional date range)
+ * - Add error handling for graceful degradation
  */
-exports.getMyFullProfile = async (req, res) => {
+exports.getMyFullProfile = async (req, res, next) => {
   try {
     const student = req.student;
+    const { startDate, endDate } = req.query;
+
+    // Validate student exists
+    if (!student) {
+      throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found"
+      });
+    }
 
     // 1️⃣ College Info
     const college = await College.findById(student.college_id).select(
       "name code email contactNumber address establishedYear",
     );
+
+    if (!college) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found"
+      });
+    }
 
     // 2️⃣ Department & Course
     const department = await Department.findById(student.department_id).select(
@@ -342,55 +369,151 @@ exports.getMyFullProfile = async (req, res) => {
       isActive: true
     }).select("documents");
 
-    // 4️⃣ Attendance Summary
-    const sessions = await AttendanceSession.find({
-      course_id: student.course_id,
-      college_id: student.college_id,
-    });
-
-    const sessionIds = sessions.map((s) => s._id);
-
-    const records = await AttendanceRecord.find({
-      student_id: student._id,
-    }).populate({
-      path: "session_id",
-      populate: {
-        path: "subject_id",
-        select: "name",
-      },
-    });
-
-    const attendanceMap = {};
-
-    records.forEach((r) => {
-      const subjectName = r.session_id.subject_id.name;
-
-      if (!attendanceMap[subjectName]) {
-        attendanceMap[subjectName] = { total: 0, present: 0 };
-      }
-
-      attendanceMap[subjectName].total += 1;
-
-      if (r.status === "PRESENT") {
-        attendanceMap[subjectName].present += 1;
-      }
-    });
-
-    const attendanceSummary = Object.keys(attendanceMap).map((subject) => {
-      const total = attendanceMap[subject].total;
-      const present = attendanceMap[subject].present;
-      const percentage = ((present / total) * 100).toFixed(2);
-
-      return {
-        subject,
-        totalLectures: total,
-        attended: present,
-        percentage,
-        status: percentage < 75 ? "AT_RISK" : "SAFE",
+    // 4️⃣ Attendance Summary - Using MongoDB Aggregation (FIX: Risk 3)
+    // Build date filter
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        lectureDate: {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        }
       };
-    });
+    } else {
+      // Default: Last 6 months to reduce data load
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      dateFilter = {
+        lectureDate: { $gte: sixMonthsAgo }
+      };
+    }
 
-    // 5️⃣ Final Response - Include ALL student fields from model
+    // Use aggregation pipeline for efficient calculation
+    let attendanceSummary = [];
+    try {
+      const attendancePipeline = [
+        {
+          $match: {
+            course_id: student.course_id,
+            college_id: student.college_id,
+            ...dateFilter
+          }
+        },
+        {
+          $lookup: {
+            from: 'attendancerecords',
+            let: { sessionId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$session_id', '$$sessionId'] },
+                  student_id: student._id
+                }
+              }
+            ],
+            as: 'attendanceRecord'
+          }
+        },
+        {
+          $lookup: {
+            from: 'subjects',
+            localField: 'subject_id',
+            foreignField: '_id',
+            as: 'subject'
+          }
+        },
+        {
+          $unwind: {
+            path: '$subject',
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $group: {
+            _id: '$subject.name',
+            totalLectures: { $sum: 1 },
+            attended: {
+              $sum: {
+                $cond: [
+                  { $gt: [{ $size: '$attendanceRecord' }, 0] },
+                  1,
+                  0
+                ]
+              }
+            },
+            present: {
+              $sum: {
+                $cond: [
+                  { $eq: [{ $first: '$attendanceRecord.status' }, 'PRESENT'] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            subject: '$_id',
+            totalLectures: 1,
+            attended: 1,
+            present: 1,
+            percentage: {
+              $cond: [
+                { $gt: ['$totalLectures', 0] },
+                { $round: [{ $multiply: [{ $divide: ['$present', '$totalLectures'] }, 100] }, 2] },
+                0
+              ]
+            },
+            status: {
+              $cond: [
+                { $lt: [
+                  { $cond: [
+                    { $gt: ['$totalLectures', 0] },
+                    { $multiply: [{ $divide: ['$present', '$totalLectures'] }, 100] },
+                    0
+                  ]},
+                  75
+                ]},
+                'AT_RISK',
+                'SAFE'
+              ]
+            }
+          }
+        },
+        { $sort: { subject: 1 } }
+      ];
+
+      attendanceSummary = await AttendanceSession.aggregate(attendancePipeline);
+    } catch (aggError) {
+      console.error('❌ Attendance aggregation error:', aggError.message);
+      // Fallback: Return empty attendance if aggregation fails
+      attendanceSummary = [];
+    }
+
+    // 5️⃣ Today's Timetable (separate query, limited data)
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    
+    let todaysTimetable = [];
+    try {
+      todaysTimetable = await TimetableSlot.find({
+        course_id: student.course_id,
+        department_id: student.department_id,
+        college_id: student.college_id,
+        day: dayName
+      })
+        .populate('subject_id', 'name code')
+        .populate('teacher_id', 'name')
+        .sort({ startTime: 1 })
+        .limit(10);
+    } catch (timetableError) {
+      console.error('❌ Timetable fetch error:', timetableError.message);
+      // Fallback: Return empty timetable if fetch fails
+      todaysTimetable = [];
+    }
+
+    // 6️⃣ Final Response - Include ALL student fields from model
     const studentData = {
       id: student._id,
       fullName: student.fullName,
@@ -493,7 +616,13 @@ exports.getMyFullProfile = async (req, res) => {
       documentConfig: docConfig?.documents || [] // Return document config for conditional rendering
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ [STUDENT CONTROLLER] Error in getMyFullProfile:', error);
+    console.error('❌ [STUDENT CONTROLLER] Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch student profile",
+      error: error.message 
+    });
   }
 };
 
