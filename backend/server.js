@@ -2,6 +2,7 @@ require("dotenv").config();
 require("./src/cron/paymentReminder.cron");
 require("./src/cron/lowAttendanceAlert.cron");
 require("./src/cron/paymentCleanup.cron");
+require("./src/cron/paymentReconciliation.cron"); // FIX: Edge Case 4
 const app = require("./app");
 const connectDB = require("./src/config/db");
 const seedSuperAdmin = require("./src/utils/seedSuperAdmin");
