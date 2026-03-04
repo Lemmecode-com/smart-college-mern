@@ -359,8 +359,8 @@ export default function StudentPromotion() {
 
       {/* Statistics Cards */}
       <div className="stats-grid">
-        <div className="stat-card stat-primary">
-          <div className="stat-icon stat-icon-primary">
+        <div className="stat-card">
+          <div className="stat-icon">
             <FaUsers />
           </div>
           <div className="stat-content">
@@ -369,8 +369,8 @@ export default function StudentPromotion() {
           </div>
         </div>
 
-        <div className="stat-card stat-success">
-          <div className="stat-icon stat-icon-success">
+        <div className="stat-card">
+          <div className="stat-icon">
             <FaDollarSign />
           </div>
           <div className="stat-content">
@@ -379,8 +379,8 @@ export default function StudentPromotion() {
           </div>
         </div>
 
-        <div className="stat-card stat-danger">
-          <div className="stat-icon stat-icon-danger">
+        <div className="stat-card">
+          <div className="stat-icon">
             <FaExclamationTriangle />
           </div>
           <div className="stat-content">
@@ -389,8 +389,8 @@ export default function StudentPromotion() {
           </div>
         </div>
 
-        <div className="stat-card stat-info">
-          <div className="stat-icon stat-icon-info">
+        <div className="stat-card">
+          <div className="stat-icon">
             <FaCheckCircle />
           </div>
           <div className="stat-content">
@@ -973,7 +973,7 @@ export default function StudentPromotion() {
       <style>{`
         .page-container {
           padding: 24px;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e3e7ed 100%);
+          background: #f0f4f8;
           min-height: 100vh;
         }
 
@@ -982,10 +982,10 @@ export default function StudentPromotion() {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 24px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          padding: 24px;
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          padding: 28px 32px;
           border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
           color: white;
         }
 
@@ -1006,9 +1006,10 @@ export default function StudentPromotion() {
         }
 
         .page-subtitle {
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 14px;
-          margin-top: 4px;
+          color: rgba(255, 255, 255, 0.95);
+          font-size: 15px;
+          margin-top: 6px;
+          font-weight: 400;
         }
 
         .header-actions {
@@ -1016,9 +1017,31 @@ export default function StudentPromotion() {
           gap: 12px;
         }
 
+        .btn-outline-primary {
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(10px);
+          padding: 12px 20px;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .btn-outline-primary:hover {
+          background: rgba(255, 255, 255, 0.25);
+          border-color: rgba(255, 255, 255, 0.6);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 20px;
           margin-bottom: 24px;
         }
@@ -1027,74 +1050,43 @@ export default function StudentPromotion() {
           background: white;
           padding: 24px;
           border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.08);
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 20px;
           transition: all 0.3s ease;
-          border-left: 4px solid transparent;
+          border: 1px solid #e2e8f0;
         }
 
         .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-
-        .stat-card.stat-primary {
-          border-left-color: #667eea;
-        }
-
-        .stat-card.stat-success {
-          border-left-color: #10b981;
-        }
-
-        .stat-card.stat-danger {
-          border-left-color: #ef4444;
-        }
-
-        .stat-card.stat-info {
-          border-left-color: #3b82f6;
+          transform: translateY(-5px);
+          box-shadow: 0 12px 28px rgba(15, 58, 74, 0.15);
+          border-color: #3db5e6;
         }
 
         .stat-icon {
-          width: 56px;
-          height: 56px;
+          width: 60px;
+          height: 60px;
           border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 28px;
           flex-shrink: 0;
           transition: all 0.3s ease;
-        }
-
-        .stat-icon-primary {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-        }
-
-        .stat-icon-success {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: white;
-        }
-
-        .stat-icon-danger {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: white;
-        }
-
-        .stat-icon-info {
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          color: white;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(61, 181, 230, 0.08) 100%);
+          color: #3db5e6;
         }
 
         .stat-card:hover .stat-icon {
           transform: scale(1.1) rotate(5deg);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          color: white;
         }
 
         .stat-label {
           font-size: 13px;
-          color: #666;
+          color: #64748b;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1103,7 +1095,7 @@ export default function StudentPromotion() {
         .stat-value {
           font-size: 32px;
           font-weight: 800;
-          color: #1a1a2e;
+          color: #0f3a4a;
           line-height: 1;
         }
 
@@ -1115,7 +1107,8 @@ export default function StudentPromotion() {
           display: flex;
           gap: 16px;
           flex-wrap: wrap;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.06);
+          border: 1px solid #e2e8f0;
         }
 
         .search-box {
@@ -1129,7 +1122,7 @@ export default function StudentPromotion() {
           left: 16px;
           top: 50%;
           transform: translateY(-50%);
-          color: #999;
+          color: #3db5e6;
           font-size: 16px;
         }
 
@@ -1138,7 +1131,7 @@ export default function StudentPromotion() {
           right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          background: #f3f4f6;
+          background: #f1f5f9;
           border: none;
           border-radius: 6px;
           width: 28px;
@@ -1148,27 +1141,32 @@ export default function StudentPromotion() {
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s;
-          color: #666;
+          color: #64748b;
         }
 
         .clear-search-btn:hover {
-          background: #e5e7eb;
-          color: #333;
+          background: #e2e8f0;
+          color: #0f3a4a;
         }
 
         .search-input {
           width: 100%;
           padding: 12px 16px 12px 48px;
-          border: 2px solid #e5e7eb;
+          border: 2px solid #e2e8f0;
           border-radius: 12px;
           font-size: 14px;
           transition: all 0.3s ease;
+          background: white;
         }
 
         .search-input:focus {
-          border-color: #667eea;
-          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.1);
           outline: none;
+        }
+
+        .search-input::placeholder {
+          color: #94a3b8;
         }
 
         .filter-group {
@@ -1179,46 +1177,52 @@ export default function StudentPromotion() {
 
         .filter-select {
           padding: 12px 20px;
-          border: 2px solid #e5e7eb;
+          border: 2px solid #e2e8f0;
           border-radius: 12px;
           font-size: 14px;
           background: white;
           cursor: pointer;
           transition: all 0.3s ease;
           font-weight: 500;
+          color: #334155;
         }
 
         .filter-select:focus {
-          border-color: #667eea;
+          border-color: #3db5e6;
           outline: none;
-          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.1);
+        }
+
+        .filter-select:hover {
+          border-color: #3db5e6;
         }
 
         .card {
           background: white;
           border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.08);
           overflow: hidden;
           transition: all 0.3s ease;
+          border: 1px solid #e2e8f0;
         }
 
         .card:hover {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.12);
         }
 
         .card-header {
           padding: 20px 24px;
-          border-bottom: 2px solid #f3f4f6;
+          border-bottom: 2px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         }
 
         .card-title {
           font-size: 20px;
           font-weight: 700;
-          color: #1a1a2e;
+          color: #0f3a4a;
           margin: 0;
           display: flex;
           align-items: center;
@@ -1235,73 +1239,93 @@ export default function StudentPromotion() {
         }
 
         .data-table thead th {
-          padding: 16px;
+          padding: 16px 20px;
           text-align: left;
           font-size: 12px;
-          font-weight: 700;
-          color: #6b7280;
+          font-weight: 600;
+          color: white;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-          border-bottom: 2px solid #e5e7eb;
+          letter-spacing: 1px;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          border-bottom: none;
+          opacity: 0.95;
+        }
+
+        .data-table thead th:first-child {
+          border-top-left-radius: 12px;
+        }
+
+        .data-table thead th:last-child {
+          border-top-right-radius: 12px;
         }
 
         .data-table tbody td {
-          padding: 16px;
-          border-bottom: 1px solid #f3f4f6;
+          padding: 18px 20px;
+          border-bottom: 1px solid #e2e8f0;
           vertical-align: middle;
         }
 
         .data-table tbody tr {
-          transition: all 0.2s ease;
+          transition: all 0.25s ease;
         }
 
         .data-table tbody tr:hover {
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
 
         .student-name {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
           font-weight: 700;
-          color: #1a1a2e;
+          color: #0f3a4a;
           font-size: 15px;
+          letter-spacing: 0.3px;
+          text-transform: capitalize;
         }
 
         .student-email {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
           font-size: 13px;
-          color: #6b7280;
+          color: #64748b;
           margin-top: 4px;
+          font-weight: 400;
+          letter-spacing: 0.2px;
         }
 
         .badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 6px 14px;
-          border-radius: 20px;
+          padding: 8px 16px;
+          border-radius: 24px;
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
 
         .badge-success {
-          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-          color: #065f46;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
         }
 
         .badge-warning {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          color: #92400e;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
         }
 
         .badge-danger {
-          background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-          color: #991b1b;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
         }
 
         .badge-info {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          color: #1e40af;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
         }
 
         .btn {
@@ -1318,14 +1342,15 @@ export default function StudentPromotion() {
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #1c7ed6 100%);
           color: white;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
+          background: linear-gradient(135deg, #1c7ed6 0%, #3db5e6 100%);
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+          box-shadow: 0 6px 16px rgba(61, 181, 230, 0.4);
         }
 
         .btn-primary:disabled {
@@ -1333,52 +1358,79 @@ export default function StudentPromotion() {
           cursor: not-allowed;
         }
 
-        .btn-outline-primary {
-          background: white;
-          color: #667eea;
-          border: 2px solid #667eea;
+        .btn-secondary {
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(107, 114, 128, 0.3);
         }
 
-        .btn-outline-primary:hover {
-          background: #667eea;
-          color: white;
+        .btn-secondary:hover {
+          background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+          box-shadow: 0 5px 12px rgba(107, 114, 128, 0.4);
         }
 
         .btn-outline-secondary {
           background: white;
-          color: #6b7280;
-          border: 1px solid #e5e7eb;
+          color: #64748b;
+          border: 1.5px solid #e2e8f0;
+          font-weight: 600;
         }
 
         .btn-outline-secondary:hover {
-          background: #f9fafb;
-          color: #374151;
-          border-color: #d1d5db;
+          background: #f1f5f9;
+          color: #0f3a4a;
+          border-color: #cbd5e1;
         }
 
         .btn-sm {
-          padding: 8px 14px;
+          padding: 8px 16px;
           font-size: 13px;
         }
 
+        .btn-warning {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover:not(:disabled) {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-outline-warning {
+          background: white;
+          color: #d97706;
+          border: 2px solid #fcd34d;
+          font-weight: 600;
+        }
+
+        .btn-outline-warning:hover {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          border-color: transparent;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
         .bulk-action-bar {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          border: 2px solid #93c5fd;
+          background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+          border: 2px solid #3db5e6;
           padding: 16px 20px;
           border-radius: 12px;
           margin-bottom: 20px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
         }
 
         .bulk-action-text {
           font-weight: 600;
-          color: #1e40af;
+          color: #0f3a4a;
           display: flex;
           align-items: center;
           gap: 8px;
+          font-size: 14px;
         }
 
         .modal-overlay {
@@ -1387,7 +1439,7 @@ export default function StudentPromotion() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
+          background: rgba(15, 58, 74, 0.7);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -1408,7 +1460,7 @@ export default function StudentPromotion() {
           max-width: 540px;
           max-height: 90vh;
           overflow-y: auto;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 20px 60px rgba(15, 58, 74, 0.35);
           animation: slideUp 0.3s ease;
         }
 
@@ -1419,18 +1471,18 @@ export default function StudentPromotion() {
 
         .modal-header {
           padding: 24px;
-          border-bottom: 2px solid #f3f4f6;
+          border-bottom: 2px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
           border-radius: 20px 20px 0 0;
         }
 
         .modal-title {
           font-size: 20px;
           font-weight: 700;
-          color: #1a1a2e;
+          color: #0f3a4a;
           margin: 0;
           display: flex;
           align-items: center;
@@ -1438,7 +1490,7 @@ export default function StudentPromotion() {
         }
 
         .modal-close {
-          background: #f3f4f6;
+          background: #f1f5f9;
           border: none;
           border-radius: 8px;
           width: 36px;
@@ -1448,13 +1500,14 @@ export default function StudentPromotion() {
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s;
-          color: #6b7280;
+          color: #64748b;
           font-size: 18px;
         }
 
         .modal-close:hover {
-          background: #e5e7eb;
-          color: #1f2937;
+          background: #e0f2fe;
+          color: #0f3a4a;
+          transform: rotate(90deg);
         }
 
         .modal-body {
@@ -1463,34 +1516,35 @@ export default function StudentPromotion() {
 
         .modal-footer {
           padding: 20px 24px;
-          border-top: 2px solid #f3f4f6;
+          border-top: 2px solid #e2e8f0;
           display: flex;
           gap: 12px;
           justify-content: flex-end;
-          background: #f9fafb;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
           border-radius: 0 0 20px 20px;
         }
 
         .student-info-card {
-          background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+          background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
           padding: 20px;
           border-radius: 12px;
           margin-bottom: 20px;
-          border-left: 4px solid #667eea;
+          border-left: 4px solid #3db5e6;
         }
 
         .fee-details {
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
           padding: 16px;
           border-radius: 12px;
           margin-bottom: 20px;
+          border: 1px solid #bae6fd;
         }
 
         .fee-row {
           display: flex;
           justify-content: space-between;
           padding: 10px 0;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid #bae6fd;
         }
 
         .fee-row:last-child {
@@ -1498,19 +1552,19 @@ export default function StudentPromotion() {
         }
 
         .fee-label {
-          color: #6b7280;
+          color: #64748b;
           font-size: 14px;
           font-weight: 600;
         }
 
         .fee-value {
           font-weight: 700;
-          color: #1a1a2e;
+          color: #0f3a4a;
           font-size: 15px;
         }
 
         .text-success {
-          color: #10b981 !important;
+          color: #059669 !important;
         }
 
         .text-danger {
@@ -1518,7 +1572,7 @@ export default function StudentPromotion() {
         }
 
         .text-muted {
-          color: #9ca3af !important;
+          color: #94a3b8 !important;
         }
 
         .fw-bold {
@@ -1526,11 +1580,11 @@ export default function StudentPromotion() {
         }
 
         .promoted-by-info {
-          background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+          background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
           padding: 16px;
           border-radius: 12px;
           margin-bottom: 20px;
-          border-left: 4px solid #667eea;
+          border-left: 4px solid #3db5e6;
         }
 
         .info-row {
@@ -1540,14 +1594,14 @@ export default function StudentPromotion() {
         }
 
         .info-label {
-          color: #6b7280;
+          color: #64748b;
           font-size: 13px;
           font-weight: 600;
         }
 
         .info-value {
           font-weight: 700;
-          color: #667eea;
+          color: #3db5e6;
           font-size: 14px;
         }
 
@@ -1559,14 +1613,14 @@ export default function StudentPromotion() {
           display: block;
           margin-bottom: 10px;
           font-weight: 600;
-          color: #374151;
+          color: #334155;
           font-size: 14px;
         }
 
         .form-control {
           width: 100%;
           padding: 12px 16px;
-          border: 2px solid #e5e7eb;
+          border: 2px solid #e2e8f0;
           border-radius: 12px;
           font-size: 14px;
           resize: vertical;
@@ -1574,9 +1628,9 @@ export default function StudentPromotion() {
         }
 
         .form-control:focus {
-          border-color: #667eea;
+          border-color: #3db5e6;
           outline: none;
-          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.1);
         }
 
         .alert {
@@ -1591,7 +1645,7 @@ export default function StudentPromotion() {
         .alert-success {
           background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
           color: #065f46;
-          border-left: 4px solid #10b981;
+          border-left: 4px solid #059669;
         }
 
         .alert-danger {
@@ -1607,15 +1661,24 @@ export default function StudentPromotion() {
         }
 
         .alert-info {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          color: #1e40af;
-          border-left: 4px solid #3b82f6;
+          background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+          color: #0c4a6e;
+          border-left: 4px solid #3db5e6;
         }
 
         .alert-text {
           margin: 0;
           font-size: 14px;
           line-height: 1.6;
+        }
+
+        .custom-checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #92400e;
         }
 
         .loading-container {
@@ -1626,7 +1689,7 @@ export default function StudentPromotion() {
         .spinner-icon {
           font-size: 48px;
           animation: spin 1s linear infinite;
-          color: #667eea;
+          color: #3db5e6;
         }
 
         @keyframes spin {
@@ -1640,19 +1703,19 @@ export default function StudentPromotion() {
 
         .empty-icon {
           font-size: 80px;
-          color: #e5e7eb;
+          color: #cbd5e1;
           margin-bottom: 20px;
         }
 
         .empty-title {
           font-size: 20px;
           font-weight: 700;
-          color: #374151;
+          color: #0f3a4a;
           margin-bottom: 8px;
         }
 
         .empty-text {
-          color: #9ca3af;
+          color: #64748b;
           font-size: 15px;
         }
 
@@ -1660,7 +1723,7 @@ export default function StudentPromotion() {
           width: 18px;
           height: 18px;
           cursor: pointer;
-          accent-color: #667eea;
+          accent-color: #3db5e6;
         }
 
         .fee-amount {
@@ -1672,22 +1735,23 @@ export default function StudentPromotion() {
 
         .rupee-icon {
           font-size: 14px;
+          color: #64748b;
         }
 
         .card-footer {
           padding: 20px 24px;
-          border-top: 2px solid #f3f4f6;
+          border-top: 2px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
           flex-wrap: wrap;
           gap: 16px;
         }
 
         .pagination-info {
           font-size: 14px;
-          color: #6b7280;
+          color: #64748b;
           font-weight: 600;
         }
 
@@ -1722,14 +1786,34 @@ export default function StudentPromotion() {
             flex-direction: column;
             gap: 16px;
             text-align: center;
+            padding: 24px 20px;
+          }
+
+          .page-title {
+            font-size: 24px;
           }
 
           .stats-grid {
             grid-template-columns: 1fr;
           }
 
+          .stat-card {
+            padding: 20px;
+          }
+
+          .stat-icon {
+            width: 52px;
+            height: 52px;
+            font-size: 24px;
+          }
+
+          .stat-value {
+            font-size: 28px;
+          }
+
           .filter-bar {
             flex-direction: column;
+            padding: 16px;
           }
 
           .search-box {
@@ -1749,6 +1833,76 @@ export default function StudentPromotion() {
           .card-footer {
             flex-direction: column;
             text-align: center;
+          }
+
+          .modal-content {
+            max-width: 95vw;
+            margin: 20px;
+          }
+
+          .data-table thead th,
+          .data-table tbody td {
+            padding: 14px 12px;
+            font-size: 11px;
+          }
+
+          .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+          }
+
+          .bulk-action-bar {
+            flex-direction: column;
+            gap: 12px;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .page-container {
+            padding: 16px;
+          }
+
+          .page-header {
+            padding: 20px 16px;
+          }
+
+          .page-title {
+            font-size: 20px;
+          }
+
+          .header-icon {
+            font-size: 28px;
+          }
+
+          .stats-grid {
+            gap: 16px;
+          }
+
+          .stat-card {
+            gap: 16px;
+          }
+
+          .stat-label {
+            font-size: 12px;
+          }
+
+          .stat-value {
+            font-size: 24px;
+          }
+
+          .card-header {
+            padding: 16px 18px;
+          }
+
+          .card-body {
+            padding: 16px;
+          }
+
+          .modal-header,
+          .modal-body,
+          .modal-footer {
+            padding: 18px 16px;
           }
         }
       `}</style>
