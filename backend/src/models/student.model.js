@@ -27,7 +27,7 @@ const studentSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Student must have a linked User account"],
       unique: true,
-      index: true // Removed sparse - all students must have user_id
+      sparse: true // Allows documents without user_id during migration
     },
 
     // 🔗 College Mapping
