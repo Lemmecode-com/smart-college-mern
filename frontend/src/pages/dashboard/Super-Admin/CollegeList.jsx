@@ -53,11 +53,16 @@ export default function CollegeList() {
       setLoading(true);
       setError("");
       const res = await api.get("/master/get/colleges");
-      setColleges(res.data || []);
+      
+      // Handle new API response format (interceptor unwraps it)
+      // Backend returns: { count, colleges }
+      // Interceptor makes it: { count, colleges, success, message }
+      const collegesData = res.data.colleges || res.data || [];
+      setColleges(Array.isArray(collegesData) ? collegesData : []);
       setRetryCount(0);
     } catch (err) {
       console.error("Colleges fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load colleges. Please try again.");
+      setError(err.response?.data?.message || err.response?.data?.error?.message || "Failed to load colleges. Please try again.");
     } finally {
       setLoading(false);
     }
