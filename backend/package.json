@@ -4,7 +4,10 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "cleanup:orphans": "node scripts/cleanup-orphaned-records.js",
+    "cleanup:orphans:live": "node scripts/cleanup-orphaned-records.js --live",
+    "test:soft-delete": "node scripts/test-soft-delete.js"
   },
   "keywords": [],
   "author": "",

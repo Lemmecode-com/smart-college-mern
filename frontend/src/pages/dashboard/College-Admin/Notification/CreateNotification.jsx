@@ -30,11 +30,12 @@ export default function CreateNotification() {
     type: "GENERAL",
     priority: "LOW",
     expiresAt: "",
-    targetAudience: "ALL", // NEW: Target audience selection
-    departmentIds: [], // NEW: Department targeting
-    courseIds: [], // NEW: Course targeting
-    sendImmediately: true, // NEW: Scheduling option
-    scheduledTime: "", // NEW: Scheduled send time
+    target: "ALL", // Changed from targetAudience to match backend
+    target_department: "", // Department targeting
+    target_course: "", // Course targeting
+    target_semester: "", // Semester targeting
+    sendImmediately: true,
+    scheduledTime: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -44,12 +45,31 @@ export default function CreateNotification() {
   const [titleCount, setTitleCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   /* ================= CHARACTER COUNTERS ================= */
   useEffect(() => {
     setTitleCount(form.title.length);
     setMessageCount(form.message.length);
   }, [form.title, form.message]);
+
+  /* ================= FETCH DEPARTMENTS & COURSES ================= */
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [deptRes, courseRes] = await Promise.all([
+          api.get("/departments"),
+          api.get("/courses")
+        ]);
+        setDepartments(deptRes.data || []);
+        setCourses(courseRes.data || []);
+      } catch (err) {
+        console.error("Error fetching departments/courses:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -82,15 +102,16 @@ export default function CreateNotification() {
     setSuccess("");
 
     try {
-      // MAINTAIN EXACT SAME PAYLOAD STRUCTURE AS ORIGINAL
+      // Build payload with new targeting fields
       const payload = {
         title: form.title,
         message: form.message,
         type: form.type,
-        priority: form.priority,
+        target: form.target,
+        target_department: form.target_department || undefined,
+        target_course: form.target_course || undefined,
+        target_semester: form.target_semester ? parseInt(form.target_semester) : undefined,
         expiresAt: form.expiresAt || null,
-        // Note: New fields (targetAudience, etc.) are NOT sent to backend
-        // They are UI-only enhancements for future backend integration
       };
 
       await api.post("/notifications/admin/create", payload);
@@ -105,11 +126,11 @@ export default function CreateNotification() {
           title: "",
           message: "",
           type: "GENERAL",
-          priority: "LOW",
+          target: "ALL",
+          target_department: "",
+          target_course: "",
+          target_semester: "",
           expiresAt: "",
-          targetAudience: "ALL",
-          departmentIds: [],
-          courseIds: [],
           sendImmediately: true,
           scheduledTime: "",
         });
@@ -272,11 +293,11 @@ export default function CreateNotification() {
                 title: "",
                 message: "",
                 type: "GENERAL",
-                priority: "LOW",
+                target: "ALL",
+                target_department: "",
+                target_course: "",
+                target_semester: "",
                 expiresAt: "",
-                targetAudience: "ALL",
-                departmentIds: [],
-                courseIds: [],
                 sendImmediately: true,
                 scheduledTime: "",
               })
@@ -516,37 +537,28 @@ export default function CreateNotification() {
                   </div>
                 </div>
 
-                {/* TARGET AUDIENCE (UI ONLY - NOT SENT TO BACKEND) */}
+                {/* TARGET AUDIENCE - ENABLED */}
                 <div className="card border-0 bg-light rounded-3 mb-4">
                   <div className="card-body p-3 p-md-4">
                     <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                      <FaUsers className="text-primary" /> Target Audience{" "}
-                      <span className="badge bg-info ms-2">
-                        UI Preview Only
-                      </span>
+                      <FaUsers className="text-primary" /> Target Audience
                     </h5>
-                    <p className="text-muted small mb-3">
-                      <FaInfoCircle className="me-1" size={12} />
-                      <strong>Note:</strong> Current backend sends to all users.
-                      These options are for future integration preview.
-                    </p>
 
                     <div className="form-check mb-2">
                       <input
                         className="form-check-input"
                         type="radio"
-                        name="targetAudience"
+                        name="target"
                         id="targetAll"
                         value="ALL"
-                        checked={form.targetAudience === "ALL"}
+                        checked={form.target === "ALL"}
                         onChange={handleChange}
                       />
                       <label
                         className="form-check-label fw-medium"
                         htmlFor="targetAll"
                       >
-                        <FaUsers className="me-1" /> All Users (Students,
-                        Teachers, Admins)
+                        <FaUsers className="me-1" /> All Users (Students, Teachers, Admins)
                       </label>
                     </div>
 
@@ -554,21 +566,17 @@ export default function CreateNotification() {
                       <input
                         className="form-check-input"
                         type="radio"
-                        name="targetAudience"
+                        name="target"
                         id="targetStudents"
                         value="STUDENTS"
-                        checked={form.targetAudience === "STUDENTS"}
+                        checked={form.target === "STUDENTS"}
                         onChange={handleChange}
-                        disabled
                       />
                       <label
-                        className="form-check-label fw-medium text-muted"
+                        className="form-check-label fw-medium"
                         htmlFor="targetStudents"
                       >
-                        <FaGraduationCap className="me-1" /> Students Only{" "}
-                        <span className="badge bg-secondary ms-2">
-                          Coming Soon
-                        </span>
+                        <FaGraduationCap className="me-1" /> Students Only
                       </label>
                     </div>
 
@@ -576,45 +584,130 @@ export default function CreateNotification() {
                       <input
                         className="form-check-input"
                         type="radio"
-                        name="targetAudience"
+                        name="target"
                         id="targetTeachers"
                         value="TEACHERS"
-                        checked={form.targetAudience === "TEACHERS"}
+                        checked={form.target === "TEACHERS"}
                         onChange={handleChange}
-                        disabled
                       />
                       <label
-                        className="form-check-label fw-medium text-muted"
+                        className="form-check-label fw-medium"
                         htmlFor="targetTeachers"
                       >
-                        <FaChalkboardTeacher className="me-1" /> Teachers Only{" "}
-                        <span className="badge bg-secondary ms-2">
-                          Coming Soon
-                        </span>
+                        <FaChalkboardTeacher className="me-1" /> Teachers Only
                       </label>
                     </div>
 
-                    <div className="form-check">
+                    <div className="form-check mb-3">
                       <input
                         className="form-check-input"
                         type="radio"
-                        name="targetAudience"
-                        id="targetCustom"
-                        value="CUSTOM"
-                        checked={form.targetAudience === "CUSTOM"}
+                        name="target"
+                        id="targetDepartment"
+                        value="DEPARTMENT"
+                        checked={form.target === "DEPARTMENT"}
                         onChange={handleChange}
-                        disabled
                       />
                       <label
-                        className="form-check-label fw-medium text-muted"
-                        htmlFor="targetCustom"
+                        className="form-check-label fw-medium"
+                        htmlFor="targetDepartment"
                       >
-                        <FaLayerGroup className="me-1" /> Custom Selection{" "}
-                        <span className="badge bg-secondary ms-2">
-                          Coming Soon
-                        </span>
+                        <FaLayerGroup className="me-1" /> Specific Department
                       </label>
                     </div>
+                    
+                    {form.target === "DEPARTMENT" && (
+                      <div className="ms-4 mb-3">
+                        <select
+                          className="form-select"
+                          name="target_department"
+                          value={form.target_department}
+                          onChange={handleChange}
+                          required
+                        >
+                          <option value="">Select Department</option>
+                          {departments.map(dept => (
+                            <option key={dept._id} value={dept._id}>
+                              {dept.name} ({dept.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-check mb-3">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="target"
+                        id="targetCourse"
+                        value="COURSE"
+                        checked={form.target === "COURSE"}
+                        onChange={handleChange}
+                      />
+                      <label
+                        className="form-check-label fw-medium"
+                        htmlFor="targetCourse"
+                      >
+                        <FaGraduationCap className="me-1" /> Specific Course
+                      </label>
+                    </div>
+                    
+                    {form.target === "COURSE" && (
+                      <div className="ms-4 mb-3">
+                        <select
+                          className="form-select"
+                          name="target_course"
+                          value={form.target_course}
+                          onChange={handleChange}
+                          required
+                        >
+                          <option value="">Select Course</option>
+                          {courses.map(course => (
+                            <option key={course._id} value={course._id}>
+                              {course.name} ({course.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-check mb-3">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="target"
+                        id="targetSemester"
+                        value="SEMESTER"
+                        checked={form.target === "SEMESTER"}
+                        onChange={handleChange}
+                      />
+                      <label
+                        className="form-check-label fw-medium"
+                        htmlFor="targetSemester"
+                      >
+                        <FaClock className="me-1" /> Specific Semester
+                      </label>
+                    </div>
+                    
+                    {form.target === "SEMESTER" && (
+                      <div className="ms-4">
+                        <select
+                          className="form-select"
+                          name="target_semester"
+                          value={form.target_semester}
+                          onChange={handleChange}
+                          required
+                        >
+                          <option value="">Select Semester</option>
+                          {[1,2,3,4,5,6,7,8].map(sem => (
+                            <option key={sem} value={sem}>
+                              Semester {sem}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
 

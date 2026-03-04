@@ -1,5 +1,6 @@
 import { createContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { logger } from "../utils/logger";
 
 export const AuthContext = createContext(null);
 
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       // Call logout endpoint to clear the httpOnly cookie on backend
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Logout error:", error);
+      logger.error("Logout error:", error);
     } finally {
       // Clear user info from state regardless of API success
       setUser(null);
@@ -67,7 +68,7 @@ export const AuthProvider = ({ children }) => {
         // 401 is expected for unauthenticated users - don't log it as error
         // Only log if it's a different error (network issue, server error, etc.)
         if (error.response?.status !== 401) {
-          console.error("Auth check error:", error.response?.status || error.message);
+          logger.error("Auth check error:", error.response?.status || error.message);
         }
         // User is not authenticated - this is normal, not an error
         setUser(null);

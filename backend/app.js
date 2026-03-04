@@ -16,9 +16,13 @@ const logger = require("./src/utils/logger");
 const app = express();
 
 /* ================= CORS CONFIGURATION ================= */
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',') 
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
   credentials: true,
-  origin: process.env.CLIENT_URL || "http://localhost:5173"  // Adjust this to your frontend URL
+  origin: corsOrigins
 }));
 app.use(cookieParser());
 
