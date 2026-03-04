@@ -54,6 +54,36 @@ export default function StudentDashboard() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
+  // Defensive: Safe access to attendance data
+  const attendanceSummary = dashboardData?.attendanceSummary || {
+    total: 0,
+    present: 0,
+    absent: 0,
+    percentage: 0,
+    warning: false,
+  };
+
+  // Defensive: Safe access to student data
+  const studentData = dashboardData?.student || {
+    name: "Student",
+    enrollmentNumber: "N/A",
+    course: "Not Assigned",
+    department: "Not Assigned",
+    semester: 1,
+  };
+
+  // Defensive: Safe access to pie chart data
+  const attendanceData = [
+    {
+      name: "Present",
+      value: attendanceSummary.present || 0,
+    },
+    {
+      name: "Absent",
+      value: attendanceSummary.absent || 0,
+    },
+  ];
+
   useEffect(() => {
     fetchDashboardData();
   }, [retryCount]);
@@ -126,30 +156,28 @@ export default function StudentDashboard() {
     return null;
   };
 
-  // Prepare Attendance Pie Chart Data
-  const attendancePieData = dashboardData
-    ? [
-        {
-          name: "Present",
-          value: dashboardData.attendanceSummary.present,
-          color: "#28a745",
-        },
-        {
-          name: "Absent",
-          value: dashboardData.attendanceSummary.absent,
-          color: "#dc3545",
-        },
-      ]
-    : [];
+  // Prepare Attendance Pie Chart Data (with defensive checks)
+  const attendancePieData = [
+    {
+      name: "Present",
+      value: attendanceSummary.present || 0,
+      color: "#28a745",
+    },
+    {
+      name: "Absent",
+      value: attendanceSummary.absent || 0,
+      color: "#dc3545",
+    },
+  ];
 
-  // Prepare Subject-wise Bar Chart Data
+  // Prepare Subject-wise Bar Chart Data (with defensive checks)
   const subjectBarData =
-    dashboardData?.subjectWiseAttendance.map((subject) => ({
-      subject: subject.subject,
-      code: subject.code,
-      present: subject.present,
-      total: subject.total,
-      percentage: subject.percentage,
+    (dashboardData?.subjectWiseAttendance || []).map((subject) => ({
+      subject: subject.subject || "Unknown",
+      code: subject.code || "N/A",
+      present: subject.present || 0,
+      total: subject.total || 0,
+      percentage: subject.percentage || 0,
     })) || [];
 
   // Loading State
@@ -175,9 +203,10 @@ export default function StudentDashboard() {
 
   if (!dashboardData) return null;
 
+  // Use the safe variables declared at the top (already have defaults)
+  // No need to destructure again - attendanceSummary, studentData already defined
+
   const {
-    student,
-    attendanceSummary,
     subjectWiseAttendance,
     todayTimetable,
     feeSummary,
@@ -246,7 +275,7 @@ export default function StudentDashboard() {
             <FaGraduationCap />
           </div>
           <div>
-            <h1 className="dashboard-title">Welcome, {student.name}!</h1>
+            <h1 className="dashboard-title">Welcome, {studentData.name}!</h1>
           </div>
         </div>
         <div className="header-right">
@@ -305,7 +334,7 @@ export default function StudentDashboard() {
                 <FaUserGraduate />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.name}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.name}</h3>
                 <p className="text-muted small mb-0">Student Name</p>
               </div>
             </div>
@@ -320,7 +349,7 @@ export default function StudentDashboard() {
                 <FaGraduationCap />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.course}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.course}</h3>
                 <p className="text-muted small mb-0">Current Course</p>
               </div>
             </div>
@@ -335,7 +364,7 @@ export default function StudentDashboard() {
                 <FaUniversity />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.department}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.department}</h3>
                 <p className="text-muted small mb-0">Department</p>
               </div>
             </div>
@@ -401,8 +430,8 @@ export default function StudentDashboard() {
             </div>
 
             {/* Enhanced Pie Chart with better dimensions */}
-            <div className="attendance-chart">
-              <ResponsiveContainer width="100%" height="100%" minHeight={280}>
+            <div className="attendance-chart" style={{ width: '100%', height: '300px', minHeight: '280px' }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={attendancePieData}
@@ -484,8 +513,8 @@ export default function StudentDashboard() {
 
           <div className="card-body">
             {/* Enhanced Bar Chart with Risk-Based Colors */}
-            <div className="subject-chart">
-              <ResponsiveContainer width="100%" height="100%" minHeight={350}>
+            <div className="subject-chart" style={{ width: '100%', height: '400px', minHeight: '350px' }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                   <XAxis
