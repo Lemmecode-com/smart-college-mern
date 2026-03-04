@@ -10,6 +10,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -183,7 +184,7 @@ exports.studentDashboard = async (req, res, next) => {
        7️⃣ FINAL RESPONSE
     ===================================================== */
 
-    res.json({
+    ApiResponse.success(res, {
       student: {
         name: student.fullName || "Student",
         enrollmentNumber: student.enrollmentNumber || "N/A",
@@ -204,7 +205,7 @@ exports.studentDashboard = async (req, res, next) => {
       todayTimetable,
       feeSummary,
       latestNotifications: latestNotifications || [],
-    });
+    }, "Dashboard data fetched successfully");
   } catch (error) {
     console.error('❌ [DASHBOARD] Student Dashboard Error:', error);
     console.error('❌ [DASHBOARD] Error Stack:', error.stack);
@@ -265,7 +266,7 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
-    res.json({
+    ApiResponse.success(res, {
       teacher: {
         name: teacher.name,
         email: teacher.email,
@@ -282,7 +283,7 @@ exports.teacherDashboard = async (req, res, next) => {
         attendancePercentage,
       },
       recentLectures: sessions.slice(0, 5),
-    });
+    }, "Teacher dashboard data fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -330,15 +331,15 @@ exports.collegeAdminDashboard = async (req, res, next) => {
       .select("fullName email enrollmentNumber status");
 
     // 🔥 OPTIMIZED: Fetch only pending admissions (usually small count)
-    const pendingAdmissions = await Student.find({ 
-      college_id: collegeId, 
-      status: "PENDING" 
+    const pendingAdmissions = await Student.find({
+      college_id: collegeId,
+      status: "PENDING"
     })
       .sort({ createdAt: -1 })
       .limit(50)
       .select("fullName email enrollmentNumber createdAt");
 
-    res.json({
+    ApiResponse.success(res, {
       college: {
         id: college._id,
         name: college.name,
@@ -358,7 +359,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
 
       recentStudents,
       pendingAdmissions,
-    });
+    }, "College admin dashboard data fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -367,19 +368,23 @@ exports.collegeAdminDashboard = async (req, res, next) => {
 /**
  * 🧑‍💼 SUPER ADMIN DASHBOARD
  */
-exports.superAdminDashboard = async (req, res) => {
-  const [colleges, students, teachers] = await Promise.all([
-    College.find().select("name status"),
-    Student.countDocuments(),
-    Teacher.countDocuments(),
-  ]);
+exports.superAdminDashboard = async (req, res, next) => {
+  try {
+    const [colleges, students, teachers] = await Promise.all([
+      College.find().select("name status"),
+      Student.countDocuments(),
+      Teacher.countDocuments(),
+    ]);
 
-  res.json({
-    stats: {
-      totalColleges: colleges.length,
-      totalStudents: students,
-      totalTeachers: teachers,
-    },
-    colleges,
-  });
+    ApiResponse.success(res, {
+      stats: {
+        totalColleges: colleges.length,
+        totalStudents: students,
+        totalTeachers: teachers,
+      },
+      colleges,
+    }, "Super admin dashboard data fetched successfully");
+  } catch (error) {
+    next(error);
+  }
 };
