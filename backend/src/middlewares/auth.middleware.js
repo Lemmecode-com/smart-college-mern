@@ -1,13 +1,29 @@
 const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
+const TokenBlacklist = require("../models/tokenBlacklist.model");
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   try {
     // Get token from cookie instead of header
     const token = req.cookies.token;
 
     if (!token) {
       throw new AppError("Authorization token missing", 401, "TOKEN_MISSING");
+    }
+
+    // 🔒 SECURITY: Check if token is blacklisted
+    const isBlacklisted = await TokenBlacklist.findOne({
+      token: token,
+      tokenType: "access",
+      expiresAt: { $gt: new Date() } // Only check non-expired blacklisted tokens
+    });
+
+    if (isBlacklisted) {
+      throw new AppError(
+        "Token has been blacklisted. Please login again.",
+        401,
+        "TOKEN_BLACKLISTED"
+      );
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

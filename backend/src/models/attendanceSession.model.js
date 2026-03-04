@@ -57,8 +57,19 @@ const attendanceSessionSchema = new mongoose.Schema(
       default: "OPEN",
     },
 
+    // Auto-close tracking (FIX: Flow 3 - Attendance Auto-Close Notification)
+    autoClosed: {
+      type: Boolean,
+      default: false,
+    },
+
+    autoClosedAt: {
+      type: Date,
+    },
+
     // ✅ SESSION SNAPSHOT (Preserves history)
     // Immutable copy of slot data at time of session creation
+    // FIX: DATA-003 - Added version tracking for sync management
     slotSnapshot: {
       subject_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -99,7 +110,23 @@ const attendanceSessionSchema = new mongoose.Schema(
         enum: ["LECTURE", "LAB"],
         required: true,
       }
-    }
+    },
+
+    // Snapshot version tracking (FIX: DATA-003)
+    snapshotVersion: {
+      type: Number,
+      default: 1,
+    },
+
+    syncedAt: {
+      type: Date,
+    },
+
+    // Track if snapshot was manually verified/updated
+    snapshotVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
