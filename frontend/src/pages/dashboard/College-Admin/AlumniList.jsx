@@ -274,28 +274,26 @@ function AlumniTableRow({ alumnus, onGenerateCertificate, onViewDetails }) {
         </span>
       </td>
       <td className="cell-year">
-        <span className="badge badge-year">
+        <span className="badge badge-graduation-year">
+          <FaGraduationCap className="badge-icon" />
           {alumnus.graduationYear || "N/A"}
         </span>
       </td>
       <td className="cell-date">
-        <span className="alumni-date">{formattedDate}</span>
+        <span className="alumni-date">
+          <FaCalendarAlt className="date-icon" />
+          {formattedDate}
+        </span>
       </td>
       <td className="cell-actions">
         <div className="action-buttons">
           <button
-            className="btn btn-view"
-            onClick={() => onViewDetails(alumnus)}
-            title="View Details"
-          >
-            <FaEye />
-          </button>
-          <button
-            className="btn btn-generate"
+            className="btn btn-action btn-generate-cert"
             onClick={() => onGenerateCertificate(alumnus)}
             title="Generate Certificate"
           >
-            <FaCertificate /> Certificate
+            <FaCertificate />
+            <span className="btn-text">Certificate</span>
           </button>
         </div>
       </td>
@@ -405,10 +403,10 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
 }
 
 /* ================= STATS CARD ================= */
-function StatCard({ icon, label, value, color, gradient }) {
+function StatCard({ icon, label, value, accent }) {
   return (
-    <div className="stat-card" style={{ background: gradient }}>
-      <div className="stat-icon">{icon}</div>
+    <div className="stat-card stat-card-themed">
+      <div className={`stat-icon stat-icon-${accent ? "accent" : "default"}`}>{icon}</div>
       <div className="stat-content">
         <span className="stat-value">{value}</span>
         <span className="stat-label">{label}</span>
@@ -717,29 +715,25 @@ export default function AlumniList() {
           icon={<FaUsers />}
           label="Total Alumni"
           value={alumni.length}
-          color="primary"
-          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+          accent={true}
         />
         <StatCard
           icon={<FaCalendarAlt />}
           label="Graduation Years"
           value={getUniqueGraduationYears().length}
-          color="success"
-          gradient="linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)"
+          accent={true}
         />
         <StatCard
           icon={<FaAward />}
           label="Departments"
           value={getUniqueDepartments().length}
-          color="info"
-          gradient="linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)"
+          accent={true}
         />
         <StatCard
           icon={<FaCertificate />}
           label="Certificates Ready"
           value={alumni.length}
-          color="warning"
-          gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+          accent={true}
         />
       </div>
 
