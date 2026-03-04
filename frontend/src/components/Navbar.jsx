@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { logger } from "../utils/logger";
 import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
@@ -76,7 +77,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
         }
       } catch (error) {
         if (error.response?.status !== 403 && error.response?.status !== 401) {
-          console.error("Error fetching college info:", error);
+          logger.error("Error fetching college info:", error);
         }
       } finally {
         setLoading(false);
@@ -128,9 +129,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
           setToast("⏳ Too many requests. Pausing notifications...");
           setTimeout(() => setToast(null), 3000);
         }
-        console.warn("Notification polling rate limited - backing off for 30s");
+        logger.warn("Notification polling rate limited - backing off for 30s");
       } else if (err.response?.status !== 403 && err.response?.status !== 401) {
-        if (!silent) console.error("Notification count error", err);
+        logger.error("Notification count error", err);
       }
     }
   };
@@ -142,7 +143,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       const res = await api.get("/notifications/unread/bell");
       setNotes(res.data || []);
     } catch (err) {
-      console.error("Bell fetch error", err);
+      logger.error("Bell fetch error", err);
     } finally {
       setFetchingNotes(false);
     }
@@ -156,7 +157,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       fetchNotes();
       fetchCount();
     } catch (err) {
-      console.error("Mark read failed", err);
+      logger.error("Mark read failed", err);
     } finally {
       setMarkingRead(null);
     }
@@ -172,7 +173,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
-      console.error("Mark all read failed", err);
+      logger.error("Mark all read failed", err);
       setToast("❌ Failed to mark all as read");
       setTimeout(() => setToast(null), 3000);
     }
@@ -243,7 +244,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       await logout();
       navigate("/login");
     } catch (err) {
-      console.error("Logout error:", err);
+      logger.error("Logout error:", err);
     } finally {
       setLoggingOut(false);
     }
