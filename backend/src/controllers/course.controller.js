@@ -1,10 +1,12 @@
 const Course = require("../models/course.model");
 const Department = require("../models/department.model");
+const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * CREATE Course
  */
-exports.createCourse = async (req, res) => {
+exports.createCourse = async (req, res, next) => {
   const {
     department_id,
     name,
@@ -22,7 +24,7 @@ exports.createCourse = async (req, res) => {
   });
 
   if (!department) {
-    return res.status(404).json({ message: "Invalid department" });
+    throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
   }
 
   const course = await Course.create({
@@ -38,25 +40,29 @@ exports.createCourse = async (req, res) => {
     createdBy: req.user.id
   });
 
-  res.status(201).json(course);
+  ApiResponse.created(res, { course }, "Course created successfully");
 };
 
 /**
  * READ Courses by Department
  */
-exports.getCoursesByDepartment = async (req, res) => {
-  const courses = await Course.find({
-    department_id: req.params.departmentId,
-    college_id: req.college_id
-  });
+exports.getCoursesByDepartment = async (req, res, next) => {
+  try {
+    const courses = await Course.find({
+      department_id: req.params.departmentId,
+      college_id: req.college_id
+    });
 
-  res.json(courses);
+    ApiResponse.success(res, { courses }, "Department courses fetched successfully");
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
  * READ All Courses (College-wise)
  */
-exports.getAllCourses = async (req, res) => {
+exports.getAllCourses = async (req, res, next) => {
   try {
     const courses = await Course.find({
       college_id: req.college_id
@@ -64,10 +70,9 @@ exports.getAllCourses = async (req, res) => {
       .populate("department_id", "name code")
       .sort({ name: 1 });
 
-    res.json(courses);
+    ApiResponse.success(res, { courses }, "Courses fetched successfully");
   } catch (error) {
-    console.error("Get all courses error:", error);
-    res.status(500).json({ message: "Failed to fetch courses" });
+    next(error);
   }
 };
 
@@ -75,54 +80,64 @@ exports.getAllCourses = async (req, res) => {
 /**
  * READ Single Course (by ID)
  */
-exports.getCourseById = async (req, res) => {
-  const course = await Course.findOne({
-    _id: req.params.id,
-    college_id: req.college_id
-  }).populate("department_id", "name code type");
+exports.getCourseById = async (req, res, next) => {
+  try {
+    const course = await Course.findOne({
+      _id: req.params.id,
+      college_id: req.college_id
+    }).populate("department_id", "name code type");
 
-  if (!course) {
-    return res.status(404).json({
-      message: "Course not found"
-    });
+    if (!course) {
+      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
+    ApiResponse.success(res, { course }, "Course fetched successfully");
+  } catch (error) {
+    next(error);
   }
-
-  res.json(course);
 };
 
 
 /**
  * UPDATE Course
  */
-exports.updateCourse = async (req, res) => {
-  const course = await Course.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      college_id: req.college_id
-    },
-    req.body,
-    { new: true }
-  );
+exports.updateCourse = async (req, res, next) => {
+  try {
+    const course = await Course.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        college_id: req.college_id
+      },
+      req.body,
+      { new: true }
+    );
 
-  if (!course) {
-    return res.status(404).json({ message: "Course not found" });
+    if (!course) {
+      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
+    ApiResponse.success(res, { course }, "Course updated successfully");
+  } catch (error) {
+    next(error);
   }
-
-  res.json(course);
 };
 
 /**
  * DELETE Course
  */
-exports.deleteCourse = async (req, res) => {
-  const course = await Course.findOneAndDelete({
-    _id: req.params.id,
-    college_id: req.college_id
-  });
+exports.deleteCourse = async (req, res, next) => {
+  try {
+    const course = await Course.findOneAndDelete({
+      _id: req.params.id,
+      college_id: req.college_id
+    });
 
-  if (!course) {
-    return res.status(404).json({ message: "Course not found" });
+    if (!course) {
+      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
+    ApiResponse.success(res, null, "Course deleted successfully");
+  } catch (error) {
+    next(error);
   }
-
-  res.json({ message: "Course deleted successfully" });
 };
