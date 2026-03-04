@@ -11,6 +11,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
 const collegeService = require("../services/college.service");
 
@@ -312,10 +313,9 @@ exports.registerStudent = async (req, res, next) => {
       }
     })();
 
-    res.status(201).json({
-      message: "Registration successful. Await college approval.",
-      registeredStud,
-    });
+    ApiResponse.created(res, {
+      student: registeredStud
+    }, "Registration successful. Await college approval.");
   } catch (error) {
     next(error);
   }
@@ -607,22 +607,18 @@ exports.getMyFullProfile = async (req, res, next) => {
       libraryRequired: student.libraryRequired !== undefined ? student.libraryRequired : true,
     };
 
-    res.json({
+    ApiResponse.success(res, {
       student: studentData,
       college,
       department,
       course,
       attendance: attendanceSummary,
-      documentConfig: docConfig?.documents || [] // Return document config for conditional rendering
-    });
+      documentConfig: docConfig?.documents || []
+    }, "Profile fetched successfully");
   } catch (error) {
     console.error('❌ [STUDENT CONTROLLER] Error in getMyFullProfile:', error);
     console.error('❌ [STUDENT CONTROLLER] Error stack:', error.stack);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to fetch student profile",
-      error: error.message 
-    });
+    next(error);
   }
 };
 
@@ -650,12 +646,11 @@ exports.updateMyProfile = async (req, res) => {
 
     await student.save();
 
-    res.json({
-      message: "Profile updated successfully",
-      student,
-    });
+    ApiResponse.success(res, {
+      student
+    }, "Profile updated successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -690,12 +685,11 @@ exports.updateStudentByAdmin = async (req, res) => {
 
     await student.save();
 
-    res.json({
-      message: "Student updated successfully",
-      student,
-    });
+    ApiResponse.success(res, {
+      student
+    }, "Student updated successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -712,17 +706,15 @@ exports.deleteStudent = async (req, res) => {
     });
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     student.status = "DELETED";
     await student.save();
 
-    res.json({
-      message: "Student deleted successfully",
-    });
+    ApiResponse.success(res, null, "Student deleted successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -779,19 +771,15 @@ exports.getApprovedStudents = async (req, res) => {
       fee: feeMap.get(student._id.toString()) || null
     }));
 
-    res.json({
-      success: true,
-      data: studentsWithFee,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasMore: page * limit < total
-      }
-    });
+    ApiResponse.paginate(res, studentsWithFee, {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    }, "Students fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -807,23 +795,23 @@ exports.getStudentById = async (req, res) => {
       .populate("course_id", "name");
 
     if (!student) {
-      return res.status(404).json({ message: "Student not found" });
+      throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     const fee = await StudentFee.findOne({
       student_id: student._id
     }).select("totalFee paidAmount installments");
 
-    res.json({
-      ...student.toObject(),
+    ApiResponse.success(res, {
+      student: student.toObject(),
       fee: fee || {
         totalFee: 0,
         paidAmount: 0,
         installments: []
       }
-    });
+    }, "Student fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -865,19 +853,15 @@ exports.getRegisteredStudents = async (req, res) => {
       .skip(skip)
       .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      data: students,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasMore: page * limit < total
-      }
-    });
+    ApiResponse.paginate(res, students, {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    }, "Pending students fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -937,13 +921,15 @@ exports.getRegisteredStudentById = async (req, res) => {
         student.nriSponsorCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
       gapCertificatePath: student.gapCertificatePath ? 
         student.gapCertificatePath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
-      affidavitPath: student.affidavitPath ? 
+      affidavitPath: student.affidavitPath ?
         student.affidavitPath.replace(/\\/g, "/").replace(/^.*?[\\\/]uploads[\\\/]/, 'uploads/') : null,
     };
 
-    res.json(studentData);
+    ApiResponse.success(res, {
+      student: studentData
+    }, "Pending student fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -989,10 +975,12 @@ exports.getStudentsForTeacher = async (req, res) => {
       select: "name"
     });
 
-    res.json({ students: populatedStudents });
+    ApiResponse.success(res, {
+      students: populatedStudents
+    }, "Students fetched successfully");
   } catch (error) {
     console.error("Get Students For Teacher Error:", error);
-    res.status(500).json({ message: "Failed to fetch students", error: error.message });
+    next(error);
   }
 };
 
@@ -1048,9 +1036,7 @@ exports.moveToAlumni = async (req, res, next) => {
 
     console.log("Student saved as Alumni successfully");
 
-    res.json({
-      success: true,
-      message: `${student.fullName} has been moved to Alumni successfully`,
+    ApiResponse.success(res, {
       student: {
         fullName: student.fullName,
         email: student.email,
@@ -1060,7 +1046,7 @@ exports.moveToAlumni = async (req, res, next) => {
         graduationYear: student.graduationYear,
         course_id: student.course_id,
       },
-    });
+    }, `${student.fullName} has been moved to Alumni successfully`);
   } catch (error) {
     console.error("Move to Alumni error:", error);
     next(error);
@@ -1099,11 +1085,10 @@ exports.getAlumni = async (req, res, next) => {
       console.log("First alumni graduationYear:", alumni[0].graduationYear);
     }
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: alumni.length,
-      alumni,
-    });
+      alumni
+    }, "Alumni fetched successfully");
   } catch (error) {
     next(error);
   }
