@@ -1,6 +1,7 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
+const User = require("../models/user.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const { sendAdmissionApprovalEmail, sendAdmissionRejectionEmail } = require("../services/email.service");
@@ -21,6 +22,37 @@ exports.approveStudent = async (req, res, next) => {
       throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
     }
 
+    // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
+    if (!student.user_id) {
+      console.log(`⚠️  Student ${student.email} missing user_id. Creating User account...`);
+      
+      // Check if User already exists with this email
+      const existingUser = await User.findOne({ email: student.email });
+      
+      if (existingUser) {
+        // Link existing User to student
+        student.user_id = existingUser._id;
+        await student.save();
+        console.log(`✅ Linked existing User ${existingUser._id} to student`);
+      } else {
+        // Create new User account
+        // Generate a temporary password (student will reset via forgot password)
+        const tempPassword = 'TempPass' + Math.random().toString(36).slice(-8);
+        
+        const newUser = await User.create({
+          name: student.fullName,
+          email: student.email,
+          password: tempPassword,
+          role: "STUDENT",
+          college_id: student.college_id,
+        });
+        
+        student.user_id = newUser._id;
+        await student.save();
+        console.log(`✅ Created new User ${newUser._id} for student`);
+      }
+    }
+
     // 2️⃣ Validate course
     const course = await Course.findOne({
       _id: student.course_id,
@@ -29,6 +61,15 @@ exports.approveStudent = async (req, res, next) => {
 
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+    }
+
+    // ✅ FIX: Issue #3 - Validate student semester matches course semester
+    if (student.currentSemester !== course.semester) {
+      throw new AppError(
+        `Student's current semester (${student.currentSemester}) does not match course semester (${course.semester}). Please update student's semester or enroll in correct course.`,
+        400,
+        "STUDENT_COURSE_SEMESTER_MISMATCH"
+      );
     }
 
     // 3️⃣ Admission capacity check
@@ -134,11 +175,13 @@ exports.approveStudent = async (req, res, next) => {
 /**
  * REJECT STUDENT
  * Sends email notification to student with rejection reason
+ * Creates in-app notification for student
+ * Allows student to reapply (by not setting permanent block)
  */
 exports.rejectStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const { reason } = req.body;
+    const { reason, allowReapply } = req.body;
 
     const student = await Student.findOne({
       _id: studentId,
@@ -150,51 +193,59 @@ exports.rejectStudent = async (req, res, next) => {
       throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
     }
 
+    // Update student status
     student.status = "REJECTED";
     student.rejectionReason = reason || "Not specified";
-    student.approvedBy = req.user.id;
-    student.approvedAt = new Date();
+    student.rejectedBy = req.user.id;
+    student.rejectedAt = new Date();
+    
+    // If allowReapply is true, student can register again
+    student.canReapply = allowReapply !== false; // Default to true
 
     await student.save();
-
-    console.log('📧 REJECTION EMAIL TRIGGERED for:', student.email);
-    console.log('📧 Student data:', {
-      email: student.email,
-      fullName: student.fullName,
-      college_id: student.college_id,
-      status: student.status
-    });
 
     // 📧 Send rejection email (non-blocking)
     (async () => {
       try {
-        console.log('📧 [1/4] Fetching college details...');
         const college = await College.findById(student.college_id).select('name');
-        console.log('📧 [2/4] College found:', college?.name);
         
-        console.log('📧 [3/4] Preparing email data:', {
-          to: student.email,
-          studentName: student.fullName,
-          collegeName: college?.name,
-          reason: student.rejectionReason
-        });
-
-        console.log('📧 [4/4] Calling sendAdmissionRejectionEmail...');
         await sendAdmissionRejectionEmail({
           to: student.email,
           studentName: student.fullName,
           collegeName: college?.name || 'Our College',
-          reason: student.rejectionReason !== "Not specified" ? student.rejectionReason : null
+          reason: student.rejectionReason !== "Not specified" ? student.rejectionReason : null,
+          canReapply: student.canReapply
         });
         console.log(`✅ Admission rejection email sent to ${student.email}`);
       } catch (emailError) {
         console.error('❌ Failed to send admission rejection email:', emailError.message);
-        console.error('❌ Email error stack:', emailError.stack);
       }
     })();
 
+    // 🔔 Create in-app notification (if User exists)
+    try {
+      const Notification = require("../models/notification.model");
+      
+      await Notification.create({
+        college_id: student.college_id,
+        createdBy: req.user.id,
+        createdByRole: "COLLEGE_ADMIN",
+        target: "INDIVIDUAL",
+        target_users: [student.user_id].filter(Boolean), // Only if user_id exists
+        title: "Admission Application Status",
+        message: `Your admission application for ${student.course_id} has been ${allowReapply ? 'rejected' : 'declined'}. ${reason ? 'Reason: ' + reason : ''} ${allowReapply ? 'You may reapply after addressing the issues.' : ''}`,
+        type: "ACADEMIC",
+        actionUrl: allowReapply ? `/register/${student.college_id}` : undefined,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      });
+      console.log(`🔔 In-app notification created for student ${student.email}`);
+    } catch (notifError) {
+      console.error('❌ Failed to create in-app notification:', notifError.message);
+    }
+
     res.json({
       message: "Student rejected successfully",
+      canReapply: student.canReapply,
       student: {
         id: student._id,
         fullName: student.fullName,
