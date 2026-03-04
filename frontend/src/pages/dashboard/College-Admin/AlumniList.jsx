@@ -6,6 +6,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
+import { showSuccess, showError } from "../../../utils/toast";
 import "./AlumniList.css";
 
 import {
@@ -25,6 +26,7 @@ import {
   FaPrint,
   FaEye,
   FaInfoCircle,
+  FaFilePdf,
 } from "react-icons/fa";
 
 /* ================= CERTIFICATE COMPONENT ================= */
@@ -98,9 +100,6 @@ function Certificate({ alumnus, college }) {
           {/* Student Name */}
           <div className="student-name-section">
             <h2 className="student-name">{alumnus.fullName}</h2>
-            {alumnus.user_id && (
-              <p className="student-id">Student ID: {alumnus.user_id}</p>
-            )}
           </div>
 
           {/* Achievement Text */}
@@ -120,31 +119,19 @@ function Certificate({ alumnus, college }) {
           <div className="details-grid">
             <div className="detail-item">
               <FaCalendarAlt className="detail-icon" />
-              <span className="detail-label">Graduation Year</span>
+              <span className="cert-detail-label">Graduation Year</span>
               <span className="detail-value">{alumnus.graduationYear || "N/A"}</span>
             </div>
             <div className="detail-item">
               <FaGraduationCap className="detail-icon" />
-              <span className="detail-label">Alumni Since</span>
+              <span className="cert-detail-label">Alumni Since</span>
               <span className="detail-value">{alumniDate}</span>
             </div>
             <div className="detail-item">
               <FaCertificate className="detail-icon" />
-              <span className="detail-label">Certificate No.</span>
+              <span className="cert-detail-label">Certificate No.</span>
               <span className="detail-value cert-number">{certificateNumber}</span>
             </div>
-          </div>
-
-          {/* Certificate Footer */}
-          <div className="certificate-footer">
-            <p className="footer-text">
-              This certificate is issued by the College Administration as official
-              recognition of alumni status.
-            </p>
-            <p className="verification-text">
-              <FaQrcode className="qr-icon" />
-              Verify Certificate No: <strong>{certificateNumber}</strong>
-            </p>
           </div>
 
           {/* Signature Section */}
@@ -168,6 +155,10 @@ function Certificate({ alumnus, college }) {
 
           {/* Certificate Footer */}
           <div className="certificate-footer-final">
+            <p className="verification-text">
+              <FaQrcode className="qr-icon" />
+              Verify Certificate No: <strong>{certificateNumber}</strong>
+            </p>
             <p className="footer-disclaimer">
               <FaInfoCircle className="info-icon" />
               This is a digitally generated certificate. Any tampering or alteration will render this certificate invalid.
@@ -188,62 +179,66 @@ function Certificate({ alumnus, college }) {
 }
 
 /* ================= CERTIFICATE MODAL ================= */
-function CertificateModal({ alumnus, college, isOpen, onClose, onDownload }) {
-  const [isDownloading, setIsDownloading] = useState(false);
-
+function CertificateModal({ alumnus, college, isOpen, onClose, onDownload, isDownloading }) {
   const handleDownload = async () => {
-    setIsDownloading(true);
-    await onDownload();
-    setIsDownloading(false);
+    await onDownload(alumnus, college);
   };
 
   if (!isOpen || !alumnus || !college) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-container certificate-modal" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="modal-header">
           <div className="modal-title">
             <FaGraduationCap className="title-icon" />
-            <span>Alumni Certificate</span>
+            <span>Certificate Preview</span>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="modal-body">
-          <Certificate alumnus={alumnus} college={college} />
+        {/* Modal Body - Scrollable Certificate Container */}
+        <div className="modal-body modal-body-scroll">
+          <div className="certificate-wrapper">
+            <Certificate alumnus={alumnus} college={college} />
+          </div>
         </div>
 
         {/* Modal Footer */}
         <div className="modal-footer">
-          <button
-            className="btn btn-download-pdf"
-            onClick={handleDownload}
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <>
-                <FaSpinner className="spinner" /> Generating PDF...
-              </>
-            ) : (
-              <>
-                <FaDownload /> Download PDF
-              </>
-            )}
-          </button>
-          <button
-            className="btn btn-print"
-            onClick={() => window.print()}
-          >
-            <FaPrint /> Print
-          </button>
-          <button className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
+          <div className="footer-info-text">
+            <FaInfoCircle className="info-icon" />
+            <span>Preview mode. Download PDF for best quality or print on A4 landscape paper.</span>
+          </div>
+          <div className="footer-buttons">
+            <button
+              className="btn btn-download-pdf"
+              onClick={handleDownload}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <FaSpinner className="spinner" /> Generating PDF...
+                </>
+              ) : (
+                <>
+                  <FaFilePdf /> Download PDF
+                </>
+              )}
+            </button>
+            <button
+              className="btn btn-print"
+              onClick={() => window.print()}
+            >
+              <FaPrint /> Print
+            </button>
+            <button className="btn btn-secondary" onClick={onClose}>
+              Close Preview
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -265,9 +260,6 @@ function AlumniTableRow({ alumnus, onGenerateCertificate, onViewDetails }) {
       <td className="cell-student">
         <div className="student-info">
           <span className="student-name-cell">{alumnus.fullName}</span>
-          {alumnus.user_id && (
-            <span className="student-id-badge">ID: {alumnus.user_id.slice(-8)}</span>
-          )}
           <span className="student-email">{alumnus.email}</span>
         </div>
       </td>
@@ -339,12 +331,6 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
                   <span className="detail-label">Full Name:</span>
                   <span className="detail-value-text">{alumnus.fullName}</span>
                 </div>
-                {alumnus.user_id && (
-                  <div className="detail-row">
-                    <span className="detail-label">User ID:</span>
-                    <span className="detail-value-text">{alumnus.user_id}</span>
-                  </div>
-                )}
                 <div className="detail-row">
                   <span className="detail-label">Email:</span>
                   <span className="detail-value-text">{alumnus.email}</span>
@@ -445,6 +431,7 @@ export default function AlumniList() {
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedAlumnus, setSelectedAlumnus] = useState(null);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
@@ -561,8 +548,12 @@ export default function AlumniList() {
     setDetailsModalOpen(true);
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (alumnusData, collegeData) => {
     try {
+      // Show loading state
+      setIsDownloadingPDF(true);
+
+      // Load libraries if not already loaded
       if (
         typeof window.html2canvas === "undefined" ||
         typeof window.jspdf === "undefined"
@@ -571,36 +562,56 @@ export default function AlumniList() {
           return new Promise((resolve, reject) => {
             const script = document.createElement("script");
             script.src = src;
+            script.async = true;
             script.onload = resolve;
-            script.onerror = reject;
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
             document.head.appendChild(script);
           });
         };
 
-        await loadScript(
-          "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-        );
-        await loadScript(
-          "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-        );
+        await Promise.all([
+          loadScript(
+            "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+          ),
+          loadScript(
+            "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          )
+        ]);
       }
 
-      const element = document.getElementById("certificate-content");
-      if (!element) throw new Error("Certificate element not found");
+      // Get the certificate element - try multiple selectors
+      const element = document.getElementById("certificate-content") || 
+                      document.querySelector(".certificate-container");
+      
+      if (!element) {
+        console.error("Certificate element not found. Available IDs:", 
+          Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+        throw new Error("Certificate element not found. Please make sure the certificate preview is open.");
+      }
 
+      // Wait for fonts and images to load
       await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 500)); // Extra delay for rendering
 
+      // Capture certificate with high quality - A4 landscape ratio
       const canvas = await window.html2canvas(element, {
-        scale: 3,
+        scale: 3, // Good balance of quality and performance
         useCORS: true,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: 900,
+        imageTimeout: 0,
+        removeContainer: false,
+        // Force A4 landscape dimensions (297mm x 210mm = 1123px x 794px at 96 DPI)
+        width: 1123,
+        height: 794,
+        windowWidth: 1200,
         windowHeight: 900,
       });
 
       const imgData = canvas.toDataURL("image/png", 1.0);
 
+      // Create PDF with A4 landscape format
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
         orientation: "landscape",
@@ -609,19 +620,56 @@ export default function AlumniList() {
         compress: true,
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      // Get page dimensions (A4 landscape = 297mm x 210mm)
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+      // Add image to PDF - fill entire page (no margins for full-bleed certificate)
+      pdf.addImage(
+        imgData,
+        "PNG",
+        0, // left margin (0 for full certificate)
+        0, // top margin
+        pdfWidth,
+        pdfHeight,
+        undefined,
+        "BEST" // Best quality compression
+      );
 
-      const filename = `Alumni_Certificate_${selectedAlumnus.fullName.replace(
-        /\s+/g,
-        "_"
-      )}_${selectedAlumnus.graduationYear}.pdf`;
+      // Add PDF metadata for professional document
+      pdf.setProperties({
+        title: `Alumni Certificate - ${alumnusData.fullName}`,
+        subject: "Certificate of Achievement",
+        author: collegeData?.name || "College Administration",
+        creator: "Smart College Alumni System",
+        keywords: `certificate, alumni, ${alumnusData.fullName}, ${alumnusData.graduationYear}`,
+      });
+
+      // Generate filename
+      const safeName = alumnusData.fullName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+      const filename = `Certificate_${safeName}_${alumnusData.graduationYear}.pdf`;
+
+      // Save PDF
       pdf.save(filename);
+
+      // Show success feedback with toast notification
+      showSuccess(
+        `✅ Certificate downloaded! File: ${filename}`,
+        {
+          autoClose: 5000,
+        }
+      );
+
     } catch (error) {
       console.error("PDF generation error:", error);
-      alert("Failed to generate PDF. Please use Print option instead.");
+      showError(
+        `❌ PDF generation failed. ${error.message || 'Please try the Print option instead.'}`,
+        {
+          autoClose: 6000,
+        }
+      );
+    } finally {
+      setIsDownloadingPDF(false);
     }
   };
 
@@ -829,6 +877,7 @@ export default function AlumniList() {
         isOpen={certificateModalOpen}
         onClose={() => setCertificateModalOpen(false)}
         onDownload={handleDownloadPDF}
+        isDownloading={isDownloadingPDF}
       />
 
       {/* Details Modal */}
