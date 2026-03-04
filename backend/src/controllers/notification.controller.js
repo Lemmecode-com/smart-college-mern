@@ -236,7 +236,7 @@ exports.getStudentNotifications = async (req, res, next) => {
  * Sees: Admin notifications only
  * ================================
  */
-exports.getTeacherNotifications = async (req, res) => {
+exports.getTeacherNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({
       college_id: req.college_id,
@@ -266,7 +266,7 @@ exports.getTeacherNotifications = async (req, res) => {
       adminNotifications,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -276,7 +276,7 @@ exports.getTeacherNotifications = async (req, res) => {
  * (Admin + Teacher)
  * ================================
  */
-exports.getAdminNotifications = async (req, res) => {
+exports.getAdminNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({
       college_id: req.college_id,
@@ -302,7 +302,7 @@ exports.getAdminNotifications = async (req, res) => {
       staffNotifications,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -314,7 +314,7 @@ exports.getAdminNotifications = async (req, res) => {
  * - Teacher can update ONLY teacher notifications
  * ================================
  */
-exports.updateNotification = async (req, res) => {
+exports.updateNotification = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
@@ -346,7 +346,7 @@ exports.updateNotification = async (req, res) => {
 
     res.json(notification);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -358,7 +358,7 @@ exports.updateNotification = async (req, res) => {
  * - Teacher deletes teacher notifications
  * ================================
  */
-exports.deleteNotification = async (req, res) => {
+exports.deleteNotification = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
@@ -379,14 +379,19 @@ exports.deleteNotification = async (req, res) => {
 
     res.json({ message: "Notification deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 
-exports.getStudentNotificationCount = async (req, res) => {
+exports.getStudentNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -410,13 +415,18 @@ exports.getStudentNotificationCount = async (req, res) => {
       total: adminCount + teacherCount
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getTeacherNotificationCount = async (req, res) => {
+exports.getTeacherNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -449,13 +459,18 @@ exports.getTeacherNotificationCount = async (req, res) => {
       total: myCount + adminCount
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getAdminNotificationCount = async (req, res) => {
+exports.getAdminNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -484,12 +499,16 @@ exports.getAdminNotificationCount = async (req, res) => {
       total: myCount + staffCount
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getUnreadForBell = async (req, res) => {
+exports.getUnreadForBell = async (req, res, next) => {
   try {
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(req.user.id);
 
     let query = {
@@ -515,11 +534,11 @@ exports.getUnreadForBell = async (req, res) => {
 
     res.json(unread);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.markAsRead = async (req, res) => {
+exports.markAsRead = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
     const { id: userId, role } = req.user;
@@ -540,7 +559,7 @@ exports.markAsRead = async (req, res) => {
 
     res.json({ message: "Notification marked as read" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -550,10 +569,10 @@ exports.markAsRead = async (req, res) => {
  * Rule: Only COLLEGE_ADMIN can send promotion notifications
  * ================================
  */
-exports.sendPromotionNotification = async (req, res) => {
+exports.sendPromotionNotification = async (req, res, next) => {
   try {
     const { studentId, studentName, newSemester, newAcademicYear, adminName } = req.body;
-    
+
     await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
@@ -567,6 +586,6 @@ exports.sendPromotionNotification = async (req, res) => {
 
     res.json({ message: "Notification sent successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

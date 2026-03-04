@@ -6,16 +6,27 @@ const logger = require("../utils/logger");
  */
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
-  error.message = err.message;
+  
+  // FIX: Handle case when err.message is undefined
+  error.message = err.message || 'Internal server error';
 
   // Log error using Winston (file only, not console)
-  logger.logError(`[Error Handler] ${err.name}: ${err.message}`, {
+  logger.logError(`[Error Handler] ${err.name || 'Error'}: ${error.message}`, {
     name: err.name,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     url: req.originalUrl,
     method: req.method,
     userId: req.user?._id || req.user?.id,
   });
+
+  // FIX: Mongoose Connection/Server Error
+  if (err.name === 'MongooseError' || err.name === 'MongoServerError') {
+    error = {
+      statusCode: 500,
+      message: 'Database error occurred',
+      code: 'DATABASE_ERROR'
+    };
+  }
 
   // Mongoose CastError (Invalid ObjectId)
   if (err.name === 'CastError') {

@@ -51,9 +51,13 @@ const teacherSchema = new mongoose.Schema(
 
     mobileNumber: {
       type: String,
-      required: true,
+      // required: true,  // Made optional - not all teachers have mobile numbers
       validate: {
-        validator: validateIndianMobile,
+        validator: function(v) {
+          // Only validate if mobileNumber is provided
+          if (!v) return true;
+          return validateIndianMobile(v);
+        },
         message: mobileValidatorMessage
       }
     },

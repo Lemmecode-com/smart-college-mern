@@ -212,7 +212,7 @@ exports.studentDashboard = async (req, res, next) => {
 /**
  * 👩‍🏫 TEACHER DASHBOARD
  */
-exports.teacherDashboard = async (req, res) => {
+exports.teacherDashboard = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const collegeId = req.college_id;
@@ -224,7 +224,7 @@ exports.teacherDashboard = async (req, res) => {
     }).select("name email employeeId");
 
     if (!teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
     // 🔹 Get Sessions
@@ -281,28 +281,36 @@ exports.teacherDashboard = async (req, res) => {
       recentLectures: sessions.slice(0, 5),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * 👩‍🏫 COLLEGE ADMIN DASHBOARD
  */
-exports.collegeAdminDashboard = async (req, res) => {
+exports.collegeAdminDashboard = async (req, res, next) => {
   try {
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const collegeId = req.college_id;
 
+    const college = await College.findById(collegeId).select(
+      "name code email establishedYear logo",
+    );
+
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
     const [
-      college,
       students,
       teachers,
       departments,
       courses,
       pendingAdmissions,
     ] = await Promise.all([
-      College.findById(collegeId).select(
-        "name code email establishedYear logo",
-      ),
       Student.find({ college_id: collegeId }).select("fullName status"),
       Teacher.find({ college_id: collegeId }).select("fullName email"),
       Department.find({ college_id: collegeId }),
@@ -314,12 +322,12 @@ exports.collegeAdminDashboard = async (req, res) => {
 
     res.json({
       college: {
-        id: college?._id,
-        name: college?.name,
-        code: college?.code,
-        email: college?.email,
-        establishedYear: college?.establishedYear,
-        logo: college?.logo,
+        id: college._id,
+        name: college.name,
+        code: college.code,
+        email: college.email,
+        establishedYear: college.establishedYear,
+        logo: college.logo,
       },
 
       stats: {
@@ -334,7 +342,7 @@ exports.collegeAdminDashboard = async (req, res) => {
       pendingAdmissions,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
