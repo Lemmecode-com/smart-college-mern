@@ -4,6 +4,7 @@ const Course = require("../models/course.model");
 const User = require("../models/user.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /* =========================================================
    CREATE TEACHER (College Admin)
@@ -86,10 +87,9 @@ exports.createTeacher = async (req, res, next) => {
       createdBy: req.user.id,
     });
 
-    res.status(201).json({
-      message: "Teacher created successfully",
-      teacher,
-    });
+    ApiResponse.created(res, {
+      teacher
+    }, "Teacher created successfully");
   } catch (error) {
     next(error);
   }
@@ -136,12 +136,12 @@ exports.getMyProfile = async (req, res) => {
     const teacherObj = teacher.toObject();
     teacherObj.subjects = subjects;
 
-    res.json(teacherObj);
+    ApiResponse.success(res, {
+      teacher: teacherObj
+    }, "Profile fetched successfully");
   } catch (error) {
     console.error("PROFILE ERROR:", error);
-    res.status(500).json({
-      message: "Failed to fetch profile",
-    });
+    next(error);
   }
 };
 
@@ -196,10 +196,9 @@ exports.updateMyProfile = async (req, res, next) => {
       });
     }
 
-    res.json({
-      message: "Profile updated successfully",
-      teacher: updatedTeacher,
-    });
+    ApiResponse.success(res, {
+      teacher: updatedTeacher
+    }, "Profile updated successfully");
   } catch (error) {
     next(error);
   }
@@ -244,19 +243,15 @@ exports.getTeachers = async (req, res) => {
       .sort({ createdAt: -1 })
       .select("-__v");
 
-    res.json({
-      success: true,
-      data: teachers,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        hasMore: page * limit < total
-      }
-    });
+    ApiResponse.paginate(res, teachers, {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    }, "Teachers fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch teachers" });
+    next(error);
   }
 };
 
@@ -275,14 +270,14 @@ exports.getTeacherById = async (req, res) => {
       .select("-__v");
 
     if (!teacher) {
-      return res.status(404).json({
-        message: "Teacher not found",
-      });
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    res.json(teacher);
+    ApiResponse.success(res, {
+      teacher
+    }, "Teacher fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch teacher" });
+    next(error);
   }
 };
 
@@ -298,9 +293,11 @@ exports.getTeachersByDepartment = async (req, res) => {
       status: "ACTIVE",
     }).select("_id name designation");
 
-    res.json(teachers);
+    ApiResponse.success(res, {
+      teachers
+    }, "Department teachers fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch teachers" });
+    next(error);
   }
 };
 
@@ -313,9 +310,7 @@ exports.getTeachersByCourse = async (req, res) => {
     const { courseId } = req.params;
 
     if (!courseId) {
-      return res.status(400).json({
-        message: "Course ID is required",
-      });
+      throw new AppError("Course ID is required", 400, "INVALID_REQUEST");
     }
 
     const teachers = await Teacher.find({
@@ -326,9 +321,11 @@ exports.getTeachersByCourse = async (req, res) => {
       .populate("department_id", "name")
       .select("name email employeeId designation");
 
-    res.json(teachers);
+    ApiResponse.success(res, {
+      teachers
+    }, "Course teachers fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch teachers by course" });
+    next(error);
   }
 };
 
@@ -403,10 +400,9 @@ exports.updateTeacher = async (req, res, next) => {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    res.json({
-      message: "Teacher updated successfully",
-      teacher,
-    });
+    ApiResponse.success(res, {
+      teacher
+    }, "Teacher updated successfully");
   } catch (error) {
     next(error);
   }
@@ -432,9 +428,7 @@ exports.deleteTeacher = async (req, res, next) => {
     // Optionally delete the associated user
     await User.deleteOne({ _id: teacher.user_id });
 
-    res.json({
-      message: "Teacher deleted successfully",
-    });
+    ApiResponse.success(res, null, "Teacher deleted successfully");
   } catch (error) {
     next(error);
   }
@@ -468,10 +462,9 @@ exports.assignHOD = async (req, res, next) => {
       { hod_id: teacher._id }
     );
 
-    res.json({
-      message: "HOD assigned successfully",
-      teacher,
-    });
+    ApiResponse.success(res, {
+      teacher
+    }, "HOD assigned successfully");
   } catch (error) {
     next(error);
   }
