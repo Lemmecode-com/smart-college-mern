@@ -56,5 +56,7 @@ attendanceRecordSchema.index(
 attendanceRecordSchema.index({ student_id: 1, college_id: 1 }); // Student-wise attendance
 attendanceRecordSchema.index({ college_id: 1, session_id: 1 }); // Session-wise records
 attendanceRecordSchema.index({ status: 1 }); // Filter by status
+attendanceRecordSchema.index({ session_id: 1 }); // Session-only queries
+attendanceRecordSchema.index({ college_id: 1, createdAt: -1 }); // Recent records by college
 
 module.exports = mongoose.model("AttendanceRecord", attendanceRecordSchema);
