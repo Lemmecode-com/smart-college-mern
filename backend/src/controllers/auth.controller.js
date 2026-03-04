@@ -72,6 +72,27 @@ exports.login = async (req, res, next) => {
  */
 exports.logout = async (req, res, next) => {
   try {
+    const accessToken = req.cookies.token;
+    const refreshToken = req.cookies.refreshToken;
+
+    // 🔒 SECURITY: Blacklist access token (immediate invalidation)
+    if (accessToken) {
+      try {
+        const decoded = jwt.decode(accessToken);
+        if (decoded && decoded.exp) {
+          await TokenBlacklist.create({
+            token: accessToken,
+            tokenType: "access",
+            user_id: req.user.id,
+            expiresAt: new Date(decoded.exp * 1000),
+            reason: "LOGOUT",
+          });
+        }
+      } catch (error) {
+        console.error("Error blacklisting access token:", error.message);
+      }
+    }
+
     // Clear the token cookie
     res.clearCookie('token', {
       httpOnly: true,
@@ -86,16 +107,16 @@ exports.logout = async (req, res, next) => {
     });
 
     // Revoke refresh token if exists
-    if (req.cookies?.refreshToken) {
+    if (refreshToken) {
       await RefreshToken.findOneAndUpdate(
-        { token: req.cookies.refreshToken },
+        { token: refreshToken },
         { isRevoked: true }
       );
     }
 
-    res.json({ 
+    res.json({
       success: true,
-      message: "Logout successful" 
+      message: "Logout successful. All tokens invalidated."
     });
   } catch (error) {
     next(error);
@@ -257,12 +278,27 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
     user.password = newPassword; // Will be hashed by pre-save hook
     await user.save();
 
+    // 🔒 SECURITY: Blacklist ALL tokens for this user (force re-login)
+    await TokenBlacklist.create({
+      token: "*", // Wildcard - invalidates all tokens
+      tokenType: "access",
+      user_id: user._id,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      reason: "PASSWORD_CHANGE",
+    });
+
+    // Also revoke all refresh tokens
+    await RefreshToken.updateMany(
+      { user_id: user._id },
+      { isRevoked: true }
+    );
+
     // Mark OTP as used
     await markOTPAsUsed(result.record._id);
 
     res.json({
       success: true,
-      message: "Password reset successfully. You can now login with your new password.",
+      message: "Password reset successfully. Please login with your new password.",
     });
   } catch (error) {
     next(error);
@@ -274,10 +310,10 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
  */
 const sendTokens = async (res, id, role, college_id, req) => {
   // 🔒 SECURITY: Short-lived access token (15 minutes)
-  const accessExpiry = process.env.JWT_ACCESS_EXPIRY || "15m";
+  const accessExpiry = process.env.JWT_ACCESS_EXPIRY;
   
   // 🔒 SECURITY: Long-lived refresh token (7 days)
-  const refreshExpiry = "7d";
+  const refreshExpiry = process.env.JWT_REFRESH_EXPIRY;
 
   // Generate access token
   const accessToken = jwt.sign(
@@ -322,6 +358,7 @@ const sendTokens = async (res, id, role, college_id, req) => {
 
   // Send user info in the response (not the tokens)
   res.json({
+    accessToken,
     user: { id, role, college_id },
     success: true,
     message: "Login successful"

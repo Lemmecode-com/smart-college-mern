@@ -11,6 +11,8 @@
 
 | Issue # | Category | Status | Test Section | Priority |
 |---------|----------|--------|--------------|----------|
+| 1 | Authentication | ✅ Fixed | Section 14 | 🔴 CRITICAL |
+| 3 | Validation | ✅ Fixed | Section 15 | 🔴 CRITICAL |
 | 9 | Attendance | ✅ Fixed | Section 1 | 🔴 HIGH |
 | 7 | Notifications | ✅ Fixed | Section 2 | 🔴 HIGH |
 | 10 | Payments | ✅ Fixed | Section 3 | 🟡 MEDIUM |
@@ -954,14 +956,363 @@ If a test fails:
 
 ---
 
+## Section 14: Issue #1 - Inconsistent User-Student Relationship ✅
+
+### Problem Before Fix:
+- Student model had `user_id` as optional with sparse index
+- Some students might not have linked User accounts
+- Authentication used `student.user_id || student._id` causing inconsistency
+- **Impact:** Authentication failures, security gaps, data integrity issues
+
+### What Was Fixed:
+- ✅ Made `user_id` **required** for all students
+- ✅ Removed sparse index
+- ✅ Auto-create User account during student approval if missing
+- ✅ Link existing User if email already exists
+
+### Files Modified:
+- `backend/src/models/student.model.js` - Made user_id required
+- `backend/src/controllers/studentApproval.controller.js` - Auto-create User
+
+---
+
+### Test 14.1: Approve Student Without User Account
+
+**Step-by-Step Instructions:**
+
+1. **Create a PENDING student (old way, if possible):**
+   - Use MongoDB Compass to manually create a student document
+   - DO NOT set `user_id` field
+   - Set status: "PENDING"
+   - Email: `testnouid@testcollege.com`
+
+2. **Login as College Admin:**
+   - Email: `admin@testcollege.com`
+   - Password: `Test123!`
+
+3. **Approve the Student:**
+   - Navigate to: Students → Approve Students
+   - Find the student with email `testnouid@testcollege.com`
+   - Click: "Approve"
+   - Check backend console logs
+
+4. **Check Backend Logs:**
+   - Look for messages about creating User account
+
+5. **Verify in Database:**
+   - Open MongoDB Compass
+   - Collection: `students`
+   - Find the student you just approved
+   - Check if `user_id` is now set
+
+6. **Test Login:**
+   - Logout from admin
+   - Login with student credentials:
+     - Email: `testnouid@testcollege.com`
+     - Password: Use "Forgot Password" to reset
+   - Verify login works
+
+**Expected Output:**
+
+**Backend Console Logs:**
+```
+⚠️  Student testnouid@testcollege.com missing user_id. Creating User account...
+✅ Created new User 67890abcdef for student
+```
+
+**Database (Student Document):**
+```json
+{
+  "_id": ObjectId("123456789"),
+  "email": "testnouid@testcollege.com",
+  "user_id": ObjectId("67890abcdef"),  // ← Now exists!
+  "status": "APPROVED",
+  ...
+}
+```
+
+**Database (User Document):**
+```json
+{
+  "_id": ObjectId("67890abcdef"),
+  "email": "testnouid@testcollege.com",
+  "role": "STUDENT",
+  "college_id": ObjectId("..."),
+  ...
+}
+```
+
+**Login Test:**
+```
+✅ Success: Student can login with email/password
+✅ Token generated with user_id (not student._id)
+✅ Can access student dashboard
+```
+
+**✅ PASS if:**
+- [ ] User account created automatically
+- [ ] `user_id` field populated in student document
+- [ ] Student can login successfully
+- [ ] Authentication uses `user_id` consistently
+
+**❌ FAIL if:**
+- User account not created
+- `user_id` still missing
+- Login fails
+- Authentication uses `student._id` instead of `user_id`
+
+---
+
+### Test 14.2: Student Registration Creates User
+
+**Step-by-Step Instructions:**
+
+1. **Open Student Registration:**
+   - Go to: `http://localhost:5173/register/testcollege`
+   - Fill all required fields
+   - Email: `newstudent@testcollege.com`
+   - Password: `Test123!`
+   - Submit registration
+
+2. **Check Database Immediately:**
+   - Open MongoDB Compass
+   - Collection: `students`
+   - Find the newly registered student
+   - Check `user_id` field
+
+3. **Check Users Collection:**
+   - Collection: `users`
+   - Find user with email `newstudent@testcollege.com`
+   - Verify role is "STUDENT"
+
+**Expected Output:**
+
+**Student Document:**
+```json
+{
+  "_id": ObjectId("..."),
+  "email": "newstudent@testcollege.com",
+  "user_id": ObjectId("user123"),  // ← Set during registration
+  "status": "PENDING",
+  ...
+}
+```
+
+**User Document:**
+```json
+{
+  "_id": ObjectId("user123"),
+  "email": "newstudent@testcollege.com",
+  "role": "STUDENT",
+  "college_id": ObjectId("..."),
+  ...
+}
+```
+
+**✅ PASS if:**
+- [ ] `user_id` set during registration
+- [ ] User created with correct role
+- [ ] Email matches in both documents
+
+**❌ FAIL if:**
+- `user_id` missing
+- User not created
+- Email mismatch
+
+---
+
+## Section 15: Issue #3 - Semester-Course Alignment Validation ✅
+
+### Problem Before Fix:
+- No validation that student's semester matches course semester
+- Subjects could be created for wrong semester
+- Students could enroll in courses for different semesters
+- **Impact:** Academic data inconsistency, wrong subjects in timetable
+
+### What Was Fixed:
+- ✅ Added semester range validation (1-8) in Course model
+- ✅ Added semester range validation (1-8) in Subject model
+- ✅ Subject creation validates semester matches course semester
+- ✅ Student approval validates currentSemester matches course semester
+
+### Files Modified:
+- `backend/src/models/course.model.js` - Semester range validation
+- `backend/src/models/subject.model.js` - Semester range validation
+- `backend/src/controllers/subject.controller.js` - Semester alignment check
+- `backend/src/controllers/studentApproval.controller.js` - Student-course semester validation
+
+---
+
+### Test 15.1: Subject Semester Mismatch
+
+**Step-by-Step Instructions:**
+
+1. **Login as College Admin:**
+   - Email: `admin@testcollege.com`
+   - Password: `Test123!`
+
+2. **Create a Course:**
+   - Navigate to: Courses → Add Course
+   - Name: "Data Structures"
+   - Code: "CS301"
+   - Semester: 3
+   - Program Level: UG
+   - Credits: 4
+   - Click "Create Course"
+   - Note the course ID
+
+3. **Try to Create Subject with Wrong Semester:**
+   - Navigate to: Subjects → Add Subject
+   - Select Course: "Data Structures (CS301)"
+   - Name: "Data Structures Lab"
+   - Code: "CS301L"
+   - Semester: **5** (intentionally wrong - should be 3)
+   - Credits: 2
+   - Select Teacher
+   - Click "Create Subject"
+
+4. **Observe Error:**
+   - Check error message displayed
+
+**Expected Output:**
+
+**Error Message:**
+```
+❌ Error: Subject semester (5) does not match course semester (3). 
+Subjects must be aligned with their course semester.
+HTTP Status: 400 Bad Request
+Response: {
+  "success": false,
+  "message": "Subject semester (5) does not match course semester (3). Subjects must be aligned with their course semester.",
+  "code": "SEMESTER_MISMATCH"
+}
+```
+
+**✅ PASS if:**
+- [ ] Subject NOT created
+- [ ] Clear error message shown
+- [ ] Error code is "SEMESTER_MISMATCH"
+
+**❌ FAIL if:**
+- Subject created successfully
+- No validation error
+- Generic error message
+
+---
+
+### Test 15.2: Student-Course Semester Mismatch
+
+**Step-by-Step Instructions:**
+
+1. **Create Test Data:**
+   - Create a Course: "Machine Learning" with semester: 5
+   - Create a student but set currentSemester: 3 (different from course)
+   - Keep student status: PENDING
+
+2. **Login as College Admin:**
+   - Email: `admin@testcollege.com`
+   - Password: `Test123!`
+
+3. **Try to Approve Student:**
+   - Navigate to: Students → Approve Students
+   - Find the student with semester mismatch
+   - Click "Approve"
+
+4. **Observe Error:**
+   - Check error message
+
+**Expected Output:**
+
+**Error Message:**
+```
+❌ Error: Student's current semester (3) does not match course semester (5). 
+Please update student's semester or enroll in correct course.
+HTTP Status: 400 Bad Request
+Response: {
+  "success": false,
+  "message": "Student's current semester (3) does not match course semester (5). Please update student's semester or enroll in correct course.",
+  "code": "STUDENT_COURSE_SEMESTER_MISMATCH"
+}
+```
+
+**✅ PASS if:**
+- [ ] Student NOT approved
+- [ ] Clear error message shown
+- [ ] Error code is "STUDENT_COURSE_SEMESTER_MISMATCH"
+
+**❌ FAIL if:**
+- Student approved successfully
+- No validation error
+- Generic error message
+
+---
+
+### Test 15.3: Valid Semester Alignment
+
+**Step-by-Step Instructions:**
+
+1. **Create Matching Data:**
+   - Create Course: "Operating Systems" with semester: 4
+   - Create Subject for this course with semester: 4
+   - Create Student with currentSemester: 4
+   - Keep student status: PENDING
+
+2. **Approve Student:**
+   - Navigate to: Students → Approve Students
+   - Find the student
+   - Click "Approve"
+
+3. **Verify Success:**
+   - Check success message
+   - Verify in database
+
+**Expected Output:**
+
+**Success Message:**
+```
+✅ Student approved and fee allocated successfully
+HTTP Status: 200 OK
+```
+
+**Database Check:**
+```json
+{
+  "Course": {
+    "name": "Operating Systems",
+    "semester": 4
+  },
+  "Subject": {
+    "name": "OS Lab",
+    "semester": 4  // ← Matches course
+  },
+  "Student": {
+    "fullName": "Test Student",
+    "currentSemester": 4,  // ← Matches course
+    "course_id": ObjectId("..."),
+    "status": "APPROVED"
+  }
+}
+```
+
+**✅ PASS if:**
+- [ ] Student approved successfully
+- [ ] Subject created successfully
+- [ ] All semesters aligned
+
+**❌ FAIL if:**
+- Validation fails for matching semesters
+- Error shown when data is correct
+
+---
+
 ## 📝 Notes
 
 - **Estimated testing time:** 2-3 hours for all tests
-- **Priority tests:** Sections 1, 2, 3, 6, 13 (critical functionality)
+- **Priority tests:** Sections 1, 2, 3, 6, 13, **14, 15** (critical functionality)
 - **Optional tests:** Sections 11, 12 (performance/edge cases)
 
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 1.2  
 **Last Updated:** March 2, 2026  
 **Maintained By:** Development Team
