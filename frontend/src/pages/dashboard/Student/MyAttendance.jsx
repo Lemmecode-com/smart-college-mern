@@ -202,13 +202,8 @@ export default function StudentAttendanceReport() {
 
     const fetchData = async () => {
       try {
-        const [reportRes, subjectRes] = await Promise.all([
-          api.get("/attendance/student", { params: filters }),
-          api.get("/subjects/student").catch((err) => {
-            console.error("Failed to load subjects:", err);
-            return { data: [] };
-          })
-        ]);
+        // Single API call - attendance data already includes subjectWise info
+        const reportRes = await api.get("/attendance/student", { params: filters });
 
         // Validate data
         const validation = validateAttendanceData(reportRes.data);
@@ -217,7 +212,19 @@ export default function StudentAttendanceReport() {
         }
 
         setData(reportRes.data);
-        setSubjects(subjectRes.data || []);
+        // Extract subjects from attendance API response (subjectWise array)
+        // Backend returns: {subject, code, total, present, absent, percentage}
+        // Frontend needs: {_id, name, code} for dropdown
+        const subjectsFromAttendance = (reportRes.data.subjectWise || []).map((subj, index) => ({
+          _id: subj._id || `subject-${index}`,  // Use index as fallback ID
+          name: subj.subject || subj.name,      // Backend uses 'subject' field
+          code: subj.code,
+          total: subj.total,
+          present: subj.present,
+          absent: subj.absent,
+          percentage: subj.percentage
+        }));
+        setSubjects(subjectsFromAttendance);
         setError("");
 
         // Show success toast only on subsequent loads (not initial)

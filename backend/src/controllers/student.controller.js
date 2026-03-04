@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const College = require("../models/college.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const Student = require("../models/student.model");
@@ -325,10 +326,24 @@ exports.getMyFullProfile = async (req, res) => {
   try {
     const student = req.student;
 
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found"
+      });
+    }
+
     // 1️⃣ College Info
     const college = await College.findById(student.college_id).select(
       "name code email contactNumber address establishedYear",
     );
+
+    if (!college) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found"
+      });
+    }
 
     // 2️⃣ Department & Course
     const department = await Department.findById(student.department_id).select(
@@ -493,7 +508,13 @@ exports.getMyFullProfile = async (req, res) => {
       documentConfig: docConfig?.documents || [] // Return document config for conditional rendering
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ [STUDENT CONTROLLER] Error in getMyFullProfile:', error);
+    console.error('❌ [STUDENT CONTROLLER] Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch student profile",
+      error: error.message 
+    });
   }
 };
 

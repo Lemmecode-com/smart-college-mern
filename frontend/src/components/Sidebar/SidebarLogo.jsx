@@ -1,4 +1,4 @@
-import { FaGraduationCap } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 /**
  * SidebarLogo - Brand logo and user role display
@@ -6,27 +6,42 @@ import { FaGraduationCap } from "react-icons/fa";
  * - Collapsed state support (icon-only mode)
  * - Consistent spacing hierarchy
  * - Proper ARIA labels for accessibility
- * - Vertical stacking: Icon → Logo Text → Role
+ * - Clickable logo - redirects to role dashboard
+ * - Vertical stacking: Logo Image → Role
  */
 export default function SidebarLogo({ role, isCollapsed = false }) {
+  // Dashboard routes based on role
+  const getDashboardRoute = (userRole) => {
+    const routes = {
+      college_admin: "/admin/dashboard",
+      teacher: "/teacher/dashboard",
+      student: "/student/dashboard",
+      admin: "/admin/dashboard",
+    };
+    return routes[userRole?.toLowerCase()] || "/dashboard";
+  };
+
+  const dashboardRoute = getDashboardRoute(role);
+
   return (
-    <div className="sidebar-logo" role="banner">
+    <Link to={dashboardRoute} className="sidebar-logo-link" role="banner">
       <div className="logo-container">
-        <div className="logo-icon" aria-hidden="true">
-          <FaGraduationCap size={isCollapsed ? 28 : 20} />
-        </div>
+        {/* Logo Image - Primary brand element */}
+        <img
+          src="/novaa.png"
+          alt="NOVAA Logo"
+          className="logo-image"
+          loading="lazy"
+        />
         {!isCollapsed && (
-          <>
-            <h4 className="logo-text">NOVAA</h4>
-            <span
-              className="logo-role"
-              aria-label={`User role: ${role?.replace("_", " ") || "User"}`}
-            >
-              {role?.replace("_", " ")}
-            </span>
-          </>
+          <span
+            className="logo-role"
+            aria-label={`User role: ${role?.replace("_", " ") || "User"}`}
+          >
+            {role?.replace("_", " ")}
+          </span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }
