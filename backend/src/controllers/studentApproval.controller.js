@@ -1,6 +1,7 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
+const User = require("../models/user.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const { sendAdmissionApprovalEmail, sendAdmissionRejectionEmail } = require("../services/email.service");
@@ -21,6 +22,37 @@ exports.approveStudent = async (req, res, next) => {
       throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
     }
 
+    // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
+    if (!student.user_id) {
+      console.log(`⚠️  Student ${student.email} missing user_id. Creating User account...`);
+      
+      // Check if User already exists with this email
+      const existingUser = await User.findOne({ email: student.email });
+      
+      if (existingUser) {
+        // Link existing User to student
+        student.user_id = existingUser._id;
+        await student.save();
+        console.log(`✅ Linked existing User ${existingUser._id} to student`);
+      } else {
+        // Create new User account
+        // Generate a temporary password (student will reset via forgot password)
+        const tempPassword = 'TempPass' + Math.random().toString(36).slice(-8);
+        
+        const newUser = await User.create({
+          name: student.fullName,
+          email: student.email,
+          password: tempPassword,
+          role: "STUDENT",
+          college_id: student.college_id,
+        });
+        
+        student.user_id = newUser._id;
+        await student.save();
+        console.log(`✅ Created new User ${newUser._id} for student`);
+      }
+    }
+
     // 2️⃣ Validate course
     const course = await Course.findOne({
       _id: student.course_id,
@@ -29,6 +61,15 @@ exports.approveStudent = async (req, res, next) => {
 
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+    }
+
+    // ✅ FIX: Issue #3 - Validate student semester matches course semester
+    if (student.currentSemester !== course.semester) {
+      throw new AppError(
+        `Student's current semester (${student.currentSemester}) does not match course semester (${course.semester}). Please update student's semester or enroll in correct course.`,
+        400,
+        "STUDENT_COURSE_SEMESTER_MISMATCH"
+      );
     }
 
     // 3️⃣ Admission capacity check
