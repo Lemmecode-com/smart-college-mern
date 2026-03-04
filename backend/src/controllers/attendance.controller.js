@@ -1091,8 +1091,15 @@ const {
 /* =========================================================
    CREATE ATTENDANCE SESSION (Teacher)
    MUST: Only for TODAY, and date must match slot's day
+   
+   FIX: Edge Case 2 - Concurrent Session Creation
+   - Use MongoDB session for atomic operations
+   - Check duplicate within transaction
 ========================================================= */
 exports.createAttendanceSession = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { slot_id, lectureDate, lectureNumber } = req.body;
 
@@ -1113,9 +1120,9 @@ exports.createAttendanceSession = async (req, res, next) => {
     const userEmail = req.user.email;
 
     // Resolve teacher
-    let teacher = await Teacher.findOne({ user_id: userId });
+    let teacher = await Teacher.findOne({ user_id: userId }).session(session);
     if (!teacher && userEmail) {
-      teacher = await Teacher.findOne({ email: userEmail });
+      teacher = await Teacher.findOne({ email: userEmail }).session(session);
     }
 
     console.log(
@@ -1136,7 +1143,7 @@ exports.createAttendanceSession = async (req, res, next) => {
     const slot = await TimetableSlot.findOne({
       _id: slot_id,
       college_id: collegeId,
-    }).populate("subject_id", "teacher_id name code");
+    }).populate("subject_id", "teacher_id name code").session(session);
 
     console.log(
       "🔵 [CREATE SESSION] Slot found:",
@@ -1222,12 +1229,12 @@ exports.createAttendanceSession = async (req, res, next) => {
       );
     }
 
-    // Prevent duplicate
+    // Prevent duplicate (within transaction for atomicity)
     const existing = await AttendanceSession.findOne({
       slot_id,
       lectureDate: new Date(lectureDate),
       lectureNumber,
-    });
+    }).session(session);
 
     if (existing) {
       throw new AppError(
@@ -1240,7 +1247,8 @@ exports.createAttendanceSession = async (req, res, next) => {
     // ✅ CAPTURE SLOT SNAPSHOT (Preserve history)
     const slotWithDetails = await TimetableSlot.findById(slot_id)
       .populate("subject_id", "name code")
-      .populate("teacher_id", "name");
+      .populate("teacher_id", "name")
+      .session(session);
 
     const slotSnapshot = {
       subject_id: slotWithDetails.subject_id._id,
@@ -1260,10 +1268,19 @@ exports.createAttendanceSession = async (req, res, next) => {
       college_id: collegeId,
       course_id: slot.course_id,
       status: "APPROVED",
-    });
+    }).session(session);
 
-    // Create session with snapshot
-    const session = await AttendanceSession.create({
+    // ✅ FIX: Edge Case 1 - Prevent session creation if no students enrolled
+    if (totalStudents === 0) {
+      throw new AppError(
+        "Cannot create attendance session: No students enrolled in this course",
+        400,
+        "NO_STUDENTS_ENROLLED"
+      );
+    }
+
+    // Create session with snapshot (within transaction)
+    const session = await AttendanceSession.create([{
       college_id: collegeId,
       department_id: slot.department_id,
       course_id: slot.course_id,
@@ -1275,24 +1292,33 @@ exports.createAttendanceSession = async (req, res, next) => {
       totalStudents,
       status: "OPEN",
       slotSnapshot: slotSnapshot, // ✅ Preserve slot data
-    });
+    }], { session });
+
+    // Commit transaction
+    await session.commitTransaction();
 
     res.status(201).json({
       message: "Attendance session created successfully",
-      session,
+      session: session[0],
     });
   } catch (error) {
-    // Handle duplicate key error gracefully
+    // Abort transaction on error
+    await session.abortTransaction();
+    
+    // Handle duplicate key error gracefully (race condition)
     if (error.code === 11000) {
       return next(
         new AppError(
-          "Attendance session already exists for this slot and lecture number",
+          "Attendance session already exists for this slot and lecture number. Another teacher may have created it simultaneously.",
           409,
           "DUPLICATE_SESSION",
         ),
       );
     }
     next(error);
+  } finally {
+    // End session
+    await session.endSession();
   }
 };
 

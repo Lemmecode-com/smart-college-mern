@@ -16,8 +16,12 @@ const AppError = require("../utils/AppError");
  */
 exports.studentDashboard = async (req, res, next) => {
   try {
-    const userId = req.user.id;  // This is User._id
+    const userId = req.user?.id;
     const collegeId = req.college_id;
+
+    if (!userId || !collegeId) {
+      throw new AppError("User ID or College ID missing", 400, "INVALID_REQUEST");
+    }
 
     /* =====================================================
        1️⃣ STUDENT PROFILE
@@ -85,14 +89,15 @@ exports.studentDashboard = async (req, res, next) => {
     // Calculate overall attendance
     const total = attendanceStats.reduce((sum, s) => sum + s.total, 0);
     const present = attendanceStats.reduce((sum, s) => sum + s.present, 0);
+    const absent = total - present; // ✅ Calculate absent
     const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
-    // Format subject-wise attendance
+    // Format subject-wise attendance with null safety
     const subjectWiseAttendance = attendanceStats.map(stat => ({
-      subject: stat.subjectName,
-      code: stat.subjectCode,
-      total: stat.total,
-      present: stat.present,
+      subject: stat.subjectName || "Unknown",
+      code: stat.subjectCode || "N/A",
+      total: stat.total || 0,
+      present: stat.present || 0,
       percentage: stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0
     }));
 
@@ -114,13 +119,13 @@ exports.studentDashboard = async (req, res, next) => {
       .sort({ startTime: 1 });
 
     const todayTimetable = todaySlots.map((slot) => ({
-      subject: slot.subject_id?.name,
-      code: slot.subject_id?.code,
-      teacher: slot.teacher_id?.name,
+      subject: slot.subject_id?.name || "No Subject",
+      code: slot.subject_id?.code || "N/A",
+      teacher: slot.teacher_id?.name || "TBA",
       startTime: slot.startTime,
       endTime: slot.endTime,
-      room: slot.room,
-      slotType: slot.slotType,
+      room: slot.room || "TBA",
+      slotType: slot.slotType || "Regular",
     }));
 
     /* =====================================================
@@ -180,30 +185,29 @@ exports.studentDashboard = async (req, res, next) => {
 
     res.json({
       student: {
-        name: student.fullName,
-        enrollmentNumber: student.enrollmentNumber,
-        course: student.course_id?.name,
-        department: student.department_id?.name,
-        semester: student.semester,
+        name: student.fullName || "Student",
+        enrollmentNumber: student.enrollmentNumber || "N/A",
+        course: student.course_id?.name || "Not Assigned",
+        department: student.department_id?.name || "Not Assigned",
+        semester: student.currentSemester || student.semester || 1,
       },
 
       attendanceSummary: {
-        total,
-        present,
-        absent,
-        percentage,
+        total: total || 0,
+        present: present || 0,
+        absent: absent || 0,
+        percentage: percentage || 0,
         warning: percentage < 75,
       },
 
       subjectWiseAttendance,
-
       todayTimetable,
-
       feeSummary,
-
-      latestNotifications,
+      latestNotifications: latestNotifications || [],
     });
   } catch (error) {
+    console.error('❌ [DASHBOARD] Student Dashboard Error:', error);
+    console.error('❌ [DASHBOARD] Error Stack:', error.stack);
     next(error);
   }
 };
@@ -211,7 +215,7 @@ exports.studentDashboard = async (req, res, next) => {
 /**
  * 👩‍🏫 TEACHER DASHBOARD
  */
-exports.teacherDashboard = async (req, res) => {
+exports.teacherDashboard = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const collegeId = req.college_id;
@@ -223,7 +227,7 @@ exports.teacherDashboard = async (req, res) => {
     }).select("name email employeeId");
 
     if (!teacher) {
-      return res.status(404).json({ message: "Teacher not found" });
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
     // 🔹 Get Sessions
@@ -280,28 +284,36 @@ exports.teacherDashboard = async (req, res) => {
       recentLectures: sessions.slice(0, 5),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 /**
  * 👩‍🏫 COLLEGE ADMIN DASHBOARD
  */
-exports.collegeAdminDashboard = async (req, res) => {
+exports.collegeAdminDashboard = async (req, res, next) => {
   try {
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const collegeId = req.college_id;
 
+    const college = await College.findById(collegeId).select(
+      "name code email establishedYear logo",
+    );
+
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
     const [
-      college,
       students,
       teachers,
       departments,
       courses,
       pendingAdmissions,
     ] = await Promise.all([
-      College.findById(collegeId).select(
-        "name code email establishedYear logo",
-      ),
       Student.find({ college_id: collegeId }).select("fullName status"),
       Teacher.find({ college_id: collegeId }).select("fullName email"),
       Department.find({ college_id: collegeId }),
@@ -313,12 +325,12 @@ exports.collegeAdminDashboard = async (req, res) => {
 
     res.json({
       college: {
-        id: college?._id,
-        name: college?.name,
-        code: college?.code,
-        email: college?.email,
-        establishedYear: college?.establishedYear,
-        logo: college?.logo,
+        id: college._id,
+        name: college.name,
+        code: college.code,
+        email: college.email,
+        establishedYear: college.establishedYear,
+        logo: college.logo,
       },
 
       stats: {
@@ -333,7 +345,7 @@ exports.collegeAdminDashboard = async (req, res) => {
       pendingAdmissions,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

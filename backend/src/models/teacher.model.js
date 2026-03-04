@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
-const { 
-  validateEmail, 
+const {
+  validateEmail,
   emailValidatorMessage,
-  validateIndianMobile, 
+  validateIndianMobile,
   mobileValidatorMessage
 } = require("../utils/validators");
 
@@ -46,6 +46,19 @@ const teacherSchema = new mongoose.Schema(
       validate: {
         validator: validateEmail,
         message: emailValidatorMessage
+      }
+    },
+
+    mobileNumber: {
+      type: String,
+      // required: true,  // Made optional - not all teachers have mobile numbers
+      validate: {
+        validator: function(v) {
+          // Only validate if mobileNumber is provided
+          if (!v) return true;
+          return validateIndianMobile(v);
+        },
+        message: mobileValidatorMessage
       }
     },
 
@@ -94,5 +107,6 @@ teacherSchema.index({ college_id: 1, status: 1 }); // Filter by college and stat
 teacherSchema.index({ college_id: 1, department_id: 1 }); // Department-wise teachers
 teacherSchema.index({ user_id: 1 }); // Teacher lookup by user_id
 teacherSchema.index({ email: 1 }); // Email lookup
+teacherSchema.index({ mobileNumber: 1 }); // Mobile number lookup
 
 module.exports = mongoose.model("Teacher", teacherSchema);
