@@ -50,10 +50,17 @@ export default function ViewApproveStudent() {
     try {
       // Use approved-stud/:id endpoint for APPROVED students (includes fee details)
       const res = await api.get(`/students/approved-stud/${id}`);
-      setStudent(res.data);
+      console.log('[ViewApproveStudent] Full API Response:', res);
+      console.log('[ViewApproveStudent] res.data:', res.data);
+      console.log('[ViewApproveStudent] res.data.student:', res.data?.student);
+      // Backend returns: { success, message, student, fee } after interceptor unwraps
+      const studentData = res.data?.student || res.data;
+      console.log('[ViewApproveStudent] Setting student:', studentData);
+      setStudent(studentData);
       setRetryCount(0);
     } catch (err) {
       console.error("Student fetch error:", err);
+      console.error("Error response:", err.response?.data);
       setError(err.response?.data?.message || "Failed to load student. Please try again.");
     } finally {
       setLoading(false);
@@ -293,10 +300,10 @@ export default function ViewApproveStudent() {
       {/* PROFILE BANNER */}
       <div className="profile-banner animate-fade-in">
         <div className="profile-banner-avatar">
-          {student.fullName.charAt(0).toUpperCase()}
+          {student.fullName ? student.fullName.charAt(0).toUpperCase() : "S"}
         </div>
         <div className="profile-banner-info">
-          <h2 className="profile-banner-name">{student.fullName}</h2>
+          <h2 className="profile-banner-name">{student.fullName || "Student"}</h2>
           <div className="profile-banner-meta">
             <span className="profile-banner-id">
               <FaGraduationCap className="meta-icon" />

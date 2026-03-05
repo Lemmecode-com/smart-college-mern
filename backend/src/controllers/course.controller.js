@@ -48,13 +48,19 @@ exports.createCourse = async (req, res, next) => {
  */
 exports.getCoursesByDepartment = async (req, res, next) => {
   try {
+    console.log('[getCoursesByDepartment] Department ID:', req.params.departmentId);
+    console.log('[getCoursesByDepartment] College ID:', req.college_id);
+    
     const courses = await Course.find({
       department_id: req.params.departmentId,
       college_id: req.college_id
     });
+    
+    console.log('[getCoursesByDepartment] Found courses:', courses.length);
 
     ApiResponse.success(res, { courses }, "Department courses fetched successfully");
   } catch (error) {
+    console.error('[getCoursesByDepartment] Error:', error);
     next(error);
   }
 };
@@ -82,10 +88,15 @@ exports.getAllCourses = async (req, res, next) => {
  */
 exports.getCourseById = async (req, res, next) => {
   try {
+    console.log('[getCourseById] Request ID:', req.params.id);
+    console.log('[getCourseById] College ID:', req.college_id);
+    
     const course = await Course.findOne({
       _id: req.params.id,
       college_id: req.college_id
     }).populate("department_id", "name code type");
+    
+    console.log('[getCourseById] Found course:', course ? course.name : 'NULL');
 
     if (!course) {
       throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
@@ -93,6 +104,7 @@ exports.getCourseById = async (req, res, next) => {
 
     ApiResponse.success(res, { course }, "Course fetched successfully");
   } catch (error) {
+    console.error('[getCourseById] Error:', error);
     next(error);
   }
 };
