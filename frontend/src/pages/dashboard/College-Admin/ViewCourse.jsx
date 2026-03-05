@@ -40,10 +40,15 @@ export default function ViewCourse() {
     const fetchCourse = async () => {
       try {
         const res = await api.get(`/courses/${id}`);
-        setCourse(res.data);
+        console.log('[ViewCourse] API Response:', res);
+        console.log('[ViewCourse] res.data:', res.data);
+        console.log('[ViewCourse] res.data.course:', res.data?.course);
+        // Backend returns: { success, message, course } after interceptor unwraps
+        setCourse(res.data?.course || res.data);
       } catch (err) {
         setError("Failed to load course details. Please try again.");
         console.error("Course fetch error:", err);
+        console.error("Error response:", err.response?.data);
       } finally {
         setLoading(false);
       }
@@ -57,6 +62,11 @@ export default function ViewCourse() {
     return <Loading fullScreen size="lg" text="Loading course details..." />;
   }
 
+  /* ================= DEBUG: Log course state === */
+  console.log('[ViewCourse Render] course state:', course);
+  console.log('[ViewCourse Render] course?.name:', course?.name);
+  console.log('[ViewCourse Render] course?.code:', course?.code);
+
   /* ================= ERROR/NOT FOUND STATE ================= */
   if (error || !course) {
     return (
@@ -65,7 +75,7 @@ export default function ViewCourse() {
           <FaTimesCircle />
         </div>
         <h3>{error || "Course not found"}</h3>
-        <button 
+        <button
           className="course-detail-btn course-detail-btn--secondary"
           onClick={() => navigate('/courses')}
         >

@@ -25,7 +25,8 @@ import {
   FaMapMarkedAlt,
   FaUsers,
   FaRegClock,
-  FaBookOpen
+  FaBookOpen,
+  FaCalendarAlt
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -94,10 +95,12 @@ export default function AddTeacher() {
     password: "",
     gender: "",
     bloodGroup: "",
+    dateOfBirth: "",
     employmentType: "FULL_TIME",
     address: "",
     city: "",
     state: "",
+    pincode: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -130,7 +133,12 @@ export default function AddTeacher() {
     const fetchCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${formData.department_id}`);
-        setCourses(res.data);
+        console.log('[AddTeacher] Courses API Response:', res.data);
+        // Handle different API response formats
+        const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
+                            Array.isArray(res.data) ? res.data : [];
+        console.log('[AddTeacher] Extracted courses:', coursesData);
+        setCourses(coursesData);
       } catch (err) {
         console.error("Failed to load courses:", err);
         setCourses([]);
@@ -149,7 +157,7 @@ export default function AddTeacher() {
     const requiredFields = [
       'name', 'email', 'designation', 'qualification', 
       'experienceYears', 'department_id', 'course_id', // CRITICAL: Added course_id
-      'password', 'gender', 'bloodGroup', 'address', 'city', 'state'
+      'password', 'gender', 'bloodGroup', 'dateOfBirth', 'address', 'city', 'state', 'pincode'
     ];
     
     requiredFields.forEach(field => {
@@ -231,10 +239,12 @@ export default function AddTeacher() {
         password: formData.password,
         gender: formData.gender,
         bloodGroup: formData.bloodGroup,
+        dateOfBirth: formData.dateOfBirth,
         employmentType: formData.employmentType,
         address: formData.address.trim(),
         city: formData.city.trim(),
         state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
         // Temporary employeeId that satisfies backend validation
         employeeId: `TEMP-T-${Date.now().toString().slice(-4)}`
       };
@@ -256,10 +266,12 @@ export default function AddTeacher() {
           password: "",
           gender: "",
           bloodGroup: "",
+          dateOfBirth: "",
           employmentType: "FULL_TIME",
           address: "",
           city: "",
-          state: ""
+          state: "",
+          pincode: ""
         });
         setValidationErrors({});
         navigate("/teachers");
@@ -648,9 +660,27 @@ export default function AddTeacher() {
                         </FormField>
                       </div>
 
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaCalendarAlt />}
+                          label="Date of Birth"
+                          required
+                          error={validationErrors.dateOfBirth}
+                        >
+                          <input
+                            type="date"
+                            name="dateOfBirth"
+                            value={formData.dateOfBirth}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
                       <FormField
-                        icon={<FaTransgender />} 
-                        label="Gender" 
+                        icon={<FaTransgender />}
+                        label="Gender"
                         required
                         error={validationErrors.gender}
                       >
@@ -662,7 +692,7 @@ export default function AddTeacher() {
                           required
                         >
                           <option value="">Select gender</option>
-                          {["Male", "Female", "Other"].map(gender => (
+                          {["Male", "Female", "Other", "Prefer not to say"].map(gender => (
                             <option key={gender} value={gender}>{gender}</option>
                           ))}
                         </select>
@@ -857,7 +887,7 @@ export default function AddTeacher() {
                             required
                           >
                             <option value="">Select course</option>
-                            {courses.map(course => (
+                            {Array.isArray(courses) && courses.map(course => (
                               <option key={course._id} value={course._id}>
                                 {course.name} ({course.code})
                               </option>
@@ -986,6 +1016,26 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Maharashtra"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaMapMarkerAlt />}
+                          label="Pincode"
+                          required
+                          error={validationErrors.pincode}
+                        >
+                          <input
+                            type="text"
+                            name="pincode"
+                            value={formData.pincode}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., 400001"
+                            pattern="[0-9]{6}"
                             required
                           />
                         </FormField>
