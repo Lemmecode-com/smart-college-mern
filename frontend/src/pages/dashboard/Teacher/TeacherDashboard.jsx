@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaQrcode,
   FaUsers,
@@ -194,16 +195,12 @@ export default function TeacherDashboard() {
             className="card shadow-sm mb-3 mb-md-4"
           >
             <div className="card-body py-2 py-md-3 px-3 px-md-4">
-              <nav aria-label="breadcrumb">
-                <ol className="breadcrumb mb-0">
-                  <li className="breadcrumb-item">
-                    <span className="text-muted small">Dashboard</span>
-                  </li>
-                  <li className="breadcrumb-item active" aria-current="page">
-                    <span className="fw-semibold small" style={{ color: BRAND_COLORS.primary.main }}>Teacher Overview</span>
-                  </li>
-                </ol>
-              </nav>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard" },
+                  { label: "Teacher Overview" }
+                ]}
+              />
             </div>
           </motion.div>
 

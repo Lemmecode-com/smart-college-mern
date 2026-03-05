@@ -1,7 +1,9 @@
 import { useContext, useEffect, useState } from "react";
-import { useParams, Navigate, useNavigate } from "react-router-dom";
+import { Link, useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
+
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -50,10 +52,20 @@ export default function ViewApproveStudent() {
     try {
       // Use approved-stud/:id endpoint for APPROVED students (includes fee details)
       const res = await api.get(`/students/approved-stud/${id}`);
-      setStudent(res.data);
+      console.log('[ViewApproveStudent] Full API Response:', res);
+      console.log('[ViewApproveStudent] res.data:', res.data);
+      console.log('[ViewApproveStudent] res.data.student:', res.data?.student);
+      console.log('[ViewApproveStudent] res.data.fullName:', res.data?.fullName);
+      
+      // Axios interceptor unwraps ApiResponse, so student fields are directly on res.data
+      // Check if student data is nested or at root level
+      const studentData = res.data?.student || (res.data?.fullName ? res.data : null);
+      console.log('[ViewApproveStudent] Setting student:', studentData);
+      setStudent(studentData);
       setRetryCount(0);
     } catch (err) {
       console.error("Student fetch error:", err);
+      console.error("Error response:", err.response?.data);
       setError(err.response?.data?.message || "Failed to load student. Please try again.");
     } finally {
       setLoading(false);
@@ -63,6 +75,12 @@ export default function ViewApproveStudent() {
   useEffect(() => {
     fetchStudent();
   }, [id]);
+
+  /* ================= DEBUG: Log render state === */
+  console.log('[ViewApproveStudent RENDER] loading:', loading, 'student:', student ? 'HAS DATA' : 'NULL');
+  if (student) {
+    console.log('[ViewApproveStudent RENDER] student.fullName:', student.fullName);
+  }
 
   /* ================= HELPER FUNCTIONS ================= */
   // Check if 10th details exist (must have at least one non-empty field)
@@ -258,13 +276,13 @@ export default function ViewApproveStudent() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/students/approve">Approved Students</a></li>
-          <li className="breadcrumb-item active" aria-current="page">{student.fullName}</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Approved Students", path: "/students/approve" },
+          { label: student.fullName || "Student Profile" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -293,10 +311,10 @@ export default function ViewApproveStudent() {
       {/* PROFILE BANNER */}
       <div className="profile-banner animate-fade-in">
         <div className="profile-banner-avatar">
-          {student.fullName.charAt(0).toUpperCase()}
+          {(student.fullName || 'S').charAt(0).toUpperCase()}
         </div>
         <div className="profile-banner-info">
-          <h2 className="profile-banner-name">{student.fullName}</h2>
+          <h2 className="profile-banner-name">{student.fullName || "N/A"}</h2>
           <div className="profile-banner-meta">
             <span className="profile-banner-id">
               <FaGraduationCap className="meta-icon" />
@@ -738,29 +756,7 @@ export default function ViewApproveStudent() {
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-        
+
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -773,7 +769,7 @@ export default function ViewApproveStudent() {
           align-items: center;
           animation: slideDown 0.6s ease;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;

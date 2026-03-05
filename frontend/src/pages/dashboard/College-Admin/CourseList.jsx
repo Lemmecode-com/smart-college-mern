@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaBookOpen,
@@ -85,13 +86,18 @@ export default function CourseList() {
       setError(null);
       try {
         const res = await api.get(`/courses/department/${selectedDepartment}`);
+        console.log('[CourseList] API Response:', res);
+        console.log('[CourseList] res.data:', res.data);
+        console.log('[CourseList] res.data.courses:', res.data?.courses);
         // After API standardization, courses are in res.data.courses
-        const coursesData = res.data.courses || res.data || [];
+        const coursesData = res.data?.courses || res.data?.data?.courses || res.data || [];
+        console.log('[CourseList] Extracted coursesData:', coursesData);
         setCourses(Array.isArray(coursesData) ? coursesData : []);
         updateStats(Array.isArray(coursesData) ? coursesData : []);
       } catch (err) {
         setError("Failed to load courses. Please try again.");
-        console.error(err);
+        console.error('[CourseList] Error:', err);
+        console.error('[CourseList] Error response:', err.response?.data);
         setCourses([]);
       } finally {
         setLoadingCourses(false);
@@ -137,14 +143,17 @@ export default function CourseList() {
 
   /* ================= FILTERING ================= */
   const getFilteredCourses = () => {
-    return courses
-      .filter(course => 
+    const result = courses
+      .filter(course =>
         course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.code.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      .filter(course => 
+      .filter(course =>
         filterStatus === "ALL" || course.status === filterStatus
       );
+    console.log('[CourseList] Filtering - courses:', courses.length, 'filtered:', result.length);
+    console.log('[CourseList] Filter config:', { searchTerm, filterStatus });
+    return result;
   };
 
   /* ================= DELETE HANDLER ================= */
@@ -276,12 +285,12 @@ export default function CourseList() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Course Management</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Course Management" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -464,6 +473,7 @@ export default function CourseList() {
 
             {/* TABLE */}
             <div className="table-container">
+              {console.log('[CourseList Render] loadingCourses:', loadingCourses, 'filteredCourses:', filteredCourses.length, 'courses:', courses.length)}
               {loadingCourses ? (
                 renderSkeleton()
               ) : filteredCourses.length === 0 ? (
@@ -631,32 +641,6 @@ export default function CourseList() {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
-        }
-
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-
-        .breadcrumb-item + .breadcrumb-item::before {
-          color: #6c757d;
         }
 
         /* PAGE HEADER */

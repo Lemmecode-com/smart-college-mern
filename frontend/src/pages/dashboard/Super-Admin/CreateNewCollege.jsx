@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaUniversity,
@@ -158,13 +159,13 @@ export default function CreateNewCollege() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/super-admin/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/super-admin/colleges-list">Colleges</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Create New College</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/super-admin/dashboard" },
+          { label: "Colleges", path: "/super-admin/colleges-list" },
+          { label: "Create New College" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -602,28 +603,6 @@ export default function CreateNewCollege() {
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
         }
         
         .erp-page-header {
