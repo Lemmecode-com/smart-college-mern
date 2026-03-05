@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { useParams, Navigate, useNavigate } from "react-router-dom";
+import { Link, useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import {
@@ -260,9 +260,9 @@ export default function ViewApproveStudent() {
       {/* BREADCRUMBS */}
       <nav aria-label="breadcrumb" className="erp-breadcrumb">
         <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/students/approve">Approved Students</a></li>
-          <li className="breadcrumb-item active" aria-current="page">{student.fullName}</li>
+          <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
+          <li className="breadcrumb-item"><Link to="/students/approve">Approved Students</Link></li>
+          <li className="breadcrumb-item active" aria-current="page">{student.fullName || "Loading..."}</li>
         </ol>
       </nav>
 
@@ -293,10 +293,10 @@ export default function ViewApproveStudent() {
       {/* PROFILE BANNER */}
       <div className="profile-banner animate-fade-in">
         <div className="profile-banner-avatar">
-          {student.fullName.charAt(0).toUpperCase()}
+          {(student.fullName || 'S').charAt(0).toUpperCase()}
         </div>
         <div className="profile-banner-info">
-          <h2 className="profile-banner-name">{student.fullName}</h2>
+          <h2 className="profile-banner-name">{student.fullName || "N/A"}</h2>
           <div className="profile-banner-meta">
             <span className="profile-banner-id">
               <FaGraduationCap className="meta-icon" />
