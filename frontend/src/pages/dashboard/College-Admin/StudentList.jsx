@@ -855,30 +855,36 @@ export default function StudentList() {
           padding: 1rem 1.25rem;
           text-align: left;
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
+          letter-spacing: 0.3px;
           position: relative;
           white-space: nowrap;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          text-transform: uppercase;
         }
-        
+
         .header-icon {
           margin-right: 0.5rem;
           font-size: 0.9rem;
+          flex-shrink: 0;
         }
-        
+
         .erp-table tbody tr {
           border-bottom: 1px solid #f0f2f5;
           transition: all 0.2s ease;
         }
-        
+
         .erp-table tbody tr:hover {
           background: #f8f9ff;
         }
-        
+
         .erp-table td {
           padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
+          color: #4b5563;
+          font-weight: 400;
+          font-size: 0.95rem;
           vertical-align: middle;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
         
         .student-name {
@@ -907,10 +913,12 @@ export default function StudentList() {
         
         .student-fullname {
           font-weight: 600;
-          color: #1a4b6d;
-          font-size: 0.95rem;
+          color: #1f2937;
+          font-size: 15px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.4;
         }
-        
+
         .student-meta {
           display: flex;
           align-items: center;
@@ -918,25 +926,34 @@ export default function StudentList() {
           flex-wrap: wrap;
           margin-top: 0.25rem;
         }
-        
+
         .student-id {
           font-size: 0.8rem;
           color: #6c757d;
           background: #f0f2f5;
           padding: 0.125rem 0.5rem;
           border-radius: 4px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
-        
+
         .contact-info {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: #1a4b6d;
+          color: #1f2937;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
-        
+
+        .contact-info span {
+          font-size: 13px;
+          color: #6b7280;
+          font-weight: 400;
+        }
+
         .contact-icon {
           color: #6c757d;
           font-size: 0.9rem;
+          flex-shrink: 0;
         }
         
         .status-badge {
