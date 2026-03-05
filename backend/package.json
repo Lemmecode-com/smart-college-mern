@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "cleanup:orphans": "node scripts/cleanup-orphaned-records.js",
     "cleanup:orphans:live": "node scripts/cleanup-orphaned-records.js --live",
-    "test:soft-delete": "node scripts/test-soft-delete.js"
+    "test:soft-delete": "node scripts/test-soft-delete.js",
+    "add-indexes": "node scripts/add-indexes.js"
   },
   "keywords": [],
   "author": "",

@@ -17,17 +17,59 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle 401 errors globally
+// 🔒 RESPONSE INTERCEPTOR - Standardize API Response Format
+// This unwraps the new standardized format so frontend code doesn't break
+// Backend sends: { success: true, data: {...}, message: "..." }
+// Frontend receives: { success: true, ...data, message: "..." }
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Check if response has standardized format
+    if (response.data && response.data.success !== undefined) {
+      const { success, data, message, pagination, error } = response.data;
+      
+      // Only unwrap if 'data' exists and is an object
+      // Some endpoints (like login) return data at root level
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        // Unwrap data for backward compatibility
+        // This makes new format look like old format to existing code
+        response.data = {
+          ...data,        // Spread actual data (student, teachers, etc.)
+          success,        // Keep success flag
+          message,        // Keep message
+          pagination,     // Keep pagination if present
+          error           // Keep error if present (shouldn't be on success)
+        };
+      } else {
+        // If no 'data' field or it's an array, just add success/message
+        response.data = {
+          success,
+          message,
+          pagination,
+          error,
+          // Keep original data if it's not an object (e.g., login returns accessToken directly)
+          ...(data !== undefined ? { data } : {})
+        };
+      }
+    }
+    return response;
+  },
   (error) => {
-    // If we get 401, the session has expired or is invalid
-    // Don't do anything here - let the component handle it
-    // The AuthContext will detect 401 and set user to null
+    // 🔒 STANDARDIZE ERROR FORMAT
+    // Backend sends: { success: false, error: { code, message, details } }
+    // Transform to: { success: false, message, code, details }
+    if (error.response?.data?.error) {
+      const { error: errorObj } = error.response.data;
+      error.response.data.message = errorObj.message;
+      error.response.data.code = errorObj.code;
+      error.response.data.details = errorObj.details;
+    }
+    
+    // Handle 401 errors globally
     if (error.response?.status === 401) {
       // Optionally: Clear any local storage if you store anything there
       // localStorage.removeItem('someKey');
     }
+    
     return Promise.reject(error);
   }
 );
