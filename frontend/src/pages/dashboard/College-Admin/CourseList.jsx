@@ -85,8 +85,10 @@ export default function CourseList() {
       setError(null);
       try {
         const res = await api.get(`/courses/department/${selectedDepartment}`);
-        setCourses(res.data);
-        updateStats(res.data);
+        // After API standardization, courses are in res.data.courses
+        const coursesData = res.data.courses || res.data || [];
+        setCourses(Array.isArray(coursesData) ? coursesData : []);
+        updateStats(Array.isArray(coursesData) ? coursesData : []);
       } catch (err) {
         setError("Failed to load courses. Please try again.");
         console.error(err);

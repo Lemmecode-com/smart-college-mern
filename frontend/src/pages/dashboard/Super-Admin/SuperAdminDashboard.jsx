@@ -461,36 +461,36 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
+
         .erp-breadcrumb {
           background: transparent;
           padding: 0;
           margin-bottom: 1.5rem;
         }
-        
+
         .breadcrumb {
           background: white;
           padding: 0.75rem 1.5rem;
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        
+
         .breadcrumb-item a {
           color: #1a4b6d;
           text-decoration: none;
         }
-        
+
         .breadcrumb-item a:hover {
           text-decoration: underline;
         }
-        
+
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;

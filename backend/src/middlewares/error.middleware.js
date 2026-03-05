@@ -118,23 +118,22 @@ const errorHandler = (err, req, res, next) => {
   const message = error.message || 'Internal server error';
   const code = error.code || 'INTERNAL_ERROR';
 
-  // Build response object
+  // 🔒 STANDARDIZED ERROR RESPONSE FORMAT
+  // Format: { success: false, error: { code, message, details } }
   const response = {
     success: false,
-    message: process.env.NODE_ENV === 'production' && statusCode === 500
-      ? 'Internal server error' // Hide detailed error messages in production for 500s
-      : message,
-    code
+    error: {
+      code,
+      message: process.env.NODE_ENV === 'production' && statusCode === 500
+        ? 'Internal server error' // Hide detailed error messages in production for 500s
+        : message,
+      details: error.details || {}
+    }
   };
-
-  // Add validation details if available
-  if (error.details) {
-    response.details = error.details;
-  }
 
   // Add stack trace in development only
   if (process.env.NODE_ENV === 'development' && err.stack) {
-    response.stack = err.stack;
+    response.error.stack = err.stack;
   }
 
   res.status(statusCode).json(response);

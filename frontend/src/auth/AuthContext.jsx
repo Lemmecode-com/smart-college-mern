@@ -16,12 +16,12 @@ export const AuthProvider = ({ children }) => {
 
       // With httpOnly cookies, we don't receive the token in the response body to store manually
       // The token is automatically sent with subsequent requests via cookies
-      
-      // Get user info from the response
-      const userInfo = res.data.user || { 
-        id: res.data.userId, 
-        role: res.data.role, 
-        college_id: res.data.college_id 
+
+      // Get user info from the response (interceptor unwraps it)
+      const userInfo = res.data.user || {
+        id: res.data.id,
+        role: res.data.role,
+        college_id: res.data.college_id
       };
 
       // Store user info (not the token) in state
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error?.response?.data?.message || "Login failed"
+        message: error?.response?.data?.message || error?.response?.data?.error?.message || "Login failed"
       };
     }
   };

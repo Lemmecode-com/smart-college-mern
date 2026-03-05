@@ -106,5 +106,8 @@ notificationSchema.index({ target: 1, type: 1 }); // Target and type filtering
 notificationSchema.index({ college_id: 1, target_department: 1 }); // Department targeting
 notificationSchema.index({ college_id: 1, target_course: 1 }); // Course targeting
 notificationSchema.index({ college_id: 1, target_semester: 1 }); // Semester targeting
+// Optimized compound index for dashboard queries
+notificationSchema.index({ college_id: 1, target: 1, isActive: 1 }); // Exact match for dashboard
+notificationSchema.index({ college_id: 1, isActive: 1, createdAt: -1 }); // Active notifications sorted
 
 module.exports = mongoose.model("Notification", notificationSchema);

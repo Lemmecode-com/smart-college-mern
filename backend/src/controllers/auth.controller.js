@@ -357,11 +357,14 @@ const sendTokens = async (res, id, role, college_id, req) => {
   });
 
   // Send user info in the response (not the tokens)
+  // Using standardized format with data wrapper
   res.json({
-    accessToken,
-    user: { id, role, college_id },
     success: true,
-    message: "Login successful"
+    message: "Login successful",
+    data: {
+      accessToken,
+      user: { id, role, college_id }
+    }
   });
 };
 
