@@ -74,6 +74,12 @@ export default function ViewApproveStudent() {
     fetchStudent();
   }, [id]);
 
+  /* ================= DEBUG: Log render state === */
+  console.log('[ViewApproveStudent RENDER] loading:', loading, 'student:', student ? 'HAS DATA' : 'NULL');
+  if (student) {
+    console.log('[ViewApproveStudent RENDER] student.fullName:', student.fullName);
+  }
+
   /* ================= HELPER FUNCTIONS ================= */
   // Check if 10th details exist (must have at least one non-empty field)
   const has10thDetails = () => {
