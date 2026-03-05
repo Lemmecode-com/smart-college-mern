@@ -62,6 +62,11 @@ export default function ViewCourse() {
     return <Loading fullScreen size="lg" text="Loading course details..." />;
   }
 
+  /* ================= DEBUG: Log course state === */
+  console.log('[ViewCourse Render] course state:', course);
+  console.log('[ViewCourse Render] course?.name:', course?.name);
+  console.log('[ViewCourse Render] course?.code:', course?.code);
+
   /* ================= ERROR/NOT FOUND STATE ================= */
   if (error || !course) {
     return (
@@ -70,7 +75,7 @@ export default function ViewCourse() {
           <FaTimesCircle />
         </div>
         <h3>{error || "Course not found"}</h3>
-        <button 
+        <button
           className="course-detail-btn course-detail-btn--secondary"
           onClick={() => navigate('/courses')}
         >

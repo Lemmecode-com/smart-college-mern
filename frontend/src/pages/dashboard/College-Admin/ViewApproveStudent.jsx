@@ -53,8 +53,11 @@ export default function ViewApproveStudent() {
       console.log('[ViewApproveStudent] Full API Response:', res);
       console.log('[ViewApproveStudent] res.data:', res.data);
       console.log('[ViewApproveStudent] res.data.student:', res.data?.student);
-      // Backend returns: { success, message, student, fee } after interceptor unwraps
-      const studentData = res.data?.student || res.data;
+      console.log('[ViewApproveStudent] res.data.fullName:', res.data?.fullName);
+      
+      // Axios interceptor unwraps ApiResponse, so student fields are directly on res.data
+      // Check if student data is nested or at root level
+      const studentData = res.data?.student || (res.data?.fullName ? res.data : null);
       console.log('[ViewApproveStudent] Setting student:', studentData);
       setStudent(studentData);
       setRetryCount(0);
