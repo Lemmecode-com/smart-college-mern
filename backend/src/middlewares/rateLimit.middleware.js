@@ -7,7 +7,7 @@ const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
 // Development-specific settings (more relaxed for testing)
 const DEV_WINDOW_MS = 60 * 1000; // 1 minute
-const DEV_MAX_REQUESTS = 500; // 500 requests per minute in development
+const DEV_MAX_REQUESTS = 1000; // 1000 requests per minute in development
 
 /**
  * Helper function to normalize IP addresses (IPv4 and IPv6)
@@ -24,7 +24,7 @@ const normalizeIp = (req) => {
 
 /**
  * Global Rate Limiter - Applied to all API routes
- * For development: More relaxed limits (100 req/min) for easier testing
+ * For development: More relaxed limits (1000 req/min) for easier testing
  * For production: Standard limits (100 req/15min)
  */
 const globalLimiter = rateLimit({
@@ -47,6 +47,8 @@ const globalLimiter = rateLimit({
     });
     res.status(options.statusCode).json(options.message);
   },
+  // Skip rate limiting for health checks
+  skip: (req) => req.path === '/health' || req.path === '/health-check',
 });
 
 /**
