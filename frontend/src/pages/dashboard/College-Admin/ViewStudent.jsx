@@ -40,10 +40,12 @@ export default function ViewStudent() {
       setLoading(true);
       const res = await api.get(`/students/registered/${studentId}`);
       console.log('✅ Student received:', res.data);
-      console.log('📄 Aadhar Path:', res.data.aadharCardPath);
-      console.log('📄 SSC Path:', res.data.sscMarksheetPath);
-      console.log('📄 Category Cert:', res.data.categoryCertificatePath);
-      setStudent(res.data);
+      console.log('📄 res.data.student:', res.data?.student);
+      console.log('📄 Aadhar Path:', res.data?.student?.aadharCardPath);
+      console.log('📄 SSC Path:', res.data?.student?.sscMarksheetPath);
+      console.log('📄 Category Cert:', res.data?.student?.categoryCertificatePath);
+      // Backend returns { student: {...} }, axios interceptor keeps it nested
+      setStudent(res.data?.student || res.data);
     } catch (err) {
       console.error(err);
       setError("Failed to load student details");

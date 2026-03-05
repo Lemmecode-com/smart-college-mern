@@ -52,10 +52,20 @@ export default function ViewApproveStudent() {
     try {
       // Use approved-stud/:id endpoint for APPROVED students (includes fee details)
       const res = await api.get(`/students/approved-stud/${id}`);
-      setStudent(res.data);
+      console.log('[ViewApproveStudent] Full API Response:', res);
+      console.log('[ViewApproveStudent] res.data:', res.data);
+      console.log('[ViewApproveStudent] res.data.student:', res.data?.student);
+      console.log('[ViewApproveStudent] res.data.fullName:', res.data?.fullName);
+      
+      // Axios interceptor unwraps ApiResponse, so student fields are directly on res.data
+      // Check if student data is nested or at root level
+      const studentData = res.data?.student || (res.data?.fullName ? res.data : null);
+      console.log('[ViewApproveStudent] Setting student:', studentData);
+      setStudent(studentData);
       setRetryCount(0);
     } catch (err) {
       console.error("Student fetch error:", err);
+      console.error("Error response:", err.response?.data);
       setError(err.response?.data?.message || "Failed to load student. Please try again.");
     } finally {
       setLoading(false);
@@ -65,6 +75,12 @@ export default function ViewApproveStudent() {
   useEffect(() => {
     fetchStudent();
   }, [id]);
+
+  /* ================= DEBUG: Log render state === */
+  console.log('[ViewApproveStudent RENDER] loading:', loading, 'student:', student ? 'HAS DATA' : 'NULL');
+  if (student) {
+    console.log('[ViewApproveStudent RENDER] student.fullName:', student.fullName);
+  }
 
   /* ================= HELPER FUNCTIONS ================= */
   // Check if 10th details exist (must have at least one non-empty field)
