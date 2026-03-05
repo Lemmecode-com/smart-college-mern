@@ -10,6 +10,7 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -183,7 +184,7 @@ exports.studentDashboard = async (req, res, next) => {
        7️⃣ FINAL RESPONSE
     ===================================================== */
 
-    res.json({
+    ApiResponse.success(res, {
       student: {
         name: student.fullName || "Student",
         enrollmentNumber: student.enrollmentNumber || "N/A",
@@ -204,7 +205,7 @@ exports.studentDashboard = async (req, res, next) => {
       todayTimetable,
       feeSummary,
       latestNotifications: latestNotifications || [],
-    });
+    }, "Dashboard data fetched successfully");
   } catch (error) {
     console.error('❌ [DASHBOARD] Student Dashboard Error:', error);
     console.error('❌ [DASHBOARD] Error Stack:', error.stack);
@@ -265,7 +266,7 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
-    res.json({
+    ApiResponse.success(res, {
       teacher: {
         name: teacher.name,
         email: teacher.email,
@@ -282,7 +283,7 @@ exports.teacherDashboard = async (req, res, next) => {
         attendancePercentage,
       },
       recentLectures: sessions.slice(0, 5),
-    });
+    }, "Teacher dashboard data fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -290,13 +291,14 @@ exports.teacherDashboard = async (req, res, next) => {
 
 /**
  * 👩‍🏫 COLLEGE ADMIN DASHBOARD
+ * Optimized: Uses countDocuments() instead of loading full records
  */
 exports.collegeAdminDashboard = async (req, res, next) => {
   try {
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
-    
+
     const collegeId = req.college_id;
 
     const college = await College.findById(collegeId).select(
@@ -307,23 +309,37 @@ exports.collegeAdminDashboard = async (req, res, next) => {
       throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
     }
 
+    // 🔥 OPTIMIZED: Use countDocuments() instead of loading all records
     const [
-      students,
-      teachers,
-      departments,
-      courses,
-      pendingAdmissions,
+      totalStudents,
+      totalTeachers,
+      totalDepartments,
+      totalCourses,
+      pendingAdmissionsCount,
     ] = await Promise.all([
-      Student.find({ college_id: collegeId }).select("fullName status"),
-      Teacher.find({ college_id: collegeId }).select("fullName email"),
-      Department.find({ college_id: collegeId }),
-      Course.find({ college_id: collegeId }),
-      Student.find({ college_id: collegeId, status: "PENDING" }).select(
-        "fullName",
-      ),
+      Student.countDocuments({ college_id: collegeId }),
+      Teacher.countDocuments({ college_id: collegeId }),
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
     ]);
 
-    res.json({
+    // 🔥 OPTIMIZED: Fetch only last 5 students instead of all
+    const recentStudents = await Student.find({ college_id: collegeId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("fullName email enrollmentNumber status");
+
+    // 🔥 OPTIMIZED: Fetch only pending admissions (usually small count)
+    const pendingAdmissions = await Student.find({
+      college_id: collegeId,
+      status: "PENDING"
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .select("fullName email enrollmentNumber createdAt");
+
+    ApiResponse.success(res, {
       college: {
         id: college._id,
         name: college.name,
@@ -334,16 +350,16 @@ exports.collegeAdminDashboard = async (req, res, next) => {
       },
 
       stats: {
-        totalStudents: students.length,
-        totalTeachers: teachers.length,
-        totalDepartments: departments.length,
-        totalCourses: courses.length,
-        pendingAdmissions: pendingAdmissions.length,
+        totalStudents,
+        totalTeachers,
+        totalDepartments,
+        totalCourses,
+        pendingAdmissions: pendingAdmissionsCount,
       },
 
-      recentStudents: students.slice(-5),
+      recentStudents,
       pendingAdmissions,
-    });
+    }, "College admin dashboard data fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -352,19 +368,23 @@ exports.collegeAdminDashboard = async (req, res, next) => {
 /**
  * 🧑‍💼 SUPER ADMIN DASHBOARD
  */
-exports.superAdminDashboard = async (req, res) => {
-  const [colleges, students, teachers] = await Promise.all([
-    College.find().select("name status"),
-    Student.countDocuments(),
-    Teacher.countDocuments(),
-  ]);
+exports.superAdminDashboard = async (req, res, next) => {
+  try {
+    const [colleges, students, teachers] = await Promise.all([
+      College.find().select("name status"),
+      Student.countDocuments(),
+      Teacher.countDocuments(),
+    ]);
 
-  res.json({
-    stats: {
-      totalColleges: colleges.length,
-      totalStudents: students,
-      totalTeachers: teachers,
-    },
-    colleges,
-  });
+    ApiResponse.success(res, {
+      stats: {
+        totalColleges: colleges.length,
+        totalStudents: students,
+        totalTeachers: teachers,
+      },
+      colleges,
+    }, "Super admin dashboard data fetched successfully");
+  } catch (error) {
+    next(error);
+  }
 };
