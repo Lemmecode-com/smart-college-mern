@@ -24,6 +24,15 @@ exports.createTeacher = async (req, res, next) => {
       course_id,
       courses = [],
       password,
+      // New fields for complete profile
+      gender,
+      bloodGroup,
+      dateOfBirth,
+      address,
+      city,
+      state,
+      pincode,
+      employmentType,
     } = req.body;
 
     /* ================= Normalize courses ================= */
@@ -85,6 +94,15 @@ exports.createTeacher = async (req, res, next) => {
       qualification,
       experienceYears,
       createdBy: req.user.id,
+      // New fields
+      gender,
+      bloodGroup,
+      dateOfBirth,
+      address,
+      city,
+      state,
+      pincode,
+      employmentType: employmentType || "FULL_TIME",
     });
 
     ApiResponse.created(res, {
@@ -261,13 +279,20 @@ exports.getTeachers = async (req, res) => {
 ========================================================= */
 exports.getTeacherById = async (req, res) => {
   try {
+    console.log('[getTeacherById] Request ID:', req.params.id);
+    console.log('[getTeacherById] College ID:', req.college_id);
+
     const teacher = await Teacher.findOne({
       _id: req.params.id,
       college_id: req.college_id,
     })
-      .populate("department_id", "name")
+      .populate("department_id", "name code")
       .populate("courses", "name code")
+      .populate("subjects", "name code semester")
       .select("-__v");
+
+    console.log('[getTeacherById] Found teacher:', teacher ? teacher.name : 'NULL');
+    console.log('[getTeacherById] Teacher data:', teacher);
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -277,6 +302,7 @@ exports.getTeacherById = async (req, res) => {
       teacher
     }, "Teacher fetched successfully");
   } catch (error) {
+    console.error('[getTeacherById] Error:', error);
     next(error);
   }
 };
