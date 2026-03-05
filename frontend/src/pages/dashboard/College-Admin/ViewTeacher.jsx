@@ -277,19 +277,19 @@ export default function ViewTeacher() {
                       value={`${teacher.experienceYears || 0} Years`} 
                       icon={<FaClock />}
                     />
-                    <DetailRow 
-                      label="Department" 
-                      value={teacher.department?.name || "N/A"} 
+                    <DetailRow
+                      label="Department"
+                      value={teacher.department_id?.name || "N/A"}
                       icon={<FaBuilding />}
                     />
-                    <DetailRow 
-                      label="Employment Type" 
-                      value={teacher.employmentType?.replace('_', ' ') || "FULL TIME"} 
+                    <DetailRow
+                      label="Employment Type"
+                      value={teacher.employmentType?.replace('_', ' ') || "FULL TIME"}
                       icon={<FaUsers />}
                     />
-                    <DetailRow 
-                      label="Assigned Subjects" 
-                      value={teacher.subjects?.length?.toString() || "0"} 
+                    <DetailRow
+                      label="Assigned Subjects"
+                      value={teacher.subjects?.length?.toString() || "0"}
                       icon={<FaGraduationCap />}
                     />
                   </tbody>
@@ -312,53 +312,78 @@ export default function ViewTeacher() {
               <div className="erp-table-container">
                 <table className="erp-detail-table">
                   <tbody>
-                    <DetailRow 
-                      label="Gender" 
-                      value={teacher.gender || "N/A"} 
+                    <DetailRow
+                      label="Full Name"
+                      value={teacher.name || "N/A"}
+                      icon={<FaUserTie />}
+                    />
+                    <DetailRow
+                      label="Gender"
+                      value={teacher.gender || "N/A"}
                       icon={<FaVenusMars />}
                     />
-                    <DetailRow 
-                      label="Blood Group" 
-                      value={teacher.bloodGroup || "N/A"} 
+                    <DetailRow
+                      label="Blood Group"
+                      value={teacher.bloodGroup || "N/A"}
                       icon={<FaTint />}
                     />
-                    <DetailRow 
-                      label="Contact Number" 
-                      value={teacher.contactNumber || "N/A"} 
-                      icon={<FaPhone />}
+                    <DetailRow
+                      label="Date of Birth"
+                      value={teacher.dateOfBirth ? new Date(teacher.dateOfBirth).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : "N/A"}
+                      icon={<FaCalendarAlt />}
                     />
-                    <DetailRow 
-                      label="Address" 
-                      value={teacher.address || "N/A"} 
+                    <DetailRow
+                      label="Mobile Number"
+                      value={teacher.mobileNumber || "N/A"}
+                      icon={<FaPhoneAlt />}
+                    />
+                    <DetailRow
+                      label="Email"
+                      value={teacher.email || "N/A"}
+                      icon={<FaEnvelope />}
+                      isEmail={true}
+                    />
+                    <DetailRow
+                      label="Address"
+                      value={teacher.address || "N/A"}
                       icon={<FaMapMarkerAlt />}
                       isMultiline={true}
                     />
-                    <DetailRow 
-                      label="City" 
-                      value={teacher.city || "N/A"} 
+                    <DetailRow
+                      label="City"
+                      value={teacher.city || "N/A"}
                       icon={<FaCity />}
                     />
-                    <DetailRow 
-                      label="State" 
-                      value={teacher.state || "N/A"} 
+                    <DetailRow
+                      label="State"
+                      value={teacher.state || "N/A"}
                       icon={<FaBuilding />}
                     />
-                    <DetailRow 
-                      label="Joined On" 
+                    <DetailRow
+                      label="Pincode"
+                      value={teacher.pincode || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                    />
+                    <DetailRow
+                      label="Joined On"
                       value={new Date(teacher.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} 
+                      })}
                       icon={<FaCalendarAlt />}
                     />
-                    <DetailRow 
-                      label="Last Updated" 
+                    <DetailRow
+                      label="Last Updated"
                       value={new Date(teacher.updatedAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} 
+                      })}
                       icon={<FaClock />}
                     />
                   </tbody>
