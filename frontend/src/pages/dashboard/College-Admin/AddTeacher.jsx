@@ -132,7 +132,12 @@ export default function AddTeacher() {
     const fetchCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${formData.department_id}`);
-        setCourses(res.data);
+        console.log('[AddTeacher] Courses API Response:', res.data);
+        // Handle different API response formats
+        const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
+                            Array.isArray(res.data) ? res.data : [];
+        console.log('[AddTeacher] Extracted courses:', coursesData);
+        setCourses(coursesData);
       } catch (err) {
         console.error("Failed to load courses:", err);
         setCourses([]);
@@ -915,7 +920,7 @@ export default function AddTeacher() {
                             required
                           >
                             <option value="">Select course</option>
-                            {courses.map(course => (
+                            {Array.isArray(courses) && courses.map(course => (
                               <option key={course._id} value={course._id}>
                                 {course.name} ({course.code})
                               </option>
