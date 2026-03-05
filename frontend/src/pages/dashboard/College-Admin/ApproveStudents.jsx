@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaSearch,
@@ -202,13 +203,13 @@ export default function ApproveStudents() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
-          <li className="breadcrumb-item"><Link to="/students">Students</Link></li>
-          <li className="breadcrumb-item active" aria-current="page">Approved Students</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Students", path: "/students" },
+          { label: "Approved Students" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -397,31 +398,6 @@ export default function ApproveStudents() {
           min-height: 100vh;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           animation: fadeIn 0.6s ease;
-        }
-
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-          font-family: 'Inter', sans-serif;
-        }
-
-        .breadcrumb-item a {
-          color: #0f3a4a;
-          text-decoration: none;
-          font-weight: 500;
-          transition: color 0.2s ease;
-        }
-
-        .breadcrumb-item a:hover {
-          color: #3db5e6;
         }
 
         /* ================= PAGE HEADER ================= */
