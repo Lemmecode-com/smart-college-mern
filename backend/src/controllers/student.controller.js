@@ -786,6 +786,10 @@ exports.getApprovedStudents = async (req, res) => {
 // GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN (WITH FEES)
 exports.getStudentById = async (req, res) => {
   try {
+    console.log('[getStudentById] Request params:', req.params);
+    console.log('[getStudentById] College ID:', req.college_id);
+    console.log('[getStudentById] User:', req.user?.email);
+    
     const student = await Student.findOne({
       _id: req.params.id,
       college_id: req.college_id
@@ -794,6 +798,8 @@ exports.getStudentById = async (req, res) => {
       .populate("department_id", "name")
       .populate("course_id", "name");
 
+    console.log('[getStudentById] Found student:', student ? student.fullName : 'NULL');
+    
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
@@ -801,6 +807,8 @@ exports.getStudentById = async (req, res) => {
     const fee = await StudentFee.findOne({
       student_id: student._id
     }).select("totalFee paidAmount installments");
+    
+    console.log('[getStudentById] Found fee:', fee ? 'Yes' : 'No');
 
     ApiResponse.success(res, {
       student: student.toObject(),
@@ -811,6 +819,7 @@ exports.getStudentById = async (req, res) => {
       }
     }, "Student fetched successfully");
   } catch (error) {
+    console.error('[getStudentById] Error:', error);
     next(error);
   }
 };
