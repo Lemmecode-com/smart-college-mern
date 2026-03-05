@@ -55,7 +55,11 @@ export default function SubjectList() {
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
-        setDepartments(res.data || []);
+        // Handle different API response formats
+        const departmentsData = Array.isArray(res.data) ? res.data :
+                                Array.isArray(res.data.departments) ? res.data.departments :
+                                Array.isArray(res.data.data) ? res.data.data : [];
+        setDepartments(departmentsData);
       } catch (err) {
         setError("Failed to load departments. Please try again.");
         console.error("Departments fetch error:", err);
@@ -71,7 +75,11 @@ export default function SubjectList() {
   const fetchCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      setCourses(res.data || []);
+      // Handle different API response formats
+      const coursesData = Array.isArray(res.data) ? res.data : 
+                          Array.isArray(res.data.courses) ? res.data.courses : 
+                          Array.isArray(res.data.data) ? res.data.data : [];
+      setCourses(coursesData);
       setSelectedCourse("");
       setSubjects([]);
     } catch (err) {
@@ -87,7 +95,11 @@ export default function SubjectList() {
     setError(null);
     try {
       const res = await api.get(`/subjects/course/${courseId}`);
-      setSubjects(res.data || []);
+      // Handle different API response formats
+      const subjectsData = Array.isArray(res.data) ? res.data :
+                           Array.isArray(res.data.subjects) ? res.data.subjects :
+                           Array.isArray(res.data.data) ? res.data.data : [];
+      setSubjects(subjectsData);
     } catch (err) {
       setError("Failed to load subjects. Please try again.");
       console.error("Subjects fetch error:", err);
@@ -189,8 +201,8 @@ export default function SubjectList() {
   }
 
   const filteredSubjects = getFilteredSubjects();
-  const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
-  const selectedCourseName = courses.find(c => c._id === selectedCourse)?.name || "Select Course";
+  const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
+  const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
 
   return (
     <div className="erp-container">
