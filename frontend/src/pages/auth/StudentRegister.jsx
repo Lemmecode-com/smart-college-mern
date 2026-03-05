@@ -21,6 +21,32 @@ const publicApi = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL
 });
 
+/* ================= API CACHING ================= */
+// Simple cache to prevent duplicate API calls
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const cachedGet = async (url, cacheKey) => {
+  // Check cache first
+  const cached = apiCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log(`💾 Using cached data for: ${cacheKey}`);
+    return cached.data;
+  }
+  
+  // Make API call
+  console.log(`📡 Fetching from API: ${url}`);
+  const res = await publicApi.get(url);
+  
+  // Cache the response
+  apiCache.set(cacheKey, {
+    data: res.data,
+    timestamp: Date.now()
+  });
+  
+  return res.data;
+};
+
 export default function StudentRegister() {
   const { collegeCode } = useParams();
   const navigate = useNavigate();
@@ -84,9 +110,9 @@ export default function StudentRegister() {
   useEffect(() => {
     const fetchCollege = async () => {
       try {
-        const res = await publicApi.get(`/public/departments/${collegeCode}`);
-        if (res.data && res.data.collegeName) {
-          setCollegeName(res.data.collegeName);
+        const res = await cachedGet(`/public/departments/${collegeCode}`, `college-${collegeCode}`);
+        if (res && res.collegeName) {
+          setCollegeName(res.collegeName);
         }
       } catch (err) {
         console.error("Failed to load college info:", err);
@@ -104,13 +130,13 @@ export default function StudentRegister() {
       try {
         setConfigLoading(true);
         console.log("📥 Loading document config for college:", collegeCode);
-        const res = await publicApi.get(`/document-config/${collegeCode}`);
-        
-        console.log("📄 API Response:", res.data);
-        console.log("📋 Documents received:", res.data.documents?.length);
-        
-        if (res.data && res.data.documents) {
-          setDocumentConfig(res.data.documents);
+        const res = await cachedGet(`/document-config/${collegeCode}`, `doc-config-${collegeCode}`);
+
+        console.log("📄 API Response:", res);
+        console.log("📋 Documents received:", res.documents?.length);
+
+        if (res && res.documents) {
+          setDocumentConfig(res.documents);
           console.log("✅ Document config loaded successfully");
         }
       } catch (err) {
@@ -130,8 +156,8 @@ export default function StudentRegister() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await publicApi.get(`/public/departments/${collegeCode}`);
-        setDepartments(res.data.departments || res.data || []);
+        const res = await cachedGet(`/public/departments/${collegeCode}`, `departments-${collegeCode}`);
+        setDepartments(res.departments || res || []);
       } catch (err) {
         console.error(err);
         setError("Failed to load departments");
