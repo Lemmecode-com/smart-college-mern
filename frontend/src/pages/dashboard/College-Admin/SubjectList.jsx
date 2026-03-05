@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaBook,
@@ -54,7 +55,11 @@ export default function SubjectList() {
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
-        setDepartments(res.data || []);
+        // Handle different API response formats
+        const departmentsData = Array.isArray(res.data) ? res.data :
+                                Array.isArray(res.data.departments) ? res.data.departments :
+                                Array.isArray(res.data.data) ? res.data.data : [];
+        setDepartments(departmentsData);
       } catch (err) {
         setError("Failed to load departments. Please try again.");
         console.error("Departments fetch error:", err);
@@ -70,7 +75,11 @@ export default function SubjectList() {
   const fetchCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      setCourses(res.data || []);
+      // Handle different API response formats
+      const coursesData = Array.isArray(res.data) ? res.data : 
+                          Array.isArray(res.data.courses) ? res.data.courses : 
+                          Array.isArray(res.data.data) ? res.data.data : [];
+      setCourses(coursesData);
       setSelectedCourse("");
       setSubjects([]);
     } catch (err) {
@@ -86,7 +95,11 @@ export default function SubjectList() {
     setError(null);
     try {
       const res = await api.get(`/subjects/course/${courseId}`);
-      setSubjects(res.data || []);
+      // Handle different API response formats
+      const subjectsData = Array.isArray(res.data) ? res.data :
+                           Array.isArray(res.data.subjects) ? res.data.subjects :
+                           Array.isArray(res.data.data) ? res.data.data : [];
+      setSubjects(subjectsData);
     } catch (err) {
       setError("Failed to load subjects. Please try again.");
       console.error("Subjects fetch error:", err);
@@ -188,18 +201,18 @@ export default function SubjectList() {
   }
 
   const filteredSubjects = getFilteredSubjects();
-  const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
-  const selectedCourseName = courses.find(c => c._id === selectedCourse)?.name || "Select Course";
+  const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
+  const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
 
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Subject Management</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Subject Management" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -536,28 +549,6 @@ export default function SubjectList() {
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
         }
         
         .erp-page-header {
