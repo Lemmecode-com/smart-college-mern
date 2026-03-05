@@ -105,10 +105,13 @@ export default function StudentPromotion() {
       setLoading(true);
       setError("");
       const res = await getPromotionEligibleStudents();
+      console.log('[PROMOTION PAGE] API Response:', res);
+      console.log('[PROMOTION PAGE] Students array:', res.students);
       setStudents(res.students || []);
       setRetryCount(0);
     } catch (err) {
       console.error("Error fetching students:", err);
+      console.error("Error response:", err.response?.data);
       setError(
         err.response?.data?.message || "Failed to load students for promotion.",
       );
