@@ -5,7 +5,7 @@ const refreshTokenSchema = new mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    index: true,
+    // Note: Compound index { user_id: 1, isRevoked: 1 } below handles all queries
   },
 
   // The actual refresh token (hashed)

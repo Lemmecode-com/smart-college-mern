@@ -79,10 +79,156 @@ exports.createCollege = async (req, res, next) => {
   }
 };
 
-// SUPER ADMIN: View all colleges
-exports.getAllColleges = async (req, res) => {
-  const colleges = await College.find();
-  res.json(colleges);
+// SUPER ADMIN: View all colleges (optionally filter inactive)
+exports.getAllColleges = async (req, res, next) => {
+  try {
+    const { includeInactive } = req.query;
+    
+    // By default, only show active colleges
+    const query = includeInactive === 'true' ? {} : { isActive: true };
+    
+    const colleges = await College.find(query).sort({ createdAt: -1 });
+    
+    res.json({
+      count: colleges.length,
+      colleges
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   SUPER ADMIN: Soft Delete College (Deactivate with Cascade)
+========================================================= */
+exports.deleteCollege = async (req, res, next) => {
+  try {
+    const { collegeId } = req.params;
+
+    // 1️⃣ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
+      throw new AppError("Invalid college ID", 400, "INVALID_ID");
+    }
+
+    // 2️⃣ Find college
+    const college = await College.findById(collegeId);
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    // 3️⃣ Check if already inactive
+    if (!college.isActive) {
+      throw new AppError("College is already deactivated", 400, "ALREADY_INACTIVE");
+    }
+
+    // 4️⃣ Soft delete (this triggers the pre('findOneAndUpdate') hook for cascade)
+    await College.findOneAndUpdate(
+      { _id: collegeId },
+      { $set: { isActive: false } }
+    );
+
+    res.json({
+      message: "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
+      college: {
+        id: college._id,
+        name: college.name,
+        code: college.code,
+        isActive: false
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   SUPER ADMIN: Restore College (Reactivate with Cascade)
+========================================================= */
+exports.restoreCollege = async (req, res, next) => {
+  try {
+    const { collegeId } = req.params;
+
+    // 1️⃣ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
+      throw new AppError("Invalid college ID", 400, "INVALID_ID");
+    }
+
+    // 2️⃣ Find college
+    const college = await College.findById(collegeId);
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    // 3️⃣ Check if already active
+    if (college.isActive) {
+      throw new AppError("College is already active", 400, "ALREADY_ACTIVE");
+    }
+
+    // 4️⃣ Restore (this triggers the pre('findOneAndUpdate') hook for cascade restore)
+    await College.findOneAndUpdate(
+      { _id: collegeId },
+      { $set: { isActive: true } }
+    );
+
+    res.json({
+      message: "College restored successfully. All related departments, courses, students, and staff have been reactivated.",
+      college: {
+        id: college._id,
+        name: college.name,
+        code: college.code,
+        isActive: true
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   SUPER ADMIN: Hard Delete College (PERMANENT - Use with Caution)
+========================================================= */
+exports.hardDeleteCollege = async (req, res, next) => {
+  try {
+    const { collegeId } = req.params;
+    const { confirmPermanentDelete } = req.body;
+
+    // 1️⃣ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
+      throw new AppError("Invalid college ID", 400, "INVALID_ID");
+    }
+
+    // 2️⃣ Find college
+    const college = await College.findById(collegeId);
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    // 3️⃣ Require explicit confirmation for permanent delete
+    if (confirmPermanentDelete !== true) {
+      throw new AppError(
+        "Permanent deletion requires explicit confirmation. Set 'confirmPermanentDelete: true' in request body.",
+        400,
+        "CONFIRMATION_REQUIRED"
+      );
+    }
+
+    // 4️⃣ Hard delete (this triggers the pre('findOneAndDelete') hook for cascade hard delete)
+    await College.findOneAndDelete({ _id: collegeId });
+
+    res.json({
+      message: "College and ALL related data PERMANENTLY deleted. This action cannot be undone.",
+      deletedCollege: {
+        id: college._id,
+        name: college.name,
+        code: college.code
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 /* =========================================================
