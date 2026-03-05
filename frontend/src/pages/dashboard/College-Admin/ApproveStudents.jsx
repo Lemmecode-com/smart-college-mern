@@ -1,12 +1,11 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 
 import {
-  FaUsers,
   FaSearch,
   FaEye,
   FaCheckCircle,
@@ -14,18 +13,11 @@ import {
   FaBuilding,
   FaBookOpen,
   FaCalendarAlt,
-  FaFilter,
   FaChevronLeft,
   FaChevronRight,
-  FaChevronDown,
   FaExclamationTriangle,
   FaSyncAlt,
-  FaSpinner,
-  FaInfoCircle,
   FaUserCheck,
-  FaUserGraduate,
-  FaChartPie,
-  FaDownload,
   FaEnvelope
 } from "react-icons/fa";
 
@@ -126,10 +118,15 @@ export default function ApproveStudents() {
     }
   }, [location.state?.refresh]);
 
-  // Refresh on page focus (when user returns to tab)
+  // Refresh on page focus (when user returns to tab) - with debounce to prevent excessive calls
   useEffect(() => {
+    let lastRefreshTime = 0;
+    const MIN_REFRESH_INTERVAL = 30000; // Minimum 30 seconds between refreshes
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      const now = Date.now();
+      if (document.visibilityState === 'visible' && now - lastRefreshTime > MIN_REFRESH_INTERVAL) {
+        lastRefreshTime = now;
         fetchApprovedStudents();
       }
     };
@@ -153,7 +150,7 @@ export default function ApproveStudents() {
   /* ================= SEARCH ================= */
   const filteredStudents = useMemo(() => {
     return students.filter((s) =>
-      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''}`
+      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''} ${s.admissionYear || ''}`
         .toLowerCase()
         .includes(search.toLowerCase())
     );
@@ -164,43 +161,6 @@ export default function ApproveStudents() {
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
-  );
-
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="skeleton-table">
-        <div className="skeleton-table-header">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="skeleton-header-cell"></div>
-          ))}
-        </div>
-        {[...Array(PAGE_SIZE)].map((_, i) => (
-          <div key={i} className="skeleton-table-row">
-            <div className="skeleton-cell skeleton-text short"></div>
-            <div className="skeleton-cell skeleton-text long"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text short"></div>
-            <div className="skeleton-cell skeleton-badge"></div>
-            <div className="skeleton-cell skeleton-action"></div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 
   /* ================= ERROR STATE ================= */
@@ -243,8 +203,8 @@ export default function ApproveStudents() {
       {/* BREADCRUMBS */}
       <nav aria-label="breadcrumb" className="erp-breadcrumb">
         <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/students">Students</a></li>
+          <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
+          <li className="breadcrumb-item"><Link to="/students">Students</Link></li>
           <li className="breadcrumb-item active" aria-current="page">Approved Students</li>
         </ol>
       </nav>
@@ -371,23 +331,29 @@ export default function ApproveStudents() {
                       <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
                       <td>
                         <div className="student-name">
-                          <div className="student-details">
-                            <div className="student-fullname">{student.fullName}</div>
-                            <div className="student-meta">
-                              {/* <span className="student-id">ID: {student.studentId || 'N/A'}</span> */}
-                            </div>
-                          </div>
+                          <div className="student-fullname">{student.fullName}</div>
                         </div>
                       </td>
                       <td>
-                        <div className="contact-info">
-                          <FaEnvelope className="contact-icon" />
-                          <span>{student.email}</span>
-                        </div>
+                        <div className="student-email">{student.email}</div>
                       </td>
-                      <td>{student.department_id?.name || "N/A"}</td>
-                      <td>{student.course_id?.name || "N/A"}</td>
-                      <td>{student.admissionYear || "N/A"}</td>
+                      <td>
+                        <span className="badge badge-department">
+                          <FaBuilding className="badge-icon" />
+                          {student.department_id?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge badge-course">
+                          {student.course_id?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge badge-graduation-year">
+                          <FaCalendarAlt className="badge-icon" />
+                          {student.admissionYear || "N/A"}
+                        </span>
+                      </td>
                       <td>
                         <span className="status-badge status-approved">
                           <FaCheckCircle className="status-icon" />
@@ -641,182 +607,173 @@ export default function ApproveStudents() {
           border-color: #1a4b6d;
           box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
         }
-        
-        .export-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-        }
-        
-        .export-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-        }
-        
-        .export-icon {
-          font-size: 1.1rem;
-        }
-        
+
         /* TABLE */
         .table-container {
           overflow-x: auto;
-          border-radius: 0 0 16px 16px;
+          border-radius: 12px;
         }
-        
+
         .erp-table {
           width: 100%;
           border-collapse: collapse;
           min-width: 900px;
         }
-        
+
         .erp-table thead {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
         }
-        
+
         .erp-table th {
-          padding: 1rem 1.25rem;
+          padding: 16px 20px;
           text-align: left;
+          font-size: 12px;
           font-weight: 600;
-          font-size: 0.95rem;
-          position: relative;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border-bottom: none;
           white-space: nowrap;
+          opacity: 0.95;
         }
-        
+
+        .erp-table th:first-child {
+          border-top-left-radius: 12px;
+        }
+
+        .erp-table th:last-child {
+          border-top-right-radius: 12px;
+        }
+
         .header-icon {
           margin-right: 0.5rem;
           font-size: 0.9rem;
         }
-        
+
         .erp-table tbody tr {
-          border-bottom: 1px solid #f0f2f5;
-          transition: all 0.2s ease;
+          transition: all 0.25s ease;
         }
-        
+
         .erp-table tbody tr:hover {
-          background: #f8f9ff;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
-        
+
         .erp-table td {
-          padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
+          padding: 18px 20px;
+          border-bottom: 1px solid #e2e8f0;
           vertical-align: middle;
         }
-        
+
         .student-name {
           display: flex;
-          align-items: center;
-          gap: 1rem;
+          flex-direction: column;
+          gap: 6px;
         }
-        
-        .student-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 1rem;
-          flex-shrink: 0;
-        }
-        
-        .student-details {
-          flex: 1;
-        }
-        
+
         .student-fullname {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 0.95rem;
+          font-weight: 700;
+          color: #0f3a4a;
+          font-size: 15px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
-        
-        .student-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          margin-top: 0.25rem;
+
+        .student-email {
+          font-size: 13px;
+          color: #64748b;
         }
-        
-        .student-id {
-          font-size: 0.8rem;
-          color: #6c757d;
-          background: #f0f2f5;
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-        }
-        
-        .contact-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #1a4b6d;
-        }
-        
-        .contact-icon {
-          color: #6c757d;
-          font-size: 0.9rem;
-        }
-        
+
         .status-badge {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 600;
+          padding: 8px 16px;
+          border-radius: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
         }
-        
+
         .status-approved {
-          background: rgba(76, 175, 80, 0.15);
-          color: #4CAF50;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
         }
-        
+
         .status-icon {
-          font-size: 0.8rem;
+          font-size: 12px;
         }
-        
+
+        /* Badges */
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+
+        .badge-icon {
+          font-size: 12px;
+        }
+
+        .badge-department {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+        }
+
+        .badge-course {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+        }
+
+        .badge-graduation-year {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .text-center {
+          text-align: center;
+        }
+
         .action-cell {
           text-align: center;
-          min-width: 100px;
+          min-width: 140px;
         }
-        
+
         .action-btn {
-          width: 36px;
-          height: 36px;
+          padding: 10px 18px;
+          font-size: 13px;
           border-radius: 8px;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 6px;
           border: none;
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
           cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 0.9rem;
+          transition: all 0.25s ease;
+          font-weight: 600;
+          box-shadow: 0 3px 10px rgba(61, 181, 230, 0.3);
         }
-        
+
         .view-btn:hover {
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          box-shadow: 0 5px 15px rgba(61, 181, 230, 0.4);
           transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
         }
-        
+
         .view-btn:active {
-          transform: translateY(0);
+          transform: translateY(-1px);
         }
         
         /* PAGINATION */
@@ -898,108 +855,7 @@ export default function ApproveStudents() {
           margin-right: auto;
           color: #6c757d;
         }
-        
-        /* SKELETON LOADING */
-        .skeleton-container {
-          padding: 1.5rem;
-        }
-        
-        .skeleton-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .skeleton-stat-card {
-          background: #f8f9fa;
-          padding: 1.5rem;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .skeleton-stat-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
-          background: #e9ecef;
-        }
-        
-        .skeleton-stat-content {
-          flex: 1;
-        }
-        
-        .skeleton-stat-label {
-          height: 16px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 60%;
-          margin-bottom: 0.5rem;
-        }
-        
-        .skeleton-stat-value {
-          height: 28px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 40%;
-        }
-        
-        .skeleton-table {
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        
-        .skeleton-table-header {
-          display: grid;
-          grid-template-columns: 60px repeat(6, 1fr) 100px;
-          background: #f8f9fa;
-          border-bottom: 1px solid #e9ecef;
-        }
-        
-        .skeleton-header-cell {
-          height: 40px;
-          background: #e9ecef;
-        }
-        
-        .skeleton-table-row {
-          display: grid;
-          grid-template-columns: 60px repeat(6, 1fr) 100px;
-          border-bottom: 1px solid #f0f2f5;
-          padding: 1rem 1.25rem;
-        }
-        
-        .skeleton-cell {
-          height: 24px;
-          background: #f0f2f5;
-          border-radius: 6px;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .skeleton-cell::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: skeleton-loading 1.5s infinite;
-        }
-        
-        .skeleton-text.long { width: 80%; }
-        .skeleton-text.medium { width: 60%; }
-        .skeleton-text.short { width: 40%; }
-        .skeleton-badge { width: 50%; height: 20px; }
-        .skeleton-action { width: 36px; height: 36px; border-radius: 8px; }
-        
-        @keyframes skeleton-loading {
-          to { left: 100%; }
-        }
-        
+
         /* ERROR CONTAINER */
         .erp-error-container {
           display: flex;
@@ -1047,87 +903,23 @@ export default function ApproveStudents() {
           gap: 1rem;
           margin-top: 1rem;
         }
-        
-        /* LOADING CONTAINER */
-        .erp-loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-          position: relative;
-        }
-        
-        .erp-loading-spinner {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-        
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-        
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
-          animation-delay: 0.1s;
-        }
-        
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
-          animation-delay: 0.2s;
-        }
-        
-        .erp-loading-text {
-          font-size: 1.35rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-        
-        .loading-progress {
-          width: 250px;
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: -1rem;
-        }
-        
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d 0%, #0f3a4a 100%);
-          width: 35%;
-          animation: progressPulse 1.8s ease-in-out infinite;
-        }
-        
+
         /* ANIMATIONS */
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        
-        @keyframes progressPulse {
-          0%, 100% { width: 35%; }
-          50% { width: 65%; }
-        }
-        
+
         .animate-fade-in {
           animation: fadeIn 0.6s ease;
         }

@@ -1080,6 +1080,7 @@ const Subject = require("../models/subject.model");
 const Department = require("../models/department.model");
 const College = require("../models/college.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 const {
   getDayName,
   isDateMatchesDay,
@@ -1297,14 +1298,13 @@ exports.createAttendanceSession = async (req, res, next) => {
     // Commit transaction
     await session.commitTransaction();
 
-    res.status(201).json({
-      message: "Attendance session created successfully",
-      session: session[0],
-    });
+    ApiResponse.created(res, {
+      session: session[0]
+    }, "Attendance session created successfully");
   } catch (error) {
     // Abort transaction on error
     await session.abortTransaction();
-    
+
     // Handle duplicate key error gracefully (race condition)
     if (error.code === 11000) {
       return next(
