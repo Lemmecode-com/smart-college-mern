@@ -261,6 +261,9 @@ exports.getTeachers = async (req, res) => {
 ========================================================= */
 exports.getTeacherById = async (req, res) => {
   try {
+    console.log('[getTeacherById] Request ID:', req.params.id);
+    console.log('[getTeacherById] College ID:', req.college_id);
+    
     const teacher = await Teacher.findOne({
       _id: req.params.id,
       college_id: req.college_id,
@@ -268,6 +271,9 @@ exports.getTeacherById = async (req, res) => {
       .populate("department_id", "name")
       .populate("courses", "name code")
       .select("-__v");
+    
+    console.log('[getTeacherById] Found teacher:', teacher ? teacher.name : 'NULL');
+    console.log('[getTeacherById] Teacher data:', teacher);
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -277,6 +283,7 @@ exports.getTeacherById = async (req, res) => {
       teacher
     }, "Teacher fetched successfully");
   } catch (error) {
+    console.error('[getTeacherById] Error:', error);
     next(error);
   }
 };
