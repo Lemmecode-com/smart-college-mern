@@ -34,14 +34,18 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
   try {
     const { course_id, currentSemester } = req.query;
 
-    // Build filter - include students with isPromotionEligible = true OR field doesn't exist (backward compatibility)
+    console.log('[PROMOTION] Request received:', {
+      college_id: req.college_id,
+      user: req.user?.email,
+      role: req.user?.role,
+      query: req.query
+    });
+
+    // Build filter - show ALL APPROVED students (for display purposes)
+    // Promotion eligibility is shown in UI via fee status
     const filter = {
       college_id: req.college_id,
-      status: "APPROVED",
-      $or: [
-        { isPromotionEligible: true },
-        { isPromotionEligible: { $exists: false } }
-      ]
+      status: "APPROVED"
     };
 
     if (course_id) {
@@ -52,11 +56,15 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       filter.currentSemester = parseInt(currentSemester);
     }
 
+    console.log('[PROMOTION] Filter:', JSON.stringify(filter));
+
     // Get all eligible students
     const students = await Student.find(filter)
       .populate("course_id", "name code semester")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
+
+    console.log('[PROMOTION] Found students:', students.length);
 
     // Attach fee information for each student
     const studentsWithFee = await Promise.all(

@@ -85,13 +85,18 @@ export default function CourseList() {
       setError(null);
       try {
         const res = await api.get(`/courses/department/${selectedDepartment}`);
+        console.log('[CourseList] API Response:', res);
+        console.log('[CourseList] res.data:', res.data);
+        console.log('[CourseList] res.data.courses:', res.data?.courses);
         // After API standardization, courses are in res.data.courses
-        const coursesData = res.data.courses || res.data || [];
+        const coursesData = res.data?.courses || res.data?.data?.courses || res.data || [];
+        console.log('[CourseList] Extracted coursesData:', coursesData);
         setCourses(Array.isArray(coursesData) ? coursesData : []);
         updateStats(Array.isArray(coursesData) ? coursesData : []);
       } catch (err) {
         setError("Failed to load courses. Please try again.");
-        console.error(err);
+        console.error('[CourseList] Error:', err);
+        console.error('[CourseList] Error response:', err.response?.data);
         setCourses([]);
       } finally {
         setLoadingCourses(false);
@@ -137,14 +142,17 @@ export default function CourseList() {
 
   /* ================= FILTERING ================= */
   const getFilteredCourses = () => {
-    return courses
-      .filter(course => 
+    const result = courses
+      .filter(course =>
         course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.code.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      .filter(course => 
+      .filter(course =>
         filterStatus === "ALL" || course.status === filterStatus
       );
+    console.log('[CourseList] Filtering - courses:', courses.length, 'filtered:', result.length);
+    console.log('[CourseList] Filter config:', { searchTerm, filterStatus });
+    return result;
   };
 
   /* ================= DELETE HANDLER ================= */
@@ -464,6 +472,7 @@ export default function CourseList() {
 
             {/* TABLE */}
             <div className="table-container">
+              {console.log('[CourseList Render] loadingCourses:', loadingCourses, 'filteredCourses:', filteredCourses.length, 'courses:', courses.length)}
               {loadingCourses ? (
                 renderSkeleton()
               ) : filteredCourses.length === 0 ? (

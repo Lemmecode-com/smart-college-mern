@@ -7,7 +7,7 @@ const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
 
 // Development-specific settings (more relaxed for testing)
 const DEV_WINDOW_MS = 60 * 1000; // 1 minute
-const DEV_MAX_REQUESTS = 100; // 100 requests per minute in development
+const DEV_MAX_REQUESTS = 500; // 500 requests per minute in development
 
 /**
  * Helper function to normalize IP addresses (IPv4 and IPv6)
@@ -51,12 +51,12 @@ const globalLimiter = rateLimit({
 
 /**
  * Strict Rate Limiter - For authentication routes
- * For development: 10 requests per minute (easier testing)
+ * For development: 30 requests per minute (easier testing)
  * For production: 5 requests per 15 minutes (security)
  */
 const authLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
-  max: process.env.NODE_ENV === 'development' ? 10 : 5, // 10 in dev, 5 in prod
+  max: process.env.NODE_ENV === 'development' ? 30 : 5, // 30 in dev, 5 in prod
   message: {
     success: false,
     message: process.env.NODE_ENV === 'development'
