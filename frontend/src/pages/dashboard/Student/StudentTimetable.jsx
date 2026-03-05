@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
   FaClock,
@@ -276,20 +277,12 @@ export default function StudentTimetable() {
       </a>
 
       {/* Breadcrumb */}
-      <motion.div
-        variants={slideDownVariants}
-        initial="hidden"
-        animate="visible"
-        className="st-breadcrumb"
-        role="navigation"
-        aria-label="Breadcrumb"
-      >
-        <button onClick={() => navigate("/student/dashboard")} className="st-breadcrumb-btn" aria-label="Go back to Dashboard">
-          <FaArrowLeft aria-hidden="true" /> Back to Dashboard
-        </button>
-        <span className="st-breadcrumb-sep" aria-hidden="true">›</span>
-        <span className="st-breadcrumb-current">My Timetable</span>
-      </motion.div>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/student/dashboard" },
+          { label: "My Timetable" }
+        ]}
+      />
 
       {/* Header */}
       <motion.div
@@ -603,43 +596,6 @@ const componentStyles = `
   .st-loading p {
     margin: 0;
     color: #64748b;
-  }
-
-  /* ================= BREADCRUMB ================= */
-  .st-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .st-breadcrumb-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: none;
-    border: none;
-    color: #1a4b6d;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-  }
-
-  .st-breadcrumb-btn:hover {
-    background: rgba(26, 75, 109, 0.1);
-  }
-
-  .st-breadcrumb-sep {
-    color: #94a3b8;
-  }
-
-  .st-breadcrumb-current {
-    color: #1a4b6d;
-    font-weight: 600;
   }
 
   /* ================= HEADER ================= */
