@@ -26,7 +26,8 @@ import {
   FaPhone,
   FaCalendarAlt,
   FaUsers,
-  FaInfoCircle
+  FaInfoCircle,
+  FaBookOpen
 } from "react-icons/fa";
 
 export default function ViewTeacher() {
@@ -286,6 +287,11 @@ export default function ViewTeacher() {
                       label="Employment Type"
                       value={teacher.employmentType?.replace('_', ' ') || "FULL TIME"}
                       icon={<FaUsers />}
+                    />
+                    <DetailRow
+                      label="Assigned Courses"
+                      value={teacher.courses?.length?.toString() || "0"}
+                      icon={<FaBookOpen />}
                     />
                     <DetailRow
                       label="Assigned Subjects"
