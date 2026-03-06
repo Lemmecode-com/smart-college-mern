@@ -16,6 +16,7 @@ import {
   FaArrowLeft,
   FaFilePdf,
   FaFileImage,
+  FaPhoneAlt,
   FaFileAlt,
   FaVenusMars,
   FaTint,
