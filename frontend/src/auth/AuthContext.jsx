@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       logger.error("Logout error:", error);
     } finally {
-      // Clear user info from state regardless of API success
+      // Clear user info from state
       setUser(null);
     }
   };
