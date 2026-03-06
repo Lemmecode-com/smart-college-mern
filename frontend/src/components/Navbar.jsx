@@ -113,7 +113,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
       prevCount.current = total;
       setCount(total);
-      
+
       // Clear backoff on success
       if (rateLimitBackoff) {
         setRateLimitBackoff(false);
@@ -292,7 +292,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       <Navbar
         expand="md"
         className="bg-white shadow-sm"
-        style={{ 
+        style={{
           zIndex: 1020,
           width: '100%',
           minHeight: 'var(--navbar-height, 60px)'
@@ -404,11 +404,14 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                   <Badge
                     bg="danger"
                     pill
-                    className="position-absolute top-0 start-100 translate-middle"
+                    className="position-absolute"
                     style={{
                       fontSize: "10px",
                       padding: "3px 6px",
                       minWidth: "20px",
+                      top: "8px",
+                      right: "8px",
+                      transform: "translate(50%, -50%)",
                     }}
                     aria-label={`${count} unread notifications`}
                   >
