@@ -17,6 +17,11 @@ const collegeService = require("../services/college.service");
 
 exports.registerStudent = async (req, res, next) => {
   try {
+    console.log('📝 [STUDENT REGISTER] Request received');
+    console.log('📝 [STUDENT REGISTER] Request body:', req.body);
+    console.log('📝 [STUDENT REGISTER] Files:', req.files);
+    console.log('📝 [STUDENT REGISTER] Params:', req.params);
+    
     const { collegeCode } = req.params;
 
     // Extract category early from req.body for validation
@@ -317,6 +322,8 @@ exports.registerStudent = async (req, res, next) => {
       student: registeredStud
     }, "Registration successful. Await college approval.");
   } catch (error) {
+    console.error('❌ [STUDENT REGISTER] Error:', error.message);
+    console.error('❌ [STUDENT REGISTER] Full error:', error);
     next(error);
   }
 };
@@ -1023,8 +1030,8 @@ exports.moveToAlumni = async (req, res, next) => {
       currentSemester: student.currentSemester,
     });
 
-    // Check if student is in final semester
-    const maxSemester = student.course_id?.semester || 8;
+    // Check if student is in final semester (based on course duration)
+    const maxSemester = student.course_id?.durationSemesters || 8;
     if (student.currentSemester < maxSemester) {
       throw new AppError(
         "Student has not completed the course yet. Cannot move to Alumni.",
