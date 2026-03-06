@@ -63,12 +63,23 @@ exports.approveStudent = async (req, res, next) => {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
     }
 
-    // ✅ FIX: Issue #3 - Validate student semester matches course semester
-    if (student.currentSemester !== course.semester) {
+    // ✅ UPDATED: Validate student semester is within course duration
+    // Student can be in ANY semester of their enrolled program (1 to durationSemesters)
+    if (student.currentSemester > course.durationSemesters) {
       throw new AppError(
-        `Student's current semester (${student.currentSemester}) does not match course semester (${course.semester}). Please update student's semester or enroll in correct course.`,
+        `Student's semester (${student.currentSemester}) exceeds course duration (${course.durationSemesters} semesters). ` +
+        `Please verify the student is enrolled in the correct course.`,
         400,
-        "STUDENT_COURSE_SEMESTER_MISMATCH"
+        "SEMESTER_EXCEEDS_DURATION"
+      );
+    }
+
+    // ✅ Also validate semester is not less than 1
+    if (student.currentSemester < 1) {
+      throw new AppError(
+        `Student's semester must be at least 1, got ${student.currentSemester}`,
+        400,
+        "INVALID_SEMESTER"
       );
     }
 
