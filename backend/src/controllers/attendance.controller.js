@@ -1281,7 +1281,7 @@ exports.createAttendanceSession = async (req, res, next) => {
     }
 
     // Create session with snapshot (within transaction)
-    const session = await AttendanceSession.create([{
+    const [attendanceSession] = await AttendanceSession.create([{
       college_id: collegeId,
       department_id: slot.department_id,
       course_id: slot.course_id,
@@ -1299,7 +1299,7 @@ exports.createAttendanceSession = async (req, res, next) => {
     await session.commitTransaction();
 
     ApiResponse.created(res, {
-      session: session[0]
+      session: attendanceSession
     }, "Attendance session created successfully");
   } catch (error) {
     // Abort transaction on error
