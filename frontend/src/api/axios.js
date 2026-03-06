@@ -26,28 +26,35 @@ api.interceptors.response.use(
     // Check if response has standardized format
     if (response.data && response.data.success !== undefined) {
       const { success, data, message, pagination, error } = response.data;
-      
-      // Only unwrap if 'data' exists and is an object
-      // Some endpoints (like login) return data at root level
+
+      // Case 1: Response has nested 'data' object - unwrap it
       if (data && typeof data === 'object' && !Array.isArray(data)) {
-        // Unwrap data for backward compatibility
-        // This makes new format look like old format to existing code
         response.data = {
-          ...data,        // Spread actual data (student, teachers, etc.)
-          success,        // Keep success flag
-          message,        // Keep message
-          pagination,     // Keep pagination if present
-          error           // Keep error if present (shouldn't be on success)
+          ...data,
+          success,
+          message,
+          pagination,
+          error
         };
-      } else {
-        // If no 'data' field or it's an array, just add success/message
+      } 
+      // Case 2: Response has array data (like students list) - keep it in data property
+      else if (Array.isArray(data)) {
         response.data = {
           success,
           message,
           pagination,
           error,
-          // Keep original data if it's not an object (e.g., login returns accessToken directly)
-          ...(data !== undefined ? { data } : {})
+          data
+        };
+      }
+      // Case 3: No 'data' field - response is already flat (like promotion endpoint)
+      // Keep original structure but ensure success/message are present
+      else {
+        response.data = {
+          ...response.data,
+          message: message || response.data.message,
+          pagination: pagination || response.data.pagination,
+          error: error || response.data.error
         };
       }
     }
