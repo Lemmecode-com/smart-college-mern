@@ -146,7 +146,6 @@ export default function SidebarContainer({
         position: "top-right",
         autoClose: 3000
       });
-      // Redirect to login page after successful logout
       navigate("/login", { replace: true });
     } catch (err) {
       console.error("Logout error:", err);
