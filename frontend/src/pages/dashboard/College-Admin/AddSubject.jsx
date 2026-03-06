@@ -79,11 +79,11 @@ export default function AddSubject() {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  
+
   // College Code Generation State
   const [codeGenerationMode, setCodeGenerationMode] = useState('auto'); // 'auto' or 'manual'
   const [generatedCodePreview, setGeneratedCodePreview] = useState('');
-  
+
   const [formData, setFormData] = useState({
     department_id: "",
     course_id: "",
@@ -93,6 +93,11 @@ export default function AddSubject() {
     semester: "",
     credits: ""
   });
+
+  // ✅ Get selected course for UI display (with safety check)
+  const selectedCourse = Array.isArray(courses) && courses.length > 0
+    ? courses.find(c => c._id === formData.course_id)
+    : null;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -125,7 +130,9 @@ export default function AddSubject() {
     const fetchCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${formData.department_id}`);
-        setCourses(res.data);
+        // Ensure courses is always an array
+        const coursesData = Array.isArray(res.data) ? res.data : (res.data?.courses || []);
+        setCourses(coursesData);
       } catch (err) {
         console.error("Failed to load courses:", err);
         setCourses([]);
@@ -145,7 +152,9 @@ export default function AddSubject() {
     const fetchTeachers = async () => {
       try {
         const res = await api.get(`/teachers/course/${formData.course_id}`);
-        setTeachers(res.data);
+        // Ensure teachers is always an array
+        const teachersData = Array.isArray(res.data) ? res.data : (res.data?.teachers || []);
+        setTeachers(teachersData);
       } catch (err) {
         console.error("Failed to load teachers:", err);
         setTeachers([]);
@@ -191,10 +200,12 @@ export default function AddSubject() {
       }
     });
 
-    // Semester validation
+    // Semester validation - check against course duration
     const semesterNum = Number(formData.semester);
-    if (isNaN(semesterNum) || semesterNum < 1 || semesterNum > 8) {
-      errors.semester = 'Semester must be between 1-8';
+    const maxSemesters = selectedCourse?.durationSemesters || 8;
+    
+    if (isNaN(semesterNum) || semesterNum < 1 || semesterNum > maxSemesters) {
+      errors.semester = `Semester must be between 1-${maxSemesters} (course duration)`;
       isValid = false;
     }
 
@@ -562,7 +573,7 @@ export default function AddSubject() {
                             required
                           >
                             <option value="">Select course</option>
-                            {courses.map(course => (
+                            {Array.isArray(courses) && courses.map(course => (
                               <option key={course._id} value={course._id}>
                                 {course.name} ({course.code})
                               </option>
@@ -585,7 +596,7 @@ export default function AddSubject() {
                             disabled={!formData.course_id}
                           >
                             <option value="">Select teacher (optional)</option>
-                            {teachers.map(teacher => (
+                            {Array.isArray(teachers) && teachers.map(teacher => (
                               <option key={teacher._id} value={teacher._id}>
                                 {teacher.name} - {teacher.designation}
                               </option>
@@ -671,7 +682,7 @@ export default function AddSubject() {
                           label="Semester"
                           required
                           error={validationErrors.semester}
-                          helperText="Academic semester (1-8)"
+                          helperText={`Subject semester (1-${selectedCourse?.durationSemesters || 8})`}
                         >
                           <select
                             name="semester"
@@ -681,7 +692,7 @@ export default function AddSubject() {
                             required
                           >
                             <option value="">Select semester</option>
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                            {Array.from({ length: selectedCourse?.durationSemesters || 8 }, (_, i) => i + 1).map(sem => (
                               <option key={sem} value={sem}>Semester {sem}</option>
                             ))}
                           </select>
