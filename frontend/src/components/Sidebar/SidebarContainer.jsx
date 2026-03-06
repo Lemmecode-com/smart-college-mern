@@ -1,136 +1,84 @@
-import { useContext, useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useContext, useCallback, useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 import { toast } from "react-toastify";
 import { Offcanvas } from "react-bootstrap";
-import { FaGraduationCap, FaBars, FaTimes } from "react-icons/fa";
+import { FaGraduationCap } from "react-icons/fa";
 import SidebarNav from "./SidebarNav";
 import SidebarLogo from "./SidebarLogo";
 import SidebarFooter from "./SidebarFooter";
+import SidebarCollapseToggle from "./SidebarCollapseToggle";
 import ConfirmModal from "../ConfirmModal";
+import { useSidebar } from "./hooks/useSidebar";
+import { useScrollLock } from "./hooks/useScrollLock";
+import { ARIA_LABELS, CSS_CLASSES, SIDEBAR_WIDTH } from "./config/sidebar.constants";
 import "./Sidebar.css";
 
 /**
- * SidebarContainer - Main sidebar component
- * Enterprise SaaS Standard:
- * - Consistent collapsed state handling
- * - Accessible navigation with ARIA attributes
- * - Responsive behavior with smooth transitions
- * - Body scroll lock on mobile
+ * SidebarContainer - Main sidebar component (Refactored)
+ * Enterprise SaaS Standard
+ * 
+ * Benefits after refactoring:
+ * - Uses custom hooks for clean state management
+ * - Automatic localStorage persistence
+ * - Proper scroll lock on mobile
+ * - Collapse toggle with animation
+ * - 30% less code, more maintainable
  */
 export default function SidebarContainer({
-  isMobileOpen,
-  setIsMobileOpen,
-  isCollapsed = false,
-  onToggleCollapse
+  isMobileOpen: externalIsMobileOpen,
+  setIsMobileOpen: externalSetIsMobileOpen,
+  isCollapsed: externalIsCollapsed,
+  onToggleCollapse: externalOnToggleCollapse
 }) {
   const { user, logout } = useContext(AuthContext);
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Use custom sidebar hook if not controlled externally
+  const sidebar = useSidebar({
+    isCollapsed: externalIsCollapsed,
+    isMobileOpen: externalIsMobileOpen
+  }, user?.role);
+
+  // Use external state if provided, otherwise use hook state
+  const isMobileOpen = externalIsMobileOpen ?? sidebar.isMobileOpen;
+  const setIsMobileOpen = externalSetIsMobileOpen ?? sidebar.setIsMobileOpen;
+  const isCollapsed = externalIsCollapsed ?? sidebar.isCollapsed;
+  const toggleCollapse = externalOnToggleCollapse ?? sidebar.toggleCollapse;
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [openSections, setOpenSections] = useState({
-    // College Admin sections
-    college: true,
-    departments: true,
-    courses: true,
-    teachers: true,
-    students: true,
-    "fee-structure": true,
-    notifications: true,
-    reports: true,
-    "system-settings": true,
 
-    // Teacher sections
-    "profile-teacher": true,
-    "timetable-teacher": true,
-    "sessions-teacher": true,
-    "attendance-teacher": true,
-    "notifications-teacher": true,
-    "students-teacher": true,
-
-    // Super Admin sections
-    "super-colleges": true,
-    "super-reports": true,
-    "super-settings": true,
-  });
-
-  const [isMobileDevice, setIsMobileDevice] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
-  );
-
-  // Handle window resize with debounce to prevent rapid firing at breakpoint
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let resizeTimer;
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        const mobile = window.innerWidth < 768;
-        setIsMobileDevice(mobile);
-        if (!mobile && isMobileOpen) {
-          setIsMobileOpen(false);
-        }
-        // Add transitioning class for smooth animation
-        document.body.classList.add('sidebar-resizing');
-        setTimeout(() => document.body.classList.remove('sidebar-resizing'), 300);
-      }, 50);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(resizeTimer);
-    };
-  }, [isMobileOpen, setIsMobileOpen]);
+  // Lock body scroll when mobile sidebar is open
+  useScrollLock(isMobileOpen, { preventPadding: true });
 
   // Close mobile sidebar on route change
   useEffect(() => {
     if (isMobileOpen) {
       setIsMobileOpen(false);
     }
-  }, [location.pathname, setIsMobileOpen]);
-
-  // Lock body scroll and prevent content shift when sidebar opens
-  useEffect(() => {
-    if (isMobileOpen) {
-      document.body.classList.add('sidebar-open');
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '0';
-    } else {
-      document.body.classList.remove('sidebar-open');
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    }
-
-    return () => {
-      document.body.classList.remove('sidebar-open');
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    };
-  }, [isMobileOpen]);
+  }, [location.pathname]);
 
   // Add has-sidebar class for content sync on desktop
   useEffect(() => {
-    if (!isMobileDevice) {
-      document.body.classList.add('has-sidebar');
+    if (!sidebar.isMobileDevice) {
+      document.body.classList.add(CSS_CLASSES.HAS_SIDEBAR);
+      if (isCollapsed) {
+        document.body.classList.add(CSS_CLASSES.SIDEBAR_COLLAPSED);
+      } else {
+        document.body.classList.remove(CSS_CLASSES.SIDEBAR_COLLAPSED);
+      }
     } else {
-      document.body.classList.remove('has-sidebar');
+      document.body.classList.remove(CSS_CLASSES.HAS_SIDEBAR);
+      document.body.classList.remove(CSS_CLASSES.SIDEBAR_COLLAPSED);
     }
 
     return () => {
-      document.body.classList.remove('has-sidebar');
+      document.body.classList.remove(CSS_CLASSES.HAS_SIDEBAR);
+      document.body.classList.remove(CSS_CLASSES.SIDEBAR_COLLAPSED);
     };
-  }, [isMobileDevice]);
-
-  const toggleSection = useCallback((section) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  }, []);
+  }, [sidebar.isMobileDevice, isCollapsed]);
 
   // Show logout confirmation modal
   const handleLogoutClick = useCallback(() => {
@@ -171,22 +119,31 @@ export default function SidebarContainer({
     <>
       {/* Desktop Sidebar - Supports collapsed state */}
       <div
+        id="sidebar-main"
         className={`sidebar-container d-none d-md-block ${isCollapsed ? 'sidebar-collapsed' : ''}`}
         role="navigation"
-        aria-label="Main navigation"
+        aria-label={ARIA_LABELS.MAIN_NAVIGATION}
         aria-expanded={!isCollapsed}
         data-collapsed={isCollapsed}
       >
         <aside className="sidebar-content" role="menubar">
+          {/* Collapse Toggle Button */}
+          <SidebarCollapseToggle 
+            isCollapsed={isCollapsed} 
+            onToggle={toggleCollapse} 
+          />
+          
           <SidebarLogo role={role} isCollapsed={isCollapsed} />
+          
           <SidebarNav
             role={role}
-            openSections={openSections}
-            toggleSection={toggleSection}
-            isMobileDevice={false}
+            openSections={sidebar.openSections}
+            toggleSection={sidebar.toggleSection}
+            isMobileDevice={sidebar.isMobileDevice}
             isCollapsed={isCollapsed}
             onClose={() => {}}
           />
+          
           <SidebarFooter
             loggingOut={loggingOut}
             onLogout={handleLogoutClick}
@@ -197,13 +154,13 @@ export default function SidebarContainer({
 
       {/* Mobile Offcanvas Sidebar */}
       <Offcanvas
-        show={isMobileOpen && isMobileDevice}
+        show={isMobileOpen && sidebar.isMobileDevice}
         onHide={() => setIsMobileOpen(false)}
         placement="start"
         className="sidebar-offcanvas"
         backdrop="static"
         scroll={false}
-        aria-label="Mobile navigation menu"
+        aria-label={ARIA_LABELS.MOBILE_NAVIGATION}
       >
         <Offcanvas.Header closeButton className="border-0 pb-0">
           <Offcanvas.Title>
@@ -217,7 +174,7 @@ export default function SidebarContainer({
           <div className="offcanvas-logo-section p-3 border-bottom">
             <div
               className="text-center"
-              aria-label={`User role: ${role?.replace("_", " ") || "User"}`}
+              aria-label={ARIA_LABELS.USER_ROLE(role)}
             >
               <Badge bg="dark" className="text-uppercase" style={{ fontSize: "0.75rem" }}>
                 {role?.replace("_", " ") || "User"}
@@ -227,8 +184,8 @@ export default function SidebarContainer({
           <div className="offcanvas-nav-section">
             <SidebarNav
               role={role}
-              openSections={openSections}
-              toggleSection={toggleSection}
+              openSections={sidebar.openSections}
+              toggleSection={sidebar.toggleSection}
               isMobileDevice={true}
               isCollapsed={false}
               onClose={() => setIsMobileOpen(false)}
@@ -243,6 +200,17 @@ export default function SidebarContainer({
           </div>
         </Offcanvas.Body>
       </Offcanvas>
+
+      {/* Accessibility: Live region for screen readers */}
+      <div 
+        role="status" 
+        aria-live="polite" 
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {isCollapsed ? 'Sidebar collapsed' : 'Sidebar expanded'}
+        {isMobileOpen ? 'Mobile menu open' : 'Mobile menu closed'}
+      </div>
 
       {/* Logout Confirmation Modal */}
       <ConfirmModal
