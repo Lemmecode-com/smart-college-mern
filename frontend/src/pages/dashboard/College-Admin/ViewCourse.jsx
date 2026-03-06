@@ -145,12 +145,12 @@ export default function ViewCourse() {
             {course.credits || "N/A"}
           </DetailItem>
 
-          <DetailItem icon={<FaClock />} label="Duration">
-            {course.duration || "N/A"}
+          <DetailItem icon={<FaClock />} label="Duration (Semesters)">
+            {course.durationSemesters || "N/A"} Semesters
           </DetailItem>
 
-          <DetailItem icon={<FaCalendarAlt />} label="Semester">
-            {course.semester || "N/A"}
+          <DetailItem icon={<FaCalendarAlt />} label="Duration (Years)">
+            {course.durationYears || "N/A"} Years
           </DetailItem>
 
           <DetailItem icon={<FaCheckCircle />} label="Status">
