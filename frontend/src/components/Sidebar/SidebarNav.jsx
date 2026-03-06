@@ -196,7 +196,7 @@ export default function SidebarNav({
             <SidebarSubItem
               to="/college/profile"
               icon={FaUniversity}
-              label="College Profile"
+              label="Profile"
               onClick={handleNavClick}
             />
           </SidebarSection>
@@ -216,7 +216,7 @@ export default function SidebarNav({
             <SidebarSubItem
               to="/departments"
               icon={FaListOl}
-              label="Department List"
+              label="Departments"
               onClick={handleNavClick}
             />
             <SidebarSubItem
