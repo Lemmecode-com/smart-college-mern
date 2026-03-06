@@ -35,11 +35,13 @@ export default function AssignHod() {
       try {
         // Department
         const deptRes = await api.get(`/departments/${departmentId}`);
-        setDepartment(deptRes.data);
+        // Handle both old format (direct object) and new format (wrapped in department key)
+        const deptData = deptRes.data.department || deptRes.data;
+        setDepartment(deptData);
 
         // Teachers (same college)
         const teacherRes = await api.get("/teachers");
-        
+
         // 🔧 Handle paginated response
         const teachersData = teacherRes.data.data || teacherRes.data || [];
 
