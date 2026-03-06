@@ -94,8 +94,12 @@ export default function CreateTimetable() {
     const loadProfile = async () => {
       try {
         const res = await api.get("/teachers/my-profile");
-        setDepartment(res.data.department_id);
-      } catch {
+        console.log("Teacher Profile Response:", res.data);
+        // The API interceptor unwraps the response, so teacher data is at res.data.teacher
+        const teacherData = res.data.teacher || res.data;
+        setDepartment(teacherData.department_id);
+      } catch (err) {
+        console.error("Error loading teacher profile:", err);
         setError("Failed to load department information");
       } finally {
         setLoading(false);
@@ -110,9 +114,14 @@ export default function CreateTimetable() {
     const loadCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${department._id}`);
-        setCourses(res.data);
-      } catch {
+        console.log("Courses Response:", res.data);
+        // The API interceptor wraps arrays in res.data.data
+        const coursesList = res.data.data || res.data.courses || res.data;
+        setCourses(Array.isArray(coursesList) ? coursesList : []);
+      } catch (err) {
+        console.error("Error loading courses:", err);
         setError("Failed to load courses for your department");
+        setCourses([]);
       }
     };
     loadCourses();
