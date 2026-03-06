@@ -22,8 +22,8 @@ export default function NotificationList() {
   const fetchNotes = async () => {
     try {
       const res = await api.get("/notifications/admin/read");
-      setMyNotes(res.data.myNotifications || []);
-      setStaffNotes(res.data.staffNotifications || []);
+      setMyNotes(res.data.myNotifications || res.data || []);
+      setStaffNotes(res.data.staffNotifications || res.data || []);
     } catch (err) {
       console.error(err);
       setError("Failed to load notifications");
