@@ -5,7 +5,7 @@ const AppError = require("../utils/AppError");
 
 /**
  * CREATE SUBJECT
- * FIX: Issue #3 - Validate semester alignment with course
+ * UPDATED: Validate semester is within course duration
  */
 exports.createSubject = async (req, res, next) => {
   const { course_id, name, code, semester, credits, teacher_id } = req.body;
@@ -20,12 +20,14 @@ exports.createSubject = async (req, res, next) => {
     throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
   }
 
-  // ✅ FIX: Issue #3 - Validate subject semester matches course semester
-  if (semester !== course.semester) {
+  // ✅ UPDATED: Validate subject semester is within course duration
+  // Subject can be for ANY semester within the program (1 to durationSemesters)
+  if (!semester || semester < 1 || semester > course.durationSemesters) {
     throw new AppError(
-      `Subject semester (${semester}) does not match course semester (${course.semester}). Subjects must be aligned with their course semester.`,
+      `Subject semester (${semester}) must be between 1 and ${course.durationSemesters} (course duration). ` +
+      `Subjects can be created for any semester within the program duration.`,
       400,
-      "SEMESTER_MISMATCH"
+      "SEMESTER_OUT_OF_RANGE"
     );
   }
 
