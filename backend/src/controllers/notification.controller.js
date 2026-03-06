@@ -1,6 +1,7 @@
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 const getValidExpiryCondition = () => ({
   $or: [
@@ -75,11 +76,9 @@ exports.createAdminNotification = async (req, res, next) => {
       target_users
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Notification created successfully",
+    ApiResponse.created(res, {
       notification
-    });
+    }, "Notification created successfully");
   } catch (error) {
     next(error);
   }
@@ -133,11 +132,9 @@ exports.createTeacherNotification = async (req, res, next) => {
       target_users
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Notification created successfully",
+    ApiResponse.created(res, {
       notification
-    });
+    }, "Notification created successfully");
   } catch (error) {
     next(error);
   }
@@ -219,12 +216,11 @@ exports.getStudentNotifications = async (req, res, next) => {
       }
     });
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: notifications.length,
       adminNotifications,
       teacherNotifications,
-    });
+    }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -261,10 +257,10 @@ exports.getTeacherNotifications = async (req, res, next) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myNotifications,
       adminNotifications,
-    });
+    }, "Teacher notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -297,10 +293,10 @@ exports.getAdminNotifications = async (req, res, next) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myNotifications,
       staffNotifications,
-    });
+    }, "Student notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -344,7 +340,9 @@ exports.updateNotification = async (req, res, next) => {
 
     await notification.save();
 
-    res.json(notification);
+    ApiResponse.success(res, {
+      notification
+    }, "Notification updated successfully");
   } catch (error) {
     next(error);
   }
@@ -377,7 +375,7 @@ exports.deleteNotification = async (req, res, next) => {
 
     await notification.deleteOne();
 
-    res.json({ message: "Notification deleted successfully" });
+    ApiResponse.success(res, null, "Notification deleted successfully");
   } catch (error) {
     next(error);
   }
@@ -409,11 +407,11 @@ exports.getStudentNotificationCount = async (req, res, next) => {
       if (n.createdByRole === "TEACHER") teacherCount++;
     });
 
-    res.json({
+    ApiResponse.success(res, {
       adminCount,
       teacherCount,
       total: adminCount + teacherCount
-    });
+    }, "Notification count fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -453,11 +451,11 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myCount,
       adminCount,
       total: myCount + adminCount
-    });
+    }, "Teacher notification count fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -493,11 +491,11 @@ exports.getAdminNotificationCount = async (req, res, next) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myCount,
       staffCount,
       total: myCount + staffCount
-    });
+    }, "Admin notification count fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -532,7 +530,10 @@ exports.getUnreadForBell = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .limit(6);
 
-    res.json(unread);
+    ApiResponse.success(res, {
+      unread,
+      count: unread.length
+    }, "Unread notifications fetched successfully");
   } catch (err) {
     next(err);
   }
@@ -557,7 +558,7 @@ exports.markAsRead = async (req, res, next) => {
       { upsert: true }
     );
 
-    res.json({ message: "Notification marked as read" });
+    ApiResponse.success(res, null, "Notification marked as read");
   } catch (error) {
     next(error);
   }
@@ -584,7 +585,7 @@ exports.sendPromotionNotification = async (req, res, next) => {
       actionUrl: "/dashboard/student/profile"
     });
 
-    res.json({ message: "Notification sent successfully" });
+    ApiResponse.success(res, null, "Notification sent successfully");
   } catch (error) {
     next(error);
   }
