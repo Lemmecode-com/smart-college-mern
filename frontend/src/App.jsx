@@ -232,15 +232,16 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
           />
 
           {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
-          {isAuthenticated && !hideLayout ? (
-            <Route
-              element={
+          <Route
+            element={
+              isAuthenticated && !hideLayout ? (
                 <Layout
                   isMobileOpen={isMobileOpen}
                   setIsMobileOpen={setIsMobileOpen}
                 />
-              }
-            >
+              ) : null
+            }
+          >
               {/* ================= SUPER ADMIN ================= */}
               <Route
                 path="/super-admin/dashboard"
@@ -968,8 +969,7 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
 
             {/* ================= FALLBACK ================= */}
             <Route path="*" element={<Navigate to="/" />} />
-            </Route>
-          ) : null}
+          </Route>
         </Routes>
       </div>
 
