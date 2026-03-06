@@ -7,17 +7,23 @@ const ApiResponse = require("../utils/ApiResponse");
  * CREATE Course
  */
 exports.createCourse = async (req, res, next) => {
+  console.log('📝 [CREATE COURSE] Request body:', req.body);
+  console.log('📝 [CREATE COURSE] College ID:', req.college_id);
+  console.log('📝 [CREATE COURSE] User ID:', req.user?.id);
+  
   const {
     department_id,
     name,
     code,
     type,
     programLevel,
-    semester,
+    durationSemesters,
+    durationYears,
     credits,
     maxStudents
   } = req.body;
 
+  // Validate department
   const department = await Department.findOne({
     _id: department_id,
     college_id: req.college_id
@@ -27,20 +33,50 @@ exports.createCourse = async (req, res, next) => {
     throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
   }
 
-  const course = await Course.create({
+  // ✅ Validate duration
+  if (!durationSemesters || durationSemesters < 1 || durationSemesters > 8) {
+    throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
+  }
+
+  // Note: durationYears is auto-calculated by the model's pre-save hook
+  // If provided, it will be validated by the model
+
+  // Warn if creating long duration program
+  if (durationSemesters > 6 && programLevel === "UG") {
+    console.warn(`⚠️ Creating advanced program "${name}" with ${durationSemesters} semesters`);
+  }
+
+  // Create course with new duration fields
+  // Note: durationYears will be auto-calculated by the model's pre-save hook
+  const courseData = {
     college_id: req.college_id,
     department_id,
     name,
     code,
     type,
     programLevel,
-    semester,
+    durationSemesters,
     credits,
     maxStudents,
     createdBy: req.user.id
-  });
+  };
 
-  ApiResponse.created(res, { course }, "Course created successfully");
+  // Only add durationYears if provided (otherwise let pre-save hook calculate it)
+  if (durationYears) {
+    courseData.durationYears = durationYears;
+  }
+
+  console.log('📝 [CREATE COURSE] Course data to save:', courseData);
+
+  try {
+    const course = await Course.create(courseData);
+    console.log('✅ [CREATE COURSE] Course created:', course._id);
+    ApiResponse.created(res, { course }, "Course created successfully");
+  } catch (error) {
+    console.error('❌ [CREATE COURSE] Error creating course:', error.message);
+    console.error('❌ [CREATE COURSE] Full error:', error);
+    throw error;
+  }
 };
 
 /**

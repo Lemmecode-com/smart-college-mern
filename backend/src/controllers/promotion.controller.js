@@ -60,7 +60,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
 
     // Get all eligible students
     const students = await Student.find(filter)
-      .populate("course_id", "name code semester")
+      .populate("course_id", "name code durationSemesters durationYears")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
 
@@ -96,8 +96,8 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           }
         }
 
-        // Get max semester from course
-        const maxSemester = student.course_id?.semester || 8;
+        // Get max semester from course duration
+        const maxSemester = student.course_id?.durationSemesters || 8;
         const academicYearLabel = getAcademicYearLabel(student.currentSemester);
         const isFinalYear = student.currentSemester >= maxSemester - 1;
 
@@ -251,13 +251,13 @@ exports.promoteStudent = async (req, res, next) => {
       throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 2. Get max semester from course (dynamic based on course)
-    const maxSemester = student.course_id?.semester || 8;
-    
+    // 2. Get max semester from course duration (dynamic based on course)
+    const maxSemester = student.course_id?.durationSemesters || 8;
+
     // 3. Check if already at max semester - move to Alumni
     if (student.currentSemester >= maxSemester) {
       throw new AppError(
-        "Student has completed the course. Moving to Alumni status requires separate process.",
+        "Student has completed the course. Moving to alumni status requires separate process.",
         400,
         "ALREADY_FINAL_SEMESTER"
       );
@@ -415,9 +415,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           continue;
         }
 
-        // Get max semester from course
-        const maxSemester = student.course_id?.semester || 8;
-        
+        // Get max semester from course duration
+        const maxSemester = student.course_id?.durationSemesters || 8;
+
         if (student.currentSemester >= maxSemester) {
           results.failed.push({
             studentId,
