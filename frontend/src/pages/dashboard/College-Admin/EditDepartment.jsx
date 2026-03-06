@@ -100,8 +100,9 @@ export default function EditDepartment() {
     const fetchDepartment = async () => {
       try {
         const res = await api.get(`/departments/${id}`);
-        const data = res.data;
-        
+        // Handle both old format (direct object) and new format (wrapped in department key)
+        const data = res.data.department || res.data;
+
         // Set form data
         setFormData({
           name: data.name || "",
@@ -113,10 +114,10 @@ export default function EditDepartment() {
           sanctionedFacultyCount: data.sanctionedFacultyCount?.toString() || "",
           sanctionedStudentIntake: data.sanctionedStudentIntake?.toString() || ""
         });
-        
+
         // Save original data for reset
         setOriginalData(data);
-        
+
         // Determine if current code matches auto-generated
         const autoCode = generateCode(data.name || "");
         setIsAutoCode(data.code === autoCode);

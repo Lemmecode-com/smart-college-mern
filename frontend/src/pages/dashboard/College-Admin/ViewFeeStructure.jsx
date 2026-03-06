@@ -37,7 +37,9 @@ export default function ViewFeeStructure() {
     const load = async () => {
       try {
         const res = await api.get(`/fees/structure/${id}`);
-        setFee(res.data);
+        // Handle both old format (direct object) and new format (wrapped in feeStructure key)
+        const feeData = res.data.feeStructure || res.data;
+        setFee(feeData);
       } catch (err) {
         console.error(err);
         setError("Failed to load fee structure");

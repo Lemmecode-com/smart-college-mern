@@ -20,35 +20,36 @@ api.interceptors.request.use(
 // 🔒 RESPONSE INTERCEPTOR - Standardize API Response Format
 // This unwraps the new standardized format so frontend code doesn't break
 // Backend sends: { success: true, data: {...}, message: "..." }
-// Frontend receives: { success: true, ...data, message: "..." }
+// Frontend receives: Depends on the data type
 api.interceptors.response.use(
   (response) => {
     // Check if response has standardized format
     if (response.data && response.data.success !== undefined) {
       const { success, data, message, pagination, error } = response.data;
 
-      // Case 1: Response has nested 'data' object - unwrap it
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
-        response.data = {
-          ...data,
-          success,
-          message,
-          pagination,
-          error
-        };
-      } 
-      // Case 2: Response has array data (like students list) - keep it in data property
-      else if (Array.isArray(data)) {
-        response.data = {
-          success,
-          message,
-          pagination,
-          error,
-          data
-        };
+      // Case 1: Response has array data - return array directly for backward compatibility
+      if (Array.isArray(data)) {
+        response.data = data;  // Return: [...]
       }
-      // Case 3: No 'data' field - response is already flat (like promotion endpoint)
-      // Keep original structure but ensure success/message are present
+      // Case 2: Response has nested 'data' object
+      else if (data && typeof data === 'object') {
+        // Check if data object contains a single key with array data
+        const keys = Object.keys(data);
+        if (keys.length === 1 && Array.isArray(data[keys[0]])) {
+          // Extract array from nested object (e.g., { departments: [...] })
+          response.data = data[keys[0]];
+        } else {
+          // Keep the object structure for single object responses
+          response.data = {
+            ...data,
+            success,
+            message,
+            pagination,
+            error
+          };
+        }
+      }
+      // Case 3: No 'data' field - response is already flat
       else {
         response.data = {
           ...response.data,
