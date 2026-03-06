@@ -141,7 +141,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
-      setNotes(res.data || []);
+      setNotes(res.data.unread || res.data || []);
     } catch (err) {
       logger.error("Bell fetch error", err);
     } finally {
