@@ -25,7 +25,8 @@ import {
   FaInfoCircle,
   FaClock,
   FaUsers,
-  FaAward
+  FaAward,
+  FaCalendarAlt
 } from "react-icons/fa";
 
 export default function CourseList() {
@@ -184,16 +185,17 @@ export default function CourseList() {
   const handleExport = () => {
     if (courses.length === 0) return;
     
-    const headers = ["Name", "Code", "Type", "Status", "Semester", "Credits", "Max Students"];
+    const headers = ["Name", "Code", "Type", "Status", "Duration (Sem)", "Duration (Years)", "Credits", "Max Students"];
     const csvContent = [
       headers.join(","),
-      ...courses.map(course => 
+      ...courses.map(course =>
         [
           course.name,
           course.code,
           course.type,
           course.status,
-          course.semester,
+          course.durationSemesters || 'N/A',
+          course.durationYears || 'N/A',
           course.credits,
           course.maxStudents
         ].join(",")
@@ -495,8 +497,11 @@ export default function CourseList() {
                       <th onClick={() => handleSort('status')}>
                         Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
                       </th>
-                      <th onClick={() => handleSort('semester')}>
-                        Semester {sortConfig.key === 'semester' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                      <th onClick={() => handleSort('durationSemesters')}>
+                        Duration (Sem) {sortConfig.key === 'durationSemesters' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                      </th>
+                      <th onClick={() => handleSort('durationYears')}>
+                        Duration (Years) {sortConfig.key === 'durationYears' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
                       </th>
                       <th onClick={() => handleSort('credits')}>
                         Credits {sortConfig.key === 'credits' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
@@ -535,7 +540,18 @@ export default function CourseList() {
                             {course.status}
                           </span>
                         </td>
-                        <td>{course.semester}</td>
+                        <td>
+                          <span className="capacity-badge">
+                            <FaClock className="capacity-icon" />
+                            {course.durationSemesters || 'N/A'} Sem
+                          </span>
+                        </td>
+                        <td>
+                          <span className="capacity-badge">
+                            <FaCalendarAlt className="capacity-icon" />
+                            {course.durationYears || 'N/A'} Yr
+                          </span>
+                        </td>
                         <td>
                           <span className="credits-badge">
                             <FaAward className="credits-icon" />
