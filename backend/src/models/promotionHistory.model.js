@@ -79,6 +79,12 @@ const promotionHistorySchema = new mongoose.Schema({
     enum: ["ACTIVE", "REVERSED"],
     default: "ACTIVE",
   },
+
+  // Whether this promotion moves student to final semester
+  isFinalSemesterPromotion: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 // Index for quick lookup of student promotion history

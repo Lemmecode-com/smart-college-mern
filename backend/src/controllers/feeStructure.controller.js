@@ -1,6 +1,7 @@
 const FeeStructure = require("../../src/models/feeStructure.model");
 const Course = require("../../src/models/course.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 // const StudentFee = require("../models/studentFee.model"); // uncomment if exists
 
 /**
@@ -49,10 +50,7 @@ exports.createFeeStructure = async (req, res, next) => {
       installments,
     });
 
-    res.status(201).json({
-      message: "Fee structure created successfully",
-      feeStructure,
-    });
+    ApiResponse.created(res, { feeStructure }, "Fee structure created successfully");
   } catch (error) {
     next(error);
   }
@@ -67,7 +65,7 @@ exports.getFeeStructures = async (req, res, next) => {
       college_id: req.college_id,
     }).populate("course_id", "name");
 
-    res.json(fees);
+    ApiResponse.success(res, { fees }, "Fee structures fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -104,10 +102,7 @@ exports.updateFeeStructure = async (req, res, next) => {
 
     await feeStructure.save();
 
-    res.json({
-      message: "Fee structure updated successfully",
-      feeStructure,
-    });
+    ApiResponse.success(res, { feeStructure }, "Fee structure updated successfully");
   } catch (error) {
     next(error);
   }
@@ -116,7 +111,7 @@ exports.updateFeeStructure = async (req, res, next) => {
 /**
  * DELETE Fee Structure
  */
-exports.deleteFeeStructure = async (req, res) => {
+exports.deleteFeeStructure = async (req, res, next) => {
   try {
     const { feeStructureId } = req.params;
 
@@ -126,9 +121,7 @@ exports.deleteFeeStructure = async (req, res) => {
     });
 
     if (!feeStructure) {
-      return res.status(404).json({
-        message: "Fee structure not found",
-      });
+      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
     }
 
     // Optional safety check
@@ -144,11 +137,9 @@ exports.deleteFeeStructure = async (req, res) => {
 
     await feeStructure.deleteOne();
 
-    res.json({
-      message: "Fee structure deleted successfully",
-    });
+    ApiResponse.success(res, null, "Fee structure deleted successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -166,13 +157,11 @@ exports.getFeeStructureById = async (req, res) => {
     }).populate("course_id", "name");
 
     if (!feeStructure) {
-      return res.status(404).json({
-        message: "Fee structure not found",
-      });
+      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
     }
 
-    res.json(feeStructure);
+    ApiResponse.success(res, { feeStructure }, "Fee structure fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    throw error;
   }
 };

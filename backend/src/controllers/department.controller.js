@@ -1,35 +1,40 @@
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * CREATE Department
  */
 exports.createDepartment = async (req, res) => {
-  const {
-    name,
-    code,
-    type,
-    status,
-    programsOffered,
-    startYear,
-    sanctionedFacultyCount,
-    sanctionedStudentIntake
-  } = req.body;
+  try {
+    const {
+      name,
+      code,
+      type,
+      status,
+      programsOffered,
+      startYear,
+      sanctionedFacultyCount,
+      sanctionedStudentIntake
+    } = req.body;
 
-  const department = await Department.create({
-    college_id: req.college_id,
-    name,
-    code,
-    type,
-    status,
-    programsOffered,
-    startYear,
-    sanctionedFacultyCount,
-    sanctionedStudentIntake,
-    createdBy: req.user.id
-  });
+    const department = await Department.create({
+      college_id: req.college_id,
+      name,
+      code,
+      type,
+      status,
+      programsOffered,
+      startYear,
+      sanctionedFacultyCount,
+      sanctionedStudentIntake,
+      createdBy: req.user.id
+    });
 
-  res.status(201).json(department);
+    ApiResponse.created(res, { department }, "Department created successfully");
+  } catch (error) {
+    throw error;
+  }
 };
 
 /* get department by ID */
@@ -40,10 +45,10 @@ exports.getDepartmentById = async (req, res) => {
   });
 
   if (!department) {
-    return res.status(404).json({ message: "Department not found" });
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
   }
 
-  res.json(department);
+  ApiResponse.success(res, { department }, "Department fetched successfully");
 };
 
 /**
@@ -54,7 +59,7 @@ exports.getDepartments = async (req, res) => {
     college_id: req.college_id
   });
 
-  res.json(departments);
+  ApiResponse.success(res, { departments }, "Departments fetched successfully");
 };
 
 /**
@@ -71,10 +76,10 @@ exports.updateDepartment = async (req, res) => {
   );
 
   if (!department) {
-    return res.status(404).json({ message: "Department not found" });
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
   }
 
-  res.json(department);
+  ApiResponse.success(res, { department }, "Department updated successfully");
 };
 
 /**
@@ -87,46 +92,45 @@ exports.deleteDepartment = async (req, res) => {
   });
 
   if (!department) {
-    return res.status(404).json({ message: "Department not found" });
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
   }
 
-  res.json({ message: "Department deleted successfully" });
+  ApiResponse.success(res, null, "Department deleted successfully");
 };
 
 /**
  * ASSIGN HOD TO DEPARTMENT
  */
 exports.assignHOD = async (req, res) => {
-  const { teacher_id } = req.body;
+  try {
+    const { teacher_id } = req.body;
 
-  // Check department
-  const department = await Department.findOne({
-    _id: req.params.id,
-    college_id: req.college_id
-  });
-
-  if (!department) {
-    return res.status(404).json({ message: "Department not found" });
-  }
-
-  // Check teacher
-  const teacher = await Teacher.findOne({
-    _id: teacher_id,
-    college_id: req.college_id,
-    department_id: department._id
-  });
-
-  if (!teacher) {
-    return res.status(400).json({
-      message: "Teacher must belong to the same department"
+    // Check department
+    const department = await Department.findOne({
+      _id: req.params.id,
+      college_id: req.college_id
     });
+
+    if (!department) {
+      return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+    }
+
+    // Check teacher
+    const teacher = await Teacher.findOne({
+      _id: teacher_id,
+      college_id: req.college_id,
+      department_id: department._id
+    });
+
+    if (!teacher) {
+      return ApiResponse.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
+    }
+
+    department.hod_id = teacher._id;
+    await department.save();
+
+    ApiResponse.success(res, { department }, "HOD assigned successfully");
+  } catch (error) {
+    throw error;
   }
-
-  department.hod_id = teacher._id;
-  await department.save();
-
-  res.json({
-    message: "HOD assigned successfully",
-    department
-  });
 };
