@@ -53,7 +53,8 @@ export default function EditFeeStructure() {
         api.get("/departments"),
       ]);
 
-      const fee = feeRes.data;
+      // Handle both old format (direct object) and new format (wrapped in feeStructure key)
+      const fee = feeRes.data.feeStructure || feeRes.data;
 
       setCategory(fee.category);
       setTotalFee(fee.totalFee);
