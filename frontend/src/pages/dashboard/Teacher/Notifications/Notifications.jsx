@@ -104,8 +104,8 @@ export default function Notifications() {
     try {
       setLoading(true);
       const res = await api.get("/notifications/teacher/read");
-      setMyNotes(res.data.myNotifications || []);
-      setAdminNotes(res.data.adminNotifications || []);
+      setMyNotes(res.data.myNotifications || res.data || []);
+      setAdminNotes(res.data.adminNotifications || res.data || []);
     } catch (err) {
       console.error("Failed to load notifications:", err);
       setError(err.response?.data?.message || "Failed to load notifications. Please try again.");

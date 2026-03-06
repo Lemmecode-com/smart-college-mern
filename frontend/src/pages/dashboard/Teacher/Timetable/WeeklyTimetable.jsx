@@ -216,8 +216,8 @@ export default function WeeklyTimetable() {
           api.get(`/teachers/department/${res.data.timetable.department_id}`)
         ]);
 
-        setSubjects(subRes.data || []);
-        setTeachers(teachRes.data || []);
+        setSubjects(subRes.data.subjects || subRes.data || []);
+        setTeachers(teachRes.data.teachers || teachRes.data || []);
       } catch (err) {
         console.error("Failed to load timetable:", err);
         setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
