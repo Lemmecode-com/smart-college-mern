@@ -98,7 +98,7 @@ export default function TimetableList() {
     try {
       setLoading(true);
       const res = await api.get("/timetable");
-      setTimetables(res.data);
+      setTimetables(res.data.timetables || res.data);
       setError("");
     } catch (err) {
       console.error("Failed to load timetables:", err);
