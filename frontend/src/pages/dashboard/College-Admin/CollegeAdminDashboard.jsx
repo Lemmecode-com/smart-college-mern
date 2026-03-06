@@ -288,83 +288,45 @@ export default function CollegeAdminDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-vh-100 bg-gradient"
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-        }}
+        className="dashboard-wrapper"
       >
-        <Container fluid className="dashboard-container px-2 px-sm-3 px-md-4 px-lg-5 py-3 py-sm-4">
+        {/* Main Container - Centered with max-width for better readability */}
+        <div className="dashboard-container-inner">
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            className="mb-3 mb-sm-4 bg-white rounded-3 rounded-sm-4 overflow-hidden shadow"
-            style={{
-              marginBottom: '1.25rem',
-              backgroundColor: 'white',
-              borderRadius: '1rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)'
-            }}
+            className="dashboard-header"
           >
             {/* Hero Section */}
-            <div
-              className="p-3 p-sm-4 p-lg-5"
-              style={{
-                padding: '1.5rem',
-                background: BRAND_COLORS.primary.gradient,
-                color: 'white'
-              }}
-            >
+            <div className="dashboard-header-hero">
               <Row className="g-3 g-sm-4 align-items-center">
                 <Col xs={12} md={7} lg={8}>
-                  <div className="d-flex align-items-center gap-2 gap-sm-3">
+                  <div className="d-flex align-items-center gap-3">
                     <motion.div
                       variants={pulseVariants}
                       initial="initial"
                       animate="pulse"
-                      className="d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{
-                        width: 'clamp(50px, 12vw, 64px)',
-                        height: 'clamp(50px, 12vw, 64px)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                        borderRadius: 'clamp(10px, 3vw, 14px)',
-                        fontSize: 'clamp(1.25rem, 3.5vw, 1.75rem)'
-                      }}
+                      className="header-icon-wrapper"
                     >
                       <FaUniversity />
                     </motion.div>
-                    <div>
-                      <h1 className="mb-0 fw-bold" style={{
-                        fontSize: 'clamp(1.1rem, 3.5vw, 1.5rem)',
-                        fontWeight: 700,
-                        lineHeight: 1.2
-                      }}>
+                    <div className="header-title-section">
+                      <h1 className="header-title">
                         {college?.name || 'College Dashboard'}
                       </h1>
-                      <p className="mt-1 mt-sm-2 mb-0 d-none d-lg-block" style={{
-                        opacity: 0.9,
-                        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)'
-                      }}>
+                      <p className="header-subtitle">
                         Real-time overview of institution's key metrics
                       </p>
                     </div>
                   </div>
                 </Col>
                 <Col xs={12} md={5} lg={4}>
-                  <div className="d-flex align-items-center gap-2 gap-sm-3 justify-content-center justify-content-md-end">
-                    <div
-                      className="text-center px-2 px-sm-3 py-1 py-sm-2 rounded-2 rounded-sm-3"
-                      style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                        borderRadius: '10px',
-                        minWidth: '100px'
-                      }}
-                    >
-                      <div className="small mb-0 mb-sm-1" style={{ fontSize: '0.65rem', opacity: 0.85 }}>Time</div>
-                      <div className="fw-bold" style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)' }}>
+                  <div className="d-flex align-items-center gap-3 justify-content-center justify-content-md-end">
+                    <div className="header-time-display">
+                      <div className="time-label">Time</div>
+                      <div className="time-value">
                         {currentTime.toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -376,17 +338,7 @@ export default function CollegeAdminDashboard() {
                       whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => navigate("/college/profile")}
-                      className="dashboard-btn btn btn-light text-primary fw-semibold"
-                      style={{
-                        padding: 'clamp(0.5rem, 1.5vw, 0.625rem) clamp(0.75rem, 2vw, 1rem)',
-                        borderRadius: '10px',
-                        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
-                        transition: 'all 0.3s ease',
-                        minHeight: '40px',
-                        outline: 'none',
-                        whiteSpace: 'nowrap'
-                      }}
+                      className="dashboard-btn btn-profile"
                       onFocus={(e) => {
                         e.target.style.outline = '2px solid #1a4b6d';
                         e.target.style.outlineOffset = '2px';
@@ -395,40 +347,33 @@ export default function CollegeAdminDashboard() {
                         e.target.style.outline = 'none';
                       }}
                     >
-                      <FaEye className="me-1" /> <span className="d-none d-sm-inline">View Profile</span><span className="d-inline d-sm-none">Profile</span>
+                      <FaEye className="me-1" /> <span className="btn-text">View Profile</span>
                     </motion.button>
                   </div>
                 </Col>
               </Row>
             </div>
-            
+
             {/* College Info Bar */}
             {college && (
-              <div
-                className="p-2 p-sm-3 p-md-4 bg-light border-top"
-                style={{
-                  padding: '0.75rem 1rem',
-                  backgroundColor: '#f8fafc',
-                  borderTop: '1px solid #e2e8f0'
-                }}
-              >
-                <Row className="g-2 g-sm-3">
-                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
-                    <FaEnvelope style={{ color: BRAND_COLORS.primary.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
-                    <span className="text-dark fw-medium text-truncate" title={college.email} style={{ fontSize: 'clamp(0.8rem, 2vw, 0.9rem)' }}>{college.email}</span>
+              <div className="dashboard-header-info">
+                <Row className="g-3">
+                  <Col xs={12} sm={6} lg={3} className="info-item">
+                    <FaEnvelope className="info-icon" />
+                    <span className="info-text text-truncate" title={college.email}>{college.email}</span>
                   </Col>
-                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
-                    <FaMapMarkerAlt style={{ color: BRAND_COLORS.primary.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
-                    <span className="text-dark fw-medium" style={{ fontSize: 'clamp(0.8rem, 2vw, 0.9rem)' }}>Est. {college.establishedYear}</span>
+                  <Col xs={12} sm={6} lg={3} className="info-item">
+                    <FaMapMarkerAlt className="info-icon" />
+                    <span className="info-text">Est. {college.establishedYear}</span>
                   </Col>
-                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2">
-                    <FaShieldAlt style={{ color: BRAND_COLORS.success.main, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)' }} />
-                    <Badge bg="success" bgOpacity={10} className="fw-semibold" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)' }}>
+                  <Col xs={12} sm={6} lg={3} className="info-item">
+                    <FaShieldAlt className="info-icon info-icon-success" />
+                    <Badge className="info-badge badge-success">
                       Active Institution
                     </Badge>
                   </Col>
-                  <Col xs={12} sm={6} lg={3} className="d-flex align-items-center gap-2 justify-content-sm-end">
-                    <Badge bg="primary" bgOpacity={10} className="fw-semibold" style={{ fontSize: 'clamp(0.75rem, 2vw, 0.85rem)' }}>
+                  <Col xs={12} sm={6} lg={3} className="info-item justify-content-sm-end">
+                    <Badge className="info-badge badge-primary">
                       Code: {college.code}
                     </Badge>
                   </Col>
@@ -443,10 +388,10 @@ export default function CollegeAdminDashboard() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="mb-3 mb-sm-4"
+            className="dashboard-section"
           >
-            <Row className="g-2 g-sm-3">
-              <Col xs={12} sm={6} lg={4}>
+            <Row className="g-3 g-md-4">
+              <Col xs={12} sm={6} lg={4} xl={4}>
                 <StatCard
                   icon={FaUsers}
                   label="Total Students"
@@ -456,7 +401,7 @@ export default function CollegeAdminDashboard() {
                   subtitle="Enrolled students"
                 />
               </Col>
-              <Col xs={12} sm={6} lg={4}>
+              <Col xs={12} sm={6} lg={4} xl={4}>
                 <StatCard
                   icon={FaChalkboardTeacher}
                   label="Total Teachers"
@@ -466,7 +411,7 @@ export default function CollegeAdminDashboard() {
                   subtitle="Active faculty members"
                 />
               </Col>
-              <Col xs={12} sm={6} lg={4}>
+              <Col xs={12} sm={6} lg={4} xl={4}>
                 <StatCard
                   icon={FaLayerGroup}
                   label="Total Departments"
@@ -476,7 +421,7 @@ export default function CollegeAdminDashboard() {
                   subtitle="Academic departments"
                 />
               </Col>
-              <Col xs={12} sm={6} lg={4}>
+              <Col xs={12} sm={6} lg={4} xl={4}>
                 <StatCard
                   icon={FaGraduationCap}
                   label="Total Courses"
@@ -486,7 +431,7 @@ export default function CollegeAdminDashboard() {
                   subtitle="Active courses"
                 />
               </Col>
-              <Col xs={12} sm={6} lg={4}>
+              <Col xs={12} sm={6} lg={4} xl={4}>
                 <StatCard
                   icon={FaUserCheck}
                   label="Pending Admissions"
@@ -500,7 +445,7 @@ export default function CollegeAdminDashboard() {
           </motion.div>
 
           {/* ================= MAIN CONTENT GRID ================= */}
-          <Row className="g-3 g-sm-4">
+          <Row className="g-3 g-md-4 dashboard-main-content">
             {/* QUICK ACTIONS - Full width on mobile, 8/12 on desktop */}
             <Col xs={12} lg={8}>
               <motion.div
@@ -515,10 +460,10 @@ export default function CollegeAdminDashboard() {
                   subtitle="Frequently used operations"
                   color={BRAND_COLORS.primary.main}
                 >
-                  <div className="p-2 p-sm-3">
-                    <Row className="g-2 g-sm-3">
+                  <div className="section-card-body">
+                    <Row className="g-3">
                       {quickActions.map((action, idx) => (
-                        <Col xs={6} sm={6} lg={4} key={action.id}>
+                        <Col xs={6} sm={4} key={action.id}>
                           <QuickActionCard
                             icon={action.icon}
                             label={action.label}
@@ -549,9 +494,9 @@ export default function CollegeAdminDashboard() {
                   subtitle={`${pendingAdmissions.length} student${pendingAdmissions.length !== 1 ? 's' : ''} awaiting approval`}
                   color={BRAND_COLORS.warning.main}
                 >
-                  <div className="p-2 p-sm-3">
+                  <div className="section-card-body">
                     {pendingAdmissions.length > 0 ? (
-                      <div className="d-flex flex-column gap-2 gap-sm-3">
+                      <div className="d-flex flex-column gap-3">
                         {pendingAdmissions.slice(0, 4).map((student) => (
                           <StudentItem
                             key={student._id}
@@ -574,16 +519,7 @@ export default function CollegeAdminDashboard() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => navigate("/students")}
-                        className="dashboard-btn btn btn-success w-100 mt-3"
-                        style={{
-                          padding: 'clamp(0.625rem, 2vw, 0.75rem)',
-                          borderRadius: '12px',
-                          fontWeight: 600,
-                          transition: 'all 0.3s ease',
-                          boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)',
-                          minHeight: '44px',
-                          outline: 'none'
-                        }}
+                        className="dashboard-btn btn-view-all btn-success w-100 mt-3"
                         onFocus={(e) => {
                           e.target.style.outline = '2px solid #1a4b6d';
                           e.target.style.outlineOffset = '2px';
@@ -614,9 +550,9 @@ export default function CollegeAdminDashboard() {
                   subtitle="Latest student applications"
                   color={BRAND_COLORS.info.main}
                 >
-                  <div className="p-2 p-sm-3">
+                  <div className="section-card-body">
                     {recentStudents.length > 0 ? (
-                      <div className="d-flex flex-column gap-2 gap-sm-3">
+                      <div className="d-flex flex-column gap-3">
                         {recentStudents.slice(0, 5).map((student) => (
                           <StudentItem
                             key={student._id}
@@ -637,15 +573,7 @@ export default function CollegeAdminDashboard() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => navigate("/students")}
-                        className="dashboard-btn btn btn-primary w-100 mt-3"
-                        style={{
-                          padding: 'clamp(0.625rem, 2vw, 0.75rem)',
-                          borderRadius: '12px',
-                          fontWeight: 600,
-                          transition: 'all 0.3s ease',
-                          minHeight: '44px',
-                          outline: 'none'
-                        }}
+                        className="dashboard-btn btn-view-all btn-primary w-100 mt-3"
                         onFocus={(e) => {
                           e.target.style.outline = '2px solid #1a4b6d';
                           e.target.style.outlineOffset = '2px';
@@ -662,7 +590,7 @@ export default function CollegeAdminDashboard() {
               </motion.div>
             </Col>
           </Row>
-        </Container>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
@@ -759,18 +687,6 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
       tabIndex={0}
       role="region"
       aria-label={`${label}: ${value}`}
-      style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: 'clamp(0.875rem, 2vw, 1.125rem)',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)',
-        borderLeft: `4px solid ${color}`,
-        outline: 'none',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center'
-      }}
       onFocus={(e) => {
         e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.08)';
         e.currentTarget.style.outline = '2px solid #1a4b6d';
@@ -781,24 +697,13 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
         e.currentTarget.style.outline = 'none';
       }}
     >
-      <div className="stat-card-icon" style={{
-        width: 'clamp(36px, 8vw, 44px)',
-        height: 'clamp(36px, 8vw, 44px)',
-        borderRadius: '10px',
-        background: gradient,
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)',
-        marginBottom: 'clamp(0.5rem, 1.5vw, 0.625rem)'
-      }}>
+      <div className="stat-card-icon" style={{ background: gradient }}>
         <Icon />
       </div>
       <div className="stat-card-content">
-        <div className="card-label" style={{ fontSize: 'clamp(0.75rem, 1.8vw, 0.8rem)', color: '#64748b', marginBottom: '0.1875rem', lineHeight: 1.3 }}>{label}</div>
-        <div className="card-value" style={{ fontSize: 'clamp(1.35rem, 4vw, 1.6rem)', fontWeight: 700, color: '#1e293b', lineHeight: 1.1 }}>{value}</div>
-        {subtitle && <div className="card-subtitle" style={{ fontSize: 'clamp(0.65rem, 1.5vw, 0.7rem)', color: '#94a3b8', marginTop: '0.25rem', lineHeight: 1.3 }}>{subtitle}</div>}
+        <div className="card-label">{label}</div>
+        <div className="card-value">{value}</div>
+        {subtitle && <div className="card-subtitle">{subtitle}</div>}
       </div>
     </motion.div>
   );
@@ -807,39 +712,14 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 /* ================= SECTION CARD ================= */
 function SectionCard({ title, icon, subtitle, color, children }) {
   return (
-    <div className="section-card" style={{
-      backgroundColor: 'white',
-      borderRadius: '16px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
-      width: '100%'
-    }}>
-      <div className="section-card-header" style={{
-        padding: 'clamp(1rem, 2vw, 1.25rem) clamp(1rem, 2vw, 1.5rem)',
-        background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-        borderBottom: '1px solid #eaeaea'
-      }}>
-        <h3 style={{
-          margin: 0,
-          fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
-          fontWeight: 700,
-          color: '#1e293b',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'clamp(0.5rem, 1.5vw, 0.75rem)'
-        }}>
-          <span style={{ color: color, fontSize: 'clamp(1rem, 2.5vw, 1.2rem)' }}>{icon}</span>
+    <div className="section-card">
+      <div className="section-card-header">
+        <h3 className="section-card-title">
+          <span className="section-card-icon" style={{ color }}>{icon}</span>
           {title}
         </h3>
         {subtitle && (
-          <span style={{
-            fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
-            color: '#64748b',
-            marginLeft: '1.9rem',
-            display: 'block',
-            marginTop: '0.25rem'
-          }}>
+          <span className="section-card-subtitle">
             {subtitle}
           </span>
         )}
@@ -871,23 +751,6 @@ function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }
       tabIndex={0}
       role="button"
       aria-label={label}
-      style={{
-        backgroundColor: 'white',
-        border: '2px solid transparent',
-        borderRadius: '14px',
-        padding: 'clamp(1rem, 2.5vw, 1.25rem)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        minHeight: 'clamp(120px, 28vw, 140px)',
-        width: '100%',
-        outline: 'none',
-        height: '100%'
-      }}
       onFocus={(e) => {
         e.currentTarget.style.outline = '2px solid #1a4b6d';
         e.currentTarget.style.outlineOffset = '2px';
@@ -896,41 +759,11 @@ function QuickActionCard({ icon: Icon, label, color, gradient, path, delay = 0 }
         e.currentTarget.style.outline = 'none';
       }}
     >
-      <div style={{
-        width: 'clamp(48px, 11vw, 56px)',
-        height: 'clamp(48px, 11vw, 56px)',
-        borderRadius: '14px',
-        background: gradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: 'clamp(1.25rem, 3.5vw, 1.5rem)',
-        flexShrink: 0
-      }}>
+      <div className="quick-action-icon" style={{ background: gradient }}>
         <Icon />
       </div>
-      <div style={{
-        fontWeight: 600,
-        color: '#1e293b',
-        fontSize: 'clamp(0.85rem, 2.8vw, 0.95rem)',
-        lineHeight: 1.4,
-        wordWrap: 'break-word',
-        width: '100%',
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        {label}
-      </div>
-      <div style={{
-        color: color,
-        opacity: 0,
-        transition: 'all 0.3s ease',
-        marginTop: '0.25rem',
-        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)'
-      }}>
+      <div className="quick-action-label">{label}</div>
+      <div className="quick-action-arrow">
         <FaArrowRight />
       </div>
     </motion.div>
@@ -980,20 +813,6 @@ function StudentItem({ student, isPending = false, onClick }) {
       tabIndex={0}
       role="button"
       aria-label={`View ${student.fullName}`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.75rem',
-        borderRadius: '12px',
-        backgroundColor: 'white',
-        border: '1px solid #e2e8f0',
-        cursor: 'pointer',
-        transition: 'all 0.25s ease',
-        minWidth: 0,
-        outline: 'none',
-        height: 'auto'
-      }}
       onFocus={(e) => {
         e.currentTarget.style.outline = '2px solid #1a4b6d';
         e.currentTarget.style.outlineOffset = '2px';
@@ -1006,86 +825,28 @@ function StudentItem({ student, isPending = false, onClick }) {
         e.currentTarget.style.borderColor = '#e2e8f0';
       }}
     >
-      {/* Avatar - Fixed size, never shrinks */}
-      <div className="student-item-avatar" style={{
-        width: '42px',
-        height: '42px',
-        borderRadius: '50%',
-        background: BRAND_COLORS.primary.gradient,
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 600,
-        fontSize: '1.05rem',
-        flexShrink: 0
-      }}>
+      <div className="student-item-avatar">
         {student.fullName.charAt(0).toUpperCase()}
       </div>
-
-      {/* Content - Flexible width */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-        <div className="student-item-name" style={{
-          fontWeight: 600,
-          color: '#1e293b',
-          fontSize: '0.9rem',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}>
+      <div className="student-item-content">
+        <div className="student-item-name">
           {student.fullName}
         </div>
-        <div className="student-item-status" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className="student-item-status">
           {isPending ? (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRadius: '20px',
-              backgroundColor: `${BRAND_COLORS.warning.main}15`,
-              color: BRAND_COLORS.warning.main,
-              fontSize: '0.8rem',
-              fontWeight: 600
-            }}>
+            <span className="status-badge status-pending">
               <FaClock size={14} />
-              <span className="d-none d-sm-inline">Pending Admission</span>
-              <span className="d-inline d-sm-none">Pending</span>
+              <span className="status-text">Pending</span>
             </span>
           ) : (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.25rem 0.625rem',
-              borderRadius: '20px',
-              backgroundColor: `${getStatusColor(student.status)}15`,
-              color: getStatusColor(student.status),
-              fontSize: '0.8rem',
-              fontWeight: 600
-            }}>
+            <span className="status-badge" style={{ backgroundColor: `${getStatusColor(student.status)}15`, color: getStatusColor(student.status) }}>
               {getStatusIcon(student.status)}
               {student.status}
             </span>
           )}
         </div>
       </div>
-
-      {/* View Button - Fixed size, never shrinks */}
-      <div style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: '10px',
-        background: BRAND_COLORS.primary.gradient,
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        transition: 'all 0.2s ease',
-        cursor: 'pointer',
-        touchAction: 'manipulation'
-      }}>
+      <div className="student-item-action">
         <FaEye size={16} />
       </div>
     </motion.div>
@@ -1095,108 +856,12 @@ function StudentItem({ student, isPending = false, onClick }) {
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message, success = false }) {
   return (
-    <div className="empty-state" style={{
-      textAlign: 'center',
-      padding: 'clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 2vw, 1.5rem)',
-      color: '#64748b'
-    }}>
-      <div className="empty-state-icon" style={{
-        fontSize: 'clamp(2.5rem, 6vw, 3.5rem)',
-        marginBottom: '1rem',
-        opacity: success ? 0.9 : 0.6,
-        color: success ? BRAND_COLORS.success.main : '#e2e8f0'
-      }}>
+    <div className="empty-state">
+      <div className="empty-state-icon" style={{ opacity: success ? 0.9 : 0.6, color: success ? BRAND_COLORS.success.main : '#e2e8f0' }}>
         {icon}
       </div>
-      <h4 className="empty-state-title" style={{
-        margin: '0 0 0.5rem 0',
-        color: '#1e293b',
-        fontWeight: 600,
-        fontSize: 'clamp(1.1rem, 3vw, 1.25rem)'
-      }}>
-        {title}
-      </h4>
-      <p className="empty-state-message" style={{ margin: 0, fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
-        {message}
-      </p>
+      <h4 className="empty-state-title">{title}</h4>
+      <p className="empty-state-message">{message}</p>
     </div>
   );
 }
-
-/* ================= STATUS ITEM ================= */
-function StatusItem({ title, detail, status, icon }) {
-  const statusColors = {
-    online: { bg: '#4caf50', shadow: 'rgba(76, 175, 80, 0.6)' },
-    maintenance: { bg: '#ffc107', shadow: 'rgba(255, 193, 7, 0.6)' },
-    offline: { bg: '#dc3545', shadow: 'rgba(220, 53, 69, 0.6)' }
-  };
-
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem',
-      padding: '0.875rem 0',
-      borderBottom: '1px solid #f1f5f9'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-        <div style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '10px',
-          backgroundColor: `${statusColors[status]?.bg || '#6c757d'}15`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: statusColors[status]?.bg || '#6c757d',
-          fontSize: '1.1rem',
-          flexShrink: 0
-        }}>
-          {icon}
-        </div>
-        <div>
-          <div style={{
-            fontWeight: 600,
-            color: '#1e293b',
-            fontSize: '0.95rem',
-            marginBottom: '0.125rem'
-          }}>
-            {title}
-          </div>
-          <div style={{
-            fontSize: '0.85rem',
-            color: '#64748b'
-          }}>
-            {detail}
-          </div>
-        </div>
-      </div>
-      <div style={{
-        width: '12px',
-        height: '12px',
-        borderRadius: '50%',
-        backgroundColor: statusColors[status]?.bg || '#6c757d',
-        boxShadow: `0 0 8px ${statusColors[status]?.shadow || 'rgba(108, 117, 125, 0.6)'}`,
-        flexShrink: 0
-      }} />
-    </div>
-  );
-}
-
-// Custom Cloud Upload Icon
-const FaCloudUploadAlt = ({ size = 16, color = "#17a2b8" }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l3-3m-3 3h12"
-    />
-  </svg>
-);

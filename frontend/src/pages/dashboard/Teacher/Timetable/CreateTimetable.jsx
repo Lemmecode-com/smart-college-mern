@@ -127,12 +127,12 @@ export default function CreateTimetable() {
 
     const selectedCourse = courses.find((c) => c._id === form.course_id);
 
-    if (!selectedCourse?.semester) {
+    if (!selectedCourse?.durationSemesters) {
       setAvailableSemesters([]);
       return;
     }
 
-    const totalSem = selectedCourse.semester;
+    const totalSem = selectedCourse.durationSemesters;
     const semArray = Array.from({ length: totalSem }, (_, i) => i + 1);
     setAvailableSemesters(semArray);
   }, [form.course_id, courses]);
