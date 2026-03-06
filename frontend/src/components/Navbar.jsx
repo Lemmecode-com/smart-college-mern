@@ -242,7 +242,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     try {
       setLoggingOut(true);
       await logout();
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (err) {
       logger.error("Logout error:", err);
     } finally {
