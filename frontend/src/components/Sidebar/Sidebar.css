@@ -30,6 +30,11 @@
   --transition-base: 0.25s ease;
   --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   
+  /* Modern easing functions (Linear, Vercel, Stripe style) */
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
   /* Colors */
   --sidebar-bg-gradient-start: #0f3a4a;
   --sidebar-bg-gradient-end: #0c2d3a;
@@ -426,6 +431,33 @@
   background: rgba(79, 195, 247, 0.3) !important;
   border-color: rgba(79, 195, 247, 0.8) !important;
   font-weight: 600 !important;
+  position: relative;
+}
+
+/* Animated left border glow (Linear/Notion style) */
+.active-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--sidebar-accent);
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 12px rgba(79, 195, 247, 0.6);
+  animation: pulse-glow 2s var(--ease-in-out-quart) infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    opacity: 0.8;
+    box-shadow: 0 0 12px rgba(79, 195, 247, 0.4);
+  }
+  50% { 
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(79, 195, 247, 0.8);
+  }
 }
 
 .nav-link-icon {
@@ -544,6 +576,30 @@
     max-height: 400px;
   }
 }
+
+/* ================= SUBMENU STAGGER ANIMATION (Vercel/Linear Style) ================= */
+/* Smooth fade + slide animation for sub-items */
+.sub-link {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.2s var(--ease-out-expo), 
+              transform 0.2s var(--ease-out-expo),
+              background 0.2s var(--transition-fast),
+              border-left-color 0.2s var(--transition-fast);
+}
+
+.submenu.open .sub-link {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Stagger animation for multiple items */
+.submenu.open .sub-link:nth-child(1) { transition-delay: 0.05s; }
+.submenu.open .sub-link:nth-child(2) { transition-delay: 0.1s; }
+.submenu.open .sub-link:nth-child(3) { transition-delay: 0.15s; }
+.submenu.open .sub-link:nth-child(4) { transition-delay: 0.2s; }
+.submenu.open .sub-link:nth-child(5) { transition-delay: 0.25s; }
+.submenu.open .sub-link:nth-child(n+6) { transition-delay: 0.3s; }
 
 /* ================= LOGOUT BUTTON ================= */
 .sidebar-logout {
@@ -722,7 +778,7 @@ body.sidebar-open {
     justify-content: center;
   }
 
-  /* Collapse toggle button */
+  /* Collapse toggle button - Modern Enterprise Style */
   .sidebar-collapse-toggle {
     position: absolute;
     top: 50%;
@@ -730,26 +786,43 @@ body.sidebar-open {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #1a4b6d;
+    background: var(--sidebar-accent);
     color: white;
-    border: 2px solid #0f3a4a;
+    border: 2px solid var(--sidebar-bg-gradient-start);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all 0.2s var(--ease-out-expo);
     z-index: 10;
     padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
   .sidebar-collapse-toggle:hover {
-    background: #2a6b8d;
-    transform: scale(1.1);
+    background: var(--sidebar-accent);
+    transform: scale(1.15);
+    box-shadow: 0 4px 16px rgba(79, 195, 247, 0.4);
   }
 
-  .sidebar-collapse-toggle:focus {
+  .sidebar-collapse-toggle:focus,
+  .sidebar-collapse-toggle:focus-visible {
     outline: var(--focus-ring);
     outline-offset: var(--focus-ring-offset);
+  }
+
+  .sidebar-collapse-toggle:active {
+    transform: scale(0.95);
+  }
+
+  /* Chevron icon rotation animation */
+  .collapse-icon {
+    font-size: 0.625rem;
+    transition: transform 0.3s var(--ease-in-out-quart);
+  }
+
+  .collapse-icon.flipped {
+    transform: rotate(180deg);
   }
 
   /* Adjust collapsed sidebar content */
@@ -817,4 +890,69 @@ body.sidebar-resizing .sidebar-container {
   .sidebar-container {
     display: block !important;
   }
+}
+
+/* ================= ACCESSIBILITY UTILITIES ================= */
+/* Screen reader only - visually hidden but accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .active-link::before {
+    animation: none;
+  }
+  
+  .collapse-icon {
+    transition: none;
+  }
+  
+  .sub-link {
+    transition: none;
+  }
+}
+
+/* ================= SECTION ACTIVE STATE IMPROVEMENTS ================= */
+.sidebar-section-wrapper.section-active {
+  position: relative;
+}
+
+.sidebar-section-wrapper.section-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--sidebar-accent) 20%,
+    var(--sidebar-accent) 80%,
+    transparent 100%
+  );
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar-section-wrapper.section-active:hover::before {
+  opacity: 1;
 }
