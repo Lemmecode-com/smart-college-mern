@@ -104,14 +104,34 @@ export default function StudentPromotion() {
     try {
       setLoading(true);
       setError("");
+      
+      console.log('📢 [PROMOTION PAGE] Fetching students...');
       const res = await getPromotionEligibleStudents();
-      console.log('[PROMOTION PAGE] API Response:', res);
-      console.log('[PROMOTION PAGE] Students array:', res.students);
+      
+      console.log('📊 [PROMOTION PAGE] API Response:', res);
+      console.log('👥 [PROMOTION PAGE] Students array:', res.students);
+      console.log('🔢 [PROMOTION PAGE] Students count:', res.students?.length || 0);
+      
+      // Check if students array exists and has data
+      if (!res.students || res.students.length === 0) {
+        console.warn('⚠️ [PROMOTION PAGE] No students found! Check backend logs for details.');
+        console.warn('⚠️ [PROMOTION PAGE] Possible reasons:');
+        console.warn('  1. No students with status "APPROVED" in database');
+        console.warn('  2. College ID mismatch between admin and students');
+        console.warn('  3. Students not assigned to this college');
+      } else {
+        console.log('✅ [PROMOTION PAGE] Students loaded successfully:', res.students.length);
+        console.log('📋 [PROMOTION PAGE] First student sample:', res.students[0]);
+      }
+      
       setStudents(res.students || []);
       setRetryCount(0);
     } catch (err) {
-      console.error("Error fetching students:", err);
-      console.error("Error response:", err.response?.data);
+      console.error('❌ [PROMOTION PAGE] Error fetching students:', err);
+      console.error('❌ [PROMOTION PAGE] Error response:', err.response?.data);
+      console.error('❌ [PROMOTION PAGE] Error status:', err.response?.status);
+      console.error('❌ [PROMOTION PAGE] Error message:', err.response?.data?.message);
+      
       setError(
         err.response?.data?.message || "Failed to load students for promotion.",
       );
@@ -572,13 +592,50 @@ export default function StudentPromotion() {
                 <FaSpinner className="spinner-icon" />
                 <p>Loading students...</p>
               </div>
+            ) : !loading && students.length === 0 ? (
+              <div className="empty-state">
+                <FaGraduationCap className="empty-icon" />
+                <p className="empty-title">No Students Found</p>
+                <p className="empty-text">
+                  No students with "APPROVED" status found in your college.
+                </p>
+                <div className="empty-help" style={{ marginTop: '20px', textAlign: 'left', maxWidth: '500px', margin: '20px auto' }}>
+                  <p style={{ marginBottom: '10px' }}><strong>Possible reasons:</strong></p>
+                  <ul style={{ lineHeight: '1.8' }}>
+                    <li>Students status is not set to "APPROVED"</li>
+                    <li>Students are not assigned to your college</li>
+                    <li>No students exist in the database yet</li>
+                  </ul>
+                  <p style={{ marginTop: '15px', marginBottom: '10px' }}><strong>Steps to fix:</strong></p>
+                  <ol style={{ lineHeight: '1.8' }}>
+                    <li>Check backend terminal for detailed logs</li>
+                    <li>Open browser console (F12) to see API response</li>
+                    <li>Verify students have status "APPROVED" in MongoDB</li>
+                    <li>Ensure students are assigned to your college</li>
+                  </ol>
+                </div>
+                <button 
+                  onClick={fetchEligibleStudents} 
+                  className="btn btn-primary"
+                  style={{ marginTop: '15px' }}
+                >
+                  <FaSyncAlt /> Retry
+                </button>
+              </div>
             ) : filteredStudents.length === 0 ? (
               <div className="empty-state">
                 <FaGraduationCap className="empty-icon" />
-                <p className="empty-title">No students found</p>
+                <p className="empty-title">No students match your filters</p>
                 <p className="empty-text">
                   Try adjusting your search or filters
                 </p>
+                <button 
+                  onClick={() => { setSearch(""); setSemesterFilter("ALL"); }}
+                  className="btn btn-outline-primary"
+                  style={{ marginTop: '15px' }}
+                >
+                  <FaTimes /> Reset Filters
+                </button>
               </div>
             ) : (
               <div className="table-responsive">

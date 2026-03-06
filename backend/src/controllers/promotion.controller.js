@@ -3,6 +3,7 @@ const StudentFee = require("../models/studentFee.model");
 const PromotionHistory = require("../models/promotionHistory.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * Helper function to get academic year label based on semester
@@ -34,8 +35,9 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
   try {
     const { course_id, currentSemester } = req.query;
 
+    console.log('============ [PROMOTION] DEBUG INFO ============');
     console.log('[PROMOTION] Request received:', {
-      college_id: req.college_id,
+      college_id: req.college_id?.toString(),
       user: req.user?.email,
       role: req.user?.role,
       query: req.query
@@ -58,13 +60,25 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
 
     console.log('[PROMOTION] Filter:', JSON.stringify(filter));
 
+    // Debug: Check total students in college regardless of status
+    const totalStudentsInCollege = await Student.countDocuments({ 
+      college_id: req.college_id 
+    });
+    const studentsByStatus = await Student.aggregate([
+      { $match: { college_id: req.college_id } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    console.log('[PROMOTION] Total students in college:', totalStudentsInCollege);
+    console.log('[PROMOTION] Students by status:', studentsByStatus);
+
     // Get all eligible students
     const students = await Student.find(filter)
       .populate("course_id", "name code semester")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
 
-    console.log('[PROMOTION] Found students:', students.length);
+    console.log('[PROMOTION] Found students with APPROVED status:', students.length);
+    console.log('============ [PROMOTION] END DEBUG ============');
 
     // Attach fee information for each student
     const studentsWithFee = await Promise.all(
@@ -129,12 +143,11 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       return acc;
     }, {});
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: studentsWithFee.length,
       students: studentsWithFee,
       groupedBySemester,
-    });
+    }, "Students fetched successfully for promotion");
   } catch (error) {
     next(error);
   }
@@ -197,8 +210,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
     const maxSemester = 8; // Assuming 4-year program with 2 semesters per year
     const canPromote = nextSemester <= maxSemester;
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       student: {
         ...student.toObject(),
         fee: fee || {
@@ -214,7 +226,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
         maxSemester,
       },
       promotionHistory,
-    });
+    }, "Student promotion details fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -355,11 +367,7 @@ exports.promoteStudent = async (req, res, next) => {
     const fromYearLabel = getAcademicYearLabel(fromSemester);
     const toYearLabel = getAcademicYearLabel(toSemester);
 
-    res.json({
-      success: true,
-      message: isMovingToFinalSemester
-        ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
-        : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`,
+    ApiResponse.success(res, {
       promotion: {
         fromSemester,
         toSemester,
@@ -375,7 +383,9 @@ exports.promoteStudent = async (req, res, next) => {
         isFinalSemesterPromotion,
         maxSemester,
       },
-    });
+    }, isMovingToFinalSemester
+      ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
+      : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`);
   } catch (error) {
     next(error);
   }
@@ -521,11 +531,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       }
     }
 
-    res.json({
-      success: true,
-      message: `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`,
+    ApiResponse.success(res, {
       results,
-    });
+    }, `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`);
   } catch (error) {
     next(error);
   }
@@ -550,11 +558,10 @@ exports.getCollegePromotionHistory = async (req, res, next) => {
       .sort({ promotionDate: -1 })
       .limit(parseInt(limit));
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: promotions.length,
       promotions,
-    });
+    }, "Promotion history fetched successfully");
   } catch (error) {
     next(error);
   }
