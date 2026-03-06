@@ -57,11 +57,11 @@
     min-width: 280px !important;
     max-width: calc(100vw - 20px) !important;
   }
-  
+
   .notification-dropdown {
     min-width: 280px !important;
   }
-  
+
   .profile-dropdown {
     min-width: 220px !important;
   }
