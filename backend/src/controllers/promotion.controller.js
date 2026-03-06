@@ -380,7 +380,7 @@ exports.promoteStudent = async (req, res, next) => {
         promotedBy: req.user.name,
         promotionDate: promotionRecord.promotionDate,
         remarks,
-        isFinalSemesterPromotion,
+        isFinalSemesterPromotion: isMovingToFinalSemester,
         maxSemester,
       },
     }, isMovingToFinalSemester
@@ -521,7 +521,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           toSemester,
           fromYearLabel,
           toYearLabel,
-          isFinalSemesterPromotion,
+          isFinalSemesterPromotion: isMovingToFinalSemester,
         });
       } catch (error) {
         results.failed.push({
