@@ -182,7 +182,7 @@ export default function StudentTimetable() {
 
       // Load weekly schedule
       const weeklyRes = await api.get("/timetable/student");
-      let allSlots = weeklyRes.data || [];
+      let allSlots = weeklyRes.data.slots || weeklyRes.data || [];
 
       // Validate slots
       allSlots = allSlots.filter(validateTimetableSlot);
