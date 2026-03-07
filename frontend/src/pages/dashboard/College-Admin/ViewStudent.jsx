@@ -295,7 +295,7 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, type = 'info
     success: { color: COLORS.success, icon: FaCheckCircle }
   };
 
-  const config = typeConfig[type] || typeConfig.info];
+  const config = [typeConfig[type] || typeConfig.info];
 
   return (
     <div className="modal-backdrop-enterprise">
