@@ -1,702 +1,1945 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NOVAA - Modern Education Management Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
     <style>
-        :root {
-            --primary-color: #2a5bd7;
-            --secondary-color: #f8f9fa;
-            --accent-color: #ff6b35;
-            --dark-color: #2c3e50;
+      :root {
+        --primary-color: #4361ee;
+        --primary-dark: #3a56d4;
+        --secondary-color: #f8f9fa;
+        --accent-color: #00d9ff;
+        --accent-purple: #7209b7;
+        --dark-color: #1a1a2e;
+        --gradient-primary: linear-gradient(
+          135deg,
+          #4361ee 0%,
+          #7209b7 50%,
+          #00d9ff 100%
+        );
+        --gradient-hero: linear-gradient(
+          135deg,
+          rgba(67, 97, 238, 0.95) 0%,
+          rgba(114, 9, 183, 0.9) 100%
+        );
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        --shadow-glow: 0 0 40px rgba(67, 97, 238, 0.3);
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        overflow-x: hidden;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* Scroll Progress Indicator */
+      .scroll-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        background: var(--gradient-primary);
+        z-index: 10000;
+        width: 0%;
+        transition: width 0.1s ease;
+      }
+
+      /* Navbar */
+      .navbar {
+        backdrop-filter: blur(20px);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%) !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+      }
+
+      .navbar.scrolled {
+        box-shadow: 0 10px 40px rgba(67, 97, 238, 0.2) !important;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
+        padding: 0.5rem 0;
+      }
+
+      .navbar-brand {
+        font-weight: 900;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1.85rem !important;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .navbar-brand:hover {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 20px rgba(67, 97, 238, 0.4));
+      }
+
+      .navbar-brand i {
+        animation: brandBounce 2s ease-in-out infinite;
+      }
+
+      @keyframes brandBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+      }
+
+      .nav-link {
+        font-weight: 600;
+        color: var(--dark-color) !important;
+        position: relative;
+        margin: 0 0.25rem;
+        padding: 0.5rem 1rem !important;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .nav-link::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(114, 9, 183, 0.1) 100%);
+        border-radius: 8px;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.3s ease;
+        z-index: -1;
+      }
+
+      .nav-link:hover::before {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px rgba(67, 97, 238, 0.5);
+      }
+
+      .nav-link:hover::after {
+        width: 60%;
+      }
+
+      .nav-link:hover {
+        color: var(--primary-color) !important;
+        transform: translateY(-2px);
+      }
+
+      .navbar-toggler {
+        border: none;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .navbar-toggler:hover {
+        transform: scale(1.1);
+      }
+
+      .navbar-toggler:focus {
+        box-shadow: none;
+      }
+
+      .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(67, 97, 238, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+      }
+
+      .nav-btn {
+        background: var(--gradient-primary);
+        color: white !important;
+        padding: 0.6rem 1.5rem !important;
+        border-radius: 50px;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        border: 2px solid transparent;
+      }
+
+      .nav-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+        background: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color) !important;
+      }
+
+      .nav-btn::before {
+        display: none;
+      }
+
+      .nav-btn::after {
+        display: none;
+      }
+
+      /* Hero Section */
+      .hero-section {
+        background: var(--gradient-hero);
+        color: white;
+        padding: 120px 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-section::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(0, 217, 255, 0.15) 0%,
+          transparent 70%
+        );
+        animation: rotate 30s linear infinite;
+      }
+
+      .hero-section::after {
+        content: "";
+        position: absolute;
+        bottom: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(114, 9, 183, 0.15) 0%,
+          transparent 70%
+        );
+        animation: rotate 25s linear infinite reverse;
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
         }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
+        to {
+          transform: rotate(360deg);
         }
-        
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
-            color: white;
-            padding: 100px 0;
-            position: relative;
-            overflow: hidden;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .hero-title {
+        font-size: 3.5rem;
+        font-weight: 900;
+        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .hero-title .highlight {
+        background: linear-gradient(135deg, #00d9ff 0%, #4361ee 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-lead {
+        font-size: 1.25rem;
+        opacity: 0.95;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+      }
+
+      /* Buttons */
+      .btn-hero {
+        background: white;
+        color: var(--primary-color);
+        font-weight: 700;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        border: 2px solid white;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn-hero:hover {
+        transform: translateY(-5px) scale(1.05);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        background: transparent;
+        color: white;
+      }
+
+      .btn-hero-outline {
+        background: transparent;
+        color: white;
+        font-weight: 700;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        border: 2px solid white;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-hero-outline:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Feature Cards */
+      .feature-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        height: 100%;
+        border: 1px solid rgba(67, 97, 238, 0.1);
+        transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-15px) scale(1.02);
+        box-shadow:
+          0 25px 50px rgba(0, 0, 0, 0.15),
+          0 0 40px rgba(67, 97, 238, 0.3);
+        border-color: var(--primary-color);
+      }
+
+      .feature-card .card-img-top {
+        border-radius: 20px 20px 0 0;
+        transition: transform 0.5s ease;
+      }
+
+      .feature-card:hover .card-img-top {
+        transform: scale(1.1);
+      }
+
+      .feature-card .card-title {
+        font-weight: 800;
+        color: var(--dark-color);
+        font-size: 1.25rem;
+      }
+
+      /* Testimonial Cards */
+      .testimonial-card {
+        background: white;
+        border-radius: 20px;
+        border: none;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .testimonial-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: var(--gradient-primary);
+        transition: width 0.4s ease;
+      }
+
+      .testimonial-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      }
+
+      .testimonial-card:hover::before {
+        width: 100%;
+        opacity: 0.05;
+      }
+
+      /* Section Styling */
+      .section-padding {
+        padding: 100px 0;
+      }
+
+      .section-title {
+        font-size: 2.75rem;
+        font-weight: 900;
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      .section-title::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-primary);
+        border-radius: 2px;
+      }
+
+      .section-subtitle {
+        color: #6c757d;
+        font-size: 1.125rem;
+        margin-top: 1.5rem;
+      }
+
+      .bg-light {
+        background: linear-gradient(
+          135deg,
+          #f8f9fa 0%,
+          #e9ecef 100%
+        ) !important;
+      }
+
+      /* Icon Boxes */
+      .icon-box {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        color: white;
+        transition: all 0.4s ease;
+        box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+      }
+
+      .icon-box:hover {
+        transform: rotate(360deg) scale(1.1);
+        box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
+      }
+
+      /* CTA Section */
+      .cta-section {
+        background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+        position: relative;
+        overflow: hidden;
+        padding: 120px 0;
+      }
+
+      .cta-section::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .cta-section::after {
+        content: "";
+        position: absolute;
+        bottom: -50%;
+        left: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.08) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite reverse;
+      }
+
+      .cta-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+      }
+
+      .cta-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 0.6rem 1.75rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .cta-section .section-title {
+        color: white;
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .cta-section .section-title::after {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .cta-section .section-subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.25rem;
+        max-width: 700px;
+        margin: 0 auto 2.5rem;
+        line-height: 1.8;
+      }
+
+      .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 2.5rem;
+      }
+
+      .cta-features {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2.5rem;
+        flex-wrap: wrap;
+      }
+
+      .cta-feature {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 500;
+        font-size: 1rem;
+      }
+
+      .cta-feature i {
+        color: #00d9ff;
+        font-size: 1.25rem;
+      }
+
+      /* Contact Section */
+      .contact-info-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s ease;
+      }
+
+      .contact-info-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      }
+
+      .contact-info-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+      }
+
+      .contact-info-item:last-child {
+        border-bottom: none;
+      }
+
+      .contact-info-item:hover {
+        transform: translateX(10px);
+      }
+
+      .contact-info-item .icon-box {
+        flex-shrink: 0;
+        margin-right: 1rem;
+      }
+
+      .office-hours-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+      }
+
+      .office-hours-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px dashed #dee2e6;
+      }
+
+      .office-hours-item:last-child {
+        border-bottom: none;
+      }
+
+      .office-hours-item span:first-child {
+        font-weight: 600;
+        color: var(--dark-color);
+      }
+
+      .office-hours-item span:last-child {
+        color: #6c757d;
+        font-weight: 500;
+      }
+
+      .form-control,
+      .form-select {
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+        padding: 0.875rem 1.25rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
+        transform: translateY(-2px);
+      }
+
+      .btn-submit {
+        background: var(--gradient-primary);
+        border: none;
+        font-weight: 700;
+        padding: 1rem 2.5rem;
+        border-radius: 50px;
+        transition: all 0.4s ease;
+        box-shadow: 0 15px 35px rgba(67, 97, 238, 0.4);
+        position: relative;
+        overflow: hidden;
+        color: white;
+      }
+
+      .btn-submit::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+
+      .btn-submit:hover::before {
+        left: 100%;
+      }
+
+      .btn-submit:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 45px rgba(67, 97, 238, 0.5);
+      }
+
+      /* Footer */
+      footer {
+        background: linear-gradient(
+          135deg,
+          #0f0f1a 0%,
+          #1a1a2e 50%,
+          #16213e 100%
+        );
+        position: relative;
+        overflow: hidden;
+      }
+
+      footer::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="white" opacity="0.03"/></svg>');
+        background-size: 60px 60px;
+      }
+
+      footer::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: var(--gradient-primary);
+      }
+
+      footer .footer-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      footer h5,
+      footer h6 {
+        color: white;
+        margin-bottom: 1.5rem;
+      }
+
+      footer h5 {
+        font-size: 1.5rem;
+      }
+
+      footer h6 {
+        font-size: 1.1rem;
+        position: relative;
+        display: inline-block;
+      }
+
+      footer h6::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 40px;
+        height: 2px;
+        background: var(--accent-color);
+      }
+
+      footer p {
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.8;
+      }
+
+      footer ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      footer ul li {
+        margin-bottom: 0.75rem;
+      }
+
+      footer ul li a {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-block;
+        position: relative;
+      }
+
+      footer ul li a::before {
+        content: "→";
+        position: absolute;
+        left: -20px;
+        opacity: 0;
+        transition: all 0.3s ease;
+        color: var(--accent-color);
+      }
+
+      footer ul li a:hover {
+        color: var(--accent-color);
+        transform: translateX(8px);
+      }
+
+      footer ul li a:hover::before {
+        opacity: 1;
+        left: -18px;
+      }
+
+      footer .contact-info li {
+        display: flex;
+        align-items: center;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 1rem;
+      }
+
+      footer .contact-info li i {
+        width: 35px;
+        height: 35px;
+        background: rgba(67, 97, 238, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        color: var(--accent-color);
+        transition: all 0.3s ease;
+      }
+
+      footer .contact-info li:hover i {
+        background: var(--primary-color);
+        transform: rotate(360deg);
+      }
+
+      footer .social-links {
+        margin-top: 1.5rem;
+      }
+
+      footer .social-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 45px;
+        height: 45px;
+        background: rgba(67, 97, 238, 0.1);
+        border-radius: 50%;
+        margin-right: 10px;
+        color: white;
+        font-size: 1.25rem;
+        transition: all 0.4s ease;
+      }
+
+      footer .social-links a:hover {
+        background: var(--gradient-primary);
+        transform: translateY(-5px) rotate(360deg);
+        box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+      }
+
+      footer hr {
+        border-color: rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 2;
+      }
+
+      footer .copyright {
+        color: rgba(255, 255, 255, 0.5);
+        position: relative;
+        z-index: 2;
+      }
+
+      .version-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #4361ee, #7209b7);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+      }
+
+      /* Floating Back to Top Button */
+      .floating-back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 55px;
+        height: 55px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.4rem;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        box-shadow: 0 10px 35px rgba(67, 97, 238, 0.5);
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px) scale(0.8);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .floating-back-to-top.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+      }
+
+      .floating-back-to-top:hover {
+        transform: translateY(-8px) scale(1.1);
+        box-shadow: 0 15px 45px rgba(67, 97, 238, 0.7);
+        background: linear-gradient(135deg, #7209b7 0%, #4361ee 50%, #00d9ff 100%);
+      }
+
+      .floating-back-to-top i {
+        transition: transform 0.3s ease;
+      }
+
+      .floating-back-to-top:hover i {
+        transform: translateY(-3px);
+      }
+
+      .floating-back-to-top::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: inherit;
+        z-index: -1;
+        animation: pulse-ring 2s infinite;
+        opacity: 0;
+      }
+
+      .floating-back-to-top.show::before {
+        opacity: 0.4;
+      }
+
+      @keyframes pulse-ring {
+        0% {
+          transform: scale(1);
+          opacity: 0.6;
         }
-        
-        .hero-section::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            opacity: 0.2;
+        100% {
+          transform: scale(1.6);
+          opacity: 0;
         }
-        
-        .feature-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border-radius: 10px;
-            overflow: hidden;
-            height: 100%;
+      }
+
+      /* GSAP Animation Classes */
+      .gsap-reveal-text-line {
+        display: inline-block;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      }
+
+      .gsap-fade-up {
+        opacity: 0;
+        transform: translateY(50px);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s ease;
+      }
+
+      .gsap-fade-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .gsap-scale-up {
+        opacity: 0;
+        transform: scale(0.8);
+        transition:
+          opacity 1s ease,
+          transform 1s ease;
+      }
+
+      .gsap-scale-up.visible {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .gsap-card {
+        opacity: 0;
+        transform: translateY(100px);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s ease;
+      }
+
+      .gsap-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .stagger-1 {
+        transition-delay: 0.1s;
+      }
+      .stagger-2 {
+        transition-delay: 0.2s;
+      }
+      .stagger-3 {
+        transition-delay: 0.3s;
+      }
+      .stagger-4 {
+        transition-delay: 0.4s;
+      }
+      .stagger-5 {
+        transition-delay: 0.5s;
+      }
+      .stagger-6 {
+        transition-delay: 0.6s;
+      }
+
+      /* Floating Animation */
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
         }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        50% {
+          transform: translateY(-20px);
         }
-        
-        .testimonial-card {
-            border-left: 4px solid var(--primary-color);
-            transition: all 0.3s ease;
+      }
+
+      .animate-float {
+        animation: float 4s ease-in-out infinite;
+      }
+
+      /* Glow Animation */
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(67, 97, 238, 0.3);
         }
-        
-        .testimonial-card:hover {
-            background-color: var(--secondary-color);
+        50% {
+          box-shadow:
+            0 0 40px rgba(67, 97, 238, 0.6),
+            0 0 60px rgba(114, 9, 183, 0.4);
         }
-        
-        .stats-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
+      }
+
+      .animate-glow {
+        animation: glow 3s ease-in-out infinite;
+      }
+
+      /* Text Animation Classes */
+      .text-reveal {
+        display: inline-block;
+        overflow: hidden;
+      }
+
+      .text-reveal span {
+        display: inline-block;
+      }
+
+      .fade-in-left {
+        opacity: 0;
+        transform: translateX(-50px);
+        transition: all 0.8s ease;
+      }
+
+      .fade-in-left.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .fade-in-right {
+        opacity: 0;
+        transform: translateX(50px);
+        transition: all 0.8s ease;
+      }
+
+      .fade-in-right.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .zoom-in {
+        opacity: 0;
+        transform: scale(0.8);
+        transition: all 0.6s ease;
+      }
+
+      .zoom-in.visible {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .hero-title {
+          font-size: 2.5rem;
         }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .section-title {
+          font-size: 2rem;
         }
-        
-        .btn-primary:hover {
-            background-color: #1a4bc7;
-            border-color: #1a4bc7;
+        .cta-badge {
+          font-size: 0.75rem;
+          padding: 0.4rem 1rem;
         }
-        
-        .section-padding {
-            padding: 80px 0;
+        footer .back-to-top {
+          bottom: 20px;
+          right: 20px;
+          width: 45px;
+          height: 45px;
         }
-        
-        .bg-light {
-            background-color: var(--secondary-color) !important;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-        }
-        
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes float {
-            0% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-15px);
-            }
-            100% {
-                transform: translateY(0px);
-            }
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.02);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-        
-        .animate-fade-in-up {
-            animation: fadeInUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            opacity: 0;
-        }
-        
-        .animate-float {
-            animation: float 4s ease-in-out infinite;
-        }
-        
-        .animate-pulse {
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        .delay-1 {
-            animation-delay: 0.2s;
-        }
-        
-        .delay-2 {
-            animation-delay: 0.4s;
-        }
-        
-        .delay-3 {
-            animation-delay: 0.6s;
-        }
-        
-        .delay-4 {
-            animation-delay: 0.8s;
-        }
-        
-        .delay-5 {
-            animation-delay: 1.0s;
-        }
-        
-        .hover-lift {
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        .hover-lift:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <!-- Scroll Progress Indicator -->
+    <div class="scroll-progress"></div>
+
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand fs-2" href="#">
-                <i class="fas fa-graduation-cap me-2"></i>NOVAA
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-primary ms-2" href="./login.html">Login</a>
-                    </li>
-                </ul>
-            </div>
+      <div class="container">
+        <a class="navbar-brand fs-2" href="#">
+          <i class="fas fa-graduation-cap"></i>NOVAA
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item">
+              <a class="nav-link" href="#about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#features">Features</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#testimonials">Testimonials</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#contact">Contact</a>
+            </li>
+            <li class="nav-item ms-2">
+              <a class="btn nav-btn" href="./login.html">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+              </a>
+            </li>
+          </ul>
         </div>
+      </div>
     </nav>
 
     <!-- Hero Section -->
     <section class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6 animate-fade-in-up">
-                    <h1 class="display-4 fw-bold mb-4 animate-pulse">Transform Your Educational Institution</h1>
-                    <p class="lead mb-4">Comprehensive college management platform designed to streamline operations, enhance learning experiences, and connect students, teachers, and administrators seamlessly.</p>
-                    <div class="d-flex gap-3">
-                        <a href="/register" class="btn btn-light btn-lg px-4 py-2 hover-lift">Get Started</a>
-                        <a href="#features" class="btn btn-outline-light btn-lg px-4 py-2 hover-lift">Learn More</a>
-                    </div>
-                </div>
-                <div class="col-lg-6 mt-5 mt-lg-0 animate-fade-in-up delay-1">
-                    <div class="text-center">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23f0f4ff'/%3E%3Ccircle cx='150' cy='150' r='80' fill='%234361ee' opacity='0.2'/%3E%3Ccircle cx='450' cy='250' r='80' fill='%234cc9f0' opacity='0.2'/%3E%3Crect x='200' y='150' width='200' height='100' rx='10' fill='%23ffffff' stroke='%234361ee' stroke-width='2'/%3E%3Crect x='220' y='170' width='160' height='15' fill='%23e0e7ff'/%3E%3Crect x='220' y='195' width='120' height='15' fill='%23e0e7ff'/%3E%3Crect x='220' y='220' width='140' height='15' fill='%23e0e7ff'/%3E%3C/svg%3E" alt="Education Technology" class="img-fluid rounded shadow animate-float">
-                    </div>
-                </div>
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-lg-6 hero-content">
+            <h1 class="hero-title">
+              <span class="gsap-reveal-text-line">Transform Your</span><br />
+              <span class="gsap-reveal-text-line"
+                >Educational <span class="highlight">Institution</span></span
+              >
+            </h1>
+            <p class="hero-lead gsap-fade-up">
+              Comprehensive college management platform designed to streamline
+              operations, enhance learning experiences, and connect students,
+              teachers, and administrators seamlessly.
+            </p>
+            <div class="d-flex gap-3 flex-wrap">
+              <a
+                href="/register"
+                class="btn btn-hero animate__animated animate__bounceIn"
+                >Get Started</a
+              >
+              <a
+                href="#features"
+                class="btn btn-hero-outline animate__animated animate__pulse animate__infinite"
+                >Learn More</a
+              >
             </div>
+          </div>
+          <div class="col-lg-6 mt-5 mt-lg-0">
+            <div class="text-center">
+              <img
+                src="./images/novaa01.jpg"
+                alt="Education Technology"
+                class="img-fluid rounded shadow animate-float gsap-scale-up"
+              />
+            </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- About Us Section -->
     <section id="about" class="section-padding">
-        <div class="container">
-            <div class="row mb-5">
-                <div class="col-12 text-center animate-fade-in-up">
-                    <h2 class="fw-bold mb-3">About NOVAA</h2>
-                    <p class="text-muted">Transforming education through innovative technology solutions</p>
-                </div>
-            </div>
-            <div class="row align-items-center">
-                <div class="col-lg-6 mb-4 mb-lg-0 animate-fade-in-up">
-                    <div class="p-4">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='350' viewBox='0 0 600 350'%3E%3Crect width='600' height='350' fill='%23f0f4ff'/%3E%3Crect x='50' y='50' width='500' height='250' rx='10' fill='%23ffffff' stroke='%234361ee' stroke-width='2'/%3E%3Ccircle cx='100' cy='100' r='20' fill='%234361ee'/%3E%3Ccircle cx='150' cy='100' r='20' fill='%234cc9f0'/%3E%3Ccircle cx='200' cy='100' r='20' fill='%233f37c9'/%3E%3Crect x='80' y='150' width='440' height='120' fill='%23f8fafc' rx='5'/%3E%3Crect x='100' y='170' width='400' height='20' fill='%23e0e7ff' rx='3'/%3E%3Crect x='100' y='200' width='350' height='15' fill='%23e0e7ff' rx='2'/%3E%3Crect x='100' y='225' width='400' height='15' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" alt="Education Management Platform" class="img-fluid rounded shadow animate-float">
-                    </div>
-                </div>
-                <div class="col-lg-6 animate-fade-in-up delay-1">
-                    <h3 class="fw-bold mb-4">Revolutionizing Educational Management</h3>
-                    <p class="mb-4">NOVAA is a comprehensive education management platform designed to streamline operations across educational institutions. Our platform connects students, teachers, administrators, and parents through a unified digital ecosystem.</p>
-
-<!--                     
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">Multi-role Support</h6>
-                                    <p class="text-muted mb-0">For students, teachers, admins</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-shield-alt"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">Secure Platform</h6>
-                                    <p class="text-muted mb-0">JWT authentication & httpOnly cookies</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">Real-time Updates</h6>
-                                    <p class="text-muted mb-0">Live data synchronization</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-chart-line"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">Analytics</h6>
-                                    <p class="text-muted mb-0">Performance insights & reports</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
-                </div>
-            </div>
+      <div class="container">
+        <div class="row mb-5">
+          <div class="col-12 text-center">
+            <h2 class="section-title gsap-fade-up">About NOVAA</h2>
+            <p class="section-subtitle gsap-fade-up">
+              Transforming education through innovative technology solutions
+            </p>
+          </div>
         </div>
+        <div class="row align-items-center">
+          <div class="col-lg-6 mb-4 mb-lg-0">
+            <div class="p-4">
+              <img
+                src="./images/novaa02.jpg"
+                alt="Education Management Platform"
+                class="img-fluid rounded shadow animate-float gsap-scale-up"
+              />
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <h3
+              class="fw-bold mb-4 gsap-fade-up animate__heartBeat animate__infinite"
+            >
+              Revolutionizing Educational Management
+            </h3>
+            <p class="mb-4 gsap-fade-up">
+              NOVAA is a comprehensive education management platform designed to
+              streamline operations across educational institutions. Our
+              platform connects students, teachers, administrators, and parents
+              through a unified digital ecosystem.
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Features Section -->
     <section id="features" class="section-padding bg-light">
-        <div class="container">
-            <div class="row mb-5">
-                <div class="col-12 text-center">
-                    <h2 class="fw-bold mb-3">Powerful Features</h2>
-                    <p class="text-muted">Everything you need to manage your educational institution efficiently</p>
-                </div>
-            </div>
-            <div class="row g-4">
-                <div class="col-md-6 col-lg-4 animate-fade-in-up hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234361ee'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Student Management" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title animate-pulse">Student Management</h5>
-                            <p class="card-text">Complete student lifecycle management from admission to graduation with detailed records and analytics.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234cc9f0'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3Ccircle cx='300' cy='70' r='15' fill='%234cc9f0'/%3E%3C/svg%3E" class="img-fluid" alt="Teacher Portal" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title">Teacher Portal</h5>
-                            <p class="card-text">Empower educators with tools for attendance, grading, timetables, and communication with students.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Crect x='80' y='50' width='240' height='80' fill='%23f8fafc' rx='5'/%3E%3Crect x='90' y='60' width='220' height='12' fill='%23e0e7ff' rx='2'/%3E%3Crect x='90' y='80' width='180' height='12' fill='%23e0e7ff' rx='2'/%3E%3Crect x='90' y='100' width='200' height='12' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Timetable Management" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title">Timetable Management</h5>
-                            <p class="card-text">Intelligent scheduling system that creates conflict-free timetables for classes and exams.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 animate-fade-in-up delay-3 hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='70' r='25' fill='%234361ee'/%3E%3Crect x='140' y='60' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='85' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='105' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Fee Management" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title animate-pulse">Fee Management</h5>
-                            <p class="card-text">Automated fee calculation, payment processing, and financial reporting for transparent billing.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Crect x='80' y='50' width='240' height='80' fill='%23f8fafc'/%3E%3Crect x='90' y='60' width='60' height='50' fill='%234361ee' rx='3'/%3E%3Crect x='160' y='60' width='60' height='30' fill='%234cc9f0' rx='3'/%3E%3Crect x='230' y='60' width='60' height='40' fill='%233f37c9' rx='3'/%3E%3Crect x='90' y='115' width='200' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Analytics & Reports" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title">Analytics & Reports</h5>
-                            <p class="card-text">Comprehensive dashboards with insights on academics, attendance, and institutional performance.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4 hover-lift">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-img-top" style="height: 180px; overflow: hidden;">
-                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='180' viewBox='0 0 400 180'%3E%3Crect width='400' height='180' fill='%23f0f4ff'/%3E%3Crect x='50' y='30' width='300' height='120' rx='8' fill='%23ffffff' stroke='%234361ee' stroke-width='1'/%3E%3Ccircle cx='100' cy='80' r='25' fill='%234361ee'/%3E%3Crect x='140' y='70' width='140' height='15' fill='%23e0e7ff' rx='3'/%3E%3Crect x='140' y='95' width='100' height='10' fill='%23e0e7ff' rx='2'/%3E%3Crect x='140' y='110' width='120' height='10' fill='%23e0e7ff' rx='2'/%3E%3C/svg%3E" class="img-fluid" alt="Notifications" style="object-fit: cover;">
-                        </div>
-                        <div class="card-body p-4">
-                            <h5 class="card-title">Notifications</h5>
-                            <p class="card-text">Real-time alerts and notifications to keep all stakeholders informed about important updates.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row mb-5">
+          <div class="col-12 text-center">
+            <h2 class="section-title gsap-fade-up">Powerful Features</h2>
+            <p class="section-subtitle gsap-fade-up">
+              Everything you need to manage your educational institution
+              efficiently
+            </p>
+          </div>
         </div>
+        <div class="row g-4">
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-1"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa03.png"
+                  class="img-fluid"
+                  alt="Student Management"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title animate__animated animate__rubberBand">
+                  Student Management
+                </h5>
+                <p class="card-text">
+                  Complete student lifecycle management from admission to
+                  graduation with detailed records and analytics.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-2"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa04.png"
+                  class="img-fluid"
+                  alt="Teacher Portal"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title">Teacher Portal</h5>
+                <p class="card-text">
+                  Empower educators with tools for attendance, grading,
+                  timetables, and communication with students.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-3"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa05.png"
+                  class="img-fluid"
+                  alt="Timetable Management"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title">Timetable Management</h5>
+                <p class="card-text">
+                  Intelligent scheduling system that creates conflict-free
+                  timetables for classes and exams.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-4"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa06.png"
+                  class="img-fluid"
+                  alt="Fee Management"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title animate__animated animate__flipInX">
+                  Fee Management
+                </h5>
+                <p class="card-text">
+                  Automated fee calculation, payment processing, and financial
+                  reporting for transparent billing.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-5"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa07.png"
+                  class="img-fluid"
+                  alt="Analytics & Reports"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title">Analytics & Reports</h5>
+                <p class="card-text">
+                  Comprehensive dashboards with insights on academics,
+                  attendance, and institutional performance.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-4">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-6"
+            >
+              <div class="card-img-top" style="height: 180px; overflow: hidden">
+                <img
+                  src="./images/novaa08.png"
+                  class="img-fluid"
+                  alt="Notifications"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title">Notifications</h5>
+                <p class="card-text">
+                  Real-time alerts and notifications to keep all stakeholders
+                  informed about important updates.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
-
-    <!-- Stats Section -->
-    <!-- <section class="section-padding">
-        <div class="container">
-            <div class="row text-center">
-                <div class="col-md-3 mb-4 mb-md-0">
-                    <div class="stats-number">500+</div>
-                    <p class="text-muted">Colleges Using Our Platform</p>
-                </div>
-                <div class="col-md-3 mb-4 mb-md-0">
-                    <div class="stats-number">50K+</div>
-                    <p class="text-muted">Active Students</p>
-                </div>
-                <div class="col-md-3 mb-4 mb-md-0">
-                    <div class="stats-number">5K+</div>
-                    <p class="text-muted">Educators</p>
-                </div>
-                <div class="col-md-3">
-                    <div class="stats-number">98%</div>
-                    <p class="text-muted">Satisfaction Rate</p>
-                </div>
-            </div>
-        </div>
-    </section> -->
 
     <!-- Testimonials -->
     <section id="testimonials" class="section-padding bg-light">
-        <div class="container">
-            <div class="row mb-5">
-                <div class="col-12 text-center animate-fade-in-up">
-                    <h2 class="fw-bold mb-3">What Educators Say</h2>
-                    <p class="text-muted">Trusted by educational institutions worldwide</p>
-                </div>
-            </div>
-            <div class="row g-4">
-                <div class="col-md-4 animate-fade-in-up hover-lift">
-                    <div class="card testimonial-card h-100 border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-quote-left text-muted"></i>
-                            </div>
-                            <p class="card-text">"NOVAA has revolutionized how we manage our academic operations. The attendance and fee management features alone have saved us countless hours."</p>
-                            <div class="d-flex align-items-center mt-3">
-                                <div class="flex-shrink-0">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                        <i class="fas fa-user fa-lg"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">Dr. Sarah Johnson</h6>
-                                    <small class="text-muted">Principal, ABC University</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 animate-fade-in-up delay-1 hover-lift">
-                    <div class="card testimonial-card h-100 border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-quote-left text-muted"></i>
-                            </div>
-                            <p class="card-text">"The intuitive dashboard and real-time reporting have transformed our decision-making process. We can now track student performance more effectively."</p>
-                            <div class="d-flex align-items-center mt-3">
-                                <div class="flex-shrink-0">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                        <i class="fas fa-user fa-lg"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">Mr. Rajesh Kumar</h6>
-                                    <small class="text-muted">Director, XYZ College</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 animate-fade-in-up delay-2 hover-lift">
-                    <div class="card testimonial-card h-100 border-0 shadow-sm">
-                        <div class="card-body p-4">
-                            <div class="mb-3">
-                                <i class="fas fa-quote-left text-muted"></i>
-                            </div>
-                            <p class="card-text">"Our teachers love the timetable management system. It has eliminated scheduling conflicts and improved classroom utilization significantly."</p>
-                            <div class="d-flex align-items-center mt-3">
-                                <div class="flex-shrink-0">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                        <i class="fas fa-user fa-lg"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1 ms-3">
-                                    <h6 class="mb-0">Ms. Priya Sharma</h6>
-                                    <small class="text-muted">Dean, PQR Institute</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row mb-5">
+          <div class="col-12 text-center">
+            <h2 class="section-title gsap-fade-up">What Educators Say</h2>
+            <p class="section-subtitle gsap-fade-up">
+              Trusted by educational institutions worldwide
+            </p>
+          </div>
         </div>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div
+              class="card testimonial-card h-100 border-0 shadow-sm gsap-card stagger-1"
+            >
+              <div class="card-body p-4">
+                <div class="mb-3">
+                  <i class="fas fa-quote-left text-muted fs-2"></i>
+                </div>
+                <p class="card-text">
+                  "NOVAA has revolutionized how we manage our academic
+                  operations. The attendance and fee management features alone
+                  have saved us countless hours."
+                </p>
+                <div class="d-flex align-items-center mt-3">
+                  <div class="flex-shrink-0">
+                    <div class="icon-box" style="width: 50px; height: 50px">
+                      <i class="fas fa-user"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">Dr. Sarah Johnson</h6>
+                    <small class="text-muted">Principal, ABC University</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div
+              class="card testimonial-card h-100 border-0 shadow-sm gsap-card stagger-2"
+            >
+              <div class="card-body p-4">
+                <div class="mb-3">
+                  <i class="fas fa-quote-left text-muted fs-2"></i>
+                </div>
+                <p class="card-text">
+                  "The intuitive dashboard and real-time reporting have
+                  transformed our decision-making process. We can now track
+                  student performance more effectively."
+                </p>
+                <div class="d-flex align-items-center mt-3">
+                  <div class="flex-shrink-0">
+                    <div class="icon-box" style="width: 50px; height: 50px">
+                      <i class="fas fa-user"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">Mr. Rajesh Kumar</h6>
+                    <small class="text-muted">Director, XYZ College</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div
+              class="card testimonial-card h-100 border-0 shadow-sm gsap-card stagger-3"
+            >
+              <div class="card-body p-4">
+                <div class="mb-3">
+                  <i class="fas fa-quote-left text-muted fs-2"></i>
+                </div>
+                <p class="card-text">
+                  "Our teachers love the timetable management system. It has
+                  eliminated scheduling conflicts and improved classroom
+                  utilization significantly."
+                </p>
+                <div class="d-flex align-items-center mt-3">
+                  <div class="flex-shrink-0">
+                    <div class="icon-box" style="width: 50px; height: 50px">
+                      <i class="fas fa-user"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">Ms. Priya Sharma</h6>
+                    <small class="text-muted">Dean, PQR Institute</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="section-padding">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="fw-bold mb-4 animate-pulse">Ready to Transform Your Institution?</h2>
-                    <p class="lead mb-4">Join hundreds of educational institutions that trust NOVAA for their management needs.</p>
-                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
-                        <a href="/register" class="btn btn-primary btn-lg px-4 py-2 hover-lift">Start Free Trial</a>
-                        <a href="#contact" class="btn btn-outline-primary btn-lg px-4 py-2 hover-lift">Contact Sales</a>
-                    </div>
-                </div>
+    <!-- CTA Section - Enhanced -->
+    <section class="cta-section">
+      <div class="container cta-content">
+        <div class="row justify-content-center">
+          <div class="col-lg-10">
+            <span class="cta-badge animate__animated animate__fadeInDown">
+              <i class="fas fa-rocket"></i>
+              <span>Limited Time Offer</span>
+            </span>
+            <h2 class="section-title gsap-fade-up">
+              Ready to Transform Your Institution?
+            </h2>
+            <p class="section-subtitle gsap-fade-up">
+              Join hundreds of educational institutions that trust NOVAA for
+              their management needs. Start your journey towards digital
+              excellence today.
+            </p>
+            <div class="cta-buttons">
+              <a
+                href="/register"
+                class="btn btn-hero animate__animated animate__heartBeat animate__infinite"
+              >
+                <i class="fas fa-play-circle me-2"></i>Start Free Trial
+              </a>
+              <a href="#contact" class="btn btn-hero-outline">
+                <i class="fas fa-calendar-alt me-2"></i>Schedule Demo
+              </a>
             </div>
+            <div class="cta-features">
+              <div class="cta-feature">
+                <i class="fas fa-check-circle"></i>
+                <span>14-Day Free Trial</span>
+              </div>
+              <div class="cta-feature">
+                <i class="fas fa-check-circle"></i>
+                <span>No Credit Card Required</span>
+              </div>
+              <div class="cta-feature">
+                <i class="fas fa-check-circle"></i>
+                <span>24/7 Support</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </section>
 
-    <!-- Contact Section -->
+    <!-- Contact Section - Enhanced -->
     <section id="contact" class="section-padding">
-        <div class="container">
-            <div class="row mb-5">
-                <div class="col-12 text-center">
-                    <h2 class="fw-bold mb-3">Contact Us</h2>
-                    <p class="text-muted">Have questions? Our team is here to help you get started</p>
-                </div>
-            </div>
-            <div class="row g-5">
-                <div class="col-lg-7">
-                    <div class="card feature-card h-100 border-0 shadow-sm">
-                        <div class="card-body p-5">
-                            <form id="contactForm">
-                                <div class="row g-4">
-                                    <div class="col-md-6">
-                                        <label for="firstName" class="form-label">First Name</label>
-                                        <input type="text" class="form-control form-control-lg" id="firstName" placeholder="Enter your first name" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="lastName" class="form-label">Last Name</label>
-                                        <input type="text" class="form-control form-control-lg" id="lastName" placeholder="Enter your last name" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="email" class="form-label">Email</label>
-                                        <input type="email" class="form-control form-control-lg" id="email" placeholder="Enter your email" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="phone" class="form-label">Phone</label>
-                                        <input type="tel" class="form-control form-control-lg" id="phone" placeholder="Enter your phone number">
-                                    </div>
-                                    <div class="col-12">
-                                        <label for="institution" class="form-label">Institution/Organization</label>
-                                        <input type="text" class="form-control form-control-lg" id="institution" placeholder="Enter your institution name" required>
-                                    </div>
-                                    <div class="col-12">
-                                        <label for="role" class="form-label">Role</label>
-                                        <select class="form-select form-select-lg" id="role" required>
-                                            <option value="" disabled selected>Select your role</option>
-                                            <option value="principal">Principal</option>
-                                            <option value="admin">Administrator</option>
-                                            <option value="teacher">Teacher</option>
-                                            <option value="student">Student</option>
-                                            <option value="parent">Parent</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-12">
-                                        <label for="message" class="form-label">Message</label>
-                                        <textarea class="form-control form-control-lg" id="message" rows="5" placeholder="Tell us how we can help you..." required></textarea>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="form-check mb-4">
-                                            <input class="form-check-input" type="checkbox" id="consent" required>
-                                            <label class="form-check-label" for="consent">
-                                                I agree to receive communications from NOVAA
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3">Send Message</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="h-100">
-                        <div class="card feature-card h-100 border-0 shadow-sm">
-                            <div class="card-img-top" style="height: 200px; overflow: hidden;">
-                                <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80" class="img-fluid" alt="Our Team" style="object-fit: cover;">
-                            </div>
-                            <div class="card-body p-5">
-                                <h3 class="fw-bold mb-4">Get in Touch</h3>
-                                <p class="mb-4">We'd love to hear from you. Fill out the form and our team will get back to you as soon as possible.</p>
-                                
-                                <div class="d-flex mb-4">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
-                                            <i class="fas fa-envelope fa-xl"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-0">Email Us</h6>
-                                        <p class="text-muted mb-0">info@novaa.edu</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="d-flex mb-4">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
-                                            <i class="fas fa-phone fa-xl"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-0">Call Us</h6>
-                                        <p class="text-muted mb-0">+1 (555) 123-4567</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="d-flex mb-4">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle d-inline-block">
-                                            <i class="fas fa-map-marker-alt fa-xl"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-0">Visit Us</h6>
-                                        <p class="text-muted mb-0">123 Education St, Learning City</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-5">
-                                    <h4 class="fw-bold mb-4">Office Hours</h4>
-                                    <ul class="list-unstyled">
-                                        <li class="mb-2 d-flex justify-content-between">
-                                            <span>Monday - Friday</span>
-                                            <span class="text-muted">9:00 AM - 6:00 PM</span>
-                                        </li>
-                                        <li class="mb-2 d-flex justify-content-between">
-                                            <span>Saturday</span>
-                                            <span class="text-muted">10:00 AM - 4:00 PM</span>
-                                        </li>
-                                        <li class="mb-2 d-flex justify-content-between">
-                                            <span>Sunday</span>
-                                            <span class="text-muted">Closed</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container">
+        <div class="row mb-5">
+          <div class="col-12 text-center">
+            <h2 class="section-title gsap-fade-up">Get In Touch</h2>
+            <p class="section-subtitle gsap-fade-up">
+              Have questions? Our team is here to help you get started
+            </p>
+          </div>
         </div>
+        <div class="row g-5">
+          <div class="col-lg-7">
+            <div
+              class="card feature-card h-100 border-0 shadow-sm gsap-fade-up"
+            >
+              <div class="card-body p-5">
+                <h3 class="fw-bold mb-4">Send Us a Message</h3>
+                <form id="contactForm">
+                  <div class="row g-4">
+                    <div class="col-md-6">
+                      <label for="firstName" class="form-label fw-bold"
+                        >First Name</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control form-control-lg"
+                        id="firstName"
+                        placeholder="John"
+                        required
+                      />
+                    </div>
+                    <div class="col-md-6">
+                      <label for="lastName" class="form-label fw-bold"
+                        >Last Name</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control form-control-lg"
+                        id="lastName"
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
+                    <div class="col-md-6">
+                      <label for="email" class="form-label fw-bold"
+                        >Email Address</label
+                      >
+                      <input
+                        type="email"
+                        class="form-control form-control-lg"
+                        id="email"
+                        placeholder="john@example.com"
+                        required
+                      />
+                    </div>
+                    <div class="col-md-6">
+                      <label for="phone" class="form-label fw-bold"
+                        >Phone Number</label
+                      >
+                      <input
+                        type="tel"
+                        class="form-control form-control-lg"
+                        id="phone"
+                        placeholder="+1 (555) 000-0000"
+                      />
+                    </div>
+                    <div class="col-12">
+                      <label for="institution" class="form-label fw-bold"
+                        >Institution/Organization</label
+                      >
+                      <input
+                        type="text"
+                        class="form-control form-control-lg"
+                        id="institution"
+                        placeholder="Your institution name"
+                        required
+                      />
+                    </div>
+                    <div class="col-12">
+                      <label for="role" class="form-label fw-bold"
+                        >Your Role</label
+                      >
+                      <select
+                        class="form-select form-select-lg"
+                        id="role"
+                        required
+                      >
+                        <option value="" disabled selected>
+                          Select your role
+                        </option>
+                        <option value="principal">Principal</option>
+                        <option value="admin">Administrator</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="student">Student</option>
+                        <option value="parent">Parent</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label for="message" class="form-label fw-bold"
+                        >Your Message</label
+                      >
+                      <textarea
+                        class="form-control form-control-lg"
+                        id="message"
+                        rows="5"
+                        placeholder="Tell us how we can help you..."
+                        required
+                      ></textarea>
+                    </div>
+                    <div class="col-12">
+                      <div class="form-check mb-4">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="consent"
+                          required
+                        />
+                        <label class="form-check-label" for="consent">
+                          I agree to receive communications from NOVAA
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <button
+                        type="submit"
+                        class="btn btn-submit btn-lg w-100 py-3 animate__animated animate__pulse animate__infinite"
+                      >
+                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="contact-info-card gsap-fade-up">
+              <div class="card-img-top" style="height: 200px; overflow: hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80"
+                  class="img-fluid"
+                  alt="Our Team"
+                  style="object-fit: cover"
+                />
+              </div>
+              <div class="card-body p-4">
+                <h3 class="fw-bold mb-4">Contact Information</h3>
+                <p class="mb-4 text-muted">
+                  Fill out the form and our team will get back to you within 24
+                  hours.
+                </p>
+
+                <div class="contact-info-item">
+                  <div class="icon-box">
+                    <i class="fas fa-envelope"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">Email Us</h6>
+                    <p class="text-muted mb-0">info@novaa.edu</p>
+                  </div>
+                </div>
+
+                <div class="contact-info-item">
+                  <div class="icon-box">
+                    <i class="fas fa-phone"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">Call Us</h6>
+                    <p class="text-muted mb-0">+1 (555) 123-4567</p>
+                  </div>
+                </div>
+
+                <div class="contact-info-item">
+                  <div class="icon-box">
+                    <i class="fas fa-map-marker-alt"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">Visit Us</h6>
+                    <p class="text-muted mb-0">
+                      123 Education St, Learning City
+                    </p>
+                  </div>
+                </div>
+
+                <div class="office-hours-card">
+                  <h5 class="fw-bold mb-3">
+                    <i class="fas fa-clock me-2 text-primary"></i>Office Hours
+                  </h5>
+                  <div class="office-hours-item">
+                    <span>Monday - Friday</span>
+                    <span>9:00 AM - 6:00 PM</span>
+                  </div>
+                  <div class="office-hours-item">
+                    <span>Saturday</span>
+                    <span>10:00 AM - 4:00 PM</span>
+                  </div>
+                  <div class="office-hours-item">
+                    <span>Sunday</span>
+                    <span class="text-danger">Closed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-light py-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h5 class="fw-bold mb-3">
-                        <i class="fas fa-graduation-cap me-2"></i>NOVAA
-                    </h5>
-                    <p>Modern education management platform designed to streamline operations and enhance learning experiences.</p>
-                </div>
-                <div class="col-md-2 mb-4 mb-md-0">
-                    <h6 class="fw-bold mb-3">Product</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-light text-decoration-none">Features</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Solutions</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Pricing</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Demo</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2 mb-4 mb-md-0">
-                    <h6 class="fw-bold mb-3">Company</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-light text-decoration-none">About</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Careers</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Blog</a></li>
-                        <li><a href="#" class="text-light text-decoration-none">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h6 class="fw-bold mb-3">Contact Us</h6>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-envelope me-2"></i>info@novaa.edu</li>
-                        <li><i class="fas fa-phone me-2"></i>+1 (555) 123-4567</li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i>123 Education St, Learning City</li>
-                    </ul>
-                </div>
+    <!-- Footer - Enhanced -->
+    <footer class="py-5">
+      <div class="container footer-content">
+        <div class="row g-4">
+          <div class="col-lg-4 col-md-6">
+            <h5 class="fw-bold mb-3">
+              <i class="fas fa-graduation-cap me-2"></i>NOVAA
+            </h5>
+            <p class="mb-4">
+              Modern education management platform designed to streamline
+              operations and enhance learning experiences for institutions
+              worldwide.
+            </p>
+            <div class="social-links">
+              <a href="#" class="animate__animated animate__bounceIn"
+                ><i class="fab fa-facebook-f"></i
+              ></a>
+              <a href="#" class="animate__animated animate__bounceIn"
+                ><i class="fab fa-twitter"></i
+              ></a>
+              <a href="#" class="animate__animated animate__bounceIn"
+                ><i class="fab fa-linkedin-in"></i
+              ></a>
+              <a href="#" class="animate__animated animate__bounceIn"
+                ><i class="fab fa-instagram"></i
+              ></a>
+              <a href="#" class="animate__animated animate__bounceIn"
+                ><i class="fab fa-youtube"></i
+              ></a>
             </div>
-            <hr class="my-4 bg-secondary">
-            <div class="text-center">
-                <p class="mb-0">&copy; 2026 NOVAA. All rights reserved.</p>
-            </div>
+          </div>
+          <div class="col-lg-2 col-md-6">
+            <h6 class="fw-bold">Product</h6>
+            <ul class="mt-3">
+              <li><a href="#features">Features</a></li>
+              <li><a href="#">Solutions</a></li>
+              <li><a href="#">Pricing</a></li>
+              <li><a href="#">Demo</a></li>
+              <li><a href="#">Updates</a></li>
+            </ul>
+          </div>
+          <div class="col-lg-2 col-md-6">
+            <h6 class="fw-bold">Company</h6>
+            <ul class="mt-3">
+              <li><a href="#about">About Us</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <h6 class="fw-bold">Contact Us</h6>
+            <ul class="contact-info mt-3">
+              <li>
+                <i class="fas fa-envelope"></i>
+                <span>info@novaa.edu</span>
+              </li>
+              <li>
+                <i class="fas fa-phone"></i>
+                <span>+1 (555) 123-4567</span>
+              </li>
+              <li>
+                <i class="fas fa-map-marker-alt"></i>
+                <span>123 Education St, Learning City</span>
+              </li>
+            </ul>
+          </div>
         </div>
+        <hr class="my-4" />
+        <div class="row align-items-center">
+          <div class="col-md-6 text-center text-md-start">
+            <p class="copyright mb-0">
+              &copy; 2026 NOVAA <span class="version-badge">v2.0.0</span>. All rights reserved.
+            </p>
+          </div>
+          <div class="col-md-6 text-center text-md-end">
+            <a href="#" class="text-light text-decoration-none me-3"
+              >Privacy Policy</a
+            >
+            <a href="#" class="text-light text-decoration-none me-3"
+              >Terms of Service</a
+            >
+            <a href="#" class="text-light text-decoration-none"
+              >Cookie Policy</a
+            >
+          </div>
+        </div>
+      </div>
     </footer>
 
+    <!-- Floating Back to Top Button -->
+    <div class="floating-back-to-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Back to Top">
+      <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form values
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const email = document.getElementById('email').value;
-            const phone = document.getElementById('phone').value;
-            const institution = document.getElementById('institution').value;
-            const role = document.getElementById('role').value;
-            const message = document.getElementById('message').value;
-            
-            // In a real application, you would send this data to a server
-            // For now, we'll just show a success message
-            alert(`Thank you ${firstName}! Your message has been sent successfully. We'll get back to you soon.`);
-            
-            // Reset the form
-            this.reset();
+      // Scroll Progress Indicator
+      window.addEventListener("scroll", function () {
+        const scrollTop = window.scrollY;
+        const docHeight = document.body.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        document.querySelector(".scroll-progress").style.width =
+          scrollPercent + "%";
+      });
+
+      // Navbar shadow on scroll
+      window.addEventListener("scroll", function () {
+        const navbar = document.querySelector(".navbar");
+        if (window.scrollY > 50) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
+
+      // Intersection Observer for animations
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
+
+      const observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
         });
+      }, observerOptions);
+
+      // Observe all elements with animation classes
+      document
+        .querySelectorAll(".gsap-fade-up, .gsap-scale-up, .gsap-card")
+        .forEach(function (el) {
+          observer.observe(el);
+        });
+
+      // Additional observers for fade-in animations
+      document
+        .querySelectorAll(".fade-in-left, .fade-in-right, .zoom-in")
+        .forEach(function (el) {
+          observer.observe(el);
+        });
+
+      // Icon hover animation
+      document.querySelectorAll(".icon-box").forEach(function (icon) {
+        icon.addEventListener("mouseenter", function () {
+          this.style.transform = "rotate(360deg) scale(1.1)";
+        });
+        icon.addEventListener("mouseleave", function () {
+          this.style.transform = "rotate(0deg) scale(1)";
+        });
+      });
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener("click", function (e) {
+          const href = this.getAttribute("href");
+          if (href !== "#" && document.querySelector(href)) {
+            e.preventDefault();
+            document.querySelector(href).scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }
+        });
+      });
+
+      // Contact form submission
+      document
+        .getElementById("contactForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const firstName = document.getElementById("firstName").value;
+
+          alert(
+            `Thank you ${firstName}! Your message has been sent successfully. We'll get back to you soon.`,
+          );
+
+          this.reset();
+        });
+
+      // Floating Back to Top button visibility - Show after 100vh scroll
+      const floatingBackToTop = document.querySelector('.floating-back-to-top');
+      
+      window.addEventListener('scroll', function() {
+        if (floatingBackToTop) {
+          // Show button after scrolling past 100vh (100% of viewport height)
+          if (window.scrollY > window.innerHeight) {
+            floatingBackToTop.classList.add('show');
+          } else {
+            floatingBackToTop.classList.remove('show');
+          }
+        }
+      });
+
+      // Add ripple effect on click
+      if (floatingBackToTop) {
+        floatingBackToTop.addEventListener('click', function(e) {
+          const ripple = document.createElement('span');
+          ripple.style.cssText = `
+            position: absolute;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-effect 0.6s ease-out;
+            pointer-events: none;
+          `;
+          
+          const rect = this.getBoundingClientRect();
+          const size = Math.max(rect.width, rect.height);
+          ripple.style.width = ripple.style.height = size + 'px';
+          ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+          ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+          
+          this.appendChild(ripple);
+          
+          setTimeout(() => ripple.remove(), 600);
+        });
+      }
+
+      // Add ripple animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes ripple-effect {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
     </script>
-</body>
+  </body>
 </html>
