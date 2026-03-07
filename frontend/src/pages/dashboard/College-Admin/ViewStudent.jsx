@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import {
-  FaUserGraduate,
   FaUniversity,
   FaBook,
   FaEnvelope,
@@ -505,8 +504,13 @@ export default function ViewStudent() {
       <div className="page-header-enterprise">
         <div className="header-content">
           <div className="header-branding">
-            <div className="header-icon-wrapper">
-              <FaUserGraduate className="header-icon" />
+            <div className="header-logo-wrapper">
+              <img 
+                src="/novaa.png" 
+                alt="NOVAA" 
+                className="header-logo-image"
+                loading="lazy"
+              />
             </div>
             <div className="header-text">
               <h1 className="page-title">Student Profile</h1>
@@ -925,22 +929,26 @@ export default function ViewStudent() {
           gap: 1.25rem;
         }
         
-        .header-icon-wrapper {
+        .header-logo-wrapper {
           width: 64px;
           height: 64px;
           border-radius: 16px;
-          background: rgba(79, 195, 247, 0.15);
+          background: rgba(255, 255, 255, 0.95);
           display: flex;
           align-items: center;
           justify-content: center;
           backdrop-filter: blur(10px);
           border: 2px solid rgba(79, 195, 247, 0.3);
           box-shadow: 0 4px 16px rgba(79, 195, 247, 0.2);
+          padding: 0.5rem;
+          overflow: hidden;
         }
         
-        .header-icon {
-          font-size: 1.75rem;
-          color: #4fc3f7;
+        .header-logo-image {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
         }
         
         .header-text {
