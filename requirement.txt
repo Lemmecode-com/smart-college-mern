@@ -1,21 +1,92 @@
+=============== Frontend Dependencies ==================
+# Core React
+npm install react
+npm install react-dom
+npm install react-router-dom
+npm install react-icons
 
-=============== Frontend dependecies =================== 
-npm install axios react-router-dom react-icons bootstrap
+# UI Frameworks
+npm install bootstrap
+npm install react-bootstrap
+
+# Animation
 npm install framer-motion
+npm install motion
+
+# HTTP & API
+npm install axios
+
+# Charts & Visualization
+npm install recharts
+
+# PDF Generation
+npm install jspdf
+npm install jspdf-autotable
 npm install html2canvas
 
-=============== Backend required dependecies ================== 
+# Excel & File Handling
+npm install exceljs
+npm install file-saver
+npm install jszip
+
+# Authentication
+npm install jwt-decode
+
+# Utilities
+npm install moment
+npm install uuid
+
+# Notifications
+npm install react-toastify
+
+# Development Dependencies
+npm install -D @eslint/js
+npm install -D @types/react
+npm install -D @types/react-dom
+npm install -D @vitejs/plugin-react
+npm install -D eslint
+npm install -D eslint-plugin-react-hooks
+npm install -D eslint-plugin-react-refresh
+npm install -D globals
+npm install -D vite
+
+
+=============== Backend Dependencies ==================
+# Core Framework
 npm install express
 npm install mongoose
+
+# Environment & Security
 npm install dotenv
-npm install nodemon
-npm install express
-npm install mongoose
-npm install dotenv
-npm install nodemon
-npm install jsonwebtoken
 npm install bcryptjs
-npm install multer
-npm install axios
+npm install jsonwebtoken
+npm install helmet
+npm install cookie-parser
+
+# Middleware & Validation
 npm install cors
+npm install express-validator
+npm install express-rate-limit
+npm install morgan
+
+# File Upload
+npm install multer
+
+# Payment Integration
+npm install razorpay
+npm install stripe
+
+# Email & Communication
+npm install nodemailer
+
+# QR Code Generation
+npm install qrcode
+
+# Scheduling
 npm install node-cron
+
+# Logging
+npm install winston
+
+# Development Dependencies
+npm install -D nodemon
