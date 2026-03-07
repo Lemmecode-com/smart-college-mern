@@ -417,12 +417,6 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
-            path: '/attendance/create-session',
-            icon: FaPlus,
-            label: 'Create Session',
-            exact: true
-          },
-          {
             path: '/attendance/my-sessions-list',
             icon: FaListOl,
             label: 'My Sessions',
