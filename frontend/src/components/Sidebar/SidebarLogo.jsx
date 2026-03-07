@@ -28,7 +28,7 @@ export default function SidebarLogo({ role, isCollapsed = false }) {
       <div className="logo-container">
         {/* Logo Image - Primary brand element */}
         <img
-          src="/novaa.png"
+          src="/novaaa.png"
           alt="NOVAA Logo"
           className="logo-image"
           loading="lazy"
