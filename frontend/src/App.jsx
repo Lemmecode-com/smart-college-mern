@@ -114,7 +114,7 @@ import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessions
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
-import CreateSessionModal from "./pages/dashboard/Teacher/CreateSessionModal";
+
 
 /* ================= SUPER ADMIN ================= */
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
@@ -138,7 +138,6 @@ import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
 
 /* ================= TEACHER ================= */
-import CreateSession from "./pages/dashboard/Teacher/Attendance/CreateSession";
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 
@@ -667,15 +666,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
 
             {/* ================= ATTENDANCE ================= */}
             <Route
-              path="/attendance/create-session"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateSessionModal />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
               path="/attendance/my-sessions-list"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
@@ -948,14 +938,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             {/* Sessions */}
-            <Route
-              path="/sessions/create"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateSession />
-                </ProtectedRoute>
-              }
-            />
 
             {/* New Timetable created by teacher(hod) */}
             <Route
