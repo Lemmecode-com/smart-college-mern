@@ -66,8 +66,8 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
           setCollege(response.data);
         } else if (user.role === "TEACHER") {
           response = await api.get("/teachers/my-profile");
-          if (response.data && response.data.college_id) {
-            setCollege(response.data.college_id);
+          if (response.data && response.data.teacher && response.data.teacher.college_id) {
+            setCollege(response.data.teacher.college_id);
           }
         } else if (user.role === "STUDENT") {
           response = await api.get("/students/my-profile");
