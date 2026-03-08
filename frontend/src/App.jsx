@@ -108,13 +108,16 @@ import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
 import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
 import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
-import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
+import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
 import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessionsList";
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
+
+/* ================= SECURITY AUDIT ================= */
+import SecurityAudit from "./pages/admin/SecurityAudit";
 
 
 /* ================= SUPER ADMIN ================= */
@@ -424,6 +427,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
                   <StudentNotificationList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/security-audit"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "SUPER_ADMIN"]}>
+                  <SecurityAudit />
                 </ProtectedRoute>
               }
             />
