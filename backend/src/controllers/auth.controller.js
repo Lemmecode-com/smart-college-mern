@@ -38,8 +38,28 @@ exports.login = async (req, res, next) => {
       return sendTokens(res, teacher._id, "TEACHER", teacher.college_id, req);
     }
 
-    // 3️⃣ STUDENT (APPROVED ONLY)
-    let student = await Student.findOne({ email, status: "APPROVED" });
+    // 3️⃣ STUDENT - Check status first
+    let student = await Student.findOne({ email });
+    
+    // 🔒 NEW: Check if account is pending or rejected
+    if (student && student.status === "PENDING") {
+      throw new AppError(
+        "Your account is awaiting admin approval. Please check your email for approval confirmation.",
+        403,
+        "ACCOUNT_PENDING_APPROVAL"
+      );
+    }
+
+    if (student && student.status === "REJECTED") {
+      throw new AppError(
+        `Your account has been rejected. Reason: ${student.rejectionReason || 'Contact admin for details'}`,
+        403,
+        "ACCOUNT_REJECTED"
+      );
+    }
+
+    // Only APPROVED students can login
+    student = await Student.findOne({ email, status: "APPROVED" });
     if (student) {
       // ✅ Find the User record for password verification
       const user = await User.findOne({ email, role: "STUDENT" });
