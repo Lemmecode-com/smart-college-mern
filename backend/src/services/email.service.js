@@ -199,7 +199,7 @@ exports.sendRegistrationSuccessEmail = async ({
 };
 
 /**
- * Send Admission Approval Email
+ * Send Admission Approval Email with Login Credentials
  */
 exports.sendAdmissionApprovalEmail = async ({
   to,
@@ -207,7 +207,9 @@ exports.sendAdmissionApprovalEmail = async ({
   courseName,
   collegeName,
   admissionYear,
-  enrollmentNumber
+  enrollmentNumber,
+  loginUrl,
+  email
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -215,49 +217,117 @@ exports.sendAdmissionApprovalEmail = async ({
     subject: `🎉 Admission Approved - ${collegeName}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #28a745;">🎉 Congratulations! Admission Approved</h2>
-
-        <p>Dear <b>${studentName}</b>,</p>
-        <p>We are pleased to inform you that your admission has been <b style="color: #28a745;">approved</b> for the academic year <b>${admissionYear}</b>.</p>
-
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #1a4b6d;">Admission Details</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>College:</b></td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Course:</b></td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Enrollment Number:</b></td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${enrollmentNumber || 'Will be assigned shortly'}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Academic Year:</b></td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${admissionYear}</td>
-            </tr>
-          </table>
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Congratulations!</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your Admission Has Been Approved</p>
         </div>
 
-        <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h4 style="margin-top: 0; color: #1a4b6d;">📋 Next Steps</h4>
-          <ul style="margin: 10px 0; padding-left: 20px; color: #495057;">
-            <li>Log in to your student portal to view your fee structure</li>
-            <li>Complete the fee payment process</li>
-            <li>Download your admission letter from the documents section</li>
-            <li>Check your course timetable and subject allocation</li>
-          </ul>
+        <!-- Body -->
+        <div style="padding: 30px; background: #ffffff; border: 1px solid #e0e0e0;">
+          <p style="font-size: 16px; color: #333;">Dear <strong>${studentName}</strong>,</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            We are pleased to inform you that your admission has been <strong style="color: #1f6f8b;">approved</strong> 
+            for the academic year <strong>${admissionYear}</strong>.
+          </p>
+
+          <!-- Admission Details -->
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #1f6f8b; font-size: 18px;">📋 Admission Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>College:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Course:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Enrollment Number:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${enrollmentNumber || 'Will be assigned shortly'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0;"><strong>Academic Year:</strong></td>
+                <td style="padding: 10px 0; text-align: right;">${admissionYear}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Login Credentials -->
+          <div style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 25px; border-radius: 8px; margin: 25px 0; border: 2px solid #4caf50;">
+            <h3 style="margin-top: 0; color: #2e7d32; font-size: 18px;">🔐 Your Login Credentials</h3>
+
+            <p style="color: #555; font-size: 14px; margin-bottom: 15px;">
+              You can now access your student portal to view your progress, attendance, and reports.
+            </p>
+
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${loginUrl}"
+                 style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); 
+                        color: white; 
+                        padding: 15px 40px; 
+                        text-decoration: none; 
+                        border-radius: 8px; 
+                        font-weight: 600; 
+                        font-size: 16px;
+                        display: inline-block;
+                        box-shadow: 0 4px 15px rgba(31, 111, 139, 0.3);">
+                🚀 Login to Student Portal
+              </a>
+            </div>
+
+            <p style="color: #666; font-size: 14px; margin: 15px 0 0 0; text-align: center;">
+              Login using your registered email: <br/>
+              <strong style="color: #1f6f8b; font-size: 16px;">${email || to}</strong>
+            </p>
+
+            <p style="color: #999; font-size: 13px; margin: 10px 0 0 0; text-align: center; font-style: italic;">
+              Use the password you created during registration
+            </p>
+          </div>
+
+          <!-- Next Steps -->
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h4 style="margin-top: 0; color: #1565c0; font-size: 16px;">📌 Next Steps</h4>
+            <ol style="margin: 10px 0; padding-left: 20px; color: #555; line-height: 1.8;">
+              <li>Login to your student portal using your credentials</li>
+              <li>Complete your profile information</li>
+              <li>View your fee structure and make payments</li>
+              <li>Download your admission letter from documents section</li>
+              <li>Check your course timetable and subject allocation</li>
+            </ol>
+          </div>
+
+          <!-- Support -->
+          <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800;">
+            <p style="margin: 0; color: #e65100; font-size: 14px;">
+              <strong>💡 Need Help?</strong> If you face any issues, contact the admission office at 
+              <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@college.edu'}" style="color: #e65100;">
+                ${process.env.SUPPORT_EMAIL || 'support@college.edu'}
+              </a>
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; margin-top: 25px;">
+            Welcome to our college community! We look forward to seeing you thrive academically.
+          </p>
+
+          <p style="color: #333; margin-top: 30px;">
+            Regards,<br/>
+            <strong>Admissions Team</strong><br/>
+            ${collegeName}
+          </p>
         </div>
 
-        <p style="color: #6c757d; font-size: 14px;">
-          Welcome to our college community! We look forward to seeing you thrive academically.
-        </p>
-
-        <br/>
-        <p>Regards,<br/><b>Admissions Team</b><br/>${collegeName}</p>
+        <!-- Footer -->
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0; border-top: none;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            This is an automated message. Please do not reply to this email.<br/>
+            © ${new Date().getFullYear()} ${collegeName}. All rights reserved.
+          </p>
+        </div>
       </div>
     `
   };
@@ -265,8 +335,10 @@ exports.sendAdmissionApprovalEmail = async ({
   try {
     await transporter.sendMail(mailOptions);
     console.log(`✅ Admission approval email sent to ${to}`);
+    return true;
   } catch (error) {
     console.error(`❌ Failed to send admission approval email to ${to}:`, error.message);
+    throw error;
   }
 };
 

@@ -6,6 +6,7 @@ const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const { sendAdmissionApprovalEmail, sendAdmissionRejectionEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 
 exports.approveStudent = async (req, res, next) => {
   try {
@@ -142,14 +143,18 @@ exports.approveStudent = async (req, res, next) => {
       try {
         const college = await College.findById(student.college_id).select('name email');
         const course = await Course.findById(student.course_id).select('name');
-        
+        // Build dynamic login URL using utility function
+        const loginUrl = buildFrontendUrl('/login');
+
         await sendAdmissionApprovalEmail({
           to: student.email,
           studentName: student.fullName,
           courseName: course?.name || 'N/A',
           collegeName: college?.name || 'Our College',
           admissionYear: student.admissionYear,
-          enrollmentNumber: student.enrollmentNumber
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl: loginUrl,
+          email: student.email
         });
         console.log(`✅ Admission approval email sent to ${student.email}`);
       } catch (emailError) {
