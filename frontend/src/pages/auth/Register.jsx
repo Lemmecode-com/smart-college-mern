@@ -193,6 +193,7 @@ import { useNavigate } from "react-router-dom";
 export default function Register() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -205,10 +206,15 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     try {
       await api.post("/auth/register", form);
-      navigate("/login");
+      setSuccess("Registration successful! Your account is pending admin approval. You will receive an email once approved.");
+      // Don't redirect to login immediately - let user see the success message
+      setTimeout(() => {
+        navigate("/login");
+      }, 5000); // Redirect after 5 seconds so user can read the message
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     }
@@ -219,6 +225,13 @@ export default function Register() {
       <h3 className="text-center mb-3">Register</h3>
 
       {error && <div className="alert alert-danger">{error}</div>}
+      
+      {success && (
+        <div className="alert alert-success">
+          <strong>✅ Registration Successful!</strong><br/>
+          {success}
+        </div>
+      )}
 
       <form onSubmit={submit}>
         <input className="form-control mb-2" placeholder="Name"
