@@ -45,7 +45,17 @@ export default function Login() {
     const result = await login({ email, password });
 
     if (!result.success) {
-      setError(result.message || "Invalid credentials");
+      const errorMsg = result.message || "Invalid credentials";
+      
+      // Check for specific error codes from backend
+      if (errorMsg.includes("awaiting admin approval")) {
+        setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
+      } else if (errorMsg.includes("rejected")) {
+        setError("❌ Your account has been rejected. Please contact the admin for more information.");
+      } else {
+        setError(errorMsg);
+      }
+      
       setLoading(false);
       return;
     }
