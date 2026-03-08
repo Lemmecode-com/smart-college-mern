@@ -99,6 +99,7 @@ import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 /* ================= COLLEGE ADMIN ================= */
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
+import PendingApprovals from "./pages/dashboard/College-Admin/PendingApprovals";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
 import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
 import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
@@ -336,6 +337,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <ApproveStudents />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/pending-approvals"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PendingApprovals />
                 </ProtectedRoute>
               }
             />
