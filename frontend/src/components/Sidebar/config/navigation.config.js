@@ -283,6 +283,12 @@ export const navigationConfig = {
             icon: FaClipboardList,
             label: 'Attendance Reports',
             exact: true
+          },
+          {
+            path: '/admin/security-audit',
+            icon: FaCheckCircle,
+            label: 'Security Audit',
+            exact: true
           }
         ]
       },
