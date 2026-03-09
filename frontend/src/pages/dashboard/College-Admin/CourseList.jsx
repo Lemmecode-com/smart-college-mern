@@ -1173,11 +1173,6 @@ export default function CourseList() {
           color: var(--primary);
         }
 
-        .btn-primary:hover:not(:disabled) {
-          background: var(--bg-tertiary);
-          transform: translateY(-1px);
-        }
-
         .btn-secondary {
           background: var(--bg-tertiary);
           color: var(--text-primary);
