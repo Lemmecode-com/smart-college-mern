@@ -384,7 +384,7 @@ export default function ViewCourse() {
         }
 
         .page-header__content {
-          max-width: 1400px;
+          width: 1460px;
           margin: 0 auto;
           display: flex;
           justify-content: space-between;
@@ -404,7 +404,8 @@ export default function ViewCourse() {
         /* ================= RIGHT SECTION - Edit Button ================= */
         .page-header__right {
           display: flex;
-          align-items: right;
+          justify-content: flex-end;
+          align-items: end;
           flex-shrink: 0;
         }
 
