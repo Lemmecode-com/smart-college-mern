@@ -18,9 +18,6 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaSpinner,
-  FaInfoCircle,
-  FaBuilding,
   FaClock,
   FaUsers,
   FaGraduationCap,
@@ -251,7 +248,7 @@ export default function SubjectList() {
           <div className="filter-grid">
             <div className="filter-group">
               <label className="filter-label">
-                <FaBuilding className="filter-icon" />
+                <FaLayerGroup className="filter-icon" />
                 Department
               </label>
               <div className="filter-select-wrapper">
@@ -703,7 +700,8 @@ export default function SubjectList() {
         .filter-group {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.625rem;
+          position: relative;
         }
 
         .filter-label {
@@ -712,17 +710,19 @@ export default function SubjectList() {
           font-size: 0.95rem;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.625rem;
+          padding: 0.25rem 0;
         }
 
         .filter-icon {
           color: #3db5e6;
           font-size: 1rem;
-          
+          flex-shrink: 0;
         }
 
         .filter-select-wrapper {
           position: relative;
+          width: 100%;
         }
 
         .filter-select {
@@ -764,11 +764,13 @@ export default function SubjectList() {
           color: #3db5e6;
           pointer-events: none;
           font-size: 0.875rem;
-          transition: transform 0.3s ease;
+          transition: transform 0.3s ease, color 0.3s ease;
+          z-index: 1;
         }
 
         .filter-select-wrapper:hover .filter-select-arrow {
           transform: translateY(-50%) scale(1.1);
+          color: #0f3a4a;
         }
 
         .filter-actions {
