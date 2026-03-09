@@ -12,6 +12,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-03-09
+
+### Added
+- **Teacher Profile Enhancements**
+  - Mobile number field for teacher contact information
+  - Joining date field to track teacher employment start date
+  - Teachers can now edit their own mobile number and joining date
+  - Updated teacher creation form with mobile number and joining date inputs
+- **Attendance Report Improvements**
+  - Subject filtering by course in attendance report
+  - Enhanced debugging with comprehensive API logging
+  - Support for multiple API response formats
+  - Fallback query for subjects without direct teacher assignment
+
+### Changed
+- **Teacher Profile Display**
+  - Removed specialization field (redundant with highest qualification)
+  - Fixed contact number display to use `mobileNumber` from backend model
+  - Joining date now falls back to `createdAt` if not explicitly set
+- **Backend Controllers**
+  - `attendance.controller.js`: Enhanced subject fetching with two-tier query strategy
+  - `teacher.controller.js`: Added mobileNumber/joiningDate to create and update operations
+- **Frontend Forms**
+  - `AddTeacher.jsx`: Added mobile number (10-digit Indian format) and joining date fields
+  - `EditTeacherProfile.jsx`: Added editable mobile number and joining date fields
+  - `MyProfile.jsx`: Removed specialization, fixed contact number mapping
+  - `AttendanceReport.jsx`: Enhanced API response handling and error logging
+
+### Fixed
+- **Attendance Report Subject Rendering**
+  - Fixed issue where subjects were not loading for selected courses
+  - Added fallback query when subjects are not directly assigned to teacher
+  - Improved error handling and debugging capabilities
+- **Teacher Profile Data Loading**
+  - Fixed API response parsing in EditTeacherProfile component
+  - Corrected data extraction from nested `{ teacher: {...} }` response format
+
+### Technical
+- **Database Schema**
+  - Added `joiningDate` field to Teacher model schema
+  - Maintained backward compatibility with existing records
+- **API Enhancements**
+  - Updated `/teachers` POST endpoint to accept mobileNumber and joiningDate
+  - Updated `/teachers/my-profile` PUT endpoint to allow mobileNumber and joiningDate updates
+  - Enhanced `/attendance/report/subjects/:courseId` with detailed logging
+- **Frontend Logging**
+  - Added comprehensive console logging for debugging API calls
+  - Added response format detection for flexible API handling
+
+### Security
+- Mobile number validation with Indian mobile number regex pattern
+- Input sanitization for all new teacher profile fields
+
+---
+
 ## [2.0.0] - 2026-03-07
 
 ### Added
@@ -143,10 +198,10 @@ This project uses **Semantic Versioning (SemVer)**: `MAJOR.MINOR.PATCH`
 
 ## Quick Reference
 
-- **Current Version**: 2.0.0
-- **Codename**: MVP Phase 2
-- **Release Date**: 2026-03-07
-- **Total Releases**: 2
+- **Current Version**: 2.1.0
+- **Codename**: Teacher Profile & Attendance Enhancement
+- **Release Date**: 2026-03-09
+- **Total Releases**: 3
 
 ---
 
@@ -168,4 +223,4 @@ Check individual release notes for any breaking changes or migration requirement
 
 ---
 
-*Last Updated: 2026-03-07*
+*Last Updated: 2026-03-09*
