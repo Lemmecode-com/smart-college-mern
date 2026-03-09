@@ -116,10 +116,6 @@ import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
 
-/* ================= SECURITY AUDIT ================= */
-import SecurityAudit from "./pages/admin/SecurityAudit";
-
-
 /* ================= SUPER ADMIN ================= */
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
@@ -427,15 +423,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
                   <StudentNotificationList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin/security-audit"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "SUPER_ADMIN"]}>
-                  <SecurityAudit />
                 </ProtectedRoute>
               }
             />
