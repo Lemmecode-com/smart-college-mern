@@ -20,6 +20,7 @@ import {
   FaExclamationTriangle,
   FaSpinner,
   FaInfoCircle,
+  FaBuilding,
   FaClock,
   FaUsers,
   FaGraduationCap,
@@ -250,7 +251,7 @@ export default function SubjectList() {
           <div className="filter-grid">
             <div className="filter-group">
               <label className="filter-label">
-                <FaLayerGroup className="filter-icon" />
+                <FaBuilding className="filter-icon" />
                 Department
               </label>
               <div className="filter-select-wrapper">
@@ -308,7 +309,7 @@ export default function SubjectList() {
             {selectedCourse && (
               <div className="filter-actions">
                 <button
-                  className="erp-btn erp-btn-primary"
+                  className="add-subject-btn"
                   onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
                 >
                   <FaPlus className="erp-btn-icon" />
@@ -363,8 +364,8 @@ export default function SubjectList() {
                       : `No subjects found for ${selectedCourseName}.`}
                   </p>
                   {!searchTerm && (
-                    <button 
-                      className="erp-btn erp-btn-primary empty-action"
+                    <button
+                      className="add-subject-btn large"
                       onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
                     >
                       <FaPlus className="erp-btn-icon" />
@@ -544,104 +545,149 @@ export default function SubjectList() {
 
       {/* STYLES */}
       <style jsx>{`
+        /* CSS Custom Properties for consistent theming */
+        :root {
+          --sidebar-primary: #0f3a4a;
+          --sidebar-secondary: #0c2d3a;
+          --sidebar-accent: #3db5e6;
+          --sidebar-accent-light: #4fc3f7;
+          --sidebar-text: #e6f2f5;
+          --sidebar-hover: rgba(61, 181, 230, 0.15);
+          --sidebar-active: rgba(61, 181, 230, 0.2);
+          --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
+          --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
+        }
+
         .erp-container {
           padding: 1.5rem;
-          background: #f5f7fa;
+          background: linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%);
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
+
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
           padding: 1.75rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
+          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.4);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
           animation: slideDown 0.6s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .erp-page-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(45deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%);
+          pointer-events: none;
         }
         
         .erp-header-content {
           display: flex;
           align-items: center;
           gap: 1.25rem;
+          position: relative;
+          z-index: 1;
         }
-        
+
         .erp-header-icon {
           width: 56px;
           height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.25) 0%, rgba(79, 195, 247, 0.15) 100%);
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.75rem;
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .erp-page-title {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        
+
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
-          opacity: 0.85;
+          opacity: 0.9;
           font-size: 1rem;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
-        
+
         .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
+          background: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
+          color: white;
           border: none;
           padding: 0.75rem 1.5rem;
           font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
+          border-radius: 10px;
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          z-index: 1;
         }
-        
+
         .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
+        }
+
+        .erp-header-actions .erp-btn:active {
+          transform: translateY(-1px);
         }
         
         .erp-card {
           background: white;
           border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          box-shadow: var(--card-shadow);
           margin-bottom: 1.5rem;
           overflow: hidden;
           animation: fadeIn 0.6s ease;
+          border: 1px solid rgba(15, 58, 74, 0.08);
+          transition: all 0.3s ease;
         }
-        
+
+        .erp-card:hover {
+          box-shadow: var(--card-hover-shadow);
+          transform: translateY(-2px);
+        }
+
         .erp-card-header {
           padding: 1.5rem 1.75rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #e9ecef;
+          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+          border-bottom: 2px solid rgba(61, 181, 230, 0.15);
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .erp-card-header h3 {
           margin: 0;
           font-size: 1.375rem;
           font-weight: 700;
-          color: #1a4b6d;
+          color: #0f3a4a;
           display: flex;
           align-items: center;
           gap: 0.75rem;
         }
-        
+
         .erp-card-icon {
-          color: #1a4b6d;
+          color: #3db5e6;
           font-size: 1.25rem;
         }
-        
+
         .erp-card-body {
           padding: 1.75rem;
         }
@@ -653,70 +699,144 @@ export default function SubjectList() {
           gap: 1.5rem;
           align-items: end;
         }
-        
+
         .filter-group {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
         }
-        
+
         .filter-label {
           font-weight: 600;
-          color: #2c3e50;
+          color: #0f3a4a;
           font-size: 0.95rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
         }
-        
+
         .filter-icon {
-          color: #1a4b6d;
+          color: #3db5e6;
           font-size: 1rem;
+          
         }
-        
+
         .filter-select-wrapper {
           position: relative;
         }
-        
+
         .filter-select {
           width: 100%;
           padding: 0.875rem 1.25rem;
           padding-right: 2.5rem;
-          border: 2px solid #e9ecef;
+          border: 2px solid #e0e8f0;
           border-radius: 10px;
           font-size: 1rem;
           font-weight: 500;
           color: #2c3e50;
           background: white;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           outline: none;
           appearance: none;
         }
-        
-        .filter-select:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+
+        .filter-select:hover {
+          border-color: #3db5e6;
         }
-        
+
+        .filter-select:focus {
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.15);
+        }
+
         .filter-select:disabled {
           background: #f8f9fa;
           color: #6c757d;
           cursor: not-allowed;
+          border-color: #e9ecef;
         }
-        
+
         .filter-select-arrow {
           position: absolute;
           right: 1rem;
           top: 50%;
           transform: translateY(-50%);
-          color: #666;
+          color: #3db5e6;
           pointer-events: none;
           font-size: 0.875rem;
+          transition: transform 0.3s ease;
         }
-        
+
+        .filter-select-wrapper:hover .filter-select-arrow {
+          transform: translateY(-50%) scale(1.1);
+        }
+
         .filter-actions {
           display: flex;
           align-items: center;
+        }
+
+        /* ADD SUBJECT BUTTON - Enhanced Design */
+        .add-subject-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1.75rem;
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
+          position: relative;
+          overflow: hidden;
+          text-transform: none;
+          letter-spacing: 0.3px;
+        }
+
+        .add-subject-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          transition: left 0.5s ease;
+        }
+
+        .add-subject-btn:hover::before {
+          left: 100%;
+        }
+
+        .add-subject-btn:hover {
+          transform: translateY(-3px) scale(1.02);
+          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.55);
+          background: linear-gradient(135deg, #4fc3f7 0%, #0c2d3a 100%);
+        }
+
+        .add-subject-btn:active {
+          transform: translateY(-1px) scale(1);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.35);
+        }
+
+        .add-subject-btn .erp-btn-icon {
+          font-size: 1.1rem;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .add-subject-btn:hover .erp-btn-icon {
+          transform: rotate(90deg) scale(1.1);
+        }
+
+        /* Add Subject Button - Large Variant (for empty state) */
+        .add-subject-btn.large {
+          padding: 1.125rem 2.5rem;
+          font-size: 1.1rem;
+          border-radius: 14px;
         }
         
         /* HEADER RIGHT SECTION */
@@ -725,68 +845,91 @@ export default function SubjectList() {
           align-items: center;
           gap: 1rem;
         }
-        
+
         .subject-count {
-          background: rgba(26, 75, 109, 0.1);
-          color: #1a4b6d;
-          padding: 0.25rem 0.75rem;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.1) 100%);
+          color: #0f3a4a;
+          padding: 0.375rem 1rem;
           border-radius: 20px;
           font-size: 0.875rem;
-          font-weight: 600;
+          font-weight: 700;
+          border: 1px solid rgba(61, 181, 230, 0.3);
         }
-        
+
         .header-right {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
-        
+
         .search-box {
           position: relative;
           min-width: 280px;
         }
-        
+
         .search-icon {
           position: absolute;
           left: 1rem;
           top: 50%;
           transform: translateY(-50%);
-          color: #666;
+          color: #3db5e6;
           font-size: 1rem;
+          transition: all 0.3s ease;
         }
-        
+
         .search-box input {
           width: 100%;
           padding: 0.75rem 1rem 0.75rem 2.5rem;
-          border: 2px solid #e9ecef;
+          border: 2px solid #e0e8f0;
           border-radius: 10px;
           font-size: 0.95rem;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: white;
         }
-        
+
+        .search-box input:hover {
+          border-color: #3db5e6;
+        }
+
         .search-box input:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.15);
+        }
+
+        .search-box input:focus + .search-icon {
+          color: #0f3a4a;
         }
         
         /* TABLE */
         .table-container {
           overflow-x: auto;
           border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+          box-shadow: 0 2px 12px rgba(15, 58, 74, 0.08);
+          background: white;
         }
-        
+
         .erp-table {
           width: 100%;
           border-collapse: collapse;
           min-width: 900px;
         }
-        
+
         .erp-table thead {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           color: white;
+          position: relative;
         }
-        
+
+        .erp-table thead::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #3db5e6 0%, transparent 100%);
+        }
+
         .erp-table th {
           padding: 1rem 1.25rem;
           text-align: left;
@@ -795,12 +938,13 @@ export default function SubjectList() {
           cursor: pointer;
           user-select: none;
           position: relative;
+          transition: all 0.3s ease;
         }
-        
+
         .erp-table th:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(61, 181, 230, 0.15);
         }
-        
+
         .erp-table th::after {
           content: "";
           position: absolute;
@@ -812,17 +956,18 @@ export default function SubjectList() {
           border-left: 5px solid transparent;
           border-right: 5px solid transparent;
         }
-        
+
         .erp-table tbody tr {
-          border-bottom: 1px solid #f0f2f5;
-          transition: all 0.2s ease;
+          border-bottom: 1px solid #f0f4f8;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .erp-table tbody tr:hover {
-          background: #f8f9ff;
-          transform: translateX(5px);
+          background: linear-gradient(90deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.05) 100%);
+          transform: scale(1.005);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
-        
+
         .erp-table td {
           padding: 1rem 1.25rem;
           color: #2c3e50;
@@ -834,88 +979,92 @@ export default function SubjectList() {
           align-items: center;
           gap: 1rem;
         }
-        
+
         .subject-icon {
           width: 40px;
           height: 40px;
           border-radius: 10px;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
         }
-        
+
         .subject-details {
           flex: 1;
         }
-        
+
         .subject-title {
-          font-weight: 600;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f3a4a;
           margin-bottom: 0.25rem;
         }
-        
+
         .subject-meta {
           display: flex;
           gap: 0.5rem;
           flex-wrap: wrap;
         }
-        
+
         .course-badge,
         .dept-badge {
-          font-size: 0.8rem;
-          color: #666;
-          background: #f0f2f5;
+          font-size: 0.75rem;
+          color: #0f3a4a;
+          background: rgba(61, 181, 230, 0.1);
           padding: 0.125rem 0.5rem;
           border-radius: 4px;
+          font-weight: 600;
         }
-        
+
         .dept-badge {
-          background: rgba(26, 75, 109, 0.08);
-          color: #1a4b6d;
+          background: rgba(15, 58, 74, 0.08);
+          color: #0f3a4a;
         }
-        
+
         .subject-code-badge {
           display: inline-block;
-          background: rgba(26, 75, 109, 0.1);
-          color: #1a4b6d;
-          padding: 0.25rem 0.75rem;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.1) 100%);
+          color: #0f3a4a;
+          padding: 0.375rem 0.875rem;
           border-radius: 20px;
-          font-weight: 600;
+          font-weight: 700;
           font-size: 0.9rem;
+          border: 1px solid rgba(61, 181, 230, 0.2);
         }
-        
+
         .semester-badge,
         .credits-badge {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          background: #f8f9fa;
+          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
           padding: 0.375rem 0.875rem;
           border-radius: 8px;
           font-weight: 600;
           font-size: 0.95rem;
+          border: 1px solid rgba(61, 181, 230, 0.15);
         }
-        
+
         .semester-icon,
         .credits-icon {
           font-size: 0.9rem;
-          color: #1a4b6d;
+          color: #3db5e6;
         }
-        
+
         .teacher-info {
           display: flex;
           align-items: center;
           gap: 0.75rem;
         }
-        
+
         .teacher-avatar {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
           display: flex;
           align-items: center;
@@ -923,90 +1072,96 @@ export default function SubjectList() {
           font-weight: 600;
           font-size: 0.9rem;
           flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
         }
-        
+
         .teacher-details {
           flex: 1;
         }
-        
+
         .teacher-name {
-          font-weight: 600;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f3a4a;
           font-size: 0.95rem;
         }
-        
+
         .teacher-role {
           font-size: 0.85rem;
           color: #666;
         }
-        
+
         .not-assigned {
           color: #9e9e9e;
           font-style: italic;
         }
-        
+
         .status-badge {
           display: inline-block;
           padding: 0.375rem 0.875rem;
           border-radius: 20px;
           font-size: 0.85rem;
-          font-weight: 600;
+          font-weight: 700;
+          border: 1px solid;
         }
-        
+
         .status-active {
-          background: rgba(76, 175, 80, 0.1);
+          background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(56, 142, 60, 0.1) 100%);
           color: #4CAF50;
+          border-color: rgba(76, 175, 80, 0.3);
         }
-        
+
         .status-inactive {
           background: rgba(158, 158, 158, 0.1);
           color: #9e9e9e;
+          border-color: rgba(158, 158, 158, 0.2);
         }
         
         .action-cell {
           text-align: center;
           min-width: 150px;
         }
-        
+
         .action-buttons {
           display: flex;
           justify-content: center;
           gap: 0.5rem;
         }
-        
+
         .action-btn {
           width: 36px;
           height: 36px;
-          border-radius: 8px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: none;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           color: white;
           font-size: 0.9rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-        
+
         .view-btn {
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
         }
-        
+
         .edit-btn {
-          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+          background: linear-gradient(135deg, #ffb74d 0%, #f57c00 100%);
         }
-        
+
         .delete-btn {
-          background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+          background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
         }
-        
+
         .action-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+          filter: brightness(1.1);
         }
-        
+
         .action-btn:active {
-          transform: translateY(0);
+          transform: translateY(-1px) scale(1.02);
         }
         
         /* SKELETON LOADING */
@@ -1015,23 +1170,23 @@ export default function SubjectList() {
           flex-direction: column;
           gap: 1rem;
         }
-        
+
         .skeleton-row {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1fr 2fr 1fr 1fr;
           gap: 1rem;
           padding: 1rem 1.25rem;
-          border-bottom: 1px solid #f0f2f5;
+          border-bottom: 1px solid #f0f4f8;
         }
-        
+
         .skeleton-cell {
           height: 24px;
-          background: #f0f2f5;
-          border-radius: 6px;
+          background: linear-gradient(135deg, #e8eef5 0%, #d0d9e3 100%);
+          border-radius: 8px;
           overflow: hidden;
           position: relative;
         }
-        
+
         .skeleton-cell::after {
           content: "";
           position: absolute;
@@ -1039,70 +1194,58 @@ export default function SubjectList() {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+          background: linear-gradient(90deg, transparent, rgba(61, 181, 230, 0.2), transparent);
           animation: skeleton-loading 1.5s infinite;
         }
-        
+
         .skeleton-text.long { width: 80%; }
         .skeleton-text.medium { width: 60%; }
         .skeleton-text.short { width: 40%; }
         .skeleton-badge { width: 50%; height: 20px; }
         .skeleton-actions { display: flex; gap: 0.5rem; }
-        .skeleton-action { width: 36px; height: 36px; border-radius: 8px; }
-        
+        .skeleton-action { width: 36px; height: 36px; border-radius: 10px; }
+
         @keyframes skeleton-loading {
           to { left: 100%; }
         }
-        
+
         /* EMPTY STATE */
         .empty-state {
           text-align: center;
-          padding: 3rem 2rem;
+          padding: 4rem 2rem;
           color: #666;
         }
-        
+
         .empty-icon {
-          width: 80px;
-          height: 80px;
+          width: 90px;
+          height: 90px;
           margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, rgba(26, 75, 109, 0.1) 0%, rgba(15, 58, 74, 0.1) 100%);
-          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(15, 58, 74, 0.1) 100%);
+          border-radius: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #1a4b6d;
-          font-size: 2.5rem;
+          color: #3db5e6;
+          font-size: 2.75rem;
+          box-shadow: 0 4px 20px rgba(61, 181, 230, 0.2);
         }
-        
+
         .empty-state h3 {
           font-size: 1.75rem;
-          color: #2c3e50;
+          color: #0f3a4a;
           margin-bottom: 0.75rem;
+          font-weight: 700;
         }
-        
+
         .empty-description {
           font-size: 1.1rem;
           margin-bottom: 1.5rem;
           max-width: 600px;
           margin-left: auto;
           margin-right: auto;
+          color: #666;
         }
-        
-        .empty-action {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          border: none;
-          padding: 0.875rem 2rem;
-          font-size: 1.05rem;
-          font-weight: 600;
-          border-radius: 10px;
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.4);
-        }
-        
-        .empty-action:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.5);
-        }
-        
+
         /* MODAL */
         .modal-overlay {
           position: fixed;
@@ -1110,38 +1253,42 @@ export default function SubjectList() {
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(15, 58, 74, 0.6);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1050;
           animation: fadeIn 0.3s ease;
         }
-        
+
         .modal-content {
           background: white;
-          border-radius: 16px;
+          border-radius: 20px;
           width: 90%;
           max-width: 550px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-          animation: slideUp 0.4s ease;
+          box-shadow: 0 20px 60px rgba(15, 58, 74, 0.4);
+          animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid rgba(61, 181, 230, 0.2);
         }
-        
+
         .modal-header {
           padding: 1.5rem;
-          border-bottom: 1px solid #e9ecef;
+          border-bottom: 2px solid rgba(61, 181, 230, 0.1);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+          border-radius: 20px 20px 0 0;
         }
-        
+
         .modal-header h3 {
           margin: 0;
           font-size: 1.5rem;
-          color: #1a4b6d;
+          color: #0f3a4a;
           font-weight: 700;
         }
-        
+
         .modal-close {
           background: none;
           border: none;
@@ -1150,95 +1297,99 @@ export default function SubjectList() {
           cursor: pointer;
           width: 36px;
           height: 36px;
-          border-radius: 8px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .modal-close:hover {
-          background: #f0f2f5;
-          color: #1a4b6d;
+          background: rgba(61, 181, 230, 0.1);
+          color: #3db5e6;
+          transform: rotate(90deg);
         }
-        
+
         .modal-body {
           padding: 1.75rem;
         }
-        
+
         .modal-warning {
           display: flex;
           gap: 1rem;
           padding: 1.25rem;
-          background: rgba(255, 152, 0, 0.1);
+          background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 183, 77, 0.08) 100%);
           border-radius: 12px;
           margin-bottom: 1.5rem;
-          border-left: 4px solid #FF9800;
+          border-left: 4px solid #ffb74d;
         }
-        
+
         .warning-icon {
           font-size: 2rem;
-          color: #FF9800;
+          color: #ffb74d;
           flex-shrink: 0;
         }
-        
+
         .warning-text h4 {
           margin: 0 0 0.5rem 0;
-          color: #2c3e50;
+          color: #0f3a4a;
           font-size: 1.25rem;
         }
-        
+
         .warning-text p {
           margin: 0;
           color: #666;
-          line-height: 1.5;
+          line-height: 1.6;
         }
-        
+
         .subject-preview {
-          background: #f8f9fa;
+          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
           border-radius: 12px;
           padding: 1.25rem;
+          border: 1px solid rgba(61, 181, 230, 0.15);
         }
-        
+
         .preview-item {
           display: flex;
           justify-content: space-between;
           padding: 0.75rem 0;
-          border-bottom: 1px solid #e9ecef;
+          border-bottom: 1px solid rgba(61, 181, 230, 0.1);
         }
-        
+
         .preview-item:last-child {
           border-bottom: none;
         }
-        
+
         .preview-label {
-          font-weight: 500;
+          font-weight: 600;
           color: #666;
         }
-        
+
         .preview-value {
-          font-weight: 600;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f3a4a;
         }
         
         .modal-footer {
           padding: 1.25rem 1.75rem;
-          border-top: 1px solid #e9ecef;
+          border-top: 2px solid rgba(61, 181, 230, 0.1);
           display: flex;
           justify-content: flex-end;
           gap: 1rem;
+          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+          border-radius: 0 0 20px 20px;
         }
-        
+
         .erp-btn-danger {
-          background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+          background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
           border: none;
         }
-        
+
         .erp-btn-danger:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(239, 83, 80, 0.4);
         }
-        
+
         /* ERROR CONTAINER */
         .erp-error-container {
           display: flex;
@@ -1249,30 +1400,33 @@ export default function SubjectList() {
           text-align: center;
           padding: 2rem;
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-radius: 20px;
+          box-shadow: 0 8px 30px rgba(15, 58, 74, 0.1);
           margin: 2rem;
+          border: 1px solid rgba(61, 181, 230, 0.1);
         }
-        
+
         .erp-error-icon {
-          width: 80px;
-          height: 80px;
+          width: 90px;
+          height: 90px;
           border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
+          background: linear-gradient(135deg, rgba(239, 83, 80, 0.15) 0%, rgba(198, 40, 40, 0.1) 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 1.5rem;
-          color: #F44336;
+          color: #ef5350;
           font-size: 3rem;
+          box-shadow: 0 4px 20px rgba(239, 83, 80, 0.2);
         }
-        
+
         .erp-error-container h3 {
           font-size: 1.8rem;
-          color: #1a4b6d;
+          color: #0f3a4a;
           margin-bottom: 1rem;
+          font-weight: 700;
         }
-        
+
         .erp-error-container p {
           color: #666;
           font-size: 1.1rem;
@@ -1280,7 +1434,7 @@ export default function SubjectList() {
           margin-bottom: 1.5rem;
           line-height: 1.6;
         }
-        
+
         /* LOADING CONTAINER */
         .erp-loading-container {
           display: flex;
@@ -1290,62 +1444,62 @@ export default function SubjectList() {
           min-height: 60vh;
           gap: 2rem;
         }
-        
+
         .erp-loading-spinner {
           position: relative;
           width: 70px;
           height: 70px;
         }
-        
+
         .spinner-ring {
           position: absolute;
           width: 100%;
           height: 100%;
           border-radius: 50%;
           border: 4px solid transparent;
-          border-top-color: #1a4b6d;
+          border-top-color: #3db5e6;
           animation: spin 1s linear infinite;
         }
-        
+
         .spinner-ring:nth-child(2) {
           border-top-color: #0f3a4a;
           animation-delay: 0.1s;
         }
-        
+
         .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
+          border-top-color: rgba(61, 181, 230, 0.5);
           animation-delay: 0.2s;
         }
-        
+
         .erp-loading-text {
           font-size: 1.25rem;
           font-weight: 600;
-          color: #1a4b6d;
+          color: #0f3a4a;
         }
-        
+
         /* ANIMATIONS */
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        
+
         .animate-fade-in {
-          animation: fadeIn 0.6s ease;
+          animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         /* RESPONSIVE DESIGN */
@@ -1455,7 +1609,7 @@ const FaTimes = ({ size = 20, color = "#666" }) => (
   </svg>
 );
 
-const FaSyncAlt = ({ size = 16, color = "#1a4b6d" }) => (
+const FaSyncAlt = ({ size = 16, color = "#3db5e6" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
   </svg>
