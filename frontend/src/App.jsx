@@ -99,6 +99,7 @@ import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 /* ================= COLLEGE ADMIN ================= */
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
+import PendingApprovals from "./pages/dashboard/College-Admin/PendingApprovals";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
 import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
 import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
@@ -107,13 +108,16 @@ import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
 import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
 import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
 import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
-import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
+import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
 import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessionsList";
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
+
+/* ================= SECURITY AUDIT ================= */
+import SecurityAudit from "./pages/admin/SecurityAudit";
 
 
 /* ================= SUPER ADMIN ================= */
@@ -341,6 +345,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             <Route
+              path="/students/pending-approvals"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PendingApprovals />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/college/view-approved-student/:id"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
@@ -414,6 +427,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
                   <StudentNotificationList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/security-audit"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "SUPER_ADMIN"]}>
+                  <SecurityAudit />
                 </ProtectedRoute>
               }
             />
