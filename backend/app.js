@@ -88,6 +88,8 @@ app.use("/api/reports", require("./src/routes/reports.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
 app.use("/api/notifications", require("./src/routes/notification.routes"));
 
+/* ================= SECURITY AUDIT ================= */
+app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
 
 app.use("/api/stripe", require("./src/routes/stripe.routes"));
 
@@ -100,6 +102,17 @@ app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static("uploads"));
+
+/* ================= HEALTH CHECK ROUTE ================= */
+// Health check endpoint (must be before 404 handler)
+app.get("/health-check", (req, res) => {
+  res.json({
+    success: true,
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 /* ================= 404 HANDLER ================= */
 // Handle routes that don't exist
