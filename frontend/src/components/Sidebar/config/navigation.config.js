@@ -313,6 +313,12 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
+            path: '/system-settings/general',
+            icon: FaCog,
+            label: 'General Settings',
+            exact: true
+          },
+          {
             path: '/system-settings/academic',
             icon: FaGraduationCap,
             label: 'Academic Settings',
@@ -322,12 +328,6 @@ export const navigationConfig = {
             path: '/system-settings/fees',
             icon: FaMoneyBill,
             label: 'Fee Settings',
-            exact: true
-          },
-          {
-            path: '/system-settings/general',
-            icon: FaCog,
-            label: 'General Settings',
             exact: true
           },
           {
