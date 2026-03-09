@@ -199,7 +199,7 @@ export default function CollegeAdminDashboard() {
       id: 7,
       icon: FaFileAlt,
       label: "View Reports",
-      path: "/college-admin/reports",
+      path: "/college-admin/reports-dashboard",
       color: BRAND_COLORS.primary.main,
       gradient: BRAND_COLORS.primary.gradient
     },

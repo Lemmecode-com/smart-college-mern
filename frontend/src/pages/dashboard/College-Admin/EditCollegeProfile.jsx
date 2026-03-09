@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ConfirmModal from "../../../components/ConfirmModal";
 import {
   FaUniversity,
   FaSave,
@@ -41,6 +42,8 @@ export default function EditCollegeProfile() {
   const [touchedFields, setTouchedFields] = useState({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [hasUserModified, setHasUserModified] = useState(false);
 
   // ================= LOAD COLLEGE =================
   useEffect(() => {
@@ -53,15 +56,12 @@ export default function EditCollegeProfile() {
     };
   }, []);
 
-  // Track unsaved changes
+  // Track unsaved changes - check if user has modified any field
   useEffect(() => {
-    if (!loading) {
-      const hasChanges = Object.keys(form).some(
-        (key) => form[key] !== "" && form[key] !== null
-      );
-      setUnsavedChanges(hasChanges);
+    if (!loading && hasUserModified) {
+      setUnsavedChanges(true);
     }
-  }, [form, loading]);
+  }, [form, loading, hasUserModified]);
 
   const fetchCollege = async () => {
     try {
@@ -71,7 +71,7 @@ export default function EditCollegeProfile() {
 
       // Defensive: Check if response data exists and is valid
       const collegeData = res?.data;
-      
+
       if (!collegeData) {
         toast.error("No college profile found. Please contact admin.", {
           position: "top-right",
@@ -79,7 +79,7 @@ export default function EditCollegeProfile() {
           icon: <FaExclamationTriangle />,
         });
         setFetchError(true);
-        setForm({
+        const emptyForm = {
           name: "",
           code: "",
           email: "",
@@ -87,22 +87,27 @@ export default function EditCollegeProfile() {
           address: "",
           establishedYear: "",
           logo: null,
-        });
+        };
+        setForm(emptyForm);
+        setHasUserModified(false);
         return;
       }
 
       // Defensive: Safely extract each field with fallbacks
-      setForm({
+      const formData = {
         name: typeof collegeData.name === "string" ? collegeData.name : "",
         code: typeof collegeData.code === "string" ? collegeData.code : "",
         email: typeof collegeData.email === "string" ? collegeData.email : "",
         contactNumber: typeof collegeData.contactNumber === "string" ? collegeData.contactNumber : "",
         address: typeof collegeData.address === "string" ? collegeData.address : "",
-        establishedYear: collegeData.establishedYear != null 
-          ? String(collegeData.establishedYear) 
+        establishedYear: collegeData.establishedYear != null
+          ? String(collegeData.establishedYear)
           : "",
         logo: null,
-      });
+      };
+      
+      setForm(formData);
+      setHasUserModified(false);
     } catch (err) {
       console.error("Fetch college error:", err);
       
@@ -123,9 +128,9 @@ export default function EditCollegeProfile() {
       });
       
       setFetchError(true);
-      
+
       // Set empty form state on error
-      setForm({
+      const emptyForm = {
         name: "",
         code: "",
         email: "",
@@ -133,7 +138,9 @@ export default function EditCollegeProfile() {
         address: "",
         establishedYear: "",
         logo: null,
-      });
+      };
+      setForm(emptyForm);
+      setHasUserModified(false);
     } finally {
       setLoading(false);
     }
@@ -200,6 +207,7 @@ export default function EditCollegeProfile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setHasUserModified(true); // Mark that user has made changes
 
     // Real-time validation after field is touched
     if (touchedFields[name]) {
@@ -230,6 +238,7 @@ export default function EditCollegeProfile() {
       value = `${value.slice(0, 5)} ${value.slice(5)}`;
     }
     setForm((prev) => ({ ...prev, contactNumber: value }));
+    setHasUserModified(true); // Mark that user has made changes
     if (touchedFields.contactNumber) {
       const error = validateField("contactNumber", value);
       setValidationErrors((prev) => ({
@@ -280,6 +289,7 @@ export default function EditCollegeProfile() {
         progressStyle: { background: "#28a745" },
         onClose: () => {
           setUnsavedChanges(false);
+          setHasUserModified(false);
           navigate("/college/profile");
         },
       });
@@ -302,12 +312,20 @@ export default function EditCollegeProfile() {
   // ================= NAVIGATION GUARD =================
   const handleBack = () => {
     if (unsavedChanges) {
-      if (window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
-        navigate(-1);
-      }
+      setShowDiscardModal(true);
     } else {
       navigate(-1);
     }
+  };
+
+  const confirmDiscardChanges = () => {
+    setUnsavedChanges(false);
+    setShowDiscardModal(false);
+    navigate(-1);
+  };
+
+  const cancelDiscardChanges = () => {
+    setShowDiscardModal(false);
   };
 
   // ================= LOADING STATE =================
@@ -740,6 +758,18 @@ export default function EditCollegeProfile() {
           </div>
         </div>
       </main>
+
+      {/* DISCARD CHANGES CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={showDiscardModal}
+        onClose={cancelDiscardChanges}
+        onConfirm={confirmDiscardChanges}
+        title="Discard Changes?"
+        message="You have unsaved changes. If you leave now, all your modifications will be lost."
+        type="warning"
+        confirmText="Yes, Discard"
+        cancelText="No, Keep Editing"
+      />
 
       {/* CSS */}
       <style>{`
