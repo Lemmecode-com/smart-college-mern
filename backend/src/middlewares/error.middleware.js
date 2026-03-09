@@ -1,6 +1,5 @@
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
-const securityAuditService = require("../services/securityAudit.service");
 
 /**
  * Global Error Handler Middleware
@@ -19,29 +18,6 @@ const errorHandler = (err, req, res, next) => {
     method: req.method,
     userId: req.user?._id || req.user?.id,
   });
-
-  // 🔒 SECURITY AUDIT: Log 401/403 errors as security events
-  if (err.statusCode === 401 || err.statusCode === 403) {
-    // Fire and forget - don't await to avoid blocking error response
-    securityAuditService.logEvent({
-      eventType: err.statusCode === 401 ? 'UNAUTHORIZED_ACCESS' : 'PERMISSION_DENIED',
-      category: 'AUTHORIZATION',
-      severity: err.statusCode === 401 ? 'MEDIUM' : 'HIGH',
-      userId: req.user?._id || req.user?.id,
-      userEmail: req.user?.email,
-      userRole: req.user?.role,
-      collegeId: req.user?.college_id,
-      ipAddress: securityAuditService.getClientIP(req),
-      userAgent: req.get('user-agent'),
-      endpoint: req.originalUrl,
-      method: req.method,
-      statusCode: err.statusCode,
-      metadata: {
-        errorCode: err.code,
-        errorMessage: err.message
-      }
-    });
-  }
 
   // FIX: Mongoose Connection/Server Error
   if (err.name === 'MongooseError' || err.name === 'MongoServerError') {
