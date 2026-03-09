@@ -16,9 +16,7 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaInfoCircle,
-  FaLayerGroup,
-  FaFileAlt,
-  FaCopy
+  FaLayerGroup
 } from "react-icons/fa";
 
 export default function ViewSubject() {
@@ -191,7 +189,7 @@ export default function ViewSubject() {
         </div>
 
         {/* TIMELINE CARD */}
-        <div className="info-card">
+        <div className="info-card timeline-card">
           <div className="card-header">
             <FaCalendarAlt className="card-header-icon" />
             <h3>Timeline</h3>
@@ -209,41 +207,6 @@ export default function ViewSubject() {
                 label="Last Updated" 
                 date={subject.updatedAt}
               />
-            </div>
-          </div>
-        </div>
-
-        {/* QUICK ACTIONS CARD */}
-        <div className="info-card">
-          <div className="card-header">
-            <FaFileAlt className="card-header-icon" />
-            <h3>Quick Actions</h3>
-          </div>
-          <div className="card-body">
-            <div className="quick-actions">
-              <button 
-                className="action-btn"
-                onClick={() => navigator.clipboard.writeText(subject.code)}
-              >
-                <FaCopy className="action-icon" />
-                <span>Copy Subject Code</span>
-              </button>
-
-              <button 
-                className="action-btn"
-                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-              >
-                <FaEdit className="action-icon" />
-                <span>Edit Details</span>
-              </button>
-
-              <button 
-                className="action-btn"
-                onClick={() => navigate(`/subjects/course/${coursePath}`)}
-              >
-                <FaBook className="action-icon" />
-                <span>View All Subjects</span>
-              </button>
             </div>
           </div>
         </div>
@@ -445,7 +408,7 @@ export default function ViewSubject() {
         /* ================= MAIN GRID ================= */
         .view-subject-grid {
           display: grid;
-          grid-template-columns: 2fr 1fr;
+          grid-template-columns: repeat(3, 1fr);
           gap: 1.5rem;
         }
 
@@ -465,7 +428,11 @@ export default function ViewSubject() {
         }
 
         .main-card {
-          grid-column: 1 / 2;
+          grid-column: 1 / 3;
+        }
+
+        .timeline-card {
+          grid-column: 3 / 4;
         }
 
         .card-header {
@@ -678,43 +645,6 @@ export default function ViewSubject() {
           color: #0f3a4a;
         }
 
-        /* ================= QUICK ACTIONS ================= */
-        .quick-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .action-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.875rem 1rem;
-          background: white;
-          border: 2px solid #e0e8f0;
-          border-radius: 10px;
-          font-size: 0.9375rem;
-          font-weight: 600;
-          color: #0f3a4a;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          width: 100%;
-          text-align: left;
-        }
-
-        .action-btn:hover {
-          border-color: #3db5e6;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.05) 100%);
-          transform: translateX(4px);
-        }
-
-        .action-icon {
-          color: #3db5e6;
-          font-size: 1rem;
-          width: 20px;
-          text-align: center;
-        }
-
         /* ================= ERROR CONTAINER ================= */
         .erp-error-container {
           display: flex;
@@ -752,6 +682,10 @@ export default function ViewSubject() {
           }
 
           .main-card {
+            grid-column: 1 / 2;
+          }
+
+          .timeline-card {
             grid-column: 1 / 2;
           }
         }
