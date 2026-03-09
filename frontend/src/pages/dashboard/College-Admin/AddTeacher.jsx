@@ -26,7 +26,8 @@ import {
   FaUsers,
   FaRegClock,
   FaBookOpen,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaPhoneAlt
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -101,6 +102,8 @@ export default function AddTeacher() {
     city: "",
     state: "",
     pincode: "",
+    mobileNumber: "",
+    joiningDate: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -155,7 +158,7 @@ export default function AddTeacher() {
 
     // Required fields validation - INCLUDING course_id
     const requiredFields = [
-      'name', 'email', 'designation', 'qualification', 
+      'name', 'email', 'designation', 'qualification',
       'experienceYears', 'department_id', 'course_id', // CRITICAL: Added course_id
       'password', 'gender', 'bloodGroup', 'dateOfBirth', 'address', 'city', 'state', 'pincode'
     ];
@@ -245,6 +248,8 @@ export default function AddTeacher() {
         city: formData.city.trim(),
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
+        mobileNumber: formData.mobileNumber.trim(),
+        joiningDate: formData.joiningDate || null,
         // Temporary employeeId that satisfies backend validation
         employeeId: `TEMP-T-${Date.now().toString().slice(-4)}`
       };
@@ -271,7 +276,9 @@ export default function AddTeacher() {
           address: "",
           city: "",
           state: "",
-          pincode: ""
+          pincode: "",
+          mobileNumber: "",
+          joiningDate: "",
         });
         setValidationErrors({});
         navigate("/teachers");
@@ -805,6 +812,44 @@ export default function AddTeacher() {
                             <option value="PART_TIME">Part Time</option>
                             <option value="VISITING">Visiting Faculty</option>
                           </select>
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaPhoneAlt />}
+                          label="Mobile Number"
+                          required
+                          error={validationErrors.mobileNumber}
+                          helperText="10-digit Indian mobile number"
+                        >
+                          <input
+                            type="tel"
+                            name="mobileNumber"
+                            value={formData.mobileNumber}
+                            onChange={handleChange}
+                            className="form-control"
+                            placeholder="e.g., 9876543210"
+                            pattern="[0-9]{10}"
+                            required
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaCalendarAlt />}
+                          label="Joining Date"
+                          error={validationErrors.joiningDate}
+                          helperText="Date of joining the institution"
+                        >
+                          <input
+                            type="date"
+                            name="joiningDate"
+                            value={formData.joiningDate}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
                         </FormField>
                       </div>
                     </div>
