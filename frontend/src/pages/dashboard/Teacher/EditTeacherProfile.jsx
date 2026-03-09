@@ -16,6 +16,8 @@ import {
   FaExclamationTriangle,
   FaUniversity,
   FaChalkboardTeacher,
+  FaPhoneAlt,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
@@ -59,6 +61,8 @@ export default function EditTeacherProfile() {
     department_id: "",
     department_name: "",
     courses: [],
+    mobileNumber: "",
+    joiningDate: "",
   });
 
   const [validationErrors, setValidationErrors] = useState({});
@@ -76,7 +80,7 @@ export default function EditTeacherProfile() {
   // Track unsaved changes
   useEffect(() => {
     if (!loading) {
-      const editableFields = ["name", "email", "experienceYears"];
+      const editableFields = ["name", "email", "experienceYears", "mobileNumber", "joiningDate"];
       const hasChanges = editableFields.some(
         (key) => form[key] !== "" && form[key] !== null
       );
@@ -87,18 +91,26 @@ export default function EditTeacherProfile() {
   const fetchProfile = async () => {
     try {
       const res = await api.get("/teachers/my-profile");
-      const data = res.data;
+      console.log('[EditTeacherProfile] API Response:', res);
+      console.log('[EditTeacherProfile] res.data:', res.data);
+      console.log('[EditTeacherProfile] res.data.teacher:', res.data?.teacher);
+
+      // Backend returns { teacher: {...} }, axios keeps it nested
+      const teacherData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+      console.log('[EditTeacherProfile] Setting form data:', teacherData);
 
       setForm({
-        name: data.name || "",
-        email: data.email || "",
-        employeeId: data.employeeId || "",
-        designation: data.designation || "",
-        qualification: data.qualification || "",
-        experienceYears: data.experienceYears?.toString() || "",
-        department_id: data.department_id?._id || "",
-        department_name: data.department_id?.name || "",
-        courses: data.courses?.map((c) => ({ _id: c._id, name: c.name })) || [],
+        name: teacherData?.name || "",
+        email: teacherData?.email || "",
+        employeeId: teacherData?.employeeId || "",
+        designation: teacherData?.designation || "",
+        qualification: teacherData?.qualification || "",
+        experienceYears: teacherData?.experienceYears?.toString() || "",
+        department_id: teacherData?.department_id?._id || "",
+        department_name: teacherData?.department_id?.name || "",
+        courses: teacherData?.courses?.map((c) => ({ _id: c._id, name: c.name })) || [],
+        mobileNumber: teacherData?.mobileNumber || "",
+        joiningDate: teacherData?.joiningDate ? new Date(teacherData.joiningDate).toISOString().split('T')[0] : "",
       });
     } catch (err) {
       console.error("Fetch profile error:", err);
@@ -128,6 +140,13 @@ export default function EditTeacherProfile() {
         if (isNaN(exp) || exp < 0 || exp > 50)
           return "Experience must be between 0 and 50 years";
         break;
+      case "mobileNumber":
+        if (value && !/^[6-9]\d{9}$/.test(value))
+          return "Please enter a valid 10-digit Indian mobile number";
+        break;
+      case "joiningDate":
+        // Optional field, no validation needed
+        break;
       default:
         break;
     }
@@ -136,13 +155,13 @@ export default function EditTeacherProfile() {
 
   const validateForm = () => {
     const errors = {};
-    const editableFields = ["name", "email", "experienceYears"];
-    
+    const editableFields = ["name", "email", "experienceYears", "mobileNumber", "joiningDate"];
+
     editableFields.forEach((key) => {
       const error = validateField(key, form[key]);
       if (error) errors[key] = error;
     });
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -187,6 +206,8 @@ export default function EditTeacherProfile() {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         experienceYears: parseInt(form.experienceYears) || 0,
+        mobileNumber: form.mobileNumber.trim() || null,
+        joiningDate: form.joiningDate || null,
       };
 
       const res = await api.put("/teachers/my-profile", payload);
@@ -598,6 +619,100 @@ export default function EditTeacherProfile() {
                   {validationErrors.experienceYears && touchedFields.experienceYears && (
                     <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
                       {validationErrors.experienceYears}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label
+                    htmlFor="mobileNumber"
+                    style={{
+                      display: "block",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#4a5568",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="mobileNumber"
+                    name="mobileNumber"
+                    value={form.mobileNumber}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    disabled={saving}
+                    className={`form-control ${
+                      validationErrors.mobileNumber && touchedFields.mobileNumber
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      border: `1px solid ${
+                        validationErrors.mobileNumber && touchedFields.mobileNumber
+                          ? "#dc3545"
+                          : "#e2e8f0"
+                      }`,
+                      borderRadius: "8px",
+                      fontSize: "0.95rem",
+                    }}
+                    placeholder="e.g., 9876543210"
+                    pattern="[0-9]{10}"
+                  />
+                  {validationErrors.mobileNumber && touchedFields.mobileNumber && (
+                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                      {validationErrors.mobileNumber}
+                    </div>
+                  )}
+                </div>
+
+                {/* Joining Date */}
+                <div>
+                  <label
+                    htmlFor="joiningDate"
+                    style={{
+                      display: "block",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "#4a5568",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    Joining Date
+                  </label>
+                  <input
+                    type="date"
+                    id="joiningDate"
+                    name="joiningDate"
+                    value={form.joiningDate}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    disabled={saving}
+                    className={`form-control ${
+                      validationErrors.joiningDate && touchedFields.joiningDate
+                        ? "is-invalid"
+                        : ""
+                    }`}
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      border: `1px solid ${
+                        validationErrors.joiningDate && touchedFields.joiningDate
+                          ? "#dc3545"
+                          : "#e2e8f0"
+                      }`,
+                      borderRadius: "8px",
+                      fontSize: "0.95rem",
+                    }}
+                  />
+                  {validationErrors.joiningDate && touchedFields.joiningDate && (
+                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                      {validationErrors.joiningDate}
                     </div>
                   )}
                 </div>
