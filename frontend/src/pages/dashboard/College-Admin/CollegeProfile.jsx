@@ -187,7 +187,7 @@ export default function CollegeProfile() {
     { icon: <FaBook />, label: "Courses", path: "/courses", color: "info", gradient: BRAND_COLORS.info.gradient },
     { icon: <FaChalkboardTeacher />, label: "Teachers", path: "/teachers", color: "warning", gradient: BRAND_COLORS.warning.gradient },
     { icon: <FaMoneyBillWave />, label: "Fee Structures", path: "/fees/list", color: "danger", gradient: BRAND_COLORS.danger.gradient },
-    { icon: <FaCogs />, label: "Settings", path: "/college/profile", color: "secondary", gradient: BRAND_COLORS.secondary.gradient }
+    { icon: <FaCogs />, label: "Settings", path: "/system-settings/general", color: "secondary", gradient: BRAND_COLORS.secondary.gradient }
   ];
 
   if (loading) {
