@@ -1090,14 +1090,14 @@ export default function CourseList() {
 
         /* ================= PAGE HEADER ================= */
         .page-header {
-          background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+          background: linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%);
           border-radius: 16px;
           padding: 2rem;
           margin-bottom: 1.5rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 0 10px 40px rgba(79, 70, 229, 0.3);
+          box-shadow: 0 10px 40px rgba(15, 58, 74, 0.4);
           color: white;
         }
 
