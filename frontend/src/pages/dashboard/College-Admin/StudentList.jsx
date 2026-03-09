@@ -47,7 +47,7 @@ export default function StudentList() {
 
   /* ================= CONFIRM MODAL STATE ================= */
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmType, setConfirmType] = useState(null); // 'approve' or 'reject'
   const [confirmData, setConfirmData] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
 
@@ -118,13 +118,13 @@ export default function StudentList() {
 
   /* ================= ACTIONS ================= */
   const handleApproveClick = (id) => {
-    setConfirmAction(() => approveStudent);
+    setConfirmType('approve');
     setConfirmData(id);
     setShowConfirmModal(true);
   };
 
   const handleRejectClick = (id) => {
-    setConfirmAction(() => rejectStudent);
+    setConfirmType('reject');
     setConfirmData(id);
     setShowConfirmModal(true);
   };
@@ -155,6 +155,23 @@ export default function StudentList() {
       throw err;
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmType || !confirmData) return;
+
+    try {
+      if (confirmType === 'approve') {
+        await approveStudent(confirmData);
+      } else if (confirmType === 'reject') {
+        await rejectStudent(confirmData);
+      }
+      setShowConfirmModal(false);
+      setConfirmType(null);
+      setConfirmData(null);
+    } catch (err) {
+      // Error is handled in the action function
     }
   };
 
@@ -514,29 +531,18 @@ export default function StudentList() {
         isOpen={showConfirmModal}
         onClose={() => {
           setShowConfirmModal(false);
-          setConfirmAction(null);
+          setConfirmType(null);
           setConfirmData(null);
         }}
-        onConfirm={async () => {
-          if (confirmAction && confirmData) {
-            try {
-              await confirmAction(confirmData);
-              setShowConfirmModal(false);
-              setConfirmAction(null);
-              setConfirmData(null);
-            } catch (err) {
-              // Error is handled in the action function
-            }
-          }
-        }}
-        title={confirmAction === approveStudent ? "Approve Student" : "Reject Student"}
+        onConfirm={handleConfirm}
+        title={confirmType === 'approve' ? "Approve Student" : "Reject Student"}
         message={
-          confirmAction === approveStudent
+          confirmType === 'approve'
             ? "Are you sure you want to approve this student? This action will grant them full access to the system."
             : "Are you sure you want to reject this student? This action will notify the student and remove their pending status."
         }
-        type={confirmAction === approveStudent ? "success" : "danger"}
-        confirmText={confirmAction === approveStudent ? "Approve" : "Reject"}
+        type={confirmType === 'approve' ? "success" : "danger"}
+        confirmText={confirmType === 'approve' ? "Approve" : "Reject"}
         cancelText="Cancel"
         isLoading={modalLoading}
       />
