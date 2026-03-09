@@ -91,6 +91,7 @@ export default function AttendanceReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fetchingReport, setFetchingReport] = useState(false);
+  const [collegeInfo, setCollegeInfo] = useState({ name: '', code: '' });
 
   const [filters, setFilters] = useState({
     courseId: "",
@@ -117,27 +118,68 @@ export default function AttendanceReport() {
   /* ================= FETCH COURSES ================= */
   const fetchCourses = async () => {
     try {
+      console.log('[AttendanceReport] Fetching courses...');
       const res = await api.get("/attendance/report/courses");
-      setCourses(res.data || []);
+      console.log('[AttendanceReport] Courses API Response:', res);
+      console.log('[AttendanceReport] Courses API Response data:', res.data);
+      console.log('[AttendanceReport] Courses API Response data type:', Array.isArray(res.data) ? 'ARRAY' : typeof res.data);
+      
+      // Handle different response formats
+      let coursesData;
+      if (Array.isArray(res.data)) {
+        coursesData = res.data;
+      } else if (res.data?.courses) {
+        coursesData = res.data.courses;
+      } else if (res.data?.data) {
+        coursesData = res.data.data;
+      } else {
+        coursesData = [];
+      }
+      
+      console.log('[AttendanceReport] Final courses data:', coursesData);
+      setCourses(coursesData || []);
     } catch (err) {
       console.error("Failed to load courses:", err);
+      console.error("Failed to load courses - error details:", err.response?.data);
       setError("Failed to load courses. Please try again.");
+      setCourses([]);
     }
   };
 
   /* ================= FETCH SUBJECTS ================= */
   const fetchSubjects = async (courseId) => {
     if (!courseId) {
+      console.log('[AttendanceReport] No courseId provided, clearing subjects');
       setSubjects([]);
       return;
     }
-    
+
     try {
+      console.log('[AttendanceReport] Fetching subjects for courseId:', courseId);
       const res = await api.get(`/attendance/report/subjects/${courseId}`);
-      setSubjects(res.data || []);
+      console.log('[AttendanceReport] Subjects API Response:', res);
+      console.log('[AttendanceReport] Subjects API Response data:', res.data);
+      console.log('[AttendanceReport] Subjects API Response data type:', Array.isArray(res.data) ? 'ARRAY' : typeof res.data);
+      
+      // Handle different response formats
+      let subjectsData;
+      if (Array.isArray(res.data)) {
+        subjectsData = res.data;
+      } else if (res.data?.subjects) {
+        subjectsData = res.data.subjects;
+      } else if (res.data?.data) {
+        subjectsData = res.data.data;
+      } else {
+        subjectsData = [];
+      }
+      
+      console.log('[AttendanceReport] Final subjects data:', subjectsData);
+      setSubjects(subjectsData || []);
     } catch (err) {
       console.error("Failed to load subjects:", err);
+      console.error("Failed to load subjects - error details:", err.response?.data);
       setError("Failed to load subjects. Please try again.");
+      setSubjects([]);
     }
   };
 
@@ -173,6 +215,8 @@ export default function AttendanceReport() {
 
   const handleCourseChange = (e) => {
     const courseId = e.target.value;
+    console.log('[AttendanceReport] Course changed, new courseId:', courseId);
+    console.log('[AttendanceReport] Courses list:', courses);
     setFilters({
       ...filters,
       courseId,
