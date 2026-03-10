@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
 
 import {
   FaMoneyBillWave,
@@ -49,6 +50,10 @@ export default function FeeStructureList() {
     categories: {},
     courses: {}
   });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -130,14 +135,25 @@ export default function FeeStructureList() {
     setStructures(sorted);
   };
 
-  /* ================= FILTERING ================= */
+  /* ================= FILTERING & PAGINATION ================= */
   const filteredStructures = useMemo(() => {
-    return structures.filter(structure => 
+    return structures.filter(structure =>
       (structure.course_id?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        structure.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        structure.totalFee?.toString().includes(searchTerm))
     );
   }, [structures, searchTerm]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredStructures.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentStructures = filteredStructures.slice(startIndex, endIndex);
+  
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
@@ -340,12 +356,12 @@ export default function FeeStructureList() {
             Fee Structures List
           </h3>
           <span className="structure-count">
-            {filteredStructures.length} {filteredStructures.length === 1 ? "Structure" : "Structures"}
+            {currentStructures.length} of {filteredStructures.length} {filteredStructures.length === 1 ? "Structure" : "Structures"}
           </span>
         </div>
-        
+
         <div className="erp-card-body">
-          {filteredStructures.length === 0 ? (
+          {currentStructures.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">
                 <FaMoneyBillWave />
@@ -388,9 +404,9 @@ export default function FeeStructureList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStructures.map((structure, index) => (
+                  {currentStructures.map((structure, index) => (
                     <tr key={structure._id} className="table-row">
-                      <td>{index + 1}</td>
+                      <td>{startIndex + index + 1}</td>
                       <td>
                         <div className="course-info">
                           <div className="course-name">{structure.course_id?.name || "N/A"}</div>
@@ -452,6 +468,17 @@ export default function FeeStructureList() {
             </div>
           )}
         </div>
+        
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="card-footer-pagination">
+            <Pagination 
+              page={currentPage} 
+              totalPages={totalPages} 
+              setPage={setCurrentPage} 
+            />
+          </div>
+        )}
       </div>
 
       {/* STYLES */}
@@ -625,6 +652,15 @@ export default function FeeStructureList() {
           font-size: 0.875rem;
           font-weight: 600;
         }
+
+        .card-footer-pagination {
+          padding: 1.25rem 1.75rem;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-top: 1px solid #e9ecef;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
         
         .erp-card-body {
           padding: 0;
@@ -739,10 +775,10 @@ export default function FeeStructureList() {
         }
         
         .erp-table th {
-          padding: 1rem 1.25rem;
+          padding: 0.875rem 1.25rem;
           text-align: left;
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 0.875rem;
           cursor: pointer;
           user-select: none;
           position: relative;
@@ -775,7 +811,7 @@ export default function FeeStructureList() {
         }
         
         .erp-table td {
-          padding: 1rem 1.25rem;
+          padding: 0.875rem 1.25rem;
           color: #2c3e50;
           font-weight: 500;
           vertical-align: middle;
@@ -784,35 +820,35 @@ export default function FeeStructureList() {
         .course-info {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.2rem;
         }
-        
+
         .course-name {
           font-weight: 600;
           color: #1a4b6d;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
-        
+
         .course-meta {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           flex-wrap: wrap;
         }
-        
+
         .course-code {
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: #6c757d;
           background: #f0f2f5;
-          padding: 0.125rem 0.5rem;
+          padding: 0.1rem 0.4rem;
           border-radius: 4px;
         }
-        
+
         .category-badge {
           display: inline-block;
-          padding: 0.375rem 0.875rem;
+          padding: 0.25rem 0.75rem;
           border-radius: 20px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           background: rgba(33, 150, 243, 0.1);
           color: #1976d2;
@@ -830,29 +866,29 @@ export default function FeeStructureList() {
           gap: 0.5rem;
           font-weight: 700;
           color: #1a4b6d;
-          font-size: 1.1rem;
+          font-size: 1rem;
         }
-        
+
         .rupee-icon {
-          color: #F44336;
-          font-size: 1.1rem;
+          color: #2e7d32;
+          font-size: 1rem;
           animation: float 3s ease-in-out infinite;
         }
-        
+
         .installment-info {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           color: #1a4b6d;
         }
-        
+
         .installment-icon {
           color: #6c757d;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
-        
+
         .installment-label {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: #6c757d;
         }
         
@@ -868,8 +904,8 @@ export default function FeeStructureList() {
         }
         
         .action-btn {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           border-radius: 8px;
           display: flex;
           align-items: center;
@@ -878,7 +914,7 @@ export default function FeeStructureList() {
           cursor: pointer;
           transition: all 0.2s ease;
           color: white;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           position: relative;
           overflow: hidden;
         }
