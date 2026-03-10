@@ -478,7 +478,7 @@ export default function AddCourse() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .header-section {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 2rem;
