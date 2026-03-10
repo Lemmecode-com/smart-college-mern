@@ -63,16 +63,16 @@
       /* Navbar */
       .navbar {
         backdrop-filter: blur(20px);
-        background: linear-gradient(180deg, rgba(15, 58, 74, 0.95) 0%, rgba(12, 45, 58, 0.92) 100%) !important;
+        background: linear-gradient(180deg, rgba(1, 32, 43, 0.95) 0%, rgba(12, 48, 61, 0.92) 100%) !important;
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(61, 181, 230, 0.15);
+        border-bottom: 1px solid rgba(47, 188, 243, 0.15);
       }
 
       .navbar.scrolled {
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
-        background: linear-gradient(180deg, rgba(10, 31, 41, 0.98) 0%, rgba(15, 58, 74, 0.95) 100%) !important;
+        background: linear-gradient(180deg, rgba(1, 14, 20, 0.98) 0%, rgba(15, 58, 74, 0.95) 100%) !important;
         padding: 0.5rem 0;
       }
 
@@ -184,22 +184,24 @@
       }
 
       .nav-btn {
-        background: var(--gradient-accent);
+        background: linear-gradient(135deg, #1a3f4e 0%, #1a3740 100%);
         color: white !important;
-        padding: 0.6rem 1.5rem !important;
+        padding: 0.65rem 1.75rem !important;
         border-radius: 50px;
         font-weight: 700;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
+        box-shadow: 0 4px 20px rgba(26, 63, 78, 0.5);
         border: 2px solid transparent;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .nav-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(61, 181, 230, 0.6);
-        background: transparent;
-        border-color: var(--primary-lighter);
-        color: var(--primary-lightest) !important;
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 30px rgba(5, 40, 56, 0.7);
+        background: linear-gradient(135deg, #052838 0%, #2f5b6c 100%);
+        border-color: #2f5b6c;
+        color: white !important;
       }
 
       .nav-btn::before {
@@ -216,7 +218,7 @@
                     url('./images/novaa01.jpg') center/cover no-repeat;
         background-attachment: fixed;
         color: white;
-        padding: 180px 0 140px;
+        padding: 120px 0 80px;
         position: relative;
         overflow: hidden;
         min-height: 100vh;
@@ -248,7 +250,7 @@
 
       /* Fallback background if image doesn't load */
       .hero-section {
-        background-color: #0f3a4a;
+        background-color:#0f3a4a;
       }
 
       @keyframes rotate {
@@ -281,36 +283,6 @@
         filter: drop-shadow(0 0 20px rgba(61, 181, 230, 0.5));
       }
 
-      /* Scroll Indicator Animation */
-      .scroll-indicator {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: rgba(61, 181, 230, 0.2);
-        border: 2px solid rgba(61, 181, 230, 0.4);
-        animation: bounce 2s infinite;
-      }
-
-      .scroll-indicator i {
-        color: #4fc3f7;
-        font-size: 1.5rem;
-      }
-
-      @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {
-          transform: translateY(0);
-        }
-        40% {
-          transform: translateY(-10px);
-        }
-        60% {
-          transform: translateY(-5px);
-        }
-      }
-
       .hero-lead {
         font-size: 1.25rem;
         opacity: 0.95;
@@ -320,22 +292,24 @@
 
       /* Buttons */
       .btn-hero {
-        background: var(--gradient-accent);
+        background: linear-gradient(135deg, #1a3f4e 0%, #1a3740 100%);
         color: white;
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
         border: 2px solid transparent;
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 10px 30px rgba(61, 181, 230, 0.4);
+        box-shadow: 0 10px 30px rgba(26, 63, 78, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .btn-hero:hover {
         transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 20px 45px rgba(61, 181, 230, 0.6);
-        background: transparent;
-        border-color: var(--primary-lighter);
-        color: var(--primary-lightest);
+        box-shadow: 0 20px 45px rgba(5, 40, 56, 0.7);
+        background: linear-gradient(135deg, #052838 0%, #2f5b6c 100%);
+        border-color: #2f5b6c;
+        color: white;
       }
 
       .btn-hero-outline {
@@ -344,17 +318,19 @@
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
-        border: 2px solid rgba(61, 181, 230, 0.5);
+        border: 2px solid rgba(26, 63, 78, 0.6);
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .btn-hero-outline:hover {
-        background: rgba(61, 181, 230, 0.15);
+        background: rgba(5, 40, 56, 0.3);
         transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(61, 181, 230, 0.4);
-        border-color: var(--primary-lighter);
-        color: var(--primary-lightest);
+        box-shadow: 0 15px 35px rgba(5, 40, 56, 0.5);
+        border-color: #2f5b6c;
+        color: white;
       }
 
       /* Feature Cards */
@@ -381,7 +357,7 @@
       }
 
       .carousel-item {
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
         backface-visibility: hidden;
       }
 
@@ -394,7 +370,7 @@
 
       /* Coverflow Effect - Cards */
       .carousel-item .feature-card {
-        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         transform-origin: center center;
       }
 
@@ -403,20 +379,23 @@
         transform: translateX(0) scale(1);
         opacity: 1;
         filter: blur(0);
+        box-shadow: 0 20px 60px rgba(26, 63, 78, 0.3);
       }
 
-      /* Previous slide - cards slide to left with 3D rotation */
+      /* Previous slide - cards visible on left side */
       .carousel-item-prev .feature-card {
-        transform: translateX(-50%) scale(0.85) rotateY(15deg);
-        opacity: 0.5;
-        filter: blur(2px);
+        transform: translateX(-60%) scale(0.75) rotateY(10deg);
+        opacity: 0.6;
+        filter: blur(1px);
+        box-shadow: 0 10px 30px rgba(26, 63, 78, 0.2);
       }
 
-      /* Next slide - cards slide to right with 3D rotation */
+      /* Next slide - cards visible on right side */
       .carousel-item-next .feature-card {
-        transform: translateX(50%) scale(0.85) rotateY(-15deg);
-        opacity: 0.5;
-        filter: blur(2px);
+        transform: translateX(60%) scale(0.75) rotateY(-10deg);
+        opacity: 0.6;
+        filter: blur(1px);
+        box-shadow: 0 10px 30px rgba(26, 63, 78, 0.2);
       }
 
       /* Carousel Indicators Styling */
@@ -765,16 +744,18 @@
       }
 
       .btn-submit {
-        background: var(--gradient-accent);
+        background: linear-gradient(135deg, #1a3f4e 0%, #1a3740 100%);
         border: none;
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
         transition: all 0.4s ease;
-        box-shadow: 0 15px 35px rgba(61, 181, 230, 0.4);
+        box-shadow: 0 15px 35px rgba(26, 63, 78, 0.5);
         position: relative;
         overflow: hidden;
         color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .btn-submit::before {
@@ -799,7 +780,8 @@
 
       .btn-submit:hover {
         transform: translateY(-5px);
-        box-shadow: 0 20px 45px rgba(61, 181, 230, 0.5);
+        box-shadow: 0 20px 45px rgba(5, 40, 56, 0.7);
+        background: linear-gradient(135deg, #052838 0%, #2f5b6c 100%);
       }
 
       /* Footer */
@@ -986,7 +968,7 @@
         right: 30px;
         width: 55px;
         height: 55px;
-        background: var(--gradient-accent);
+        background: linear-gradient(135deg, #1a3f4e 0%, #1a3740 100%);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -995,12 +977,12 @@
         font-size: 1.4rem;
         cursor: pointer;
         transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        box-shadow: 0 10px 35px rgba(61, 181, 230, 0.5);
+        box-shadow: 0 10px 35px rgba(26, 63, 78, 0.5);
         z-index: 9999;
         opacity: 0;
         visibility: hidden;
         transform: translateY(20px) scale(0.8);
-        border: 2px solid rgba(61, 181, 230, 0.3);
+        border: 2px solid rgba(26, 63, 78, 0.3);
       }
 
       .floating-back-to-top.show {
@@ -1011,7 +993,8 @@
 
       .floating-back-to-top:hover {
         transform: translateY(-8px) scale(1.1);
-        box-shadow: 0 15px 45px rgba(61, 181, 230, 0.7);
+        box-shadow: 0 15px 45px rgba(5, 40, 56, 0.7);
+        background: linear-gradient(135deg, #052838 0%, #2f5b6c 100%);
       }
 
       .floating-back-to-top i {
@@ -1285,13 +1268,6 @@
                 <i class="fas fa-info-circle me-2"></i>Learn More
               </a>
             </div>
-            
-            <!-- Scroll Indicator -->
-            <div class="mt-5 pt-4">
-              <div class="scroll-indicator">
-                <i class="fas fa-chevron-down"></i>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1346,83 +1322,89 @@
             </p>
           </div>
         </div>
-        
-        <!-- Features Carousel -->
-        <div id="featuresCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
-          <!-- Carousel Indicators -->
-          <div class="carousel-indicators">
-            <button type="button" data-bs-target="#featuresCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-            <button type="button" data-bs-target="#featuresCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-          </div>
-          
+
+        <!-- Features Carousel - Single Card -->
+        <div id="featuresCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="2000">
           <!-- Carousel Inner -->
           <div class="carousel-inner">
-            <!-- Slide 1 -->
+            <!-- Slide 1 - Student Management -->
             <div class="carousel-item active">
-              <div class="row g-4">
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-1">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa03.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Student Management"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-user-graduate me-2" style="color: var(--primary-lighter);"></i>
                         Student Management
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Complete student lifecycle management from admission to
                         graduation with detailed records and analytics.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-2">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              </div>
+            </div>
+
+            <!-- Slide 2 - Teacher Portal -->
+            <div class="carousel-item">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa04.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Teacher Portal"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-chalkboard-teacher me-2" style="color: var(--primary-lighter);"></i>
                         Teacher Portal
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Empower educators with tools for attendance, grading,
                         timetables, and communication with students.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-3">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              </div>
+            </div>
+
+            <!-- Slide 3 - Timetable Management -->
+            <div class="carousel-item">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa05.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Timetable Management"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-calendar-alt me-2" style="color: var(--primary-lighter);"></i>
                         Timetable Management
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Intelligent scheduling system that creates conflict-free
                         timetables for classes and exams.
                       </p>
@@ -1431,73 +1413,85 @@
                 </div>
               </div>
             </div>
-            
-            <!-- Slide 2 -->
+
+            <!-- Slide 4 - Fee Management -->
             <div class="carousel-item">
-              <div class="row g-4">
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-4">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa06.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Fee Management"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-file-invoice-dollar me-2" style="color: var(--primary-lighter);"></i>
                         Fee Management
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Automated fee calculation, payment processing, and financial
                         reporting for transparent billing.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-5">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              </div>
+            </div>
+
+            <!-- Slide 5 - Analytics & Reports -->
+            <div class="carousel-item">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa07.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Analytics & Reports"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-chart-line me-2" style="color: var(--primary-lighter);"></i>
                         Analytics & Reports
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Comprehensive dashboards with insights on academics,
                         attendance, and institutional performance.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-6">
-                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+              </div>
+            </div>
+
+            <!-- Slide 6 - Notifications -->
+            <div class="carousel-item">
+              <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card">
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
                       <img
                         src="./images/novaa08.png"
-                        class="img-fluid"
+                        class="img-fluid w-100"
                         alt="Notifications"
                         style="object-fit: cover;"
-                        onerror="this.src='https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                        onerror="this.src='https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80'"
                       />
                     </div>
                     <div class="card-body p-4">
-                      <h5 class="card-title">
+                      <h5 class="card-title text-center mb-3">
                         <i class="fas fa-bell me-2" style="color: var(--primary-lighter);"></i>
                         Notifications
                       </h5>
-                      <p class="card-text" style="color: #5a6c75;">
+                      <p class="card-text text-center" style="color: #5a6c75;">
                         Real-time alerts and notifications to keep all stakeholders
                         informed about important updates.
                       </p>
@@ -1507,16 +1501,6 @@
               </div>
             </div>
           </div>
-          
-          <!-- Carousel Controls -->
-          <button class="carousel-control-prev" type="button" data-bs-target="#featuresCarousel" data-bs-slide="prev" style="width: 5%; opacity: 0.5;">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#featuresCarousel" data-bs-slide="next" style="width: 5%; opacity: 0.5;">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
         </div>
       </div>
     </section>
@@ -1665,8 +1649,8 @@
       </div>
     </section>
 
-    <!-- Contact Section - Enhanced -->
-    <section id="contact" class="section-padding">
+    <!-- Contact Section -->
+    <section id="contact" class="section-padding contact-section">
       <div class="container">
         <div class="row mb-5">
           <div class="col-12 text-center">
@@ -1676,125 +1660,223 @@
             </p>
           </div>
         </div>
-        <div class="row g-5">
-          <div class="col-lg-7">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-fade-up"
-            >
+        
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="card feature-card h-100 border-0 shadow-sm gsap-fade-up">
               <div class="card-body p-5">
-                <h3 class="fw-bold mb-4">Send Us a Message</h3>
-                <form id="contactForm">
+                <h3 class="fw-bold mb-3 text-center" style="color: var(--primary-darkest);">
+                  <i class="fas fa-paper-plane me-2" style="color: var(--primary-lighter);"></i>
+                  Send Us a Message
+                </h3>
+                <p class="text-center mb-4" style="color: #5a6c75;">
+                  Fill out the form below and we'll get back to you within 24 hours.
+                </p>
+                
+                <!-- Success Message -->
+                <div id="successMessage" class="alert alert-success d-none" role="alert">
+                  <i class="fas fa-check-circle me-2"></i>
+                  <strong>Success!</strong> Your message has been sent successfully.
+                </div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="alert alert-danger d-none" role="alert">
+                  <i class="fas fa-exclamation-circle me-2"></i>
+                  <strong>Error!</strong> Please fill in all required fields correctly.
+                </div>
+                
+                <form id="contactForm" novalidate>
                   <div class="row g-4">
+                    <!-- First Name -->
                     <div class="col-md-6">
-                      <label for="firstName" class="form-label fw-bold"
-                        >First Name</label
-                      >
+                      <label for="firstName" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        First Name <span class="text-danger">*</span>
+                      </label>
                       <input
                         type="text"
                         class="form-control form-control-lg"
                         id="firstName"
                         placeholder="John"
                         required
+                        minlength="2"
+                        pattern="[A-Za-z\s]+"
                       />
+                      <div class="invalid-feedback">
+                        Please enter a valid first name (min 2 characters).
+                      </div>
                     </div>
+                    
+                    <!-- Last Name -->
                     <div class="col-md-6">
-                      <label for="lastName" class="form-label fw-bold"
-                        >Last Name</label
-                      >
+                      <label for="lastName" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Last Name <span class="text-danger">*</span>
+                      </label>
                       <input
                         type="text"
                         class="form-control form-control-lg"
                         id="lastName"
                         placeholder="Doe"
                         required
+                        minlength="2"
+                        pattern="[A-Za-z\s]+"
                       />
+                      <div class="invalid-feedback">
+                        Please enter a valid last name (min 2 characters).
+                      </div>
                     </div>
+                    
+                    <!-- Email -->
                     <div class="col-md-6">
-                      <label for="email" class="form-label fw-bold"
-                        >Email Address</label
-                      >
-                      <input
-                        type="email"
-                        class="form-control form-control-lg"
-                        id="email"
-                        placeholder="john@example.com"
-                        required
-                      />
+                      <label for="email" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Email Address <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text" style="background: rgba(61, 181, 230, 0.1); border-color: #d4ebf5; border-right: none;">
+                          <i class="fas fa-envelope" style="color: var(--primary-lighter);"></i>
+                        </span>
+                        <input
+                          type="email"
+                          class="form-control form-control-lg"
+                          id="email"
+                          placeholder="john@example.com"
+                          required
+                          style="border-left: none;"
+                        />
+                      </div>
+                      <div class="invalid-feedback">
+                        Please enter a valid email address.
+                      </div>
                     </div>
+                    
+                    <!-- Phone -->
                     <div class="col-md-6">
-                      <label for="phone" class="form-label fw-bold"
-                        >Phone Number</label
-                      >
-                      <input
-                        type="tel"
-                        class="form-control form-control-lg"
-                        id="phone"
-                        placeholder="+1 (555) 000-0000"
-                      />
+                      <label for="phone" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Phone Number <span class="text-muted">(Optional)</span>
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text" style="background: rgba(61, 181, 230, 0.1); border-color: #d4ebf5; border-right: none;">
+                          <i class="fas fa-phone" style="color: var(--primary-lighter);"></i>
+                        </span>
+                        <input
+                          type="tel"
+                          class="form-control form-control-lg"
+                          id="phone"
+                          placeholder="+1 (555) 000-0000"
+                          pattern="[+]?[0-9\s()\-]+"
+                          minlength="10"
+                          style="border-left: none;"
+                        />
+                      </div>
+                      <div class="invalid-feedback">
+                        Please enter a valid phone number (min 10 digits).
+                      </div>
                     </div>
+                    
+                    <!-- Institution -->
                     <div class="col-12">
-                      <label for="institution" class="form-label fw-bold"
-                        >Institution/Organization</label
-                      >
-                      <input
-                        type="text"
-                        class="form-control form-control-lg"
-                        id="institution"
-                        placeholder="Your institution name"
-                        required
-                      />
+                      <label for="institution" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Institution/Organization <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text" style="background: rgba(61, 181, 230, 0.1); border-color: #d4ebf5; border-right: none;">
+                          <i class="fas fa-university" style="color: var(--primary-lighter);"></i>
+                        </span>
+                        <input
+                          type="text"
+                          class="form-control form-control-lg"
+                          id="institution"
+                          placeholder="Your institution name"
+                          required
+                          minlength="3"
+                          style="border-left: none;"
+                        />
+                      </div>
+                      <div class="invalid-feedback">
+                        Please enter your institution name (min 3 characters).
+                      </div>
                     </div>
+                    
+                    <!-- Role -->
                     <div class="col-12">
-                      <label for="role" class="form-label fw-bold"
-                        >Your Role</label
-                      >
-                      <select
-                        class="form-select form-select-lg"
-                        id="role"
-                        required
-                      >
-                        <option value="" disabled selected>
-                          Select your role
-                        </option>
-                        <option value="principal">Principal</option>
-                        <option value="admin">Administrator</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="student">Student</option>
-                        <option value="parent">Parent</option>
-                        <option value="other">Other</option>
-                      </select>
+                      <label for="role" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Your Role <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text" style="background: rgba(61, 181, 230, 0.1); border-color: #d4ebf5; border-right: none;">
+                          <i class="fas fa-user-tag" style="color: var(--primary-lighter);"></i>
+                        </span>
+                        <select
+                          class="form-select form-select-lg"
+                          id="role"
+                          required
+                          style="border-left: none;"
+                        >
+                          <option value="" disabled selected>Select your role</option>
+                          <option value="principal">Principal</option>
+                          <option value="admin">Administrator</option>
+                          <option value="teacher">Teacher</option>
+                          <option value="student">Student</option>
+                          <option value="parent">Parent</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div class="invalid-feedback">
+                        Please select your role.
+                      </div>
                     </div>
+                    
+                    <!-- Message -->
                     <div class="col-12">
-                      <label for="message" class="form-label fw-bold"
-                        >Your Message</label
-                      >
-                      <textarea
-                        class="form-control form-control-lg"
-                        id="message"
-                        rows="5"
-                        placeholder="Tell us how we can help you..."
-                        required
-                      ></textarea>
+                      <label for="message" class="form-label fw-bold" style="color: var(--primary-dark);">
+                        Your Message <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text" style="background: rgba(61, 181, 230, 0.1); border-color: #d4ebf5; border-right: none; align-items: flex-start;">
+                          <i class="fas fa-comment-alt" style="color: var(--primary-lighter); margin-top: 5px;"></i>
+                        </span>
+                        <textarea
+                          class="form-control form-control-lg"
+                          id="message"
+                          rows="5"
+                          placeholder="Tell us how we can help you..."
+                          required
+                          minlength="10"
+                          style="border-left: none;"
+                        ></textarea>
+                      </div>
+                      <div class="invalid-feedback">
+                        Please enter your message (min 10 characters).
+                      </div>
                     </div>
+                    
+                    <!-- Consent -->
                     <div class="col-12">
-                      <div class="form-check mb-4">
+                      <div class="form-check mb-4 p-3" style="background: rgba(61, 181, 230, 0.05); border-radius: 10px; border-left: 4px solid var(--primary-lighter);">
                         <input
                           class="form-check-input"
                           type="checkbox"
                           id="consent"
                           required
                         />
-                        <label class="form-check-label" for="consent">
+                        <label class="form-check-label" for="consent" style="color: #5a6c75; cursor: pointer;">
+                          <i class="fas fa-shield-alt me-2" style="color: var(--primary-lighter);"></i>
                           I agree to receive communications from NOVAA
                         </label>
+                        <div class="invalid-feedback">
+                          You must agree to receive communications.
+                        </div>
                       </div>
                     </div>
-                    <div class="col-12">
+                    
+                    <!-- Submit Button -->
+                    <div class="col-12 text-center">
                       <button
                         type="submit"
-                        class="btn btn-submit btn-lg w-100 py-3 animate__animated animate__pulse animate__infinite"
+                        class="btn btn-submit btn-lg px-5 py-3"
+                        id="submitBtn"
                       >
-                        <i class="fas fa-paper-plane me-2"></i>Send Message
+                        <i class="fas fa-paper-plane me-2"></i>
+                        <span>Send Message</span>
                       </button>
                     </div>
                   </div>
@@ -1802,7 +1884,7 @@
               </div>
             </div>
           </div>
-          </div>
+        </div>
       </div>
     </section>
 
@@ -1912,20 +1994,135 @@
         });
       });
 
-      // Contact form submission
-      document
-        .getElementById("contactForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
+      // Contact Form Validation
+      const contactForm = document.getElementById('contactForm');
+      const successMessage = document.getElementById('successMessage');
+      const errorMessage = document.getElementById('errorMessage');
+      const submitBtn = document.getElementById('submitBtn');
 
-          const firstName = document.getElementById("firstName").value;
-
-          alert(
-            `Thank you ${firstName}! Your message has been sent successfully. We'll get back to you soon.`,
-          );
-
-          this.reset();
+      if (contactForm) {
+        // Real-time validation on input
+        const formInputs = contactForm.querySelectorAll('input, textarea, select');
+        formInputs.forEach(input => {
+          input.addEventListener('blur', function() {
+            validateField(this);
+          });
+          
+          input.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid')) {
+              this.classList.remove('is-invalid');
+            }
+            if (this.value.trim()) {
+              this.style.borderColor = '#10b981';
+            }
+          });
         });
+
+        // Form submission
+        contactForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          let isValid = true;
+          const formInputs = contactForm.querySelectorAll('input, textarea, select');
+          
+          // Validate all fields
+          formInputs.forEach(input => {
+            if (!validateField(input)) {
+              isValid = false;
+            }
+          });
+
+          if (isValid) {
+            // Show loading state
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i><span>Sending...</span>';
+            
+            // Simulate API call
+            setTimeout(() => {
+              errorMessage.classList.add('d-none');
+              successMessage.classList.remove('d-none');
+              
+              contactForm.reset();
+              formInputs.forEach(input => {
+                input.classList.remove('is-valid', 'is-invalid');
+                input.style.borderColor = '#d4ebf5';
+              });
+              
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = originalBtnText;
+              
+              successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              
+              setTimeout(() => {
+                successMessage.classList.add('d-none');
+              }, 5000);
+            }, 1500);
+          } else {
+            successMessage.classList.add('d-none');
+            errorMessage.classList.remove('d-none');
+            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      }
+
+      // Validate individual field
+      function validateField(field) {
+        const value = field.value.trim();
+        const type = field.type;
+        const isRequired = field.hasAttribute('required');
+        const minLength = field.getAttribute('minlength');
+        const pattern = field.getAttribute('pattern');
+        
+        let isValid = true;
+
+        if (isRequired && !value) {
+          isValid = false;
+        }
+
+        if (minLength && value.length < parseInt(minLength)) {
+          isValid = false;
+        }
+
+        if (pattern && value) {
+          const regex = new RegExp(`^${pattern}$`);
+          if (!regex.test(value)) {
+            isValid = false;
+          }
+        }
+
+        if (type === 'email' && value) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(value)) {
+            isValid = false;
+          }
+        }
+
+        if (type === 'tel' && value) {
+          const phoneDigits = value.replace(/\D/g, '');
+          if (phoneDigits.length < 10) {
+            isValid = false;
+          }
+        }
+
+        // Update UI
+        if (field.type !== 'hidden') {
+          if (isValid && value) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            field.style.borderColor = '#10b981';
+          } else if (!isValid && value) {
+            field.classList.remove('is-valid');
+            field.classList.add('is-invalid');
+            field.style.borderColor = '#ef4444';
+          } else {
+            field.classList.remove('is-valid', 'is-invalid');
+            field.style.borderColor = '#d4ebf5';
+          }
+        }
+
+        return isValid;
+      }
 
       // Floating Back to Top button visibility - Show after 100vh scroll
       const floatingBackToTop = document.querySelector('.floating-back-to-top');
