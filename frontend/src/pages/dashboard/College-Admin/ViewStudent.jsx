@@ -361,32 +361,32 @@ export default function ViewStudent() {
 
   const uploadedDocuments = useMemo(() => {
     if (!student) return [];
-    
+
     const docs = [];
     const docMapping = [
-      { key: 'sscMarksheetPath', label: '10th Marksheet', icon: FaFileAlt },
-      { key: 'hscMarksheetPath', label: '12th Marksheet', icon: FaFileAlt },
-      { key: 'passportPhotoPath', label: 'Passport Photo', icon: FaImage },
-      { key: 'categoryCertificatePath', label: 'Category Certificate', icon: FaFileAlt },
-      { key: 'incomeCertificatePath', label: 'Income Certificate', icon: FaFileAlt },
-      { key: 'characterCertificatePath', label: 'Character Certificate', icon: FaFileAlt },
-      { key: 'transferCertificatePath', label: 'Transfer Certificate', icon: FaFileAlt },
-      { key: 'aadharCardPath', label: 'Aadhar Card', icon: FaIdCard },
-      { key: 'entranceExamScorePath', label: 'Entrance Exam Score', icon: FaAward },
-      { key: 'migrationCertificatePath', label: 'Migration Certificate', icon: FaFileAlt },
-      { key: 'domicileCertificatePath', label: 'Domicile Certificate', icon: FaFileAlt },
-      { key: 'casteCertificatePath', label: 'Caste Certificate', icon: FaFileAlt },
-      { key: 'nonCreamyLayerCertificatePath', label: 'Non-Creamy Layer Certificate', icon: FaFileAlt },
-      { key: 'physicallyChallengedCertificatePath', label: 'Physically Challenged Certificate', icon: FaFileAlt },
-      { key: 'sportsQuotaCertificatePath', label: 'Sports Quota Certificate', icon: FaAward },
-      { key: 'nriSponsorCertificatePath', label: 'NRI Sponsor Certificate', icon: FaFileAlt },
-      { key: 'gapCertificatePath', label: 'Gap Certificate', icon: FaFileAlt },
-      { key: 'affidavitPath', label: 'Affidavit', icon: FaFileAlt }
+      { key: 'sscMarksheetPath', label: '10th Marksheet', icon: <FaFileAlt /> },
+      { key: 'hscMarksheetPath', label: '12th Marksheet', icon: <FaFileAlt /> },
+      { key: 'passportPhotoPath', label: 'Passport Photo', icon: <FaImage /> },
+      { key: 'categoryCertificatePath', label: 'Category Certificate', icon: <FaFileAlt /> },
+      { key: 'incomeCertificatePath', label: 'Income Certificate', icon: <FaFileAlt /> },
+      { key: 'characterCertificatePath', label: 'Character Certificate', icon: <FaFileAlt /> },
+      { key: 'transferCertificatePath', label: 'Transfer Certificate', icon: <FaFileAlt /> },
+      { key: 'aadharCardPath', label: 'Aadhar Card', icon: <FaIdCard /> },
+      { key: 'entranceExamScorePath', label: 'Entrance Exam Score', icon: <FaAward /> },
+      { key: 'migrationCertificatePath', label: 'Migration Certificate', icon: <FaFileAlt /> },
+      { key: 'domicileCertificatePath', label: 'Domicile Certificate', icon: <FaFileAlt /> },
+      { key: 'casteCertificatePath', label: 'Caste Certificate', icon: <FaFileAlt /> },
+      { key: 'nonCreamyLayerCertificatePath', label: 'Non-Creamy Layer Certificate', icon: <FaFileAlt /> },
+      { key: 'physicallyChallengedCertificatePath', label: 'Physically Challenged Certificate', icon: <FaFileAlt /> },
+      { key: 'sportsQuotaCertificatePath', label: 'Sports Quota Certificate', icon: <FaAward /> },
+      { key: 'nriSponsorCertificatePath', label: 'NRI Sponsor Certificate', icon: <FaFileAlt /> },
+      { key: 'gapCertificatePath', label: 'Gap Certificate', icon: <FaFileAlt /> },
+      { key: 'affidavitPath', label: 'Affidavit', icon: <FaFileAlt /> }
     ];
 
-    docMapping.forEach(({ key, label, icon: Icon }) => {
+    docMapping.forEach(({ key, label, icon }) => {
       if (student[key]) {
-        docs.push({ label, path: student[key], icon: Icon });
+        docs.push({ label, path: student[key], icon });
       }
     });
 
