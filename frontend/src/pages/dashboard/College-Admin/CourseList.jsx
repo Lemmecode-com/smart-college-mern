@@ -977,7 +977,7 @@ export default function CourseList() {
       />
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         /* ================= CSS VARIABLES ================= */
         :root {
           --primary: #4F46E5;

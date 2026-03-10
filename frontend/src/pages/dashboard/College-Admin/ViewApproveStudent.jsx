@@ -1066,7 +1066,7 @@ export default function ViewApproveStudent() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         /* ================= THEME COLORS (Matching Sidebar) ================= */
         :root {
           --erp-primary-dark: #0c2d3a;

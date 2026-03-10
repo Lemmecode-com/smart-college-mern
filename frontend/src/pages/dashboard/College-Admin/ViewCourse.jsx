@@ -304,7 +304,7 @@ export default function ViewCourse() {
         </section>
       </main>
 
-      <style jsx>{`
+      <style>{`
         /* =====================================================
            VIEW COURSE PAGE - Enterprise SaaS Design
            Matching Sidebar Color Scheme

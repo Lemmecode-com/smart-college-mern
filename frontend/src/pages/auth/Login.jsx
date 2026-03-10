@@ -274,7 +274,7 @@ export default function Login() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         /* ================= CSS VARIABLES ================= */
         :root {
           /* Sidebar-matched colors */
