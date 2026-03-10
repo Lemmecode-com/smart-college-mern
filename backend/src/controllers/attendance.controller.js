@@ -2171,21 +2171,31 @@ exports.getTeacherCourses = async (req, res) => {
     });
 
     if (!teacher) {
+      console.log('[getTeacherCourses] Teacher not found for user:', req.user.id);
       return res.status(404).json({
         message: "Teacher not found",
       });
     }
 
+    console.log('[getTeacherCourses] Teacher found:', teacher.name);
+    console.log('[getTeacherCourses] Teacher courses array:', teacher.courses);
+    console.log('[getTeacherCourses] Teacher courses length:', teacher.courses?.length);
+
     if (!teacher.courses || teacher.courses.length === 0) {
+      console.log('[getTeacherCourses] No courses assigned to teacher');
       return res.json([]);
     }
 
     const courses = await Course.find({
       _id: { $in: teacher.courses },
       college_id: collegeId,
-    }).select("name");
+    }).select("name code");
 
-    res.status(200).json(courses);
+    console.log('[getTeacherCourses] Courses from DB:', courses);
+    console.log('[getTeacherCourses] Courses found:', courses.length);
+    
+    // Return courses array directly (frontend expects array)
+    res.json(courses);
   } catch (error) {
     console.error("Fetch courses error:", error);
     res.status(500).json({
@@ -2202,25 +2212,56 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
     const { courseId } = req.params;
     const collegeId = req.college_id;
 
+    console.log('[getTeacherSubjectsByCourse] courseId:', courseId);
+    console.log('[getTeacherSubjectsByCourse] collegeId:', collegeId);
+
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
       college_id: collegeId,
     });
 
     if (!teacher) {
+      console.log('[getTeacherSubjectsByCourse] Teacher not found');
       return res.status(403).json({ message: "Teacher not found" });
     }
 
-    // Fetch subjects directly from Subject collection
-    const subjects = await Subject.find({
+    console.log('[getTeacherSubjectsByCourse] Teacher found:', teacher.name, 'ID:', teacher._id);
+    console.log('[getTeacherSubjectsByCourse] Querying subjects with:', {
       college_id: collegeId,
       course_id: courseId,
-      teacher_id: teacher._id, // important
+      teacher_id: teacher._id
+    });
+
+    // Fetch subjects from Subject collection
+    // Option 1: Try with teacher_id filter first (most specific)
+    let subjects = await Subject.find({
+      college_id: collegeId,
+      course_id: courseId,
+      teacher_id: teacher._id,
       status: "ACTIVE",
     }).select("_id name code");
 
+    console.log('[getTeacherSubjectsByCourse] Subjects with teacher_id filter:', subjects.length);
+
+    // Option 2: If no subjects found, try without teacher_id filter
+    // This handles cases where subjects are linked to course but not directly to teacher
+    if (subjects.length === 0) {
+      console.log('[getTeacherSubjectsByCourse] No subjects found with teacher_id, trying without teacher filter...');
+      subjects = await Subject.find({
+        college_id: collegeId,
+        course_id: courseId,
+        status: "ACTIVE",
+      }).select("_id name code");
+      console.log('[getTeacherSubjectsByCourse] Subjects without teacher_id filter:', subjects.length);
+    }
+
+    console.log('[getTeacherSubjectsByCourse] Raw subjects from DB:', subjects);
+    console.log('[getTeacherSubjectsByCourse] Subjects found:', subjects.length);
+    
+    // Return subjects array directly (frontend expects array)
     res.json(subjects);
   } catch (error) {
+    console.error('[getTeacherSubjectsByCourse] Error:', error);
     res.status(500).json({ message: error.message });
   }
 };
