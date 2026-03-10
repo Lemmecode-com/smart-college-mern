@@ -18,27 +18,23 @@
     />
     <style>
       :root {
-        --primary-color: #4361ee;
-        --primary-dark: #3a56d4;
-        --secondary-color: #f8f9fa;
-        --accent-color: #00d9ff;
-        --accent-purple: #7209b7;
-        --dark-color: #1a1a2e;
-        --gradient-primary: linear-gradient(
-          135deg,
-          #4361ee 0%,
-          #7209b7 50%,
-          #00d9ff 100%
-        );
-        --gradient-hero: linear-gradient(
-          135deg,
-          rgba(67, 97, 238, 0.95) 0%,
-          rgba(114, 9, 183, 0.9) 100%
-        );
-        --glass-bg: rgba(255, 255, 255, 0.1);
-        --glass-border: rgba(255, 255, 255, 0.2);
-        --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        --shadow-glow: 0 0 40px rgba(67, 97, 238, 0.3);
+        /* Sidebar Theme Colors - Teal/Cyan with different shades */
+        --primary-darkest: #0a1f29;
+        --primary-darker: #0f3a4a;
+        --primary-dark: #134a5f;
+        --primary-medium: #1a5c75;
+        --primary-light: #2688a8;
+        --primary-lighter: #3db5e6;
+        --primary-lightest: #4fc3f7;
+        --primary-glow: #6dd5fa;
+        --dark-color: #0a1f29;
+        --gradient-primary: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+        --gradient-hero: linear-gradient(135deg, rgba(15, 58, 74, 0.95) 0%, rgba(61, 181, 230, 0.9) 100%);
+        --gradient-accent: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
+        --glass-bg: rgba(61, 181, 230, 0.1);
+        --glass-border: rgba(61, 181, 230, 0.2);
+        --shadow-lg: 0 25px 50px rgba(15, 58, 74, 0.3);
+        --shadow-glow: 0 0 40px rgba(61, 181, 230, 0.4);
       }
 
       body {
@@ -67,36 +63,44 @@
       /* Navbar */
       .navbar {
         backdrop-filter: blur(20px);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.92) 100%) !important;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
+        background: linear-gradient(180deg, rgba(15, 58, 74, 0.95) 0%, rgba(12, 45, 58, 0.92) 100%) !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(67, 97, 238, 0.1);
+        border-bottom: 1px solid rgba(61, 181, 230, 0.15);
       }
 
       .navbar.scrolled {
-        box-shadow: 0 10px 40px rgba(67, 97, 238, 0.2) !important;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+        background: linear-gradient(180deg, rgba(10, 31, 41, 0.98) 0%, rgba(15, 58, 74, 0.95) 100%) !important;
         padding: 0.5rem 0;
       }
 
       .navbar-brand {
         font-weight: 900;
-        background: var(--gradient-primary);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: white !important;
         font-size: 1.85rem !important;
         position: relative;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
+        transition: all 0.3s ease;
+      }
+
+      .navbar-brand img {
+        height: 50px;
+        width: auto;
+        filter: drop-shadow(0 2px 8px rgba(61, 181, 230, 0.4));
         transition: all 0.3s ease;
       }
 
       .navbar-brand:hover {
         transform: scale(1.05);
-        filter: drop-shadow(0 0 20px rgba(67, 97, 238, 0.4));
+      }
+
+      .navbar-brand:hover img {
+        filter: drop-shadow(0 4px 16px rgba(61, 181, 230, 0.6));
+        transform: scale(1.08);
       }
 
       .navbar-brand i {
@@ -110,7 +114,7 @@
 
       .nav-link {
         font-weight: 600;
-        color: var(--dark-color) !important;
+        color: #e6f2f5 !important;
         position: relative;
         margin: 0 0.25rem;
         padding: 0.5rem 1rem !important;
@@ -125,7 +129,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(114, 9, 183, 0.1) 100%);
+        background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.15) 100%);
         border-radius: 8px;
         opacity: 0;
         transform: scale(0.8);
@@ -146,10 +150,10 @@
         transform: translateX(-50%);
         width: 0;
         height: 3px;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         border-radius: 2px;
         transition: width 0.3s ease;
-        box-shadow: 0 0 10px rgba(67, 97, 238, 0.5);
+        box-shadow: 0 0 10px rgba(61, 181, 230, 0.6);
       }
 
       .nav-link:hover::after {
@@ -157,7 +161,7 @@
       }
 
       .nav-link:hover {
-        color: var(--primary-color) !important;
+        color: #4fc3f7 !important;
         transform: translateY(-2px);
       }
 
@@ -176,26 +180,26 @@
       }
 
       .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(67, 97, 238, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(61, 181, 230, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
       }
 
       .nav-btn {
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         color: white !important;
         padding: 0.6rem 1.5rem !important;
         border-radius: 50px;
         font-weight: 700;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
         border: 2px solid transparent;
       }
 
       .nav-btn:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+        box-shadow: 0 8px 25px rgba(61, 181, 230, 0.6);
         background: transparent;
-        border-color: var(--primary-color);
-        color: var(--primary-color) !important;
+        border-color: var(--primary-lighter);
+        color: var(--primary-lightest) !important;
       }
 
       .nav-btn::before {
@@ -208,41 +212,43 @@
 
       /* Hero Section */
       .hero-section {
-        background: var(--gradient-hero);
+        background: linear-gradient(135deg, rgba(15, 58, 74, 0.92) 0%, rgba(26, 92, 117, 0.85) 100%),
+                    url('./images/novaa01.jpg') center/cover no-repeat;
+        background-attachment: fixed;
         color: white;
-        padding: 120px 0;
+        padding: 180px 0 140px;
         position: relative;
         overflow: hidden;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
       }
 
       .hero-section::before {
         content: "";
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(
-          circle,
-          rgba(0, 217, 255, 0.15) 0%,
-          transparent 70%
-        );
-        animation: rotate 30s linear infinite;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 50%, rgba(61, 181, 230, 0.2) 0%, transparent 60%);
+        pointer-events: none;
       }
 
       .hero-section::after {
         content: "";
         position: absolute;
-        bottom: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(
-          circle,
-          rgba(114, 9, 183, 0.15) 0%,
-          transparent 70%
-        );
-        animation: rotate 25s linear infinite reverse;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 70% 50%, rgba(79, 195, 247, 0.15) 0%, transparent 60%);
+        pointer-events: none;
+      }
+
+      /* Fallback background if image doesn't load */
+      .hero-section {
+        background-color: #0f3a4a;
       }
 
       @keyframes rotate {
@@ -268,10 +274,41 @@
       }
 
       .hero-title .highlight {
-        background: linear-gradient(135deg, #00d9ff 0%, #4361ee 100%);
+        background: linear-gradient(135deg, #4fc3f7 0%, #3db5e6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        filter: drop-shadow(0 0 20px rgba(61, 181, 230, 0.5));
+      }
+
+      /* Scroll Indicator Animation */
+      .scroll-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(61, 181, 230, 0.2);
+        border: 2px solid rgba(61, 181, 230, 0.4);
+        animation: bounce 2s infinite;
+      }
+
+      .scroll-indicator i {
+        color: #4fc3f7;
+        font-size: 1.5rem;
+      }
+
+      @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-10px);
+        }
+        60% {
+          transform: translateY(-5px);
+        }
       }
 
       .hero-lead {
@@ -283,21 +320,22 @@
 
       /* Buttons */
       .btn-hero {
-        background: white;
-        color: var(--primary-color);
+        background: var(--gradient-accent);
+        color: white;
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
-        border: 2px solid white;
+        border: 2px solid transparent;
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 10px 30px rgba(61, 181, 230, 0.4);
       }
 
       .btn-hero:hover {
         transform: translateY(-5px) scale(1.05);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 45px rgba(61, 181, 230, 0.6);
         background: transparent;
-        color: white;
+        border-color: var(--primary-lighter);
+        color: var(--primary-lightest);
       }
 
       .btn-hero-outline {
@@ -306,15 +344,17 @@
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
-        border: 2px solid white;
+        border: 2px solid rgba(61, 181, 230, 0.5);
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
       }
 
       .btn-hero-outline:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(61, 181, 230, 0.15);
         transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 15px 35px rgba(61, 181, 230, 0.4);
+        border-color: var(--primary-lighter);
+        color: var(--primary-lightest);
       }
 
       /* Feature Cards */
@@ -323,17 +363,114 @@
         border-radius: 20px;
         overflow: hidden;
         height: 100%;
-        border: 1px solid rgba(67, 97, 238, 0.1);
+        border: 1px solid rgba(61, 181, 230, 0.15);
         transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       }
 
       .feature-card:hover {
         transform: translateY(-15px) scale(1.02);
-        box-shadow:
-          0 25px 50px rgba(0, 0, 0, 0.15),
-          0 0 40px rgba(67, 97, 238, 0.3);
-        border-color: var(--primary-color);
+        box-shadow: 0 25px 50px rgba(15, 58, 74, 0.2), 0 0 40px rgba(61, 181, 230, 0.3);
+        border-color: var(--primary-lighter);
+      }
+
+      /* Coverflow Carousel Styles */
+      .carousel-inner {
+        padding: 40px 0;
+        perspective: 1000px;
+      }
+
+      .carousel-item {
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+        backface-visibility: hidden;
+      }
+
+      .carousel-item-next,
+      .carousel-item-prev {
+        position: absolute;
+        top: 0;
+        width: 100%;
+      }
+
+      /* Coverflow Effect - Cards */
+      .carousel-item .feature-card {
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: center center;
+      }
+
+      /* Active slide - center cards normal */
+      .carousel-item.active .feature-card {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+
+      /* Previous slide - cards slide to left with 3D rotation */
+      .carousel-item-prev .feature-card {
+        transform: translateX(-50%) scale(0.85) rotateY(15deg);
+        opacity: 0.5;
+        filter: blur(2px);
+      }
+
+      /* Next slide - cards slide to right with 3D rotation */
+      .carousel-item-next .feature-card {
+        transform: translateX(50%) scale(0.85) rotateY(-15deg);
+        opacity: 0.5;
+        filter: blur(2px);
+      }
+
+      /* Carousel Indicators Styling */
+      .carousel-indicators {
+        bottom: -30px;
+      }
+
+      .carousel-indicators button {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--primary-lighter);
+        border: none;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+      }
+
+      .carousel-indicators button.active {
+        opacity: 1;
+        transform: scale(1.3);
+        box-shadow: 0 0 15px rgba(61, 181, 230, 0.6);
+      }
+
+      /* Carousel Controls Styling */
+      .carousel-control-prev,
+      .carousel-control-next {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        background: transparent;
+      }
+
+      .carousel-control-prev:hover,
+      .carousel-control-next:hover {
+        opacity: 1;
+      }
+
+      .carousel-control-prev-icon,
+      .carousel-control-next-icon {
+        background-color: rgba(61, 181, 230, 0.8);
+        border-radius: 50%;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(61, 181, 230, 0.4);
+      }
+
+      .carousel-control-prev-icon:hover,
+      .carousel-control-next-icon:hover {
+        background-color: var(--primary-lighter);
+        transform: scale(1.1);
+      }
+
+      /* Show controls on section hover */
+      #features:hover .carousel-control-prev,
+      #features:hover .carousel-control-next {
+        opacity: 0.7;
       }
 
       .feature-card .card-img-top {
@@ -369,7 +506,7 @@
         left: 0;
         width: 5px;
         height: 100%;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         transition: width 0.4s ease;
       }
 
@@ -405,8 +542,9 @@
         transform: translateX(-50%);
         width: 80px;
         height: 4px;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         border-radius: 2px;
+        box-shadow: 0 0 10px rgba(61, 181, 230, 0.5);
       }
 
       .section-subtitle {
@@ -431,20 +569,20 @@
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         color: white;
         transition: all 0.4s ease;
-        box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+        box-shadow: 0 10px 20px rgba(61, 181, 230, 0.3);
       }
 
       .icon-box:hover {
         transform: rotate(360deg) scale(1.1);
-        box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
+        box-shadow: 0 15px 30px rgba(61, 181, 230, 0.4);
       }
 
       /* CTA Section */
       .cta-section {
-        background: linear-gradient(135deg, #4361ee 0%, #7209b7 100%);
+        background: linear-gradient(135deg, #0f3a4a 0%, #1a5c75 100%);
         position: relative;
         overflow: hidden;
         padding: 120px 0;
@@ -457,11 +595,7 @@
         right: -10%;
         width: 500px;
         height: 500px;
-        background: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.1) 0%,
-          transparent 70%
-        );
+        background: radial-gradient(circle, rgba(61, 181, 230, 0.15) 0%, transparent 70%);
         border-radius: 50%;
         animation: float 6s ease-in-out infinite;
       }
@@ -473,11 +607,7 @@
         left: -10%;
         width: 400px;
         height: 400px;
-        background: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.08) 0%,
-          transparent 70%
-        );
+        background: radial-gradient(circle, rgba(79, 195, 247, 0.12) 0%, transparent 70%);
         border-radius: 50%;
         animation: float 8s ease-in-out infinite reverse;
       }
@@ -492,9 +622,9 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(255, 255, 255, 0.15);
+        background: rgba(61, 181, 230, 0.15);
         backdrop-filter: blur(10px);
-        color: white;
+        color: #4fc3f7;
         padding: 0.6rem 1.75rem;
         border-radius: 50px;
         font-weight: 600;
@@ -503,7 +633,7 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         text-transform: uppercase;
         letter-spacing: 1.5px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(61, 181, 230, 0.3);
       }
 
       .cta-section .section-title {
@@ -513,7 +643,7 @@
       }
 
       .cta-section .section-title::after {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(61, 181, 230, 0.4);
       }
 
       .cta-section .section-subtitle {
@@ -550,8 +680,9 @@
       }
 
       .cta-feature i {
-        color: #00d9ff;
+        color: #3db5e6;
         font-size: 1.25rem;
+        filter: drop-shadow(0 0 8px rgba(61, 181, 230, 0.6));
       }
 
       /* Contact Section */
@@ -559,13 +690,14 @@
         background: white;
         border-radius: 20px;
         overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 15px 40px rgba(15, 58, 74, 0.1);
         transition: all 0.4s ease;
+        border: 1px solid rgba(61, 181, 230, 0.1);
       }
 
       .contact-info-card:hover {
         transform: translateY(-10px);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 25px 50px rgba(15, 58, 74, 0.15);
       }
 
       .contact-info-item {
@@ -627,19 +759,19 @@
 
       .form-control:focus,
       .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.15);
+        border-color: var(--primary-lighter);
+        box-shadow: 0 0 0 0.2rem rgba(61, 181, 230, 0.15);
         transform: translateY(-2px);
       }
 
       .btn-submit {
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         border: none;
         font-weight: 700;
         padding: 1rem 2.5rem;
         border-radius: 50px;
         transition: all 0.4s ease;
-        box-shadow: 0 15px 35px rgba(67, 97, 238, 0.4);
+        box-shadow: 0 15px 35px rgba(61, 181, 230, 0.4);
         position: relative;
         overflow: hidden;
         color: white;
@@ -667,17 +799,12 @@
 
       .btn-submit:hover {
         transform: translateY(-5px);
-        box-shadow: 0 20px 45px rgba(67, 97, 238, 0.5);
+        box-shadow: 0 20px 45px rgba(61, 181, 230, 0.5);
       }
 
       /* Footer */
       footer {
-        background: linear-gradient(
-          135deg,
-          #0f0f1a 0%,
-          #1a1a2e 50%,
-          #16213e 100%
-        );
+        background: linear-gradient(135deg, #0a1f29 0%, #0f3a4a 50%, #134a5f 100%);
         position: relative;
         overflow: hidden;
       }
@@ -700,7 +827,7 @@
         left: 0;
         width: 100%;
         height: 3px;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
       }
 
       footer .footer-content {
@@ -731,7 +858,7 @@
         left: 0;
         width: 40px;
         height: 2px;
-        background: var(--accent-color);
+        background: var(--gradient-accent);
       }
 
       footer p {
@@ -767,7 +894,7 @@
       }
 
       footer ul li a:hover {
-        color: var(--accent-color);
+        color: #4fc3f7;
         transform: translateX(8px);
       }
 
@@ -786,19 +913,20 @@
       footer .contact-info li i {
         width: 35px;
         height: 35px;
-        background: rgba(67, 97, 238, 0.2);
+        background: rgba(61, 181, 230, 0.15);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-right: 12px;
-        color: var(--accent-color);
+        color: #3db5e6;
         transition: all 0.3s ease;
       }
 
       footer .contact-info li:hover i {
-        background: var(--primary-color);
+        background: #3db5e6;
         transform: rotate(360deg);
+        box-shadow: 0 0 15px rgba(61, 181, 230, 0.5);
       }
 
       footer .social-links {
@@ -811,18 +939,20 @@
         justify-content: center;
         width: 45px;
         height: 45px;
-        background: rgba(67, 97, 238, 0.1);
+        background: rgba(61, 181, 230, 0.1);
         border-radius: 50%;
         margin-right: 10px;
         color: white;
         font-size: 1.25rem;
         transition: all 0.4s ease;
+        border: 1px solid rgba(61, 181, 230, 0.2);
       }
 
       footer .social-links a:hover {
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         transform: translateY(-5px) rotate(360deg);
-        box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+        box-shadow: 0 10px 25px rgba(61, 181, 230, 0.5);
+        border-color: transparent;
       }
 
       footer hr {
@@ -839,14 +969,14 @@
 
       .version-badge {
         display: inline-block;
-        background: linear-gradient(135deg, #4361ee, #7209b7);
+        background: var(--gradient-accent);
         color: white;
         padding: 0.2rem 0.6rem;
         border-radius: 20px;
         font-size: 0.75rem;
         font-weight: 600;
         margin-left: 0.5rem;
-        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
       }
 
       /* Floating Back to Top Button */
@@ -856,7 +986,7 @@
         right: 30px;
         width: 55px;
         height: 55px;
-        background: var(--gradient-primary);
+        background: var(--gradient-accent);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -865,12 +995,12 @@
         font-size: 1.4rem;
         cursor: pointer;
         transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        box-shadow: 0 10px 35px rgba(67, 97, 238, 0.5);
+        box-shadow: 0 10px 35px rgba(61, 181, 230, 0.5);
         z-index: 9999;
         opacity: 0;
         visibility: hidden;
         transform: translateY(20px) scale(0.8);
-        border: 2px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(61, 181, 230, 0.3);
       }
 
       .floating-back-to-top.show {
@@ -881,8 +1011,7 @@
 
       .floating-back-to-top:hover {
         transform: translateY(-8px) scale(1.1);
-        box-shadow: 0 15px 45px rgba(67, 97, 238, 0.7);
-        background: linear-gradient(135deg, #7209b7 0%, #4361ee 50%, #00d9ff 100%);
+        box-shadow: 0 15px 45px rgba(61, 181, 230, 0.7);
       }
 
       .floating-back-to-top i {
@@ -1087,16 +1216,20 @@
     <div class="scroll-progress"></div>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
       <div class="container">
         <a class="navbar-brand fs-2" href="#">
-          <i class="fas fa-graduation-cap"></i>NOVAA
+          <img src="../frontend/public/novaaa.png" alt="NOVAA Logo" style="height: 50px; width: auto;" />
+          
         </a>
         <button
           class="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
         >
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -1115,7 +1248,7 @@
               <a class="nav-link" href="#contact">Contact</a>
             </li>
             <li class="nav-item ms-2">
-              <a class="btn nav-btn" href="./login.html">
+              <a class="btn nav-btn" href="http://localhost:5173/login" target="_blank" rel="noopener noreferrer">
                 <i class="fas fa-sign-in-alt me-2"></i>Login
               </a>
             </li>
@@ -1127,39 +1260,37 @@
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container">
-        <div class="row align-items-center">
-          <div class="col-lg-6 hero-content">
-            <h1 class="hero-title">
+        <div class="row justify-content-center">
+          <div class="col-lg-10 hero-content text-center">
+            <h1 class="hero-title mb-4">
               <span class="gsap-reveal-text-line">Transform Your</span><br />
-              <span class="gsap-reveal-text-line"
-                >Educational <span class="highlight">Institution</span></span
-              >
+              <span class="gsap-reveal-text-line">Educational <span class="highlight">Institution</span></span>
             </h1>
-            <p class="hero-lead gsap-fade-up">
+            <p class="hero-lead gsap-fade-up mb-5">
               Comprehensive college management platform designed to streamline
               operations, enhance learning experiences, and connect students,
               teachers, and administrators seamlessly.
             </p>
-            <div class="d-flex gap-3 flex-wrap">
+            <div class="d-flex gap-3 flex-wrap justify-content-center">
               <a
                 href="/register"
                 class="btn btn-hero animate__animated animate__bounceIn"
-                >Get Started</a
-              >
+                >
+                <i class="fas fa-rocket me-2"></i>Get Started
+              </a>
               <a
                 href="#features"
                 class="btn btn-hero-outline animate__animated animate__pulse animate__infinite"
-                >Learn More</a
-              >
+                >
+                <i class="fas fa-info-circle me-2"></i>Learn More
+              </a>
             </div>
-          </div>
-          <div class="col-lg-6 mt-5 mt-lg-0">
-            <div class="text-center">
-              <img
-                src="./images/novaa01.jpg"
-                alt="Education Technology"
-                class="img-fluid rounded shadow animate-float gsap-scale-up"
-              />
+            
+            <!-- Scroll Indicator -->
+            <div class="mt-5 pt-4">
+              <div class="scroll-indicator">
+                <i class="fas fa-chevron-down"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -1205,154 +1336,193 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="section-padding bg-light">
+    <section id="features" class="section-padding bg-gradient-light">
       <div class="container">
         <div class="row mb-5">
           <div class="col-12 text-center">
             <h2 class="section-title gsap-fade-up">Powerful Features</h2>
             <p class="section-subtitle gsap-fade-up">
-              Everything you need to manage your educational institution
-              efficiently
+              Everything you need to manage your educational institution efficiently
             </p>
           </div>
         </div>
-        <div class="row g-4">
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-1"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa03.png"
-                  class="img-fluid"
-                  alt="Student Management"
-                  style="object-fit: cover"
-                />
+        
+        <!-- Features Carousel -->
+        <div id="featuresCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
+          <!-- Carousel Indicators -->
+          <div class="carousel-indicators">
+            <button type="button" data-bs-target="#featuresCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#featuresCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+          </div>
+          
+          <!-- Carousel Inner -->
+          <div class="carousel-inner">
+            <!-- Slide 1 -->
+            <div class="carousel-item active">
+              <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-1">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa03.png"
+                        class="img-fluid"
+                        alt="Student Management"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-user-graduate me-2" style="color: var(--primary-lighter);"></i>
+                        Student Management
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Complete student lifecycle management from admission to
+                        graduation with detailed records and analytics.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-2">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa04.png"
+                        class="img-fluid"
+                        alt="Teacher Portal"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-chalkboard-teacher me-2" style="color: var(--primary-lighter);"></i>
+                        Teacher Portal
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Empower educators with tools for attendance, grading,
+                        timetables, and communication with students.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-3">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa05.png"
+                        class="img-fluid"
+                        alt="Timetable Management"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-calendar-alt me-2" style="color: var(--primary-lighter);"></i>
+                        Timetable Management
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Intelligent scheduling system that creates conflict-free
+                        timetables for classes and exams.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="card-body p-4">
-                <h5 class="card-title animate__animated animate__rubberBand">
-                  Student Management
-                </h5>
-                <p class="card-text">
-                  Complete student lifecycle management from admission to
-                  graduation with detailed records and analytics.
-                </p>
+            </div>
+            
+            <!-- Slide 2 -->
+            <div class="carousel-item">
+              <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-4">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa06.png"
+                        class="img-fluid"
+                        alt="Fee Management"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-file-invoice-dollar me-2" style="color: var(--primary-lighter);"></i>
+                        Fee Management
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Automated fee calculation, payment processing, and financial
+                        reporting for transparent billing.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-5">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa07.png"
+                        class="img-fluid"
+                        alt="Analytics & Reports"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-chart-line me-2" style="color: var(--primary-lighter);"></i>
+                        Analytics & Reports
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Comprehensive dashboards with insights on academics,
+                        attendance, and institutional performance.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-6">
+                    <div class="card-img-top" style="height: 180px; overflow: hidden;">
+                      <img
+                        src="./images/novaa08.png"
+                        class="img-fluid"
+                        alt="Notifications"
+                        style="object-fit: cover;"
+                        onerror="this.src='https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80'"
+                      />
+                    </div>
+                    <div class="card-body p-4">
+                      <h5 class="card-title">
+                        <i class="fas fa-bell me-2" style="color: var(--primary-lighter);"></i>
+                        Notifications
+                      </h5>
+                      <p class="card-text" style="color: #5a6c75;">
+                        Real-time alerts and notifications to keep all stakeholders
+                        informed about important updates.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-2"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa04.png"
-                  class="img-fluid"
-                  alt="Teacher Portal"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h5 class="card-title">Teacher Portal</h5>
-                <p class="card-text">
-                  Empower educators with tools for attendance, grading,
-                  timetables, and communication with students.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-3"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa05.png"
-                  class="img-fluid"
-                  alt="Timetable Management"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h5 class="card-title">Timetable Management</h5>
-                <p class="card-text">
-                  Intelligent scheduling system that creates conflict-free
-                  timetables for classes and exams.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-4"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa06.png"
-                  class="img-fluid"
-                  alt="Fee Management"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h5 class="card-title animate__animated animate__flipInX">
-                  Fee Management
-                </h5>
-                <p class="card-text">
-                  Automated fee calculation, payment processing, and financial
-                  reporting for transparent billing.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-5"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa07.png"
-                  class="img-fluid"
-                  alt="Analytics & Reports"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h5 class="card-title">Analytics & Reports</h5>
-                <p class="card-text">
-                  Comprehensive dashboards with insights on academics,
-                  attendance, and institutional performance.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6 col-lg-4">
-            <div
-              class="card feature-card h-100 border-0 shadow-sm gsap-card stagger-6"
-            >
-              <div class="card-img-top" style="height: 180px; overflow: hidden">
-                <img
-                  src="./images/novaa08.png"
-                  class="img-fluid"
-                  alt="Notifications"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h5 class="card-title">Notifications</h5>
-                <p class="card-text">
-                  Real-time alerts and notifications to keep all stakeholders
-                  informed about important updates.
-                </p>
-              </div>
-            </div>
-          </div>
+          
+          <!-- Carousel Controls -->
+          <button class="carousel-control-prev" type="button" data-bs-target="#featuresCarousel" data-bs-slide="prev" style="width: 5%; opacity: 0.5;">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#featuresCarousel" data-bs-slide="next" style="width: 5%; opacity: 0.5;">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
         </div>
       </div>
     </section>
 
     <!-- Testimonials -->
-    <section id="testimonials" class="section-padding bg-light">
+    <!-- <section id="testimonials" class="section-padding bg-light">
       <div class="container">
         <div class="row mb-5">
           <div class="col-12 text-center">
@@ -1446,7 +1616,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <!-- CTA Section - Enhanced -->
     <section class="cta-section">
@@ -1632,165 +1802,32 @@
               </div>
             </div>
           </div>
-          <div class="col-lg-5">
-            <div class="contact-info-card gsap-fade-up">
-              <div class="card-img-top" style="height: 200px; overflow: hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80"
-                  class="img-fluid"
-                  alt="Our Team"
-                  style="object-fit: cover"
-                />
-              </div>
-              <div class="card-body p-4">
-                <h3 class="fw-bold mb-4">Contact Information</h3>
-                <p class="mb-4 text-muted">
-                  Fill out the form and our team will get back to you within 24
-                  hours.
-                </p>
-
-                <div class="contact-info-item">
-                  <div class="icon-box">
-                    <i class="fas fa-envelope"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Email Us</h6>
-                    <p class="text-muted mb-0">info@novaa.edu</p>
-                  </div>
-                </div>
-
-                <div class="contact-info-item">
-                  <div class="icon-box">
-                    <i class="fas fa-phone"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Call Us</h6>
-                    <p class="text-muted mb-0">+1 (555) 123-4567</p>
-                  </div>
-                </div>
-
-                <div class="contact-info-item">
-                  <div class="icon-box">
-                    <i class="fas fa-map-marker-alt"></i>
-                  </div>
-                  <div>
-                    <h6 class="mb-0">Visit Us</h6>
-                    <p class="text-muted mb-0">
-                      123 Education St, Learning City
-                    </p>
-                  </div>
-                </div>
-
-                <div class="office-hours-card">
-                  <h5 class="fw-bold mb-3">
-                    <i class="fas fa-clock me-2 text-primary"></i>Office Hours
-                  </h5>
-                  <div class="office-hours-item">
-                    <span>Monday - Friday</span>
-                    <span>9:00 AM - 6:00 PM</span>
-                  </div>
-                  <div class="office-hours-item">
-                    <span>Saturday</span>
-                    <span>10:00 AM - 4:00 PM</span>
-                  </div>
-                  <div class="office-hours-item">
-                    <span>Sunday</span>
-                    <span class="text-danger">Closed</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
       </div>
     </section>
 
-    <!-- Footer - Enhanced -->
-    <footer class="py-5">
+    <!-- Footer -->
+    <footer class="">
       <div class="container footer-content">
-        <div class="row g-4">
+        <div class="pt-4 d-flex justify-content-between">
           <div class="col-lg-4 col-md-6">
             <h5 class="fw-bold mb-3">
-              <i class="fas fa-graduation-cap me-2"></i>NOVAA
+              <img src="../frontend/public/novaaa.png" alt="NOVAA Logo" style="height: 40px; width: auto; margin-right: 0.5rem;" />
+
             </h5>
             <p class="mb-4">
               Modern education management platform designed to streamline
               operations and enhance learning experiences for institutions
               worldwide.
             </p>
-            <div class="social-links">
-              <a href="#" class="animate__animated animate__bounceIn"
-                ><i class="fab fa-facebook-f"></i
-              ></a>
-              <a href="#" class="animate__animated animate__bounceIn"
-                ><i class="fab fa-twitter"></i
-              ></a>
-              <a href="#" class="animate__animated animate__bounceIn"
-                ><i class="fab fa-linkedin-in"></i
-              ></a>
-              <a href="#" class="animate__animated animate__bounceIn"
-                ><i class="fab fa-instagram"></i
-              ></a>
-              <a href="#" class="animate__animated animate__bounceIn"
-                ><i class="fab fa-youtube"></i
-              ></a>
-            </div>
-          </div>
-          <div class="col-lg-2 col-md-6">
-            <h6 class="fw-bold">Product</h6>
-            <ul class="mt-3">
-              <li><a href="#features">Features</a></li>
-              <li><a href="#">Solutions</a></li>
-              <li><a href="#">Pricing</a></li>
-              <li><a href="#">Demo</a></li>
-              <li><a href="#">Updates</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-2 col-md-6">
-            <h6 class="fw-bold">Company</h6>
-            <ul class="mt-3">
-              <li><a href="#about">About Us</a></li>
-              <li><a href="#">Careers</a></li>
-              <li><a href="#">Blog</a></li>
-              <li><a href="#contact">Contact</a></li>
-            </ul>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <h6 class="fw-bold">Contact Us</h6>
-            <ul class="contact-info mt-3">
-              <li>
-                <i class="fas fa-envelope"></i>
-                <span>info@novaa.edu</span>
-              </li>
-              <li>
-                <i class="fas fa-phone"></i>
-                <span>+1 (555) 123-4567</span>
-              </li>
-              <li>
-                <i class="fas fa-map-marker-alt"></i>
-                <span>123 Education St, Learning City</span>
-              </li>
-            </ul>
-          </div>
         </div>
-        <hr class="my-4" />
-        <div class="row align-items-center">
-          <div class="col-md-6 text-center text-md-start">
+        <div>
+          <div class="mt-5">
             <p class="copyright mb-0">
               &copy; 2026 NOVAA <span class="version-badge">v2.0.0</span>. All rights reserved.
             </p>
           </div>
-          <div class="col-md-6 text-center text-md-end">
-            <a href="#" class="text-light text-decoration-none me-3"
-              >Privacy Policy</a
-            >
-            <a href="#" class="text-light text-decoration-none me-3"
-              >Terms of Service</a
-            >
-            <a href="#" class="text-light text-decoration-none"
-              >Cookie Policy</a
-            >
-          </div>
+          
         </div>
       </div>
     </footer>
@@ -1940,6 +1977,45 @@
         }
       `;
       document.head.appendChild(style);
+
+      // Coverflow Carousel Enhancement
+      const featuresCarousel = document.getElementById('featuresCarousel');
+      if (featuresCarousel) {
+        // Add smooth transitions on slide change
+        featuresCarousel.addEventListener('slide.bs.carousel', function () {
+          const activeItem = this.querySelector('.carousel-item.active');
+          const nextItem = this.querySelector('.carousel-item-next') || this.querySelector('.carousel-item-prev');
+          
+          if (activeItem) {
+            activeItem.style.opacity = '0.5';
+          }
+          if (nextItem) {
+            nextItem.style.opacity = '1';
+          }
+        });
+
+        featuresCarousel.addEventListener('slid.bs.carousel', function () {
+          const allItems = this.querySelectorAll('.carousel-item');
+          allItems.forEach(item => {
+            item.style.opacity = '1';
+          });
+        });
+
+        // Pause on hover
+        featuresCarousel.addEventListener('mouseenter', function() {
+          const carousel = bootstrap.Carousel.getInstance(this);
+          if (carousel) {
+            carousel.pause();
+          }
+        });
+
+        featuresCarousel.addEventListener('mouseleave', function() {
+          const carousel = bootstrap.Carousel.getInstance(this);
+          if (carousel) {
+            carousel.cycle();
+          }
+        });
+      }
     </script>
   </body>
 </html>
