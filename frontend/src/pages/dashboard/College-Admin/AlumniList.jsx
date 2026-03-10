@@ -702,11 +702,6 @@ export default function AlumniList() {
             </p>
           </div>
         </div>
-        <div className="header-actions">
-          <button className="btn btn-export" onClick={handleExportToExcel}>
-            <FaFileExcel /> Export to Excel
-          </button>
-        </div>
       </div>
 
       {/* Stats Cards */}
