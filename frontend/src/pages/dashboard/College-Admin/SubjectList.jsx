@@ -541,7 +541,7 @@ export default function SubjectList() {
       )}
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         /* CSS Custom Properties for consistent theming */
         :root {
           --sidebar-primary: #0f3a4a;
