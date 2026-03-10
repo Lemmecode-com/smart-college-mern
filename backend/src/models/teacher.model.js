@@ -122,6 +122,10 @@ const teacherSchema = new mongoose.Schema(
       default: "FULL_TIME",
     },
 
+    joiningDate: {
+      type: Date,
+    },
+
     subjects: [
       {
         type: mongoose.Schema.Types.ObjectId,

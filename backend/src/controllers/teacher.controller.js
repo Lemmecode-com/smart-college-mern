@@ -33,6 +33,8 @@ exports.createTeacher = async (req, res, next) => {
       state,
       pincode,
       employmentType,
+      mobileNumber,
+      joiningDate,
     } = req.body;
 
     /* ================= Normalize courses ================= */
@@ -103,6 +105,8 @@ exports.createTeacher = async (req, res, next) => {
       state,
       pincode,
       employmentType: employmentType || "FULL_TIME",
+      mobileNumber,
+      joiningDate,
     });
 
     ApiResponse.created(res, {
@@ -175,6 +179,8 @@ exports.updateMyProfile = async (req, res, next) => {
       name,
       email,
       experienceYears,
+      mobileNumber,
+      joiningDate,
     } = req.body;
 
     // Find teacher by user_id (logged-in user)
@@ -193,6 +199,8 @@ exports.updateMyProfile = async (req, res, next) => {
       ...(name && { name }),
       ...(email && { email }),
       ...(experienceYears !== undefined && { experienceYears }),
+      ...(mobileNumber !== undefined && { mobileNumber }),
+      ...(joiningDate !== undefined && { joiningDate }),
     };
 
     const updatedTeacher = await Teacher.findOneAndUpdate(

@@ -9,7 +9,6 @@ const RefreshToken = require("../models/refreshToken.model");
 const PasswordReset = require("../models/passwordReset.model");
 const AppError = require("../utils/AppError");
 const { createAndSendOTP, verifyOTP, markOTPAsUsed, checkRateLimit } = require("../services/otp.service");
-const securityAuditService = require("../services/securityAudit.service");
 
 /**
  * COMMON LOGIN
@@ -24,12 +23,8 @@ exports.login = async (req, res, next) => {
     if (user) {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login (non-blocking)
-        securityAuditService.logLoginFailed(email, req, 'INVALID_CREDENTIALS').catch(err => console.error('Audit log failed:', err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      // 🔒 SECURITY AUDIT: Log successful login (non-blocking)
-      securityAuditService.logLoginSuccess(user, req).catch(err => console.error('Audit log failed:', err));
       return sendTokens(res, user._id, user.role, user.college_id, req);
     }
 
@@ -38,12 +33,8 @@ exports.login = async (req, res, next) => {
     if (teacher) {
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login (non-blocking)
-        securityAuditService.logLoginFailed(email, req, 'INVALID_CREDENTIALS').catch(err => console.error('Audit log failed:', err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      // 🔒 SECURITY AUDIT: Log successful login (non-blocking)
-      securityAuditService.logLoginSuccess(teacher, req).catch(err => console.error('Audit log failed:', err));
       return sendTokens(res, teacher._id, "TEACHER", teacher.college_id, req);
     }
 
@@ -77,21 +68,15 @@ exports.login = async (req, res, next) => {
         // Use User.password (hashed) for verification
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          // 🔒 SECURITY AUDIT: Log failed login (non-blocking)
-          securityAuditService.logLoginFailed(email, req, 'INVALID_CREDENTIALS').catch(err => console.error('Audit log failed:', err));
           throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
         }
         // ✅ Ensure student has a linked User account
         if (!student.user_id) {
           throw new AppError("Student account not linked. Please contact admin.", 403, "USER_NOT_LINKED");
         }
-        // 🔒 SECURITY AUDIT: Log successful login (non-blocking)
-        securityAuditService.logLoginSuccess(student, req).catch(err => console.error('Audit log failed:', err));
         // Send student.user_id in token (consistent User._id for all students)
         return sendTokens(res, student.user_id, "STUDENT", student.college_id, req);
       } else {
-        // 🔒 SECURITY AUDIT: Log failed login (non-blocking)
-        securityAuditService.logLoginFailed(email, req, 'INVALID_CREDENTIALS').catch(err => console.error('Audit log failed:', err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
     }
@@ -141,15 +126,6 @@ exports.logout = async (req, res, next) => {
 
     // Calculate session duration (approximate)
     const sessionDuration = 'Session ended';
-
-    // 🔒 SECURITY AUDIT: Log logout with user email
-    const logoutUserData = {
-      id: req.user.id,
-      email: userEmail,
-      role: req.user.role,
-      college_id: req.user.college_id
-    };
-    await securityAuditService.logLogout(logoutUserData, req, sessionDuration);
 
     // Clear the token cookie
     res.clearCookie('token', {
@@ -264,9 +240,6 @@ exports.requestPasswordReset = async (req, res, next) => {
       throw new AppError("Email not found in database", 404, "EMAIL_NOT_FOUND");
     }
 
-    // 🔒 SECURITY AUDIT: Log password reset request
-    await securityAuditService.logPasswordResetRequest(email, req);
-
     // ✅ CHECK RATE LIMIT (Prevent duplicate requests)
     const rateLimit = await checkRateLimit(email);
     if (!rateLimit.allowed) {
@@ -356,9 +329,6 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 
     // Mark OTP as used
     await markOTPAsUsed(result.record._id);
-
-    // 🔒 SECURITY AUDIT: Log password reset success
-    await securityAuditService.logPasswordResetSuccess(email, req);
 
     res.json({
       success: true,
