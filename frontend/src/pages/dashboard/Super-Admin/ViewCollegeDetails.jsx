@@ -82,6 +82,9 @@ export default function ViewCollegeDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailData, setEmailData] = useState({ subject: "", message: "" });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Fix registration URL to use frontend port instead of backend port
   const getFrontendRegistrationUrl = (url) => {
@@ -120,6 +123,30 @@ export default function ViewCollegeDetails() {
       setError(err?.response?.data?.message || "Failed to fetch college details");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Send email to college admin
+  const handleSendEmail = async (e) => {
+    e.preventDefault();
+    setSendingEmail(true);
+
+    try {
+      const res = await api.post(`/master/${id}/send-email`, {
+        collegeId: id,
+        subject: emailData.subject || `Regarding ${college.name} - Smart College Management`,
+        message: emailData.message
+      });
+
+      setShowSuccess(true);
+      setShowEmailModal(false);
+      setEmailData({ subject: "", message: "" });
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (err) {
+      console.error("Email send error:", err);
+      setError(err?.response?.data?.message || "Failed to send email");
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -551,7 +578,11 @@ export default function ViewCollegeDetails() {
                     {/* Send Email to College Admin Button */}
                     <button
                       onClick={() => {
-                        window.location.href = `mailto:${college.email}?subject=Regarding ${college.name} - Smart College Management`;
+                        setEmailData({ 
+                          subject: `Regarding ${college.name} - Smart College Management`,
+                          message: "" 
+                        });
+                        setShowEmailModal(true);
                       }}
                       style={{
                         display: 'inline-block',
@@ -582,67 +613,202 @@ export default function ViewCollegeDetails() {
                       📧 Send Email to College Admin
                     </button>
                   </div>
-
-                  {college.registrationQr && (
-                    <div style={{
-                      textAlign: 'center',
-                      marginTop: '1.5rem',
-                      paddingTop: '1.5rem',
-                      borderTop: '1px solid #e2e8f0'
-                    }}>
-                      <h5 style={{
-                        fontWeight: 700,
-                        marginBottom: '1rem',
-                        color: '#1e293b',
-                        fontSize: '1.125rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem'
-                      }}>
-                        <FaQrcode style={{ color: '#3b82f6' }} /> Scan to Register
-                      </h5>
-                      <motion.div
-                        variants={pulseVariants}
-                        initial="initial"
-                        animate="pulse"
-                        style={{
-                          display: 'inline-block',
-                          padding: '1.25rem',
-                          backgroundColor: 'white',
-                          borderRadius: '16px',
-                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
-                          border: '3px solid',
-                          backgroundImage: gradientColors['primary-gradient']
-                        }}
-                      >
-                        <img
-                          src={`/${college.registrationQr}`}
-                          alt="College Registration QR Code"
-                          style={{
-                            width: '180px',
-                            height: '180px',
-                            objectFit: 'contain',
-                            borderRadius: '8px',
-                            boxShadow: '0 5px 15px rgba(0, 0, 0, 0.1)'
-                          }}
-                        />
-                      </motion.div>
-                      <p style={{
-                        marginTop: '1rem',
-                        color: '#64748b',
-                        fontSize: '0.9rem'
-                      }}>
-                        Students can scan this QR code to access the registration portal
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
       </motion.div>
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={() => setShowEmailModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '16px',
+              padding: '2rem',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            <h2 style={{ 
+              margin: '0 0 1.5rem 0', 
+              fontSize: '1.5rem', 
+              color: '#1a4b6d',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              📧 Send Email to College Admin
+            </h2>
+
+            <form onSubmit={handleSendEmail}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  fontSize: '0.875rem'
+                }}>
+                  To
+                </label>
+                <input
+                  type="text"
+                  value={college?.email}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.75rem',
+                    backgroundColor: '#f8fafc',
+                    fontSize: '0.95rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  fontSize: '0.875rem'
+                }}>
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                  placeholder="Enter email subject"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  fontSize: '0.875rem'
+                }}>
+                  Message
+                </label>
+                <textarea
+                  value={emailData.message}
+                  onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
+                  placeholder="Type your message here..."
+                  required
+                  rows="6"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  disabled={sendingEmail}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#f1f5f9',
+                    color: '#64748b',
+                    border: 'none',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    cursor: sendingEmail ? 'not-allowed' : 'pointer',
+                    opacity: sendingEmail ? 0.6 : 1
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingEmail}
+                  style={{
+                    padding: '0.75rem 2rem',
+                    backgroundColor: sendingEmail ? '#9ca3af' : '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.75rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: sendingEmail ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {sendingEmail ? (
+                    <>
+                      <span className="spinner" style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: 'white',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }} />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      📧 Send Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }
@@ -757,3 +923,13 @@ const StatCard = ({ icon, label, value, gradient, delay }) => {
     </motion.div>
   );
 };
+
+// Add global spin animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+document.head.appendChild(style);
