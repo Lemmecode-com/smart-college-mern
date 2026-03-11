@@ -50,7 +50,6 @@ export default function DepartmentList() {
       const res = await api.get("/departments");
       setDepartments(res.data || []);
     } catch (err) {
-      console.error("Error fetching departments:", err);
       setDepartments([]);
     } finally {
       setLoading(false);

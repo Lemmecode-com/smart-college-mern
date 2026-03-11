@@ -97,7 +97,6 @@ export default function NotificationList() {
       }
       setRetryCount(0);
     } catch (err) {
-      console.error("Fetch notifications error:", err);
       const errorMsg =
         err.response?.data?.message ||
         err.message ||
@@ -152,7 +151,6 @@ export default function NotificationList() {
         toastId: "notification-delete-success",
       });
     } catch (err) {
-      console.error("Delete error:", err);
       toast.error(err.response?.data?.message || "Failed to delete notification", {
         ...CONFIG.TOAST,
         toastId: "notification-delete-error",
