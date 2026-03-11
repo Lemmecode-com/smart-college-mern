@@ -44,7 +44,6 @@ export default function CloseSession() {
       setResult(res.data);
 
     } catch (err) {
-      console.error(err);
       setError(
         err.response?.data?.message || "Failed to close session"
       );

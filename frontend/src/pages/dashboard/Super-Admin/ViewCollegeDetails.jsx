@@ -120,7 +120,6 @@ export default function ViewCollegeDetails() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error("Error fetching college:", err);
       setError(err?.response?.data?.message || "Failed to fetch college details");
     } finally {
       setLoading(false);

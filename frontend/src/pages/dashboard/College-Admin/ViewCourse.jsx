@@ -46,7 +46,6 @@ export default function ViewCourse() {
         setCourse(res.data?.course || res.data);
       } catch (err) {
         setError("Failed to load course details. Please try again.");
-        console.error("Course fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -304,7 +303,7 @@ export default function ViewCourse() {
         </section>
       </main>
 
-      <style jsx>{`
+      <style>{`
         /* =====================================================
            VIEW COURSE PAGE - Enterprise SaaS Design
            Matching Sidebar Color Scheme
