@@ -3,13 +3,14 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const upload = require("../config/multer");
 
-const { 
-  createCollege, 
-  getAllColleges, 
+const {
+  createCollege,
+  getAllColleges,
   getCollegeById,
   deleteCollege,
   restoreCollege,
-  hardDeleteCollege
+  hardDeleteCollege,
+  sendEmailToCollegeAdmin
 } = require("../controllers/master.controller");
 
 /* create college super admin only */
@@ -59,6 +60,14 @@ router.post(
   auth,
   role("SUPER_ADMIN"),
   hardDeleteCollege
+);
+
+// 📧 SEND EMAIL TO COLLEGE ADMIN
+router.post(
+  "/:collegeId/send-email",
+  auth,
+  role("SUPER_ADMIN"),
+  sendEmailToCollegeAdmin
 );
 
 
