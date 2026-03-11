@@ -245,7 +245,7 @@ export default function SubjectList() {
             <div className="filter-group">
               <label className="filter-label">
                 <FaLayerGroup className="filter-icon" />
-                Department
+                <span>Department</span>
               </label>
               <div className="filter-select-wrapper">
                 <select
@@ -274,7 +274,7 @@ export default function SubjectList() {
             <div className="filter-group">
               <label className="filter-label">
                 <FaAward className="filter-icon" />
-                Course
+                <span>Course</span>
               </label>
               <div className="filter-select-wrapper">
                 <select
@@ -704,16 +704,23 @@ export default function SubjectList() {
           font-weight: 600;
           color: #0f3a4a;
           font-size: 0.95rem;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 0.625rem;
           padding: 0.25rem 0;
+          white-space: nowrap;
         }
 
         .filter-icon {
           color: #3db5e6;
           font-size: 1rem;
           flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          position: absolute;
+          left: -18px;
         }
 
         .filter-select-wrapper {
