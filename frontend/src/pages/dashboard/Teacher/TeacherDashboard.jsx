@@ -156,7 +156,6 @@ export default function TeacherDashboard() {
         const res = await api.get("/dashboard/teacher");
         setData(res.data);
       } catch (err) {
-        console.error("Failed to load teacher dashboard:", err);
         setError("Failed to load dashboard data. Please try again.");
       } finally {
         setLoading(false);

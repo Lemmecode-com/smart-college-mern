@@ -106,7 +106,6 @@ export default function StudentDashboard() {
     } catch (err) {
       // Silently handle auth errors
       if (err.response?.status !== 403 && err.response?.status !== 401) {
-        console.error("Dashboard fetch error:", err);
         const errorMsg = err.response?.data?.message || "Failed to load dashboard. Please check your connection and try again.";
         setError(errorMsg);
         toast.error(errorMsg, {

@@ -96,7 +96,6 @@ export default function SessionDetails() {
       const res = await api.get(`/attendance/sessions/${sessionId}`);
       setSession(res.data);
     } catch (err) {
-      console.error("Failed to load session:", err);
       setError("Failed to load session details. Please try again.");
     }
   };
@@ -107,7 +106,6 @@ export default function SessionDetails() {
       const res = await api.get(`/attendance/sessions/${sessionId}/records`);
       setRecords(res.data || []);
     } catch (err) {
-      console.error("Failed to load records:", err);
       setError("Failed to load attendance records. Please try again.");
     }
   };
@@ -118,7 +116,6 @@ export default function SessionDetails() {
       const res = await api.get(`/attendance/sessions/${sessionId}/students`);
       setStudents(res.data || []);
     } catch (err) {
-      console.error("Failed to load students:", err);
       setError("Failed to load student list. Please try again.");
     }
   };
@@ -147,13 +144,12 @@ export default function SessionDetails() {
   /* ================= DELETE SESSION ================= */
   const deleteSession = async () => {
     if (!window.confirm("Are you sure you want to delete this attendance session? This action cannot be undone.")) return;
-    
+
     setDeleting(true);
     try {
       await api.delete(`/attendance/sessions/${sessionId}`);
       navigate("/attendance/sessions");
     } catch (err) {
-      console.error("Failed to delete session:", err);
       alert(err.response?.data?.message || "Failed to delete session. Please try again.");
     } finally {
       setDeleting(false);
@@ -166,7 +162,7 @@ export default function SessionDetails() {
       alert("Please mark attendance for at least one student before saving.");
       return;
     }
-    
+
     setSaving(true);
     try {
       const payload = {
@@ -181,7 +177,6 @@ export default function SessionDetails() {
       fetchRecords();
       setAttendance({});
     } catch (err) {
-      console.error("Failed to save attendance:", err);
       alert(err.response?.data?.message || "Failed to save attendance. Please try again.");
     } finally {
       setSaving(false);
@@ -191,14 +186,13 @@ export default function SessionDetails() {
   /* ================= CLOSE SESSION ================= */
   const closeSession = async () => {
     if (!window.confirm("Are you sure you want to close this session? Attendance cannot be modified after closing.")) return;
-    
+
     setClosing(true);
     try {
       await api.put(`/attendance/sessions/${sessionId}/close`);
       alert("Session closed successfully!");
       window.location.reload();
     } catch (err) {
-      console.error("Failed to close session:", err);
       alert(err.response?.data?.message || "Failed to close session. Please try again.");
     } finally {
       setClosing(false);

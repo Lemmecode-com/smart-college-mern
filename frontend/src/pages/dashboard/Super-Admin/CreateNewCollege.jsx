@@ -133,7 +133,6 @@ export default function CreateNewCollege() {
       setError(
         err.response?.data?.message || "Failed to create college. Please try again."
       );
-      console.error("College creation error:", err);
     } finally {
       setLoading(false);
     }
@@ -597,7 +596,7 @@ export default function CreateNewCollege() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;

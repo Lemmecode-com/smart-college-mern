@@ -177,7 +177,6 @@ export default function StudentAttendanceReport() {
       
       addToast("Report downloaded successfully!", "success");
     } catch (err) {
-      console.error("Download error:", err);
       addToast("Failed to download report. Please try again.", "error");
     }
   };
@@ -238,8 +237,6 @@ export default function StudentAttendanceReport() {
           clearTimeout(loadTimeoutRef.current);
         }
       } catch (err) {
-        console.error("Failed to load attendance report:", err);
-        
         // Clear timeout on error
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);

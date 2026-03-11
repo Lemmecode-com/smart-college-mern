@@ -80,7 +80,6 @@ export default function EditStudentProfile() {
         setCourse(course);
 
       } catch (err) {
-        console.error(err);
         setError("Failed to load profile");
       } finally {
         setLoading(false);
@@ -116,7 +115,6 @@ export default function EditStudentProfile() {
       });
 
     } catch (err) {
-      console.error(err);
       const errorMsg = err.response?.data?.message || "Failed to update profile";
       setError(errorMsg);
       toast.error(errorMsg, {

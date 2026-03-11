@@ -194,7 +194,6 @@ export default function MakePayments() {
       });
       setInstallmentName("");
     } catch (err) {
-      console.error(err);
       const errorMsg = err.response?.data?.message || "Mock payment failed. Try again.";
       setErrorMessage(errorMsg);
       setShowError(true);

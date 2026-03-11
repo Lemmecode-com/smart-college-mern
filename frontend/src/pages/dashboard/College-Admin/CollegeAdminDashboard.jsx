@@ -249,7 +249,6 @@ export default function CollegeAdminDashboard() {
         // Set pending admissions
         setPendingAdmissions(data.pendingAdmissions || []);
       } catch (err) {
-        console.error("Failed to load dashboard data:", err);
         setError(
           err.response?.data?.message ||
             "Failed to load dashboard data. Please try again."

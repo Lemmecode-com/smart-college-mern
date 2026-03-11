@@ -33,7 +33,6 @@ export default function SuperAdminReports() {
       setData(res.data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Reports fetch error:", err);
       setError(err.response?.data?.message || "Failed to load admission summary. Please try again.");
     } finally {
       setLoading(false);
@@ -408,7 +407,7 @@ export default function SuperAdminReports() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;

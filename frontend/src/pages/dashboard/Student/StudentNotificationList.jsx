@@ -38,7 +38,6 @@ export default function StudentNotificationList() {
           });
         }
       } catch (err) {
-        console.error(err);
         const errorMsg = "Failed to load notifications. Please check your connection.";
         setError(errorMsg);
         toast.error(errorMsg, {

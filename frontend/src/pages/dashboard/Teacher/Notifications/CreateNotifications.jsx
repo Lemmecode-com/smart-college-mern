@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaBell,
   FaPaperPlane,
@@ -17,9 +20,34 @@ import {
   FaArrowLeft,
   FaEye,
   FaClock,
-  FaStar
+  FaStar,
+  FaDownload,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
+/* ================= CONFIGURATION ================= */
+const CONFIG = {
+  TOAST: {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "colored",
+  },
+  THEME: {
+    PRIMARY: "#0f3a4a",
+    PRIMARY_DARK: "#0c2d3a",
+    PRIMARY_LIGHT: "#1a4b6d",
+    ACCENT: "#3db5e6",
+    SUCCESS: "#28a745",
+    WARNING: "#ffc107",
+    DANGER: "#dc3545",
+    INFO: "#17a2b8",
+  },
+};
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -81,54 +109,58 @@ const spinVariants = {
   }
 };
 
-const scaleVariants = {
-  hidden: { scale: 0.95, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2 } }
-};
-
 export default function CreateNotifications() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
     message: "",
     type: "GENERAL",
     priority: "NORMAL",
+    expiresAt: "",
   });
 
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [titleCount, setTitleCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+
+  /* ================= CHARACTER COUNTERS ================= */
+  useEffect(() => {
+    setTitleCount(form.title.length);
+    setMessageCount(form.message.length);
+  }, [form.title, form.message]);
 
   /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
-    setError("");
-    setSuccess("");
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   /* ================= SUBMIT ================= */
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
     if (!form.title.trim() || !form.message.trim()) {
-      setError("Title and Message are required fields");
+      toast.error("Title and Message are required", CONFIG.TOAST);
       return;
     }
 
     if (form.title.length > 100) {
-      setError("Title must be less than 100 characters");
+      toast.error("Title must be less than 100 characters", CONFIG.TOAST);
       return;
     }
 
     if (form.message.length > 1000) {
-      setError("Message must be less than 1000 characters");
+      toast.error("Message must be less than 1000 characters", CONFIG.TOAST);
+      return;
+    }
+
+    // Validate expiry date
+    if (form.expiresAt && new Date(form.expiresAt) < new Date()) {
+      toast.error("Expiry date cannot be in the past", CONFIG.TOAST);
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const payload = {
@@ -136,37 +168,63 @@ export default function CreateNotifications() {
         message: form.message.trim(),
         type: form.type,
         priority: form.priority,
+        expiresAt: form.expiresAt || null,
       };
 
       await api.post("/notifications/teacher/create", payload);
 
-      setSuccess("Notification sent successfully to all students!");
-      
-      // Reset form after success
-      setForm({
-        title: "",
-        message: "",
-        type: "GENERAL",
-        priority: "NORMAL",
+      toast.success("Notification sent successfully to all students!", {
+        ...CONFIG.TOAST,
+        toastId: "notification-create-success",
       });
-      
-      // Auto-dismiss success message after 5 seconds
-      setTimeout(() => setSuccess(""), 5000);
+
+      // Reset form after success with delay
+      setTimeout(() => {
+        setForm({
+          title: "",
+          message: "",
+          type: "GENERAL",
+          priority: "NORMAL",
+          expiresAt: "",
+        });
+      }, 2000);
     } catch (err) {
-      console.error("Failed to send notification:", err);
-      setError(err.response?.data?.message || "Failed to send notification. Please try again.");
+      toast.error(
+        err.response?.data?.message || "Failed to send notification. Please try again.",
+        CONFIG.TOAST
+      );
     } finally {
       setLoading(false);
     }
+  }, [form]);
+
+  // Load sample notification
+  const loadSample = () => {
+    const sample = {
+      title: "Important Exam Schedule Update",
+      message: "Dear Students,\n\nPlease note that the exam schedule for Semester 5 has been updated. The new timetable is available on the student portal.\n\nKey changes:\n- Data Structures exam moved to Feb 25\n- Database Systems exam moved to Feb 28\n\nPlease check your portals for the complete schedule.\n\nRegards,\nExamination Cell",
+      type: "EXAM",
+      priority: "HIGH",
+      expiresAt: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().slice(0, 16),
+    };
+    setForm(sample);
+    setTitleCount(sample.title.length);
+    setMessageCount(sample.message.length);
+    toast.info("Sample notification loaded", CONFIG.TOAST);
   };
 
   // Get notification type config
   const typeConfig = BRAND_COLORS.notificationTypes[form.type] || BRAND_COLORS.notificationTypes.GENERAL;
   const priorityConfig = BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
   const TypeIcon = typeConfig.icon;
-  const PriorityIcon = form.priority === "URGENT" ? FaExclamationTriangle : 
-                      form.priority === "HIGH" ? FaClock : 
+  const PriorityIcon = form.priority === "URGENT" ? FaExclamationTriangle :
+                      form.priority === "HIGH" ? FaClock :
                       form.priority === "LOW" ? FaStar : FaInfoCircle;
+
+  /* ================= LOADING STATE ================= */
+  if (loading && !form.title) {
+    return <Loading fullScreen size="lg" text="Preparing notification form..." />;
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -174,61 +232,32 @@ export default function CreateNotifications() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-container"
         style={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+          background: '#f5f7fa',
           paddingTop: '1.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
           paddingRight: '1rem'
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.history.back()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Create Notification</span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Notifications", path: "/teacher/notifications/list" },
+              { label: "Create Notification" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="erp-page-header"
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
@@ -292,6 +321,27 @@ export default function CreateNotifications() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={loadSample}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: '2px solid rgba(255, 255, 255, 0.4)',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <FaDownload /> Load Sample
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setShowPreview(!showPreview)}
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -312,7 +362,7 @@ export default function CreateNotifications() {
                 </motion.button>
               </div>
             </div>
-            
+
             {/* Info Banner */}
             <div style={{
               padding: '1rem 2rem',
@@ -325,22 +375,25 @@ export default function CreateNotifications() {
             }}>
               <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, fontSize: '1.5rem', flexShrink: 0 }} />
               <div style={{ color: '#1e293b', fontWeight: 500, lineHeight: 1.5 }}>
-                Notifications will be sent to all students enrolled in your courses. 
+                Notifications will be sent to all students enrolled in your courses.
                 <strong style={{ marginLeft: '0.5rem' }}>Students will receive email and in-app alerts.</strong>
               </div>
             </div>
           </motion.div>
 
-          <div className="row g-4">
+          <div className="row g-4" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
             {/* ================= FORM CARD ================= */}
             <motion.div
               variants={fadeInVariants}
               custom={0}
               initial="hidden"
               animate="visible"
-              className={showPreview ? 'col-lg-6' : 'col-12'}
+              style={{
+                flex: showPreview ? '0 0 calc(58.333333% - 0.75rem)' : '0 0 100%',
+                maxWidth: showPreview ? 'calc(58.333333% - 0.75rem)' : '100%'
+              }}
             >
-              <div style={{
+              <div className="erp-card" style={{
                 backgroundColor: 'white',
                 borderRadius: '20px',
                 boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
@@ -368,68 +421,39 @@ export default function CreateNotifications() {
                   }}>
                     <FaBell />
                   </div>
-                  <h2 style={{ 
-                    margin: 0, 
-                    fontSize: '1.5rem', 
+                  <h2 style={{
+                    margin: 0,
+                    fontSize: '1.5rem',
                     fontWeight: 700,
                     color: '#1e293b'
                   }}>
                     Compose Notification
                   </h2>
                 </div>
-                
-                <div style={{ padding: '2rem' }}>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                        border: `1px solid ${BRAND_COLORS.danger.main}`,
-                        color: BRAND_COLORS.danger.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <FaTimesCircle size={20} />
-                      <span>{error}</span>
-                    </motion.div>
-                  )}
-                  
-                  {success && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        marginBottom: '1.5rem',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: `${BRAND_COLORS.success.main}0a`,
-                        border: `1px solid ${BRAND_COLORS.success.main}`,
-                        color: BRAND_COLORS.success.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <FaCheckCircle size={20} />
-                      <span>{success}</span>
-                    </motion.div>
-                  )}
 
+                <div style={{ padding: '2rem' }}>
                   <form onSubmit={handleSubmit}>
                     {/* Title Field */}
-                    <FormField 
-                      icon={<FaInfoCircle />} 
-                      label="Notification Title" 
-                      required
-                      error={form.title.length > 100}
-                      helperText={`${form.title.length}/100 characters`}
-                    >
+                    <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label fw-semibold d-flex justify-content-between align-items-center" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.75rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '1.05rem'
+                      }}>
+                        <span>
+                          <FaInfoCircle className="me-1" style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                          Notification Title <span className="text-danger" style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                        </span>
+                        <small className={`text-${titleCount > 80 ? 'danger' : titleCount > 60 ? 'warning' : 'muted'}`} style={{
+                          color: titleCount > 80 ? BRAND_COLORS.danger.main : titleCount > 60 ? BRAND_COLORS.warning.main : '#64748b'
+                        }}>
+                          {titleCount}/100 characters
+                        </small>
+                      </label>
                       <input
                         type="text"
                         name="title"
@@ -437,21 +461,54 @@ export default function CreateNotifications() {
                         onChange={handleChange}
                         placeholder="e.g., Important Exam Schedule Update"
                         style={{
-                          ...inputStyle,
-                          borderColor: form.title.length > 100 ? BRAND_COLORS.danger.main : '#e2e8f0'
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '14px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '1.05rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500,
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                         }}
                         maxLength="100"
+                        required
                       />
-                    </FormField>
+                      <div className="form-text" style={{
+                        fontSize: '0.85rem',
+                        color: '#64748b',
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                        Keep it concise and action-oriented. Appears in notification headers.
+                      </div>
+                    </div>
 
                     {/* Message Field */}
-                    <FormField 
-                      icon={<FaClipboardList />} 
-                      label="Message Content" 
-                      required
-                      error={form.message.length > 1000}
-                      helperText={`${form.message.length}/1000 characters`}
-                    >
+                    <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label fw-semibold d-flex justify-content-between align-items-center" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.75rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '1.05rem'
+                      }}>
+                        <span>
+                          <FaClipboardList className="me-1" style={{ color: BRAND_COLORS.info.main, marginRight: '0.5rem' }} />
+                          Message Content <span className="text-danger" style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                        </span>
+                        <small className={`text-${messageCount > 800 ? 'danger' : messageCount > 600 ? 'warning' : 'muted'}`} style={{
+                          color: messageCount > 800 ? BRAND_COLORS.danger.main : messageCount > 600 ? BRAND_COLORS.warning.main : '#64748b'
+                        }}>
+                          {messageCount}/1000 characters
+                        </small>
+                      </label>
                       <textarea
                         name="message"
                         value={form.message}
@@ -459,26 +516,70 @@ export default function CreateNotifications() {
                         placeholder="Enter detailed notification message here..."
                         rows="6"
                         style={{
-                          ...inputStyle,
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '14px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '1.05rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500,
                           resize: 'vertical',
                           minHeight: '150px',
-                          borderColor: form.message.length > 1000 ? BRAND_COLORS.danger.main : '#e2e8f0'
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                         }}
                         maxLength="1000"
+                        required
                       />
-                    </FormField>
+                      <div className="form-text" style={{
+                        fontSize: '0.85rem',
+                        color: '#64748b',
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                        Use clear paragraphs. Include deadlines, contact info, or next steps.
+                      </div>
+                    </div>
 
                     {/* Type Field */}
-                    <FormField 
-                      icon={<TypeIcon />} 
-                      label="Notification Type" 
-                      helperText="Select category for better organization"
-                    >
+                    <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label fw-semibold" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.75rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '1.05rem'
+                      }}>
+                        <TypeIcon style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                        Notification Type
+                      </label>
                       <select
                         name="type"
                         value={form.type}
                         onChange={handleChange}
-                        style={selectStyle}
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '14px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '1.05rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500,
+                          appearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 1rem center',
+                          backgroundSize: '16px',
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                        }}
                       >
                         {Object.entries(BRAND_COLORS.notificationTypes).map(([key, config]) => {
                           const Icon = config.icon;
@@ -489,22 +590,23 @@ export default function CreateNotifications() {
                           );
                         })}
                       </select>
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '0.5rem', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.5rem',
                         marginTop: '0.75rem',
                         flexWrap: 'wrap'
                       }}>
                         {Object.entries(BRAND_COLORS.notificationTypes).map(([key, config]) => {
                           const Icon = config.icon;
                           return (
-                            <motion.div
+                            <motion.button
                               key={key}
+                              type="button"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => setForm(prev => ({ ...prev, type: key }))}
                               style={{
-                                padding: '0.5rem',
+                                padding: '0.5rem 0.875rem',
                                 borderRadius: '8px',
                                 backgroundColor: form.type === key ? config.bg : '#f8fafc',
                                 border: `1px solid ${form.type === key ? config.color : '#e2e8f0'}`,
@@ -520,35 +622,60 @@ export default function CreateNotifications() {
                             >
                               <Icon size={14} />
                               {key.slice(0, 3)}
-                            </motion.div>
+                            </motion.button>
                           );
                         })}
                       </div>
-                    </FormField>
+                      <div className="form-text" style={{
+                        fontSize: '0.85rem',
+                        color: '#64748b',
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                        Determines icon and category in recipient's notification center
+                      </div>
+                    </div>
 
                     {/* Priority Field */}
-                    <FormField 
-                      icon={<PriorityIcon />} 
-                      label="Priority Level" 
-                      helperText="Higher priority notifications appear at the top"
-                    >
+                    <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label fw-semibold" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.75rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '1.05rem'
+                      }}>
+                        <PriorityIcon style={{ color: BRAND_COLORS.warning.main, marginRight: '0.5rem' }} />
+                        Priority Level
+                      </label>
                       <select
                         name="priority"
                         value={form.priority}
                         onChange={handleChange}
                         style={{
-                          ...selectStyle,
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '14px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '1.05rem',
                           backgroundColor: priorityConfig.bg,
                           color: priorityConfig.color,
-                          fontWeight: 600
+                          fontWeight: 600,
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                         }}
                       >
                         {Object.entries(BRAND_COLORS.priorities).map(([key, config]) => (
-                          <option 
-                            key={key} 
+                          <option
+                            key={key}
                             value={key}
-                            style={{ 
-                              backgroundColor: config.bg, 
+                            style={{
+                              backgroundColor: config.bg,
                               color: config.color,
                               fontWeight: 600,
                               padding: '0.75rem'
@@ -558,9 +685,9 @@ export default function CreateNotifications() {
                           </option>
                         ))}
                       </select>
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '0.75rem', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.75rem',
                         marginTop: '0.75rem',
                         padding: '1rem',
                         borderRadius: '12px',
@@ -577,7 +704,82 @@ export default function CreateNotifications() {
                           </div>
                         </div>
                       </div>
-                    </FormField>
+                    </div>
+
+                    {/* Expiry Date Field */}
+                    <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label fw-semibold" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.75rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        fontSize: '1.05rem'
+                      }}>
+                        <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                        Expiry Date & Time (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        name="expiresAt"
+                        value={form.expiresAt}
+                        onChange={handleChange}
+                        min={new Date().toISOString().slice(0, 16)}
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '14px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '1.05rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500,
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                        }}
+                      />
+                      {form.expiresAt && (
+                        <div style={{
+                          marginTop: '0.75rem',
+                          padding: '1rem',
+                          borderRadius: '12px',
+                          backgroundColor: '#dcfce7',
+                          border: `1px solid #86efac`,
+                          color: '#166534',
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem'
+                        }}>
+                          <FaCheckCircle size={18} />
+                          <div>
+                            <div>Set to expire on:</div>
+                            <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.25rem' }}>
+                              {new Date(form.expiresAt).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="form-text" style={{
+                        fontSize: '0.85rem',
+                        color: '#64748b',
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                        Notification will be hidden after this date. Leave blank for no expiry.
+                      </div>
+                    </div>
 
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -605,9 +807,7 @@ export default function CreateNotifications() {
                     >
                       {loading ? (
                         <>
-                          <motion.div variants={spinVariants} animate="animate">
-                            <FaSyncAlt />
-                          </motion.div>
+                          <motion.span variants={spinVariants} animate="animate" className="spinner-border spinner-border-sm" />
                           Sending Notification...
                         </>
                       ) : (
@@ -616,11 +816,11 @@ export default function CreateNotifications() {
                         </>
                       )}
                     </motion.button>
-                    
-                    <div style={{ 
-                      marginTop: '1.5rem', 
-                      padding: '1rem', 
-                      borderRadius: '12px', 
+
+                    <div style={{
+                      marginTop: '1.5rem',
+                      padding: '1rem',
+                      borderRadius: '12px',
                       backgroundColor: '#f8fafc',
                       border: '1px dashed #cbd5e1',
                       fontSize: '0.95rem',
@@ -630,7 +830,7 @@ export default function CreateNotifications() {
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                         <FaInfoCircle style={{ marginTop: '0.25rem', color: BRAND_COLORS.primary.main, flexShrink: 0 }} />
                         <div>
-                          <strong>Important:</strong> This notification will be sent to <span style={{ fontWeight: 600, color: BRAND_COLORS.primary.main }}>{form.type === 'URGENT' ? 'ALL' : 'all'}</span> students in your courses. 
+                          <strong>Important:</strong> This notification will be sent to all students in your courses.
                           Please review carefully before sending.
                         </div>
                       </div>
@@ -647,7 +847,10 @@ export default function CreateNotifications() {
                 custom={1}
                 initial="hidden"
                 animate="visible"
-                className="col-12"
+                style={{
+                  flex: '0 0 calc(41.666667% - 0.75rem)',
+                  maxWidth: 'calc(41.666667% - 0.75rem)'
+                }}
               >
                 <div style={{
                   backgroundColor: 'white',
@@ -677,16 +880,16 @@ export default function CreateNotifications() {
                     }}>
                       <FaEye />
                     </div>
-                    <h2 style={{ 
-                      margin: 0, 
-                      fontSize: '1.5rem', 
+                    <h2 style={{
+                      margin: 0,
+                      fontSize: '1.5rem',
                       fontWeight: 700,
                       color: '#1e293b'
                     }}>
                       Notification Preview
                     </h2>
                   </div>
-                  
+
                   <div style={{ padding: '2rem' }}>
                     <div style={{
                       backgroundColor: '#f8fafc',
@@ -696,18 +899,6 @@ export default function CreateNotifications() {
                       position: 'relative',
                       overflow: 'hidden'
                     }}>
-                      {/* Decorative corner element */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '-15px',
-                        right: '-15px',
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
-                        backgroundColor: typeConfig.bg,
-                        opacity: 0.3
-                      }} />
-                      
                       {/* Priority badge */}
                       <div style={{
                         position: 'absolute',
@@ -727,7 +918,7 @@ export default function CreateNotifications() {
                         <PriorityIcon size={12} />
                         {priorityConfig.label}
                       </div>
-                      
+
                       {/* Notification type badge */}
                       <div style={{
                         position: 'absolute',
@@ -747,31 +938,32 @@ export default function CreateNotifications() {
                         <TypeIcon size={12} />
                         {form.type.replace('_', ' ')}
                       </div>
-                      
-                      <div style={{ paddingTop: '1.5rem' }}>
+
+                      <div style={{ paddingTop: '3rem' }}>
                         <h3 style={{
                           margin: '0 0 1rem 0',
-                          fontSize: '1.5rem',
+                          fontSize: '1.35rem',
                           fontWeight: 700,
                           color: '#1e293b',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.75rem'
                         }}>
-                          <TypeIcon size={24} style={{ color: typeConfig.color }} />
+                          <TypeIcon size={22} style={{ color: typeConfig.color }} />
                           {form.title || 'Notification Title'}
                         </h3>
-                        
+
                         <div style={{
                           color: '#4a5568',
-                          fontSize: '1.05rem',
+                          fontSize: '1rem',
                           lineHeight: 1.7,
                           marginBottom: '1.5rem',
-                          minHeight: '80px'
+                          minHeight: '80px',
+                          whiteSpace: 'pre-wrap'
                         }}>
                           {form.message || 'This is a preview of your notification message. Students will see this content in their notification center and email.'}
                         </div>
-                        
+
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -779,67 +971,15 @@ export default function CreateNotifications() {
                           padding: '1rem',
                           borderRadius: '12px',
                           backgroundColor: '#edf2f7',
-                          fontSize: '0.95rem',
+                          fontSize: '0.9rem',
                           color: '#4a5568'
                         }}>
-                          <FaClock size={18} style={{ color: BRAND_COLORS.primary.main }} />
+                          <FaClock size={16} style={{ color: BRAND_COLORS.primary.main }} />
                           <span>Preview only • Actual notification will include timestamp and sender details</span>
                         </div>
                       </div>
-                      
-                      {/* Footer with action buttons */}
-                      <div style={{
-                        marginTop: '1.5rem',
-                        paddingTop: '1.5rem',
-                        borderTop: '1px dashed #e2e8f0',
-                        display: 'flex',
-                        gap: '0.75rem',
-                        justifyContent: 'flex-end'
-                      }}>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          style={{
-                            padding: '0.625rem 1.25rem',
-                            borderRadius: '10px',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: 'white',
-                            color: '#4a5568',
-                            fontSize: '0.95rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <FaTimesCircle /> Dismiss
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          style={{
-                            padding: '0.625rem 1.25rem',
-                            borderRadius: '10px',
-                            border: 'none',
-                            backgroundColor: BRAND_COLORS.primary.main,
-                            color: 'white',
-                            fontSize: '0.95rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 8px rgba(26, 75, 109, 0.2)'
-                          }}
-                        >
-                          <FaCheckCircle /> Mark as Read
-                        </motion.button>
-                      </div>
                     </div>
-                    
+
                     <div style={{
                       marginTop: '1.5rem',
                       padding: '1.25rem',
@@ -850,9 +990,9 @@ export default function CreateNotifications() {
                       alignItems: 'flex-start',
                       gap: '1rem'
                     }}>
-                      <FaInfoCircle size={24} style={{ color: BRAND_COLORS.primary.main, flexShrink: 0, marginTop: '0.25rem' }} />
-                      <div style={{ color: '#1e293b', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                        <strong>Preview Note:</strong> This is how students will see your notification in their dashboard. 
+                      <FaInfoCircle size={22} style={{ color: BRAND_COLORS.primary.main, flexShrink: 0, marginTop: '0.25rem' }} />
+                      <div style={{ color: '#1e293b', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                        <strong>Preview Note:</strong> This is how students will see your notification in their dashboard.
                         Email notifications will include additional branding and unsubscribe options.
                       </div>
                     </div>
@@ -864,61 +1004,6 @@ export default function CreateNotifications() {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ================= FORM FIELD COMPONENT ================= */
-function FormField({ icon, label, children, required = false, error = false, helperText }) {
-  return (
-    <div style={{ marginBottom: '1.75rem' }}>
-      <label style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '0.75rem',
-        fontWeight: 600,
-        color: '#1e293b',
-        fontSize: '1.05rem'
-      }}>
-        <span style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '28px',
-          height: '28px',
-          borderRadius: '8px',
-          backgroundColor: `${BRAND_COLORS.primary.main}10`,
-          color: BRAND_COLORS.primary.main,
-          fontSize: '1rem'
-        }}>
-          {icon}
-        </span>
-        {label}
-        {required && (
-          <span style={{ 
-            color: BRAND_COLORS.danger.main, 
-            marginLeft: '0.25rem',
-            fontSize: '1.1rem'
-          }}>
-            *
-          </span>
-        )}
-      </label>
-      
-      {helperText && (
-        <div style={{
-          fontSize: '0.85rem',
-          color: error ? BRAND_COLORS.danger.main : '#64748b',
-          marginBottom: '0.75rem',
-          display: 'flex',
-          justifyContent: 'flex-end'
-        }}>
-          {helperText}
-        </div>
-      )}
-      
-      {children}
-    </div>
   );
 }
 
@@ -946,35 +1031,3 @@ function getPriorityDescription(priority) {
   };
   return descriptions[priority] || "Priority level description";
 }
-
-/* ================= STYLES ================= */
-const inputStyle = {
-  width: '100%',
-  padding: '0.875rem 1.25rem',
-  borderRadius: '14px',
-  border: '1px solid #e2e8f0',
-  fontSize: '1.05rem',
-  backgroundColor: 'white',
-  color: '#1e293b',
-  fontWeight: 500,
-  transition: 'all 0.3s ease',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-};
-
-const selectStyle = {
-  width: '100%',
-  padding: '0.875rem 1.25rem',
-  borderRadius: '14px',
-  border: '1px solid #e2e8f0',
-  fontSize: '1.05rem',
-  backgroundColor: 'white',
-  color: '#1e293b',
-  fontWeight: 500,
-  appearance: 'none',
-  backgroundImage: `url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 1rem center',
-  backgroundSize: '16px',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-};

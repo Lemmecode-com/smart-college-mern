@@ -118,7 +118,6 @@ export default function AddTeacher() {
         const res = await api.get("/departments");
         setDepartments(res.data);
       } catch (err) {
-        console.error("Failed to load departments:", err);
         setError("Failed to load departments. Please try again later.");
       }
     };
@@ -136,14 +135,11 @@ export default function AddTeacher() {
     const fetchCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${formData.department_id}`);
-        console.log('[AddTeacher] Courses API Response:', res.data);
         // Handle different API response formats
         const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
                             Array.isArray(res.data) ? res.data : [];
-        console.log('[AddTeacher] Extracted courses:', coursesData);
         setCourses(coursesData);
       } catch (err) {
-        console.error("Failed to load courses:", err);
         setCourses([]);
         setError("Failed to load courses for selected department.");
       }
@@ -284,10 +280,8 @@ export default function AddTeacher() {
         navigate("/teachers");
       }, 2000);
     } catch (err) {
-      console.error("Teacher creation failed:", err);
-      
       let errorMessage = "Failed to create teacher. Please try again.";
-      
+
       if (err.response) {
         if (err.response.status === 500) {
           errorMessage = "Server error. Please contact system administrator.";
@@ -298,11 +292,10 @@ export default function AddTeacher() {
         } else if (err.response.data?.message) {
           errorMessage = err.response.data.message;
         }
-        console.warn("Backend error details:", err.response.data);
       } else if (err.request) {
         errorMessage = "Network error. Please check your internet connection.";
       }
-      
+
       setError(errorMessage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {

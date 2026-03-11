@@ -122,7 +122,6 @@ export default function EditDepartment() {
         const autoCode = generateCode(data.name || "");
         setIsAutoCode(data.code === autoCode);
       } catch (err) {
-        console.error("Error fetching department:", err);
         setError("Failed to load department data. Please try again.");
       } finally {
         setLoading(false);

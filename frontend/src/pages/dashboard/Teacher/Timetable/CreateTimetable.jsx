@@ -94,12 +94,10 @@ export default function CreateTimetable() {
     const loadProfile = async () => {
       try {
         const res = await api.get("/teachers/my-profile");
-        console.log("Teacher Profile Response:", res.data);
         // The API interceptor unwraps the response, so teacher data is at res.data.teacher
         const teacherData = res.data.teacher || res.data;
         setDepartment(teacherData.department_id);
       } catch (err) {
-        console.error("Error loading teacher profile:", err);
         setError("Failed to load department information");
       } finally {
         setLoading(false);
@@ -114,12 +112,10 @@ export default function CreateTimetable() {
     const loadCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${department._id}`);
-        console.log("Courses Response:", res.data);
         // The API interceptor wraps arrays in res.data.data
         const coursesList = res.data.data || res.data.courses || res.data;
         setCourses(Array.isArray(coursesList) ? coursesList : []);
       } catch (err) {
-        console.error("Error loading courses:", err);
         setError("Failed to load courses for your department");
         setCourses([]);
       }
@@ -179,9 +175,8 @@ export default function CreateTimetable() {
 
       // ✅ FIXED: Access timetable object from response
       const timetableId = response.data.timetable?._id || response.data._id;
-      
+
       if (!timetableId) {
-        console.error("No timetable ID in response:", response.data);
         setError("Timetable created but failed to get ID. Please navigate manually.");
         return;
       }
@@ -191,7 +186,6 @@ export default function CreateTimetable() {
         navigate(`/timetable/${timetableId}/weekly`);
       }, 2000);
     } catch (err) {
-      console.error("Timetable creation failed:", err);
       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
     } finally {
       setSubmitting(false);

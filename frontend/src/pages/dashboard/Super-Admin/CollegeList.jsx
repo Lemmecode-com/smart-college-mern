@@ -54,7 +54,7 @@ export default function CollegeList() {
       setLoading(true);
       setError("");
       const res = await api.get("/master/get/colleges");
-      
+
       // Handle new API response format (interceptor unwraps it)
       // Backend returns: { count, colleges }
       // Interceptor makes it: { count, colleges, success, message }
@@ -62,7 +62,6 @@ export default function CollegeList() {
       setColleges(Array.isArray(collegesData) ? collegesData : []);
       setRetryCount(0);
     } catch (err) {
-      console.error("Colleges fetch error:", err);
       setError(err.response?.data?.message || err.response?.data?.error?.message || "Failed to load colleges. Please try again.");
     } finally {
       setLoading(false);
@@ -107,19 +106,18 @@ export default function CollegeList() {
   const toggleStatus = async (id, currentStatus) => {
     const action = currentStatus ? "deactivate" : "activate";
     const confirmMessage = `Are you sure you want to ${action} this college? All associated users will ${action === "deactivate" ? "lose access" : "regain access"}.`;
-    
+
     if (!window.confirm(confirmMessage)) return;
 
     try {
       await api.put(`/master/toggle/college/${id}`);
-      setColleges(prev => 
-        prev.map(c => 
+      setColleges(prev =>
+        prev.map(c =>
           c._id === id ? { ...c, isActive: !c.isActive } : c
         )
       );
     } catch (err) {
       alert(err.response?.data?.message || `Failed to ${action} college. Please try again.`);
-      console.error(`${action} error:`, err);
     }
   };
 

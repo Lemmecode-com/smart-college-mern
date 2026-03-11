@@ -881,14 +881,14 @@ export default function MySchedule() {
       try {
         setActiveSessions(JSON.parse(storedSessions));
       } catch (e) {
-        console.error("Failed to parse stored sessions:", e);
+        // Failed to parse stored sessions
       }
     }
     if (storedAttendance) {
       try {
         setAttendanceSessions(JSON.parse(storedAttendance));
       } catch (e) {
-        console.error("Failed to parse stored attendance:", e);
+        // Failed to parse stored attendance
       }
     }
     setSessionsLoaded(true);
@@ -920,7 +920,6 @@ export default function MySchedule() {
           toastIds.current.success = true;
         }
       } catch (err) {
-        console.error("Failed to load schedule:", err);
         const errorMsg =
           err.response?.data?.message ||
           "Failed to load your schedule. Please try again.";
@@ -950,7 +949,6 @@ export default function MySchedule() {
       const today = new Date().toISOString().split("T")[0];
       localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
     } catch (err) {
-      console.error("Failed to load today's slots:", err);
       // Don't fail the entire load, just use weekly data
     }
   };
@@ -992,7 +990,6 @@ export default function MySchedule() {
         );
       }
     } catch (err) {
-      console.error("Failed to load active sessions:", err);
       // Don't show error toast for this, just use empty state
     }
   };
@@ -1192,7 +1189,6 @@ export default function MySchedule() {
         navigate(`/attendance/session/${newSession._id}`);
       }, 2000);
     } catch (err) {
-      console.error("Failed to create attendance session:", err);
       const message =
         err.response?.data?.message ||
         "Failed to create attendance session. Please try again.";

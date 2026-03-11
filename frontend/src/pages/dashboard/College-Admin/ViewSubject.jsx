@@ -213,7 +213,7 @@ export default function ViewSubject() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         /* ================= CSS VARIABLES ================= */
         :root {
           --sidebar-primary: #0f3a4a;
