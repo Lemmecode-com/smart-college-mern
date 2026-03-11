@@ -610,3 +610,84 @@ exports.sendOTPEmail = async ({ to, otp, userType, expiresIn }) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+/**
+ * Send Email to College Admin from Super Admin
+ */
+exports.sendEmailToCollegeAdmin = async ({
+  to,
+  collegeName,
+  subject,
+  message
+}) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to,
+    subject: subject || `Regarding ${collegeName} - Smart College Management`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">📧 Message from Super Admin</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">Smart College Management System</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 30px; background: #ffffff; border: 1px solid #e0e0e0;">
+          <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Dear College Admin,</p>
+
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            You have received the following message regarding <strong>${collegeName}</strong>:
+          </p>
+
+          <!-- Message Box -->
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #1a4b6d;">
+            <p style="margin: 0; color: #333; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${message}</p>
+          </div>
+
+          <!-- Action Required -->
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h4 style="margin-top: 0; color: #1565c0; font-size: 16px;">📌 Action Required</h4>
+            <p style="color: #555; font-size: 14px; margin-bottom: 0;">
+              Please review the message above and take appropriate action. If you need any assistance, 
+              feel free to reach out to the support team.
+            </p>
+          </div>
+
+          <!-- Support -->
+          <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800;">
+            <p style="margin: 0; color: #e65100; font-size: 14px;">
+              <strong>💡 Need Help?</strong> Contact support at 
+              <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@smartcollege.com'}" style="color: #e65100;">
+                ${process.env.SUPPORT_EMAIL || 'support@smartcollege.com'}
+              </a>
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; margin-top: 25px;">
+            Best regards,<br/>
+            <strong>Super Admin Team</strong><br/>
+            Smart College Management System
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0; border-top: none;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            This is an automated message from Smart College Management System.<br/>
+            © ${new Date().getFullYear()} All rights reserved.
+          </p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent to college admin at ${to}: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to send email to college admin at ${to}:`, error.message);
+    throw error;
+  }
+};
