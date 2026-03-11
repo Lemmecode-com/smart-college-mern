@@ -183,13 +183,12 @@ export default function WeeklyTimetable() {
           
           setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
         } catch (err) {
-          console.error("Failed to load teacher weekly timetable:", err);
           setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
         } finally {
           setLoading(false);
         }
       };
-      
+
       loadTeacherWeekly();
       return;
     }
@@ -197,10 +196,9 @@ export default function WeeklyTimetable() {
     const load = async () => {
       // ✅ Don't load if timetableId is missing
       if (!timetableId) {
-        console.warn("No timetableId provided, skipping load");
         return;
       }
-      
+
       try {
         setLoading(true);
         const res = await api.get(`/timetable/${timetableId}/weekly`);
@@ -219,7 +217,6 @@ export default function WeeklyTimetable() {
         setSubjects(subRes.data.subjects || subRes.data || []);
         setTeachers(teachRes.data.teachers || teachRes.data || []);
       } catch (err) {
-        console.error("Failed to load timetable:", err);
         setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
       } finally {
         setLoading(false);
@@ -288,7 +285,6 @@ export default function WeeklyTimetable() {
       setShowModal(false);
       window.location.reload();
     } catch (err) {
-      console.error("Failed to save slot:", err);
       const errorMsg = err.response?.data?.message || "Cannot modify published timetable or only HOD has access.";
       setError(errorMsg);
       toast.error(errorMsg, {
@@ -321,7 +317,6 @@ export default function WeeklyTimetable() {
       });
       window.location.reload();
     } catch (err) {
-      console.error("Failed to delete slot:", err);
       const errorMsg = err.response?.data?.message || "Delete failed. Only HOD can delete slots or timetable may be published.";
       toast.error(errorMsg, {
         position: "top-right",

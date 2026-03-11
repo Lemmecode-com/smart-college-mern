@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
@@ -11,54 +11,113 @@ import {
   FaChartPie,
   FaSyncAlt,
   FaExclamationTriangle,
-  FaSpinner,
   FaInfoCircle,
   FaGraduationCap,
-  FaDownload,
-  FaArrowUp,
-  FaArrowDown,
-  FaUniversity,
   FaArrowLeft,
+  FaUniversity,
 } from "react-icons/fa";
+
+/* ================= CONSTANTS & CONFIGURATION ================= */
+const CONFIG = {
+  MAX_RETRY: 3,
+  TOAST: {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "colored",
+  },
+  THEME: {
+    PRIMARY: "#0f3a4a",
+    PRIMARY_DARK: "#0c2d3a",
+    PRIMARY_LIGHT: "#1a4b6d",
+    ACCENT: "#3db5e6",
+    SUCCESS: "#28a745",
+    WARNING: "#ffc107",
+    DANGER: "#dc3545",
+    INFO: "#17a2b8",
+  },
+};
+
+/* ================= MODULE-LEVEL FLAG (Persists across re-renders) ================= */
+let hasFetchedData = false;
 
 export default function AdminReports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const hasLoadedRef = useRef(false);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
+    // Prevent duplicate fetches - check both module flag and ref
+    if (hasFetchedData || hasLoadedRef.current) {
+      return;
+    }
+    
     try {
       setLoading(true);
       setError("");
       const res = await api.get("/reports/admissions/college-admin-summary");
       setData(res.data);
       setRetryCount(0);
+      
+      // Show success toast with unique ID to prevent duplicates
+      toast.success("Admission reports loaded successfully!", {
+        ...CONFIG.TOAST,
+        toastId: "admin-reports-success",
+      });
+      
+      // Set both flags to prevent any duplicate calls
+      hasFetchedData = true;
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("Reports fetch error:", err);
       setError(
         err.response?.data?.message ||
           "Failed to load admission summary. Please try again.",
       );
+      // Show error toast with unique ID to prevent duplicates
+      toast.error("Failed to load admission reports.", {
+        ...CONFIG.TOAST,
+        toastId: "admin-reports-error",
+      });
+      hasFetchedData = true;
+      hasLoadedRef.current = true;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSummary();
+    // Cleanup function to reset flags on unmount - fixes blank page on second navigation
+    return () => {
+      hasFetchedData = false;
+      hasLoadedRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ================= RETRY HANDLER ================= */
-  const handleRetry = () => {
-    if (retryCount < 3) {
+  const handleRetry = useCallback(() => {
+    if (retryCount < CONFIG.MAX_RETRY) {
       setRetryCount((prev) => prev + 1);
+      // Reset both flags to allow retry
+      hasFetchedData = false;
+      hasLoadedRef.current = false;
       fetchSummary();
     } else {
+      toast.error("Maximum retry attempts reached.", {
+        ...CONFIG.TOAST,
+        toastId: "admin-reports-max-retry",
+      });
       setError("Maximum retry attempts reached. Please check your connection.");
     }
-  };
+  }, [retryCount, fetchSummary]);
 
   /* ================= EXPORT DATA PREPARATION ================= */
   const getExportData = () => {
@@ -124,32 +183,19 @@ export default function AdminReports() {
     document.body.removeChild(link);
   };
 
-  /* ================= CALCULATED METRICS ================= */
-  const approvalRate =
+  /* ================= CALCULATED METRICS (MEMOIZED) ================= */
+  const approvalRate = useMemo(() => 
     data?.approved && data?.total
       ? Math.round((data.approved / data.total) * 100)
-      : 0;
+      : 0,
+    [data?.approved, data?.total]
+  );
 
-  const pendingRate =
+  const pendingRate = useMemo(() =>
     data?.pending && data?.total
       ? Math.round((data.pending / data.total) * 100)
-      : 0;
-
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      : 0,
+    [data?.pending, data?.total]
   );
 
   /* ================= ERROR STATE ================= */
@@ -172,10 +218,10 @@ export default function AdminReports() {
           <button
             className="erp-btn erp-btn-primary"
             onClick={handleRetry}
-            disabled={retryCount >= 3}
+            disabled={retryCount >= CONFIG.MAX_RETRY}
           >
             <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
+            {retryCount >= CONFIG.MAX_RETRY ? "Max Retries" : `Retry (${retryCount}/${CONFIG.MAX_RETRY})`}
           </button>
         </div>
       </div>
@@ -183,8 +229,15 @@ export default function AdminReports() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading || !data) {
-    return <Loading fullScreen size="lg" text="Loading college admission reports..." />;
+  if (loading) {
+    return (
+      <Loading
+        size="lg"
+        color="primary"
+        text="Loading admission reports..."
+        fullScreen={true}
+      />
+    );
   }
 
   return (
@@ -200,34 +253,37 @@ export default function AdminReports() {
       {/* HEADER */}
       <div className="erp-page-header">
         <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
+          <div className="header-icon-wrapper">
             <FaChartPie />
           </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">College Admission Analytics</h1>
-            <p className="erp-page-subtitle">
+          <div className="header-text">
+            <h1 className="dashboard-title">College Admission Analytics</h1>
+            <p className="dashboard-subtitle">
               Real-time admission status and analytics for your institution
             </p>
           </div>
         </div>
-        <div className="erp-header-actions">
-          <ExportButtons
-            title="College Admission Analytics Report"
-            columns={[
-              { header: 'Metric', key: 'metric' },
-              { header: 'Value', key: 'value' }
-            ]}
-            data={getExportData()}
-            filename="admission_report"
-            showPDF={true}
-            showExcel={true}
-          />
+        <div className="header-actions">
+          <div className="export-actions-group">
+            <ExportButtons
+              title="College Admission Analytics Report"
+              columns={[
+                { header: 'Metric', key: 'metric' },
+                { header: 'Value', key: 'value' }
+              ]}
+              data={getExportData()}
+              filename="admission_report"
+              showPDF={true}
+              showExcel={true}
+            />
+          </div>
           <button
-            className="erp-btn erp-btn-secondary"
+            className="btn-refresh"
             onClick={fetchSummary}
             title="Refresh report data"
+            aria-label="Refresh admission reports"
           >
-            <FaSyncAlt className="erp-btn-icon spin" />
+            <FaSyncAlt className="spin-icon" />
             <span>Refresh</span>
           </button>
         </div>
@@ -446,20 +502,63 @@ export default function AdminReports() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
+        /* ================= DESIGN SYSTEM - SIDEBAR THEME MATCH ================= */
+        :root {
+          --primary-dark: #0c2d3a;
+          --primary: #0f3a4a;
+          --primary-light: #1a4b6d;
+          --accent: #3db5e6;
+          --accent-light: #4fc3f7;
+          --success: #28a745;
+          --warning: #ffc107;
+          --danger: #dc3545;
+          --info: #17a2b8;
+          --text-primary: #212529;
+          --text-secondary: #6c757d;
+          --bg-light: #f8f9fa;
+          --border-light: #e9ecef;
+          --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+          --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+          --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+          --radius-sm: 0.375rem;
+          --radius-md: 0.5rem;
+          --radius-lg: 0.75rem;
+          /* Sidebar Font Theme */
+          --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          --font-size-xs: 0.75rem;
+          --font-size-sm: 0.875rem;
+          --font-size-base: 1rem;
+          --font-size-lg: 1.125rem;
+          --font-size-xl: 1.25rem;
+          --font-size-2xl: 1.5rem;
+          --font-weight-normal: 400;
+          --font-weight-medium: 500;
+          --font-weight-semibold: 600;
+          --font-weight-bold: 700;
+          --line-height-base: 1.5;
+        }
+
+        /* ================= CONTAINER ================= */
         .erp-container {
           padding: 1.5rem;
-          background: #f5f7fa;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
           min-height: 100vh;
+          font-family: var(--font-family-base);
+          font-size: var(--font-size-base);
+          line-height: var(--line-height-base);
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
           animation: fadeIn 0.6s ease;
         }
 
+        /* ================= HEADER - ENTERPRISE LAYOUT ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: var(--primary);
           padding: 1.75rem;
-          border-radius: 16px;
+          border-radius: var(--radius-lg);
           margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
+          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
           color: white;
           display: flex;
           justify-content: space-between;
@@ -473,71 +572,164 @@ export default function AdminReports() {
           gap: 1.25rem;
         }
 
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
+        .header-icon-wrapper {
+          width: 64px;
+          height: 64px;
+          background: rgba(61, 181, 230, 0.2);
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
+          font-size: 2rem;
+          color: var(--accent-light);
         }
 
-        .erp-page-title {
+        .dashboard-title {
           margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
+          font-size: var(--font-size-2xl);
+          font-weight: var(--font-weight-bold);
+          color: white;
+          font-family: var(--font-family-base);
         }
 
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
+        .dashboard-subtitle {
+          margin: 0.375rem 0 0;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: var(--font-size-base);
+          font-weight: var(--font-weight-medium);
+          font-family: var(--font-family-base);
         }
 
-        .erp-header-actions {
+        .header-actions {
           display: flex;
-          gap: 0.75rem;
+          align-items: center;
+          gap: 1rem;
         }
 
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.75rem 1.25rem;
-          font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
+        .export-actions-group {
           display: flex;
           align-items: center;
           gap: 0.5rem;
         }
 
-        .erp-header-actions .erp-btn:hover {
+        /* ================= EXPORT BUTTONS - ENHANCED UI ================= */
+        .export-buttons {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-export {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.625rem 1.125rem;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-weight: var(--font-weight-semibold);
+          font-size: var(--font-size-sm);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          backdrop-filter: blur(10px);
+          min-width: 100px;
+          position: relative;
+          overflow: hidden;
+          font-family: var(--font-family-base);
+        }
+
+        .btn-export::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          transition: left 0.5s;
+        }
+
+        .btn-export:hover::before {
+          left: 100%;
+        }
+
+        .btn-export:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .erp-btn-outline-primary {
-          background: transparent;
-          border: 2px solid white;
-          color: white;
+        .btn-export-pdf:hover:not(:disabled) {
+          background: rgba(220, 53, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
         }
 
-        .erp-btn-outline-primary:hover {
+        .btn-export-excel:hover:not(:disabled) {
+          background: rgba(40, 167, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-export:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-export.exporting {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-export svg {
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .btn-export span {
+          white-space: nowrap;
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        .btn-refresh {
+          padding: 0.75rem 1.5rem;
+          border-radius: var(--radius-lg);
+          font-weight: var(--font-weight-semibold);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          border: 1px solid rgba(255, 255, 255, 0.3);
           background: rgba(255, 255, 255, 0.15);
-        }
-
-        .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
           color: white;
-          border: none;
+          transition: all var(--transition-base);
+          font-size: var(--font-size-sm);
+          font-family: var(--font-family-base);
         }
 
-        .erp-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.25);
+        .btn-refresh:hover {
+          background: rgba(61, 181, 230, 0.25);
+          border-color: var(--accent);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(61, 181, 230, 0.3);
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         /* INFO BANNER */
@@ -1266,6 +1458,22 @@ export default function AdminReports() {
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
           }
 
+          .header-actions {
+            flex-direction: column;
+            width: 100%;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .export-buttons {
+            flex-wrap: wrap;
+          }
+
           .erp-header-actions {
             flex-direction: column;
             width: 100%;
@@ -1299,6 +1507,28 @@ export default function AdminReports() {
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
+          }
+
+          .header-actions {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .export-buttons {
+            justify-content: center;
+            gap: 0.5rem;
+          }
+
+          .btn-export {
+            min-width: 90px;
+            padding: 0.5rem 1rem;
+            font-size: var(--font-size-xs);
           }
 
           .erp-header-actions {

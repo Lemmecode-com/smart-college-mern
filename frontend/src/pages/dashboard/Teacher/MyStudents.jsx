@@ -30,7 +30,6 @@ export default function MyStudents() {
         const res = await api.get("/students/teacher");
         setStudents(res.data.students || res.data || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load students");
       } finally {
         setLoading(false);
