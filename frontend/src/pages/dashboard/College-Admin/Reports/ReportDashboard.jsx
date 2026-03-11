@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
-import { PageSkeleton } from "../../../../components/Skeleton";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { toast } from "react-toastify";
@@ -159,7 +158,7 @@ export default function ReportDashboard() {
     if (!paymentData) return [];
     return [
       { metric: "Total Expected Fee", value: formatCurrency(paymentData.total || 0) },
-      { metric: "Total Collected", value: formatCurrency(paymentData.collected || 0) },
+      { metric: "Total Collected", value: formatCurrency(paymentData.collected || paymentData.totalCollected || 0) },
       { metric: "Total Pending", value: formatCurrency(paymentData.pending || 0) },
       { metric: "Collection Rate", value: `${paymentData.collectionRate || 0}%` },
     ];
@@ -181,9 +180,9 @@ export default function ReportDashboard() {
   const getAttendanceExportData = () => {
     if (!attendanceData) return [];
     return [
-      { metric: "Overall Attendance", value: `${attendanceData.percentage || 0}%` },
-      { metric: "Total Sessions", value: attendanceData.totalSessions || 0 },
-      { metric: "Average Attendance", value: attendanceData.averageAttendance || 0 },
+      { metric: "Overall Attendance", value: `${attendanceData.percentage || attendanceData.attendancePercentage || 0}%` },
+      { metric: "Total Sessions", value: attendanceData.totalSessions || attendanceData.total || 0 },
+      { metric: "Average Attendance", value: attendanceData.averageAttendance || attendanceData.present || 0 },
     ];
   };
 
@@ -217,7 +216,12 @@ export default function ReportDashboard() {
 
       setAdmissionData(admissionRes.data);
       setPaymentData(paymentRes.data);
-      setAttendanceData(attendanceRes.data);
+      
+      // Fix: Attendance API returns array, extract first element
+      const attendanceData = Array.isArray(attendanceRes.data) 
+        ? attendanceRes.data[0] || {} 
+        : attendanceRes.data;
+      setAttendanceData(attendanceData);
 
       // Use real API data for student payments
       if (studentPaymentsRes.data && Array.isArray(studentPaymentsRes.data)) {
@@ -227,9 +231,7 @@ export default function ReportDashboard() {
       }
 
       // Use real API data for low attendance students
-      if (lowAttendanceRes.data && Array.isArray(lowAttendanceRes.data.students)) {
-        setLowAttendanceStudents(lowAttendanceRes.data.students);
-      } else if (lowAttendanceRes.data && Array.isArray(lowAttendanceRes.data)) {
+      if (lowAttendanceRes.data && Array.isArray(lowAttendanceRes.data) && lowAttendanceRes.data.length > 0) {
         setLowAttendanceStudents(lowAttendanceRes.data);
       } else {
         setLowAttendanceStudents([]);
@@ -343,12 +345,22 @@ export default function ReportDashboard() {
   }, [admissionData]);
 
   const paymentBarData = useMemo(() => {
-    if (!paymentData) return [];
+    if (!paymentData && studentPayments.length === 0) return [];
+    
+    // Calculate from API or fallback to student payments
+    const collected = paymentData?.collected || 
+                      paymentData?.totalCollected || 
+                      studentPayments.reduce((sum, student) => sum + (Number(student.paid) || 0), 0);
+    const total = paymentData?.total || 
+                  paymentData?.totalExpected || 
+                  studentPayments.reduce((sum, student) => sum + (Number(student.totalFee) || 0), 0);
+    const pending = total - collected;
+    
     return [
-      { name: "Collected", amount: paymentData.collected || 0, fill: CONFIG.CHART_COLORS.COLLECTED },
-      { name: "Pending", amount: paymentData.pending || 0, fill: CONFIG.CHART_COLORS.PENDING_FEE },
+      { name: "Collected", amount: collected, fill: CONFIG.CHART_COLORS.COLLECTED },
+      { name: "Pending", amount: pending, fill: CONFIG.CHART_COLORS.PENDING_FEE },
     ];
-  }, [paymentData]);
+  }, [paymentData, studentPayments]);
 
   const attendanceLineData = useMemo(() => {
     return attendanceData?.trend || [
@@ -363,7 +375,14 @@ export default function ReportDashboard() {
 
   // ================= LOADING STATE =================
   if (loading) {
-    return <PageSkeleton />;
+    return (
+      <Loading
+        size="lg"
+        color="primary"
+        text="Loading reports dashboard..."
+        fullScreen={true}
+      />
+    );
   }
 
   // ================= ERROR STATE =================
@@ -422,7 +441,13 @@ export default function ReportDashboard() {
             <FaWallet />
           </div>
           <div className="card-content">
-            <h3>{formatCurrency(paymentData?.collected || 0)}</h3>
+            <h3>
+              {formatCurrency(
+                paymentData?.collected || 
+                paymentData?.totalCollected || 
+                studentPayments.reduce((sum, student) => sum + (Number(student.paid) || 0), 0)
+              )}
+            </h3>
             <p>Total Collected</p>
           </div>
         </div>
@@ -560,25 +585,41 @@ export default function ReportDashboard() {
               <div className="payment-stat">
                 <span className="payment-label">Total Expected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.total || 0)}
+                  {formatCurrency(
+                    paymentData?.total || 
+                    paymentData?.totalExpected || 
+                    studentPayments.reduce((sum, student) => sum + (Number(student.totalFee) || 0), 0)
+                  )}
                 </span>
               </div>
               <div className="payment-stat collected">
                 <span className="payment-label">Total Collected</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.collected || 0)}
+                  {formatCurrency(
+                    paymentData?.collected || 
+                    paymentData?.totalCollected || 
+                    studentPayments.reduce((sum, student) => sum + (Number(student.paid) || 0), 0)
+                  )}
                 </span>
               </div>
               <div className="payment-stat pending">
                 <span className="payment-label">Total Pending</span>
                 <span className="payment-value">
-                  {formatCurrency(paymentData?.pending || 0)}
+                  {formatCurrency(
+                    paymentData?.pending || 
+                    (studentPayments.reduce((sum, student) => sum + (Number(student.totalFee) || 0), 0) - 
+                     studentPayments.reduce((sum, student) => sum + (Number(student.paid) || 0), 0))
+                  )}
                 </span>
               </div>
               <div className="payment-stat rate">
                 <span className="payment-label">Collection Rate</span>
                 <span className="payment-value">
-                  {paymentData?.collectionRate || 0}%
+                  {paymentData?.collectionRate || 
+                   (studentPayments.length > 0 ? 
+                    Math.round((studentPayments.reduce((sum, student) => sum + (Number(student.paid) || 0), 0) / 
+                               studentPayments.reduce((sum, student) => sum + (Number(student.totalFee) || 0), 0)) * 100) 
+                    : 0)}%
                 </span>
               </div>
             </div>
@@ -642,8 +683,8 @@ export default function ReportDashboard() {
                 className="filter-select"
               >
                 <option value="">All Courses</option>
-                {CONFIG.COURSES.map((course) => (
-                  <option key={course} value={course}>{course}</option>
+                {CONFIG.COURSES.map((course, index) => (
+                  <option key={`${course}-${index}`} value={course}>{course}</option>
                 ))}
               </select>
 
@@ -653,8 +694,8 @@ export default function ReportDashboard() {
                 className="filter-select"
               >
                 <option value="">All Status</option>
-                {CONFIG.PAYMENT_STATUS.map((status) => (
-                  <option key={status} value={status}>{status}</option>
+                {CONFIG.PAYMENT_STATUS.map((status, index) => (
+                  <option key={`${status}-${index}`} value={status}>{status}</option>
                 ))}
               </select>
             </div>
@@ -743,19 +784,19 @@ export default function ReportDashboard() {
               <div className="stat-item">
                 <span className="stat-label">Overall Attendance</span>
                 <span className="stat-value large">
-                  {attendanceData?.percentage || 0}%
+                  {attendanceData?.percentage || attendanceData?.attendancePercentage || 0}%
                 </span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Total Sessions</span>
                 <span className="stat-value">
-                  {attendanceData?.totalSessions || 0}
+                  {attendanceData?.totalSessions || attendanceData?.total || 0}
                 </span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Avg Attendance</span>
                 <span className="stat-value">
-                  {attendanceData?.averageAttendance || 0}
+                  {attendanceData?.averageAttendance || attendanceData?.present || 0}
                 </span>
               </div>
             </div>
@@ -808,14 +849,25 @@ export default function ReportDashboard() {
                 style={{ marginLeft: '0.5rem' }}
               >
                 <option value="">All Courses</option>
-                {CONFIG.COURSES.map((course) => (
-                  <option key={course} value={course}>{course}</option>
+                {CONFIG.COURSES.map((course, index) => (
+                  <option key={`${course}-${index}-attendance`} value={course}>{course}</option>
                 ))}
               </select>
             </div>
           </div>
 
           <div className="card-body">
+            {lowAttendancePagination.data.length === 0 ? (
+              <div className="empty-state" style={{ padding: '3rem', textAlign: 'center' }}>
+                <FaExclamationTriangle style={{ fontSize: '3rem', color: '#ffc107', marginBottom: '1rem' }} />
+                <h3>No Low Attendance Students</h3>
+                <p style={{ color: '#6c757d' }}>
+                  {lowAttendanceStudents.length === 0 
+                    ? "All students have attendance above 75%. Great job!" 
+                    : "No students match the current filter."}
+                </p>
+              </div>
+            ) : (
             <div className="table-responsive">
               <table className="data-table">
                 <thead>
@@ -830,7 +882,7 @@ export default function ReportDashboard() {
                 <tbody>
                   {lowAttendancePagination.data.map((student) => (
                     <tr
-                      key={student._id}
+                      key={student._id || student.name}
                       className={student.attendance < 60 ? "critical-row" : ""}
                     >
                       <td className="student-name">{student.name}</td>
@@ -867,6 +919,7 @@ export default function ReportDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
 
             {/* Pagination */}
             {lowAttendancePagination.totalPages > 1 && (
