@@ -186,7 +186,6 @@ export default function AddTimetableSlot() {
         setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
         setTeachers(teachersRes.data.teachers || teachersRes.data || []);
       } catch (err) {
-        console.error("Failed to load subjects/teachers:", err);
         setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
       }
     };

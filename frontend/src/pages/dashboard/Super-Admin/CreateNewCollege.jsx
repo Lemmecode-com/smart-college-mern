@@ -133,7 +133,6 @@ export default function CreateNewCollege() {
       setError(
         err.response?.data?.message || "Failed to create college. Please try again."
       );
-      console.error("College creation error:", err);
     } finally {
       setLoading(false);
     }

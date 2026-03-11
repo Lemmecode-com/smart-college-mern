@@ -441,7 +441,6 @@ export default function AlumniList() {
       const res = await getAlumni();
       setAlumni(res.alumni || []);
     } catch (err) {
-      console.error("Error fetching alumni:", err);
       setError(err.response?.data?.message || "Failed to load alumni records.");
     } finally {
       setLoading(false);
@@ -453,7 +452,7 @@ export default function AlumniList() {
       const res = await api.get("/college/my-college");
       setCollege(res.data);
     } catch (err) {
-      console.error("Error fetching college:", err);
+      // Silently fail - college data is optional
     }
   };
 
@@ -582,8 +581,6 @@ export default function AlumniList() {
                       document.querySelector(".certificate-container");
       
       if (!element) {
-        console.error("Certificate element not found. Available IDs:", 
-          Array.from(document.querySelectorAll('[id]')).map(el => el.id));
         throw new Error("Certificate element not found. Please make sure the certificate preview is open.");
       }
 
@@ -659,7 +656,6 @@ export default function AlumniList() {
       );
 
     } catch (error) {
-      console.error("PDF generation error:", error);
       showError(
         `❌ PDF generation failed. ${error.message || 'Please try the Print option instead.'}`,
         {
