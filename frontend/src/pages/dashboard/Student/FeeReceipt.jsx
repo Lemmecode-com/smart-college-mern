@@ -92,10 +92,8 @@ export default function FeeReceipt() {
         });
 
       } catch (err) {
-        console.error("Fetch receipt error:", err);
-        
         let errorMessage = "Unable to fetch receipt. ";
-        
+
         if (err.response?.status === 404) {
           errorMessage = "Receipt not found. It may have been deleted or never existed.";
         } else if (err.response?.status === 403) {
@@ -154,7 +152,6 @@ export default function FeeReceipt() {
                 return new Promise((resolve) => {
                   img.onload = resolve;
                   img.onerror = () => {
-                    console.warn('Image failed to load:', img.src);
                     resolve(); // Continue even if image fails
                   };
                 });
@@ -183,7 +180,6 @@ export default function FeeReceipt() {
       try {
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       } catch (pdfError) {
-        console.error("PDF addImage error:", pdfError);
         throw new Error("Failed to add receipt to PDF");
       }
 
@@ -199,10 +195,8 @@ export default function FeeReceipt() {
       });
 
     } catch (error) {
-      console.error("PDF Generation Error:", error);
-      
       let errorMessage = "Failed to generate PDF. ";
-      
+
       if (error.message.includes("timeout")) {
         errorMessage += "Operation timed out. Please try again.";
       } else if (error.message.includes("CORS") || error.message.includes("taint")) {
@@ -234,12 +228,7 @@ export default function FeeReceipt() {
   // Helper function for error logging
   const logErrorToMonitoring = (error, context) => {
     // TODO: Integrate with Sentry/monitoring service
-    console.error('[FeeReceipt Error]', {
-      error: error.message,
-      stack: error.stack,
-      ...context,
-      timestamp: new Date().toISOString()
-    });
+    // Error logged for future monitoring integration
   };
 
   if (loading) {

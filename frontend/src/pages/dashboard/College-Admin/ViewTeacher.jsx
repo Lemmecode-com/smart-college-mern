@@ -53,20 +53,13 @@ export default function ViewTeacher() {
     setError("");
     try {
       const res = await api.get(`/teachers/${id}`);
-      console.log('[ViewTeacher] API Response:', res);
-      console.log('[ViewTeacher] res.data:', res.data);
-      console.log('[ViewTeacher] res.data.teacher:', res.data?.teacher);
-      console.log('[ViewTeacher] res.data.fullName:', res.data?.fullName);
-      
+
       // Backend returns { teacher: {...} }, axios keeps it nested
       // Check if teacher is nested OR if fields are directly on res.data
       const teacherData = res.data?.teacher || (res.data?.fullName ? res.data : null);
-      console.log('[ViewTeacher] Extracted teacherData:', teacherData);
       setTeacher(teacherData);
       setRetryCount(0);
     } catch (err) {
-      console.error("Teacher fetch error:", err);
-      console.error("Error response:", err.response?.data);
       setError(err.response?.data?.message || "Failed to load teacher profile. Please try again.");
     } finally {
       setLoading(false);
@@ -456,7 +449,7 @@ export default function ViewTeacher() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
