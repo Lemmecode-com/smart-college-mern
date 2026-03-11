@@ -214,8 +214,6 @@ export default function StudentTimetable() {
         setToastShown({ ...toastShown, success: true });
       }
     } catch (err) {
-      console.error("Failed to load timetable:", err);
-      
       // Clear timeout on error
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);

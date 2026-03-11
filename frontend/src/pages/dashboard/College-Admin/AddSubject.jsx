@@ -111,7 +111,6 @@ export default function AddSubject() {
         const res = await api.get("/departments");
         setDepartments(res.data);
       } catch (err) {
-        console.error("Failed to load departments:", err);
         setError("Failed to load departments. Please try again later.");
       }
     };
@@ -134,7 +133,6 @@ export default function AddSubject() {
         const coursesData = Array.isArray(res.data) ? res.data : (res.data?.courses || []);
         setCourses(coursesData);
       } catch (err) {
-        console.error("Failed to load courses:", err);
         setCourses([]);
       }
     };
@@ -156,7 +154,6 @@ export default function AddSubject() {
         const teachersData = Array.isArray(res.data) ? res.data : (res.data?.teachers || []);
         setTeachers(teachersData);
       } catch (err) {
-        console.error("Failed to load teachers:", err);
         setTeachers([]);
       }
     };
@@ -291,10 +288,8 @@ export default function AddSubject() {
         navigate("/subjects");
       }, 2000);
     } catch (err) {
-      console.error("Subject creation failed:", err);
-      
       let errorMessage = "Failed to create subject. Please try again.";
-      
+
       if (err.response) {
         if (err.response.status === 500) {
           errorMessage = "Server error. Please contact system administrator.";
@@ -306,7 +301,7 @@ export default function AddSubject() {
           errorMessage = err.response.data.message;
         }
       }
-      
+
       setError(errorMessage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {

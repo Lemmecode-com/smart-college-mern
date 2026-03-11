@@ -61,7 +61,7 @@ export default function StudentList() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/registered");
-      
+
       // 🔧 Handle new paginated response structure
       if (res.data.data) {
         // New format: { success: true, data: [...], pagination: {...} }
@@ -72,10 +72,9 @@ export default function StudentList() {
       } else {
         setStudents([]);
       }
-      
+
       setRetryCount(0);
     } catch (err) {
-      console.error("Students fetch error:", err);
       setError(err.response?.data?.message || "Failed to load students. Please try again.");
     } finally {
       setLoading(false);
@@ -138,7 +137,6 @@ export default function StudentList() {
       // Navigate to Approved Students list with refresh flag
       navigate("/students/approve", { state: { refresh: true } });
     } catch (err) {
-      console.error("Approve error:", err);
       throw err;
     } finally {
       setModalLoading(false);
@@ -151,7 +149,6 @@ export default function StudentList() {
       await api.put(`/students/${id}/reject`, { reason: "Rejected by admin" });
       fetchStudents();
     } catch (err) {
-      console.error("Reject error:", err);
       throw err;
     } finally {
       setModalLoading(false);

@@ -30,7 +30,6 @@ export default function MyTimetable() {
         const res = await api.get("/timetable/teacher");
         setTimetable(res.data.timetable || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load timetable");
       } finally {
         setLoading(false);
