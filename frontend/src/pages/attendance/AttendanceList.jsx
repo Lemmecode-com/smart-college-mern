@@ -18,7 +18,6 @@ export default function AttendanceList() {
         // SAFE ARRAY HANDLING
         setAttendance(Array.isArray(res.data?.data) ? res.data.data : []);
       } catch (err) {
-        console.error("Failed to load attendance");
         setAttendance([]);
       } finally {
         setLoading(false);

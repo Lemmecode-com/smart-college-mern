@@ -76,7 +76,6 @@ export default function MarkAttendance() {
         const res = await api.get("/attendance/sessions");
         setSessions(res.data.sessions || []);
       } catch (err) {
-        console.error("Failed to fetch sessions:", err);
         const message = err.response?.data?.message || err.message || "Failed to load sessions";
         setError(message);
         toast.error(message);
@@ -123,7 +122,6 @@ export default function MarkAttendance() {
       setAttendance(initial);
 
     } catch (err) {
-      console.error("Failed to load students:", err);
       setError("Failed to load students");
       toast.error("Failed to load students");
     } finally {

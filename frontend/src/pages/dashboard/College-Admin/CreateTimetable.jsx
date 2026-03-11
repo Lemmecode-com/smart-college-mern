@@ -51,11 +51,11 @@ export default function CreateTimetable() {
 
         // 🔧 Handle paginated response
         const teachersData = teacherRes.data.data || teacherRes.data || [];
-        
+
         setDepartments(deptRes.data || []);
         setTeachers(teachersData);
       } catch (err) {
-        console.error(err);
+        // Error handled silently - UI continues with available data
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export default function CreateTimetable() {
       const res = await api.get(`/courses/department/${deptId}`);
       setCourses(res.data || []);
     } catch (err) {
-      console.error(err);
+      // Error handled silently - UI continues with available data
     }
   };
 
@@ -80,7 +80,7 @@ export default function CreateTimetable() {
       const res = await api.get(`/subjects/course/${courseId}`);
       setSubjects(res.data || []);
     } catch (err) {
-      console.error(err);
+      // Error handled silently - UI continues with available data
     }
   };
 
