@@ -109,14 +109,12 @@ export default function EditCollegeProfile() {
       setForm(formData);
       setHasUserModified(false);
     } catch (err) {
-      console.error("Fetch college error:", err);
-      
       // Defensive: Handle different error types
-      const errorMessage = 
-        err?.response?.data?.message || 
-        err?.message || 
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
         "Failed to load college profile";
-      
+
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
@@ -126,7 +124,7 @@ export default function EditCollegeProfile() {
         draggable: true,
         icon: <FaExclamationTriangle />,
       });
-      
+
       setFetchError(true);
 
       // Set empty form state on error
@@ -294,7 +292,6 @@ export default function EditCollegeProfile() {
         },
       });
     } catch (err) {
-      console.error("Update college error:", err);
       toast.error(
         err.response?.data?.message || "Failed to update college profile",
         {

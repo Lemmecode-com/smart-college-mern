@@ -96,7 +96,6 @@ export default function SidebarContainer({
       });
       navigate("/login", { replace: true });
     } catch (err) {
-      console.error("Logout error:", err);
       toast.error("Failed to logout. Please try again.", {
         position: "top-right",
         autoClose: 5000
