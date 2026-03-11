@@ -77,7 +77,6 @@ export default function StudentFees() {
           setStudentProfile(res.data.student);
         }
       } catch (err) {
-        console.error("Profile fetch error:", err);
         // Continue without profile - use AuthContext data
       }
     };
@@ -144,8 +143,6 @@ export default function StudentFees() {
         clearTimeout(loadTimeoutRef.current);
       }
     } catch (err) {
-      console.error("Fee dashboard error:", err);
-
       // Clear timeout on error
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
@@ -200,7 +197,6 @@ export default function StudentFees() {
       });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error("Copy failed:", err);
       toast.error("Failed to copy Transaction ID", {
         position: "top-right",
         autoClose: 2000,

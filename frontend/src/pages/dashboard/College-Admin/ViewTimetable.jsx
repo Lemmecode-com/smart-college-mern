@@ -33,7 +33,6 @@ export default function ViewTimetable() {
       const res = await api.get("/timetable/admin");
       setTimetable(res.data?.timetable || []);
     } catch (error) {
-      console.error("Timetable fetch failed:", error);
       setTimetable([]);
     } finally {
       setLoading(false);

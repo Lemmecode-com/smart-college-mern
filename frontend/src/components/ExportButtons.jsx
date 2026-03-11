@@ -81,7 +81,6 @@ export default function ExportButtons({
         });
       }
     } catch (error) {
-      console.error('Export error:', error);
       toast.error('Export failed. Please try again.', {
         position: 'top-right',
         autoClose: 3000

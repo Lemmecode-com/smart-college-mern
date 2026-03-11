@@ -61,7 +61,7 @@ export default function AddEditSlotModal({
         setSubjects(subjectsRes.data.data || subjectsRes.data || []);
         setTeachers(teachersRes.data.data || teachersRes.data || []);
       } catch (error) {
-        console.error("Failed to load subjects/teachers:", error);
+        // Error handled silently - UI continues with empty arrays
       }
     };
     loadData();
@@ -100,7 +100,6 @@ export default function AddEditSlotModal({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Failed to save slot:", error);
       toast.error(mode === "edit" ? "Failed to update slot" : "Failed to add slot", {
         position: "top-right",
         autoClose: 5000,
