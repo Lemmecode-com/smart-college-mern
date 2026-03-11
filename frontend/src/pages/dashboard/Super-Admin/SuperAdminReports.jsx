@@ -189,7 +189,7 @@ export default function SuperAdminReports() {
             <div className="stat-footer-item">
               <span className="footer-label">Growth (30d)</span>
               <span className="footer-value positive">
-                <FaArrowUp /> +12.5%
+                <FaArrowUp /> {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
               </span>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function SuperAdminReports() {
             <div className="stat-footer-item">
               <span className="footer-label">Avg. Processing Time</span>
               <span className="footer-value warning">
-                <FaClock /> 2.3 days
+                <FaClock /> {data.avgProcessingTime ? `${data.avgProcessingTime} days` : 'N/A'}
               </span>
             </div>
           </div>
