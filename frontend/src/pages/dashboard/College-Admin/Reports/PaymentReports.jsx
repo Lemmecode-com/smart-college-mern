@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import {
@@ -27,36 +28,64 @@ export default function PaymentReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const hasLoadedRef = useRef(false);
 
   /* ================= FETCH PAYMENT SUMMARY ================= */
-  const fetchPaymentSummary = async () => {
+  const fetchPaymentSummary = useCallback(async () => {
+    // Prevent duplicate fetches
+    if (hasLoadedRef.current) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
       const res = await api.get("/reports/payments/summary");
       setData(res.data || {});
       setRetryCount(0);
+      toast.success("Payment summary loaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "payment-summary-success",
+      });
     } catch (err) {
       console.error("Payment summary fetch error:", err);
       setError(err.response?.data?.message || "Failed to load payment summary. Please try again.");
+      toast.error("Failed to load payment summary.", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "payment-summary-error",
+      });
     } finally {
       setLoading(false);
+      hasLoadedRef.current = true;
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPaymentSummary();
-  }, []);
+    // Cleanup function to reset flag on unmount - fixes blank page on second navigation
+    return () => {
+      hasLoadedRef.current = false;
+    };
+  }, [fetchPaymentSummary]);
 
   /* ================= RETRY HANDLER ================= */
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     if (retryCount < 3) {
       setRetryCount(prev => prev + 1);
+      // Reset flag to allow retry
+      hasLoadedRef.current = false;
       fetchPaymentSummary();
     } else {
+      toast.error("Maximum retry attempts reached.", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "payment-max-retry",
+      });
       setError("Maximum retry attempts reached. Please check your connection.");
     }
-  };
+  }, [retryCount, fetchPaymentSummary]);
 
   /* ================= EXPORT DATA PREPARATION ================= */
   const formatCurrency = (amount) => {
@@ -123,32 +152,6 @@ export default function PaymentReports() {
     document.body.removeChild(link);
   };
 
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="skeleton-visual-section">
-        <div className="skeleton-chart"></div>
-        <div className="skeleton-metrics">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="skeleton-metric-item"></div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
@@ -182,18 +185,12 @@ export default function PaymentReports() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading payment summary reports...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
+      <Loading
+        size="lg"
+        color="primary"
+        text="Loading payment summary reports..."
+        fullScreen={true}
+      />
     );
   }
 
@@ -222,17 +219,19 @@ export default function PaymentReports() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <ExportButtons
-            title="Payment Summary Report"
-            columns={[
-              { header: 'Metric', key: 'metric' },
-              { header: 'Value', key: 'value' }
-            ]}
-            data={getExportData()}
-            filename="payment_summary_report"
-            showPDF={true}
-            showExcel={true}
-          />
+          <div className="export-actions-group">
+            <ExportButtons
+              title="Payment Summary Report"
+              columns={[
+                { header: 'Metric', key: 'metric' },
+                { header: 'Value', key: 'value' }
+              ]}
+              data={getExportData()}
+              filename="payment_summary_report"
+              showPDF={true}
+              showExcel={true}
+            />
+          </div>
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchPaymentSummary}
@@ -567,9 +566,99 @@ export default function PaymentReports() {
         
         .erp-header-actions {
           display: flex;
-          gap: 0.75rem;
+          align-items: center;
+          gap: 1rem;
         }
-        
+
+        .export-actions-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        /* ================= EXPORT BUTTONS - ENHANCED UI ================= */
+        .export-buttons {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-export {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.625rem 1.125rem;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.875rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          backdrop-filter: blur(10px);
+          min-width: 100px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-export::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          transition: left 0.5s;
+        }
+
+        .btn-export:hover::before {
+          left: 100%;
+        }
+
+        .btn-export:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-export-pdf:hover:not(:disabled) {
+          background: rgba(220, 53, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-export-excel:hover:not(:disabled) {
+          background: rgba(40, 167, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-export:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-export.exporting {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-export svg {
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .btn-export span {
+          white-space: nowrap;
+        }
+
         .erp-header-actions .erp-btn {
           background: white;
           color: #1a4b6d;
@@ -1394,81 +1483,109 @@ export default function PaymentReports() {
             grid-template-columns: 1fr;
             text-align: center;
           }
-          
+
           .bar-metrics {
             grid-template-columns: 1fr;
           }
-          
+
           .erp-header-actions {
             flex-direction: column;
             width: 100%;
+            align-items: flex-start;
+            gap: 1rem;
           }
-          
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .export-buttons {
+            flex-wrap: wrap;
+          }
+
           .erp-header-actions .erp-btn {
             width: 100%;
             justify-content: center;
           }
-          
+
           .info-banner {
             flex-direction: column;
             text-align: center;
             gap: 0.75rem;
           }
         }
-        
+
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
           }
-          
+
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
           }
-          
+
           .erp-header-actions {
             width: 100%;
-            flex-direction: row;
+            flex-direction: column;
+            align-items: stretch;
           }
-          
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .export-buttons {
+            justify-content: center;
+            gap: 0.5rem;
+          }
+
+          .btn-export {
+            min-width: 90px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+          }
+
           .erp-header-actions .erp-btn {
             flex: 1;
             justify-content: center;
           }
-          
+
           .stats-grid {
             grid-template-columns: 1fr;
           }
-          
+
           .footer-note {
             flex-direction: column;
             text-align: center;
             gap: 0.75rem;
           }
-          
+
           .refresh-btn {
             align-self: center;
           }
-          
+
           .visual-container {
             gap: 1rem;
           }
-          
+
           .progress-circle {
             width: 160px;
             height: 160px;
           }
-          
+
           .progress-value {
             font-size: 2rem;
           }
-          
+
           .bar-metrics {
             grid-template-columns: repeat(2, 1fr);
           }
-          
+
           .metrics-grid {
             grid-template-columns: 1fr;
           }

@@ -143,11 +143,9 @@ exports.attendanceSummary = async (college_id) => {
   ]);
 
   const data = result[0] || { total: 0, present: 0 };
-  const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
 
   return {
-    percentage,
-    totalSessions: data.total,
+    totalRecords: data.total,
     averageAttendance: data.present
   };
 };
@@ -272,7 +270,7 @@ exports.studentPaymentStatusAll = async (status) => {
 const mongoose = require("mongoose");
 
 exports.attendanceSummary = async (college_id) => {
-  return AttendanceRecord.aggregate([
+  const result = await AttendanceRecord.aggregate([
     {
       $match: {
         college_id: new mongoose.Types.ObjectId(college_id)
@@ -307,5 +305,8 @@ exports.attendanceSummary = async (college_id) => {
       }
     }
   ]);
+
+  // Return first object or default values
+  return result[0] || { totalRecords: 0, averageAttendance: 0 };
 };
 
