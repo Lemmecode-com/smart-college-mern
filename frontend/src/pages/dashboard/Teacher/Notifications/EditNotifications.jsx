@@ -1,7 +1,10 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ConfirmModal from "../../../../components/ConfirmModal";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaBell,
   FaSave,
@@ -22,8 +25,29 @@ import {
   FaExpand,
   FaCompress
 } from "react-icons/fa";
-import { AuthContext } from "../../../../auth/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+
+/* ================= CONFIGURATION ================= */
+const CONFIG = {
+  TOAST: {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "colored",
+  },
+  THEME: {
+    PRIMARY: "#0f3a4a",
+    PRIMARY_DARK: "#0c2d3a",
+    PRIMARY_LIGHT: "#1a4b6d",
+    SUCCESS: "#28a745",
+    WARNING: "#ffc107",
+    DANGER: "#dc3545",
+    INFO: "#17a2b8",
+  },
+};
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -85,16 +109,9 @@ const spinVariants = {
   }
 };
 
-const scaleVariants = {
-  hidden: { scale: 0.95, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2 } }
-};
-
 export default function EditNotifications() {
-  const { id } = useParams(); 
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     title: "",
@@ -102,40 +119,49 @@ export default function EditNotifications() {
     type: "GENERAL",
     expiresAt: ""
   });
-  
+
+  const [originalForm, setOriginalForm] = useState({
+    title: "",
+    message: "",
+    type: "GENERAL",
+    expiresAt: ""
+  });
+
   const [currentNotification, setCurrentNotification] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Unsaved changes modal
+  const [unsavedModal, setUnsavedModal] = useState({
+    isOpen: false,
+    action: null // 'navigate' or 'refresh'
+  });
+
+  /* ================= CHECK FOR UNSAVED CHANGES ================= */
+  const hasUnsavedChanges = useCallback(() => {
+    return (
+      form.title !== originalForm.title ||
+      form.message !== originalForm.message ||
+      form.type !== originalForm.type ||
+      form.expiresAt !== originalForm.expiresAt
+    );
+  }, [form, originalForm]);
 
   /* ================= LOAD EXISTING ================= */
   useEffect(() => {
     const loadNote = async () => {
       try {
-        let res;
-
-        // Role-based fetch
-        if (user?.role === "COLLEGE_ADMIN") {
-          res = await api.get("/notifications/admin/read");
-        } else {
-          res = await api.get("/notifications/teacher/read");
-        }
-
-        let all = [];
-
-        if (user?.role === "COLLEGE_ADMIN") {
-          all = [
-            ...(res.data.myNotifications || []),
-            ...(res.data.staffNotifications || [])
-          ];
-        } else {
-          all = [
-            ...(res.data.myNotifications || []),
-            ...(res.data.adminNotifications || [])
-          ];
-        }
+        setLoading(true);
+        setError("");
+        const res = await api.get("/notifications/teacher/read");
+        
+        let all = [
+          ...(res.data.myNotifications || []),
+          ...(res.data.adminNotifications || [])
+        ];
 
         const found = all.find(n => n._id === id);
 
@@ -144,66 +170,86 @@ export default function EditNotifications() {
           setLoading(false);
           return;
         }
-        
+
         // Store full notification for reference
         setCurrentNotification(found);
-        
+
         // Set form values
-        setForm({
+        const formData = {
           title: found.title || "",
           message: found.message || "",
           type: found.type || "GENERAL",
-          expiresAt: found.expiresAt 
+          expiresAt: found.expiresAt
             ? new Date(found.expiresAt).toISOString().slice(0, 16)
             : ""
-        });
+        };
+        
+        setForm(formData);
+        setOriginalForm(formData);
       } catch (err) {
-        console.error("Failed to load notification:", err);
-        setError(err.response?.data?.message || "Failed to load notification. Please try again.");
+        const errorMsg = err.response?.data?.message || "Failed to load notification";
+        setError(errorMsg);
+        toast.error("Failed to load notification", CONFIG.TOAST);
+        
+        if (retryCount < 3) {
+          setRetryCount(prev => prev + 1);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) loadNote();
-    else setLoading(false);
-  }, [id, user]);
+    loadNote();
+  }, [id, retryCount]);
 
   /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
     setError("");
-    setSuccess("");
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  /* ================= HANDLE NAVIGATION WITH UNSAVED CHECK ================= */
+  const handleBackClick = () => {
+    if (hasUnsavedChanges()) {
+      setUnsavedModal({ isOpen: true, action: 'navigate' });
+    } else {
+      navigate(-1);
+    }
   };
 
   /* ================= UPDATE ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!form.title.trim()) {
-      setError("Title is required");
+      toast.error("Title is required", CONFIG.TOAST);
       return;
     }
-    
+
     if (form.title.length > 100) {
-      setError("Title must be less than 100 characters");
+      toast.error("Title must be less than 100 characters", CONFIG.TOAST);
       return;
     }
-    
+
     if (!form.message.trim()) {
-      setError("Message is required");
+      toast.error("Message is required", CONFIG.TOAST);
       return;
     }
-    
+
     if (form.message.length > 1000) {
-      setError("Message must be less than 1000 characters");
+      toast.error("Message must be less than 1000 characters", CONFIG.TOAST);
+      return;
+    }
+
+    // Validate expiry date
+    if (form.expiresAt && new Date(form.expiresAt) < new Date()) {
+      toast.error("Expiry date cannot be in the past", CONFIG.TOAST);
       return;
     }
 
     setSaving(true);
     setError("");
-    setSuccess("");
 
     try {
       await api.put(`/notifications/edit-note/${id}`, {
@@ -213,34 +259,53 @@ export default function EditNotifications() {
         expiresAt: form.expiresAt || null
       });
 
-      setSuccess("Notification updated successfully!");
-      
-      // Auto-dismiss after 3 seconds
+      toast.success("Notification updated successfully!", {
+        ...CONFIG.TOAST,
+        toastId: "notification-update-success",
+      });
+
+      // Update original form to match current (no longer unsaved)
+      setOriginalForm({ ...form });
+
+      // Navigate back after success
       setTimeout(() => {
         navigate("/teacher/notifications/list");
-      }, 3000);
+      }, 1500);
     } catch (err) {
-      console.error("Failed to update notification:", err);
-      setError(
-        err.response?.data?.message || "Failed to update notification. Please try again."
-      );
+      const errorMsg = err.response?.data?.message || "Failed to update notification";
+      setError(errorMsg);
+      toast.error(errorMsg, CONFIG.TOAST);
     } finally {
       setSaving(false);
     }
   };
 
+  /* ================= HANDLE UNSAVED MODAL CONFIRM ================= */
+  const handleUnsavedConfirm = () => {
+    if (unsavedModal.action === 'navigate') {
+      navigate(-1);
+    }
+    setUnsavedModal({ isOpen: false, action: null });
+  };
+
+  const handleUnsavedCancel = () => {
+    setUnsavedModal({ isOpen: false, action: null });
+  };
+
   // Get notification type config
   const typeConfig = BRAND_COLORS.notificationTypes[form.type] || BRAND_COLORS.notificationTypes.GENERAL;
   const TypeIcon = typeConfig.icon;
-  const priorityConfig = currentNotification?.priority 
-    ? BRAND_COLORS.priorities[currentNotification.priority] 
+  const priorityConfig = currentNotification?.priority
+    ? BRAND_COLORS.priorities[currentNotification.priority]
     : BRAND_COLORS.priorities.NORMAL;
 
+  /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Notification..." />;
   }
 
-  if (error) {
+  /* ================= ERROR STATE ================= */
+  if (error && !loading) {
     return (
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -263,10 +328,10 @@ export default function EditNotifications() {
           padding: '3rem',
           textAlign: 'center'
         }}>
-          <div style={{ 
-            width: '80px', 
-            height: '80px', 
-            borderRadius: '50%', 
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
             backgroundColor: `${BRAND_COLORS.danger.main}10`,
             display: 'flex',
             alignItems: 'center',
@@ -277,44 +342,73 @@ export default function EditNotifications() {
           }}>
             <FaTimesCircle />
           </div>
-          <h2 style={{ 
-            margin: '0 0 1rem 0', 
-            color: '#1e293b', 
+          <h2 style={{
+            margin: '0 0 1rem 0',
+            color: '#1e293b',
             fontWeight: 700,
             fontSize: '1.8rem'
           }}>
             Error Loading Notification
           </h2>
-          <p style={{ 
-            color: '#64748b', 
+          <p style={{
+            color: '#64748b',
             marginBottom: '2rem',
             fontSize: '1.1rem',
             lineHeight: 1.6
           }}>
             {error}
           </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(-1)}
-            style={{
-              backgroundColor: BRAND_COLORS.primary.main,
-              color: 'white',
-              border: 'none',
-              padding: '0.875rem 2rem',
-              borderRadius: '12px',
-              fontSize: '1.05rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            <FaArrowLeft /> Go Back to Notifications
-          </motion.button>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate(-1)}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#475569',
+                border: 'none',
+                padding: '0.875rem 1.5rem',
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <FaArrowLeft /> Go Back
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (retryCount < 3) {
+                  setRetryCount(prev => prev + 1);
+                }
+              }}
+              disabled={retryCount >= 3}
+              style={{
+                backgroundColor: retryCount >= 3 ? '#cbd5e1' : BRAND_COLORS.primary.main,
+                color: 'white',
+                border: 'none',
+                padding: '0.875rem 1.5rem',
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: retryCount >= 3 ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.3s ease',
+                opacity: retryCount >= 3 ? 0.7 : 1
+              }}
+            >
+              <FaSyncAlt className={retryCount < 3 && retryCount > 0 ? "spinning" : ""} />
+              {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
+            </motion.button>
+          </div>
         </div>
       </motion.div>
     );
@@ -323,9 +417,9 @@ export default function EditNotifications() {
   // Fullscreen container styles
   const containerStyle = {
     minHeight: '100vh',
-    background: isFullscreen 
-      ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)' 
-      : 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+    background: isFullscreen
+      ? 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)'
+      : '#f5f7fa',
     paddingTop: isFullscreen ? '0' : '1.5rem',
     paddingBottom: isFullscreen ? '0' : '2rem',
     paddingLeft: isFullscreen ? '0' : '1rem',
@@ -345,54 +439,20 @@ export default function EditNotifications() {
         {!isFullscreen && (
           <>
             {/* ================= BREADCRUMB ================= */}
-            <motion.div
-              variants={slideDownVariants}
-              initial="hidden"
-              animate="visible"
-              style={{
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-                padding: '0 1rem',
-                maxWidth: '1200px',
-                margin: '0 auto',
-                width: '100%'
-              }}
-            >
-              <motion.button
-                whileHover={{ x: -5 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate(-1)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  color: BRAND_COLORS.primary.main,
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '0.95rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '8px',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-              >
-                <FaArrowLeft /> Back to Notifications
-              </motion.button>
-              <span style={{ color: '#94a3b8' }}>›</span>
-              <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Edit Notification</span>
-            </motion.div>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/teacher/dashboard" },
+                { label: "Notifications", path: "/teacher/notifications/list" },
+                { label: "Edit Notification" },
+              ]}
+            />
 
             {/* ================= HEADER ================= */}
             <motion.div
               variants={slideDownVariants}
               initial="hidden"
               animate="visible"
+              className="erp-page-header"
               style={{
                 marginBottom: '2rem',
                 backgroundColor: 'white',
@@ -479,7 +539,7 @@ export default function EditNotifications() {
                   </motion.button>
                 </div>
               </div>
-              
+
               {/* Info Banner */}
               <div style={{
                 padding: '1rem 2rem',
@@ -492,7 +552,7 @@ export default function EditNotifications() {
               }}>
                 <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, fontSize: '1.5rem', flexShrink: 0 }} />
                 <div style={{ color: '#1e293b', fontWeight: 500, lineHeight: 1.5 }}>
-                  You are editing notification: <strong>"{currentNotification?.title || 'Loading...'}"</strong>. 
+                  You are editing notification: <strong>"{currentNotification?.title || 'Loading...'}"</strong>.
                   <span style={{ marginLeft: '0.5rem' }}>Changes will be reflected immediately for all recipients.</span>
                 </div>
               </div>
@@ -568,6 +628,7 @@ export default function EditNotifications() {
               custom={0}
               initial="hidden"
               animate="visible"
+              className="erp-card"
               style={{
                 backgroundColor: 'white',
                 borderRadius: '24px',
@@ -578,8 +639,8 @@ export default function EditNotifications() {
             >
               <div style={{
                 padding: '2rem',
-                background: isFullscreen 
-                  ? 'linear-gradient(135deg, #0f3a4a 0%, #134952 100%)' 
+                background: isFullscreen
+                  ? 'linear-gradient(135deg, #0f3a4a 0%, #134952 100%)'
                   : 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
                 borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
@@ -601,16 +662,16 @@ export default function EditNotifications() {
                 }}>
                   <FaBell />
                 </div>
-                <h2 style={{ 
-                  margin: 0, 
-                  fontSize: '1.75rem', 
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '1.75rem',
                   fontWeight: 700,
                   color: isFullscreen ? 'white' : '#1e293b'
                 }}>
                   {isFullscreen ? 'Edit Notification Details' : 'Update Notification Content'}
                 </h2>
               </div>
-              
+
               <div style={{ padding: '2.5rem' }}>
                 {error && (
                   <motion.div
@@ -634,39 +695,29 @@ export default function EditNotifications() {
                     <span>{error}</span>
                   </motion.div>
                 )}
-                
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      marginBottom: '1.75rem',
-                      padding: '1.25rem',
-                      borderRadius: '16px',
-                      backgroundColor: `${BRAND_COLORS.success.main}0a`,
-                      border: `2px solid ${BRAND_COLORS.success.main}`,
-                      color: BRAND_COLORS.success.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      fontSize: '1.05rem',
-                      fontWeight: 500
-                    }}
-                  >
-                    <FaCheckCircle size={24} />
-                    <span>{success} Redirecting to notifications list...</span>
-                  </motion.div>
-                )}
 
                 <form onSubmit={handleSubmit}>
                   {/* Title Field */}
-                  <FormField 
-                    icon={<FaInfoCircle />} 
-                    label="Notification Title" 
-                    required
-                    error={form.title.length > 100}
-                    helperText={`${form.title.length}/100 characters`}
-                  >
+                  <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                    <label className="form-label fw-semibold d-flex justify-content-between align-items-center" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.75rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      fontSize: '1.05rem'
+                    }}>
+                      <span>
+                        <FaInfoCircle className="me-1" style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                        Notification Title <span className="text-danger" style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                      </span>
+                      <small className={`text-${form.title.length > 80 ? 'danger' : form.title.length > 60 ? 'warning' : 'muted'}`} style={{
+                        color: form.title.length > 80 ? BRAND_COLORS.danger.main : form.title.length > 60 ? BRAND_COLORS.warning.main : '#64748b'
+                      }}>
+                        {form.title.length}/100 characters
+                      </small>
+                    </label>
                     <input
                       type="text"
                       name="title"
@@ -674,24 +725,55 @@ export default function EditNotifications() {
                       onChange={handleChange}
                       placeholder="e.g., Important Exam Schedule Update"
                       style={{
-                        ...inputStyle,
-                        borderColor: form.title.length > 100 ? BRAND_COLORS.danger.main : '#cbd5e1',
-                        fontSize: '1.15rem',
+                        width: '100%',
+                        padding: '1rem 1.5rem',
+                        borderRadius: '18px',
+                        border: `2px solid ${form.title.length > 100 ? BRAND_COLORS.danger.main : '#cbd5e1'}`,
+                        fontSize: '1.1rem',
+                        backgroundColor: 'white',
+                        color: '#0f172a',
                         fontWeight: 600,
-                        padding: '1.125rem 1.5rem'
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                        boxSizing: 'border-box'
                       }}
                       maxLength="100"
+                      required
                     />
-                  </FormField>
+                    <div className="form-text" style={{
+                      fontSize: '0.85rem',
+                      color: '#64748b',
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      Keep it concise and action-oriented.
+                    </div>
+                  </div>
 
                   {/* Message Field */}
-                  <FormField 
-                    icon={<FaClipboardList />} 
-                    label="Message Content" 
-                    required
-                    error={form.message.length > 1000}
-                    helperText={`${form.message.length}/1000 characters`}
-                  >
+                  <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                    <label className="form-label fw-semibold d-flex justify-content-between align-items-center" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.75rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      fontSize: '1.05rem'
+                    }}>
+                      <span>
+                        <FaClipboardList className="me-1" style={{ color: BRAND_COLORS.info.main, marginRight: '0.5rem' }} />
+                        Message Content <span className="text-danger" style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                      </span>
+                      <small className={`text-${form.message.length > 800 ? 'danger' : form.message.length > 600 ? 'warning' : 'muted'}`} style={{
+                        color: form.message.length > 800 ? BRAND_COLORS.danger.main : form.message.length > 600 ? BRAND_COLORS.warning.main : '#64748b'
+                      }}>
+                        {form.message.length}/1000 characters
+                      </small>
+                    </label>
                     <textarea
                       name="message"
                       value={form.message}
@@ -699,32 +781,72 @@ export default function EditNotifications() {
                       placeholder="Enter detailed notification message here..."
                       rows="8"
                       style={{
-                        ...inputStyle,
-                        resize: 'vertical',
-                        minHeight: '220px',
-                        borderColor: form.message.length > 1000 ? BRAND_COLORS.danger.main : '#cbd5e1',
+                        width: '100%',
+                        padding: '1rem 1.5rem',
+                        borderRadius: '18px',
+                        border: `2px solid ${form.message.length > 1000 ? BRAND_COLORS.danger.main : '#cbd5e1'}`,
                         fontSize: '1.05rem',
                         lineHeight: 1.6,
-                        padding: '1.25rem 1.5rem'
+                        backgroundColor: 'white',
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        resize: 'vertical',
+                        minHeight: '220px',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                        boxSizing: 'border-box'
                       }}
                       maxLength="1000"
+                      required
                     />
-                  </FormField>
+                    <div className="form-text" style={{
+                      fontSize: '0.85rem',
+                      color: '#64748b',
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      Use clear paragraphs. Include deadlines, contact info, or next steps.
+                    </div>
+                  </div>
 
                   {/* Type Field */}
-                  <FormField 
-                    icon={<TypeIcon />} 
-                    label="Notification Type" 
-                    helperText="Category helps students filter notifications"
-                  >
+                  <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                    <label className="form-label fw-semibold" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.75rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      fontSize: '1.05rem'
+                    }}>
+                      <TypeIcon style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                      Notification Type
+                    </label>
                     <select
                       name="type"
                       value={form.type}
                       onChange={handleChange}
                       style={{
-                        ...selectStyle,
+                        width: '100%',
+                        padding: '1rem 1.5rem',
+                        borderRadius: '18px',
+                        border: '2px solid #cbd5e1',
                         fontSize: '1.1rem',
-                        padding: '1.125rem 1.5rem'
+                        backgroundColor: 'white',
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 1.25rem center',
+                        backgroundSize: '20px',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                        boxSizing: 'border-box'
                       }}
                     >
                       {Object.entries(BRAND_COLORS.notificationTypes).map(([key, config]) => {
@@ -736,17 +858,18 @@ export default function EditNotifications() {
                         );
                       })}
                     </select>
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '0.75rem', 
+                    <div style={{
+                      display: 'flex',
+                      gap: '0.75rem',
                       marginTop: '1rem',
                       flexWrap: 'wrap'
                     }}>
                       {Object.entries(BRAND_COLORS.notificationTypes).map(([key, config]) => {
                         const Icon = config.icon;
                         return (
-                          <motion.div
+                          <motion.button
                             key={key}
+                            type="button"
                             whileHover={{ scale: 1.07 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setForm(prev => ({ ...prev, type: key }))}
@@ -768,34 +891,51 @@ export default function EditNotifications() {
                           >
                             <Icon size={18} />
                             <span>{key.replace('_', ' ')}</span>
-                          </motion.div>
+                          </motion.button>
                         );
                       })}
                     </div>
-                  </FormField>
+                  </div>
 
                   {/* Expiry Field */}
-                  <FormField 
-                    icon={<FaCalendarAlt />} 
-                    label="Expiry Date & Time (Optional)" 
-                    helperText="Notification will be hidden after this date"
-                  >
+                  <div className="mb-4" style={{ marginBottom: '1.5rem' }}>
+                    <label className="form-label fw-semibold" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.75rem',
+                      fontWeight: 600,
+                      color: '#1e293b',
+                      fontSize: '1.05rem'
+                    }}>
+                      <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main, marginRight: '0.5rem' }} />
+                      Expiry Date & Time (Optional)
+                    </label>
                     <input
                       type="datetime-local"
                       name="expiresAt"
                       value={form.expiresAt}
                       onChange={handleChange}
+                      min={new Date().toISOString().slice(0, 16)}
                       style={{
-                        ...inputStyle,
+                        width: '100%',
+                        padding: '1rem 1.5rem',
+                        borderRadius: '18px',
+                        border: '2px solid #cbd5e1',
                         fontSize: '1.1rem',
-                        padding: '1.125rem 1.5rem'
+                        backgroundColor: 'white',
+                        color: '#0f172a',
+                        fontWeight: 500,
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                        boxSizing: 'border-box'
                       }}
                     />
                     {form.expiresAt && (
-                      <div style={{ 
-                        marginTop: '0.75rem', 
-                        padding: '1rem', 
-                        borderRadius: '12px', 
+                      <div style={{
+                        marginTop: '0.75rem',
+                        padding: '1rem',
+                        borderRadius: '12px',
                         backgroundColor: '#dcfce7',
                         border: `1px solid #86efac`,
                         color: '#166534',
@@ -820,11 +960,22 @@ export default function EditNotifications() {
                         </div>
                       </div>
                     )}
-                  </FormField>
+                    <div className="form-text" style={{
+                      fontSize: '0.85rem',
+                      color: '#64748b',
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      Notification will be hidden after this date. Leave blank for no expiry.
+                    </div>
+                  </div>
 
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                     gap: '1.25rem',
                     marginTop: '2rem',
                     paddingTop: '1.5rem',
@@ -834,7 +985,7 @@ export default function EditNotifications() {
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
                       type="button"
-                      onClick={() => navigate(-1)}
+                      onClick={handleBackClick}
                       disabled={saving}
                       style={{
                         padding: '1.125rem 1.5rem',
@@ -855,7 +1006,7 @@ export default function EditNotifications() {
                     >
                       <FaArrowLeft /> Cancel
                     </motion.button>
-                    
+
                     <motion.button
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
@@ -882,9 +1033,7 @@ export default function EditNotifications() {
                     >
                       {saving ? (
                         <>
-                          <motion.div variants={spinVariants} animate="animate">
-                            <FaSyncAlt />
-                          </motion.div>
+                          <motion.span variants={spinVariants} animate="animate" className="spinner-border spinner-border-sm" />
                           <span>Updating...</span>
                         </>
                       ) : (
@@ -892,24 +1041,13 @@ export default function EditNotifications() {
                           <FaSave /> Update Notification
                         </>
                       )}
-                      {!saving && !(!form.title.trim() || !form.message.trim()) && (
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: '4px',
-                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                          animation: 'shimmer 2s infinite'
-                        }} />
-                      )}
                     </motion.button>
                   </div>
-                  
-                  <div style={{ 
-                    marginTop: '2rem', 
-                    padding: '1.5rem', 
-                    borderRadius: '16px', 
+
+                  <div style={{
+                    marginTop: '2rem',
+                    padding: '1.5rem',
+                    borderRadius: '16px',
                     backgroundColor: '#fffbeb',
                     border: '2px solid #f59e0b',
                     fontSize: '1.1rem',
@@ -918,9 +1056,9 @@ export default function EditNotifications() {
                     fontWeight: 500
                   }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                      <FaExclamationTriangle style={{ 
-                        marginTop: '0.25rem', 
-                        color: BRAND_COLORS.warning.main, 
+                      <FaExclamationTriangle style={{
+                        marginTop: '0.25rem',
+                        color: BRAND_COLORS.warning.main,
                         flexShrink: 0,
                         fontSize: '1.5rem'
                       }} />
@@ -955,68 +1093,56 @@ export default function EditNotifications() {
           </div>
         )}
       </motion.div>
+
+      {/* ================= UNSAVED CHANGES MODAL ================= */}
+      <ConfirmModal
+        isOpen={unsavedModal.isOpen}
+        onClose={handleUnsavedCancel}
+        onConfirm={handleUnsavedConfirm}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
+        type="warning"
+        confirmText="Discard Changes"
+        cancelText="Continue Editing"
+        isLoading={false}
+      />
+
+      <style>{`
+        .spinner-border {
+          display: inline-block;
+          width: 1em;
+          height: 1em;
+          border: 0.15em solid currentColor;
+          border-right-color: transparent;
+          border-radius: 50%;
+          animation: spinner-border 0.75s linear infinite;
+        }
+
+        @keyframes spinner-border {
+          to { transform: rotate(360deg); }
+        }
+
+        .spinning {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+      `}</style>
     </AnimatePresence>
   );
 }
 
-/* ================= FORM FIELD COMPONENT ================= */
-function FormField({ icon, label, children, required = false, error = false, helperText }) {
-  return (
-    <div style={{ marginBottom: '2rem' }}>
-      <label style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        marginBottom: '1rem',
-        fontWeight: 700,
-        color: '#0f172a',
-        fontSize: '1.25rem'
-      }}>
-        <span style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '36px',
-          height: '36px',
-          borderRadius: '10px',
-          backgroundColor: `${BRAND_COLORS.primary.main}15`,
-          color: BRAND_COLORS.primary.main,
-          fontSize: '1.25rem',
-          boxShadow: '0 2px 8px rgba(26,75,109,0.15)'
-        }}>
-          {icon}
-        </span>
-        {label}
-        {required && (
-          <span style={{ 
-            color: BRAND_COLORS.danger.main, 
-            marginLeft: '0.375rem',
-            fontSize: '1.35rem'
-          }}>
-            *
-          </span>
-        )}
-      </label>
-      
-      {helperText && (
-        <div style={{
-          fontSize: '0.95rem',
-          color: error ? BRAND_COLORS.danger.main : '#64748b',
-          marginBottom: '1rem',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          fontWeight: 500
-        }}>
-          {helperText}
-        </div>
-      )}
-      
-      {children}
-    </div>
-  );
-}
-
-/* ================= HELPER FUNCTIONS ================= */
+/* ================= HELPER FUNCTION ================= */
 function getNotificationDescription(type) {
   const descriptions = {
     GENERAL: "General announcements and updates",
@@ -1030,54 +1156,3 @@ function getNotificationDescription(type) {
   };
   return descriptions[type] || "Notification category";
 }
-
-/* ================= STYLES ================= */
-const inputStyle = {
-  width: '100%',
-  padding: '1rem 1.5rem',
-  borderRadius: '18px',
-  border: '2px solid #cbd5e1',
-  fontSize: '1.1rem',
-  backgroundColor: 'white',
-  color: '#0f172a',
-  fontWeight: 500,
-  transition: 'all 0.3s ease',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-  boxSizing: 'border-box'
-};
-
-const selectStyle = {
-  width: '100%',
-  padding: '1rem 1.5rem',
-  borderRadius: '18px',
-  border: '2px solid #cbd5e1',
-  fontSize: '1.1rem',
-  backgroundColor: 'white',
-  color: '#0f172a',
-  fontWeight: 500,
-  appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 1.25rem center',
-  backgroundSize: '20px',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-  boxSizing: 'border-box'
-};
-
-// Add shimmer animation to global styles
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  @media (prefers-reduced-motion) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-`;
-document.head.appendChild(style);

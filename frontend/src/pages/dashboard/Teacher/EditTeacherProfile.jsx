@@ -91,13 +91,9 @@ export default function EditTeacherProfile() {
   const fetchProfile = async () => {
     try {
       const res = await api.get("/teachers/my-profile");
-      console.log('[EditTeacherProfile] API Response:', res);
-      console.log('[EditTeacherProfile] res.data:', res.data);
-      console.log('[EditTeacherProfile] res.data.teacher:', res.data?.teacher);
 
       // Backend returns { teacher: {...} }, axios keeps it nested
       const teacherData = res.data?.teacher || (res.data?.fullName ? res.data : null);
-      console.log('[EditTeacherProfile] Setting form data:', teacherData);
 
       setForm({
         name: teacherData?.name || "",
@@ -113,7 +109,6 @@ export default function EditTeacherProfile() {
         joiningDate: teacherData?.joiningDate ? new Date(teacherData.joiningDate).toISOString().split('T')[0] : "",
       });
     } catch (err) {
-      console.error("Fetch profile error:", err);
       toast.error("Failed to load profile", {
         position: "top-right",
         icon: <FaExclamationTriangle />,
@@ -218,7 +213,6 @@ export default function EditTeacherProfile() {
         onClose: () => navigate("/profile/my-profile"),
       });
     } catch (err) {
-      console.error("Update error:", err);
       toast.error(
         err.response?.data?.message || "Failed to update profile",
         {
