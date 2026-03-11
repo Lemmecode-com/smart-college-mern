@@ -116,6 +116,11 @@ export default function StudentProfile() {
           throw new Error(`Invalid profile data: ${validation.join(', ')}`);
         }
 
+        // Clear timeout on success - user is actively viewing the page
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
+        }
+
         setProfile(res.data);
 
         // Extract document config for conditional rendering
@@ -600,7 +605,6 @@ export default function StudentProfile() {
                     <InfoItem label="Department" value={department?.name || "N/A"} icon={<FaUniversity />} />
                     <InfoItem label="Course" value={course?.name || "N/A"} icon={<FaGraduationCap />} />
                     <InfoItem label="Course Code" value={course?.code || "N/A"} icon={<FaLayerGroup />} />
-                    <InfoItem label="Current Year" value={student?.currentYear ? `Year ${student.currentYear}` : "N/A"} icon={<FaClock />} />
                     <InfoItem label="Current Semester" value={student?.currentSemester ? `Semester ${student.currentSemester}` : "N/A"} icon={<FaGraduationCap />} />
                     <InfoItem label="Admission Year" value={student?.admissionYear || "N/A"} icon={<FaCalendarAlt />} />
                     <InfoItem label="Academic Status" value={student?.status || "N/A"} icon={<FaCheckCircle />} />
@@ -613,9 +617,6 @@ export default function StudentProfile() {
                   <div className="row g-3">
                     <InfoItem label="Personal Email" value={student?.email || "N/A"} icon={<FaEnvelope />} col={12} />
                     <InfoItem label="Mobile Number" value={student?.mobileNumber || "N/A"} icon={<FaPhoneAlt />} col={12} />
-                    <InfoItem label="Alternate Number" value={student?.alternateMobileNumber || "N/A"} icon={<FaPhoneAlt />} col={12} />
-                    <InfoItem label="Emergency Contact" value={student?.emergencyContactName || "N/A"} icon={<FaUserFriends />} />
-                    <InfoItem label="Emergency Phone" value={student?.emergencyContactNumber || "N/A"} icon={<FaPhoneAlt />} />
                   </div>
                 </SectionContent>
               )}
@@ -624,7 +625,6 @@ export default function StudentProfile() {
                 <SectionContent title="Address Information" icon={<FaHome />} color="dark">
                   <div className="row g-3">
                     <InfoItem label="Address Line 1" value={student?.addressLine || "N/A"} icon={<FaMapMarkerAlt />} col={12} />
-                    <InfoItem label="Address Line 2" value={student?.addressLine2 || "N/A"} icon={<FaMapMarkerAlt />} col={12} />
                     <InfoItem label="City" value={student?.city || "N/A"} icon={<FaMapMarkerAlt />} />
                     <InfoItem label="State" value={student?.state || "N/A"} icon={<FaMapMarkerAlt />} />
                     <InfoItem label="Pincode" value={student?.pincode || "N/A"} icon={<FaMapMarkerAlt />} />

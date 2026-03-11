@@ -10,6 +10,7 @@ const Timetable = require("../models/timetable.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
 const AppError = require("../utils/AppError");
+const { sendEmailToCollegeAdmin } = require("../services/email.service");
 
 exports.createCollege = async (req, res, next) => {
   try {
@@ -297,6 +298,57 @@ exports.getCollegeById = async (req, res, next) => {
         totalTimetables,
         totalAttendanceSessions,
       },
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * SUPER ADMIN: Send Email to College Admin
+ */
+exports.sendEmailToCollegeAdmin = async (req, res, next) => {
+  try {
+    const { collegeId, subject, message } = req.body;
+
+    // 1️⃣ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
+      throw new AppError("Invalid college ID", 400, "INVALID_ID");
+    }
+
+    // 2️⃣ Get college details
+    const college = await College.findById(collegeId);
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    // 3️⃣ Get college admin email
+    const adminUser = await User.findOne({
+      college_id: collegeId,
+      role: "COLLEGE_ADMIN"
+    });
+
+    if (!adminUser || !adminUser.email) {
+      throw new AppError("College admin email not found", 404, "ADMIN_EMAIL_NOT_FOUND");
+    }
+
+    // 4️⃣ Send email
+    await sendEmailToCollegeAdmin({
+      to: adminUser.email,
+      collegeName: college.name,
+      subject: subject || `Regarding ${college.name} - Smart College Management`,
+      message: message || "No message provided"
+    });
+
+    res.json({
+      success: true,
+      message: `Email sent successfully to college admin at ${adminUser.email}`,
+      data: {
+        collegeName: college.name,
+        adminEmail: adminUser.email,
+        subject: subject || `Regarding ${college.name} - Smart College Management`
+      }
     });
 
   } catch (error) {

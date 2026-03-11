@@ -3,6 +3,7 @@ import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import {
@@ -284,48 +285,6 @@ function ErrorDisplay({ error, onRetry }) {
   );
 }
 
-// Confirmation Modal Component
-function ConfirmModal({ isOpen, onClose, onConfirm, title, message, type = 'info', isLoading }) {
-  if (!isOpen) return null;
-
-  const typeConfig = {
-    info: { color: COLORS.info, icon: FaExclamationTriangle },
-    danger: { color: COLORS.danger, icon: FaExclamationTriangle },
-    success: { color: COLORS.success, icon: FaCheckCircle }
-  };
-
-  const config = [typeConfig[type] || typeConfig.info];
-
-  return (
-    <div className="modal-backdrop-enterprise">
-      <div className="modal-enterprise">
-        <div className="modal-header">
-          <div className="modal-icon" style={{ color: config.color }}>
-            <config.icon />
-          </div>
-          <h4 className="modal-title">{title}</h4>
-        </div>
-        <div className="modal-body">
-          <p className="modal-message">{message}</p>
-        </div>
-        <div className="modal-footer">
-          <button className="btn-modal-cancel" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </button>
-          <button 
-            className="btn-modal-confirm" 
-            onClick={onConfirm}
-            style={{ backgroundColor: config.color }}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Processing...' : 'Confirm'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* =========================================================
    MAIN COMPONENT
 ========================================================= */
@@ -341,7 +300,7 @@ export default function ViewStudent() {
   const [rejecting, setRejecting] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
 
   /* ================= SECURITY & VALIDATION ================= */
   if (!user) return <Navigate to="/login" replace />;
@@ -402,32 +361,32 @@ export default function ViewStudent() {
 
   const uploadedDocuments = useMemo(() => {
     if (!student) return [];
-    
+
     const docs = [];
     const docMapping = [
-      { key: 'sscMarksheetPath', label: '10th Marksheet', icon: FaFileAlt },
-      { key: 'hscMarksheetPath', label: '12th Marksheet', icon: FaFileAlt },
-      { key: 'passportPhotoPath', label: 'Passport Photo', icon: FaImage },
-      { key: 'categoryCertificatePath', label: 'Category Certificate', icon: FaFileAlt },
-      { key: 'incomeCertificatePath', label: 'Income Certificate', icon: FaFileAlt },
-      { key: 'characterCertificatePath', label: 'Character Certificate', icon: FaFileAlt },
-      { key: 'transferCertificatePath', label: 'Transfer Certificate', icon: FaFileAlt },
-      { key: 'aadharCardPath', label: 'Aadhar Card', icon: FaIdCard },
-      { key: 'entranceExamScorePath', label: 'Entrance Exam Score', icon: FaAward },
-      { key: 'migrationCertificatePath', label: 'Migration Certificate', icon: FaFileAlt },
-      { key: 'domicileCertificatePath', label: 'Domicile Certificate', icon: FaFileAlt },
-      { key: 'casteCertificatePath', label: 'Caste Certificate', icon: FaFileAlt },
-      { key: 'nonCreamyLayerCertificatePath', label: 'Non-Creamy Layer Certificate', icon: FaFileAlt },
-      { key: 'physicallyChallengedCertificatePath', label: 'Physically Challenged Certificate', icon: FaFileAlt },
-      { key: 'sportsQuotaCertificatePath', label: 'Sports Quota Certificate', icon: FaAward },
-      { key: 'nriSponsorCertificatePath', label: 'NRI Sponsor Certificate', icon: FaFileAlt },
-      { key: 'gapCertificatePath', label: 'Gap Certificate', icon: FaFileAlt },
-      { key: 'affidavitPath', label: 'Affidavit', icon: FaFileAlt }
+      { key: 'sscMarksheetPath', label: '10th Marksheet', icon: <FaFileAlt /> },
+      { key: 'hscMarksheetPath', label: '12th Marksheet', icon: <FaFileAlt /> },
+      { key: 'passportPhotoPath', label: 'Passport Photo', icon: <FaImage /> },
+      { key: 'categoryCertificatePath', label: 'Category Certificate', icon: <FaFileAlt /> },
+      { key: 'incomeCertificatePath', label: 'Income Certificate', icon: <FaFileAlt /> },
+      { key: 'characterCertificatePath', label: 'Character Certificate', icon: <FaFileAlt /> },
+      { key: 'transferCertificatePath', label: 'Transfer Certificate', icon: <FaFileAlt /> },
+      { key: 'aadharCardPath', label: 'Aadhar Card', icon: <FaIdCard /> },
+      { key: 'entranceExamScorePath', label: 'Entrance Exam Score', icon: <FaAward /> },
+      { key: 'migrationCertificatePath', label: 'Migration Certificate', icon: <FaFileAlt /> },
+      { key: 'domicileCertificatePath', label: 'Domicile Certificate', icon: <FaFileAlt /> },
+      { key: 'casteCertificatePath', label: 'Caste Certificate', icon: <FaFileAlt /> },
+      { key: 'nonCreamyLayerCertificatePath', label: 'Non-Creamy Layer Certificate', icon: <FaFileAlt /> },
+      { key: 'physicallyChallengedCertificatePath', label: 'Physically Challenged Certificate', icon: <FaFileAlt /> },
+      { key: 'sportsQuotaCertificatePath', label: 'Sports Quota Certificate', icon: <FaAward /> },
+      { key: 'nriSponsorCertificatePath', label: 'NRI Sponsor Certificate', icon: <FaFileAlt /> },
+      { key: 'gapCertificatePath', label: 'Gap Certificate', icon: <FaFileAlt /> },
+      { key: 'affidavitPath', label: 'Affidavit', icon: <FaFileAlt /> }
     ];
 
-    docMapping.forEach(({ key, label, icon: Icon }) => {
+    docMapping.forEach(({ key, label, icon }) => {
       if (student[key]) {
-        docs.push({ label, path: student[key], icon: Icon });
+        docs.push({ label, path: student[key], icon });
       }
     });
 
@@ -440,12 +399,17 @@ export default function ViewStudent() {
     window.open(`${baseUrl}/${path}`, '_blank', 'noopener,noreferrer');
   }, []);
 
+  const handleApproveClick = useCallback(() => {
+    setShowApproveConfirm(true);
+  }, []);
+
   const handleApprove = useCallback(async () => {
     try {
       setApproving(true);
       await api.put(`/students/${studentId}/approve`);
       toast.success("Student approved successfully");
       navigate("/students/approve", { state: { refresh: true } });
+      setShowApproveConfirm(false);
     } catch (err) {
       console.error('Approve error:', err);
       toast.error(err.response?.data?.message || ERROR_MESSAGES.APPROVE_FAILED);
@@ -459,19 +423,14 @@ export default function ViewStudent() {
     setShowRejectModal(true);
   }, []);
 
-  const handleRejectSubmit = useCallback(() => {
+  const handleRejectSubmit = useCallback(async () => {
     if (!rejectionReason.trim()) {
       toast.warning("Please enter a rejection reason");
       return;
     }
-    setShowRejectModal(false);
-    setShowRejectConfirm(true);
-  }, [rejectionReason]);
-
-  const handleConfirmReject = useCallback(async () => {
     try {
       setRejecting(true);
-      setShowRejectConfirm(false);
+      setShowRejectModal(false);
       await api.put(`/students/${studentId}/reject`, {
         reason: rejectionReason.trim()
       });
@@ -825,13 +784,13 @@ export default function ViewStudent() {
           <div className="action-card-body">
             <button
               className="btn-approve-enterprise"
-              onClick={handleApprove}
+              onClick={handleApproveClick}
               disabled={approving}
             >
               <FaCheckCircle className="btn-icon" />
               {approving ? 'Approving...' : 'Approve Student'}
             </button>
-            
+
             <button
               className="btn-reject-enterprise"
               onClick={handleRejectClick}
@@ -858,33 +817,47 @@ export default function ViewStudent() {
 
       {/* ================= MODALS ================= */}
       <ConfirmModal
+        isOpen={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        onConfirm={handleApprove}
+        title="Approve Student"
+        message="Are you sure you want to approve this student? This action will grant them full access to the system and cannot be undone."
+        type="success"
+        confirmText="Approve"
+        cancelText="Cancel"
+        isLoading={approving}
+      />
+
+      <ConfirmModal
         isOpen={showRejectModal}
         onClose={() => setShowRejectModal(false)}
         onConfirm={handleRejectSubmit}
-        title="Rejection Reason"
+        title="Reject Student"
         message="Please enter the reason for rejecting this student's registration:"
         type="danger"
+        confirmText="Reject"
+        cancelText="Cancel"
         isLoading={rejecting}
         customContent={
           <textarea
             className="reject-reason-textarea"
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter rejection reason..."
+            placeholder="Enter rejection reason (required)..."
             rows={4}
             autoFocus
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              border: '2px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '0.9375rem',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+              marginTop: '1rem'
+            }}
           />
         }
-      />
-
-      <ConfirmModal
-        isOpen={showRejectConfirm}
-        onClose={() => setShowRejectConfirm(false)}
-        onConfirm={handleConfirmReject}
-        title="Confirm Rejection"
-        message={`Are you sure you want to reject this student? Reason: "${rejectionReason}"`}
-        type="danger"
-        isLoading={rejecting}
       />
 
       {/* ================= DESIGN SYSTEM CSS ================= */}

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaUsers,
@@ -43,6 +44,12 @@ export default function StudentList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+
+  /* ================= CONFIRM MODAL STATE ================= */
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmType, setConfirmType] = useState(null); // 'approve' or 'reject'
+  const [confirmData, setConfirmData] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -110,9 +117,20 @@ export default function StudentList() {
   );
 
   /* ================= ACTIONS ================= */
-  const approveStudent = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this student?")) return;
+  const handleApproveClick = (id) => {
+    setConfirmType('approve');
+    setConfirmData(id);
+    setShowConfirmModal(true);
+  };
 
+  const handleRejectClick = (id) => {
+    setConfirmType('reject');
+    setConfirmData(id);
+    setShowConfirmModal(true);
+  };
+
+  const approveStudent = async (id) => {
+    setModalLoading(true);
     try {
       await api.put(`/students/${id}/approve`);
       // Refresh the list
@@ -120,24 +138,40 @@ export default function StudentList() {
       // Navigate to Approved Students list with refresh flag
       navigate("/students/approve", { state: { refresh: true } });
     } catch (err) {
-      alert("Failed to approve student. Please try again.");
       console.error("Approve error:", err);
+      throw err;
+    } finally {
+      setModalLoading(false);
     }
   };
 
   const rejectStudent = async (id) => {
-    const reason = prompt("Enter rejection reason (required):");
-    if (!reason || reason.trim().length < 5) {
-      alert("Rejection reason is required and must be at least 5 characters.");
-      return;
-    }
-    
+    setModalLoading(true);
     try {
-      await api.put(`/students/${id}/reject`, { reason: reason.trim() });
+      await api.put(`/students/${id}/reject`, { reason: "Rejected by admin" });
       fetchStudents();
     } catch (err) {
-      alert("Failed to reject student. Please try again.");
       console.error("Reject error:", err);
+      throw err;
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmType || !confirmData) return;
+
+    try {
+      if (confirmType === 'approve') {
+        await approveStudent(confirmData);
+      } else if (confirmType === 'reject') {
+        await rejectStudent(confirmData);
+      }
+      setShowConfirmModal(false);
+      setConfirmType(null);
+      setConfirmData(null);
+    } catch (err) {
+      // Error is handled in the action function
     }
   };
 
@@ -428,7 +462,7 @@ export default function StudentList() {
                             <>
                               <button
                                 className="btn btn-action btn-approve-student"
-                                onClick={() => approveStudent(student._id)}
+                                onClick={() => handleApproveClick(student._id)}
                                 title="Approve Student"
                               >
                                 <FaCheck />
@@ -436,7 +470,7 @@ export default function StudentList() {
                               </button>
                               <button
                                 className="btn btn-action btn-reject-student"
-                                onClick={() => rejectStudent(student._id)}
+                                onClick={() => handleRejectClick(student._id)}
                                 title="Reject Student"
                               >
                                 <FaTimes />
@@ -491,6 +525,27 @@ export default function StudentList() {
           )}
         </div>
       </div>
+
+      {/* CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setConfirmType(null);
+          setConfirmData(null);
+        }}
+        onConfirm={handleConfirm}
+        title={confirmType === 'approve' ? "Approve Student" : "Reject Student"}
+        message={
+          confirmType === 'approve'
+            ? "Are you sure you want to approve this student? This action will grant them full access to the system."
+            : "Are you sure you want to reject this student? This action will notify the student and remove their pending status."
+        }
+        type={confirmType === 'approve' ? "success" : "danger"}
+        confirmText={confirmType === 'approve' ? "Approve" : "Reject"}
+        cancelText="Cancel"
+        isLoading={modalLoading}
+      />
 
       {/* STYLES */}
       <style jsx>{`

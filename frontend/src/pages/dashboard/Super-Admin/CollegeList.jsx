@@ -784,7 +784,7 @@ export default function CollegeList() {
           align-items: center;
           gap: 1rem;
         }
-        
+
         .college-avatar {
           width: 40px;
           height: 40px;
@@ -798,15 +798,17 @@ export default function CollegeList() {
           font-size: 1rem;
           flex-shrink: 0;
         }
-        
+
         .college-details {
           flex: 1;
         }
-        
+
         .college-title {
-          font-weight: 600;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f172a;
           font-size: 0.95rem;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.2;
         }
         
         .contact-info {
@@ -814,13 +816,14 @@ export default function CollegeList() {
           align-items: center;
           gap: 0.5rem;
           color: #1a4b6d;
+          font-size: 0.875rem;
         }
-        
+
         .contact-icon {
           color: #6c757d;
           font-size: 0.9rem;
         }
-        
+
         .status-badge {
           display: inline-flex;
           align-items: center;
