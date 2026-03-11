@@ -60,7 +60,6 @@ export default function SubjectList() {
         setDepartments(departmentsData);
       } catch (err) {
         setError("Failed to load departments. Please try again.");
-        console.error("Departments fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -74,15 +73,14 @@ export default function SubjectList() {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
       // Handle different API response formats
-      const coursesData = Array.isArray(res.data) ? res.data : 
-                          Array.isArray(res.data.courses) ? res.data.courses : 
+      const coursesData = Array.isArray(res.data) ? res.data :
+                          Array.isArray(res.data.courses) ? res.data.courses :
                           Array.isArray(res.data.data) ? res.data.data : [];
       setCourses(coursesData);
       setSelectedCourse("");
       setSubjects([]);
     } catch (err) {
       setError("Failed to load courses. Please try again.");
-      console.error("Courses fetch error:", err);
       setCourses([]);
     }
   };
@@ -100,7 +98,6 @@ export default function SubjectList() {
       setSubjects(subjectsData);
     } catch (err) {
       setError("Failed to load subjects. Please try again.");
-      console.error("Subjects fetch error:", err);
       setSubjects([]);
     } finally {
       setLoadingSubjects(false);
@@ -149,7 +146,6 @@ export default function SubjectList() {
       setError(null);
     } catch (err) {
       setError("Failed to delete subject. Please try again.");
-      console.error("Delete subject error:", err);
     }
   };
 
