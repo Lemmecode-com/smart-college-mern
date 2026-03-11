@@ -33,7 +33,6 @@ export default function SuperAdminReports() {
       setData(res.data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Reports fetch error:", err);
       setError(err.response?.data?.message || "Failed to load admission summary. Please try again.");
     } finally {
       setLoading(false);

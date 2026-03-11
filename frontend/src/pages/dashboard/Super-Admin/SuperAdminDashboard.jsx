@@ -43,7 +43,6 @@ export default function SuperAdminDashboard() {
       setData(res.data || { stats: {}, colleges: [] });
       setRetryCount(0);
     } catch (err) {
-      console.error("Dashboard fetch error:", err);
       setError(err.response?.data?.message || "Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);

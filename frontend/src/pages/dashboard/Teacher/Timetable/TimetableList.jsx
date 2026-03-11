@@ -101,7 +101,6 @@ export default function TimetableList() {
       setTimetables(res.data.timetables || res.data);
       setError("");
     } catch (err) {
-      console.error("Failed to load timetables:", err);
       setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
     } finally {
       setLoading(false);

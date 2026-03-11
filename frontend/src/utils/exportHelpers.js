@@ -57,10 +57,9 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf')
 
     // Save the PDF
     doc.save(filename);
-    
+
     return { success: true, message: 'PDF exported successfully!' };
   } catch (error) {
-    console.error('PDF export error:', error);
     return { success: false, message: 'Failed to export PDF', error };
   }
 };

@@ -1,6 +1,8 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { AuthContext } from "../../../auth/AuthContext";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   getPromotionEligibleStudents,
   promoteStudent,
@@ -104,37 +106,24 @@ export default function StudentPromotion() {
     try {
       setLoading(true);
       setError("");
-      
-      console.log('📢 [PROMOTION PAGE] Fetching students...');
+
       const res = await getPromotionEligibleStudents();
-      
-      console.log('📊 [PROMOTION PAGE] API Response:', res);
-      console.log('👥 [PROMOTION PAGE] Students array:', res.students);
-      console.log('🔢 [PROMOTION PAGE] Students count:', res.students?.length || 0);
-      
+
       // Check if students array exists and has data
       if (!res.students || res.students.length === 0) {
-        console.warn('⚠️ [PROMOTION PAGE] No students found! Check backend logs for details.');
-        console.warn('⚠️ [PROMOTION PAGE] Possible reasons:');
-        console.warn('  1. No students with status "APPROVED" in database');
-        console.warn('  2. College ID mismatch between admin and students');
-        console.warn('  3. Students not assigned to this college');
-      } else {
-        console.log('✅ [PROMOTION PAGE] Students loaded successfully:', res.students.length);
-        console.log('📋 [PROMOTION PAGE] First student sample:', res.students[0]);
+        // No students found - this is OK, not an error
       }
-      
+
       setStudents(res.students || []);
       setRetryCount(0);
     } catch (err) {
-      console.error('❌ [PROMOTION PAGE] Error fetching students:', err);
-      console.error('❌ [PROMOTION PAGE] Error response:', err.response?.data);
-      console.error('❌ [PROMOTION PAGE] Error status:', err.response?.status);
-      console.error('❌ [PROMOTION PAGE] Error message:', err.response?.data?.message);
-      
       setError(
         err.response?.data?.message || "Failed to load students for promotion.",
       );
+      toast.error(err.response?.data?.message || "Failed to load students", {
+        position: "top-right",
+        autoClose: 4000,
+      });
     } finally {
       setLoading(false);
     }
@@ -145,7 +134,7 @@ export default function StudentPromotion() {
       const res = await getCollegePromotionHistory({ limit: 50 });
       setPromotionHistory(res.promotions || []);
     } catch (err) {
-      console.error("Error fetching history:", err);
+      // Silently fail - history is optional
     }
   };
 
@@ -202,8 +191,6 @@ export default function StudentPromotion() {
   };
 
   const openPromoteModal = (student) => {
-    console.log("Opening promote modal for:", student);
-    console.log("Student fee data:", student.fee);
     setSelectedStudent(student);
     setPromotionRemarks("");
     setOverrideFeeCheck(false);
@@ -213,18 +200,11 @@ export default function StudentPromotion() {
   const handlePromoteStudent = async () => {
     try {
       setLoading(true);
-      console.log("Promoting student:", selectedStudent._id);
-      console.log("Promotion data:", {
-        remarks: promotionRemarks,
-        overrideFeeCheck,
-      });
 
       const response = await promoteStudent(selectedStudent._id, {
         remarks: promotionRemarks,
         overrideFeeCheck,
       });
-
-      console.log("Promotion response:", response);
 
       // ✅ Updated success message with year-wise info
       const currentYear = getAcademicYear(
@@ -242,14 +222,18 @@ export default function StudentPromotion() {
       setShowPromoteModal(false);
       fetchEligibleStudents();
       setTimeout(() => setSuccessMessage(""), 5000);
+      toast.success("Student promoted successfully!", {
+        position: "top-right",
+        autoClose: 4000,
+      });
     } catch (err) {
-      console.error("Promotion error:", err);
-      console.error("Error response:", err.response?.data);
-      
       // Show specific error message
       const errorMessage = err.response?.data?.message || err.message || "Failed to promote student.";
       setError(errorMessage);
-      alert(errorMessage); // Show alert for immediate feedback
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -258,25 +242,26 @@ export default function StudentPromotion() {
   const handleMoveToAlumni = async () => {
     try {
       setLoading(true);
-      console.log("Moving to Alumni:", alumniStudent._id);
 
       const response = await moveToAlumni(alumniStudent._id, {
         graduationYear,
       });
 
-      console.log("Alumni response:", response);
-
       setSuccessMessage(`${alumniStudent.fullName} has been moved to Alumni successfully`);
       setShowAlumniModal(false);
       fetchEligibleStudents();
       setTimeout(() => setSuccessMessage(""), 5000);
+      toast.success("Student moved to Alumni successfully!", {
+        position: "top-right",
+        autoClose: 4000,
+      });
     } catch (err) {
-      console.error("Alumni error:", err);
-      console.error("Error response:", err.response?.data);
-
       const errorMessage = err.response?.data?.message || err.message || "Failed to move to Alumni.";
       setError(errorMessage);
-      alert(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -301,8 +286,17 @@ export default function StudentPromotion() {
       setSelectedStudents([]);
       fetchEligibleStudents();
       setTimeout(() => setSuccessMessage(""), 5000);
+      toast.success(`${res.results.success.length} students promoted successfully!`, {
+        position: "top-right",
+        autoClose: 4000,
+      });
     } catch (err) {
-      setError(err.response?.data?.message);
+      const errorMessage = err.response?.data?.message || "Failed to promote students.";
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -348,6 +342,14 @@ export default function StudentPromotion() {
 
   return (
     <div className="page-container">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Student Promotion" },
+        ]}
+      />
+
       {/* Page Header */}
       <div className="page-header">
         <div className="header-content">

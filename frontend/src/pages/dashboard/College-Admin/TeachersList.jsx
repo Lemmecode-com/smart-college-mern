@@ -85,7 +85,6 @@ export default function TeachersList() {
       });
     } catch (err) {
       setError("Failed to load teachers. Please try again.");
-      console.error("Teachers fetch error:", err);
       setTeachers([]);
       setStats({ total: 0, active: 0, inactive: 0 });
     } finally {
@@ -149,7 +148,6 @@ export default function TeachersList() {
       fetchTeachers();
     } catch (err) {
       alert("Failed to delete teacher. Please try again.");
-      console.error("Delete teacher error:", err);
     }
   };
 

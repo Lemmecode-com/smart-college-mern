@@ -326,7 +326,6 @@ export default function ViewStudent() {
       const studentData = res.data?.student || res.data;
       setStudent(studentData);
     } catch (err) {
-      console.error('Fetch student error:', err);
       const status = err.response?.status;
       const specificError = HTTP_ERROR_MAP[status] || ERROR_MESSAGES.LOAD_FAILED;
       setError(specificError);
@@ -411,7 +410,6 @@ export default function ViewStudent() {
       navigate("/students/approve", { state: { refresh: true } });
       setShowApproveConfirm(false);
     } catch (err) {
-      console.error('Approve error:', err);
       toast.error(err.response?.data?.message || ERROR_MESSAGES.APPROVE_FAILED);
     } finally {
       setApproving(false);
@@ -437,7 +435,6 @@ export default function ViewStudent() {
       toast.success("Student rejected successfully");
       fetchStudent();
     } catch (err) {
-      console.error('Reject error:', err);
       toast.error(err.response?.data?.message || ERROR_MESSAGES.REJECT_FAILED);
     } finally {
       setRejecting(false);

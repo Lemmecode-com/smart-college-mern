@@ -42,14 +42,14 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
         return JSON.parse(saved);
       }
     } catch (error) {
-      console.error('Failed to parse sidebar collapsed state from localStorage');
+      // Failed to parse sidebar collapsed state from localStorage
     }
     return initialState.isCollapsed ?? false;
   });
 
   const [isMobileOpen, setIsMobileOpen] = useState(initialState.isMobileOpen ?? false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  
+
   // Initialize open sections from localStorage or role defaults
   const [openSections, setOpenSections] = useState(() => {
     try {
@@ -58,7 +58,7 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
         return JSON.parse(saved);
       }
     } catch (error) {
-      console.error('Failed to parse open sections from localStorage');
+      // Failed to parse open sections from localStorage
     }
     return initialState.openSections ?? getDefaultOpenSections(role);
   });
@@ -105,7 +105,7 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
     try {
       localStorage.setItem(STORAGE_KEYS.COLLAPSED_STATE, JSON.stringify(isCollapsed));
     } catch (error) {
-      console.error('Failed to save sidebar collapsed state to localStorage');
+      // Failed to save sidebar collapsed state to localStorage
     }
   }, [isCollapsed]);
 
@@ -114,7 +114,7 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
     try {
       localStorage.setItem(STORAGE_KEYS.OPEN_SECTIONS, JSON.stringify(openSections));
     } catch (error) {
-      console.error('Failed to save open sections to localStorage');
+      // Failed to save open sections to localStorage
     }
   }, [openSections]);
 

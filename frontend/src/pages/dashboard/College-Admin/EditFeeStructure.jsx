@@ -69,7 +69,6 @@ export default function EditFeeStructure() {
         loadCourses(fee.course_id.department_id);
       }
     } catch (err) {
-      console.error(err);
       setError("Failed to load fee structure details. Please try again.");
     } finally {
       setLoading(false);

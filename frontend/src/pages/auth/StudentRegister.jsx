@@ -30,12 +30,10 @@ const cachedGet = async (url, cacheKey) => {
   // Check cache first
   const cached = apiCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`💾 Using cached data for: ${cacheKey}`);
     return cached.data;
   }
-  
+
   // Make API call
-  console.log(`📡 Fetching from API: ${url}`);
   const res = await publicApi.get(url);
   
   // Cache the response
@@ -115,7 +113,7 @@ export default function StudentRegister() {
           setCollegeName(res.collegeName);
         }
       } catch (err) {
-        console.error("Failed to load college info:", err);
+        // Error handled silently
       }
     };
 
@@ -129,18 +127,12 @@ export default function StudentRegister() {
     const loadDocumentConfig = async () => {
       try {
         setConfigLoading(true);
-        console.log("📥 Loading document config for college:", collegeCode);
         const res = await cachedGet(`/document-config/${collegeCode}`, `doc-config-${collegeCode}`);
-
-        console.log("📄 API Response:", res);
-        console.log("📋 Documents received:", res.documents?.length);
 
         if (res && res.documents) {
           setDocumentConfig(res.documents);
-          console.log("✅ Document config loaded successfully");
         }
       } catch (err) {
-        console.error("❌ Failed to load document config:", err);
         // Use default config if failed
       } finally {
         setConfigLoading(false);
@@ -159,7 +151,6 @@ export default function StudentRegister() {
         const res = await cachedGet(`/public/departments/${collegeCode}`, `departments-${collegeCode}`);
         setDepartments(res.departments || res || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load departments");
       }
     };
@@ -178,7 +169,6 @@ export default function StudentRegister() {
         );
         setCourses(res.data || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load courses");
       }
     };
@@ -197,13 +187,8 @@ export default function StudentRegister() {
     const fieldName = e.target.name;
 
     if (file) {
-      console.log("📄 File selected:", fieldName, file.name, file.size, "bytes");
-      console.log("📄 Current documentConfig:", documentConfig);
-      
       // Validate: Only accept documents that are enabled in config
       const docConfig = documentConfig ? documentConfig.find(doc => doc.type === fieldName) : undefined;
-
-      console.log("📄 Found docConfig for", fieldName, ":", docConfig);
 
       // Special handling for category certificate
       if (!docConfig && fieldName === 'category_certificate') {
@@ -214,7 +199,6 @@ export default function StudentRegister() {
           return;
         }
         // If config doesn't exist but category is not GEN, allow it
-        console.log("✅ Setting file (category cert no config):", fieldName, file.name);
         setForm((prevForm) => ({
           ...prevForm,
           [fieldName]: file
@@ -223,12 +207,9 @@ export default function StudentRegister() {
       }
 
       if (!docConfig) {
-        console.error("❌ Document config not found for:", fieldName);
         // Fallback: Allow upload if documentConfig is empty but field exists in form
         // This handles edge cases where config might not be fully loaded
         if (!documentConfig || documentConfig.length === 0) {
-          console.log("⚠️ No config loaded, but allowing upload for:", fieldName);
-          console.log("✅ Setting file (no config):", fieldName, file.name);
           setForm((prevForm) => ({
             ...prevForm,
             [fieldName]: file
@@ -243,9 +224,7 @@ export default function StudentRegister() {
       // Validate file format
       const fileExt = file.name.split('.').pop().toLowerCase();
       const allowedFormats = docConfig.allowedFormats || ['pdf', 'jpg', 'jpeg', 'png'];
-      
-      console.log("📄 Checking format:", fileExt, "against allowed:", allowedFormats);
-      
+
       if (!allowedFormats.includes(fileExt)) {
         alert(`${docConfig.label} accepts only: ${allowedFormats.join(', ').toUpperCase()}`);
         e.target.value = ''; // Clear file input
@@ -260,12 +239,10 @@ export default function StudentRegister() {
         return;
       }
 
-      console.log("✅ Setting file:", fieldName, file.name);
       setForm((prevForm) => ({
         ...prevForm,
         [fieldName]: file
       }));
-      console.log("✅ File accepted:", fieldName);
     }
   };
 
@@ -400,25 +377,20 @@ export default function StudentRegister() {
     if (step === steps.documents) {
       // If no documents configured, allow submission
       if (!documentConfig || documentConfig.length === 0) {
-        console.log("⚠️ No documents configured - skipping validation");
         return true;
       }
-      
-      console.log("🔍 Validating documents...");
+
       for (const doc of documentConfig) {
         // Skip category certificate if category is GEN
         if (doc.type === 'category_certificate' && form.category === 'GEN') {
-          console.log("⏭️ Skipping category certificate (GEN category)");
           continue;
         }
-        
+
         if (doc.enabled && doc.mandatory && !form[doc.type]) {
-          console.log("❌ Missing required document:", doc.label);
           alert(`Please upload ${doc.label} (Mandatory)`);
           return false;
         }
       }
-      console.log("✅ All documents validated");
       return true;
     }
     
@@ -512,17 +484,8 @@ export default function StudentRegister() {
 
       // Append files - Map frontend field names to backend expected field names
       // Backend expects: sscMarksheet, hscMarksheet, passportPhoto, categoryCertificate, etc.
-      console.log("📋 Starting file append process...");
-      console.log("📋 documentConfig:", documentConfig);
-      console.log("📋 form state:", form);
-      
       documentConfig.forEach((doc) => {
-        console.log("📄 Checking document:", doc.type, "Enabled:", doc.enabled);
-        console.log("📄 form[doc.type]:", form[doc.type]);
-        
         if (form[doc.type]) {
-          console.log("📎 Appending file:", doc.type, form[doc.type]?.name);
-
           // Map field names to match backend upload middleware
           let backendFieldName = doc.type;
           if (doc.type === "10th_marksheet") {
@@ -564,20 +527,13 @@ export default function StudentRegister() {
           }
 
           formData.append(backendFieldName, form[doc.type]);
-          console.log("✅ Appended:", backendFieldName);
-        } else {
-          console.log("⚠️ File not uploaded for:", doc.type, "Mandatory:", doc.mandatory);
         }
       });
 
       // Special handling: Append category certificate if category is not GEN
       if (form.category !== 'GEN' && form.category_certificate) {
-        console.log("📎 Appending category certificate:", form.category_certificate?.name);
         formData.append("categoryCertificate", form.category_certificate);
       }
-
-      console.log("📦 FormData prepared for submission");
-      console.log("📦 Form data:", Object.fromEntries(formData));
 
       // Submit with FormData (includes files)
       const response = await publicApi.post(
@@ -593,22 +549,13 @@ export default function StudentRegister() {
       alert(response.data.message || "🎉 Registration successful! Wait for college approval.");
       navigate("/login");
     } catch (err) {
-      console.error("❌ Registration Error:", err);
-      console.error("❌ Error Response:", err.response?.data);
-      console.error("❌ Error Status:", err.response?.status);
-
       // 🔧 IMPROVED: Extract and show actual validation error
       let errorMessage = "Registration failed";
-      
+
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
         // Validation errors - show the first error message
         const validationError = err.response.data.errors[0];
         errorMessage = `${validationError.field}: ${validationError.message}`;
-        
-        console.error("❌ Validation Error Details:", {
-          field: validationError.field,
-          message: validationError.message
-        });
       } else if (err.response?.data?.message) {
         // Other error messages
         errorMessage = err.response.data.message;
@@ -1201,9 +1148,6 @@ export default function StudentRegister() {
         </div>
       );
     }
-
-    console.log("📄 Rendering documents - Config length:", documentConfig.length);
-    console.log("📄 Enabled documents:", documentConfig.filter(d => d.enabled).length);
 
     // Check if no documents are configured
     if (!documentConfig || documentConfig.length === 0) {

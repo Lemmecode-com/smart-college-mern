@@ -67,12 +67,11 @@ export default function FeeStructureList() {
       const res = await api.get("/fees/structure");
       const data = res.data || [];
       setStructures(data);
-      
+
       // Calculate stats client-side (no API changes)
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Fee structures fetch error:", err);
       setError(err.response?.data?.message || "Failed to load fee structures. Please try again.");
     } finally {
       setLoading(false);
@@ -167,7 +166,6 @@ export default function FeeStructureList() {
       loadStructures();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete fee structure. Please try again.");
-      console.error("Delete error:", err);
     }
   };
 

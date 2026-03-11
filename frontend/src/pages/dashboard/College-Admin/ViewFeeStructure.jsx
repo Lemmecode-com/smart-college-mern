@@ -461,7 +461,6 @@ export default function ViewFeeStructure() {
         }
       }
     } catch (err) {
-      console.error('Load error:', err);
       const status = err.response?.status;
       const specificError = HTTP_ERROR_MAP[status] || ERROR_MESSAGES.LOAD_FAILED;
       setError(specificError);
@@ -534,7 +533,6 @@ export default function ViewFeeStructure() {
         toast.error(result.message || ERROR_MESSAGES.EXPORT_FAILED);
       }
     } catch (error) {
-      console.error('Export error:', error);
       toast.error(ERROR_MESSAGES.EXPORT_FAILED);
     } finally {
       setExporting(false);
