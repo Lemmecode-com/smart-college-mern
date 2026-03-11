@@ -45,7 +45,6 @@ export default function PaymentSuccess() {
           icon: <FaCheckCircle />
         });
       } catch (err) {
-        console.error(err);
         const errorMsg = err.response?.data?.message || "Payment confirmation failed";
         setError(errorMsg);
         toast.error(errorMsg, {

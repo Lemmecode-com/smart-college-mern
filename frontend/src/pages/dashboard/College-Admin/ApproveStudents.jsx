@@ -72,7 +72,6 @@ export default function ApproveStudents() {
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Approved students fetch error:", err);
       setError(err.response?.data?.message || "Failed to load approved students. Please try again.");
     } finally {
       setLoading(false);
