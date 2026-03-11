@@ -126,16 +126,12 @@ export default function StudentProfile() {
         // Extract document config for conditional rendering
         if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
           setDocumentConfig(res.data.documentConfig);
-          console.log("📄 Document config loaded from profile:", res.data.documentConfig.length, "documents");
         } else {
           // No document config - use empty array (no documents shown)
           // This means college admin hasn't configured any documents
           setDocumentConfig([]);
-          console.log("📭 No document config found - showing no documents");
         }
       } catch (err) {
-        console.error("PROFILE ERROR:", err);
-
         // Clear timeout on error
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
@@ -1543,7 +1539,6 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
         });
       }
     } catch (err) {
-      console.error("Download error:", err);
       toast.error("Failed to download document. Please try again.", {
         position: "top-right",
         autoClose: 5000,

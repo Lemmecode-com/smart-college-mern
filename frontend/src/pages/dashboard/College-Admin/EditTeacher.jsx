@@ -49,10 +49,8 @@ export default function EditTeacher() {
           api.get("/departments")
         ]);
 
-        console.log('[EditTeacher] Teacher API Response:', teacherRes.data);
         // API returns { teacher: {...} }, axios keeps it nested
         const t = teacherRes.data?.teacher || teacherRes.data;
-        console.log('[EditTeacher] Teacher data:', t);
 
         setFormData({
           name: t.name || "",
@@ -67,7 +65,6 @@ export default function EditTeacher() {
         setAssignedCourses(Array.isArray(t.courses) ? t.courses : []);
         setDepartments(Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.departments || []);
       } catch (err) {
-        console.error("Failed to load teacher data:", err);
         setError("Failed to load teacher data");
       } finally {
         setLoading(false);
@@ -86,7 +83,6 @@ export default function EditTeacher() {
 
     api.get(`/courses/department/${formData.department_id}`)
       .then(res => {
-        console.log('[EditTeacher] Courses API Response:', res.data);
         const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
                             Array.isArray(res.data) ? res.data : [];
         setCourses(coursesData);

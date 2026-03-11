@@ -67,14 +67,11 @@ export default function CreateFeeStructure() {
   const loadCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      console.log('[CreateFeeStructure] Courses API Response:', res.data);
       // Handle different API response formats
       const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
                           Array.isArray(res.data) ? res.data : [];
-      console.log('[CreateFeeStructure] Extracted courses:', coursesData);
       setCourses(coursesData);
     } catch (err) {
-      console.error('[CreateFeeStructure] Error loading courses:', err);
       setCourses([]);
     }
   };

@@ -33,7 +33,6 @@ export default function MySessions() {
         const res = await api.get("/attendance/sessions");
         setSessions(res.data.sessions || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load attendance sessions");
       } finally {
         setLoading(false);

@@ -161,7 +161,7 @@ export default function CollegeProfile() {
       try {
         const collegeRes = await api.get("/college/my-college");
         setCollege(collegeRes.data);
-        
+
         setStats({
           departments: collegeRes.data?.departments?.length || 0,
           courses: collegeRes.data?.courses?.length || 0,
@@ -170,7 +170,6 @@ export default function CollegeProfile() {
           activeSessions: collegeRes.data?.activeSessions || 0
         });
       } catch (err) {
-        console.error("Error loading college profile:", err);
         setError("Failed to load college profile data");
         setCollege(null);
       } finally {
