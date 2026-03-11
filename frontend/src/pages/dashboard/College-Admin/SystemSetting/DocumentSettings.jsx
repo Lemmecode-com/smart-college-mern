@@ -50,7 +50,6 @@ export default function DocumentSettings() {
 
       if (res.data.config && res.data.config.documents) {
         setDocuments(res.data.config.documents);
-        console.log("✅ Loaded existing document config:", res.data.config.documents.length, "documents");
       } else {
         // Initialize with EMPTY configuration - admin must explicitly enable documents
         // This ensures registration form only shows documents that admin actually selects
@@ -65,10 +64,8 @@ export default function DocumentSettings() {
           order: index
         }));
         setDocuments(emptyDocs);
-        console.log("📭 No config found - initialized with empty (all disabled) config");
       }
     } catch (error) {
-      console.error("Error loading document config:", error);
       setMessage({ type: "error", text: "Failed to load document configuration" });
     } finally {
       setLoading(false);
@@ -169,25 +166,18 @@ export default function DocumentSettings() {
       }));
 
       const enabledCount = documents.filter(doc => doc.enabled).length;
-      console.log("💾 Saving document config:", {
-        documentsCount: documentsWithOrder.length,
-        enabledCount: enabledCount,
-        message: enabledCount === 0 ? "⚠️ NO documents enabled - students will NOT need to upload any files" : ""
-      });
 
       await api.put("/document-config/admin/college", {
         documents: documentsWithOrder
       });
 
-      console.log("✅ Config saved successfully");
-      setMessage({ 
-        type: "success", 
-        text: enabledCount === 0 
-          ? "Document configuration saved! No documents required for registration." 
-          : "Document configuration saved successfully!" 
+      setMessage({
+        type: "success",
+        text: enabledCount === 0
+          ? "Document configuration saved! No documents required for registration."
+          : "Document configuration saved successfully!"
       });
     } catch (error) {
-      console.error("❌ Error saving config:", error);
       setMessage({ type: "error", text: error.response?.data?.message || "Failed to save configuration" });
     } finally {
       setSaving(false);

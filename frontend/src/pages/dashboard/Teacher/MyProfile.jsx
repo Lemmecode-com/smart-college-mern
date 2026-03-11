@@ -152,16 +152,11 @@ export default function MyProfile() {
       try {
         setLoading(true);
         const res = await api.get("/teachers/my-profile");
-        console.log('[MyProfile] API Response:', res);
-        console.log('[MyProfile] res.data:', res.data);
-        console.log('[MyProfile] res.data.teacher:', res.data?.teacher);
-        
+
         // Backend returns { teacher: {...} }, axios keeps it nested
         const profileData = res.data?.teacher || (res.data?.fullName ? res.data : null);
-        console.log('[MyProfile] Setting profile:', profileData);
         setProfile(profileData);
       } catch (err) {
-        console.error("Failed to load profile:", err);
         setError("Failed to load profile data. Please try again.");
       } finally {
         setLoading(false);
