@@ -3,7 +3,7 @@ import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { logger } from "../utils/logger";
-import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
 import "./Navbar.css";
@@ -374,11 +374,11 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
       <Navbar
         expand="md"
-        className="bg-white shadow-sm"
+        className="bg-dark-navbar"
         style={{
           zIndex: 1020,
           width: '100%',
-          minHeight: 'var(--navbar-height, 60px)'
+          minHeight: 'var(--navbar-height, 64px)'
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -479,18 +479,18 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               >
                 <FaBell
                   size={isMobile ? 18 : 20}
-                  className={notifOpen ? "text-primary" : "text-dark"}
+                  className={notifOpen ? "text-primary" : "text-secondary"}
                   aria-hidden="true"
                 />
 
                 {count > 0 && (
                   <Badge
                     bg="danger"
-                    pill
                     className="notification-badge"
                     aria-label={`${count} unread notifications`}
+                    data-badge={count > 99 ? '99+' : count}
                   >
-                    {count}
+                    {count > 99 ? '99+' : count}
                   </Badge>
                 )}
               </div>
@@ -600,7 +600,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
             >
               <Dropdown.Toggle
                 as="div"
-                className="navbar-icon-button p-0"
+                className="navbar-user-dropdown p-0"
                 id="profile-dropdown-toggle"
                 role="button"
                 aria-label="User menu"
@@ -615,11 +615,17 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               >
                 {/* Avatar Circle */}
                 <div
-                  className="profile-avatar"
-                  title={user.email}
+                  className="profile-avatar-navbar"
+                  title={getUserDisplayName()}
                 >
                   {getUserInitials()}
                 </div>
+                {/* User Name - Desktop Only */}
+                <span className="user-name-display d-none d-lg-block">
+                  {getUserDisplayName()}
+                </span>
+                {/* Chevron Down */}
+                <FaChevronDown className="user-dropdown-chevron d-none d-lg-block" />
               </Dropdown.Toggle>
 
               <Dropdown.Menu
@@ -725,21 +731,6 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                 </div>
               </Dropdown.Menu>
             </Dropdown>
-
-            {/* User Email - Hidden on mobile */}
-            <span
-              className="text-muted small d-none d-md-block"
-              style={{
-                fontSize: "0.8rem",
-                maxWidth: "150px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-              title={user.email}
-            >
-              {user.email}
-            </span>
           </Nav>
         </Container>
       </Navbar>
