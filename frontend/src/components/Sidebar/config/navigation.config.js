@@ -79,6 +79,12 @@ export const navigationConfig = {
             icon: FaUniversity,
             label: 'College Analytics',
             exact: true
+          },
+          {
+            path: '/admin/security-audit',
+            icon: FaCheckCircle,
+            label: 'Security Audit',
+            exact: true
           }
         ]
       },
