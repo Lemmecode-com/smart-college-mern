@@ -461,11 +461,11 @@ export default function ViewStudent() {
         <div className="header-content">
           <div className="header-branding">
             <div className="header-logo-wrapper">
-              <img 
-                src="/novaa.png" 
-                alt="NOVAA" 
+              <img
+                src="/novaa.png"
+                alt="NOVAA"
                 className="header-logo-image"
-                loading="lazy"
+                // No loading="lazy" - header logo is visible on page load
               />
             </div>
             <div className="header-text">
