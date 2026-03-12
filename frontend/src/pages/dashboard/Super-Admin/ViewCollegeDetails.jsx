@@ -87,6 +87,40 @@ export default function ViewCollegeDetails() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [copying, setCopying] = useState(false);
 
+  // Add global styles for text wrapping and responsive design
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Text wrapping utility */
+      .text-wrap-break {
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+      }
+      
+      /* Responsive card adjustments */
+      @media (max-width: 768px) {
+        .info-item-container {
+          padding: 0.75rem !important;
+        }
+        .info-item-value {
+          font-size: 0.875rem !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Cleanup - remove style on unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   // Fix registration URL to use frontend port instead of backend port
   const getFrontendRegistrationUrl = (url) => {
     if (!url) return '';
@@ -409,7 +443,7 @@ export default function ViewCollegeDetails() {
                 </div>
                 <div className="p-4">
                   <div className="row g-4">
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6 col-lg-3">
                       <InfoItem
                         icon={<FaEnvelope />}
                         label="Official Email"
@@ -417,7 +451,7 @@ export default function ViewCollegeDetails() {
                         gradient={gradientColors['from-blue-400 to-cyan-400']}
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6 col-lg-3">
                       <InfoItem
                         icon={<FaPhone />}
                         label="Contact Number"
@@ -425,7 +459,7 @@ export default function ViewCollegeDetails() {
                         gradient={gradientColors['from-green-400 to-emerald-400']}
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6 col-lg-3">
                       <InfoItem
                         icon={<FaMapMarkerAlt />}
                         label="Address"
@@ -433,7 +467,7 @@ export default function ViewCollegeDetails() {
                         gradient={gradientColors['from-amber-400 to-orange-400']}
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6 col-lg-3">
                       <InfoItem
                         icon={<FaCalendarAlt />}
                         label="Established Year"
@@ -923,12 +957,13 @@ export default function ViewCollegeDetails() {
   );
 }
 
-// Enhanced InfoItem Component with Animations
+// Enhanced InfoItem Component with Animations and Text Wrapping
 const InfoItem = ({ icon, label, value, gradient }) => {
   return (
     <motion.div
       whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0,0,0,0.08)' }}
       transition={{ type: "spring", damping: 10 }}
+      className="info-item-container"
       style={{
         padding: '1rem',
         borderRadius: '16px',
@@ -936,7 +971,10 @@ const InfoItem = ({ icon, label, value, gradient }) => {
         display: 'flex',
         alignItems: 'flex-start',
         border: '1px solid #eaeaea',
-        height: '100%'
+        height: '100%',
+        overflow: 'hidden',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word'
       }}
     >
       <div
@@ -956,7 +994,7 @@ const InfoItem = ({ icon, label, value, gradient }) => {
       >
         {React.cloneElement(icon, { size: 20, style: { color: 'white' } })}
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
         <small style={{
           display: 'block',
           marginBottom: '0.25rem',
@@ -964,11 +1002,21 @@ const InfoItem = ({ icon, label, value, gradient }) => {
           fontWeight: 500,
           fontSize: '0.75rem'
         }}>{label}</small>
-        <div style={{
-          fontWeight: 600,
-          color: '#0f172a',
-          fontSize: '1.1rem'
-        }}>{value || 'N/A'}</div>
+        <div 
+          className="info-item-value text-wrap-break"
+          style={{
+            fontWeight: 600,
+            color: '#0f172a',
+            fontSize: '0.95rem',
+            lineHeight: '1.5',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            whiteSpace: 'normal',
+            maxWidth: '100%'
+          }}
+        >
+          {value || 'N/A'}
+        </div>
       </div>
     </motion.div>
   );
