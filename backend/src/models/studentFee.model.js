@@ -97,14 +97,6 @@ const studentFeeSchema = new mongoose.Schema({
     },
 
     // Payment Reconciliation (FIX: Edge Case 4 - Payment During Maintenance)
-    paymentAttemptAt: {
-      type: Date,
-    },
-
-    paymentFailureReason: {
-      type: String,
-    },
-
     reconciliationStatus: {
       type: String,
       enum: ["FLAGGED", "REQUIRES_ACTION", "RECONCILED"],
