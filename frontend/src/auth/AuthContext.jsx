@@ -24,12 +24,28 @@ export const AuthProvider = ({ children }) => {
         college_id: res.data.college_id
       };
 
-      // Store user info (not the token) in state
-      setUser({
-        id: userInfo.id,
-        role: userInfo.role,
-        college_id: userInfo.college_id || null
-      });
+      // Fetch complete user data immediately after login
+      try {
+        const profileRes = await api.get("/auth/me");
+        // Store complete user data from backend
+        setUser({
+          id: profileRes.data.id,
+          role: profileRes.data.role,
+          college_id: profileRes.data.college_id || null,
+          email: profileRes.data.email || null,
+          name: profileRes.data.name || null
+        });
+      } catch (profileError) {
+        // Fallback to basic info if profile fetch fails
+        logger.warn("Profile fetch after login failed, using basic info");
+        setUser({
+          id: userInfo.id,
+          role: userInfo.role,
+          college_id: userInfo.college_id || null,
+          email: null,
+          name: null
+        });
+      }
 
       return { success: true };
     } catch (error) {
@@ -59,10 +75,14 @@ export const AuthProvider = ({ children }) => {
     const checkAuthStatus = async () => {
       try {
         const res = await api.get("/auth/me");
+        
+        // Store complete user data from backend
         setUser({
           id: res.data.id,
           role: res.data.role,
-          college_id: res.data.college_id || null
+          college_id: res.data.college_id || null,
+          email: res.data.email || null,
+          name: res.data.name || null
         });
       } catch (error) {
         // 401 is expected for unauthenticated users - don't log it as error

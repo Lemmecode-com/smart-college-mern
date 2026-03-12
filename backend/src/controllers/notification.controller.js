@@ -506,7 +506,7 @@ exports.getUnreadForBell = async (req, res, next) => {
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
-    
+
     const readIds = await getReadNotificationIds(req.user.id);
 
     let query = {
@@ -515,25 +515,28 @@ exports.getUnreadForBell = async (req, res, next) => {
       _id: { $nin: readIds }
     };
 
+    // Role-based filtering
     if (req.user.role === "STUDENT") {
       query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
-    }
-
-    if (req.user.role === "TEACHER") {
+    } else if (req.user.role === "TEACHER") {
       query.$or = [
         { createdByRole: "COLLEGE_ADMIN" },
         { createdBy: req.user.id }
+      ];
+    } else if (req.user.role === "COLLEGE_ADMIN") {
+      // Admin sees: Admin-created notifications + Teacher-created notifications
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN", createdBy: req.user.id },
+        { createdByRole: "TEACHER" }
       ];
     }
 
     const unread = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(6);
+      .limit(20);  // Increased limit for better UX
 
-    ApiResponse.success(res, {
-      unread,
-      count: unread.length
-    }, "Unread notifications fetched successfully");
+    // ✅ Return array directly for frontend compatibility
+    ApiResponse.success(res, unread, "Unread notifications fetched successfully");
   } catch (err) {
     next(err);
   }
