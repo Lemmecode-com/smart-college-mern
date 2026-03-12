@@ -104,7 +104,7 @@ exports.markAsReviewed = async (req, res, next) => {
 };
 
 /**
- * Export audit logs as CSV
+ * Export audit logs as CSV (backup - frontend handles Excel/PDF)
  * GET /api/security-audit/export/download
  */
 exports.exportAuditLogs = async (req, res, next) => {
@@ -115,10 +115,11 @@ exports.exportAuditLogs = async (req, res, next) => {
     };
 
     const result = await securityAuditService.getAuditLogs({ ...filters, limit: 1000 });
-    
+    const logs = result.logs;
+
     // Convert to CSV format
-    const csv = convertToCSV(result.logs);
-    
+    const csv = convertToCSV(logs);
+
     res.header('Content-Type', 'text/csv');
     res.header('Content-Disposition', 'attachment; filename="security-audit-logs.csv"');
     res.send(csv);
