@@ -181,7 +181,10 @@ async function addIndexes() {
     const teacherIndexes = [
       { key: { college_id: 1, status: 1 }, name: "college_1_status_1" },
       { key: { college_id: 1, department_id: 1 }, name: "college_1_department_1" },
-      { key: { user_id: 1, college_id: 1 }, name: "user_1_college_1" }
+      { key: { user_id: 1, college_id: 1 }, name: "user_1_college_1" },
+      { key: { email: 1 }, name: "email_1" },
+      { key: { mobileNumber: 1 }, name: "mobileNumber_1" },
+      { key: { joiningDate: 1 }, name: "joiningDate_1" }
     ];
 
     for (const index of teacherIndexes) {
