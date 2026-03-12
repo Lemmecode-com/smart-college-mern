@@ -124,6 +124,9 @@ import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
 import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
 import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
 
+/* ================= SECURITY AUDIT ================= */
+import SecurityAudit from "./pages/admin/SecurityAudit";
+
 /* ================= SUBJECTS / TEACHERS ================= */
 import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
 import AddSubject from "./pages/dashboard/College-Admin/AddSubject";
@@ -290,6 +293,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
                 element={
                   <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
                     <SuperAdminReports />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/security-audit"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <SecurityAudit />
                   </ProtectedRoute>
                 }
               />
