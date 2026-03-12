@@ -106,9 +106,11 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
       const total = res?.data?.total || 0;
 
+      // Detect new notifications and show toast
       if (prevCount.current && total > prevCount.current) {
-        setToast("🔔 New notification received!");
-        setTimeout(() => setToast(null), 3000);
+        const newCount = total - prevCount.current;
+        setToast(`🔔 ${newCount} new notification${newCount > 1 ? 's' : ''} received!`);
+        setTimeout(() => setToast(null), 4000);
       }
 
       prevCount.current = total;
@@ -141,9 +143,12 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
-      setNotes(res.data.unread || res.data || []);
+      // Backend now returns array directly: [...]
+      // Axios interceptor keeps arrays as-is
+      setNotes(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       logger.error("Bell fetch error", err);
+      setNotes([]);
     } finally {
       setFetchingNotes(false);
     }
@@ -153,11 +158,22 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   const markAsRead = async (id) => {
     setMarkingRead(id);
     try {
-      await api.post(`/notifications/${id}/read`);
-      fetchNotes();
+      // Use correct endpoint parameter name: notificationId
+      await api.post(`/notifications/${id}/mark-read`);
+      
+      // Optimistic update - remove from list immediately
+      setNotes(prev => prev.filter(n => n._id !== id));
+      
+      // Update count in background
       fetchCount();
+      
+      // Show success feedback
+      setToast("✅ Notification marked as read");
+      setTimeout(() => setToast(null), 2000);
     } catch (err) {
       logger.error("Mark read failed", err);
+      setToast("❌ Failed to mark as read");
+      setTimeout(() => setToast(null), 3000);
     } finally {
       setMarkingRead(null);
     }
@@ -166,16 +182,27 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   /* ================= MARK ALL AS READ ================= */
   const markAllAsRead = async () => {
     try {
-      const promises = notes.map((n) => api.post(`/notifications/${n._id}/read`));
+      // Optimistic update - clear all notifications immediately
+      const previousNotes = [...notes];
+      setNotes([]);
+      setCount(0);
+      
+      // Mark all as read in background
+      const promises = previousNotes.map((n) => api.post(`/notifications/${n._id}/read`));
       await Promise.all(promises);
-      fetchNotes();
+      
+      // Refresh count to ensure sync
       fetchCount();
+      
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       logger.error("Mark all read failed", err);
       setToast("❌ Failed to mark all as read");
       setTimeout(() => setToast(null), 3000);
+      // Revert optimistic update on error
+      fetchNotes();
+      fetchCount();
     }
   };
 
@@ -203,17 +230,27 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     }
   };
 
-  /* ================= INITIAL ================= */
+  /* ================= INITIAL POLLING ================= */
   useEffect(() => {
     fetchCount(true); // Silent initial fetch
     const interval = setInterval(() => {
       // Skip polling if in backoff period
       if (!rateLimitBackoff) {
-        fetchCount(true); // Silent polling
+        fetchCount(true); // Silent polling for count
       }
     }, 15000);
     return () => clearInterval(interval);
   }, [user, rateLimitBackoff]);
+
+  /* ================= FETCH NOTES WHEN COUNT INCREASES ================= */
+  useEffect(() => {
+    // Only fetch notes if count increased (new notifications arrived)
+    if (count > 0 && count > prevCount.current) {
+      fetchNotes(); // ✅ Auto-fetch new notifications
+    }
+    // Update ref for next comparison
+    prevCount.current = count;
+  }, [count]);
 
   /* ================= KEYBOARD SHORTCUTS ================= */
   useEffect(() => {
@@ -256,11 +293,58 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
 
   /* ================= GET USER INITIALS ================= */
   const getUserInitials = () => {
+    // Priority 1: Use user.name from context (dynamically fetched)
+    if (user.name) {
+      const nameParts = user.name.trim().split(' ');
+      if (nameParts.length >= 2) {
+        return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
+      }
+      return nameParts[0][0].toUpperCase();
+    }
+    
+    // Priority 2: Use user.email from context (dynamically fetched)
     if (user.email && user.email.includes("@")) {
       const name = user.email.split("@")[0];
-      return name.substring(0, 2).toUpperCase();
+      // Convert dots/underscores to spaces and extract name
+      const cleanName = name.replace(/[._]/g, ' ').trim();
+      const nameParts = cleanName.split(' ');
+      if (nameParts.length >= 2) {
+        return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
+      }
+      return nameParts[0][0].toUpperCase();
     }
+    
+    // Fallback: Use role-based initial
+    if (user.role) {
+      return user.role.charAt(0).toUpperCase();
+    }
+    
     return "U";
+  };
+
+  /* ================= GET USER DISPLAY NAME ================= */
+  const getUserDisplayName = () => {
+    // Priority 1: Use user.name from context (dynamically fetched)
+    if (user.name) {
+      return user.name;
+    }
+    
+    // Priority 2: Use user.email from context (dynamically fetched)
+    if (user.email && user.email.includes("@")) {
+      const emailName = user.email.split("@")[0];
+      // Convert dots/underscores to spaces and capitalize
+      const cleanName = emailName.replace(/[._]/g, ' ').trim();
+      return cleanName.split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
+    // Fallback: Use role
+    if (user.role) {
+      return user.role.replace('_', ' ');
+    }
+    
+    return 'User';
   };
 
   /* ================= FORMAT DATE ================= */
@@ -281,8 +365,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       {/* Toast Notification */}
       {toast && (
         <div
-          className="position-fixed top-0 end-0 m-3 alert alert-success shadow animate__animated animate__fadeInDown"
-          style={{ zIndex: 1080 }}
+          className="toast-notification"
           role="alert"
         >
           {toast}
@@ -369,23 +452,23 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                 setNotifOpen(isOpen);
                 if (isOpen) {
                   setProfileOpen(false);
+                  // Force fresh fetch when opening dropdown
                   fetchNotes();
                 }
               }}
               align="end"
             >
               <div
-                className="d-flex align-items-center justify-content-center cursor-pointer"
-                style={{
-                  minWidth: "44px",
-                  minHeight: "44px",
-                  borderRadius: "50%",
-                  transition: "background-color 0.2s",
-                }}
-                onClick={() => setNotifOpen(!notifOpen)}
+                className="navbar-icon-button notification-bell"
                 role="button"
                 aria-label="Notifications"
                 tabIndex={0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNotifOpen(!notifOpen);
+                  if (!notifOpen) fetchNotes();
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -404,15 +487,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                   <Badge
                     bg="danger"
                     pill
-                    className="position-absolute"
-                    style={{
-                      fontSize: "10px",
-                      padding: "3px 6px",
-                      minWidth: "20px",
-                      top: "8px",
-                      right: "8px",
-                      transform: "translate(50%, -50%)",
-                    }}
+                    className="notification-badge"
                     aria-label={`${count} unread notifications`}
                   >
                     {count}
@@ -421,25 +496,19 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               </div>
 
               <Dropdown.Menu
-                className="shadow-lg border-0"
-                style={{
-                  width: isMobile ? "280px" : "350px",
-                  maxHeight: "70vh",
-                  overflowY: "auto",
-                }}
+                className="notification-dropdown shadow-lg"
                 role="menu"
                 aria-label="Notification menu"
               >
                 {/* Header */}
-                <Dropdown.Header className="bg-light d-flex justify-content-between align-items-center p-2">
-                  <span className="fw-bold mb-0" style={{ fontSize: "0.9rem" }}>
+                <Dropdown.Header className="dropdown-header d-flex justify-content-between align-items-center">
+                  <span className="mb-0">
                     🔔 Unread Notifications
                   </span>
                   {notes.length > 0 && (
                     <button
-                      className="btn btn-sm btn-link text-primary p-0"
+                      className="btn btn-sm btn-link text-primary p-0 notification-mark-all-btn"
                       onClick={markAllAsRead}
-                      style={{ fontSize: "0.75rem" }}
                       aria-label="Mark all as read"
                     >
                       Mark all read
@@ -450,7 +519,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                 {/* Body */}
                 <div className="p-2">
                   {fetchingNotes ? (
-                    <div className="text-center py-4">
+                    <div className="notification-loading">
                       <div
                         className="spinner-border spinner-border-sm text-primary"
                         role="status"
@@ -460,52 +529,46 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                       <p className="text-muted small mt-2">Loading notifications...</p>
                     </div>
                   ) : notes.length === 0 ? (
-                    <div className="text-center py-4">
-                      <FaBell size={40} className="text-muted mb-2 opacity-25" />
-                      <p className="text-muted small mb-0">No new notifications</p>
+                    <div className="notification-empty">
+                      <FaBell size={40} className="mb-2" />
+                      <p className="small mb-0">No new notifications</p>
                     </div>
                   ) : (
                     notes.map((n) => (
                       <div
                         key={n._id}
-                        className="p-2 rounded mb-2 small bg-light border border-light"
-                        style={{ fontSize: "0.8rem" }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#f8f9fa";
-                          e.currentTarget.style.transform = "translateX(2px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "";
-                          e.currentTarget.style.transform = "";
-                        }}
+                        className="notification-card"
                         role="menuitem"
                       >
-                        <div className="d-flex justify-content-between align-items-start">
-                          <strong className="d-block mb-1 text-dark">{n.title}</strong>
+                        <div className="d-flex justify-content-between align-items-start gap-2">
+                          <strong className="notification-card-title flex-grow-1">
+                            {n.title}
+                          </strong>
                           {markingRead === n._id && (
                             <div
-                              className="spinner-border spinner-border-sm"
-                              style={{ width: "12px", height: "12px" }}
+                              className="spinner-border spinner-border-sm text-primary flex-shrink-0"
+                              style={{ width: "14px", height: "14px" }}
+                              role="status"
                             />
                           )}
                         </div>
-                        <div className="text-muted small mb-2" style={{ lineHeight: "1.4" }}>
-                          {n.message}
+                        <div className="notification-card-message">
+                          {n.message.length > 80 ? `${n.message.substring(0, 80)}...` : n.message}
                         </div>
-                        {n.createdAt && (
-                          <div className="text-muted" style={{ fontSize: "0.7rem", marginBottom: "6px" }}>
-                            🕒 {formatDate(n.createdAt)}
-                          </div>
-                        )}
-                        <div className="text-end">
+                        <div className="d-flex justify-content-between align-items-center">
+                          {n.createdAt && (
+                            <div className="notification-card-time">
+                              🕒 {formatDate(n.createdAt)}
+                            </div>
+                          )}
                           <button
-                            className="btn btn-sm btn-link text-success p-0"
+                            className="notification-mark-read-btn ms-auto"
                             onClick={() => markAsRead(n._id)}
                             disabled={markingRead === n._id}
-                            style={{ fontSize: "0.75rem" }}
                             aria-label={`Mark ${n.title} as read`}
+                            title="Mark as read"
                           >
-                            <FaCheck /> {markingRead === n._id ? "Marking..." : "Mark read"}
+                            <FaCheck /> {markingRead === n._id ? "..." : ""}
                           </button>
                         </div>
                       </div>
@@ -514,11 +577,10 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                 </div>
 
                 {/* Footer */}
-                <div className="card-footer bg-light text-center p-2">
+                <div className="dropdown-footer">
                   <button
                     className="btn btn-sm btn-primary w-100"
                     onClick={goToNotificationList}
-                    style={{ fontSize: "0.8rem", minHeight: "44px" }}
                   >
                     View All Notifications →
                   </button>
@@ -534,17 +596,16 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                 if (isOpen) setNotifOpen(false);
               }}
               align="end"
+              drop="down"
             >
-              <div
-                className="d-flex align-items-center justify-content-center cursor-pointer"
-                style={{
-                  minWidth: "44px",
-                  minHeight: "44px",
-                }}
-                onClick={() => setProfileOpen(!profileOpen)}
+              <Dropdown.Toggle
+                as="div"
+                className="navbar-icon-button p-0"
+                id="profile-dropdown-toggle"
                 role="button"
                 aria-label="User menu"
                 tabIndex={0}
+                onClick={() => setProfileOpen(!profileOpen)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -554,82 +615,113 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               >
                 {/* Avatar Circle */}
                 <div
-                  className="d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
-                  style={{
-                    width: isMobile ? "36px" : "40px",
-                    height: isMobile ? "36px" : "40px",
-                    fontSize: isMobile ? "0.85rem" : "0.95rem",
-                    transition: "all 0.2s",
-                    boxShadow: profileOpen ? "0 0 0 3px rgba(13, 110, 253, 0.25)" : "none",
-                  }}
+                  className="profile-avatar"
                   title={user.email}
                 >
                   {getUserInitials()}
                 </div>
-              </div>
+              </Dropdown.Toggle>
 
               <Dropdown.Menu
-                className="shadow-lg border-0"
-                style={{
-                  width: isMobile ? "220px" : "240px",
-                }}
+                className="profile-dropdown shadow-lg"
                 role="menu"
                 aria-label="Profile menu"
+                aria-labelledby="profile-dropdown-toggle"
               >
-                {/* User Info Header */}
-                <div className="card-header bg-light p-3 text-center">
-                  <div
-                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2"
-                    style={{ width: "56px", height: "56px", fontSize: "1.3rem", fontWeight: "bold" }}
-                  >
-                    {getUserInitials()}
+                {/* User Info Header - Enterprise SaaS Layout */}
+                <div className="profile-header">
+                  <div className="profile-header-content">
+                    <div className="profile-avatar-large">
+                      {getUserInitials()}
+                    </div>
+                    <div className="profile-user-info">
+                      <h6 className="profile-user-name" title={getUserDisplayName()}>
+                        {getUserDisplayName()}
+                      </h6>
+                      <p className="profile-user-email" title={user.email}>
+                        {user.email}
+                      </p>
+                    </div>
                   </div>
-                  <h6 className="fw-bold mb-1 text-truncate" style={{ fontSize: "0.9rem" }} title={user.email}>
-                    {user.email}
-                  </h6>
+                  <div className="profile-role-section">
+                    <span className="profile-role-badge">
+                      {user.role.replace(/_/g, ' ')}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Menu Items */}
-                <div className="card-body p-2">
-                  <button
-                    className="btn btn-sm btn-light w-100 text-start d-flex align-items-center gap-2 mb-1"
-                    onClick={goToProfile}
-                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
-                    role="menuitem"
-                  >
-                    <FaUser /> My Profile
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light w-100 text-start d-flex align-items-center gap-2 mb-1"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      navigate("/settings");
-                    }}
-                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
-                    role="menuitem"
-                  >
-                    <FaCog /> Settings
-                  </button>
-                  <button
-                    className="btn btn-sm btn-light w-100 text-start d-flex align-items-center gap-2 mb-2"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      navigate("/change-password");
-                    }}
-                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
-                    role="menuitem"
-                  >
-                    <FaKey /> Change Password
-                  </button>
-                  <hr className="my-2" />
-                  <button
-                    className="btn btn-sm btn-outline-danger w-100 text-start d-flex align-items-center gap-2"
-                    onClick={handleLogoutClick}
-                    style={{ fontSize: "0.85rem", minHeight: "44px" }}
-                    role="menuitem"
-                  >
-                    <FaSignOutAlt /> Logout
-                  </button>
+                {/* Menu Items - Organized in Groups */}
+                <div className="profile-menu-body">
+                  <div className="profile-menu-group">
+                    <div className="profile-menu-group-title">Account</div>
+                    <button
+                      className="profile-menu-item"
+                      onClick={goToProfile}
+                      role="menuitem"
+                    >
+                      <div className="profile-menu-item-icon">
+                        <FaUser />
+                      </div>
+                      <div className="profile-menu-item-content">
+                        <span className="profile-menu-item-title">My Profile</span>
+                        <span className="profile-menu-item-subtitle">View and edit your profile</span>
+                      </div>
+                      <FaChevronRight className="profile-menu-item-arrow" />
+                    </button>
+                    <button
+                      className="profile-menu-item"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/settings");
+                      }}
+                      role="menuitem"
+                    >
+                      <div className="profile-menu-item-icon">
+                        <FaCog />
+                      </div>
+                      <div className="profile-menu-item-content">
+                        <span className="profile-menu-item-title">Settings</span>
+                        <span className="profile-menu-item-subtitle">Manage preferences</span>
+                      </div>
+                      <FaChevronRight className="profile-menu-item-arrow" />
+                    </button>
+                    <button
+                      className="profile-menu-item"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/change-password");
+                      }}
+                      role="menuitem"
+                    >
+                      <div className="profile-menu-item-icon">
+                        <FaKey />
+                      </div>
+                      <div className="profile-menu-item-content">
+                        <span className="profile-menu-item-title">Change Password</span>
+                        <span className="profile-menu-item-subtitle">Update your password</span>
+                      </div>
+                      <FaChevronRight className="profile-menu-item-arrow" />
+                    </button>
+                  </div>
+
+                  <div className="profile-menu-divider" />
+
+                  <div className="profile-menu-group">
+                    <button
+                      className="profile-menu-item profile-menu-item-danger"
+                      onClick={handleLogoutClick}
+                      role="menuitem"
+                    >
+                      <div className="profile-menu-item-icon">
+                        <FaSignOutAlt />
+                      </div>
+                      <div className="profile-menu-item-content">
+                        <span className="profile-menu-item-title">Logout</span>
+                        <span className="profile-menu-item-subtitle">Sign out of your account</span>
+                      </div>
+                      <FaChevronRight className="profile-menu-item-arrow" />
+                    </button>
+                  </div>
                 </div>
               </Dropdown.Menu>
             </Dropdown>

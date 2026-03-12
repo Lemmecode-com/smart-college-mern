@@ -89,7 +89,7 @@ router.get(
 
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
 
-router.post("/:notificationId/read", auth, markAsRead);
+router.post("/:notificationId/mark-read", auth, markAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);
