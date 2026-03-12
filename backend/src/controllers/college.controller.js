@@ -1,6 +1,25 @@
 const College = require("../models/college.model");
 const AppError = require("../utils/AppError");
 
+/**
+ * GET ALL COLLEGES (SUPER ADMIN ONLY)
+ * For Security Audit filter dropdown
+ */
+exports.getAllColleges = async (req, res, next) => {
+  try {
+    const colleges = await College.find({})
+      .select('name code email _id')
+      .sort({ name: 1 });
+
+    res.json({
+      success: true,
+      data: colleges
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // COLLEGE ADMIN: View own college only
 exports.getMyCollege = async (req, res, next) => {
   try {

@@ -31,7 +31,7 @@ export default function SidebarLogo({ role, isCollapsed = false }) {
           src="/novaaa.png"
           alt="NOVAA Logo"
           className="logo-image"
-          loading="lazy"
+          // No loading="lazy" - this image is above the fold and visible on page load
         />
         {!isCollapsed && (
           <span

@@ -3,9 +3,12 @@ import { useContext, useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Suppress specific React Router development warnings for cleaner console
+// Suppress specific React Router development warnings and excessive console logs for cleaner output
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   const originalWarn = console.warn;
+  const originalLog = console.log;
+  
+  // Suppress specific warnings
   console.warn = (...args) => {
     const message = typeof args[0] === "string" ? args[0] : String(args[0]);
     if (
@@ -15,6 +18,20 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
       return;
     }
     originalWarn(...args);
+  };
+  
+  // Reduce excessive logging from React Strict Mode and development tools
+  console.log = (...args) => {
+    const message = typeof args[0] === "string" ? args[0] : String(args[0]);
+    // Filter out common development noise
+    if (
+      message.includes("Download the React DevTools") ||
+      message.includes("react-i18next") ||
+      message.includes("$ReactRefresh")
+    ) {
+      return;
+    }
+    originalLog(...args);
   };
 }
 
