@@ -183,6 +183,8 @@ async function createAllIndexes(db) {
   await createIndex(teacherCollection, { college_id: 1, department_id: 1 }, { name: "college_1_department_1" });
   await createIndex(teacherCollection, { user_id: 1, college_id: 1 }, { name: "user_1_college_1" });
   await createIndex(teacherCollection, { email: 1 }, { name: "email_1" });
+  await createIndex(teacherCollection, { mobileNumber: 1 }, { name: "mobileNumber_1" });
+  await createIndex(teacherCollection, { joiningDate: 1 }, { name: "joiningDate_1" });
 
   // 7. USERS INDEXES
   log("\n📌 users collection...", "info");
