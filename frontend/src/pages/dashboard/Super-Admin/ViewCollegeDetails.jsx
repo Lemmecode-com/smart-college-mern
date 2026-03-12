@@ -56,20 +56,20 @@ const pulseVariants = {
 };
 
 const gradientColors = {
-  'from-blue-400 to-cyan-400': 'linear-gradient(135deg, #3b82f6, #22d3ee)',
-  'from-green-400 to-emerald-400': 'linear-gradient(135deg, #22c55e, #10b981)',
-  'from-amber-400 to-orange-400': 'linear-gradient(135deg, #f59e0b, #f97316)',
-  'from-purple-400 to-pink-400': 'linear-gradient(135deg, #a78bfa, #f472b6)',
-  'from-blue-500 to-cyan-400': 'linear-gradient(135deg, #3b82f6, #22d3ee)',
-  'from-indigo-500 to-purple-500': 'linear-gradient(135deg, #6366f1, #a78bfa)',
-  'from-amber-500 to-orange-400': 'linear-gradient(135deg, #f59e0b, #f97316)',
-  'from-green-500 to-emerald-400': 'linear-gradient(135deg, #22c55e, #10b981)',
-  'from-teal-500 to-cyan-500': 'linear-gradient(135deg, #14b8a6, #22d3ee)',
-  'from-pink-500 to-rose-400': 'linear-gradient(135deg, #ec4899, #f43f5e)',
-  'from-blue-600 to-cyan-500': 'linear-gradient(135deg, #2563eb, #06b6d4)',
-  'primary-gradient': 'linear-gradient(135deg, #1e40af, #0c4a6e)',
+  'from-blue-400 to-cyan-400': 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
+  'from-green-400 to-emerald-400': 'linear-gradient(135deg, #065f46, #10b981)',
+  'from-amber-400 to-orange-400': 'linear-gradient(135deg, #92400e, #f59e0b)',
+  'from-purple-400 to-pink-400': 'linear-gradient(135deg, #7c3aed, #ec4899)',
+  'from-blue-500 to-cyan-400': 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
+  'from-indigo-500 to-purple-500': 'linear-gradient(135deg, #4f46e5, #a78bfa)',
+  'from-amber-500 to-orange-400': 'linear-gradient(135deg, #b45309, #f97316)',
+  'from-green-500 to-emerald-400': 'linear-gradient(135deg, #047857, #10b981)',
+  'from-teal-500 to-cyan-500': 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
+  'from-pink-500 to-rose-400': 'linear-gradient(135deg, #be185d, #f43f5e)',
+  'from-blue-600 to-cyan-500': 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
+  'primary-gradient': 'linear-gradient(135deg, #0f3a4a, #0c4a6e)',
   'success-gradient': 'linear-gradient(135deg, #047857, #065f46)',
-  'header-gradient': 'linear-gradient(135deg, #1a4b6d, #0f3a4a)'
+  'header-gradient': 'linear-gradient(135deg, #0f3a4a, #0c2d3a)'
 };
 
 export default function ViewCollegeDetails() {
@@ -85,6 +85,7 @@ export default function ViewCollegeDetails() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailData, setEmailData] = useState({ subject: "", message: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   // Fix registration URL to use frontend port instead of backend port
   const getFrontendRegistrationUrl = (url) => {
@@ -101,8 +102,27 @@ export default function ViewCollegeDetails() {
   if (user.role !== "SUPER_ADMIN")
     return <Navigate to="/super-admin/dashboard" />;
 
-  // Fetch college data
+  // Add global spin animation for loading spinner (cleanup on unmount)
   useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Cleanup - remove style on unmount
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Fetch college data with error reset
+  useEffect(() => {
+    setError(""); // Reset error on mount/id change
+    setLoading(true);
     if (!id) {
       setError("Invalid College ID");
       setLoading(false);
@@ -110,6 +130,14 @@ export default function ViewCollegeDetails() {
     }
     fetchCollege();
   }, [id]);
+
+  // Cleanup success message timer on unmount
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => setShowSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   const fetchCollege = async () => {
     try {
@@ -126,10 +154,28 @@ export default function ViewCollegeDetails() {
     }
   };
 
-  // Send email to college admin
+  // Send email to college admin with validation
   const handleSendEmail = async (e) => {
     e.preventDefault();
+    
+    // Input validation
+    if (!emailData.subject.trim() || !emailData.message.trim()) {
+      setError('Subject and message are required');
+      return;
+    }
+    
+    if (emailData.subject.length > 200) {
+      setError('Subject must be less than 200 characters');
+      return;
+    }
+    
+    if (emailData.message.length > 5000) {
+      setError('Message must be less than 5000 characters');
+      return;
+    }
+    
     setSendingEmail(true);
+    setError(""); // Clear previous errors
 
     try {
       const res = await api.post(`/master/${id}/send-email`, {
@@ -165,20 +211,22 @@ export default function ViewCollegeDetails() {
           style={{
             display: 'inline-block',
             padding: '1rem 1.5rem',
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
+            backgroundColor: '#fef2f2',
+            color: '#991b1b',
             borderRadius: '0.5rem',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            border: '2px solid #fecaca',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
           }}
         >
           <h5 style={{ margin: 0, fontWeight: 500 }}>{error}</h5>
         </motion.div>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05, boxShadow: '0 6px 15px rgba(15, 58, 74, 0.3)' }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => navigate(-1)}
           style={{
-            backgroundColor: '#3b82f6',
+            background: 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
             color: 'white',
             border: 'none',
             padding: '0.75rem 1.5rem',
@@ -186,7 +234,8 @@ export default function ViewCollegeDetails() {
             fontSize: '1rem',
             fontWeight: 500,
             cursor: 'pointer',
-            boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)'
+            boxShadow: '0 4px 6px rgba(15, 58, 74, 0.3)',
+            transition: 'all 0.3s ease'
           }}
         >
           <FaArrowLeft style={{ marginRight: '0.5rem' }} /> Go Back
@@ -205,7 +254,7 @@ export default function ViewCollegeDetails() {
         exit={{ opacity: 0 }}
         style={{
           minHeight: '100vh',
-          background: 'linear-gradient(to bottom right, #f8fafc, #dbeafe)',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
           paddingTop: '1.5rem',
           paddingBottom: '1.5rem',
           paddingLeft: '1rem',
@@ -223,14 +272,16 @@ export default function ViewCollegeDetails() {
               top: '1rem',
               left: '50%',
               transform: 'translateX(-50%)',
-              backgroundColor: '#10b981',
+              backgroundColor: 'linear-gradient(135deg, #047857, #065f46)',
+              background: 'linear-gradient(135deg, #047857, #065f46)',
               color: 'white',
               padding: '1rem 2rem',
               borderRadius: '9999px',
               boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
               zIndex: 1000,
               maxWidth: '90%',
-              width: 'auto'
+              width: 'auto',
+              border: '2px solid rgba(255, 255, 255, 0.2)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -281,7 +332,7 @@ export default function ViewCollegeDetails() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 8px 25px rgba(37, 99, 235, 0.4)',
+                      boxShadow: '0 8px 25px rgba(15, 58, 74, 0.4)',
                       flexShrink: 0
                     }}
                   >
@@ -300,12 +351,13 @@ export default function ViewCollegeDetails() {
                     </h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                       <span style={{
-                        backgroundColor: '#dbeafe',
-                        color: '#1e40af',
+                        backgroundColor: '#e0f2fe',
+                        color: '#0f3a4a',
                         padding: '0.5rem 1rem',
                         borderRadius: '9999px',
                         fontSize: '0.875rem',
-                        fontWeight: 500
+                        fontWeight: 500,
+                        border: '1px solid rgba(15, 58, 74, 0.2)'
                       }}>
                         CODE: {college.code}
                       </span>
@@ -318,13 +370,13 @@ export default function ViewCollegeDetails() {
                 </div>
                 
                 <motion.button
-                  whileHover={{ x: -5, boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}
+                  whileHover={{ x: -5, boxShadow: '0 4px 15px rgba(15, 58, 74, 0.2)' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate(-1)}
                   style={{
-                    backgroundColor: 'transparent',
-                    color: '#3b82f6',
-                    border: '2px solid #3b82f6',
+                    background: 'linear-gradient(135deg, #0f3a4a, #3db5e6)',
+                    color: 'white',
+                    border: 'none',
                     padding: '0.75rem 1.5rem',
                     borderRadius: '0.75rem',
                     fontSize: '0.95rem',
@@ -333,7 +385,8 @@ export default function ViewCollegeDetails() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 6px rgba(15, 58, 74, 0.1)'
                   }}
                 >
                   <FaArrowLeft /> Back to Colleges
@@ -349,8 +402,8 @@ export default function ViewCollegeDetails() {
               className="col-12"
             >
               <div className="card border-0 shadow-sm" style={{ borderRadius: '18px', overflow: 'hidden' }}>
-                <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #eff6ff, #e0e7ff)', borderBottom: '1px solid #e2e8f0' }}>
-                  <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#1e293b' }}>
+                <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #e0f2fe, #f0f9ff)', borderBottom: '1px solid #bae6fd' }}>
+                  <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#0f3a4a' }}>
                     <FaUniversity className="text-primary me-2" /> College Information
                   </h2>
                 </div>
@@ -402,8 +455,8 @@ export default function ViewCollegeDetails() {
                 className="col-12"
               >
                 <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '18px', overflow: 'hidden' }}>
-                  <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #f0f9ff, #ede9fe)', borderBottom: '1px solid #e2e8f0' }}>
-                    <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#1e293b' }}>
+                  <div className="px-4 py-3" style={{ background: 'linear-gradient(to right, #f0f9ff, #ede9fe)', borderBottom: '1px solid #bae6fd' }}>
+                    <h2 className="mb-0 fw-bold" style={{ fontSize: '1.25rem', color: '#0f3a4a' }}>
                       <FaClipboardList className="text-indigo me-2" /> College Statistics
                     </h2>
                   </div>
@@ -483,14 +536,14 @@ export default function ViewCollegeDetails() {
               }}>
                 <div style={{
                   padding: '1rem 1.5rem',
-                  background: 'linear-gradient(to right, #ecfdf5, #f0fdfa)',
-                  borderBottom: '1px solid #e2e8f0'
+                  background: 'linear-gradient(to right, #ecfdf5, #f0f9ff)',
+                  borderBottom: '1px solid #bae6fd'
                 }}>
                   <h2 style={{
                     margin: 0,
                     fontSize: '1.25rem',
                     fontWeight: 700,
-                    color: '#1e293b',
+                    color: '#0f3a4a',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem'
@@ -525,26 +578,55 @@ export default function ViewCollegeDetails() {
                         }}
                       />
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(frontendRegistrationUrl);
-                          setShowSuccess(true);
-                          setTimeout(() => setShowSuccess(false), 3000);
+                        onClick={async () => {
+                          setCopying(true);
+                          try {
+                            await navigator.clipboard.writeText(frontendRegistrationUrl);
+                            setShowSuccess(true);
+                            setTimeout(() => setShowSuccess(false), 3000);
+                          } catch (err) {
+                            console.error('Copy failed:', err);
+                            setError('Failed to copy URL');
+                          } finally {
+                            setCopying(false);
+                          }
                         }}
+                        disabled={copying}
                         style={{
-                          backgroundColor: '#3b82f6',
+                          backgroundColor: copying ? '#9ca3af' : '#3b82f6',
                           color: 'white',
                           border: 'none',
                           padding: '0 1.5rem',
                           borderRadius: '0 0.75rem 0.75rem 0',
                           fontSize: '0.95rem',
                           fontWeight: 500,
-                          cursor: 'pointer',
+                          cursor: copying ? 'not-allowed' : 'pointer',
                           transition: 'all 0.3s ease'
                         }}
-                        onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-                        onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
+                        onMouseOver={(e) => {
+                          if (!copying) e.target.style.backgroundColor = '#2563eb';
+                        }}
+                        onMouseOut={(e) => {
+                          if (!copying) e.target.style.backgroundColor = '#3b82f6';
+                        }}
                       >
-                        Copy
+                        {copying ? (
+                          <>
+                            <span className="spinner" style={{
+                              width: '14px',
+                              height: '14px',
+                              border: '2px solid rgba(255,255,255,0.3)',
+                              borderTopColor: 'white',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite',
+                              display: 'inline-block',
+                              marginRight: '0.5rem'
+                            }} />
+                            Copying...
+                          </>
+                        ) : (
+                          'Copy'
+                        )}
                       </button>
                     </div>
                     {/* <a
@@ -578,15 +660,15 @@ export default function ViewCollegeDetails() {
                     {/* Send Email to College Admin Button */}
                     <button
                       onClick={() => {
-                        setEmailData({ 
+                        setEmailData({
                           subject: `Regarding ${college.name} - Smart College Management`,
-                          message: "" 
+                          message: ""
                         });
                         setShowEmailModal(true);
                       }}
                       style={{
                         display: 'inline-block',
-                        backgroundColor: '#10b981',
+                        background: 'linear-gradient(135deg, #047857, #10b981)',
                         color: 'white',
                         textDecoration: 'none',
                         padding: '0.75rem 1.5rem',
@@ -597,17 +679,17 @@ export default function ViewCollegeDetails() {
                         border: 'none',
                         marginLeft: '0.75rem',
                         transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)'
+                        boxShadow: '0 4px 6px rgba(4, 120, 87, 0.3)'
                       }}
                       onMouseOver={(e) => {
                         e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 12px rgba(16, 185, 129, 0.4)';
-                        e.target.style.backgroundColor = '#059669';
+                        e.target.style.boxShadow = '0 6px 12px rgba(4, 120, 87, 0.4)';
+                        e.target.style.background = 'linear-gradient(135deg, #065f46, #059669)';
                       }}
                       onMouseOut={(e) => {
                         e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 6px rgba(16, 185, 129, 0.3)';
-                        e.target.style.backgroundColor = '#10b981';
+                        e.target.style.boxShadow = '0 4px 6px rgba(4, 120, 87, 0.3)';
+                        e.target.style.background = 'linear-gradient(135deg, #047857, #10b981)';
                       }}
                     >
                       📧 Send Email to College Admin
@@ -655,15 +737,17 @@ export default function ViewCollegeDetails() {
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
             }}
           >
-            <h2 style={{ 
-              margin: '0 0 1.5rem 0', 
-              fontSize: '1.5rem', 
-              color: '#1a4b6d',
+            <h2 style={{
+              margin: '0 0 1.5rem 0',
+              fontSize: '1.5rem',
+              color: '#0f3a4a',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              gap: '0.5rem',
+              fontWeight: 700
             }}>
-              📧 Send Email to College Admin
+              <span style={{ fontSize: '1.75rem' }}>📧</span>
+              Send Email to College Admin
             </h2>
 
             <form onSubmit={handleSendEmail}>
@@ -758,12 +842,23 @@ export default function ViewCollegeDetails() {
                     padding: '0.75rem 1.5rem',
                     backgroundColor: '#f1f5f9',
                     color: '#64748b',
-                    border: 'none',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '0.75rem',
                     fontSize: '0.95rem',
                     fontWeight: 500,
                     cursor: sendingEmail ? 'not-allowed' : 'pointer',
-                    opacity: sendingEmail ? 0.6 : 1
+                    opacity: sendingEmail ? 0.6 : 1,
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (!sendingEmail) {
+                      e.target.style.backgroundColor = '#e2e8f0';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!sendingEmail) {
+                      e.target.style.backgroundColor = '#f1f5f9';
+                    }
                   }}
                 >
                   Cancel
@@ -773,7 +868,7 @@ export default function ViewCollegeDetails() {
                   disabled={sendingEmail}
                   style={{
                     padding: '0.75rem 2rem',
-                    backgroundColor: sendingEmail ? '#9ca3af' : '#10b981',
+                    background: sendingEmail ? 'linear-gradient(135deg, #9ca3af, #6b7280)' : 'linear-gradient(135deg, #047857, #10b981)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '0.75rem',
@@ -783,7 +878,22 @@ export default function ViewCollegeDetails() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    boxShadow: sendingEmail ? 'none' : '0 4px 6px rgba(4, 120, 87, 0.3)'
+                  }}
+                  onMouseOver={(e) => {
+                    if (!sendingEmail) {
+                      e.target.style.background = 'linear-gradient(135deg, #065f46, #059669)';
+                      e.target.style.boxShadow = '0 6px 12px rgba(4, 120, 87, 0.4)';
+                      e.target.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!sendingEmail) {
+                      e.target.style.background = 'linear-gradient(135deg, #047857, #10b981)';
+                      e.target.style.boxShadow = '0 4px 6px rgba(4, 120, 87, 0.3)';
+                      e.target.style.transform = 'translateY(0)';
+                    }
                   }}
                 >
                   {sendingEmail ? (
@@ -923,13 +1033,3 @@ const StatCard = ({ icon, label, value, gradient, delay }) => {
     </motion.div>
   );
 };
-
-// Add global spin animation
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(style);
