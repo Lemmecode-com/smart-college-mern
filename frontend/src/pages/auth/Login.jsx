@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 
@@ -15,10 +15,24 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   /* SINGLE SOURCE OF TRUTH */
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth - 0.5) * 15,
+        y: (e.clientY / window.innerHeight - 0.5) * 15
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -71,20 +85,34 @@ export default function Login() {
 
   return (
     <div className="login-page-container">
-      {/* Animated Background */}
-      <div className="login-background">
+      {/* Animated Background with Parallax */}
+      <div
+        className="login-background"
+        style={{
+          transform: `translate(${mousePosition.x * -0.5}px, ${mousePosition.y * -0.5}px)`,
+          transition: 'transform 0.3s ease-out'
+        }}
+      >
         <div className="bg-shape shape-1"></div>
         <div className="bg-shape shape-2"></div>
         <div className="bg-shape shape-3"></div>
         <div className="bg-shape shape-4"></div>
         <div className="bg-shape shape-5"></div>
+        <div className="bg-shape shape-6"></div>
+        <div className="bg-shape shape-7"></div>
       </div>
 
       <div className="login-wrapper">
         <div className={`login-card ${forgotMode ? 'forgot-mode' : 'login-mode'}`}>
           <div className="row g-0">
-            {/* LEFT PANEL - Animated */}
-            <div className={`col-md-5 left-panel d-none d-md-flex flex-column justify-content-center text-white p-5 ${forgotMode ? 'slide-out' : 'slide-in'}`}>
+            {/* LEFT PANEL - Animated with Parallax */}
+            <div
+              className={`col-md-5 left-panel d-none d-md-flex flex-column justify-content-center text-white p-5 ${forgotMode ? 'slide-out' : 'slide-in'}`}
+              style={{
+                transform: `translate(${mousePosition.x * 0.3}px, ${mousePosition.y * 0.3}px)`,
+                transition: 'transform 0.4s ease-out'
+              }}
+            >
               <div className="left-panel-content">
                 <div className="brand-logo">
                   <div className="logo-circle">
@@ -112,10 +140,22 @@ export default function Login() {
               <div className="floating-element float-1">✦</div>
               <div className="floating-element float-2">✦</div>
               <div className="floating-element float-3">✦</div>
+              
+              {/* Sparkle Particles */}
+              <div className="sparkle" style={{ top: '25%', left: '20%', animationDelay: '0s' }}></div>
+              <div className="sparkle" style={{ top: '70%', left: '30%', animationDelay: '0.5s' }}></div>
+              <div className="sparkle" style={{ top: '40%', right: '25%', animationDelay: '1s' }}></div>
+              <div className="sparkle" style={{ bottom: '30%', right: '15%', animationDelay: '1.5s' }}></div>
             </div>
 
-            {/* RIGHT PANEL */}
-            <div className="col-md-7 right-panel bg-white p-4 p-md-5">
+            {/* RIGHT PANEL - Animated with Parallax */}
+            <div
+              className="col-md-7 right-panel bg-white p-4 p-md-5"
+              style={{
+                transform: `translate(${mousePosition.x * -0.2}px, ${mousePosition.y * -0.2}px)`,
+                transition: 'transform 0.3s ease-out'
+              }}
+            >
               <div className={`form-header text-center mb-4 transition-all ${forgotMode ? 'slide-up' : 'slide-down'}`}>
                 <div className="icon-wrapper">
                   <div className={`icon-circle ${forgotMode ? 'icon-purple' : 'icon-blue'}`}>
@@ -286,9 +326,10 @@ export default function Login() {
           --sidebar-text: #e6f2f5;
           --sidebar-text-muted: rgba(255, 255, 255, 0.7);
 
-          /* Login page theme - Sidebar matched */
-          --primary-gradient: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #1a4a5a 100%);
-          --accent-gradient: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
+          /* Enhanced Login page theme - Deep ocean gradient */
+          --primary-gradient: linear-gradient(135deg, #0a1628 0%, #0f3a4a 25%, #0c2d3a 50%, #1a4a5a 75%, #0d2137 100%);
+          --primary-gradient-scroll: linear-gradient(180deg, #0a1628 0%, #0f3a4a 20%, #0c2d3a 40%, #1a4a5a 60%, #0d2137 80%, #0a1628 100%);
+          --accent-gradient: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 50%, #7dd3fc 100%);
           --primary-color: #3db5e6;
           --secondary-color: #0f3a4a;
           --accent-color: #3db5e6;
@@ -325,8 +366,37 @@ export default function Login() {
           justify-content: center;
           padding: 1.5rem;
           background: var(--primary-gradient);
+          background-size: 200% 200%;
           position: relative;
           overflow: hidden;
+          animation: gradientShift 15s ease infinite;
+        }
+
+        /* Hide scrollbar for all browsers */
+        .login-page-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .login-page-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        /* Hide body/html scrollbar */
+        body, html {
+          overflow: hidden;
+        }
+
+        @keyframes gradientShift {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
         }
 
         /* ================= ANIMATED BACKGROUND ================= */
@@ -335,72 +405,101 @@ export default function Login() {
           inset: 0;
           overflow: hidden;
           z-index: 0;
+          pointer-events: none;
         }
 
+        /* Enhanced bg shapes with glow effects */
         .bg-shape {
           position: absolute;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(61, 181, 230, 0.15) 0%, rgba(61, 181, 230, 0.05) 70%, transparent 100%);
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.2) 0%, rgba(61, 181, 230, 0.08) 50%, transparent 100%);
           animation: float 20s infinite ease-in-out;
-          filter: blur(40px);
+          filter: blur(50px);
+          box-shadow: 0 0 60px rgba(61, 181, 230, 0.3), inset 0 0 40px rgba(61, 181, 230, 0.1);
         }
 
         .bg-shape.shape-1 {
-          width: 500px;
-          height: 500px;
-          top: -150px;
-          left: -150px;
+          width: 600px;
+          height: 600px;
+          top: -200px;
+          left: -200px;
           animation-delay: 0s;
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.25) 0%, rgba(79, 195, 247, 0.1) 50%, transparent 100%);
         }
 
         .bg-shape.shape-2 {
-          width: 400px;
-          height: 400px;
-          bottom: -100px;
-          right: -100px;
+          width: 500px;
+          height: 500px;
+          bottom: -150px;
+          right: -150px;
           animation-delay: 3s;
+          background: radial-gradient(circle, rgba(79, 195, 247, 0.2) 0%, rgba(61, 181, 230, 0.08) 50%, transparent 100%);
         }
 
         .bg-shape.shape-3 {
-          width: 300px;
-          height: 300px;
+          width: 400px;
+          height: 400px;
           top: 50%;
           right: 10%;
           animation-delay: 6s;
+          background: radial-gradient(circle, rgba(125, 211, 252, 0.18) 0%, rgba(61, 181, 230, 0.06) 50%, transparent 100%);
         }
 
         .bg-shape.shape-4 {
-          width: 350px;
-          height: 350px;
+          width: 450px;
+          height: 450px;
           bottom: 20%;
           left: 10%;
           animation-delay: 9s;
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.22) 0%, rgba(79, 195, 247, 0.09) 50%, transparent 100%);
         }
 
         .bg-shape.shape-5 {
-          width: 250px;
-          height: 250px;
+          width: 350px;
+          height: 350px;
           top: 30%;
           left: 50%;
           animation-delay: 12s;
+          background: radial-gradient(circle, rgba(79, 195, 247, 0.2) 0%, rgba(125, 211, 252, 0.07) 50%, transparent 100%);
+        }
+
+        /* Additional shapes for depth */
+        .bg-shape.shape-6 {
+          width: 280px;
+          height: 280px;
+          top: 10%;
+          right: 30%;
+          animation-delay: 15s;
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.15) 0%, rgba(61, 181, 230, 0.04) 50%, transparent 100%);
+          filter: blur(60px);
+        }
+
+        .bg-shape.shape-7 {
+          width: 320px;
+          height: 320px;
+          bottom: 35%;
+          left: 25%;
+          animation-delay: 18s;
+          background: radial-gradient(circle, rgba(79, 195, 247, 0.18) 0%, rgba(61, 181, 230, 0.05) 50%, transparent 100%);
+          filter: blur(55px);
         }
 
         @keyframes float {
           0%, 100% {
             transform: translate(0, 0) scale(1) rotate(0deg);
-            opacity: 0.5;
-          }
-          25% {
-            transform: translate(30px, -40px) scale(1.1) rotate(90deg);
-            opacity: 0.7;
-          }
-          50% {
-            transform: translate(-30px, 30px) scale(0.95) rotate(180deg);
             opacity: 0.6;
           }
+          25% {
+            transform: translate(40px, -50px) scale(1.15) rotate(90deg);
+            opacity: 0.8;
+          }
+          50% {
+            transform: translate(-40px, 40px) scale(0.9) rotate(180deg);
+            opacity: 0.7;
+          }
           75% {
-            transform: translate(40px, 20px) scale(1.05) rotate(270deg);
-            opacity: 0.55;
+            transform: translate(50px, 30px) scale(1.08) rotate(270deg);
+            opacity: 0.65;
           }
         }
 
@@ -416,11 +515,11 @@ export default function Login() {
         @keyframes slideUp {
           from {
             opacity: 0;
-            transform: translateY(60px) scale(0.95);
+            transform: translateY(60px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
@@ -437,11 +536,11 @@ export default function Login() {
         @keyframes cardEntrance {
           0% {
             opacity: 0;
-            transform: translateY(40px) scale(0.92);
+            transform: translateY(40px);
           }
           100% {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
@@ -603,6 +702,7 @@ export default function Login() {
           font-size: 1.8rem;
           animation: floatElement 6s infinite ease-in-out;
           text-shadow: 0 0 10px rgba(61, 181, 230, 0.5);
+          will-change: transform;
         }
 
         .floating-element.float-1 {
@@ -625,13 +725,35 @@ export default function Login() {
 
         @keyframes floatElement {
           0%, 100% {
-            transform: translateY(0) rotate(0deg) scale(1);
+            transform: translateY(0) rotate(0deg);
             opacity: 0.25;
           }
           50% {
-            transform: translateY(-25px) rotate(180deg) scale(1.2);
+            transform: translateY(-25px) rotate(180deg);
             opacity: 0.6;
           }
+        }
+
+        /* Particle sparkles animation */
+        @keyframes sparkle {
+          0%, 100% {
+            opacity: 0;
+            transform: rotate(0deg);
+          }
+          50% {
+            opacity: 1;
+            transform: rotate(180deg);
+          }
+        }
+
+        .sparkle {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(61, 181, 230, 0.5) 50%, transparent 100%);
+          border-radius: 50%;
+          animation: sparkle 2s infinite ease-in-out;
+          box-shadow: 0 0 10px rgba(61, 181, 230, 0.8), 0 0 20px rgba(61, 181, 230, 0.4);
         }
 
         /* ================= RIGHT PANEL ================= */
@@ -1028,10 +1150,42 @@ export default function Login() {
         @media (max-width: 768px) {
           .login-page-container {
             padding: 1rem;
+            background: var(--primary-gradient);
+            background-size: 150% 150%;
+            animation: gradientShift 20s ease infinite;
           }
 
           .login-wrapper {
             animation: fadeInMobile 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+          }
+
+          /* Disable parallax on mobile for performance */
+          .left-panel,
+          .right-panel,
+          .login-background {
+            transform: none !important;
+            transition: none !important;
+          }
+
+          /* Simplified background shapes for mobile */
+          .bg-shape.shape-1,
+          .bg-shape.shape-2 {
+            width: 250px;
+            height: 250px;
+          }
+
+          .bg-shape.shape-3,
+          .bg-shape.shape-4,
+          .bg-shape.shape-5,
+          .bg-shape.shape-6,
+          .bg-shape.shape-7 {
+            display: none;
+          }
+
+          /* Hide floating elements on mobile */
+          .floating-element,
+          .sparkle {
+            display: none;
           }
 
           @keyframes fadeInMobile {
