@@ -21,17 +21,25 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Mouse parallax effect
+  // Mouse parallax effect with optimized performance
   useEffect(() => {
+    let rafId;
     const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 15,
-        y: (e.clientY / window.innerHeight - 0.5) * 15
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        setMousePosition({
+          x: (e.clientX / window.innerWidth - 0.5) * 15,
+          y: (e.clientY / window.innerHeight - 0.5) * 15
+        });
+        rafId = null;
       });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   const submitHandler = async (e) => {
@@ -89,8 +97,9 @@ export default function Login() {
       <div
         className="login-background"
         style={{
-          transform: `translate(${mousePosition.x * -0.5}px, ${mousePosition.y * -0.5}px)`,
-          transition: 'transform 0.3s ease-out'
+          transform: `translate3d(${mousePosition.x * -0.5}px, ${mousePosition.y * -0.5}px, 0)`,
+          transition: 'transform 0.3s ease-out',
+          willChange: 'transform'
         }}
       >
         <div className="bg-shape shape-1"></div>
@@ -109,8 +118,9 @@ export default function Login() {
             <div
               className={`col-md-5 left-panel d-none d-md-flex flex-column justify-content-center text-white p-5 ${forgotMode ? 'slide-out' : 'slide-in'}`}
               style={{
-                transform: `translate(${mousePosition.x * 0.3}px, ${mousePosition.y * 0.3}px)`,
-                transition: 'transform 0.4s ease-out'
+                transform: `translate3d(${mousePosition.x * 0.3}px, ${mousePosition.y * 0.3}px, 0)`,
+                transition: 'transform 0.4s ease-out',
+                willChange: 'transform'
               }}
             >
               <div className="left-panel-content">
@@ -152,8 +162,9 @@ export default function Login() {
             <div
               className="col-md-7 right-panel bg-white p-4 p-md-5"
               style={{
-                transform: `translate(${mousePosition.x * -0.2}px, ${mousePosition.y * -0.2}px)`,
-                transition: 'transform 0.3s ease-out'
+                transform: `translate3d(${mousePosition.x * -0.2}px, ${mousePosition.y * -0.2}px, 0)`,
+                transition: 'transform 0.3s ease-out',
+                willChange: 'transform'
               }}
             >
               <div className={`form-header text-center mb-4 transition-all ${forgotMode ? 'slide-up' : 'slide-down'}`}>
@@ -307,6 +318,11 @@ export default function Login() {
                 <p className="footer-text">
                   Protected by NOVAA Security
                 </p>
+                <p className="footer-text" style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
+                  <a href="/" style={{ color: "var(--primary-color)", textDecoration: "none", fontWeight: "500" }}>
+                    ← Back to Home
+                  </a>
+                </p>
               </div>
             </div>
           </div>
@@ -361,14 +377,16 @@ export default function Login() {
         /* ================= PAGE CONTAINER ================= */
         .login-page-container {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 1.5rem;
           background: var(--primary-gradient);
           background-size: 200% 200%;
-          position: relative;
-          overflow: hidden;
+          position: fixed;
+          inset: 0;
+          width: 100%;
           animation: gradientShift 15s ease infinite;
         }
 
@@ -385,6 +403,8 @@ export default function Login() {
         /* Hide body/html scrollbar */
         body, html {
           overflow: hidden;
+          margin: 0;
+          padding: 0;
         }
 
         @keyframes gradientShift {
@@ -402,10 +422,12 @@ export default function Login() {
         /* ================= ANIMATED BACKGROUND ================= */
         .login-background {
           position: absolute;
-          inset: 0;
+          inset: -50px;
           overflow: hidden;
           z-index: 0;
           pointer-events: none;
+          will-change: transform;
+          backface-visibility: hidden;
         }
 
         /* Enhanced bg shapes with glow effects */
@@ -416,6 +438,8 @@ export default function Login() {
           animation: float 20s infinite ease-in-out;
           filter: blur(50px);
           box-shadow: 0 0 60px rgba(61, 181, 230, 0.3), inset 0 0 40px rgba(61, 181, 230, 0.1);
+          will-change: transform, opacity;
+          backface-visibility: hidden;
         }
 
         .bg-shape.shape-1 {
@@ -486,19 +510,19 @@ export default function Login() {
 
         @keyframes float {
           0%, 100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
+            transform: translate(0, 0) rotate(0deg);
             opacity: 0.6;
           }
           25% {
-            transform: translate(40px, -50px) scale(1.15) rotate(90deg);
+            transform: translate(40px, -50px) rotate(90deg);
             opacity: 0.8;
           }
           50% {
-            transform: translate(-40px, 40px) scale(0.9) rotate(180deg);
+            transform: translate(-40px, 40px) rotate(180deg);
             opacity: 0.7;
           }
           75% {
-            transform: translate(50px, 30px) scale(1.08) rotate(270deg);
+            transform: translate(50px, 30px) rotate(270deg);
             opacity: 0.65;
           }
         }
@@ -510,6 +534,8 @@ export default function Login() {
           width: 100%;
           max-width: 950px;
           animation: slideUp 1s cubic-bezier(0.19, 1, 0.22, 1);
+          will-change: transform, opacity;
+          backface-visibility: hidden;
         }
 
         @keyframes slideUp {
@@ -531,6 +557,8 @@ export default function Login() {
           overflow: hidden;
           transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
           animation: cardEntrance 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+          will-change: transform, box-shadow;
+          backface-visibility: hidden;
         }
 
         @keyframes cardEntrance {
@@ -562,6 +590,8 @@ export default function Login() {
           position: relative;
           overflow: hidden;
           transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+          will-change: transform;
+          backface-visibility: hidden;
         }
 
         .left-panel::before {
@@ -587,11 +617,11 @@ export default function Login() {
         @keyframes slideInLeft {
           from {
             opacity: 0;
-            transform: translateX(-50px) scale(0.95);
+            transform: translateX(-50px);
           }
           to {
             opacity: 1;
-            transform: translateX(0) scale(1);
+            transform: translateX(0);
           }
         }
 
@@ -627,6 +657,8 @@ export default function Login() {
           animation: pulse 3s infinite ease-in-out;
           border: 1px solid rgba(61, 181, 230, 0.3);
           box-shadow: 0 8px 32px rgba(61, 181, 230, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          will-change: box-shadow;
+          backface-visibility: hidden;
         }
 
         .logo-icon {
@@ -636,11 +668,9 @@ export default function Login() {
 
         @keyframes pulse {
           0%, 100% {
-            transform: scale(1);
             box-shadow: 0 8px 32px rgba(61, 181, 230, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
           }
           50% {
-            transform: scale(1.08);
             box-shadow: 0 12px 48px rgba(61, 181, 230, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
           }
         }
@@ -678,6 +708,8 @@ export default function Login() {
           border-radius: 50%;
           animation: dotPulse 2s infinite ease-in-out;
           box-shadow: 0 2px 8px rgba(61, 181, 230, 0.5);
+          will-change: opacity, transform;
+          backface-visibility: hidden;
         }
 
         .dot:nth-child(1) { animation-delay: 0s; }
@@ -703,6 +735,7 @@ export default function Login() {
           animation: floatElement 6s infinite ease-in-out;
           text-shadow: 0 0 10px rgba(61, 181, 230, 0.5);
           will-change: transform;
+          backface-visibility: hidden;
         }
 
         .floating-element.float-1 {
@@ -754,6 +787,8 @@ export default function Login() {
           border-radius: 50%;
           animation: sparkle 2s infinite ease-in-out;
           box-shadow: 0 0 10px rgba(61, 181, 230, 0.8), 0 0 20px rgba(61, 181, 230, 0.4);
+          will-change: opacity, transform;
+          backface-visibility: hidden;
         }
 
         /* ================= RIGHT PANEL ================= */
@@ -811,10 +846,11 @@ export default function Login() {
           transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
           background: var(--accent-gradient);
           box-shadow: 0 12px 40px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          will-change: box-shadow;
+          backface-visibility: hidden;
         }
 
         .icon-circle:hover {
-          transform: scale(1.08) rotate(5deg);
           box-shadow: 0 16px 50px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
@@ -850,16 +886,18 @@ export default function Login() {
           font-weight: 500;
           animation: slideInDown 0.5s cubic-bezier(0.19, 1, 0.22, 1);
           backdrop-filter: blur(10px);
+          will-change: opacity, transform;
+          backface-visibility: hidden;
         }
 
         @keyframes slideInDown {
           from {
             opacity: 0;
-            transform: translateY(-20px) scale(0.9);
+            transform: translateY(-20px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
@@ -878,9 +916,9 @@ export default function Login() {
         }
 
         @keyframes successBounce {
-          0% { transform: scale(0.85); opacity: 0; }
-          50% { transform: scale(1.03); }
-          100% { transform: scale(1); opacity: 1; }
+          0% { opacity: 0; }
+          50% { }
+          100% { opacity: 1; }
         }
 
         .alert-error {
@@ -969,6 +1007,8 @@ export default function Login() {
           color: var(--text-primary);
           background: var(--bg-secondary);
           transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+          will-change: border-color, box-shadow, background;
+          backface-visibility: hidden;
         }
 
         .form-input:hover {
@@ -981,7 +1021,6 @@ export default function Login() {
           border-color: var(--sidebar-accent);
           background: var(--bg-primary);
           box-shadow: 0 0 0 5px rgba(61, 181, 230, 0.12), 0 4px 20px rgba(61, 181, 230, 0.15);
-          transform: translateY(-1px);
         }
 
         .form-group.error .form-input {
@@ -1025,12 +1064,14 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           border-radius: 8px;
+          will-change: color, background, transform;
+          backface-visibility: hidden;
         }
 
         .password-toggle:hover {
           color: var(--sidebar-accent);
           background: rgba(61, 181, 230, 0.1);
-          transform: translateY(-50%) scale(1.1);
+          transform: translateY(-50%);
         }
 
         /* ================= FORM ACTIONS ================= */
@@ -1092,15 +1133,17 @@ export default function Login() {
           box-shadow: 0 6px 20px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
           letter-spacing: 0.5px;
           text-transform: uppercase;
+          will-change: transform, box-shadow;
+          backface-visibility: hidden;
         }
 
         .submit-btn:hover:not(:disabled) {
-          transform: translateY(-3px) scale(1.02);
+          transform: translateY(-3px);
           box-shadow: 0 12px 35px rgba(61, 181, 230, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .submit-btn:active:not(:disabled) {
-          transform: translateY(-1px) scale(0.98);
+          transform: translateY(-1px);
         }
 
         .submit-btn:disabled {
@@ -1117,7 +1160,7 @@ export default function Login() {
         }
 
         .submit-btn:hover .btn-arrow {
-          transform: translateX(6px) scale(1.2);
+          transform: translateX(6px);
         }
 
         /* Loading Spinner */
@@ -1191,11 +1234,9 @@ export default function Login() {
           @keyframes fadeInMobile {
             from {
               opacity: 0;
-              transform: scale(0.9);
             }
             to {
               opacity: 1;
-              transform: scale(1);
             }
           }
 

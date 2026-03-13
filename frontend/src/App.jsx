@@ -40,6 +40,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 
+/* ================= LANDING PAGE ================= */
+import LandingPage from "./pages/LandingPage";
+
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
 import StudentRegister from "./pages/auth/StudentRegister";
@@ -221,9 +224,12 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
       <div className="app-wrapper">
         {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
         <Routes>
-          {/* ================= ROOT DECIDER ================= */}
+          {/* ================= LANDING PAGE (ROOT) ================= */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* ================= ROOT DECIDER (Redirect after login) ================= */}
           <Route
-            path="/"
+            path="/home"
             element={
               !user ? (
                 <Navigate to="/login" />
