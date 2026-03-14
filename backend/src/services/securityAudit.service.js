@@ -334,14 +334,8 @@ class SecurityAuditService {
     
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) {
-        // Start of the day (include all times from midnight)
-        query.createdAt.$gte = new Date(startDate + 'T00:00:00.000Z');
-      }
-      if (endDate) {
-        // End of the day (include all times until 23:59:59)
-        query.createdAt.$lte = new Date(endDate + 'T23:59:59.999Z');
-      }
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
     const skip = (page - 1) * limit;
