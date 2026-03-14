@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,7 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   const originalWarn = console.warn;
   const originalLog = console.log;
-  
+
   // Suppress specific warnings
   console.warn = (...args) => {
     const message = typeof args[0] === "string" ? args[0] : String(args[0]);
@@ -19,7 +25,7 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
     }
     originalWarn(...args);
   };
-  
+
   // Reduce excessive logging from React Strict Mode and development tools
   console.log = (...args) => {
     const message = typeof args[0] === "string" ? args[0] : String(args[0]);
@@ -56,6 +62,10 @@ import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminD
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 import DocumentSettings from "./pages/dashboard/College-Admin/SystemSetting/DocumentSettings";
+
+/* ================= SUPER ADMIN SYSTEM SETTINGS ================= */
+import GeneralSuperSett from "./pages/dashboard/Super-Admin/System-Settings/GeneralSuperSett";
+import UserManagementSett from "./pages/dashboard/Super-Admin/System-Settings/UserManagementSett";
 
 /* ================= DEPARTMENTS ================= */
 import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
@@ -145,7 +155,7 @@ import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
 import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
 
 /* ================= SECURITY AUDIT ================= */
-import SecurityAudit from "./pages/admin/SecurityAudit";
+import SecurityAudit from "./pages/dashboard/Super-Admin/SecurityAudit";
 
 /* ================= SUBJECTS / TEACHERS ================= */
 import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
@@ -168,7 +178,7 @@ export default function App() {
   const { user } = useContext(AuthContext);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
 
   // Handle window resize
@@ -206,7 +216,13 @@ export default function App() {
   );
 }
 
-function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggleSidebar }) {
+function AppContent({
+  user,
+  isMobileOpen,
+  setIsMobileOpen,
+  isMobileDevice,
+  toggleSidebar,
+}) {
   const location = useLocation();
 
   // Hide layout on public/auth routes
@@ -251,10 +267,7 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
-          <Route
-            path="/register/:collegeCode"
-            element={<StudentRegister />}
-          />
+          <Route path="/register/:collegeCode" element={<StudentRegister />} />
 
           {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
           <Route
@@ -267,77 +280,94 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               ) : null
             }
           >
-              {/* ================= SUPER ADMIN ================= */}
-              <Route
-                path="/super-admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <SuperAdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            {/* ================= SUPER ADMIN ================= */}
+            <Route
+              path="/super-admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/super-admin/create-college"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <CreateNewCollege />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/create-college"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CreateNewCollege />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/super-admin/colleges-list"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <CollegeList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/super-admin/college/:id"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <ViewCollegeDetails />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/super-admin/college/:id/edit"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <EditCollege />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/colleges-list"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CollegeList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <ViewCollegeDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <EditCollege />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/super-admin/reports"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <SuperAdminReports />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminReports />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/admin/security-audit"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <SecurityAudit />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/admin/security-audit"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SecurityAudit />
+                </ProtectedRoute>
+              }
+            />
+            {/* System-Settings */}
+            <Route
+              path="/super-admin/system-settings/general"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <GeneralSuperSett />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/system-settings/user-management"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <UserManagementSett />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* ================= COLLEGE ADMIN ================= */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                    <CollegeAdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            {/* ================= COLLEGE ADMIN ================= */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CollegeAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/college/profile"

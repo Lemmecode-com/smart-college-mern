@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
 import {
   FaUniversity,
   FaUsers,
@@ -26,7 +27,8 @@ import {
   FaCheckCircle,
   FaSearch,
   FaFilter,
-  FaClock
+  FaClock,
+  FaTimes,
 } from "react-icons/fa";
 
 // Constants
@@ -57,16 +59,17 @@ export default function SuperAdminDashboard() {
         401: "⚠️ Session expired. Please login again.",
         403: "🚫 Access denied. Super Admin privileges required.",
         500: "🔧 Server error. Please try again later.",
-        503: "⏳ Service temporarily unavailable."
+        503: "⏳ Service temporarily unavailable.",
       };
-      
+
       const statusCode = err.response?.status;
-      const message = err.response?.data?.message || 
-                      errorMessages[statusCode] || 
-                      "Failed to load dashboard data. Please check your connection.";
-      
+      const message =
+        err.response?.data?.message ||
+        errorMessages[statusCode] ||
+        "Failed to load dashboard data. Please check your connection.";
+
       setError(message);
-      console.error('Dashboard fetch error:', err);
+      console.error("Dashboard fetch error:", err);
     } finally {
       setLoading(false);
     }
@@ -79,7 +82,7 @@ export default function SuperAdminDashboard() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < MAX_RETRY) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchDashboardData();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
@@ -89,20 +92,20 @@ export default function SuperAdminDashboard() {
   /* ================= KEYBOARD SHORTCUTS ================= */
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (e.target.tagName === 'INPUT') return;
-      
-      if (e.ctrlKey && e.key === 'r') {
+      if (e.target.tagName === "INPUT") return;
+
+      if (e.ctrlKey && e.key === "r") {
         e.preventDefault();
         fetchDashboardData();
       }
-      if (e.ctrlKey && e.key === 'n') {
+      if (e.ctrlKey && e.key === "n") {
         e.preventDefault();
         navigate("/super-admin/create-college");
       }
     };
-    
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [navigate]);
 
   /* ================= HELPER FUNCTIONS ================= */
@@ -113,57 +116,41 @@ export default function SuperAdminDashboard() {
   };
 
   /* ================= CALCULATED METRICS ================= */
-  const stats = useMemo(() => data?.stats || { 
-    totalColleges: 0, 
-    totalStudents: 0, 
-    totalTeachers: 0,
-    collegeGrowth: 0,
-    studentGrowth: 0,
-    teacherGrowth: 0
-  }, [data]);
-  
+  const stats = useMemo(
+    () =>
+      data?.stats || {
+        totalColleges: 0,
+        totalStudents: 0,
+        totalTeachers: 0,
+        collegeGrowth: 0,
+        studentGrowth: 0,
+        teacherGrowth: 0,
+      },
+    [data],
+  );
+
   const colleges = useMemo(() => data?.colleges || [], [data]);
   const collegeCount = colleges.length;
-  
+
   // Filtered colleges
   const filteredColleges = useMemo(() => {
-    return colleges.filter(college => {
-      const matchesSearch = college.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === "all" || 
-                           !college.status || 
-                           college.status.toLowerCase() === filterStatus;
+    return colleges.filter((college) => {
+      const matchesSearch = college.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" ||
+        !college.status ||
+        college.status.toLowerCase() === filterStatus;
       return matchesSearch && matchesStatus;
     });
   }, [colleges, searchTerm, filterStatus]);
-  
-  const collegesToDisplay = useMemo(() => filteredColleges.slice(0, INITIAL_COLLEGES_DISPLAY), [filteredColleges]);
-  const showViewMore = filteredColleges.length > INITIAL_COLLEGES_DISPLAY;
 
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="skeleton-colleges-section">
-        <div className="skeleton-section-header"></div>
-        <div className="skeleton-colleges-grid">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="skeleton-college-card"></div>
-          ))}
-        </div>
-      </div>
-    </div>
+  const collegesToDisplay = useMemo(
+    () => filteredColleges.slice(0, INITIAL_COLLEGES_DISPLAY),
+    [filteredColleges],
   );
+  const showViewMore = filteredColleges.length > INITIAL_COLLEGES_DISPLAY;
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
@@ -189,7 +176,9 @@ export default function SuperAdminDashboard() {
             aria-disabled={retryCount >= MAX_RETRY}
           >
             <FaSyncAlt className="erp-btn-icon spin" aria-hidden="true" />
-            {retryCount >= MAX_RETRY ? "Max Retries" : `Retry (${retryCount}/${MAX_RETRY})`}
+            {retryCount >= MAX_RETRY
+              ? "Max Retries"
+              : `Retry (${retryCount}/${MAX_RETRY})`}
           </button>
         </div>
       </div>
@@ -199,30 +188,19 @@ export default function SuperAdminDashboard() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <div className="erp-loading-container" role="status" aria-live="polite">
-        <span className="sr-only">Loading dashboard...</span>
-        <div className="erp-loading-spinner" aria-hidden="true">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading Super Admin Dashboard...</h4>
-        <div className="loading-progress" aria-hidden="true">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
+      <Loading
+        fullScreen
+        size="lg"
+        text="Loading Super Admin Dashboard..."
+        variant="spinner"
+      />
     );
   }
 
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard" }
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Dashboard" }]} />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -233,7 +211,7 @@ export default function SuperAdminDashboard() {
           <div className="erp-header-text">
             <h1 className="erp-page-title">Super Admin Dashboard</h1>
             <p className="erp-page-subtitle">
-              Centralized management portal for all registered colleges and institutional analytics
+              Centralized management portal for all registered colleges
             </p>
             <p className="erp-page-meta">
               <FaClock className="meta-icon" aria-hidden="true" />
@@ -265,17 +243,28 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* INFO BANNER */}
-      <div className="info-banner animate-fade-in" role="region" aria-label="System information">
+      <div
+        className="info-banner animate-fade-in"
+        role="region"
+        aria-label="System information"
+      >
         <div className="info-icon" aria-hidden="true">
           <FaDatabase className="pulse" />
         </div>
         <div className="info-content">
-          <strong>System Overview:</strong> This dashboard provides a centralized view of all registered colleges, student populations, and faculty statistics across your educational network. Data is updated in real-time.
+          <strong>System Overview:</strong> This dashboard provides a
+          centralized view of all registered colleges, student populations, and
+          faculty statistics across your educational network. Data is updated in
+          real-time.
         </div>
       </div>
 
       {/* SEARCH & FILTER BAR */}
-      <div className="filter-bar animate-fade-in" role="search" aria-label="College search and filter">
+      <div
+        className="filter-bar animate-fade-in"
+        role="search"
+        aria-label="College search and filter"
+      >
         <div className="search-box">
           <FaSearch className="search-icon" aria-hidden="true" />
           <input
@@ -292,7 +281,7 @@ export default function SuperAdminDashboard() {
               onClick={() => setSearchTerm("")}
               aria-label="Clear search"
             >
-              <FaExclamationTriangle className="rotate-45" aria-hidden="true" />
+              <FaTimes className="rotate-45" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -329,86 +318,202 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
+      {/* QUICK ACTIONS */}
+      <div
+        className="quick-actions-section animate-fade-in"
+        role="region"
+        aria-label="Quick actions"
+      >
+        <div className="quick-actions-header">
+          <h3>
+            <FaTachometerAlt
+              className="quick-actions-icon"
+              aria-hidden="true"
+            />
+            Quick Actions
+          </h3>
+          <p className="quick-actions-subtitle">
+            Commonly used actions for quick access
+          </p>
+        </div>
+        <div className="quick-actions-grid">
+          <div
+            className="quick-action-card"
+            onClick={() => navigate("/super-admin/create-college")}
+            role="button"
+            tabIndex={0}
+            aria-label="Add new college"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/super-admin/create-college");
+              }
+            }}
+          >
+            <div className="quick-action-icon add-college">
+              <FaPlus />
+            </div>
+            <div className="quick-action-content">
+              <div className="quick-action-title">Add New College</div>
+              <div className="quick-action-description">
+                Register a new institution
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => navigate("/super-admin/colleges-list")}
+            role="button"
+            tabIndex={0}
+            aria-label="View all colleges"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/super-admin/colleges-list");
+              }
+            }}
+          >
+            <div className="quick-action-icon view-colleges">
+              <FaListOl />
+            </div>
+            <div className="quick-action-content">
+              <div className="quick-action-title">View All Colleges</div>
+              <div className="quick-action-description">
+                Browse all institutions
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => navigate("/super-admin/reports")}
+            role="button"
+            tabIndex={0}
+            aria-label="View admission reports"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/super-admin/reports");
+              }
+            }}
+          >
+            <div className="quick-action-icon reports">
+              <FaChartPie />
+            </div>
+            <div className="quick-action-content">
+              <div className="quick-action-title">Admission Reports</div>
+              <div className="quick-action-description">
+                View analytics & reports
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => navigate("/admin/security-audit")}
+            role="button"
+            tabIndex={0}
+            aria-label="Security audit"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/admin/security-audit");
+              }
+            }}
+          >
+            <div className="quick-action-icon security">
+              <FaDatabase />
+            </div>
+            <div className="quick-action-content">
+              <div className="quick-action-title">Security Audit</div>
+              <div className="quick-action-description">
+                Monitor system activity
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* STATS GRID */}
-      <div className="stats-grid animate-fade-in" role="region" aria-label="Dashboard statistics">
+      <div
+        className="stats-grid animate-fade-in"
+        role="region"
+        aria-label="Dashboard statistics"
+      >
         {/* TOTAL COLLEGES */}
-        <div className="stat-card">
+        <div className="stat-card stat-card-colleges">
           <div className="stat-card-header">
-            <div className="stat-icon-wrapper colleges" aria-hidden="true">
+            <div
+              className="stat-icon-wrapper stat-icon-colleges"
+              aria-hidden="true"
+            >
               <FaUniversity className="stat-icon" />
             </div>
             <div className="stat-title">Total Colleges</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">{stats.totalColleges?.toLocaleString() || "0"}</div>
-            <div className="stat-trend neutral">
+            <div className="stat-value">
+              {stats.totalColleges?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-trend">
               <FaBuilding className="trend-icon" aria-hidden="true" />
               <span>Registered institutions</span>
-            </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-footer-item">
-              <span className="footer-label">Active Colleges</span>
-              <span className="footer-value positive">
-                <FaCheckCircle className="trend-icon" aria-hidden="true" /> {collegeCount}
-              </span>
             </div>
           </div>
         </div>
 
         {/* TOTAL STUDENTS */}
-        <div className="stat-card">
+        <div className="stat-card stat-card-students">
           <div className="stat-card-header">
-            <div className="stat-icon-wrapper students" aria-hidden="true">
+            <div
+              className="stat-icon-wrapper stat-icon-students"
+              aria-hidden="true"
+            >
               <FaUsers className="stat-icon" />
             </div>
             <div className="stat-title">Total Students</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value students">{stats.totalStudents?.toLocaleString() || "0"}</div>
-            <div className="stat-trend positive">
+            <div className="stat-value">
+              {stats.totalStudents?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-trend stat-trend-success">
               <FaGraduationCap className="trend-icon" aria-hidden="true" />
               <span>Across all colleges</span>
-            </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-footer-item">
-              <span className="footer-label">Avg. Per College</span>
-              <span className="footer-value">
-                {safeDivide(stats.totalStudents, collegeCount)}
-              </span>
             </div>
           </div>
         </div>
 
         {/* TOTAL TEACHERS */}
-        <div className="stat-card">
+        <div className="stat-card stat-card-teachers">
           <div className="stat-card-header">
-            <div className="stat-icon-wrapper teachers" aria-hidden="true">
+            <div
+              className="stat-icon-wrapper stat-icon-teachers"
+              aria-hidden="true"
+            >
               <FaUserGraduate className="stat-icon" />
             </div>
             <div className="stat-title">Total Teachers</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value teachers">{stats.totalTeachers?.toLocaleString() || "0"}</div>
-            <div className="stat-trend positive">
+            <div className="stat-value">
+              {stats.totalTeachers?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-trend stat-trend-success">
               <FaUserGraduate className="trend-icon" aria-hidden="true" />
               <span>Faculty members</span>
-            </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-footer-item">
-              <span className="footer-label">Student-Teacher Ratio</span>
-              <span className="footer-value">
-                {safeDivide(stats.totalStudents, stats.totalTeachers)}:1
-              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* COLLEGES SECTION */}
-      <div className="erp-card animate-fade-in" role="region" aria-label="Registered colleges">
+      <div
+        className="erp-card animate-fade-in"
+        role="region"
+        aria-label="Registered colleges"
+      >
         <div className="erp-card-header">
           <h3>
             <FaListOl className="erp-card-icon" aria-hidden="true" />
@@ -466,14 +571,16 @@ export default function SuperAdminDashboard() {
                 <div className="col-12 col-md-6 col-lg-4" key={college._id}>
                   <div
                     className="college-card card border-0 shadow-sm h-100"
-                    onClick={() => navigate(`/super-admin/college/:id${college._id}`)}
+                    onClick={() =>
+                      navigate(`/super-admin/college/${college._id}`)
+                    }
                     role="button"
                     tabIndex={0}
                     aria-label={`View details for ${college.name}`}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
+                      if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        navigate(`/super-admin/college/:id${college._id}`);
+                        navigate(`/super-admin/college/${college._id}`);
                       }
                     }}
                   >
@@ -482,27 +589,40 @@ export default function SuperAdminDashboard() {
                         <span>{index + 1}</span>
                       </div>
                       <div className="college-status">
-                        <span className={`status-badge status-${college.status?.toLowerCase() || 'active'}`}>
+                        <span
+                          className={`status-badge status-${college.status?.toLowerCase() || "active"}`}
+                        >
                           {college.status || "Active"}
                         </span>
                       </div>
                     </div>
 
                     <div className="college-card-body p-3">
-                      <h4 className="college-name h6 mb-2 fw-bold">{college.name || "Unnamed College"}</h4>
+                      <h4 className="college-name h6 mb-2 fw-bold">
+                        {college.name || "Unnamed College"}
+                      </h4>
                       <div className="college-meta d-flex flex-wrap gap-2">
                         <div className="meta-item d-flex align-items-center gap-1">
-                          <FaMapMarkerAlt className="text-muted" aria-hidden="true" />
+                          <FaMapMarkerAlt
+                            className="text-muted"
+                            aria-hidden="true"
+                          />
                           <span className="small text-muted">
-                            {college.location || college.city || college.address || "Location not available"}
+                            {college.location ||
+                              college.city ||
+                              college.address ||
+                              "Location not available"}
                           </span>
                         </div>
                         <div className="meta-item d-flex align-items-center gap-1">
-                          <FaCalendarAlt className="text-muted" aria-hidden="true" />
+                          <FaCalendarAlt
+                            className="text-muted"
+                            aria-hidden="true"
+                          />
                           <span className="small text-muted">
-                            {college.establishedYear 
+                            {college.establishedYear
                               ? `Since ${college.establishedYear}`
-                              : college.registeredAt 
+                              : college.registeredAt
                                 ? `Since ${new Date(college.registeredAt).getFullYear()}`
                                 : "Date unknown"}
                           </span>
@@ -517,86 +637,14 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* QUICK ACTIONS SECTION */}
-      <div className="erp-card animate-fade-in" role="region" aria-label="Quick actions">
-        <div className="erp-card-header">
-          <h3>
-            <FaTachometerAlt className="erp-card-icon" aria-hidden="true" />
-            Quick Actions
-          </h3>
-        </div>
-        <div className="erp-card-body">
-          <div className="row g-3 g-md-4">
-            <div className="col-12 col-md-4">
-              <div
-                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
-                onClick={() => navigate("/super-admin/create-college")}
-                role="button"
-                tabIndex={0}
-                aria-label="Add new college"
-              >
-                <div className="card-body text-center p-4">
-                  <div className="quick-action-icon add-college rounded-3 d-inline-flex align-items-center justify-content-center mb-3">
-                    <FaPlus />
-                  </div>
-                  <div className="quick-action-content">
-                    <div className="quick-action-title h6 mb-2 fw-bold">Add New College</div>
-                    <div className="quick-action-description small text-muted">Register a new educational institution</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div
-                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
-                onClick={() => navigate("/super-admin/reports/admission")}
-                role="button"
-                tabIndex={0}
-                aria-label="View admission reports"
-              >
-                <div className="card-body text-center p-4">
-                  <div className="quick-action-icon reports rounded-3 d-inline-flex align-items-center justify-content-center mb-3">
-                    <FaChartPie />
-                  </div>
-                  <div className="quick-action-content">
-                    <div className="quick-action-title h6 mb-2 fw-bold">Admission Reports</div>
-                    <div className="quick-action-description small text-muted">View analytics across all colleges</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div
-                className="quick-action-card card border-0 shadow-sm h-100 cursor-pointer"
-                onClick={() => navigate("/super-admin/settings")}
-                role="button"
-                tabIndex={0}
-                aria-label="System settings"
-              >
-                <div className="card-body text-center p-4">
-                  <div className="quick-action-icon settings rounded-3 d-inline-flex align-items-center justify-content-center mb-3">
-                    <FaCog />
-                  </div>
-                  <div className="quick-action-content">
-                    <div className="quick-action-title h6 mb-2 fw-bold">System Settings</div>
-                    <div className="quick-action-description small text-muted">Configure global system parameters</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* FOOTER NOTE */}
       <div className="footer-note animate-fade-in" role="contentinfo">
         <div className="footer-note-content">
           <FaInfoCircle className="note-icon" aria-hidden="true" />
           <span>
-            Super Admin Dashboard - Centralized management portal for educational institutions.
-            Last refreshed: {lastRefresh.toLocaleString()}
+            Super Admin Dashboard - Centralized management portal for
+            educational institutions. Last refreshed:{" "}
+            {lastRefresh.toLocaleString()}
           </span>
         </div>
         <button
@@ -613,33 +661,88 @@ export default function SuperAdminDashboard() {
       <style>{`
         /* ================= CSS VARIABLES - SIDEBAR THEME ================= */
         :root {
+          /* Sidebar colors - exact match */
           --sidebar-primary: #0f3a4a;
-          --sidebar-dark: #0c2d3a;
+          --sidebar-primary-dark: #0c2d3a;
+          --sidebar-primary-light: #1a4a5a;
           --sidebar-accent: #3db5e6;
           --sidebar-accent-light: #4fc3f7;
-          --sidebar-light: #e6f2f5;
-          --sidebar-gradient: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+          --sidebar-accent-bright: #7dd3fc;
+          --sidebar-text: #e6f2f5;
+          --sidebar-text-muted: rgba(255, 255, 255, 0.7);
+          
+          /* Gradients - exact sidebar match */
+          --sidebar-gradient: linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%);
           --accent-gradient: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
+          --card-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+          --card-hover-gradient: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
+          
+          /* SaaS color palette */
+          --bg-primary: #f5f7fa;
+          --bg-secondary: #ffffff;
+          --bg-tertiary: #eef2f6;
+          
+          --text-primary: #1a202c;
+          --text-secondary: #4a5568;
+          --text-muted: #718096;
+          
+          --border-light: #e2e8f0;
+          --border-medium: #cbd5e0;
+          
+          --success: #10b981;
+          --success-light: #d1fae5;
+          --warning: #f59e0b;
+          --warning-light: #fef3c7;
+          --error: #ef4444;
+          --error-light: #fee2e2;
+          
+          /* Shadows */
+          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+          --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+          --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
+          --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+          --shadow-colored: 0 4px 20px rgba(61, 181, 230, 0.15);
+          --shadow-sidebar: 0 8px 32px rgba(15, 58, 74, 0.3);
+          
+          /* Spacing - 8px grid system */
+          --spacing-xs: 0.5rem;
+          --spacing-sm: 0.75rem;
+          --spacing-md: 1rem;
+          --spacing-lg: 1.5rem;
+          --spacing-xl: 2rem;
+          
+          /* Border radius */
+          --radius-sm: 0.5rem;
+          --radius-md: 0.75rem;
+          --radius-lg: 1rem;
+          --radius-xl: 1.25rem;
+          
+          /* Transitions */
+          --transition-fast: 0.15s ease;
+          --transition-base: 0.25s ease;
+          --transition-slow: 0.35s ease;
         }
 
+        /* ================= BASE CONTAINER ================= */
         .erp-container {
-          padding: 1.5rem;
-          background: linear-gradient(180deg, #f0f4f8 0%, #e6f2f5 100%);
+          padding: var(--spacing-xl);
+          background: var(--bg-primary);
           min-height: 100vh;
-          animation: fadeIn 0.6s ease;
+          animation: fadeIn 0.5s ease;
         }
 
+        /* ================= PAGE HEADER ================= */
         .erp-page-header {
           background: var(--sidebar-gradient);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.4), 0 0 0 1px rgba(61, 181, 230, 0.2);
+          padding: var(--spacing-xl);
+          border-radius: var(--radius-xl);
+          margin-bottom: var(--spacing-xl);
+          box-shadow: var(--shadow-sidebar), 0 0 0 1px rgba(61, 181, 230, 0.2);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          animation: slideDown 0.6s ease;
+          animation: slideDown 0.5s ease;
           position: relative;
           overflow: hidden;
         }
@@ -658,7 +761,7 @@ export default function SuperAdminDashboard() {
         .erp-header-content {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: var(--spacing-lg);
           position: relative;
           z-index: 1;
         }
@@ -667,7 +770,7 @@ export default function SuperAdminDashboard() {
           width: 56px;
           height: 56px;
           background: rgba(61, 181, 230, 0.25);
-          border-radius: 12px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -679,13 +782,14 @@ export default function SuperAdminDashboard() {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          letter-spacing: -0.5px;
         }
 
         .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
+          margin: 0.25rem 0 0 0;
           opacity: 0.9;
-          font-size: 1rem;
+          font-size: 0.95rem;
+          font-weight: 400;
         }
 
         .erp-page-meta {
@@ -717,40 +821,32 @@ export default function SuperAdminDashboard() {
           z-index: 1;
         }
 
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: var(--sidebar-primary);
-          border: none;
+        .erp-btn {
           padding: 0.75rem 1.25rem;
           font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
+          border-radius: var(--radius-md);
+          transition: all var(--transition-base);
           display: flex;
           align-items: center;
           gap: 0.5rem;
-        }
-
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.4);
-          background: var(--sidebar-light);
+          cursor: pointer;
+          border: none;
+          font-size: 0.9rem;
         }
 
         .erp-btn-secondary {
           background: rgba(255, 255, 255, 0.15);
           color: white;
-          border: none;
         }
 
         .erp-btn-secondary:hover {
           background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
         }
 
         .erp-btn-primary {
           background: var(--accent-gradient);
           color: white;
-          border: none;
           box-shadow: 0 4px 16px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
 
@@ -759,17 +855,21 @@ export default function SuperAdminDashboard() {
           box-shadow: 0 6px 20px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
-        /* INFO BANNER - Sidebar themed */
+        .erp-btn-icon {
+          font-size: 1rem;
+        }
+
+        /* ================= INFO BANNER ================= */
         .info-banner {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.12) 100%);
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-md) var(--spacing-lg);
           display: flex;
           align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
+          gap: var(--spacing-md);
+          margin-bottom: var(--spacing-xl);
           border-left: 4px solid var(--sidebar-accent);
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.15);
+          box-shadow: var(--shadow-sm);
         }
 
         .info-icon {
@@ -786,26 +886,28 @@ export default function SuperAdminDashboard() {
 
         .info-content {
           flex: 1;
-          font-size: 0.95rem;
-          color: var(--sidebar-primary);
+          font-size: 0.9rem;
+          color: var(--text-secondary);
           line-height: 1.5;
         }
 
         .info-content strong {
           font-weight: 600;
+          color: var(--text-primary);
         }
 
-        /* FILTER BAR */
+        /* ================= FILTER BAR ================= */
         .filter-bar {
-          background: white;
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
+          background: var(--bg-secondary);
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-md) var(--spacing-lg);
           display: flex;
           align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 12px rgba(15, 58, 74, 0.08);
+          gap: var(--spacing-lg);
+          margin-bottom: var(--spacing-xl);
+          box-shadow: var(--shadow-md);
           flex-wrap: wrap;
+          border: 1px solid var(--border-light);
         }
 
         .search-box {
@@ -818,31 +920,31 @@ export default function SuperAdminDashboard() {
 
         .search-icon {
           position: absolute;
-          left: 1rem;
-          color: #6c757d;
-          font-size: 1rem;
+          left: var(--spacing-md);
+          color: var(--text-muted);
+          font-size: 0.9rem;
           pointer-events: none;
         }
 
         .search-input {
           width: 100%;
           padding: 0.625rem 2.5rem 0.625rem 2.5rem;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
+          border: 2px solid var(--border-light);
+          border-radius: var(--radius-md);
           font-size: 0.95rem;
-          transition: all 0.3s ease;
-          background: #f8f9fa;
+          transition: all var(--transition-base);
+          background: var(--bg-tertiary);
         }
 
         .search-input:focus {
           outline: none;
           border-color: var(--sidebar-accent);
-          background: white;
-          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.12);
+          background: var(--bg-secondary);
+          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.1);
         }
 
         .search-input::placeholder {
-          color: #adb5bd;
+          color: var(--text-muted);
         }
 
         .search-clear {
@@ -850,19 +952,19 @@ export default function SuperAdminDashboard() {
           right: 0.75rem;
           background: none;
           border: none;
-          color: #6c757d;
+          color: var(--text-muted);
           cursor: pointer;
           padding: 0.25rem;
           display: flex;
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-          transition: all 0.2s ease;
+          transition: all var(--transition-fast);
         }
 
         .search-clear:hover {
-          background: #e9ecef;
-          color: #ef4444;
+          background: var(--bg-tertiary);
+          color: var(--error);
         }
 
         .rotate-45 {
@@ -884,7 +986,7 @@ export default function SuperAdminDashboard() {
         .filter-icon {
           position: absolute;
           left: 0.75rem;
-          color: #6c757d;
+          color: var(--text-muted);
           font-size: 0.875rem;
           pointer-events: none;
           z-index: 1;
@@ -892,16 +994,16 @@ export default function SuperAdminDashboard() {
 
         .filter-select {
           padding: 0.625rem 2rem 0.625rem 2.25rem;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
+          border: 2px solid var(--border-light);
+          border-radius: var(--radius-md);
           font-size: 0.95rem;
           font-weight: 500;
-          color: #2c3e50;
-          background: white;
+          color: var(--text-primary);
+          background: var(--bg-secondary);
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 0.75rem center;
         }
@@ -909,35 +1011,35 @@ export default function SuperAdminDashboard() {
         .filter-select:focus {
           outline: none;
           border-color: var(--sidebar-accent);
-          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.12);
+          box-shadow: 0 0 0 4px rgba(61, 181, 230, 0.1);
         }
 
         .filter-reset {
           padding: 0.5rem 1rem;
-          background: #e9ecef;
+          background: var(--bg-tertiary);
           border: none;
-          border-radius: 8px;
-          color: #495057;
+          border-radius: var(--radius-md);
+          color: var(--text-secondary);
           font-weight: 600;
           font-size: 0.875rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-fast);
         }
 
         .filter-reset:hover {
-          background: #dee2e6;
+          background: var(--border-light);
         }
 
         .filter-results {
           font-size: 0.875rem;
-          color: #6c757d;
+          color: var(--text-muted);
           font-weight: 500;
           padding: 0.5rem 0.75rem;
-          background: #f8f9fa;
-          border-radius: 8px;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
         }
 
-        /* STATUS BADGE */
+        /* ================= STATUS BADGE ================= */
         .status-badge {
           display: inline-flex;
           align-items: center;
@@ -957,166 +1059,182 @@ export default function SuperAdminDashboard() {
         }
 
         .status-active {
-          background: rgba(16, 185, 129, 0.15);
-          color: #10b981;
+          background: var(--success-light);
+          color: var(--success);
         }
 
         .status-inactive {
-          background: rgba(108, 117, 125, 0.15);
-          color: #6c757d;
+          background: var(--bg-tertiary);
+          color: var(--text-muted);
         }
 
         .status-pending {
-          background: rgba(245, 158, 11, 0.15);
-          color: #f59e0b;
+          background: var(--warning-light);
+          color: var(--warning);
         }
 
-        /* STATS GRID - Sidebar themed */
+        /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
+          gap: var(--spacing-lg);
+          margin-bottom: var(--spacing-xl);
+          width: 100%;
         }
 
         .stat-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
+          background: var(--card-gradient);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-md);
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
-          border: 1px solid rgba(61, 181, 230, 0.1);
+          border: 1px solid var(--border-light);
+          position: relative;
+          height: 90%;
+          width: 100%;
+        }
+
+        .stat-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: var(--accent-gradient);
+          opacity: 0;
+          transition: opacity var(--transition-base);
+        }
+
+        .stat-card-colleges::before {
+          background: var(--sidebar-gradient);
+        }
+
+        .stat-card-students::before {
+          background: var(--accent-gradient);
+        }
+
+        .stat-card-teachers::before {
+          background: linear-gradient(180deg, #0c2d3a 0%, #09516d 100%);
         }
 
         .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 30px rgba(61, 181, 230, 0.2);
+          transform: translateY(-4px);
+          box-shadow: var(--shadow-xl);
           border-color: var(--sidebar-accent);
         }
 
+        .stat-card:hover::before {
+          opacity: 1;
+        }
+
         .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(2) { animation-delay: 0.15s; }
+        .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
         .stat-card-header {
-          padding: 1.25rem 1.5rem;
+          padding: var(--spacing-md) var(--spacing-lg);
           display: flex;
           align-items: center;
-          gap: 1rem;
-          border-bottom: 1px solid #f0f2f5;
+          gap: var(--spacing-md);
+          border-bottom: 1px solid var(--border-light);
+          background: rgba(61, 181, 230, 0.03);
+          flex-shrink: 0;
         }
 
         .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
+          width: 40px;
+          height: 40px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 1.25rem;
+          transition: all var(--transition-base);
         }
 
-        .stat-icon-wrapper.colleges { 
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+        .stat-card:hover .stat-icon-wrapper {
+          transform: scale(1.08);
+        }
+
+        .stat-icon-wrapper.stat-icon-colleges {
+          background: var(--sidebar-gradient);
           box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
         }
-        .stat-icon-wrapper.students { 
+
+        .stat-icon-wrapper.stat-icon-students {
           background: var(--accent-gradient);
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.3);
+          box-shadow: 0 4px 12px rgba(19, 66, 84, 0.3);
         }
-        .stat-icon-wrapper.teachers { 
-          background: linear-gradient(135deg, #0c2d3a 0%, #3db5e6 100%);
+
+        .stat-icon-wrapper.stat-icon-teachers {
+          background: linear-gradient(135deg, #0c2d3a 0%, #18495c 100%);
           box-shadow: 0 4px 12px rgba(12, 45, 58, 0.3);
         }
 
         .stat-icon {
           color: white;
-          font-size: 1.4rem;
+          font-size: 1.25rem;
         }
 
         .stat-title {
           font-weight: 600;
-          color: var(--sidebar-primary);
-          font-size: 1.05rem;
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          flex: 1;
         }
 
         .stat-card-body {
-          padding: 1.5rem;
+          padding: var(--spacing-lg);
           flex: 1;
           display: flex;
           flex-direction: column;
           justify-content: center;
+          gap: var(--spacing-sm);
         }
 
         .stat-value {
-          font-size: 2.25rem;
+          font-size: 2rem;
           font-weight: 800;
           color: var(--sidebar-primary);
-          line-height: 1;
-          margin-bottom: 0.5rem;
+          line-height: 1.2;
+          letter-spacing: -1px;
         }
-
-        .stat-value.students { color: var(--sidebar-accent); }
-        .stat-value.teachers { color: #0c2d3a; }
 
         .stat-trend {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.9rem;
+          font-size: 0.8rem;
           font-weight: 500;
+          color: var(--text-muted);
         }
 
-        .stat-trend.positive { color: #10b981; }
-        .stat-trend.neutral { color: #6c757d; }
+        .stat-trend-success {
+          color: var(--success);
+        }
 
         .trend-icon {
-          font-size: 0.95rem;
+          font-size: 0.85rem;
         }
 
-        .stat-card-footer {
-          padding: 0.75rem 1.5rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #f0f4f8 100%);
-          border-top: 1px solid #e9ecef;
-          font-size: 0.875rem;
-        }
-
-        .stat-footer-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .footer-label {
-          color: #6c757d;
-        }
-
-        .footer-value {
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-        }
-
-        .footer-value.positive { color: #10b981; }
-        
-        /* COLLEGES SECTION - Sidebar themed */
+        /* ================= COLLEGES SECTION ================= */
         .erp-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
-          margin-bottom: 1.5rem;
+          background: var(--bg-secondary);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-md);
+          margin-bottom: var(--spacing-xl);
           overflow: hidden;
           animation: fadeIn 0.6s ease;
-          border: 1px solid rgba(61, 181, 230, 0.1);
+          border: 1px solid var(--border-light);
         }
 
         .erp-card-header {
-          padding: 1.5rem 1.75rem;
+          padding: var(--spacing-lg) var(--spacing-xl);
           background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
           border-bottom: 1px solid rgba(61, 181, 230, 0.15);
           display: flex;
@@ -1126,12 +1244,13 @@ export default function SuperAdminDashboard() {
 
         .erp-card-header h3 {
           margin: 0;
-          font-size: 1.35rem;
+          font-size: 1.25rem;
           font-weight: 700;
           color: var(--sidebar-primary);
           display: flex;
           align-items: center;
           gap: 0.75rem;
+          letter-spacing: -0.3px;
         }
 
         .erp-card-icon {
@@ -1144,14 +1263,14 @@ export default function SuperAdminDashboard() {
           color: white;
           border: none;
           padding: 0.5rem 1rem;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           font-weight: 600;
           font-size: 0.9rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
           box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
         }
 
@@ -1162,7 +1281,7 @@ export default function SuperAdminDashboard() {
 
         .view-more-icon {
           font-size: 0.9rem;
-          transition: transform 0.3s ease;
+          transition: transform var(--transition-base);
         }
 
         .view-more-btn:hover .view-more-icon {
@@ -1170,25 +1289,18 @@ export default function SuperAdminDashboard() {
         }
 
         .erp-card-body {
-          padding: 1.5rem;
+          padding: var(--spacing-lg);
         }
 
         .college-card {
-          background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-          border-radius: 16px;
-          padding: 1.5rem;
+          background: var(--card-gradient);
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-lg);
           cursor: pointer;
-          transition: all 0.3s ease;
-          border: 1px solid rgba(61, 181, 230, 0.15);
+          transition: all var(--transition-base);
+          border: 1px solid var(--border-light);
           position: relative;
           overflow: hidden;
-        }
-
-        .college-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.25);
-          border-color: var(--sidebar-accent);
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
         }
 
         .college-card::before {
@@ -1199,15 +1311,27 @@ export default function SuperAdminDashboard() {
           width: 4px;
           height: 100%;
           background: var(--accent-gradient);
+          opacity: 0;
+          transition: opacity var(--transition-base);
+        }
+
+        .college-card:hover {
+          transform: translateY(-4px);
+          box-shadow: var(--shadow-colored);
+          border-color: var(--sidebar-accent);
+        }
+
+        .college-card:hover::before {
+          opacity: 1;
         }
 
         .college-card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 1rem;
-          padding-bottom: 0.75rem;
-          border-bottom: 1px solid rgba(61, 181, 230, 0.15);
+          margin-bottom: var(--spacing-md);
+          padding-bottom: var(--spacing-sm);
+          border-bottom: 1px solid var(--border-light);
         }
 
         .college-badge {
@@ -1226,8 +1350,8 @@ export default function SuperAdminDashboard() {
         }
 
         .college-status {
-          background: rgba(16, 185, 129, 0.15);
-          color: #10b981;
+          background: var(--success-light);
+          color: var(--success);
           padding: 0.25rem 0.75rem;
           border-radius: 20px;
           font-weight: 600;
@@ -1235,19 +1359,20 @@ export default function SuperAdminDashboard() {
         }
 
         .college-card-body {
-          margin-bottom: 1rem;
+          margin-bottom: var(--spacing-md);
         }
 
         .college-name {
-          font-size: 1.25rem;
+          font-size: 1.15rem;
           font-weight: 700;
-          color: var(--sidebar-primary);
-          margin: 0 0 0.75rem 0;
+          color: var(--text-primary);
+          margin: 0 0 var(--spacing-sm) 0;
           line-height: 1.3;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          letter-spacing: -0.3px;
         }
 
         .college-meta {
@@ -1260,16 +1385,194 @@ export default function SuperAdminDashboard() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.9rem;
-          color: #6c757d;
+          font-size: 0.875rem;
+          color: var(--text-muted);
         }
 
         .meta-icon {
           color: var(--sidebar-accent);
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
 
-        /* QUICK ACTIONS - Sidebar themed */
+        /* ================= QUICK ACTIONS SECTION ================= */
+        .quick-actions-section {
+          background: var(--bg-secondary);
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-lg);
+          margin-bottom: var(--spacing-xl);
+          box-shadow: var(--shadow-md);
+          border: 1px solid var(--border-light);
+          animation: fadeIn 0.5s ease;
+        }
+
+        .quick-actions-header {
+          margin-bottom: var(--spacing-lg);
+          padding-bottom: var(--spacing-md);
+          border-bottom: 1px solid var(--border-light);
+        }
+
+        .quick-actions-header h3 {
+          margin: 0;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          letter-spacing: -0.3px;
+        }
+
+        .quick-actions-icon {
+          color: var(--sidebar-accent);
+          font-size: 1.25rem;
+        }
+
+        .quick-actions-subtitle {
+          margin: 0.375rem 0 0 0;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          font-weight: 400;
+        }
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(61, 181, 230, 0.15);
+        }
+
+        .quick-actions-header h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--sidebar-primary);
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .quick-actions-icon {
+          color: var(--sidebar-accent);
+          font-size: 1.25rem;
+        }
+
+        .quick-actions-subtitle {
+          margin: 0.5rem 0 0 0;
+          font-size: 0.9rem;
+          color: #6c757d;
+          font-weight: 400;
+        }
+
+        /* QUICK ACTIONS GRID */
+        .quick-actions-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1.25rem;
+        }
+
+        .quick-action-card {
+          background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+          border-radius: 14px;
+          padding: 1.25rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 1px solid rgba(61, 181, 230, 0.15);
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .quick-action-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 4px;
+          height: 100%;
+          background: var(--accent-gradient);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .quick-action-card:hover {
+          transform: translateX(5px);
+          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.25);
+          border-color: var(--sidebar-accent);
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
+        }
+
+        .quick-action-card:hover::before {
+          opacity: 1;
+        }
+
+        .quick-action-card:focus {
+          outline: 2px solid var(--sidebar-accent);
+          outline-offset: 2px;
+        }
+
+        .quick-action-icon {
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          flex-shrink: 0;
+          transition: all 0.3s ease;
+        }
+
+        .quick-action-card:hover .quick-action-icon {
+          transform: scale(1.1);
+        }
+
+        .quick-action-icon.add-college {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%);
+          color: #10b981;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .quick-action-icon.view-colleges {
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.25) 100%);
+          color: var(--sidebar-accent);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
+        }
+
+        .quick-action-icon.reports {
+          background: linear-gradient(135deg, rgba(12, 45, 58, 0.15) 0%, rgba(15, 58, 74, 0.25) 100%);
+          color: var(--sidebar-primary);
+          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.2);
+        }
+
+        .quick-action-icon.security {
+          background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.25) 100%);
+          color: #f59e0b;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .quick-action-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .quick-action-title {
+          font-weight: 700;
+          color: var(--sidebar-primary);
+          font-size: 1rem;
+          margin-bottom: 0.25rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .quick-action-description {
+          font-size: 0.85rem;
+          color: #6c757d;
+          line-height: 1.3;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        /* QUICK ACTIONS - Sidebar themed (Old - Keep for fallback) */
         .quick-actions-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1455,81 +1758,7 @@ export default function SuperAdminDashboard() {
           white-space: nowrap;
           border: 0;
         }
-        
-        /* SKELETON LOADING */
-        .skeleton-container {
-          padding: 1.5rem;
-        }
-        
-        .skeleton-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .skeleton-stat-card {
-          background: #f8f9fa;
-          border-radius: 16px;
-          padding: 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .skeleton-stat-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          background: #e9ecef;
-        }
-        
-        .skeleton-stat-content {
-          flex: 1;
-        }
-        
-        .skeleton-stat-label {
-          height: 16px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 60%;
-          margin-bottom: 0.5rem;
-        }
-        
-        .skeleton-stat-value {
-          height: 32px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 40%;
-        }
-        
-        .skeleton-colleges-section {
-          background: #f8f9fa;
-          border-radius: 16px;
-          padding: 2rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .skeleton-section-header {
-          height: 32px;
-          background: #e9ecef;
-          border-radius: 8px;
-          width: 40%;
-          margin-bottom: 1.5rem;
-        }
-        
-        .skeleton-colleges-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-        
-        .skeleton-college-card {
-          height: 180px;
-          background: #e9ecef;
-          border-radius: 16px;
-        }
-        
+
         /* ERROR CONTAINER */
         .erp-error-container {
           display: flex;
@@ -1804,6 +2033,25 @@ export default function SuperAdminDashboard() {
 
           .filter-bar {
             padding: 1rem;
+          }
+
+          .quick-actions-section {
+            padding: 1.25rem;
+          }
+
+          .quick-actions-grid {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+          }
+
+          .quick-action-card {
+            padding: 1rem;
+          }
+
+          .quick-action-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
           }
 
           .filter-group {
