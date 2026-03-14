@@ -925,15 +925,9 @@ function AppContent({
             />
 
             {/* ================= TEACHERS ================= */}
+            
             {/* TIMETABLE */}
-            <Route
-              path="/timetable/create-timetable"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateTimetable />
-                </ProtectedRoute>
-              }
-            />
+            
             <Route
               path="/timetable/list"
               element={

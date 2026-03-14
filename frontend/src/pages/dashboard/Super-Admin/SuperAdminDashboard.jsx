@@ -1807,65 +1807,6 @@ export default function SuperAdminDashboard() {
           margin-top: 1rem;
         }
         
-        /* LOADING CONTAINER */
-        .erp-loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-          position: relative;
-        }
-        
-        .erp-loading-spinner {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-        
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-        
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
-          animation-delay: 0.1s;
-        }
-        
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
-          animation-delay: 0.2s;
-        }
-        
-        .erp-loading-text {
-          font-size: 1.35rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-        
-        .loading-progress {
-          width: 250px;
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: -1rem;
-        }
-        
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d 0%, #0f3a4a 100%);
-          width: 35%;
-          animation: progressPulse 1.8s ease-in-out infinite;
-        }
-        
         /* ANIMATIONS */
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
