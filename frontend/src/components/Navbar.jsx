@@ -3,12 +3,27 @@ import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { logger } from "../utils/logger";
-import { FaBell, FaCheck, FaBars, FaUser, FaSignOutAlt, FaCog, FaKey, FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
+import {
+  FaBell,
+  FaCheck,
+  FaBars,
+  FaUser,
+  FaSignOutAlt,
+  FaCog,
+  FaKey,
+  FaChevronLeft,
+  FaChevronRight,
+  FaChevronDown,
+} from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
 import "./Navbar.css";
 
-export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isSidebarCollapsed }) {
+export default function NavbarComponent({
+  onToggleSidebar,
+  onToggleCollapse,
+  isSidebarCollapsed,
+}) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -66,7 +81,11 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
           setCollege(response.data);
         } else if (user.role === "TEACHER") {
           response = await api.get("/teachers/my-profile");
-          if (response.data && response.data.teacher && response.data.teacher.college_id) {
+          if (
+            response.data &&
+            response.data.teacher &&
+            response.data.teacher.college_id
+          ) {
             setCollege(response.data.teacher.college_id);
           }
         } else if (user.role === "STUDENT") {
@@ -109,7 +128,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       // Detect new notifications and show toast
       if (prevCount.current && total > prevCount.current) {
         const newCount = total - prevCount.current;
-        setToast(`🔔 ${newCount} new notification${newCount > 1 ? 's' : ''} received!`);
+        setToast(
+          `🔔 ${newCount} new notification${newCount > 1 ? "s" : ""} received!`,
+        );
         setTimeout(() => setToast(null), 4000);
       }
 
@@ -160,13 +181,13 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     try {
       // Use correct endpoint parameter name: notificationId
       await api.post(`/notifications/${id}/mark-read`);
-      
+
       // Optimistic update - remove from list immediately
-      setNotes(prev => prev.filter(n => n._id !== id));
-      
+      setNotes((prev) => prev.filter((n) => n._id !== id));
+
       // Update count in background
       fetchCount();
-      
+
       // Show success feedback
       setToast("✅ Notification marked as read");
       setTimeout(() => setToast(null), 2000);
@@ -186,14 +207,16 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
       const previousNotes = [...notes];
       setNotes([]);
       setCount(0);
-      
+
       // Mark all as read in background
-      const promises = previousNotes.map((n) => api.post(`/notifications/${n._id}/read`));
+      const promises = previousNotes.map((n) =>
+        api.post(`/notifications/${n._id}/read`),
+      );
       await Promise.all(promises);
-      
+
       // Refresh count to ensure sync
       fetchCount();
-      
+
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
@@ -224,9 +247,22 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     if (user.role === "COLLEGE_ADMIN") {
       navigate("/college/profile");
     } else if (user.role === "TEACHER") {
-      navigate("/teacher/profile");
+      navigate("/profile/my-profile");
     } else if (user.role === "STUDENT") {
       navigate("/student/profile");
+    }
+  };
+
+  /* ================= DASHBOARD NAVIGATION ================= */
+  const goToDashboard = () => {
+    if (user.role === "SUPER_ADMIN") {
+      navigate("/super-admin/dashboard");
+    } else if (user.role === "COLLEGE_ADMIN") {
+      navigate("/dashboard");
+    } else if (user.role === "TEACHER") {
+      navigate("/teacher/dashboard");
+    } else if (user.role === "STUDENT") {
+      navigate("/student/dashboard");
     }
   };
 
@@ -295,30 +331,30 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
   const getUserInitials = () => {
     // Priority 1: Use user.name from context (dynamically fetched)
     if (user.name) {
-      const nameParts = user.name.trim().split(' ');
+      const nameParts = user.name.trim().split(" ");
       if (nameParts.length >= 2) {
         return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
       }
       return nameParts[0][0].toUpperCase();
     }
-    
+
     // Priority 2: Use user.email from context (dynamically fetched)
     if (user.email && user.email.includes("@")) {
       const name = user.email.split("@")[0];
       // Convert dots/underscores to spaces and extract name
-      const cleanName = name.replace(/[._]/g, ' ').trim();
-      const nameParts = cleanName.split(' ');
+      const cleanName = name.replace(/[._]/g, " ").trim();
+      const nameParts = cleanName.split(" ");
       if (nameParts.length >= 2) {
         return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
       }
       return nameParts[0][0].toUpperCase();
     }
-    
+
     // Fallback: Use role-based initial
     if (user.role) {
       return user.role.charAt(0).toUpperCase();
     }
-    
+
     return "U";
   };
 
@@ -328,23 +364,24 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     if (user.name) {
       return user.name;
     }
-    
+
     // Priority 2: Use user.email from context (dynamically fetched)
     if (user.email && user.email.includes("@")) {
       const emailName = user.email.split("@")[0];
       // Convert dots/underscores to spaces and capitalize
-      const cleanName = emailName.replace(/[._]/g, ' ').trim();
-      return cleanName.split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+      const cleanName = emailName.replace(/[._]/g, " ").trim();
+      return cleanName
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
     }
-    
+
     // Fallback: Use role
     if (user.role) {
-      return user.role.replace('_', ' ');
+      return user.role.replace("_", " ");
     }
-    
-    return 'User';
+
+    return "User";
   };
 
   /* ================= FORMAT DATE ================= */
@@ -364,10 +401,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
     <>
       {/* Toast Notification */}
       {toast && (
-        <div
-          className="toast-notification"
-          role="alert"
-        >
+        <div className="toast-notification" role="alert">
           {toast}
         </div>
       )}
@@ -377,13 +411,16 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
         className="bg-dark-navbar"
         style={{
           zIndex: 1020,
-          width: '100%',
-          minHeight: 'var(--navbar-height, 64px)'
+          width: "100%",
+          minHeight: "var(--navbar-height, 64px)",
         }}
         role="navigation"
         aria-label="Main navigation"
       >
-        <Container fluid className="navbar-fluid-container d-flex justify-content-between align-items-center">
+        <Container
+          fluid
+          className="navbar-fluid-container d-flex justify-content-between align-items-center"
+        >
           {/* LEFT - With Mobile Toggle */}
           <div className="d-flex align-items-center gap-3">
             {/* MOBILE HAMBURGER BUTTON - Visible only on mobile */}
@@ -404,12 +441,20 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               <button
                 className="sidebar-collapse-toggle-navbar"
                 onClick={onToggleCollapse}
-                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={
+                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                }
                 aria-expanded={!isSidebarCollapsed}
                 type="button"
-                title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={
+                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                }
               >
-                {isSidebarCollapsed ? <FaChevronRight size={16} /> : <FaChevronLeft size={16} />}
+                {isSidebarCollapsed ? (
+                  <FaChevronRight size={16} />
+                ) : (
+                  <FaChevronLeft size={16} />
+                )}
               </button>
             )}
 
@@ -425,7 +470,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
             ) : college ? (
               <Navbar.Brand
                 className="mb-0 fw-bold text-primary cursor-pointer"
-                onClick={() => navigate("/dashboard")}
+                onClick={goToDashboard}
                 title="Go to Dashboard"
                 style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}
               >
@@ -434,7 +479,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
             ) : (
               <Navbar.Brand
                 className="mb-0 fw-bold text-primary cursor-pointer"
-                onClick={() => navigate("/dashboard")}
+                onClick={goToDashboard}
                 title="Go to Dashboard"
                 style={{ fontSize: isMobile ? "0.9rem" : "1.1rem" }}
               >
@@ -488,9 +533,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                     bg="danger"
                     className="notification-badge"
                     aria-label={`${count} unread notifications`}
-                    data-badge={count > 99 ? '99+' : count}
+                    data-badge={count > 99 ? "99+" : count}
                   >
-                    {count > 99 ? '99+' : count}
+                    {count > 99 ? "99+" : count}
                   </Badge>
                 )}
               </div>
@@ -502,9 +547,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
               >
                 {/* Header */}
                 <Dropdown.Header className="dropdown-header d-flex justify-content-between align-items-center">
-                  <span className="mb-0">
-                    🔔 Unread Notifications
-                  </span>
+                  <span className="mb-0">🔔 Unread Notifications</span>
                   {notes.length > 0 && (
                     <button
                       className="btn btn-sm btn-link text-primary p-0 notification-mark-all-btn"
@@ -526,7 +569,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                       >
                         <span className="visually-hidden">Loading...</span>
                       </div>
-                      <p className="text-muted small mt-2">Loading notifications...</p>
+                      <p className="text-muted small mt-2">
+                        Loading notifications...
+                      </p>
                     </div>
                   ) : notes.length === 0 ? (
                     <div className="notification-empty">
@@ -553,7 +598,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                           )}
                         </div>
                         <div className="notification-card-message">
-                          {n.message.length > 80 ? `${n.message.substring(0, 80)}...` : n.message}
+                          {n.message.length > 80
+                            ? `${n.message.substring(0, 80)}...`
+                            : n.message}
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
                           {n.createdAt && (
@@ -641,7 +688,10 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                       {getUserInitials()}
                     </div>
                     <div className="profile-user-info">
-                      <h6 className="profile-user-name" title={getUserDisplayName()}>
+                      <h6
+                        className="profile-user-name"
+                        title={getUserDisplayName()}
+                      >
                         {getUserDisplayName()}
                       </h6>
                       <p className="profile-user-email" title={user.email}>
@@ -651,7 +701,7 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                   </div>
                   <div className="profile-role-section">
                     <span className="profile-role-badge">
-                      {user.role.replace(/_/g, ' ')}
+                      {user.role.replace(/_/g, " ")}
                     </span>
                   </div>
                 </div>
@@ -669,42 +719,54 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                         <FaUser />
                       </div>
                       <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">My Profile</span>
-                        <span className="profile-menu-item-subtitle">View and edit your profile</span>
+                        <span className="profile-menu-item-title">
+                          My Profile
+                        </span>
+                        <span className="profile-menu-item-subtitle">
+                          View and edit your profile
+                        </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
                     <button
                       className="profile-menu-item"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        navigate("/settings");
-                      }}
+                      // // onClick={() => {
+                      // //   setProfileOpen(false);
+                      // //   navigate("/settings");
+                      // }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">
                         <FaCog />
                       </div>
                       <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">Settings</span>
-                        <span className="profile-menu-item-subtitle">Manage preferences</span>
+                        <span className="profile-menu-item-title">
+                          Settings
+                        </span>
+                        <span className="profile-menu-item-subtitle">
+                          Manage preferences
+                        </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
                     <button
                       className="profile-menu-item"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        navigate("/change-password");
-                      }}
+                      // onClick={() => {
+                      //   setProfileOpen(false);
+                      //   navigate("/change-password");
+                      // }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">
                         <FaKey />
                       </div>
                       <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">Change Password</span>
-                        <span className="profile-menu-item-subtitle">Update your password</span>
+                        <span className="profile-menu-item-title">
+                          Change Password
+                        </span>
+                        <span className="profile-menu-item-subtitle">
+                          Update your password
+                        </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
@@ -723,7 +785,9 @@ export default function NavbarComponent({ onToggleSidebar, onToggleCollapse, isS
                       </div>
                       <div className="profile-menu-item-content">
                         <span className="profile-menu-item-title">Logout</span>
-                        <span className="profile-menu-item-subtitle">Sign out of your account</span>
+                        <span className="profile-menu-item-subtitle">
+                          Sign out of your account
+                        </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
