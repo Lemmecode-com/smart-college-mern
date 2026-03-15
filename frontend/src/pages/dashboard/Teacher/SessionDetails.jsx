@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ConfirmModal from "../../../components/ConfirmModal";
+import { toast } from "react-toastify";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -36,7 +38,7 @@ const BRAND_COLORS = {
   secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' }
 };
 
-// Animation Variants
+// Animation Variants - Optimized without scaling
 const fadeInVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({
@@ -56,9 +58,9 @@ const slideDownVariants = {
 };
 
 const pulseVariants = {
-  initial: { scale: 1 },
+  initial: { opacity: 1 },
   pulse: {
-    scale: [1, 1.05, 1],
+    opacity: [1, 0.85, 1],
     transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
   }
 };
@@ -68,12 +70,6 @@ const spinVariants = {
     rotate: 360,
     transition: { duration: 1, repeat: Infinity, ease: "linear" }
   }
-};
-
-const scaleVariants = {
-  hidden: { scale: 0.95, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2 } }
 };
 
 export default function SessionDetails() {
@@ -89,6 +85,8 @@ export default function SessionDetails() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   /* ================= FETCH SESSION ================= */
   const fetchSession = async () => {
@@ -114,7 +112,14 @@ export default function SessionDetails() {
   const fetchStudents = async () => {
     try {
       const res = await api.get(`/attendance/sessions/${sessionId}/students`);
-      setStudents(res.data || []);
+      const studentList = res.data || [];
+      setStudents(studentList);
+      // Auto-mark all students as PRESENT by default
+      const defaultAttendance = {};
+      studentList.forEach(student => {
+        defaultAttendance[student._id] = "PRESENT";
+      });
+      setAttendance(defaultAttendance);
     } catch (err) {
       setError("Failed to load student list. Please try again.");
     }
@@ -143,23 +148,35 @@ export default function SessionDetails() {
 
   /* ================= DELETE SESSION ================= */
   const deleteSession = async () => {
-    if (!window.confirm("Are you sure you want to delete this attendance session? This action cannot be undone.")) return;
-
     setDeleting(true);
     try {
       await api.delete(`/attendance/sessions/${sessionId}`);
+      toast.success("Session deleted successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       navigate("/attendance/sessions");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete session. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to delete session. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />
+      });
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
   /* ================= MARK ATTENDANCE ================= */
   const saveAttendance = async () => {
     if (Object.keys(attendance).length === 0) {
-      alert("Please mark attendance for at least one student before saving.");
+      toast.warning("Please mark attendance for at least one student before saving.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaInfoCircle />
+      });
       return;
     }
 
@@ -173,11 +190,19 @@ export default function SessionDetails() {
       };
 
       await api.post(`/attendance/sessions/${sessionId}/mark`, payload);
-      alert("Attendance saved successfully!");
+      toast.success("Attendance saved successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
       fetchRecords();
       setAttendance({});
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to save attendance. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to save attendance. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />
+      });
     } finally {
       setSaving(false);
     }
@@ -185,17 +210,26 @@ export default function SessionDetails() {
 
   /* ================= CLOSE SESSION ================= */
   const closeSession = async () => {
-    if (!window.confirm("Are you sure you want to close this session? Attendance cannot be modified after closing.")) return;
-
     setClosing(true);
     try {
       await api.put(`/attendance/sessions/${sessionId}/close`);
-      alert("Session closed successfully!");
-      window.location.reload();
+      toast.success("Session closed successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />
+      });
+      // Refresh session data instead of full page reload
+      await fetchSession();
+      await fetchRecords();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to close session. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to close session. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />
+      });
     } finally {
       setClosing(false);
+      setShowCloseConfirm(false);
     }
   };
 
@@ -217,7 +251,9 @@ export default function SessionDetails() {
           color: BRAND_COLORS.danger.main,
           display: 'flex',
           alignItems: 'center',
-          gap: '1rem'
+          gap: '1rem',
+          willChange: 'opacity, transform',
+          backfaceVisibility: 'hidden'
         }}
       >
         <FaTimesCircle size={24} />
@@ -240,7 +276,9 @@ export default function SessionDetails() {
           borderRadius: '16px',
           backgroundColor: 'white',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          textAlign: 'center'
+          textAlign: 'center',
+          willChange: 'opacity, transform',
+          backfaceVisibility: 'hidden'
         }}
       >
         <div style={{ fontSize: '4rem', marginBottom: '1rem', color: '#e2e8f0' }}>
@@ -253,8 +291,8 @@ export default function SessionDetails() {
           The attendance session you're looking for doesn't exist or has been deleted.
         </p>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ y: -2, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.3)' }}
+          whileTap={{ y: 1 }}
           onClick={() => navigate('/attendance/sessions')}
           style={{
             backgroundColor: BRAND_COLORS.primary.main,
@@ -268,7 +306,9 @@ export default function SessionDetails() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
+            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
+            willChange: 'transform, box-shadow',
+            backfaceVisibility: 'hidden'
           }}
         >
           <FaArrowLeft /> Back to Sessions
@@ -314,8 +354,8 @@ export default function SessionDetails() {
             }}
           >
             <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ x: -5, backgroundColor: '#f1f5f9' }}
+              whileTap={{ x: -2 }}
               onClick={() => navigate('/attendance/sessions')}
               style={{
                 display: 'flex',
@@ -329,10 +369,10 @@ export default function SessionDetails() {
                 cursor: 'pointer',
                 padding: '0.5rem',
                 borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                willChange: 'transform, background-color',
+                backfaceVisibility: 'hidden'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
               <FaArrowLeft /> Back to Sessions
             </motion.button>
@@ -539,14 +579,14 @@ export default function SessionDetails() {
                     icon={<FaDoorClosed />}
                     label="Close Session"
                     color={BRAND_COLORS.warning.main}
-                    onClick={closeSession}
+                    onClick={() => setShowCloseConfirm(true)}
                     loading={closing}
                   />
                   <ActionButton
                     icon={<FaTrash />}
                     label="Delete Session"
                     color={BRAND_COLORS.danger.main}
-                    onClick={deleteSession}
+                    onClick={() => setShowDeleteConfirm(true)}
                     loading={deleting}
                   />
                 </div>
@@ -738,6 +778,47 @@ export default function SessionDetails() {
             )}
           </motion.div>
         </div>
+
+        {/* ================= CONFIRM MODALS ================= */}
+        <ConfirmModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={deleteSession}
+          title="Delete Session"
+          message={
+            <>
+              Are you sure you want to delete this attendance session?
+              <br /><br />
+              <strong style={{ color: BRAND_COLORS.danger.main }}>This action cannot be undone.</strong>
+              <br />
+              All attendance records for this session will be permanently deleted.
+            </>
+          }
+          type="danger"
+          confirmText="Delete Session"
+          cancelText="Cancel"
+          isLoading={deleting}
+        />
+
+        <ConfirmModal
+          isOpen={showCloseConfirm}
+          onClose={() => setShowCloseConfirm(false)}
+          onConfirm={closeSession}
+          title="Close Session"
+          message={
+            <>
+              Are you sure you want to close this session?
+              <br /><br />
+              <strong>Attendance cannot be modified after closing.</strong>
+              <br />
+              All marked attendance will be finalized and saved.
+            </>
+          }
+          type="warning"
+          confirmText="Close Session"
+          cancelText="Cancel"
+          isLoading={closing}
+        />
       </motion.div>
     </AnimatePresence>
   );
@@ -746,15 +827,22 @@ export default function SessionDetails() {
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color, subtitle, large = false }) {
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem',
-      padding: '1rem',
-      borderRadius: '16px',
-      backgroundColor: `${color}08`,
-      border: `1px solid ${color}20`
-    }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        padding: '1rem',
+        borderRadius: '16px',
+        backgroundColor: `${color}08`,
+        border: `1px solid ${color}20`,
+        willChange: 'opacity, transform',
+        backfaceVisibility: 'hidden'
+      }}
+    >
       <div style={{
         width: large ? '64px' : '52px',
         height: large ? '64px' : '52px',
@@ -800,7 +888,7 @@ function StatItem({ icon, label, value, color, subtitle, large = false }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -808,8 +896,8 @@ function StatItem({ icon, label, value, color, subtitle, large = false }) {
 function ActionButton({ icon, label, color, onClick, loading = false, disabled = false, large = false }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -2, boxShadow: loading || disabled ? 'none' : `0 8px 20px ${color}40` }}
+      whileTap={{ y: 1 }}
       onClick={onClick}
       disabled={loading || disabled}
       style={{
@@ -827,7 +915,9 @@ function ActionButton({ icon, label, color, onClick, loading = false, disabled =
         transition: 'all 0.3s ease',
         boxShadow: (loading || disabled) ? 'none' : `0 4px 15px ${color}40`,
         minWidth: large ? '200px' : 'auto',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        willChange: 'transform, box-shadow',
+        backfaceVisibility: 'hidden'
       }}
     >
       {loading ? (
@@ -878,7 +968,9 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
       whileHover={{ backgroundColor: '#f8fafc' }}
       style={{
         borderBottom: '1px solid #e2e8f0',
-        transition: 'background-color 0.2s ease'
+        transition: 'background-color 0.2s ease',
+        willChange: 'opacity, transform, background-color',
+        backfaceVisibility: 'hidden'
       }}
     >
       <td style={{ ...cellStyle, fontWeight: 600, color: '#1e293b' }}>
@@ -930,7 +1022,7 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
 function RecordRow({ record, delay = 0 }) {
   const isPresent = record.status === "PRESENT";
   const statusColor = isPresent ? BRAND_COLORS.success.main : BRAND_COLORS.danger.main;
-  
+
   return (
     <motion.tr
       initial={{ opacity: 0, x: -20 }}
@@ -939,7 +1031,9 @@ function RecordRow({ record, delay = 0 }) {
       whileHover={{ backgroundColor: '#f8fafc' }}
       style={{
         borderBottom: '1px solid #e2e8f0',
-        transition: 'background-color 0.2s ease'
+        transition: 'background-color 0.2s ease',
+        willChange: 'opacity, transform, background-color',
+        backfaceVisibility: 'hidden'
       }}
     >
       <td style={{ ...cellStyle, fontWeight: 600, color: '#1e293b' }}>
@@ -993,11 +1087,17 @@ function RecordRow({ record, delay = 0 }) {
 /* ================= EMPTY STATE ================= */
 function EmptyState({ icon, title, message }) {
   return (
-    <div style={{
-      padding: '3rem 1.5rem',
-      textAlign: 'center',
-      color: '#64748b'
-    }}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      style={{
+        padding: '3rem 1.5rem',
+        textAlign: 'center',
+        color: '#64748b',
+        willChange: 'opacity, transform',
+        backfaceVisibility: 'hidden'
+      }}
+    >
       <div style={{
         fontSize: '4rem',
         marginBottom: '1.5rem',
@@ -1023,7 +1123,7 @@ function EmptyState({ icon, title, message }) {
       }}>
         {message}
       </p>
-    </div>
+    </motion.div>
   );
 }
 
