@@ -525,7 +525,7 @@ export default function WeeklyTimetable() {
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(`/timetable/create`)}
+                  onClick={() => navigate(`/timetable/create-timetable`)}
                   style={{
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,

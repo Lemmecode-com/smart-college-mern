@@ -14,9 +14,6 @@ export const AuthProvider = ({ children }) => {
       // Note: With httpOnly cookies, the token will be stored in the cookie automatically
       const res = await api.post("/auth/login", credentials);
 
-      // With httpOnly cookies, we don't receive the token in the response body to store manually
-      // The token is automatically sent with subsequent requests via cookies
-
       // Get user info from the response (interceptor unwraps it)
       const userInfo = res.data.user || {
         id: res.data.id,

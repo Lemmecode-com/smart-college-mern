@@ -1,9 +1,21 @@
 import { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
+import { motion } from "framer-motion";
 
 // Icons
-import { FaUser, FaLock, FaEnvelope, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle, FaExclamationCircle, FaTimes } from "react-icons/fa";
+import {
+  FaUser,
+  FaLock,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+  FaArrowLeft,
+  FaCheckCircle,
+  FaExclamationCircle,
+  FaTimes,
+  FaHome,
+} from "react-icons/fa";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
@@ -46,16 +58,20 @@ export default function Login() {
 
     if (!result.success) {
       const errorMsg = result.message || "Invalid credentials";
-      
+
       // Check for specific error codes from backend
       if (errorMsg.includes("awaiting admin approval")) {
-        setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
+        setError(
+          "⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.",
+        );
       } else if (errorMsg.includes("rejected")) {
-        setError("❌ Your account has been rejected. Please contact the admin for more information.");
+        setError(
+          "❌ Your account has been rejected. Please contact the admin for more information.",
+        );
       } else {
         setError(errorMsg);
       }
-      
+
       setLoading(false);
       return;
     }
@@ -65,41 +81,79 @@ export default function Login() {
     setError("");
     setLoading(false);
 
-    // backend aligned redirect
-    navigate("/");
+    // Redirect to dashboard decider route
+    navigate("/home");
   };
 
   return (
     <div className="login-page-container">
-      {/* Animated Background */}
+      {/* Animated Background - Simplified */}
       <div className="login-background">
         <div className="bg-shape shape-1"></div>
         <div className="bg-shape shape-2"></div>
         <div className="bg-shape shape-3"></div>
-        <div className="bg-shape shape-4"></div>
-        <div className="bg-shape shape-5"></div>
+      </div>
+
+      {/* Floating Particles - Reduced */}
+      <div className="floating-particles">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${4 + Math.random() * 3}s`,
+            }}
+          />
+        ))}
       </div>
 
       <div className="login-wrapper">
-        <div className={`login-card ${forgotMode ? 'forgot-mode' : 'login-mode'}`}>
+        <div
+          className={`login-card ${forgotMode ? "forgot-mode" : "login-mode"}`}
+        >
           <div className="row g-0">
-            {/* LEFT PANEL - Animated */}
-            <div className={`col-md-5 left-panel d-none d-md-flex flex-column justify-content-center text-white p-5 ${forgotMode ? 'slide-out' : 'slide-in'}`}>
+            {/* LEFT PANEL */}
+            <motion.div
+              className={`col-md-5 left-panel d-none d-md-flex flex-column justify-content-center text-white p-5 ${forgotMode ? "slide-out" : "slide-in"}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
               <div className="left-panel-content">
+                {/* Brand Logo */}
                 <div className="brand-logo">
                   <div className="logo-circle">
-                    <span className="logo-icon">{forgotMode ? "🔐" : "🎓"}</span>
+                    <div className="logo-icon-wrapper">
+                      <span className="logo-icon">
+                        {forgotMode ? "🔐" : "🎓"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <h2 className="fw-bold panel-title">
+
+                <motion.h2
+                  className="fw-bold panel-title"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
                   {forgotMode ? "Reset Password" : "Welcome Back"}
-                </h2>
-                <p className="panel-subtitle">
+                </motion.h2>
+
+                <motion.p
+                  className="panel-subtitle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
                   {forgotMode
                     ? "Enter your email to reset your password"
                     : "Login to access your Smart College dashboard"}
-                </p>
-                
+                </motion.p>
+
                 {/* Decorative Elements */}
                 <div className="decorative-dots">
                   <span className="dot"></span>
@@ -107,18 +161,25 @@ export default function Login() {
                   <span className="dot"></span>
                 </div>
               </div>
-              
-              {/* Floating Elements */}
-              <div className="floating-element float-1">✦</div>
-              <div className="floating-element float-2">✦</div>
-              <div className="floating-element float-3">✦</div>
-            </div>
+            </motion.div>
 
             {/* RIGHT PANEL */}
-            <div className="col-md-7 right-panel bg-white p-4 p-md-5">
-              <div className={`form-header text-center mb-4 transition-all ${forgotMode ? 'slide-up' : 'slide-down'}`}>
+            <motion.div
+              className="col-md-7 right-panel bg-white p-4 p-md-5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <motion.div
+                className="form-header text-center mb-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
                 <div className="icon-wrapper">
-                  <div className={`icon-circle ${forgotMode ? 'icon-purple' : 'icon-blue'}`}>
+                  <div
+                    className={`icon-circle ${forgotMode ? "icon-purple" : "icon-blue"}`}
+                  >
                     {forgotMode ? <FaLock size={32} /> : <FaUser size={32} />}
                   </div>
                 </div>
@@ -126,19 +187,19 @@ export default function Login() {
                   {forgotMode ? "FORGOT PASSWORD" : "LOGIN TO YOUR ACCOUNT"}
                 </h4>
                 <p className="form-subtitle">
-                  {forgotMode 
-                    ? "No worries! We'll send you reset instructions." 
+                  {forgotMode
+                    ? "No worries! We'll send you reset instructions."
                     : "Enter your credentials to continue"}
                 </p>
-              </div>
+              </motion.div>
 
               {/* Error Message with Animation */}
               {error && (
                 <div className="alert-message alert-error animate-shake">
                   <FaExclamationCircle className="alert-icon" />
                   <span>{error}</span>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="alert-close"
                     onClick={() => setError("")}
                   >
@@ -152,8 +213,8 @@ export default function Login() {
                 <div className="alert-message alert-success animate-success">
                   <FaCheckCircle className="alert-icon" />
                   <span>{successMsg}</span>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="alert-close"
                     onClick={() => setSuccessMsg("")}
                   >
@@ -164,7 +225,9 @@ export default function Login() {
 
               <form onSubmit={submitHandler} className="login-form">
                 {/* EMAIL */}
-                <div className={`form-group ${focusedField === 'email' ? 'focused' : ''} ${error ? 'error' : ''}`}>
+                <div
+                  className={`form-group ${focusedField === "email" ? "focused" : ""} ${error ? "error" : ""}`}
+                >
                   <label className="form-label">
                     <FaEnvelope className="label-icon" />
                     <span>Email Address</span>
@@ -172,12 +235,12 @@ export default function Login() {
                   <div className="input-wrapper">
                     <input
                       type="email"
-                      className={`form-input ${focusedField === 'email' ? 'active' : ''}`}
+                      className={`form-input ${focusedField === "email" ? "active" : ""}`}
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      onFocus={() => setFocusedField('email')}
-                      onBlur={() => setFocusedField('')}
+                      onFocus={() => setFocusedField("email")}
+                      onBlur={() => setFocusedField("")}
                       autoComplete="email"
                     />
                     <div className="input-border"></div>
@@ -186,7 +249,9 @@ export default function Login() {
 
                 {/* PASSWORD */}
                 {!forgotMode && (
-                  <div className={`form-group ${focusedField === 'password' ? 'focused' : ''} ${error ? 'error' : ''}`}>
+                  <div
+                    className={`form-group ${focusedField === "password" ? "focused" : ""} ${error ? "error" : ""}`}
+                  >
                     <label className="form-label">
                       <FaLock className="label-icon" />
                       <span>Password</span>
@@ -194,19 +259,21 @@ export default function Login() {
                     <div className="input-wrapper">
                       <input
                         type={showPassword ? "text" : "password"}
-                        className={`form-input ${focusedField === 'password' ? 'active' : ''}`}
+                        className={`form-input ${focusedField === "password" ? "active" : ""}`}
                         placeholder="Enter your password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        onFocus={() => setFocusedField('password')}
-                        onBlur={() => setFocusedField('')}
+                        onFocus={() => setFocusedField("password")}
+                        onBlur={() => setFocusedField("")}
                         autoComplete="current-password"
                       />
                       <button
                         type="button"
                         className="password-toggle"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -219,10 +286,7 @@ export default function Login() {
                 <div className="form-actions">
                   <div className="action-left">
                     {!forgotMode ? (
-                      <Link
-                        to="/forgot-password"
-                        className="forgot-link"
-                      >
+                      <Link to="/forgot-password" className="forgot-link">
                         <FaLock className="link-icon" />
                         <span>Forgot Password?</span>
                       </Link>
@@ -244,7 +308,7 @@ export default function Login() {
 
                   <button
                     type="submit"
-                    className={`submit-btn ${loading ? 'loading' : ''}`}
+                    className={`submit-btn ${loading ? "loading" : ""}`}
                     disabled={loading}
                   >
                     {loading ? (
@@ -255,7 +319,9 @@ export default function Login() {
                     ) : (
                       <>
                         <span>{forgotMode ? "SEND RESET LINK" : "LOGIN"}</span>
-                        <span className="btn-arrow">{forgotMode ? "→" : "→"}</span>
+                        <span className="btn-arrow">
+                          {forgotMode ? "→" : "→"}
+                        </span>
                       </>
                     )}
                   </button>
@@ -263,12 +329,27 @@ export default function Login() {
               </form>
 
               {/* Footer Text */}
-              <div className="form-footer">
+              <motion.div
+                className="form-footer"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+              >
                 <p className="footer-text">
-                  Protected by NOVAA Security
+                  <FaLock className="footer-icon" /> Protected by NOVAA Security
                 </p>
-              </div>
-            </div>
+                <motion.p
+                  className="footer-links"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.9 }}
+                >
+                  <a href="/" className="footer-link">
+                    <FaHome /> Back to Home
+                  </a>
+                </motion.p>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -286,8 +367,9 @@ export default function Login() {
           --sidebar-text: #e6f2f5;
           --sidebar-text-muted: rgba(255, 255, 255, 0.7);
 
-          /* Login page theme - Sidebar matched */
-          --primary-gradient: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #1a4a5a 100%);
+          /* Enhanced Login page theme - Deep ocean gradient */
+          --primary-gradient: linear-gradient(135deg, #0a1628 0%, #0f3a4a 50%, #0c2d3a 100%);
+          --primary-gradient-scroll: linear-gradient(180deg, #0a1628 0%, #0f3a4a 50%, #0c2d3a 100%);
           --accent-gradient: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
           --primary-color: #3db5e6;
           --secondary-color: #0f3a4a;
@@ -320,13 +402,63 @@ export default function Login() {
         /* ================= PAGE CONTAINER ================= */
         .login-page-container {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 1.5rem;
           background: var(--primary-gradient);
-          position: relative;
+          position: fixed;
+          inset: 0;
+          width: 100%;
           overflow: hidden;
+        }
+
+        /* Floating Particles */
+        .floating-particles {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .particle {
+          position: absolute;
+          width: 3px;
+          height: 3px;
+          background: rgba(61, 181, 230, 0.6);
+          border-radius: 50%;
+          animation: particleFloat 4s infinite ease-in-out;
+          opacity: 0;
+        }
+
+        @keyframes particleFloat {
+          0%, 100% {
+            opacity: 0;
+            transform: translateY(0);
+          }
+          50% {
+            opacity: 0.8;
+            transform: translateY(-20px);
+          }
+        }
+
+        /* Hide scrollbar for all browsers */
+        .login-page-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .login-page-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        /* Hide body/html scrollbar */
+        body, html {
+          overflow: hidden;
+          margin: 0;
+          padding: 0;
         }
 
         /* ================= ANIMATED BACKGROUND ================= */
@@ -335,13 +467,15 @@ export default function Login() {
           inset: 0;
           overflow: hidden;
           z-index: 0;
+          pointer-events: none;
         }
 
+        /* Simplified bg shapes - reduced blur and effects */
         .bg-shape {
           position: absolute;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(61, 181, 230, 0.15) 0%, rgba(61, 181, 230, 0.05) 70%, transparent 100%);
-          animation: float 20s infinite ease-in-out;
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.15) 0%, rgba(61, 181, 230, 0.05) 50%, transparent 100%);
+          animation: float 25s infinite ease-in-out;
           filter: blur(40px);
         }
 
@@ -358,49 +492,25 @@ export default function Login() {
           height: 400px;
           bottom: -100px;
           right: -100px;
-          animation-delay: 3s;
+          animation-delay: 5s;
         }
 
         .bg-shape.shape-3 {
-          width: 300px;
-          height: 300px;
-          top: 50%;
-          right: 10%;
-          animation-delay: 6s;
-        }
-
-        .bg-shape.shape-4 {
           width: 350px;
           height: 350px;
-          bottom: 20%;
-          left: 10%;
-          animation-delay: 9s;
-        }
-
-        .bg-shape.shape-5 {
-          width: 250px;
-          height: 250px;
-          top: 30%;
-          left: 50%;
-          animation-delay: 12s;
+          top: 40%;
+          left: 30%;
+          animation-delay: 10s;
         }
 
         @keyframes float {
           0%, 100% {
-            transform: translate(0, 0) scale(1) rotate(0deg);
+            transform: translate(0, 0);
             opacity: 0.5;
           }
-          25% {
-            transform: translate(30px, -40px) scale(1.1) rotate(90deg);
-            opacity: 0.7;
-          }
           50% {
-            transform: translate(-30px, 30px) scale(0.95) rotate(180deg);
-            opacity: 0.6;
-          }
-          75% {
-            transform: translate(40px, 20px) scale(1.05) rotate(270deg);
-            opacity: 0.55;
+            transform: translate(30px, -30px);
+            opacity: 0.7;
           }
         }
 
@@ -410,44 +520,41 @@ export default function Login() {
           z-index: 1;
           width: 100%;
           max-width: 950px;
-          animation: slideUp 1s cubic-bezier(0.19, 1, 0.22, 1);
+          animation: slideUp 0.6s ease-out;
         }
 
         @keyframes slideUp {
           from {
             opacity: 0;
-            transform: translateY(60px) scale(0.95);
+            transform: translateY(30px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
         /* ================= LOGIN CARD ================= */
         .login-card {
           background: var(--bg-primary);
-          border-radius: 28px;
-          box-shadow: var(--shadow-2xl), var(--shadow-accent);
+          border-radius: 24px;
+          box-shadow: var(--shadow-2xl);
           overflow: hidden;
-          transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
-          animation: cardEntrance 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.3s ease-out;
+          animation: cardEntrance 0.6s ease-out;
         }
 
         @keyframes cardEntrance {
           0% {
             opacity: 0;
-            transform: translateY(40px) scale(0.92);
+            transform: translateY(20px);
           }
           100% {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
-        .login-card:hover {
-          box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3), 0 15px 50px rgba(61, 181, 230, 0.4);
-        }
 
         .login-card.login-mode {
           transform: rotateX(0deg);
@@ -462,7 +569,7 @@ export default function Login() {
           background: var(--sidebar-gradient);
           position: relative;
           overflow: hidden;
-          transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.3s ease-out;
         }
 
         .left-panel::before {
@@ -478,21 +585,21 @@ export default function Login() {
         }
 
         .left-panel.slide-in {
-          animation: slideInLeft 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+          animation: slideInLeft 0.5s ease-out;
         }
 
         .left-panel.slide-out {
-          animation: slideOutLeft 0.6s ease;
+          animation: slideOutLeft 0.4s ease;
         }
 
         @keyframes slideInLeft {
           from {
             opacity: 0;
-            transform: translateX(-50px) scale(0.95);
+            transform: translateX(-30px);
           }
           to {
             opacity: 1;
-            transform: translateX(0) scale(1);
+            transform: translateX(0);
           }
         }
 
@@ -503,7 +610,7 @@ export default function Login() {
           }
           to {
             opacity: 0;
-            transform: translateX(-30px);
+            transform: translateX(-20px);
           }
         }
 
@@ -514,46 +621,99 @@ export default function Login() {
 
         .brand-logo {
           margin-bottom: 2rem;
+          text-align: center;
+        }
+
+        .brand-name {
+          font-size: 2.2rem;
+          font-weight: 900;
+          margin-top: 1.25rem;
+          letter-spacing: 5px;
+          display: inline-block;
+        }
+
+        .brand-name .nov {
+          background: linear-gradient(180deg, #ffffff 0%, #b0bec5 50%, #ffffff 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .brand-name .v-letter {
+          background: linear-gradient(180deg, #4fc3f7 0%, #80d8ff 50%, #29b6f6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-shadow: 0 0 20px rgba(79, 195, 247, 0.6);
+          position: relative;
+        }
+
+        .brand-name .v-letter::after {
+          content: '';
+          position: absolute;
+          bottom: -5px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 3px;
+          height: 3px;
+          background: #80d8ff;
+          border-radius: 50%;
+          box-shadow: 0 0 10px #80d8ff, 0 0 20px #4fc3f7;
+        }
+
+        .brand-name .aa {
+          background: linear-gradient(180deg, #80d8ff 0%, #29b6f6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          text-shadow: 0 2px 15px rgba(128, 216, 255, 0.5);
+        }
+
+        .brand-name .star-accent {
+          color: #80d8ff;
+          font-size: 1.2rem;
+          margin-left: 0.5rem;
+          text-shadow: 0 0 10px rgba(128, 216, 255, 0.6);
         }
 
         .logo-circle {
-          width: 90px;
-          height: 90px;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.2) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 24px;
+          width: 100px;
+          height: 100px;
+          margin: 0 auto;
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+          border-radius: 28px;
           display: flex;
           align-items: center;
           justify-content: center;
-          backdrop-filter: blur(10px);
-          animation: pulse 3s infinite ease-in-out;
-          border: 1px solid rgba(61, 181, 230, 0.3);
-          box-shadow: 0 8px 32px rgba(61, 181, 230, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          border: 2px solid rgba(79, 195, 247, 0.5);
+          box-shadow: 0 8px 30px rgba(79, 195, 247, 0.3);
+          position: relative;
+        }
+
+        .logo-icon-wrapper {
+          position: relative;
+          z-index: 1;
+          width: 70px;
+          height: 70px;
+          background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
         }
 
         .logo-icon {
-          font-size: 2.8rem;
-          filter: drop-shadow(0 2px 8px rgba(61, 181, 230, 0.4));
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 8px 32px rgba(61, 181, 230, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-          }
-          50% {
-            transform: scale(1.08);
-            box-shadow: 0 12px 48px rgba(61, 181, 230, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-          }
+          font-size: 2.5rem;
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
         }
 
         .panel-title {
           font-size: 2.2rem;
           margin-bottom: 1rem;
-          text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-          background: linear-gradient(135deg, #ffffff 0%, #e6f2f5 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+          color: #ffffff;
           font-weight: 800;
           letter-spacing: -0.5px;
         }
@@ -570,68 +730,15 @@ export default function Login() {
           display: flex;
           gap: 0.75rem;
           margin-top: 2.5rem;
+          justify-content: center;
         }
 
         .dot {
           width: 10px;
           height: 10px;
-          background: linear-gradient(135deg, var(--sidebar-accent) 0%, var(--sidebar-accent-light) 100%);
+          background: var(--sidebar-accent);
           border-radius: 50%;
-          animation: dotPulse 2s infinite ease-in-out;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.5);
-        }
-
-        .dot:nth-child(1) { animation-delay: 0s; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes dotPulse {
-          0%, 100% {
-            opacity: 0.4;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.4);
-          }
-        }
-
-        /* Floating Elements */
-        .floating-element {
-          position: absolute;
-          color: rgba(61, 181, 230, 0.25);
-          font-size: 1.8rem;
-          animation: floatElement 6s infinite ease-in-out;
-          text-shadow: 0 0 10px rgba(61, 181, 230, 0.5);
-        }
-
-        .floating-element.float-1 {
-          top: 15%;
-          left: 10%;
-          animation-delay: 0s;
-        }
-
-        .floating-element.float-2 {
-          top: 60%;
-          right: 15%;
-          animation-delay: 2s;
-        }
-
-        .floating-element.float-3 {
-          bottom: 20%;
-          left: 25%;
-          animation-delay: 4s;
-        }
-
-        @keyframes floatElement {
-          0%, 100% {
-            transform: translateY(0) rotate(0deg) scale(1);
-            opacity: 0.25;
-          }
-          50% {
-            transform: translateY(-25px) rotate(180deg) scale(1.2);
-            opacity: 0.6;
-          }
+          opacity: 0.8;
         }
 
         /* ================= RIGHT PANEL ================= */
@@ -640,37 +747,7 @@ export default function Login() {
         }
 
         .form-header {
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .form-header.slide-up {
-          animation: slideUpFade 0.5s ease;
-        }
-
-        .form-header.slide-down {
-          animation: slideDownFade 0.5s ease;
-        }
-
-        @keyframes slideUpFade {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideDownFade {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          transition: all 0.3s ease-out;
         }
 
         .icon-wrapper {
@@ -686,14 +763,9 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           color: white;
-          transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.3s ease-out;
           background: var(--accent-gradient);
-          box-shadow: 0 12px 40px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        }
-
-        .icon-circle:hover {
-          transform: scale(1.08) rotate(5deg);
-          box-shadow: 0 16px 50px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 10px 30px rgba(61, 181, 230, 0.3);
         }
 
         .icon-circle.icon-blue {
@@ -722,53 +794,51 @@ export default function Login() {
           align-items: center;
           gap: 0.75rem;
           padding: 1rem 1.25rem;
-          border-radius: 14px;
+          border-radius: 12px;
           margin-bottom: 1.5rem;
           font-size: 0.9rem;
           font-weight: 500;
-          animation: slideInDown 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-          backdrop-filter: blur(10px);
+          animation: slideInDown 0.4s ease-out;
         }
 
         @keyframes slideInDown {
           from {
             opacity: 0;
-            transform: translateY(-20px) scale(0.9);
+            transform: translateY(-20px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
         .alert-message.animate-shake {
-          animation: shake 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+          animation: shake 0.4s ease-out;
         }
 
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-8px); }
-          40%, 80% { transform: translateX(8px); }
+          25%, 75% { transform: translateX(-5px); }
+          50% { transform: translateX(5px); }
         }
 
         .alert-message.animate-success {
-          animation: successBounce 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+          animation: successFade 0.4s ease-out;
         }
 
-        @keyframes successBounce {
-          0% { transform: scale(0.85); opacity: 0; }
-          50% { transform: scale(1.03); }
-          100% { transform: scale(1); opacity: 1; }
+        @keyframes successFade {
+          0% { opacity: 0; transform: translateY(-10px); }
+          100% { opacity: 1; transform: translateY(0); }
         }
 
         .alert-error {
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.08) 100%);
+          background: rgba(239, 68, 68, 0.1);
           border: 1px solid rgba(239, 68, 68, 0.25);
           color: var(--error-color);
         }
 
         .alert-success {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.08) 100%);
+          background: rgba(16, 185, 129, 0.1);
           border: 1px solid rgba(16, 185, 129, 0.25);
           color: var(--success-color);
         }
@@ -842,24 +912,22 @@ export default function Login() {
           width: 100%;
           padding: 1rem 1.125rem;
           border: 2px solid var(--border-light);
-          border-radius: 14px;
+          border-radius: 12px;
           font-size: 1rem;
           color: var(--text-primary);
           background: var(--bg-secondary);
-          transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.2s ease;
         }
 
         .form-input:hover {
           border-color: var(--sidebar-accent);
           background: var(--bg-primary);
-          box-shadow: 0 2px 12px rgba(61, 181, 230, 0.1);
         }
 
         .form-input.active {
           border-color: var(--sidebar-accent);
           background: var(--bg-primary);
-          box-shadow: 0 0 0 5px rgba(61, 181, 230, 0.12), 0 4px 20px rgba(61, 181, 230, 0.15);
-          transform: translateY(-1px);
+          box-shadow: 0 0 0 3px rgba(61, 181, 230, 0.1);
         }
 
         .form-group.error .form-input {
@@ -869,23 +937,6 @@ export default function Login() {
 
         .form-input:focus {
           outline: none;
-        }
-
-        .input-border {
-          position: absolute;
-          bottom: 0;
-          left: 50%;
-          width: 0;
-          height: 3px;
-          background: var(--accent-gradient);
-          transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-          transform: translateX(-50%);
-          border-radius: 3px;
-          box-shadow: 0 0 10px rgba(61, 181, 230, 0.5);
-        }
-
-        .form-input.active ~ .input-border {
-          width: 95%;
         }
 
         .password-toggle {
@@ -898,7 +949,7 @@ export default function Login() {
           color: var(--text-muted);
           cursor: pointer;
           padding: 0.5rem;
-          transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -908,7 +959,6 @@ export default function Login() {
         .password-toggle:hover {
           color: var(--sidebar-accent);
           background: rgba(61, 181, 230, 0.1);
-          transform: translateY(-50%) scale(1.1);
         }
 
         /* ================= FORM ACTIONS ================= */
@@ -939,14 +989,13 @@ export default function Login() {
           padding: 0.6rem 0.875rem;
           border-radius: 10px;
           text-decoration: none;
-          transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: all 0.2s ease;
         }
 
         .forgot-link:hover,
         .back-btn:hover {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.08) 100%);
+          background: rgba(61, 181, 230, 0.1);
           color: var(--sidebar-accent);
-          transform: translateX(3px);
         }
 
         .link-icon {
@@ -962,23 +1011,23 @@ export default function Login() {
           background: var(--accent-gradient);
           color: white;
           border: none;
-          border-radius: 14px;
+          border-radius: 12px;
           font-size: 1rem;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.3);
           letter-spacing: 0.5px;
           text-transform: uppercase;
         }
 
         .submit-btn:hover:not(:disabled) {
-          transform: translateY(-3px) scale(1.02);
-          box-shadow: 0 12px 35px rgba(61, 181, 230, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.4);
         }
 
         .submit-btn:active:not(:disabled) {
-          transform: translateY(-1px) scale(0.98);
+          transform: translateY(0);
         }
 
         .submit-btn:disabled {
@@ -991,11 +1040,11 @@ export default function Login() {
         }
 
         .btn-arrow {
-          transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+          transition: transform 0.2s ease;
         }
 
         .submit-btn:hover .btn-arrow {
-          transform: translateX(6px) scale(1.2);
+          transform: translateX(4px);
         }
 
         /* Loading Spinner */
@@ -1016,32 +1065,109 @@ export default function Login() {
         .form-footer {
           margin-top: 2rem;
           text-align: center;
+          padding-top: 1.5rem;
+          border-top: 1px solid var(--border-light);
         }
 
         .footer-text {
           font-size: 0.8rem;
           color: var(--text-muted);
           margin: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .footer-icon {
+          font-size: 0.75rem;
+          color: var(--primary-color);
+        }
+
+        .footer-links {
+          margin-top: 1rem;
+          font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+        }
+
+        .footer-link {
+          color: var(--primary-color);
+          text-decoration: none;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+
+        .footer-link:hover {
+          color: var(--sidebar-accent);
+        }
+
+        .footer-divider {
+          color: var(--text-muted);
+          opacity: 0.5;
         }
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 768px) {
           .login-page-container {
             padding: 1rem;
+            background: var(--primary-gradient);
           }
 
           .login-wrapper {
-            animation: fadeInMobile 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+            animation: fadeInMobile 0.5s ease-out;
+          }
+          .left-panel,
+          .right-panel,
+          .login-background {
+            transform: none !important;
+            transition: none !important;
+          }
+
+          /* Hide home button on mobile - show in footer instead */
+          .home-button-container {
+            display: none;
+          }
+
+          /* Simplified background shapes for mobile */
+          .bg-shape.shape-1,
+          .bg-shape.shape-2 {
+            width: 250px;
+            height: 250px;
+          }
+
+          .bg-shape.shape-3,
+          .bg-shape.shape-4,
+          .bg-shape.shape-5,
+          .bg-shape.shape-6,
+          .bg-shape.shape-7 {
+            display: none;
+          }
+
+          /* Hide floating elements on mobile */
+          .floating-element,
+          .sparkle {
+            display: none;
+          }
+
+          /* Hide feature highlights on mobile for cleaner UI */
+          .feature-highlights {
+            display: none;
           }
 
           @keyframes fadeInMobile {
             from {
               opacity: 0;
-              transform: scale(0.9);
+              transform: translateY(20px);
             }
             to {
               opacity: 1;
-              transform: scale(1);
+              transform: translateY(0);
             }
           }
 
@@ -1091,9 +1217,12 @@ export default function Login() {
             width: 200px;
             height: 200px;
           }
-        }
 
-        @media (max-width: 480px) {
+          .brand-name {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+          }
+
           .panel-title {
             font-size: 1.5rem;
           }
@@ -1104,6 +1233,29 @@ export default function Login() {
 
           .form-input {
             font-size: 0.95rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .panel-title {
+            font-size: 1.3rem;
+          }
+
+          .panel-subtitle {
+            font-size: 0.85rem;
+          }
+
+          .form-input {
+            font-size: 0.9rem;
+          }
+
+          .brand-name {
+            font-size: 1.3rem;
+          }
+
+          .home-button {
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
           }
         }
 

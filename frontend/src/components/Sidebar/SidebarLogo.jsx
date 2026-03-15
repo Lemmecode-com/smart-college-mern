@@ -11,14 +11,15 @@ import { Link } from "react-router-dom";
  */
 export default function SidebarLogo({ role, isCollapsed = false }) {
   // Dashboard routes based on role
+  // Note: Roles are in UPPERCASE format (COLLEGE_ADMIN, TEACHER, STUDENT, SUPER_ADMIN)
   const getDashboardRoute = (userRole) => {
     const routes = {
-      college_admin: "/admin/dashboard",
-      teacher: "/teacher/dashboard",
-      student: "/student/dashboard",
-      admin: "/admin/dashboard",
+      COLLEGE_ADMIN: "/dashboard",
+      TEACHER: "/teacher/dashboard",
+      STUDENT: "/student/dashboard",
+      SUPER_ADMIN: "/super-admin/dashboard",
     };
-    return routes[userRole?.toLowerCase()] || "/dashboard";
+    return routes[userRole] || "/dashboard";
   };
 
   const dashboardRoute = getDashboardRoute(role);

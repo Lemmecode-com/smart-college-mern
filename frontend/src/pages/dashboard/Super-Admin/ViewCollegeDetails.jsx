@@ -3,6 +3,7 @@ import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import { toast } from "react-toastify";
 import {
   FaUniversity,
   FaEnvelope,
@@ -81,7 +82,6 @@ export default function ViewCollegeDetails() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailData, setEmailData] = useState({ subject: "", message: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -165,23 +165,18 @@ export default function ViewCollegeDetails() {
     fetchCollege();
   }, [id]);
 
-  // Cleanup success message timer on unmount
-  useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => setShowSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
-
   const fetchCollege = async () => {
     try {
       setLoading(true);
       const res = await api.get(`/master/${id}`);
       setCollege(res.data.college);
       setStats(res.data.stats);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      // No success toast on page load - it's unnecessary
     } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to fetch college details", {
+        position: "top-right",
+        autoClose: 5000
+      });
       setError(err?.response?.data?.message || "Failed to fetch college details");
     } finally {
       setLoading(false);
@@ -191,23 +186,35 @@ export default function ViewCollegeDetails() {
   // Send email to college admin with validation
   const handleSendEmail = async (e) => {
     e.preventDefault();
-    
+
     // Input validation
     if (!emailData.subject.trim() || !emailData.message.trim()) {
+      toast.error('Subject and message are required', {
+        position: "top-right",
+        autoClose: 3000
+      });
       setError('Subject and message are required');
       return;
     }
-    
+
     if (emailData.subject.length > 200) {
+      toast.error('Subject must be less than 200 characters', {
+        position: "top-right",
+        autoClose: 3000
+      });
       setError('Subject must be less than 200 characters');
       return;
     }
-    
+
     if (emailData.message.length > 5000) {
+      toast.error('Message must be less than 5000 characters', {
+        position: "top-right",
+        autoClose: 3000
+      });
       setError('Message must be less than 5000 characters');
       return;
     }
-    
+
     setSendingEmail(true);
     setError(""); // Clear previous errors
 
@@ -218,12 +225,17 @@ export default function ViewCollegeDetails() {
         message: emailData.message
       });
 
-      setShowSuccess(true);
+      toast.success(res.data.message || "Email sent successfully!", {
+        position: "top-right",
+        autoClose: 3000
+      });
       setShowEmailModal(false);
       setEmailData({ subject: "", message: "" });
-      setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error("Email send error:", err);
+      toast.error(err?.response?.data?.message || "Failed to send email", {
+        position: "top-right",
+        autoClose: 5000
+      });
       setError(err?.response?.data?.message || "Failed to send email");
     } finally {
       setSendingEmail(false);
@@ -295,36 +307,6 @@ export default function ViewCollegeDetails() {
           paddingRight: '1rem'
         }}
       >
-        {/* Success Notification */}
-        {showSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed',
-              top: '1rem',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: 'linear-gradient(135deg, #047857, #065f46)',
-              background: 'linear-gradient(135deg, #047857, #065f46)',
-              color: 'white',
-              padding: '1rem 2rem',
-              borderRadius: '9999px',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-              zIndex: 1000,
-              maxWidth: '90%',
-              width: 'auto',
-              border: '2px solid rgba(255, 255, 255, 0.2)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <FaCheckCircle size={20} style={{ marginRight: '0.5rem' }} />
-              <span>College details loaded successfully!</span>
-            </div>
-          </motion.div>
-        )}
-
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* Header Card with Animated Icon */}
           <motion.div
@@ -616,10 +598,15 @@ export default function ViewCollegeDetails() {
                           setCopying(true);
                           try {
                             await navigator.clipboard.writeText(frontendRegistrationUrl);
-                            setShowSuccess(true);
-                            setTimeout(() => setShowSuccess(false), 3000);
+                            toast.success("Registration URL copied to clipboard!", {
+                              position: "top-right",
+                              autoClose: 2000
+                            });
                           } catch (err) {
-                            console.error('Copy failed:', err);
+                            toast.error("Failed to copy URL", {
+                              position: "top-right",
+                              autoClose: 3000
+                            });
                             setError('Failed to copy URL');
                           } finally {
                             setCopying(false);
