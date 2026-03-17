@@ -273,7 +273,7 @@ export default function CreateNotification() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Notifications", path: "/notifications" },
+          { label: "Notifications", path: "/notification/list" },
           { label: "Create Notification" },
         ]}
       />
