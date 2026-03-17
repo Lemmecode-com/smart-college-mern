@@ -13,10 +13,11 @@ import {
   FaSpinner,
   FaMoneyBillWave,
   FaArrowLeft,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export default function PaymentSuccess() {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -26,9 +27,15 @@ export default function PaymentSuccess() {
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
+  // Wait for auth to finish loading before any redirects
+  if (authLoading) {
+    return <Loading fullScreen text="Verifying your session..." />;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "STUDENT")
+    return <Navigate to="/student/dashboard" replace />;
 
   /* ================= CONFIRM PAYMENT ================= */
   useEffect(() => {
@@ -42,15 +49,16 @@ export default function PaymentSuccess() {
         toast.success("Payment confirmed successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaCheckCircle />
+          icon: <FaCheckCircle />,
         });
       } catch (err) {
-        const errorMsg = err.response?.data?.message || "Payment confirmation failed";
+        const errorMsg =
+          err.response?.data?.message || "Payment confirmation failed";
         setError(errorMsg);
         toast.error(errorMsg, {
           position: "top-right",
           autoClose: 5000,
-          icon: <FaExclamationTriangle />
+          icon: <FaExclamationTriangle />,
         });
       } finally {
         setLoading(false);
@@ -78,9 +86,9 @@ export default function PaymentSuccess() {
         >
           <div className="error-icon-wrapper">
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: [0, -10, 10, -10, 10, 0],
-                scale: [1, 1.1, 1]
+                scale: [1, 1.1, 1],
               }}
               transition={{ duration: 0.5 }}
             >
