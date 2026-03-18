@@ -18,14 +18,14 @@ import {
   FaInfoCircle,
   FaSync,
   FaArrowLeft,
-  FaSpinner
+  FaSpinner,
 } from "react-icons/fa";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 export default function FeeReceipt() {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const { paymentId } = useParams();
   const navigate = useNavigate();
   const receiptRef = useRef();
@@ -34,13 +34,94 @@ export default function FeeReceipt() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
+  // Wait for auth to finish loading before any redirects
+  if (authLoading) {
+    return <Loading fullScreen text="Verifying your session..." />;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "STUDENT")
+    return <Navigate to="/student/dashboard" replace />;
+
+  /* ================= EARLY VALIDATION - PAYMENT ID ================= */
+  if (!paymentId) {
+    return (
+      <div className="receipt-empty-wrapper">
+        <ToastContainer position="top-right" />
+        <motion.div
+          className="empty-card"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <FaExclamationTriangle className="empty-icon" />
+          <h3>Invalid Receipt URL</h3>
+          <p>Payment ID is missing from the URL</p>
+          <button
+            className="btn-back"
+            onClick={() => navigate("/student/fees")}
+          >
+            <FaArrowLeft /> Back to Fees
+          </button>
+        </motion.div>
+        <style>{`
+          .receipt-empty-wrapper {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding: 20px;
+          }
+          .empty-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+          }
+          .empty-icon {
+            font-size: 5rem;
+            color: #f59e0b;
+            margin-bottom: 20px;
+          }
+          .empty-card h3 {
+            margin: 0 0 10px 0;
+            color: #1e293b;
+            font-weight: 700;
+          }
+          .empty-card p {
+            color: #64748b;
+            margin: 0 0 25px 0;
+          }
+          .btn-back {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+          }
+          .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(15, 58, 74, 0.4);
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   /* ================= VALIDATION HELPER ================= */
   const validateReceiptData = (data) => {
     const errors = [];
-    
+
     if (!data) {
       errors.push("Receipt data is missing");
     } else {
@@ -50,10 +131,10 @@ export default function FeeReceipt() {
       if (!data.amount) errors.push("Payment amount is missing");
       if (!data.transactionId) errors.push("Transaction ID is missing");
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   };
 
@@ -61,7 +142,7 @@ export default function FeeReceipt() {
   useEffect(() => {
     const fetchReceipt = async () => {
       const toastId = toast.loading("Loading receipt...");
-      
+
       try {
         // Validate paymentId
         if (!paymentId) {
@@ -69,7 +150,7 @@ export default function FeeReceipt() {
         }
 
         const res = await api.get(`/student/payments/receipt/${paymentId}`);
-        
+
         // Validate response structure
         if (!res.data) {
           throw new Error("Invalid response from server");
@@ -78,7 +159,9 @@ export default function FeeReceipt() {
         // Validate receipt data
         const validation = validateReceiptData(res.data);
         if (!validation.isValid) {
-          throw new Error(`Invalid receipt data: ${validation.errors.join(', ')}`);
+          throw new Error(
+            `Invalid receipt data: ${validation.errors.join(", ")}`,
+          );
         }
 
         setReceipt(res.data);
@@ -88,21 +171,33 @@ export default function FeeReceipt() {
           render: "Receipt loaded successfully!",
           type: "success",
           isLoading: false,
-          autoClose: 3000
+          autoClose: 3000,
         });
-
       } catch (err) {
         let errorMessage = "Unable to fetch receipt. ";
 
         if (err.response?.status === 404) {
-          errorMessage = "Receipt not found. It may have been deleted or never existed.";
+          errorMessage =
+            "Receipt not found. It may have been deleted or never existed.";
         } else if (err.response?.status === 403) {
           errorMessage = "You don't have permission to view this receipt.";
         } else if (err.response?.status === 500) {
           errorMessage = "Server error. Please try again later.";
         } else if (err.response?.status === 401) {
-          errorMessage = "Session expired. Please login again.";
+          errorMessage = "Session expired. Redirecting to login...";
           setTimeout(() => navigate("/login"), 2000);
+        } else if (
+          err.code === "ERR_NETWORK" ||
+          err.message?.includes("Network Error")
+        ) {
+          errorMessage =
+            "Network error. Please check your internet connection and try again.";
+        } else if (
+          err.name === "AbortError" ||
+          err.message?.includes("timeout")
+        ) {
+          errorMessage =
+            "Request timeout. The server took too long to respond. Please try again.";
         } else if (err.message) {
           errorMessage += err.message;
         } else {
@@ -115,7 +210,7 @@ export default function FeeReceipt() {
           render: errorMessage,
           type: "error",
           isLoading: false,
-          autoClose: 5000
+          autoClose: 5000,
         });
       } finally {
         setLoading(false);
@@ -128,7 +223,7 @@ export default function FeeReceipt() {
   /* ================= PDF DOWNLOAD ================= */
   const downloadPDF = async () => {
     const toastId = toast.loading("Generating PDF...");
-    
+
     try {
       // Step 1: Validate receipt element
       if (!receiptRef.current) {
@@ -145,7 +240,7 @@ export default function FeeReceipt() {
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
             // Ensure all images are loaded
-            const images = clonedDoc.getElementsByTagName('img');
+            const images = clonedDoc.getElementsByTagName("img");
             return Promise.all(
               Array.from(images).map((img) => {
                 if (img.complete) return Promise.resolve();
@@ -155,13 +250,16 @@ export default function FeeReceipt() {
                     resolve(); // Continue even if image fails
                   };
                 });
-              })
+              }),
             );
-          }
+          },
         }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Canvas generation timeout")), 30000)
-        )
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Canvas generation timeout")),
+            30000,
+          ),
+        ),
       ]);
 
       // Step 3: Validate canvas
@@ -184,27 +282,32 @@ export default function FeeReceipt() {
       }
 
       // Step 6: Save PDF
-      const fileName = `Fee_Receipt_${receipt.transactionId || 'unknown'}.pdf`;
+      const fileName = `Fee_Receipt_${receipt.transactionId || "unknown"}.pdf`;
       pdf.save(fileName);
 
       toast.update(toastId, {
         render: "PDF downloaded successfully!",
         type: "success",
         isLoading: false,
-        autoClose: 3000
+        autoClose: 3000,
       });
-
     } catch (error) {
       let errorMessage = "Failed to generate PDF. ";
 
       if (error.message.includes("timeout")) {
         errorMessage += "Operation timed out. Please try again.";
-      } else if (error.message.includes("CORS") || error.message.includes("taint")) {
-        errorMessage += "Image loading failed. Please ensure all images are accessible.";
+      } else if (
+        error.message.includes("CORS") ||
+        error.message.includes("taint")
+      ) {
+        errorMessage +=
+          "Image loading failed. Please ensure all images are accessible.";
       } else if (error.message.includes("Canvas")) {
-        errorMessage += "Browser compatibility issue. Please try Chrome or Firefox.";
+        errorMessage +=
+          "Browser compatibility issue. Please try Chrome or Firefox.";
       } else if (error.message.includes("element")) {
-        errorMessage += "Receipt not ready. Please wait a moment and try again.";
+        errorMessage +=
+          "Receipt not ready. Please wait a moment and try again.";
       } else {
         errorMessage += "Please check your connection and try again.";
       }
@@ -213,14 +316,14 @@ export default function FeeReceipt() {
         render: errorMessage,
         type: "error",
         isLoading: false,
-        autoClose: 5000
+        autoClose: 5000,
       });
 
       // Log error for monitoring
       logErrorToMonitoring(error, {
-        component: 'FeeReceipt',
-        action: 'downloadPDF',
-        receiptId: receipt?._id
+        component: "FeeReceipt",
+        action: "downloadPDF",
+        receiptId: receipt?._id,
       });
     }
   };
@@ -228,14 +331,17 @@ export default function FeeReceipt() {
   // Helper function for error logging
   const logErrorToMonitoring = (error, context) => {
     // TODO: Integrate with Sentry/monitoring service
-    // Error logged for future monitoring integration
+    // For now, log to console for debugging
+    console.error("[FeeReceipt] Error:", {
+      error: error.message,
+      stack: error.stack,
+      context,
+      timestamp: new Date().toISOString(),
+    });
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Receipt..." />;
-  }
-
-  /* ================= ERROR STATE ================= */
+  /* ================= STATE ORDER - ERROR FIRST, THEN LOADING ================= */
+  // Error state should be checked before loading state
   if (error) {
     return (
       <div className="receipt-error-wrapper">
@@ -262,8 +368,8 @@ export default function FeeReceipt() {
             >
               <FaSync /> Try Again
             </button>
-            
-            <button 
+
+            <button
               className="btn-back"
               onClick={() => navigate("/student/fees")}
             >
@@ -273,7 +379,10 @@ export default function FeeReceipt() {
 
           <div className="error-help">
             <FaInfoCircle className="help-icon" />
-            <p>If the problem persists, please contact support with your transaction ID.</p>
+            <p>
+              If the problem persists, please contact support with your
+              transaction ID.
+            </p>
           </div>
         </motion.div>
 
@@ -380,6 +489,11 @@ export default function FeeReceipt() {
     );
   }
 
+  /* ================= LOADING STATE ================= */
+  if (loading) {
+    return <Loading fullScreen size="lg" text="Loading Receipt..." />;
+  }
+
   /* ================= EMPTY STATE ================= */
   if (!receipt) {
     return (
@@ -391,8 +505,10 @@ export default function FeeReceipt() {
         >
           <FaReceipt className="empty-icon" />
           <h3>Receipt Not Found</h3>
-          <p>The receipt you're looking for doesn't exist or has been removed.</p>
-          <button 
+          <p>
+            The receipt you're looking for doesn't exist or has been removed.
+          </p>
+          <button
             className="btn-back"
             onClick={() => navigate("/student/fees")}
           >
@@ -470,14 +586,13 @@ export default function FeeReceipt() {
       </div>
 
       {/* RECEIPT CARD */}
-      <div 
-        ref={receiptRef} 
+      <div
+        ref={receiptRef}
         className="receipt-card position-relative"
         id="receipt-content"
         role="article"
         aria-label="Payment receipt details"
       >
-
         {/* WATERMARK */}
         <div className="watermark" aria-hidden="true" role="presentation">
           PAID
@@ -487,20 +602,26 @@ export default function FeeReceipt() {
         <header className="text-center mb-4">
           <h4 className="fw-bold">
             <FaUniversity className="me-2" aria-hidden="true" />
-            {receipt.college?.name || 'College Name Not Available'}
+            {receipt.college?.name || "College Name Not Available"}
           </h4>
           <address className="small text-muted">
-            {receipt.college?.address || 'Address Not Available'}
+            {receipt.college?.address || "Address Not Available"}
           </address>
           <div className="small">
             {receipt.college?.email && (
-              <a href={`mailto:${receipt.college.email}`} aria-label={`Email: ${receipt.college.email}`}>
+              <a
+                href={`mailto:${receipt.college.email}`}
+                aria-label={`Email: ${receipt.college.email}`}
+              >
                 {receipt.college.email}
               </a>
             )}
-            {receipt.college?.email && receipt.college?.contact && ' | '}
+            {receipt.college?.email && receipt.college?.contact && " | "}
             {receipt.college?.contact && (
-              <a href={`tel:${receipt.college.contact}`} aria-label={`Phone: ${receipt.college.contact}`}>
+              <a
+                href={`tel:${receipt.college.contact}`}
+                aria-label={`Phone: ${receipt.college.contact}`}
+              >
                 {receipt.college.contact}
               </a>
             )}
@@ -511,8 +632,8 @@ export default function FeeReceipt() {
 
         {/* STATUS */}
         <section className="text-center mb-4" aria-label="Payment status">
-          <FaCheckCircle 
-            className="text-success display-5 mb-2" 
+          <FaCheckCircle
+            className="text-success display-5 mb-2"
             aria-hidden="true"
             role="img"
           />
@@ -537,7 +658,10 @@ export default function FeeReceipt() {
           <section className="col-md-6" aria-label="Payment details">
             <h6 className="section-title">Payment Details</h6>
             <Info label="Installment" value={receipt.installmentName} />
-            <Info label="Amount" value={`₹ ${receipt.amount?.toLocaleString()}`} />
+            <Info
+              label="Amount"
+              value={`₹ ${receipt.amount?.toLocaleString()}`}
+            />
             <Info label="Payment Method" value="Stripe (Card)" />
             <Info
               label="Paid On"
@@ -555,9 +679,12 @@ export default function FeeReceipt() {
       </div>
 
       {/* ACTION BUTTONS */}
-      <nav className="d-flex justify-content-center gap-3 mt-4 no-print" aria-label="Receipt actions">
-        <button 
-          className="btn btn-outline-primary" 
+      <nav
+        className="d-flex justify-content-center gap-3 mt-4 no-print"
+        aria-label="Receipt actions"
+      >
+        <button
+          className="btn btn-outline-primary"
           onClick={() => window.print()}
           aria-label="Print receipt"
           disabled={loading}
@@ -565,8 +692,8 @@ export default function FeeReceipt() {
           <FaPrint className="me-1" aria-hidden="true" /> Print
         </button>
 
-        <button 
-          className="btn btn-success" 
+        <button
+          className="btn btn-success"
           onClick={downloadPDF}
           disabled={loading}
           aria-label="Download receipt as PDF"
