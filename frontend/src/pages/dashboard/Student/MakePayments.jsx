@@ -247,21 +247,59 @@ export default function MakePayments() {
       console.error("❌ Error status:", err.response?.status);
 
       // Extract error message from various possible locations
-      const errorMsg =
+      let errorMsg =
         err.response?.data?.error?.message || // Standardized error format
         err.response?.data?.message || // Direct error message
         err.message || // Error from throw
         "Payment initiation failed. Please try again.";
 
+      // Handle specific error codes
+      const errorCode =
+        err.response?.data?.error?.code || err.response?.data?.code;
+
+      if (errorCode === "STRIPE_NOT_CONFIGURED") {
+        errorMsg =
+          "Payment gateway is not configured for your college. Please contact the college administrator.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 8000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else if (errorCode === "PAYMENT_CONFIG_ERROR") {
+        errorMsg = "Payment configuration error. Please contact support.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 8000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else if (errorCode === "PAYMENT_INIT_FAILED") {
+        errorMsg =
+          "Failed to initialize payment gateway. Please try again later.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 8000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
+        errorMsg =
+          "This installment has already been paid or is invalid. Please refresh the page.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else {
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        });
+      }
+
       console.error("❌ Final error message shown to user:", errorMsg);
 
       setErrorMessage(errorMsg);
       setShowError(true);
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaTimesCircle />,
-      });
       setResult({ error: true, message: errorMsg, canRetry: true });
       setLoading(false);
       isRequestInProgressRef.current = false; // Reset flag on error
