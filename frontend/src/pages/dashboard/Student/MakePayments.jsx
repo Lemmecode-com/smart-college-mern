@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Loading from "../../../components/Loading";
 
 import {
   FaMoneyBillWave,
@@ -18,14 +19,16 @@ import {
   FaExclamationTriangle,
   FaInfoCircle,
   FaLock,
-  FaShieldAlt
+  FaShieldAlt,
+  FaSync,
 } from "react-icons/fa";
 
 export default function MakePayments() {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const sessionTimeoutRef = useRef(null);
+  const isRequestInProgressRef = useRef(false); // Prevent duplicate payment requests
 
   const [installmentName, setInstallmentName] = useState(
     location.state?.installmentName || "",
@@ -42,50 +45,86 @@ export default function MakePayments() {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
+  // Wait for auth to finish loading before any redirects
+  if (authLoading) {
+    return <Loading fullScreen text="Verifying your session..." />;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "STUDENT")
+    return <Navigate to="/student/dashboard" replace />;
 
   /* ================= SESSION TIMEOUT ================= */
   useEffect(() => {
     // Check if installment data exists
     if (!location.state?.installmentName) {
-      toast.warning("No installment selected. Please select from fee dashboard.", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaExclamationTriangle />
-      });
+      // Check if coming from Stripe redirect without state (normal flow)
+      const searchParams = new URLSearchParams(location.search);
+      const session_id = searchParams.get("session_id");
+
+      // If has session_id, redirect to payment-success page to handle it
+      if (session_id) {
+        navigate(`/student/payment-success?session_id=${session_id}`, {
+          replace: true,
+        });
+        return;
+      }
+
+      // No state and no session_id - show warning and redirect to fees
+      toast.warning(
+        "No installment selected. Please select from fee dashboard.",
+        {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaExclamationTriangle />,
+        },
+      );
       navigate("/student/fees");
       return;
     }
 
     // Set session timeout (15 minutes for payment)
-    sessionTimeoutRef.current = setTimeout(() => {
-      toast.warning("Payment session expired. Please select installment again.", {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaInfoCircle />
-      });
-      navigate("/student/fees");
-    }, 15 * 60 * 1000);
+    sessionTimeoutRef.current = setTimeout(
+      () => {
+        toast.warning(
+          "Payment session expired. Please select installment again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaInfoCircle />,
+          },
+        );
+        navigate("/student/fees");
+      },
+      15 * 60 * 1000,
+    );
 
     return () => {
       if (sessionTimeoutRef.current) {
         clearTimeout(sessionTimeoutRef.current);
       }
     };
-  }, [location.state, navigate]);
+  }, [location, navigate]);
 
   /* ======================================================
      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
      ====================================================== */
   const handleStripePayment = async () => {
+    // Prevent duplicate requests
+    if (isRequestInProgressRef.current) {
+      console.warn(
+        "⚠️ Payment request already in progress, ignoring duplicate click",
+      );
+      return;
+    }
+
     // Validate installment ID
     if (!installmentDetails.id) {
       toast.error("Invalid installment. Please select from fee dashboard.", {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
       navigate("/student/fees");
       return;
@@ -96,7 +135,7 @@ export default function MakePayments() {
       toast.error("Invalid payment amount. Please contact support.", {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
       return;
     }
@@ -106,7 +145,17 @@ export default function MakePayments() {
       toast.error("Installment name is required", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    // Check network status
+    if (!navigator.onLine) {
+      toast.error("No internet connection. Please check your network.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
       });
       return;
     }
@@ -114,44 +163,111 @@ export default function MakePayments() {
     // Confirm payment with user
     const confirmed = window.confirm(
       `Payment Confirmation\n\n` +
-      `Installment: ${installmentName}\n` +
-      `Amount: ₹${installmentDetails.amount.toLocaleString()}\n` +
-      `Due Date: ${installmentDetails.dueDate ? new Date(installmentDetails.dueDate).toLocaleDateString('en-IN') : 'N/A'}\n\n` +
-      `Click OK to proceed to secure checkout.`
+        `Installment: ${installmentName}\n` +
+        `Amount: ₹${installmentDetails.amount.toLocaleString()}\n` +
+        `Due Date: ${installmentDetails.dueDate ? new Date(installmentDetails.dueDate).toLocaleDateString("en-IN") : "N/A"}\n\n` +
+        `⚠️ You will be redirected to Stripe's secure checkout.\n` +
+        `After payment, you'll be automatically redirected back.\n\n` +
+        `Click OK to proceed.`,
     );
 
     if (!confirmed) {
       toast.info("Payment cancelled by user", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaInfoCircle />
+        icon: <FaInfoCircle />,
       });
       return;
     }
 
     try {
+      // Set flag to prevent duplicate requests
+      isRequestInProgressRef.current = true;
       setLoading(true);
       setShowError(false);
+
+      console.log(
+        "🔵 Sending payment request with installmentName:",
+        installmentName,
+      );
 
       const res = await api.post("/stripe/create-checkout-session", {
         installmentName,
       });
 
-      // Redirect to Stripe checkout
-      window.location.href = res.data.checkoutUrl;
+      // Debug: Log the actual response structure
+      console.log("🟢 Stripe API Response:", res);
+      console.log("🟢 res.data:", res.data);
+      console.log("🟢 res.status:", res.status);
+
+      // The axios interceptor might wrap the response, so check multiple locations
+      // Backend sends: { checkoutUrl, sessionId, expiresAt }
+      // But interceptor might wrap it if response has success/data structure
+      const checkoutUrl =
+        res.data?.checkoutUrl ||
+        res.data?.data?.checkoutUrl ||
+        res?.checkoutUrl ||
+        (typeof res.data === "string" ? res.data : null);
+
+      console.log("🟡 Extracted checkoutUrl:", checkoutUrl);
+
+      if (!checkoutUrl) {
+        console.error(
+          "❌ Checkout URL not found in response. Full response:",
+          JSON.stringify(res.data, null, 2),
+        );
+
+        // Check if response indicates an error (even with 200 status)
+        if (res.data?.success === false) {
+          throw new Error(
+            res.data?.error?.message ||
+              res.data?.message ||
+              "Payment request was rejected by server",
+          );
+        }
+
+        throw new Error(
+          "Server response was invalid. Please check console or contact support.\n\n" +
+            "Response received: " +
+            JSON.stringify(res.data, null, 2),
+        );
+      }
+
+      console.log(
+        "✅ Redirecting to Stripe checkout:",
+        checkoutUrl.substring(0, 50) + "...",
+      );
+
+      // Redirect to Stripe checkout (hard redirect - state will be lost)
+      // After payment, Stripe will redirect to /student/payment-success
+      window.location.href = checkoutUrl;
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Payment initiation failed. Please try again.";
+      console.error("❌ Payment error details:", err);
+      console.error("❌ Full error response:", err.response?.data);
+      console.error("❌ Error status:", err.response?.status);
+
+      // Extract error message from various possible locations
+      const errorMsg =
+        err.response?.data?.error?.message || // Standardized error format
+        err.response?.data?.message || // Direct error message
+        err.message || // Error from throw
+        "Payment initiation failed. Please try again.";
+
+      console.error("❌ Final error message shown to user:", errorMsg);
+
       setErrorMessage(errorMsg);
       setShowError(true);
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaTimesCircle />
+        icon: <FaTimesCircle />,
       });
       setResult({ error: true, message: errorMsg, canRetry: true });
-    } finally {
       setLoading(false);
+      isRequestInProgressRef.current = false; // Reset flag on error
     }
+    // Note: setLoading(false) is not called on success because page is redirecting
+    // The flag will be reset when page reloads
   };
 
   /* ======================================================
@@ -159,11 +275,11 @@ export default function MakePayments() {
      ====================================================== */
   const handleMockPayment = async () => {
     // Only allow in development
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env.NODE_ENV !== "development") {
       toast.error("Mock payments are only available in development mode", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaLock />
+        icon: <FaLock />,
       });
       return;
     }
@@ -172,7 +288,7 @@ export default function MakePayments() {
       toast.warning("Please enter installment name", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
       return;
     }
@@ -190,17 +306,18 @@ export default function MakePayments() {
       toast.success("🎉 Mock payment successful!", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaCheckCircle />
+        icon: <FaCheckCircle />,
       });
       setInstallmentName("");
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Mock payment failed. Try again.";
+      const errorMsg =
+        err.response?.data?.message || "Mock payment failed. Try again.";
       setErrorMessage(errorMsg);
       setShowError(true);
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaTimesCircle />
+        icon: <FaTimesCircle />,
       });
     } finally {
       setLoading(false);
@@ -215,26 +332,34 @@ export default function MakePayments() {
     toast.info("Ready to retry payment", {
       position: "top-right",
       autoClose: 2000,
-      icon: <FaInfoCircle />
+      icon: <FaInfoCircle />,
     });
   };
 
   return (
-    <div className="container-fluid py-4 fade-in" role="main" aria-label="Payment page">
+    <div
+      className="container-fluid py-4 fade-in"
+      role="main"
+      aria-label="Payment page"
+    >
       <ToastContainer position="top-right" autoClose={3000} />
 
       {/* Skip Link for Screen Readers */}
-      <a href="#payment-content" className="sr-only sr-only-focusable" style={{
-        position: 'absolute',
-        width: '1px',
-        height: '1px',
-        padding: 0,
-        margin: '-1px',
-        overflow: 'hidden',
-        clip: 'rect(0,0,0,0)',
-        whiteSpace: 'nowrap',
-        border: 0
-      }}>
+      <a
+        href="#payment-content"
+        className="sr-only sr-only-focusable"
+        style={{
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          padding: 0,
+          margin: "-1px",
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
         Skip to payment content
       </a>
 
@@ -260,8 +385,12 @@ export default function MakePayments() {
             <h3>Redirecting to Secure Checkout...</h3>
             <p>Please do not close this window</p>
             <div className="security-badges">
-              <span><FaLock aria-hidden="true" /> SSL Secured</span>
-              <span><FaShieldAlt aria-hidden="true" /> PCI Compliant</span>
+              <span>
+                <FaLock aria-hidden="true" /> SSL Secured
+              </span>
+              <span>
+                <FaShieldAlt aria-hidden="true" /> PCI Compliant
+              </span>
             </div>
           </div>
           <style>{`
@@ -325,13 +454,11 @@ export default function MakePayments() {
             <FaMoneyBillWave className="me-2 blink" aria-hidden="true" />
             Make Payment
           </h4>
-          <p className="opacity-75 mb-0">
-            Secure Stripe installment payment
-          </p>
+          <p className="opacity-75 mb-0">Secure Stripe installment payment</p>
         </div>
 
-        <button 
-          className="btn btn-light" 
+        <button
+          className="btn btn-light"
           onClick={() => navigate(-1)}
           aria-label="Go back to previous page"
         >
@@ -406,7 +533,7 @@ export default function MakePayments() {
           </button>
 
           {/* ====== MOCK BUTTON (DEV ONLY) ====== */}
-          {process.env.NODE_ENV === 'development' && (
+          {process.env.NODE_ENV === "development" && (
             <button
               className="btn btn-outline-success w-100 w-md-75 w-lg-50 w-xl-25 rounded-pill"
               onClick={handleMockPayment}
@@ -423,7 +550,7 @@ export default function MakePayments() {
 
       {/* ================= ERROR STATE ================= */}
       {showError && (
-        <motion.div 
+        <motion.div
           className="row justify-content-center mt-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -437,7 +564,11 @@ export default function MakePayments() {
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200 }}
                 >
-                  <FaTimesCircle size={64} className="text-danger mb-3" aria-hidden="true" />
+                  <FaTimesCircle
+                    size={64}
+                    className="text-danger mb-3"
+                    aria-hidden="true"
+                  />
                 </motion.div>
                 <h5 className="fw-bold text-danger mb-2">Payment Failed</h5>
                 <p className="text-muted mb-4">{errorMessage}</p>
@@ -465,7 +596,7 @@ export default function MakePayments() {
 
       {/* ================= RESULT (MOCK ONLY) ================= */}
       {result && result.installment && !result.error && (
-        <motion.div 
+        <motion.div
           className="row justify-content-center mt-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -473,29 +604,45 @@ export default function MakePayments() {
         >
           <div className="col-lg-7 col-md-9">
             <div className="card border-0 shadow rounded-4 payment-success-card">
-              <div className="card-body text-center" role="status" aria-live="polite">
+              <div
+                className="card-body text-center"
+                role="status"
+                aria-live="polite"
+              >
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                 >
-                  <FaCheckCircle size={50} className="text-success mb-3" aria-hidden="true" />
+                  <FaCheckCircle
+                    size={50}
+                    className="text-success mb-3"
+                    aria-hidden="true"
+                  />
                 </motion.div>
-                <h5 className="fw-bold text-success mb-3">Payment Successful</h5>
+                <h5 className="fw-bold text-success mb-3">
+                  Payment Successful
+                </h5>
 
                 <div className="text-start mb-4">
                   <p className="mb-2">
                     <strong>Installment:</strong> {result.installment.name}
                   </p>
                   <p className="mb-2">
-                    <strong>Amount:</strong> ₹{result.installment.amount.toLocaleString()}
+                    <strong>Amount:</strong> ₹
+                    {result.installment.amount.toLocaleString()}
                   </p>
                   <p className="mb-2">
-                    <strong>Status:</strong> <span className="text-success">{result.installment.status}</span>
+                    <strong>Status:</strong>{" "}
+                    <span className="text-success">
+                      {result.installment.status}
+                    </span>
                   </p>
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
-                    {new Date(result.installment.paidAt).toLocaleString("en-IN")}
+                    {new Date(result.installment.paidAt).toLocaleString(
+                      "en-IN",
+                    )}
                   </p>
                 </div>
 
@@ -503,18 +650,33 @@ export default function MakePayments() {
 
                 <div className="row text-center mb-4">
                   <div className="col-4">
-                    <FaUniversity className="text-primary mb-2" aria-hidden="true" />
-                    <p className="mb-0 fw-bold">₹{result.totalFee?.toLocaleString()}</p>
+                    <FaUniversity
+                      className="text-primary mb-2"
+                      aria-hidden="true"
+                    />
+                    <p className="mb-0 fw-bold">
+                      ₹{result.totalFee?.toLocaleString()}
+                    </p>
                     <small className="text-muted">Total</small>
                   </div>
                   <div className="col-4">
-                    <FaCheckCircle className="text-success mb-2" aria-hidden="true" />
-                    <p className="mb-0 fw-bold">₹{result.paidAmount?.toLocaleString()}</p>
+                    <FaCheckCircle
+                      className="text-success mb-2"
+                      aria-hidden="true"
+                    />
+                    <p className="mb-0 fw-bold">
+                      ₹{result.paidAmount?.toLocaleString()}
+                    </p>
                     <small className="text-muted">Paid</small>
                   </div>
                   <div className="col-4">
-                    <FaMoneyBillWave className="text-danger mb-2" aria-hidden="true" />
-                    <p className="mb-0 fw-bold">₹{result.remainingAmount?.toLocaleString()}</p>
+                    <FaMoneyBillWave
+                      className="text-danger mb-2"
+                      aria-hidden="true"
+                    />
+                    <p className="mb-0 fw-bold">
+                      ₹{result.remainingAmount?.toLocaleString()}
+                    </p>
                     <small className="text-muted">Remaining</small>
                   </div>
                 </div>

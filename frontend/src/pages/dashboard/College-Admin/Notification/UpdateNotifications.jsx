@@ -22,7 +22,7 @@ const CONFIG = {
     autoClose: 3000,
     hideProgressBar: true,
     closeOnClick: true,
-    pauseOnHover: true,
+    pauseOnHover: true,   
     draggable: true,
     theme: "colored",
   },
