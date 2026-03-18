@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import StripeConfiguration from "./StripeConfiguration";
 
 const FeeSetting = () => {
-  const [activeGateway, setActiveGateway] = useState("paypal");
+  const [activeGateway, setActiveGateway] = useState("stripe");
+  const [showStripeConfig, setShowStripeConfig] = useState(false);
 
   const gateways = [
     { key: "paypal", label: "Paypal" },
@@ -10,8 +12,13 @@ const FeeSetting = () => {
     { key: "paytm", label: "Paytm" },
     { key: "payu", label: "PayU" },
     { key: "cashfree", label: "Cashfree" },
-    { key: "instamojo", label: "InstaMojo" }
+    { key: "instamojo", label: "InstaMojo" },
   ];
+
+  // If viewing Stripe config, show the full configuration component
+  if (activeGateway === "stripe") {
+    return <StripeConfiguration />;
+  }
 
   const renderGatewayFields = () => {
     switch (activeGateway) {
@@ -93,14 +100,12 @@ const FeeSetting = () => {
 
       {/* GATEWAY TABS */}
       <div className="d-flex flex-wrap gap-2 mb-4">
-        {gateways.map(g => (
+        {gateways.map((g) => (
           <button
             key={g.key}
             onClick={() => setActiveGateway(g.key)}
             className={`btn btn-sm ${
-              activeGateway === g.key
-                ? "btn-primary"
-                : "btn-outline-secondary"
+              activeGateway === g.key ? "btn-primary" : "btn-outline-secondary"
             }`}
             style={{ borderRadius: "6px" }}
           >
@@ -116,7 +121,7 @@ const FeeSetting = () => {
             className="card"
             style={{
               borderRadius: "10px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
             }}
           >
             <div className="card-body">
@@ -149,9 +154,7 @@ const FeeSetting = () => {
                     type="radio"
                     name="feeType"
                   />
-                  <label className="form-check-label">
-                    Percentage (%)
-                  </label>
+                  <label className="form-check-label">Percentage (%)</label>
                 </div>
 
                 <div className="form-check">
@@ -160,16 +163,12 @@ const FeeSetting = () => {
                     type="radio"
                     name="feeType"
                   />
-                  <label className="form-check-label">
-                    Fixed Amount
-                  </label>
+                  <label className="form-check-label">Fixed Amount</label>
                 </div>
               </div>
 
               <div className="mb-4">
-                <label className="form-label">
-                  Percentage / Fixed Amount
-                </label>
+                <label className="form-label">Percentage / Fixed Amount</label>
                 <input
                   type="number"
                   className="form-control"
@@ -177,9 +176,7 @@ const FeeSetting = () => {
                 />
               </div>
 
-              <button className="btn btn-primary px-4">
-                Save Settings
-              </button>
+              <button className="btn btn-primary px-4">Save Settings</button>
             </div>
           </div>
         </div>
@@ -190,15 +187,13 @@ const FeeSetting = () => {
             className="card"
             style={{
               borderRadius: "10px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
             }}
           >
             <div className="card-body">
-              <h6 className="fw-bold mb-3">
-                Select Payment Gateway
-              </h6>
+              <h6 className="fw-bold mb-3">Select Payment Gateway</h6>
 
-              {gateways.map(g => (
+              {gateways.map((g) => (
                 <div
                   key={g.key}
                   className="form-check mb-2"
@@ -210,9 +205,7 @@ const FeeSetting = () => {
                     checked={activeGateway === g.key}
                     onChange={() => setActiveGateway(g.key)}
                   />
-                  <label className="form-check-label">
-                    {g.label}
-                  </label>
+                  <label className="form-check-label">{g.label}</label>
                 </div>
               ))}
             </div>
