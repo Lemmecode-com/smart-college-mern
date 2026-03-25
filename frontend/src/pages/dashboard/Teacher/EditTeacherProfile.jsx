@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ConfirmModal from "../../../components/ConfirmModal";
 import {
   FaUserTie,
   FaEnvelope,
@@ -69,6 +70,12 @@ export default function EditTeacherProfile() {
   const [touchedFields, setTouchedFields] = useState({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
 
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    action: null,
+  });
+
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
@@ -80,9 +87,15 @@ export default function EditTeacherProfile() {
   // Track unsaved changes
   useEffect(() => {
     if (!loading) {
-      const editableFields = ["name", "email", "experienceYears", "mobileNumber", "joiningDate"];
+      const editableFields = [
+        "name",
+        "email",
+        "experienceYears",
+        "mobileNumber",
+        "joiningDate",
+      ];
       const hasChanges = editableFields.some(
-        (key) => form[key] !== "" && form[key] !== null
+        (key) => form[key] !== "" && form[key] !== null,
       );
       setUnsavedChanges(hasChanges);
     }
@@ -93,7 +106,8 @@ export default function EditTeacherProfile() {
       const res = await api.get("/teachers/my-profile");
 
       // Backend returns { teacher: {...} }, axios keeps it nested
-      const teacherData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+      const teacherData =
+        res.data?.teacher || (res.data?.fullName ? res.data : null);
 
       setForm({
         name: teacherData?.name || "",
@@ -104,9 +118,13 @@ export default function EditTeacherProfile() {
         experienceYears: teacherData?.experienceYears?.toString() || "",
         department_id: teacherData?.department_id?._id || "",
         department_name: teacherData?.department_id?.name || "",
-        courses: teacherData?.courses?.map((c) => ({ _id: c._id, name: c.name })) || [],
+        courses:
+          teacherData?.courses?.map((c) => ({ _id: c._id, name: c.name })) ||
+          [],
         mobileNumber: teacherData?.mobileNumber || "",
-        joiningDate: teacherData?.joiningDate ? new Date(teacherData.joiningDate).toISOString().split('T')[0] : "",
+        joiningDate: teacherData?.joiningDate
+          ? new Date(teacherData.joiningDate).toISOString().split("T")[0]
+          : "",
       });
     } catch (err) {
       toast.error("Failed to load profile", {
@@ -150,7 +168,13 @@ export default function EditTeacherProfile() {
 
   const validateForm = () => {
     const errors = {};
-    const editableFields = ["name", "email", "experienceYears", "mobileNumber", "joiningDate"];
+    const editableFields = [
+      "name",
+      "email",
+      "experienceYears",
+      "mobileNumber",
+      "joiningDate",
+    ];
 
     editableFields.forEach((key) => {
       const error = validateField(key, form[key]);
@@ -213,13 +237,10 @@ export default function EditTeacherProfile() {
         onClose: () => navigate("/profile/my-profile"),
       });
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to update profile",
-        {
-          position: "top-right",
-          icon: <FaExclamationTriangle />,
-        }
-      );
+      toast.error(err.response?.data?.message || "Failed to update profile", {
+        position: "top-right",
+        icon: <FaExclamationTriangle />,
+      });
     } finally {
       setSaving(false);
     }
@@ -227,12 +248,24 @@ export default function EditTeacherProfile() {
 
   const handleBack = () => {
     if (unsavedChanges) {
-      if (window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
-        navigate(-1);
-      }
+      setConfirmModal({
+        isOpen: true,
+        action: "back",
+      });
     } else {
       navigate(-1);
     }
+  };
+
+  const handleConfirmNavigation = () => {
+    setConfirmModal({ isOpen: false, action: null });
+    if (confirmModal.action === "back") {
+      navigate(-1);
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setConfirmModal({ isOpen: false, action: null });
   };
 
   if (loading) {
@@ -281,7 +314,9 @@ export default function EditTeacherProfile() {
             gap: "1rem",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
+          >
             <button
               onClick={handleBack}
               disabled={saving}
@@ -312,7 +347,13 @@ export default function EditTeacherProfile() {
                 <FaUserTie style={{ color: BRAND_COLORS.primary.main }} />
                 Edit My Profile
               </h2>
-              <p style={{ margin: "0.25rem 0 0 0", color: "#64748b", fontSize: "0.9rem" }}>
+              <p
+                style={{
+                  margin: "0.25rem 0 0 0",
+                  color: "#64748b",
+                  fontSize: "0.9rem",
+                }}
+              >
                 Update your personal and professional details
               </p>
             </div>
@@ -331,7 +372,15 @@ export default function EditTeacherProfile() {
                 gap: "0.5rem",
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "currentColor", display: "inline-block" }} />
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "currentColor",
+                  display: "inline-block",
+                }}
+              />
               Unsaved Changes
             </div>
           )}
@@ -399,13 +448,17 @@ export default function EditTeacherProfile() {
                     onBlur={handleBlur}
                     disabled={saving}
                     className={`form-control ${
-                      validationErrors.name && touchedFields.name ? "is-invalid" : ""
+                      validationErrors.name && touchedFields.name
+                        ? "is-invalid"
+                        : ""
                     }`}
                     style={{
                       width: "100%",
                       padding: "0.75rem 1rem",
                       border: `1px solid ${
-                        validationErrors.name && touchedFields.name ? "#dc3545" : "#e2e8f0"
+                        validationErrors.name && touchedFields.name
+                          ? "#dc3545"
+                          : "#e2e8f0"
                       }`,
                       borderRadius: "8px",
                       fontSize: "0.95rem",
@@ -414,7 +467,13 @@ export default function EditTeacherProfile() {
                     placeholder="Enter your full name"
                   />
                   {validationErrors.name && touchedFields.name && (
-                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                    <div
+                      style={{
+                        color: "#dc3545",
+                        fontSize: "0.8rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
                       {validationErrors.name}
                     </div>
                   )}
@@ -443,13 +502,17 @@ export default function EditTeacherProfile() {
                     onBlur={handleBlur}
                     disabled={saving}
                     className={`form-control ${
-                      validationErrors.email && touchedFields.email ? "is-invalid" : ""
+                      validationErrors.email && touchedFields.email
+                        ? "is-invalid"
+                        : ""
                     }`}
                     style={{
                       width: "100%",
                       padding: "0.75rem 1rem",
                       border: `1px solid ${
-                        validationErrors.email && touchedFields.email ? "#dc3545" : "#e2e8f0"
+                        validationErrors.email && touchedFields.email
+                          ? "#dc3545"
+                          : "#e2e8f0"
                       }`,
                       borderRadius: "8px",
                       fontSize: "0.95rem",
@@ -457,7 +520,13 @@ export default function EditTeacherProfile() {
                     placeholder="your.email@example.com"
                   />
                   {validationErrors.email && touchedFields.email && (
-                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                    <div
+                      style={{
+                        color: "#dc3545",
+                        fontSize: "0.8rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
                       {validationErrors.email}
                     </div>
                   )}
@@ -475,7 +544,10 @@ export default function EditTeacherProfile() {
                       marginBottom: "0.5rem",
                     }}
                   >
-                    Employee ID <span style={{ color: "#64748b", fontWeight: 400 }}>(Read-only)</span>
+                    Employee ID{" "}
+                    <span style={{ color: "#64748b", fontWeight: 400 }}>
+                      (Read-only)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -508,7 +580,10 @@ export default function EditTeacherProfile() {
                       marginBottom: "0.5rem",
                     }}
                   >
-                    Designation <span style={{ color: "#64748b", fontWeight: 400 }}>(Read-only)</span>
+                    Designation{" "}
+                    <span style={{ color: "#64748b", fontWeight: 400 }}>
+                      (Read-only)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -527,7 +602,14 @@ export default function EditTeacherProfile() {
                       cursor: "not-allowed",
                     }}
                   />
-                  <small style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "0.25rem", display: "block" }}>
+                  <small
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                      marginTop: "0.25rem",
+                      display: "block",
+                    }}
+                  >
                     Contact college admin to change designation
                   </small>
                 </div>
@@ -544,7 +626,10 @@ export default function EditTeacherProfile() {
                       marginBottom: "0.5rem",
                     }}
                   >
-                    Qualification <span style={{ color: "#64748b", fontWeight: 400 }}>(Read-only)</span>
+                    Qualification{" "}
+                    <span style={{ color: "#64748b", fontWeight: 400 }}>
+                      (Read-only)
+                    </span>
                   </label>
                   <input
                     type="text"
@@ -563,7 +648,14 @@ export default function EditTeacherProfile() {
                       cursor: "not-allowed",
                     }}
                   />
-                  <small style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "0.25rem", display: "block" }}>
+                  <small
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                      marginTop: "0.25rem",
+                      display: "block",
+                    }}
+                  >
                     Contact college admin to update qualification
                   </small>
                 </div>
@@ -580,7 +672,8 @@ export default function EditTeacherProfile() {
                       marginBottom: "0.5rem",
                     }}
                   >
-                    Years of Experience <span style={{ color: "#dc3545" }}>*</span>
+                    Years of Experience{" "}
+                    <span style={{ color: "#dc3545" }}>*</span>
                   </label>
                   <input
                     type="number"
@@ -593,7 +686,8 @@ export default function EditTeacherProfile() {
                     min="0"
                     max="50"
                     className={`form-control ${
-                      validationErrors.experienceYears && touchedFields.experienceYears
+                      validationErrors.experienceYears &&
+                      touchedFields.experienceYears
                         ? "is-invalid"
                         : ""
                     }`}
@@ -601,7 +695,8 @@ export default function EditTeacherProfile() {
                       width: "100%",
                       padding: "0.75rem 1rem",
                       border: `1px solid ${
-                        validationErrors.experienceYears && touchedFields.experienceYears
+                        validationErrors.experienceYears &&
+                        touchedFields.experienceYears
                           ? "#dc3545"
                           : "#e2e8f0"
                       }`,
@@ -610,11 +705,18 @@ export default function EditTeacherProfile() {
                     }}
                     placeholder="e.g., 5"
                   />
-                  {validationErrors.experienceYears && touchedFields.experienceYears && (
-                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                      {validationErrors.experienceYears}
-                    </div>
-                  )}
+                  {validationErrors.experienceYears &&
+                    touchedFields.experienceYears && (
+                      <div
+                        style={{
+                          color: "#dc3545",
+                          fontSize: "0.8rem",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        {validationErrors.experienceYears}
+                      </div>
+                    )}
                 </div>
 
                 {/* Mobile Number */}
@@ -640,7 +742,8 @@ export default function EditTeacherProfile() {
                     onBlur={handleBlur}
                     disabled={saving}
                     className={`form-control ${
-                      validationErrors.mobileNumber && touchedFields.mobileNumber
+                      validationErrors.mobileNumber &&
+                      touchedFields.mobileNumber
                         ? "is-invalid"
                         : ""
                     }`}
@@ -648,7 +751,8 @@ export default function EditTeacherProfile() {
                       width: "100%",
                       padding: "0.75rem 1rem",
                       border: `1px solid ${
-                        validationErrors.mobileNumber && touchedFields.mobileNumber
+                        validationErrors.mobileNumber &&
+                        touchedFields.mobileNumber
                           ? "#dc3545"
                           : "#e2e8f0"
                       }`,
@@ -658,11 +762,18 @@ export default function EditTeacherProfile() {
                     placeholder="e.g., 9876543210"
                     pattern="[0-9]{10}"
                   />
-                  {validationErrors.mobileNumber && touchedFields.mobileNumber && (
-                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                      {validationErrors.mobileNumber}
-                    </div>
-                  )}
+                  {validationErrors.mobileNumber &&
+                    touchedFields.mobileNumber && (
+                      <div
+                        style={{
+                          color: "#dc3545",
+                          fontSize: "0.8rem",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        {validationErrors.mobileNumber}
+                      </div>
+                    )}
                 </div>
 
                 {/* Joining Date */}
@@ -696,7 +807,8 @@ export default function EditTeacherProfile() {
                       width: "100%",
                       padding: "0.75rem 1rem",
                       border: `1px solid ${
-                        validationErrors.joiningDate && touchedFields.joiningDate
+                        validationErrors.joiningDate &&
+                        touchedFields.joiningDate
                           ? "#dc3545"
                           : "#e2e8f0"
                       }`,
@@ -704,11 +816,18 @@ export default function EditTeacherProfile() {
                       fontSize: "0.95rem",
                     }}
                   />
-                  {validationErrors.joiningDate && touchedFields.joiningDate && (
-                    <div style={{ color: "#dc3545", fontSize: "0.8rem", marginTop: "0.25rem" }}>
-                      {validationErrors.joiningDate}
-                    </div>
-                  )}
+                  {validationErrors.joiningDate &&
+                    touchedFields.joiningDate && (
+                      <div
+                        style={{
+                          color: "#dc3545",
+                          fontSize: "0.8rem",
+                          marginTop: "0.25rem",
+                        }}
+                      >
+                        {validationErrors.joiningDate}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
@@ -770,7 +889,14 @@ export default function EditTeacherProfile() {
                       cursor: "not-allowed",
                     }}
                   />
-                  <small style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "0.25rem", display: "block" }}>
+                  <small
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                      marginTop: "0.25rem",
+                      display: "block",
+                    }}
+                  >
                     Contact college admin to change department
                   </small>
                 </div>
@@ -819,7 +945,14 @@ export default function EditTeacherProfile() {
                       </div>
                     ))}
                   </div>
-                  <small style={{ color: "#64748b", fontSize: "0.8rem", marginTop: "0.5rem", display: "block" }}>
+                  <small
+                    style={{
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                      marginTop: "0.5rem",
+                      display: "block",
+                    }}
+                  >
                     Contact college admin to modify assigned courses
                   </small>
                 </div>
@@ -873,7 +1006,9 @@ export default function EditTeacherProfile() {
                   alignItems: "center",
                   gap: "0.5rem",
                   transition: "all 0.3s",
-                  boxShadow: saving ? "none" : "0 4px 15px rgba(26, 75, 109, 0.3)",
+                  boxShadow: saving
+                    ? "none"
+                    : "0 4px 15px rgba(26, 75, 109, 0.3)",
                 }}
               >
                 {saving ? (
@@ -890,6 +1025,19 @@ export default function EditTeacherProfile() {
           </form>
         </motion.div>
       </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={handleCancelNavigation}
+        onConfirm={handleConfirmNavigation}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Are you sure you want to leave without saving?"
+        type="warning"
+        confirmText="Discard Changes"
+        cancelText="Stay Here"
+        isLoading={false}
+      />
 
       <style>{`
         .spin {
