@@ -1,4 +1,7 @@
-const stripe = require("../services/stripe.service");
+const {
+  getStripeInstance,
+  getCollegeStripeConfig,
+} = require("../services/collegeStripe.service");
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const College = require("../models/college.model");
@@ -9,6 +12,11 @@ const {
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
+/**
+ * Create Stripe checkout session using college-specific Stripe configuration
+ * @route POST /api/stripe/create-checkout-session
+ * @access Private (Student)
+ */
 exports.createCheckoutSession = async (req, res, next) => {
   try {
     const userId = req.user.id; // User._id from JWT token
@@ -23,7 +31,6 @@ exports.createCheckoutSession = async (req, res, next) => {
     // ✅ Step 1: Find student by user_id
     const student = await Student.findOne({
       user_id: userId,
-      // Don't filter by college_id here - let's see what we get
     });
 
     console.log("🟢 Student lookup result:", student ? "FOUND" : "NOT FOUND");
@@ -122,7 +129,10 @@ exports.createCheckoutSession = async (req, res, next) => {
       }
     }
 
-    // ✅ Step 4: Create Stripe checkout session
+    // ✅ Step 4: Get college-specific Stripe instance
+    const stripe = await getStripeInstance(collegeId);
+
+    // ✅ Step 5: Create Stripe checkout session with college's Stripe account
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -142,6 +152,7 @@ exports.createCheckoutSession = async (req, res, next) => {
       cancel_url: `${process.env.FRONTEND_URL}/student/payment-cancel`,
       metadata: {
         studentId: student._id.toString(),
+        collegeId: collegeId.toString(),
         installmentName,
         studentFeeId: studentFee._id.toString(),
         installmentId: installment._id.toString(),
@@ -160,15 +171,55 @@ exports.createCheckoutSession = async (req, res, next) => {
       expiresAt: new Date(session.expires_at * 1000),
     });
   } catch (error) {
+    // Handle Stripe-specific errors
+    if (error.code === "STRIPE_NOT_CONFIGURED") {
+      return next(
+        new AppError(
+          "Payment gateway is not configured for your college. Please contact the college administrator.",
+          400,
+          "STRIPE_NOT_CONFIGURED",
+        ),
+      );
+    }
+    if (error.code === "DECRYPTION_FAILED") {
+      return next(
+        new AppError(
+          "Payment configuration error. Please contact support.",
+          500,
+          "PAYMENT_CONFIG_ERROR",
+        ),
+      );
+    }
+    if (error.code === "STRIPE_INIT_FAILED") {
+      return next(
+        new AppError(
+          "Failed to initialize payment gateway. Please try again later.",
+          500,
+          "PAYMENT_INIT_FAILED",
+        ),
+      );
+    }
     next(error);
   }
 };
 
+/**
+ * Confirm Stripe payment after redirect from Stripe
+ * @route POST /api/stripe/confirm-payment
+ * @access Private (Student)
+ */
 exports.confirmStripePayment = async (req, res, next) => {
   try {
     const userId = req.user.id; // This is User._id
     const collegeId = req.college_id;
     const { sessionId } = req.body;
+
+    if (!sessionId) {
+      throw new AppError("Session ID is required", 400, "SESSION_ID_REQUIRED");
+    }
+
+    // Get college-specific Stripe instance
+    const stripe = await getStripeInstance(collegeId);
 
     // Retrieve Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -177,7 +228,7 @@ exports.confirmStripePayment = async (req, res, next) => {
       throw new AppError("Payment not completed", 400, "PAYMENT_NOT_COMPLETED");
     }
 
-    const { installmentName } = session.metadata;
+    const { installmentName, studentFeeId } = session.metadata;
 
     // ✅ Find student by user_id (don't filter by college_id)
     const student = await Student.findOne({
@@ -288,6 +339,25 @@ exports.confirmStripePayment = async (req, res, next) => {
       remainingAmount: studentFee.totalFee - studentFee.paidAmount,
     });
   } catch (error) {
+    // Handle Stripe-specific errors
+    if (error.code === "STRIPE_NOT_CONFIGURED") {
+      return next(
+        new AppError(
+          "Payment gateway is not configured for your college. Please contact the college administrator.",
+          400,
+          "STRIPE_NOT_CONFIGURED",
+        ),
+      );
+    }
+    if (error.code === "DECRYPTION_FAILED") {
+      return next(
+        new AppError(
+          "Payment configuration error. Please contact support.",
+          500,
+          "PAYMENT_CONFIG_ERROR",
+        ),
+      );
+    }
     next(error);
   }
 };
