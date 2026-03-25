@@ -805,6 +805,14 @@ function AppContent({
 
             {/* ================= SUBJECTS ================= */}
             <Route
+              path="/subjects"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <SubjectList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/subjects/course/:courseId"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
@@ -925,9 +933,9 @@ function AppContent({
             />
 
             {/* ================= TEACHERS ================= */}
-            
+
             {/* TIMETABLE */}
-            
+
             <Route
               path="/timetable/list"
               element={

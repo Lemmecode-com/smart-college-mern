@@ -11,13 +11,17 @@ import SidebarCollapseToggle from "./SidebarCollapseToggle";
 import ConfirmModal from "../ConfirmModal";
 import { useSidebar } from "./hooks/useSidebar";
 import { useScrollLock } from "./hooks/useScrollLock";
-import { ARIA_LABELS, CSS_CLASSES, SIDEBAR_WIDTH } from "./config/sidebar.constants";
+import {
+  ARIA_LABELS,
+  CSS_CLASSES,
+  SIDEBAR_WIDTH,
+} from "./config/sidebar.constants";
 import "./Sidebar.css";
 
 /**
  * SidebarContainer - Main sidebar component (Refactored)
  * Enterprise SaaS Standard
- * 
+ *
  * Benefits after refactoring:
  * - Uses custom hooks for clean state management
  * - Automatic localStorage persistence
@@ -29,17 +33,20 @@ export default function SidebarContainer({
   isMobileOpen: externalIsMobileOpen,
   setIsMobileOpen: externalSetIsMobileOpen,
   isCollapsed: externalIsCollapsed,
-  onToggleCollapse: externalOnToggleCollapse
+  onToggleCollapse: externalOnToggleCollapse,
 }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Use custom sidebar hook if not controlled externally
-  const sidebar = useSidebar({
-    isCollapsed: externalIsCollapsed,
-    isMobileOpen: externalIsMobileOpen
-  }, user?.role);
+  const sidebar = useSidebar(
+    {
+      isCollapsed: externalIsCollapsed,
+      isMobileOpen: externalIsMobileOpen,
+    },
+    user?.role,
+  );
 
   // Use external state if provided, otherwise use hook state
   const isMobileOpen = externalIsMobileOpen ?? sidebar.isMobileOpen;
@@ -59,6 +66,21 @@ export default function SidebarContainer({
       setIsMobileOpen(false);
     }
   }, [location.pathname]);
+
+  // Ensure body scroll is restored when sidebar closes
+  useEffect(() => {
+    if (!isMobileOpen && sidebar.isMobileDevice) {
+      // Small delay to ensure Offcanvas animation completes
+      const timer = setTimeout(() => {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.paddingRight = "";
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobileOpen, sidebar.isMobileDevice]);
 
   // Add has-sidebar class for content sync on desktop
   useEffect(() => {
@@ -92,13 +114,13 @@ export default function SidebarContainer({
       await logout();
       toast.success("Logged out successfully", {
         position: "top-right",
-        autoClose: 3000
+        autoClose: 3000,
       });
       navigate("/login", { replace: true });
     } catch (err) {
       toast.error("Failed to logout. Please try again.", {
         position: "top-right",
-        autoClose: 5000
+        autoClose: 5000,
       });
     } finally {
       setLoggingOut(false);
@@ -119,7 +141,7 @@ export default function SidebarContainer({
       {/* Desktop Sidebar - Supports collapsed state */}
       <div
         id="sidebar-main"
-        className={`sidebar-container d-none d-md-block ${isCollapsed ? 'sidebar-collapsed' : ''}`}
+        className={`sidebar-container d-none d-md-block ${isCollapsed ? "sidebar-collapsed" : ""}`}
         role="navigation"
         aria-label={ARIA_LABELS.MAIN_NAVIGATION}
         aria-expanded={!isCollapsed}
@@ -127,13 +149,13 @@ export default function SidebarContainer({
       >
         <aside className="sidebar-content" role="menubar">
           {/* Collapse Toggle Button */}
-          <SidebarCollapseToggle 
-            isCollapsed={isCollapsed} 
-            onToggle={toggleCollapse} 
+          <SidebarCollapseToggle
+            isCollapsed={isCollapsed}
+            onToggle={toggleCollapse}
           />
-          
+
           <SidebarLogo role={role} isCollapsed={isCollapsed} />
-          
+
           <SidebarNav
             role={role}
             openSections={sidebar.openSections}
@@ -142,7 +164,7 @@ export default function SidebarContainer({
             isCollapsed={isCollapsed}
             onClose={() => {}}
           />
-          
+
           <SidebarFooter
             loggingOut={loggingOut}
             onLogout={handleLogoutClick}
@@ -158,7 +180,7 @@ export default function SidebarContainer({
         placement="start"
         className="sidebar-offcanvas"
         backdrop="static"
-        scroll={false}
+        scroll={true}
         aria-label={ARIA_LABELS.MOBILE_NAVIGATION}
       >
         <Offcanvas.Header closeButton className="border-0 pb-0">
@@ -175,7 +197,11 @@ export default function SidebarContainer({
               className="text-center"
               aria-label={ARIA_LABELS.USER_ROLE(role)}
             >
-              <Badge bg="dark" className="text-uppercase" style={{ fontSize: "0.75rem" }}>
+              <Badge
+                bg="dark"
+                className="text-uppercase"
+                style={{ fontSize: "0.75rem" }}
+              >
                 {role?.replace("_", " ") || "User"}
               </Badge>
             </div>
@@ -201,14 +227,14 @@ export default function SidebarContainer({
       </Offcanvas>
 
       {/* Accessibility: Live region for screen readers */}
-      <div 
-        role="status" 
-        aria-live="polite" 
+      <div
+        role="status"
+        aria-live="polite"
         aria-atomic="true"
         className="sr-only"
       >
-        {isCollapsed ? 'Sidebar collapsed' : 'Sidebar expanded'}
-        {isMobileOpen ? 'Mobile menu open' : 'Mobile menu closed'}
+        {isCollapsed ? "Sidebar collapsed" : "Sidebar expanded"}
+        {isMobileOpen ? "Mobile menu open" : "Mobile menu closed"}
       </div>
 
       {/* Logout Confirmation Modal */}
@@ -230,10 +256,7 @@ export default function SidebarContainer({
 // Simple Badge component since we're using react-bootstrap
 function Badge({ children, bg, className, style }) {
   return (
-    <span
-      className={`badge bg-${bg} ${className || ""}`}
-      style={style}
-    >
+    <span className={`badge bg-${bg} ${className || ""}`} style={style}>
       {children}
     </span>
   );
