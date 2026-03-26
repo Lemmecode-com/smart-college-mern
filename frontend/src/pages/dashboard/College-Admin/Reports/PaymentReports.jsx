@@ -50,7 +50,10 @@ export default function PaymentReports() {
       });
     } catch (err) {
       console.error("Payment summary fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load payment summary. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load payment summary. Please try again.",
+      );
       toast.error("Failed to load payment summary.", {
         position: "top-right",
         autoClose: 3000,
@@ -73,7 +76,7 @@ export default function PaymentReports() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       // Reset flag to allow retry
       hasLoadedRef.current = false;
       fetchPaymentSummary();
@@ -100,9 +103,18 @@ export default function PaymentReports() {
   const getExportData = () => {
     if (!data) return [];
     return [
-      { metric: "Total Expected Fee", value: formatCurrency(data.totalExpectedFee || 0) },
-      { metric: "Total Collected", value: formatCurrency(data.totalCollected || 0) },
-      { metric: "Total Pending", value: formatCurrency(data.totalPending || 0) },
+      {
+        metric: "Total Expected Fee",
+        value: formatCurrency(data.totalExpectedFee || 0),
+      },
+      {
+        metric: "Total Collected",
+        value: formatCurrency(data.totalCollected || 0),
+      },
+      {
+        metric: "Total Pending",
+        value: formatCurrency(data.totalPending || 0),
+      },
       { metric: "Collection Rate", value: `${collectionRate.toFixed(1)}%` },
       { metric: "Pending Rate", value: `${pendingRate.toFixed(1)}%` },
     ];
@@ -110,12 +122,14 @@ export default function PaymentReports() {
 
   /* ================= CALCULATED METRICS ================= */
   const collectionRate = useMemo(() => {
-    if (!data || !data.totalExpectedFee || data.totalExpectedFee === 0) return 0;
+    if (!data || !data.totalExpectedFee || data.totalExpectedFee === 0)
+      return 0;
     return ((data.totalCollected || 0) / data.totalExpectedFee) * 100;
   }, [data]);
 
   const pendingRate = useMemo(() => {
-    if (!data || !data.totalExpectedFee || data.totalExpectedFee === 0) return 0;
+    if (!data || !data.totalExpectedFee || data.totalExpectedFee === 0)
+      return 0;
     return ((data.totalPending || 0) / data.totalExpectedFee) * 100;
   }, [data]);
 
@@ -129,24 +143,29 @@ export default function PaymentReports() {
   /* ================= EXPORT HANDLER ================= */
   const exportCSV = () => {
     if (!data) return;
-    
+
     const headers = ["Metric", "Amount (₹)"];
     const rows = [
       ["Total Expected Fee", data.totalExpectedFee?.toLocaleString() || "0"],
       ["Total Collected", data.totalCollected?.toLocaleString() || "0"],
       ["Total Pending", data.totalPending?.toLocaleString() || "0"],
       ["Collection Rate", `${collectionRate.toFixed(1)}%`],
-      ["Pending Rate", `${pendingRate.toFixed(1)}%`]
+      ["Pending Rate", `${pendingRate.toFixed(1)}%`],
     ];
 
-    let csvContent = "text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
+    let csvContent =
+      "text/csv;charset=utf-8," +
+      headers.join(",") +
+      "\n" +
+      rows.map((e) => e.join(",")).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `payment_summary_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `payment_summary_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -162,15 +181,15 @@ export default function PaymentReports() {
         <h3>Payment Reports Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => window.history.back()}
           >
             <FaArrowLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -200,8 +219,8 @@ export default function PaymentReports() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/reports/admission" },
-          { label: "Payment Summary" }
+          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          { label: "Payment Summary" },
         ]}
       />
 
@@ -214,7 +233,8 @@ export default function PaymentReports() {
           <div className="erp-header-text">
             <h1 className="erp-page-title">Payment Summary Report</h1>
             <p className="erp-page-subtitle">
-              Comprehensive overview of fee collection status across all students
+              Comprehensive overview of fee collection status across all
+              students
             </p>
           </div>
         </div>
@@ -223,8 +243,8 @@ export default function PaymentReports() {
             <ExportButtons
               title="Payment Summary Report"
               columns={[
-                { header: 'Metric', key: 'metric' },
-                { header: 'Value', key: 'value' }
+                { header: "Metric", key: "metric" },
+                { header: "Value", key: "value" },
               ]}
               data={getExportData()}
               filename="payment_summary_report"
@@ -249,7 +269,9 @@ export default function PaymentReports() {
           <FaWallet className="pulse" />
         </div>
         <div className="info-content">
-          <strong>Financial Overview:</strong> This report provides a real-time summary of fee collection status for all students. Data is updated automatically with each transaction.
+          <strong>Financial Overview:</strong> This report provides a real-time
+          summary of fee collection status for all students. Data is updated
+          automatically with each transaction.
         </div>
       </div>
 
@@ -264,7 +286,9 @@ export default function PaymentReports() {
             <div className="stat-title">Total Expected Fee</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">₹{data.totalExpectedFee?.toLocaleString() || "0"}</div>
+            <div className="stat-value">
+              ₹{data.totalExpectedFee?.toLocaleString() || "0"}
+            </div>
             <div className="stat-trend neutral">
               <FaFileInvoice className="trend-icon" />
               Total fee amount expected from all students
@@ -289,7 +313,9 @@ export default function PaymentReports() {
             <div className="stat-title">Total Collected</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value collected">₹{data.totalCollected?.toLocaleString() || "0"}</div>
+            <div className="stat-value collected">
+              ₹{data.totalCollected?.toLocaleString() || "0"}
+            </div>
             <div className="stat-trend positive">
               <FaCheckCircle className="trend-icon" />
               Collection Rate: {collectionRate.toFixed(1)}%
@@ -299,7 +325,8 @@ export default function PaymentReports() {
             <div className="stat-footer-item">
               <span className="footer-label">Status</span>
               <span className={`footer-value ${collectionStatus}`}>
-                {collectionStatus.charAt(0).toUpperCase() + collectionStatus.slice(1)}
+                {collectionStatus.charAt(0).toUpperCase() +
+                  collectionStatus.slice(1)}
               </span>
             </div>
           </div>
@@ -314,7 +341,9 @@ export default function PaymentReports() {
             <div className="stat-title">Total Pending</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value pending">₹{data.totalPending?.toLocaleString() || "0"}</div>
+            <div className="stat-value pending">
+              ₹{data.totalPending?.toLocaleString() || "0"}
+            </div>
             <div className="stat-trend warning">
               <FaHourglassHalf className="trend-icon" />
               Pending Rate: {pendingRate.toFixed(1)}%
@@ -343,26 +372,32 @@ export default function PaymentReports() {
           <div className="visual-container">
             {/* CIRCULAR PROGRESS */}
             <div className="circular-progress">
-              <div 
+              <div
                 className="progress-circle"
                 style={{
-                  background: `conic-gradient(#4CAF50 ${collectionRate}%, #e0e0e0 ${collectionRate}% 100%)`
+                  background: `conic-gradient(#4CAF50 ${collectionRate}%, #e0e0e0 ${collectionRate}% 100%)`,
                 }}
               >
                 <div className="progress-center">
-                  <div className="progress-value">{collectionRate.toFixed(0)}%</div>
+                  <div className="progress-value">
+                    {collectionRate.toFixed(0)}%
+                  </div>
                   <div className="progress-label">Collected</div>
                 </div>
               </div>
-              
+
               <div className="progress-legend">
                 <div className="legend-item collected">
                   <span className="legend-color collected"></span>
-                  <span>Collected: ₹{data.totalCollected?.toLocaleString() || "0"}</span>
+                  <span>
+                    Collected: ₹{data.totalCollected?.toLocaleString() || "0"}
+                  </span>
                 </div>
                 <div className="legend-item pending">
                   <span className="legend-color pending"></span>
-                  <span>Pending: ₹{data.totalPending?.toLocaleString() || "0"}</span>
+                  <span>
+                    Pending: ₹{data.totalPending?.toLocaleString() || "0"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -371,39 +406,47 @@ export default function PaymentReports() {
             <div className="horizontal-bar-container">
               <div className="bar-labels">
                 <span className="bar-title">Fee Collection Status</span>
-                <span className="bar-total">Total: ₹{data.totalExpectedFee?.toLocaleString() || "0"}</span>
+                <span className="bar-total">
+                  Total: ₹{data.totalExpectedFee?.toLocaleString() || "0"}
+                </span>
               </div>
-              
+
               <div className="horizontal-bar">
-                <div 
-                  className="bar-collected" 
+                <div
+                  className="bar-collected"
                   style={{ width: `${collectionRate}%` }}
                 ></div>
-                <div 
-                  className="bar-pending" 
+                <div
+                  className="bar-pending"
                   style={{ width: `${pendingRate}%` }}
                 ></div>
               </div>
-              
+
               <div className="bar-metrics">
                 <div className="metric-item">
                   <FaCheckCircle className="metric-icon collected" />
                   <div>
-                    <div className="metric-value">₹{data.totalCollected?.toLocaleString() || "0"}</div>
+                    <div className="metric-value">
+                      ₹{data.totalCollected?.toLocaleString() || "0"}
+                    </div>
                     <div className="metric-label">Collected</div>
                   </div>
                 </div>
                 <div className="metric-item">
                   <FaHourglassHalf className="metric-icon pending" />
                   <div>
-                    <div className="metric-value">₹{data.totalPending?.toLocaleString() || "0"}</div>
+                    <div className="metric-value">
+                      ₹{data.totalPending?.toLocaleString() || "0"}
+                    </div>
                     <div className="metric-label">Pending</div>
                   </div>
                 </div>
                 <div className="metric-item">
                   <FaPercentage className="metric-icon rate" />
                   <div>
-                    <div className="metric-value">{collectionRate.toFixed(1)}%</div>
+                    <div className="metric-value">
+                      {collectionRate.toFixed(1)}%
+                    </div>
                     <div className="metric-label">Collection Rate</div>
                   </div>
                 </div>
@@ -429,42 +472,52 @@ export default function PaymentReports() {
               </div>
               <div className="metric-content">
                 <div className="metric-title">Collection Performance</div>
-                <div className="metric-value-large">{collectionRate.toFixed(1)}%</div>
+                <div className="metric-value-large">
+                  {collectionRate.toFixed(1)}%
+                </div>
                 <div className="metric-description">
-                  {collectionRate >= 90 ? "Excellent collection rate" : 
-                   collectionRate >= 75 ? "Good collection rate" : 
-                   collectionRate >= 60 ? "Fair collection rate - needs attention" : 
-                   "Poor collection rate - immediate action required"}
+                  {collectionRate >= 90
+                    ? "Excellent collection rate"
+                    : collectionRate >= 75
+                      ? "Good collection rate"
+                      : collectionRate >= 60
+                        ? "Fair collection rate - needs attention"
+                        : "Poor collection rate - immediate action required"}
                 </div>
               </div>
             </div>
-            
+
             <div className="metric-card">
               <div className="metric-icon-wrapper pending">
                 <FaHourglassHalf className="metric-icon-large" />
               </div>
               <div className="metric-content">
                 <div className="metric-title">Pending Amount</div>
-                <div className="metric-value-large">₹{data.totalPending?.toLocaleString() || "0"}</div>
+                <div className="metric-value-large">
+                  ₹{data.totalPending?.toLocaleString() || "0"}
+                </div>
                 <div className="metric-description">
-                  Requires follow-up with {Math.round(data.totalPending / 5000)} students*
+                  Requires follow-up with {Math.round(data.totalPending / 5000)}{" "}
+                  students*
                 </div>
               </div>
             </div>
-            
+
             <div className="metric-card">
               <div className="metric-icon-wrapper expected">
                 <FaFileInvoice className="metric-icon-large" />
               </div>
               <div className="metric-content">
                 <div className="metric-title">Expected Revenue</div>
-                <div className="metric-value-large">₹{data.totalExpectedFee?.toLocaleString() || "0"}</div>
+                <div className="metric-value-large">
+                  ₹{data.totalExpectedFee?.toLocaleString() || "0"}
+                </div>
                 <div className="metric-description">
                   Total fee amount for current academic year
                 </div>
               </div>
             </div>
-            
+
             <div className="metric-card">
               <div className="metric-icon-wrapper rate">
                 <FaPercentage className="metric-icon-large" />
@@ -484,14 +537,19 @@ export default function PaymentReports() {
               </div>
             </div>
           </div>
-          
+
           <div className="metrics-footer">
             <div className="footer-note">
               <FaInfoCircle className="note-icon" />
-              <span>* Estimated based on average pending amount per student</span>
+              <span>
+                * Estimated based on average pending amount per student
+              </span>
             </div>
             <div className="footer-disclaimer">
-              <span>Note: All amounts are in Indian Rupees (₹). Data updated in real-time.</span>
+              <span>
+                Note: All amounts are in Indian Rupees (₹). Data updated in
+                real-time.
+              </span>
             </div>
           </div>
         </div>
@@ -501,11 +559,12 @@ export default function PaymentReports() {
       <div className="footer-note animate-fade-in">
         <FaInfoCircle className="note-icon" />
         <span>
-          This report shows real-time payment summary for your college. Data is automatically updated with each transaction. 
-          Last refreshed: {new Date().toLocaleString()}
+          This report shows real-time payment summary for your college. Data is
+          automatically updated with each transaction. Last refreshed:{" "}
+          {new Date().toLocaleString()}
         </span>
-        <button 
-          className="refresh-btn" 
+        <button
+          className="refresh-btn"
           onClick={fetchPaymentSummary}
           title="Refresh data"
         >
