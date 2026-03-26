@@ -49,7 +49,7 @@ exports.createCollege = async (req, res, next) => {
       establishedYear,
       logo: logoPath,
       registrationUrl,
-      registrationQr
+      registrationQr,
     });
 
     // 5️⃣ Create College Admin (plain password — hashed in User schema)
@@ -66,15 +66,16 @@ exports.createCollege = async (req, res, next) => {
       college: {
         id: college._id,
         name: college.name,
+        code: college.code,
         registrationUrl,
-        registrationQr
+        registrationQr,
       },
       collegeAdmin: {
         id: collegeAdmin._id,
-        email: collegeAdmin.email
-      }
+        name: collegeAdmin.name,
+        email: collegeAdmin.email,
+      },
     });
-
   } catch (error) {
     next(error);
   }
@@ -84,15 +85,15 @@ exports.createCollege = async (req, res, next) => {
 exports.getAllColleges = async (req, res, next) => {
   try {
     const { includeInactive } = req.query;
-    
+
     // By default, only show active colleges
-    const query = includeInactive === 'true' ? {} : { isActive: true };
-    
+    const query = includeInactive === "true" ? {} : { isActive: true };
+
     const colleges = await College.find(query).sort({ createdAt: -1 });
-    
+
     res.json({
       count: colleges.length,
-      colleges
+      colleges,
     });
   } catch (error) {
     next(error);
@@ -119,25 +120,29 @@ exports.deleteCollege = async (req, res, next) => {
 
     // 3️⃣ Check if already inactive
     if (!college.isActive) {
-      throw new AppError("College is already deactivated", 400, "ALREADY_INACTIVE");
+      throw new AppError(
+        "College is already deactivated",
+        400,
+        "ALREADY_INACTIVE",
+      );
     }
 
     // 4️⃣ Soft delete (this triggers the pre('findOneAndUpdate') hook for cascade)
     await College.findOneAndUpdate(
       { _id: collegeId },
-      { $set: { isActive: false } }
+      { $set: { isActive: false } },
     );
 
     res.json({
-      message: "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
+      message:
+        "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
       college: {
         id: college._id,
         name: college.name,
         code: college.code,
-        isActive: false
-      }
+        isActive: false,
+      },
     });
-
   } catch (error) {
     next(error);
   }
@@ -169,19 +174,19 @@ exports.restoreCollege = async (req, res, next) => {
     // 4️⃣ Restore (this triggers the pre('findOneAndUpdate') hook for cascade restore)
     await College.findOneAndUpdate(
       { _id: collegeId },
-      { $set: { isActive: true } }
+      { $set: { isActive: true } },
     );
 
     res.json({
-      message: "College restored successfully. All related departments, courses, students, and staff have been reactivated.",
+      message:
+        "College restored successfully. All related departments, courses, students, and staff have been reactivated.",
       college: {
         id: college._id,
         name: college.name,
         code: college.code,
-        isActive: true
-      }
+        isActive: true,
+      },
     });
-
   } catch (error) {
     next(error);
   }
@@ -211,7 +216,7 @@ exports.hardDeleteCollege = async (req, res, next) => {
       throw new AppError(
         "Permanent deletion requires explicit confirmation. Set 'confirmPermanentDelete: true' in request body.",
         400,
-        "CONFIRMATION_REQUIRED"
+        "CONFIRMATION_REQUIRED",
       );
     }
 
@@ -219,14 +224,14 @@ exports.hardDeleteCollege = async (req, res, next) => {
     await College.findOneAndDelete({ _id: collegeId });
 
     res.json({
-      message: "College and ALL related data PERMANENTLY deleted. This action cannot be undone.",
+      message:
+        "College and ALL related data PERMANENTLY deleted. This action cannot be undone.",
       deletedCollege: {
         id: college._id,
         name: college.name,
-        code: college.code
-      }
+        code: college.code,
+      },
     });
-
   } catch (error) {
     next(error);
   }
@@ -299,7 +304,6 @@ exports.getCollegeById = async (req, res, next) => {
         totalAttendanceSessions,
       },
     });
-
   } catch (error) {
     next(error);
   }
@@ -326,19 +330,24 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
     // 3️⃣ Get college admin email
     const adminUser = await User.findOne({
       college_id: collegeId,
-      role: "COLLEGE_ADMIN"
+      role: "COLLEGE_ADMIN",
     });
 
     if (!adminUser || !adminUser.email) {
-      throw new AppError("College admin email not found", 404, "ADMIN_EMAIL_NOT_FOUND");
+      throw new AppError(
+        "College admin email not found",
+        404,
+        "ADMIN_EMAIL_NOT_FOUND",
+      );
     }
 
     // 4️⃣ Send email
     await sendEmailToCollegeAdmin({
       to: adminUser.email,
       collegeName: college.name,
-      subject: subject || `Regarding ${college.name} - Smart College Management`,
-      message: message || "No message provided"
+      subject:
+        subject || `Regarding ${college.name} - Smart College Management`,
+      message: message || "No message provided",
     });
 
     res.json({
@@ -347,10 +356,10 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
       data: {
         collegeName: college.name,
         adminEmail: adminUser.email,
-        subject: subject || `Regarding ${college.name} - Smart College Management`
-      }
+        subject:
+          subject || `Regarding ${college.name} - Smart College Management`,
+      },
     });
-
   } catch (error) {
     next(error);
   }
