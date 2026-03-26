@@ -52,7 +52,10 @@ export default function AttendanceSummary() {
       });
     } catch (err) {
       console.error("Attendance summary fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load attendance summary. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load attendance summary. Please try again.",
+      );
       toast.error("Failed to load attendance summary.", {
         position: "top-right",
         autoClose: 3000,
@@ -75,7 +78,7 @@ export default function AttendanceSummary() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       // Reset flag to allow retry
       hasLoadedRef.current = false;
       fetchAttendanceSummary();
@@ -93,18 +96,35 @@ export default function AttendanceSummary() {
   const getExportData = () => {
     if (!data || data.totalRecords === undefined) return [];
     return [
-      { metric: "Total Attendance Records", value: data.totalRecords?.toLocaleString() || "0" },
-      { metric: "Total Sessions Conducted", value: (Math.round(data.totalRecords / 50) || 0).toLocaleString() },
-      { metric: "Average Present Students", value: data.averageAttendance?.toLocaleString() || "0" },
-      { metric: "Average Absent Students", value: (50 - (data.averageAttendance || 0)).toLocaleString() },
+      {
+        metric: "Total Attendance Records",
+        value: data.totalRecords?.toLocaleString() || "0",
+      },
+      {
+        metric: "Total Sessions Conducted",
+        value: (Math.round(data.totalRecords / 50) || 0).toLocaleString(),
+      },
+      {
+        metric: "Average Present Students",
+        value: data.averageAttendance?.toLocaleString() || "0",
+      },
+      {
+        metric: "Average Absent Students",
+        value: (50 - (data.averageAttendance || 0)).toLocaleString(),
+      },
       { metric: "Attendance Rate", value: `${attendanceRate.toFixed(1)}%` },
-      { metric: "Status", value: attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1) },
+      {
+        metric: "Status",
+        value:
+          attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1),
+      },
     ];
   };
 
   /* ================= EXTRACT SUMMARY DATA ================= */
   const summary = useMemo(() => {
-    if (!data || data.totalRecords === undefined) return { totalRecords: 0, averageAttendance: 0 };
+    if (!data || data.totalRecords === undefined)
+      return { totalRecords: 0, averageAttendance: 0 };
     return data;
   }, [data]);
 
@@ -134,15 +154,15 @@ export default function AttendanceSummary() {
         <h3>Attendance Reports Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => window.history.back()}
           >
             <FaArrowLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -172,8 +192,8 @@ export default function AttendanceSummary() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/reports/admission" },
-          { label: "Attendance Summary" }
+          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          { label: "Attendance Summary" },
         ]}
       />
 
@@ -186,7 +206,8 @@ export default function AttendanceSummary() {
           <div className="erp-header-text">
             <h1 className="erp-page-title">Attendance Summary Report</h1>
             <p className="erp-page-subtitle">
-              Comprehensive overview of student attendance records across all sessions
+              Comprehensive overview of student attendance records across all
+              sessions
             </p>
           </div>
         </div>
@@ -195,8 +216,8 @@ export default function AttendanceSummary() {
             <ExportButtons
               title="Attendance Summary Report"
               columns={[
-                { header: 'Metric', key: 'metric', dataKey: 'metric' },
-                { header: 'Value', key: 'value', dataKey: 'value' }
+                { header: "Metric", key: "metric", dataKey: "metric" },
+                { header: "Value", key: "value", dataKey: "value" },
               ]}
               data={getExportData()}
               filename="attendance_summary_report"
@@ -221,7 +242,9 @@ export default function AttendanceSummary() {
           <FaGraduationCap className="pulse" />
         </div>
         <div className="info-content">
-          <strong>Attendance Overview:</strong> This report provides a real-time summary of student attendance records. Data is aggregated from all academic sessions and updated automatically.
+          <strong>Attendance Overview:</strong> This report provides a real-time
+          summary of student attendance records. Data is aggregated from all
+          academic sessions and updated automatically.
         </div>
       </div>
 
@@ -236,7 +259,9 @@ export default function AttendanceSummary() {
             <div className="stat-title">Total Attendance Records</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">{summary.totalRecords?.toLocaleString() || "0"}</div>
+            <div className="stat-value">
+              {summary.totalRecords?.toLocaleString() || "0"}
+            </div>
             <div className="stat-trend neutral">
               <FaCalendarAlt className="trend-icon" />
               Records across all sessions
@@ -261,7 +286,9 @@ export default function AttendanceSummary() {
             <div className="stat-title">Average Attendance</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value attendance">{summary.averageAttendance?.toLocaleString() || "0"}</div>
+            <div className="stat-value attendance">
+              {summary.averageAttendance?.toLocaleString() || "0"}
+            </div>
             <div className={`stat-trend ${attendanceStatus}`}>
               <FaUserCheck className="trend-icon" />
               Estimated Rate: {attendanceRate.toFixed(1)}%
@@ -271,7 +298,8 @@ export default function AttendanceSummary() {
             <div className="stat-footer-item">
               <span className="footer-label">Status</span>
               <span className={`footer-value ${attendanceStatus}`}>
-                {attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)}
+                {attendanceStatus.charAt(0).toUpperCase() +
+                  attendanceStatus.slice(1)}
               </span>
             </div>
           </div>
@@ -290,29 +318,39 @@ export default function AttendanceSummary() {
           <div className="visual-container">
             {/* CIRCULAR PROGRESS */}
             <div className="circular-progress">
-              <div 
+              <div
                 className="progress-circle"
                 style={{
-                  background: `conic-gradient(#4CAF50 ${attendanceRate}%, #e0e0e0 ${attendanceRate}% 100%)`
+                  background: `conic-gradient(#4CAF50 ${attendanceRate}%, #e0e0e0 ${attendanceRate}% 100%)`,
                 }}
               >
                 <div className="progress-center">
-                  <div className="progress-value">{attendanceRate.toFixed(0)}%</div>
+                  <div className="progress-value">
+                    {attendanceRate.toFixed(0)}%
+                  </div>
                   <div className="progress-label">Attendance Rate</div>
                 </div>
               </div>
-              
+
               <div className="progress-legend">
                 <div className="legend-item present">
                   <span className="legend-color present"></span>
-                  <span>Present: {summary.averageAttendance?.toLocaleString() || "0"} students</span>
+                  <span>
+                    Present:{" "}
+                    {summary.averageAttendance?.toLocaleString() || "0"}{" "}
+                    students
+                  </span>
                 </div>
                 <div className="legend-item absent">
                   <span className="legend-color absent"></span>
-                  <span>Absent: {(50 - summary.averageAttendance)?.toLocaleString() || "0"} students*</span>
+                  <span>
+                    Absent:{" "}
+                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}{" "}
+                    students*
+                  </span>
                 </div>
               </div>
-              
+
               <div className="progress-note">
                 <FaInfoCircle className="note-icon" />
                 <span>*Based on estimated class size of 50 students</span>
@@ -327,33 +365,39 @@ export default function AttendanceSummary() {
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Average Present</div>
-                  <div className="metric-value">{summary.averageAttendance?.toLocaleString() || "0"}</div>
+                  <div className="metric-value">
+                    {summary.averageAttendance?.toLocaleString() || "0"}
+                  </div>
                   <div className="metric-description">Students per session</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon absent">
                   <FaUserTimes />
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Estimated Absent</div>
-                  <div className="metric-value">{(50 - summary.averageAttendance)?.toLocaleString() || "0"}</div>
+                  <div className="metric-value">
+                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}
+                  </div>
                   <div className="metric-description">Students per session</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon sessions">
                   <FaCalendarAlt />
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Total Sessions</div>
-                  <div className="metric-value">{Math.round(summary.totalRecords / 50) || "0"}</div>
+                  <div className="metric-value">
+                    {Math.round(summary.totalRecords / 50) || "0"}
+                  </div>
                   <div className="metric-description">Estimated sessions*</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon rate">
                   <FaPercentage />
@@ -399,7 +443,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card good">
               <div className="analysis-icon">
                 <FaCheckCircle />
@@ -412,7 +456,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card fair">
               <div className="analysis-icon">
                 <FaClock />
@@ -425,7 +469,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card poor">
               <div className="analysis-icon">
                 <FaTimesCircle />
@@ -439,14 +483,20 @@ export default function AttendanceSummary() {
               </div>
             </div>
           </div>
-          
+
           <div className="analysis-footer">
             <div className="footer-note">
               <FaInfoCircle className="note-icon" />
-              <span>* Attendance rate calculated based on estimated class size of 50 students per session</span>
+              <span>
+                * Attendance rate calculated based on estimated class size of 50
+                students per session
+              </span>
             </div>
             <div className="footer-disclaimer">
-              <span>Note: This is an aggregated summary. For detailed session-wise analysis, please refer to the Attendance Reports module.</span>
+              <span>
+                Note: This is an aggregated summary. For detailed session-wise
+                analysis, please refer to the Attendance Reports module.
+              </span>
             </div>
           </div>
         </div>
@@ -456,11 +506,12 @@ export default function AttendanceSummary() {
       <div className="footer-note animate-fade-in">
         <FaInfoCircle className="note-icon" />
         <span>
-          This report shows aggregated attendance summary for your college. Data is automatically updated with each attendance entry. 
-          Last refreshed: {new Date().toLocaleString()}
+          This report shows aggregated attendance summary for your college. Data
+          is automatically updated with each attendance entry. Last refreshed:{" "}
+          {new Date().toLocaleString()}
         </span>
-        <button 
-          className="refresh-btn" 
+        <button
+          className="refresh-btn"
           onClick={fetchAttendanceSummary}
           title="Refresh data"
         >

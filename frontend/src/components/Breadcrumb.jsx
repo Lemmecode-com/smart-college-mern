@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Enterprise-level Reusable Breadcrumb Component
@@ -14,13 +14,19 @@ import { Link } from "react-router-dom";
  * - Modern SaaS dashboard UI
  */
 export default function Breadcrumb({ items = [] }) {
+  const navigate = useNavigate();
+
   if (!items || items.length === 0) return null;
 
+  const handleBreadcrumbClick = (e, path) => {
+    e.preventDefault();
+    if (path) {
+      navigate(path);
+    }
+  };
+
   return (
-    <nav
-      style={styles.breadcrumbNav}
-      aria-label="Breadcrumb"
-    >
+    <nav style={styles.breadcrumbNav} aria-label="Breadcrumb">
       <ol style={styles.breadcrumbList}>
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
@@ -29,9 +35,10 @@ export default function Breadcrumb({ items = [] }) {
           return (
             <li key={index} style={styles.breadcrumbItem}>
               {hasPath ? (
-                <Link
-                  to={item.path}
+                <a
+                  href={item.path}
                   style={styles.breadcrumbLink}
+                  onClick={(e) => handleBreadcrumbClick(e, item.path)}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = "#f1f5f9";
                     e.currentTarget.style.color = "#0f2f4a";
@@ -43,7 +50,7 @@ export default function Breadcrumb({ items = [] }) {
                 >
                   {item.icon && <span style={styles.icon}>{item.icon}</span>}
                   {item.label}
-                </Link>
+                </a>
               ) : (
                 <span style={styles.breadcrumbCurrent}>
                   {item.icon && <span style={styles.icon}>{item.icon}</span>}
@@ -145,7 +152,11 @@ const getResponsiveStyles = () => {
 
   if (isMobile) {
     return {
-      breadcrumbNav: { height: "auto", minHeight: "50px", marginBottom: "0.75rem" },
+      breadcrumbNav: {
+        height: "auto",
+        minHeight: "50px",
+        marginBottom: "0.75rem",
+      },
       breadcrumbList: { padding: "0.625rem 0.875rem", borderRadius: "8px" },
       breadcrumbItem: { fontSize: "0.8125rem" },
       breadcrumbLink: { padding: "0.2rem 0.4rem", fontSize: "0.8125rem" },
@@ -156,7 +167,11 @@ const getResponsiveStyles = () => {
 
   if (isTablet) {
     return {
-      breadcrumbNav: { height: "auto", minHeight: "50px", marginBottom: "1rem" },
+      breadcrumbNav: {
+        height: "auto",
+        minHeight: "50px",
+        marginBottom: "1rem",
+      },
       breadcrumbList: { padding: "0.75rem 1rem" },
       breadcrumbItem: { fontSize: "0.875rem" },
       breadcrumbLink: { padding: "0.25rem 0.5rem", fontSize: "0.875rem" },

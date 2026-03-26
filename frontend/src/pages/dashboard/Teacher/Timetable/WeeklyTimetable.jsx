@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import {
   FaCalendarAlt,
@@ -27,28 +28,45 @@ import {
   FaEye,
   FaEyeSlash,
   FaStar,
-  FaQuestionCircle,
   FaLightbulb,
   FaGraduationCap,
-  FaShieldAlt
+  FaShieldAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 // Brand Color Palette
 const BRAND_COLORS = {
-  primary: { main: '#1a4b6d', gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)' },
-  success: { main: '#28a745', gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)' },
-  info: { main: '#17a2b8', gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' },
-  warning: { main: '#ffc107', gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)' },
-  danger: { main: '#dc3545', gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' },
-  secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' },
+  primary: {
+    main: "#1a4b6d",
+    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+  },
+  success: {
+    main: "#28a745",
+    gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)",
+  },
+  info: {
+    main: "#17a2b8",
+    gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)",
+  },
+  warning: {
+    main: "#ffc107",
+    gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
+  },
+  danger: {
+    main: "#dc3545",
+    gradient: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+  },
+  secondary: {
+    main: "#6c757d",
+    gradient: "linear-gradient(135deg, #6c757d 0%, #545b62 100%)",
+  },
   slotTypes: {
-    LECTURE: { bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
-    LAB: { bg: '#ffedd5', text: '#c2410c', border: '#fed7aa' },
-    TUTORIAL: { bg: '#dcfce7', text: '#15803d', border: '#bbf7d0' },
-    PRACTICAL: { bg: '#ede9fe', text: '#5b21b6', border: '#ddd6fe' }
-  }
+    LECTURE: { bg: "#dbeafe", text: "#1e40af", border: "#bfdbfe" },
+    LAB: { bg: "#ffedd5", text: "#c2410c", border: "#fed7aa" },
+    TUTORIAL: { bg: "#dcfce7", text: "#15803d", border: "#bbf7d0" },
+    PRACTICAL: { bg: "#ede9fe", text: "#5b21b6", border: "#ddd6fe" },
+  },
 };
 
 // Animation Variants
@@ -57,8 +75,8 @@ const fadeInVariants = {
   visible: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.05, duration: 0.6, ease: "easeOut" }
-  })
+    transition: { delay: i * 0.05, duration: 0.6, ease: "easeOut" },
+  }),
 };
 
 const slideDownVariants = {
@@ -66,41 +84,48 @@ const slideDownVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
 };
 
 const pulseVariants = {
   initial: { scale: 1 },
   pulse: {
     scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+  },
 };
 
 const spinVariants = {
   animate: {
     rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  }
+    transition: { duration: 1, repeat: Infinity, ease: "linear" },
+  },
 };
 
 const scaleVariants = {
   hidden: { scale: 0.9, opacity: 0 },
   visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.9, opacity: 0, transition: { duration: 0.2 } }
+  exit: { scale: 0.9, opacity: 0, transition: { duration: 0.2 } },
 };
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
-const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // Helper function to format time in 12-hour format with AM/PM
 const formatTime12Hour = (time24) => {
-  if (!time24) return '';
-  const [hours, minutes] = time24.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
   const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
 };
 
 const TIMES = [
@@ -121,11 +146,14 @@ export default function WeeklyTimetable() {
   // ✅ Validate timetableId - redirect if missing
   useEffect(() => {
     if (!timetableId) {
-      toast.error("Timetable ID is required. Redirecting to timetable list...", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaExclamationTriangle />,
-      });
+      toast.error(
+        "Timetable ID is required. Redirecting to timetable list...",
+        {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaExclamationTriangle />,
+        },
+      );
       setTimeout(() => {
         navigate("/timetable");
       }, 3000);
@@ -162,8 +190,9 @@ export default function WeeklyTimetable() {
     isOpen: false,
     slotId: null,
     title: "Delete Slot?",
-    message: "Are you sure you want to delete this timetable slot? This action cannot be undone.",
-    type: "danger"
+    message:
+      "Are you sure you want to delete this timetable slot? This action cannot be undone.",
+    type: "danger",
   });
 
   /* ================= LOAD WEEKLY ================= */
@@ -176,14 +205,17 @@ export default function WeeklyTimetable() {
           const res = await api.get("/timetable/weekly");
           setTimetable(res.data.timetable || null);
           setWeekly(res.data.weekly || {});
-          
+
           if (res.data.timetable) {
-            setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
+            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
           }
-          
+
           setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
         } catch (err) {
-          setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
+          setError(
+            err.response?.data?.message ||
+              "Failed to load weekly timetable. Please try again.",
+          );
         } finally {
           setLoading(false);
         }
@@ -204,20 +236,23 @@ export default function WeeklyTimetable() {
         const res = await api.get(`/timetable/${timetableId}/weekly`);
         setTimetable(res.data.timetable);
         setWeekly(res.data.weekly || {});
-        setForm(f => ({ ...f, timetable_id: res.data.timetable._id }));
+        setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
 
         // Set HOD status based on user role
         setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
 
         const [subRes, teachRes] = await Promise.all([
           api.get(`/subjects/course/${res.data.timetable.course_id}`),
-          api.get(`/teachers/department/${res.data.timetable.department_id}`)
+          api.get(`/teachers/department/${res.data.timetable.department_id}`),
         ]);
 
         setSubjects(subRes.data.subjects || subRes.data || []);
         setTeachers(teachRes.data.teachers || teachRes.data || []);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load weekly timetable. Please try again.");
+        setError(
+          err.response?.data?.message ||
+            "Failed to load weekly timetable. Please try again.",
+        );
       } finally {
         setLoading(false);
       }
@@ -229,11 +264,28 @@ export default function WeeklyTimetable() {
   /* ================= AUTO SET TEACHER ================= */
   useEffect(() => {
     if (!form.subject_id) return;
-    const subject = subjects.find(s => s._id === form.subject_id);
+    const subject = subjects.find((s) => s._id === form.subject_id);
     if (subject?.teacher_id?._id) {
-      setForm(prev => ({ ...prev, teacher_id: subject.teacher_id._id }));
+      setForm((prev) => ({ ...prev, teacher_id: subject.teacher_id._id }));
     }
   }, [form.subject_id, subjects]);
+
+  /* ================= REFRESH WEEKLY ================= */
+  const refreshWeekly = async () => {
+    try {
+      if (!timetableId) {
+        const res = await api.get("/timetable/weekly");
+        setTimetable(res.data.timetable || null);
+        setWeekly(res.data.weekly || {});
+      } else {
+        const res = await api.get(`/timetable/${timetableId}/weekly`);
+        setTimetable(res.data.timetable);
+        setWeekly(res.data.weekly || {});
+      }
+    } catch (err) {
+      console.error("Failed to refresh weekly timetable:", err);
+    }
+  };
 
   /* ================= ACTIONS ================= */
   const openCreate = (day, time) => {
@@ -271,10 +323,10 @@ export default function WeeklyTimetable() {
       setError("Please select a subject");
       return;
     }
-    
+
     setSubmitting(true);
     setError("");
-    
+
     try {
       if (editSlot) {
         await api.put(`/timetable/slot/${editSlot._id}`, form);
@@ -283,14 +335,24 @@ export default function WeeklyTimetable() {
       }
 
       setShowModal(false);
-      window.location.reload();
+      toast.success(
+        editSlot ? "Slot updated successfully!" : "Slot added successfully!",
+        {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        },
+      );
+      await refreshWeekly();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Cannot modify published timetable or only HOD has access.";
+      const errorMsg =
+        err.response?.data?.message ||
+        "Cannot modify published timetable or only HOD has access.";
       setError(errorMsg);
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
     } finally {
       setSubmitting(false);
@@ -302,8 +364,9 @@ export default function WeeklyTimetable() {
       isOpen: true,
       slotId: slotId,
       title: "Delete Slot?",
-      message: "Are you sure you want to delete this timetable slot? This action cannot be undone.",
-      type: "danger"
+      message:
+        "Are you sure you want to delete this timetable slot? This action cannot be undone.",
+      type: "danger",
     });
   };
 
@@ -313,15 +376,18 @@ export default function WeeklyTimetable() {
       toast.success("Slot deleted successfully!", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaCheckCircle />
+        icon: <FaCheckCircle />,
       });
-      window.location.reload();
+      await refreshWeekly();
+      setConfirmModal({ ...confirmModal, slotId: null, isOpen: false });
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Delete failed. Only HOD can delete slots or timetable may be published.";
+      const errorMsg =
+        err.response?.data?.message ||
+        "Delete failed. Only HOD can delete slots or timetable may be published.";
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
     }
   };
@@ -332,7 +398,7 @@ export default function WeeklyTimetable() {
     setTooltipContent(content);
     setTooltipPosition({
       top: rect.top + window.scrollY + 30,
-      left: rect.left + window.scrollX + rect.width / 2
+      left: rect.left + window.scrollX + rect.width / 2,
     });
     setShowTooltip(true);
   };
@@ -357,20 +423,22 @@ export default function WeeklyTimetable() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          margin: '2rem',
-          padding: '1.5rem',
-          borderRadius: '12px',
+          margin: "2rem",
+          padding: "1.5rem",
+          borderRadius: "12px",
           backgroundColor: `${BRAND_COLORS.danger.main}0a`,
           border: `1px solid ${BRAND_COLORS.danger.main}`,
           color: BRAND_COLORS.danger.main,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
         }}
       >
         <FaTimesCircle size={24} />
         <div>
-          <h4 style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>Error Loading Timetable</h4>
+          <h4 style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
+            Error Loading Timetable
+          </h4>
           <p style={{ margin: 0 }}>{error}</p>
         </div>
       </motion.div>
@@ -384,26 +452,26 @@ export default function WeeklyTimetable() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
-          paddingBottom: '2rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem'
+          minHeight: "100vh",
+          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
+          paddingTop: "1.5rem",
+          paddingBottom: "2rem",
+          paddingLeft: "1rem",
+          paddingRight: "1rem",
         }}
       >
-        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
+              marginBottom: "1.5rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
             }}
           >
             <motion.button
@@ -411,111 +479,171 @@ export default function WeeklyTimetable() {
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate(-1)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
                 color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
+                background: "none",
+                border: "none",
+                fontSize: "0.95rem",
                 fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
+                cursor: "pointer",
+                padding: "0.5rem",
+                borderRadius: "8px",
+                transition: "all 0.3s ease",
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              onMouseEnter={(e) => (e.target.style.backgroundColor = "#f1f5f9")}
+              onMouseLeave={(e) =>
+                (e.target.style.backgroundColor = "transparent")
+              }
             >
               <FaArrowLeft /> Back
             </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Weekly Timetable</span>
+            <span style={{ color: "#94a3b8" }}>›</span>
+            <span
+              style={{
+                color: BRAND_COLORS.primary.main,
+                fontWeight: 600,
+                fontSize: "1rem",
+              }}
+            >
+              Weekly Timetable
+            </span>
           </motion.div>
-          
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
+              marginBottom: "1.5rem",
+              backgroundColor: "white",
+              borderRadius: "1.5rem",
+              overflow: "hidden",
+              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.5rem",
             }}
           >
-            <div style={{
-              padding: '1.75rem 2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div
+              style={{
+                padding: "1.75rem 2rem",
+                background: BRAND_COLORS.primary.gradient,
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "1.5rem",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
+              >
                 <motion.div
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '72px',
-                    height: '72px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem',
+                    width: "72px",
+                    height: "72px",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "2rem",
                     flexShrink: 0,
-                    boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
+                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
                   }}
                 >
                   <FaCalendarAlt />
                 </motion.div>
                 <div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '2rem',
-                    fontWeight: 700,
-                    lineHeight: 1.2
-                  }}>
-                    {timetable?.name || 'Weekly Timetable'}
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontSize: "2rem",
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {timetable?.name || "Weekly Timetable"}
                   </h1>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FaUniversity />
-                      <span style={{ opacity: 0.9 }}>Semester {timetable?.semester}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FaClock />
-                      <span style={{ opacity: 0.9 }}>{timetable?.academicYear}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FaLayerGroup />
-                      <span style={{ opacity: 0.9 }}>{timetable?.department_id?.name || 'N/A'}</span>
-                    </div>
-                    <motion.div
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1.5rem",
+                      flexWrap: "wrap",
+                      marginTop: "0.5rem",
+                    }}
+                  >
+                    <div
                       style={{
-                        padding: '0.375rem 1rem',
-                        borderRadius: '20px',
-                        backgroundColor: timetable?.status === 'PUBLISHED' ? `${BRAND_COLORS.success.main}20` : `${BRAND_COLORS.warning.main}20`,
-                        color: timetable?.status === 'PUBLISHED' ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                        fontWeight: 600,
-                        fontSize: '0.9rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        border: `1px solid ${timetable?.status === 'PUBLISHED' ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}40`
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
                       }}
                     >
-                      {timetable?.status === 'PUBLISHED' ? <FaCheckCircle size={14} /> : <FaLock size={14} />}
+                      <FaUniversity />
+                      <span style={{ opacity: 0.9 }}>
+                        Semester {timetable?.semester}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <FaClock />
+                      <span style={{ opacity: 0.9 }}>
+                        {timetable?.academicYear}
+                      </span>
+                    </div>
+                    {timetable?.department_id?.name && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <FaLayerGroup />
+                        <span style={{ opacity: 0.9 }}>
+                          {timetable?.department_id?.name}
+                        </span>
+                      </div>
+                    )}
+                    <motion.div
+                      style={{
+                        padding: "0.375rem 1rem",
+                        borderRadius: "20px",
+                        backgroundColor:
+                          timetable?.status === "PUBLISHED"
+                            ? `${BRAND_COLORS.success.main}20`
+                            : `${BRAND_COLORS.warning.main}20`,
+                        color:
+                          timetable?.status === "PUBLISHED"
+                            ? BRAND_COLORS.success.main
+                            : BRAND_COLORS.warning.main,
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        border: `1px solid ${timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}40`,
+                      }}
+                    >
+                      {timetable?.status === "PUBLISHED" ? (
+                        <FaCheckCircle size={14} />
+                      ) : (
+                        <FaLock size={14} />
+                      )}
                       {timetable?.status}
                     </motion.div>
                   </div>
@@ -523,72 +651,94 @@ export default function WeeklyTimetable() {
               </div>
               {isHOD && (
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
+                  }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate(`/timetable/create-timetable`)}
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: "white",
                     color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
+                    border: "2px solid white",
+                    padding: "0.75rem 1.5rem",
+                    borderRadius: "12px",
+                    fontSize: "0.95rem",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
                   }}
                 >
                   <FaPlus /> Create New Timetable
                 </motion.button>
               )}
             </div>
-            
+
             {/* Info Banner */}
-            <div style={{
-              padding: '1rem 2rem',
-              backgroundColor: timetable?.status === 'PUBLISHED' ? '#dcfce7' : '#ffedd5',
-              borderTop: '1px solid',
-              borderColor: timetable?.status === 'PUBLISHED' ? '#bbf7d0' : '#fed7aa',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                <FaInfoCircle style={{
-                  color: timetable?.status === 'PUBLISHED' ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                  fontSize: '1.25rem'
-                }} />
-                <span style={{ color: '#1e293b', fontWeight: 500 }}>
-                  {timetable?.status === 'PUBLISHED'
+            <div
+              style={{
+                padding: "1rem 2rem",
+                backgroundColor:
+                  timetable?.status === "PUBLISHED" ? "#dcfce7" : "#ffedd5",
+                borderTop: "1px solid",
+                borderColor:
+                  timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flex: 1,
+                }}
+              >
+                <FaInfoCircle
+                  style={{
+                    color:
+                      timetable?.status === "PUBLISHED"
+                        ? BRAND_COLORS.success.main
+                        : BRAND_COLORS.warning.main,
+                    fontSize: "1.25rem",
+                  }}
+                />
+                <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                  {timetable?.status === "PUBLISHED"
                     ? "This timetable is published and visible to students. Only HOD can modify it."
-                    : "This timetable is in draft mode. Complete it and publish when ready."
-                  }
+                    : "This timetable is in draft mode. Complete it and publish when ready."}
                 </span>
               </div>
               {isHOD && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: timetable?.status === 'PUBLISHED' ? '#bbf7d0' : '#fed7aa',
-                  color: timetable?.status === 'PUBLISHED' ? '#166534' : '#92400e',
-                  padding: '0.375rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600
-                }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    backgroundColor:
+                      timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
+                    color:
+                      timetable?.status === "PUBLISHED" ? "#166534" : "#92400e",
+                    padding: "0.375rem 1rem",
+                    borderRadius: "20px",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                  }}
+                >
                   <FaUserShield size={14} />
-                  HOD Access: {isHOD ? 'Enabled' : 'Restricted'}
+                  HOD Access: {isHOD ? "Enabled" : "Restricted"}
                 </div>
               )}
             </div>
           </motion.div>
-          
+
           {/* ================= TIMETABLE GRID ================= */}
           <motion.div
             variants={fadeInVariants}
@@ -596,72 +746,90 @@ export default function WeeklyTimetable() {
             initial="hidden"
             animate="visible"
             style={{
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
+              backgroundColor: "white",
+              borderRadius: "1.5rem",
+              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+              overflow: "hidden",
             }}
           >
-            <div style={{
-              padding: '1.5rem',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: '#1e293b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> Weekly Schedule
+            <div
+              style={{
+                padding: "1.5rem",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "1rem",
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "1.5rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} />{" "}
+                Weekly Schedule
               </h2>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#dbeafe',
-                color: BRAND_COLORS.primary.main,
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: 500
-              }}>
-                <FaInfoCircle /> {Object.values(weekly).flat().length} slots scheduled
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  backgroundColor: "#dbeafe",
+                  color: BRAND_COLORS.primary.main,
+                  padding: "0.5rem 1rem",
+                  borderRadius: "20px",
+                  fontSize: "0.9rem",
+                  fontWeight: 500,
+                }}
+              >
+                <FaInfoCircle /> {Object.values(weekly).flat().length} slots
+                scheduled
               </div>
             </div>
             <div className="table-responsive">
-              <table className="table table-bordered align-middle mb-0" style={{ minWidth: '900px' }}>
+              <table
+                className="table table-bordered align-middle mb-0"
+                style={{ minWidth: "900px" }}
+              >
                 <thead className="table-light">
                   <tr>
-                    <th className="py-3 px-3 fw-semibold text-center" style={headerCellStyle}>Time</th>
+                    <th
+                      className="py-3 px-3 fw-semibold text-center"
+                      style={headerCellStyle}
+                    >
+                      Time
+                    </th>
                     {DAYS.map((day, idx) => (
                       <th
                         key={day}
                         className="py-3 px-3 fw-semibold text-center position-relative"
-                        style={{ ...headerCellStyle, overflow: 'hidden' }}
+                        style={{ ...headerCellStyle, overflow: "hidden" }}
                       >
                         <div>
                           <div className="d-flex align-items-center justify-content-center gap-2">
                             {day}
-                            <div className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '0.25rem' }}>
-                              {DAY_NAMES[idx]}
-                              <motion.span
-                                whileHover={{ scale: 1.2 }}
-                                className="text-info"
-                                style={{ cursor: 'pointer', fontSize: '0.85rem' }}
-                                onMouseEnter={(e) => handleTooltip(e, `Monday is the first day of the academic week. Timetable slots for Monday are displayed in this column.`)}
-                                onMouseLeave={handleTooltipLeave}
-                              >
-                                <FaQuestionCircle />
-                              </motion.span>
-                            </div>
+                            <motion.span
+                              whileHover={{ scale: 1.2 }}
+                              className="text-info"
+                              style={{ cursor: "pointer", fontSize: "0.85rem" }}
+                              onMouseEnter={(e) =>
+                                handleTooltip(
+                                  e,
+                                  `${DAY_NAMES[idx]} is day ${idx + 1} of the academic week. Timetable slots for ${DAY_NAMES[idx]} are displayed in this column.`,
+                                )
+                              }
+                              onMouseLeave={handleTooltipLeave}
+                            >
+                              <FaInfoCircle />
+                            </motion.span>
                           </div>
                         </div>
                       </th>
@@ -678,21 +846,31 @@ export default function WeeklyTimetable() {
                       animate="visible"
                       className="bg-white"
                     >
-                      <td className="py-3 px-3 fw-semibold border-end" style={{ color: '#1e293b', fontSize: '0.95rem' }}>
-                        {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
+                      <td
+                        className="py-3 px-3 fw-semibold border-end"
+                        style={{ color: "#1e293b", fontSize: "0.95rem" }}
+                      >
+                        {formatTime12Hour(timeSlot.start)} -{" "}
+                        {formatTime12Hour(timeSlot.end)}
                       </td>
                       {DAYS.map((day) => {
                         const slots = weekly[day] || [];
-                        const slot = slots.find(s => s.startTime === timeSlot.start && s.endTime === timeSlot.end);
+                        const slot = slots.find(
+                          (s) =>
+                            s.startTime === timeSlot.start &&
+                            s.endTime === timeSlot.end,
+                        );
                         return (
                           <td
                             key={`${day}-${timeSlot.start}`}
                             className="py-2 px-2 align-top"
                             style={{
                               ...cellStyle,
-                              padding: '0.5rem',
-                              backgroundColor: slot ? 'white' : '#f8fafc',
-                              borderLeft: slot ? `3px solid ${BRAND_COLORS.primary.main}` : '1px solid #e2e8f0'
+                              padding: "0.5rem",
+                              backgroundColor: slot ? "white" : "#f8fafc",
+                              borderLeft: slot
+                                ? `3px solid ${BRAND_COLORS.primary.main}`
+                                : "1px solid #e2e8f0",
                             }}
                           >
                             {slot ? (
@@ -704,27 +882,27 @@ export default function WeeklyTimetable() {
                                 handleTooltip={handleTooltip}
                                 handleTooltipLeave={handleTooltipLeave}
                               />
+                            ) : isHOD ? (
+                              <AddSlotButton
+                                onClick={() => openCreate(day, timeSlot)}
+                                time={timeSlot}
+                                day={day}
+                                handleTooltip={handleTooltip}
+                                handleTooltipLeave={handleTooltipLeave}
+                              />
                             ) : (
-                              isHOD ? (
-                                <AddSlotButton
-                                  onClick={() => openCreate(day, timeSlot)}
-                                  time={timeSlot}
-                                  day={day}
-                                  handleTooltip={handleTooltip}
-                                  handleTooltipLeave={handleTooltipLeave}
-                                />
-                              ) : (
-                                <div style={{
-                                  height: '100%',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: '#cbd5e1',
-                                  fontSize: '2rem'
-                                }}>
-                                  —
-                                </div>
-                              )
+                              <div
+                                style={{
+                                  height: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#cbd5e1",
+                                  fontSize: "2rem",
+                                }}
+                              >
+                                —
+                              </div>
                             )}
                           </td>
                         );
@@ -734,133 +912,194 @@ export default function WeeklyTimetable() {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Legend */}
-            <div style={{
-              padding: '1.5rem',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '1.5rem',
-              justifyContent: 'center',
-              backgroundColor: '#f8fafc'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '4px',
-                  backgroundColor: BRAND_COLORS.slotTypes.LECTURE.bg,
-                  border: `1px solid ${BRAND_COLORS.slotTypes.LECTURE.border}`
-                }} />
-                <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Lecture</span>
+            <div
+              style={{
+                padding: "1.5rem",
+                borderTop: "1px solid #e2e8f0",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "1.5rem",
+                justifyContent: "center",
+                backgroundColor: "#f8fafc",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    backgroundColor: BRAND_COLORS.slotTypes.LECTURE.bg,
+                    border: `1px solid ${BRAND_COLORS.slotTypes.LECTURE.border}`,
+                  }}
+                />
+                <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+                  Lecture
+                </span>
                 <motion.span
                   whileHover={{ scale: 1.2 }}
                   style={{
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     color: BRAND_COLORS.info.main,
-                    fontSize: '0.85rem'
+                    fontSize: "0.85rem",
                   }}
-                  onMouseEnter={(e) => handleTooltip(e, "Lecture slots are for theoretical instruction. They typically involve the teacher presenting concepts to students in a classroom setting.")}
+                  onMouseEnter={(e) =>
+                    handleTooltip(
+                      e,
+                      "Lecture slots are for theoretical instruction. They typically involve the teacher presenting concepts to students in a classroom setting.",
+                    )
+                  }
                   onMouseLeave={handleTooltipLeave}
                 >
-                  <FaQuestionCircle />
+                  <FaInfoCircle />
                 </motion.span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '4px',
-                  backgroundColor: BRAND_COLORS.slotTypes.LAB.bg,
-                  border: `1px solid ${BRAND_COLORS.slotTypes.LAB.border}`
-                }} />
-                <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Lab</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    backgroundColor: BRAND_COLORS.slotTypes.LAB.bg,
+                    border: `1px solid ${BRAND_COLORS.slotTypes.LAB.border}`,
+                  }}
+                />
+                <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+                  Lab
+                </span>
                 <motion.span
                   whileHover={{ scale: 1.2 }}
                   style={{
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     color: BRAND_COLORS.info.main,
-                    fontSize: '0.85rem'
+                    fontSize: "0.85rem",
                   }}
-                  onMouseEnter={(e) => handleTooltip(e, "Lab slots are for hands-on practical sessions. They typically involve students working with equipment or software in a lab environment.")}
+                  onMouseEnter={(e) =>
+                    handleTooltip(
+                      e,
+                      "Lab slots are for hands-on practical sessions. They typically involve students working with equipment or software in a lab environment.",
+                    )
+                  }
                   onMouseLeave={handleTooltipLeave}
                 >
-                  <FaQuestionCircle />
+                  <FaInfoCircle />
                 </motion.span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '4px',
-                  backgroundColor: BRAND_COLORS.slotTypes.TUTORIAL.bg,
-                  border: `1px solid ${BRAND_COLORS.slotTypes.TUTORIAL.border}`
-                }} />
-                <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Tutorial</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    backgroundColor: BRAND_COLORS.slotTypes.TUTORIAL.bg,
+                    border: `1px solid ${BRAND_COLORS.slotTypes.TUTORIAL.border}`,
+                  }}
+                />
+                <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+                  Tutorial
+                </span>
                 <motion.span
                   whileHover={{ scale: 1.2 }}
                   style={{
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     color: BRAND_COLORS.info.main,
-                    fontSize: '0.85rem'
+                    fontSize: "0.85rem",
                   }}
-                  onMouseEnter={(e) => handleTooltip(e, "Tutorial slots are for small-group discussions and problem-solving sessions. They typically involve guided learning with the teacher.")}
+                  onMouseEnter={(e) =>
+                    handleTooltip(
+                      e,
+                      "Tutorial slots are for small-group discussions and problem-solving sessions. They typically involve guided learning with the teacher.",
+                    )
+                  }
                   onMouseLeave={handleTooltipLeave}
                 >
-                  <FaQuestionCircle />
+                  <FaInfoCircle />
                 </motion.span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '4px',
-                  backgroundColor: BRAND_COLORS.slotTypes.PRACTICAL.bg,
-                  border: `1px solid ${BRAND_COLORS.slotTypes.PRACTICAL.border}`
-                }} />
-                <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Practical</span>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    backgroundColor: BRAND_COLORS.slotTypes.PRACTICAL.bg,
+                    border: `1px solid ${BRAND_COLORS.slotTypes.PRACTICAL.border}`,
+                  }}
+                />
+                <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+                  Practical
+                </span>
                 <motion.span
                   whileHover={{ scale: 1.2 }}
                   style={{
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     color: BRAND_COLORS.info.main,
-                    fontSize: '0.85rem'
+                    fontSize: "0.85rem",
                   }}
-                  onMouseEnter={(e) => handleTooltip(e, "Practical slots are for real-world application of concepts. They typically involve students working on projects or experiments.")}
+                  onMouseEnter={(e) =>
+                    handleTooltip(
+                      e,
+                      "Practical slots are for real-world application of concepts. They typically involve students working on projects or experiments.",
+                    )
+                  }
                   onMouseLeave={handleTooltipLeave}
                 >
-                  <FaQuestionCircle />
+                  <FaInfoCircle />
                 </motion.span>
               </div>
               {isHOD && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    backgroundColor: BRAND_COLORS.primary.main,
-                    border: '2px dashed white',
-                    boxShadow: '0 0 0 2px #1a4b6d'
-                  }} />
-                  <span style={{ fontSize: '0.85rem', color: '#4a5568' }}>Click to add slot (HOD only)</span>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      borderRadius: "50%",
+                      backgroundColor: BRAND_COLORS.primary.main,
+                      border: "2px dashed white",
+                      boxShadow: "0 0 0 2px #1a4b6d",
+                    }}
+                  />
+                  <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+                    Click to add slot (HOD only)
+                  </span>
                   <motion.span
                     whileHover={{ scale: 1.2 }}
                     style={{
-                      cursor: 'pointer',
+                      cursor: "pointer",
                       color: BRAND_COLORS.info.main,
-                      fontSize: '0.85rem'
+                      fontSize: "0.85rem",
                     }}
-                    onMouseEnter={(e) => handleTooltip(e, "Only HODs can add new slots to published timetables. For draft timetables, all teachers can add slots.")}
+                    onMouseEnter={(e) =>
+                      handleTooltip(
+                        e,
+                        "Only HODs can add new slots to published timetables. For draft timetables, all teachers can add slots.",
+                      )
+                    }
                     onMouseLeave={handleTooltipLeave}
                   >
-                    <FaQuestionCircle />
+                    <FaInfoCircle />
                   </motion.span>
                 </div>
               )}
             </div>
           </motion.div>
-          
+
           {/* ================= MODAL ================= */}
           <AnimatePresence>
             {showModal && (
@@ -869,17 +1108,17 @@ export default function WeeklyTimetable() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 style={{
-                  position: 'fixed',
+                  position: "fixed",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  backgroundColor: "rgba(0, 0, 0, 0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   zIndex: 1000,
-                  padding: '1rem'
+                  padding: "1rem",
                 }}
                 onClick={() => setShowModal(false)}
               >
@@ -889,121 +1128,159 @@ export default function WeeklyTimetable() {
                   animate="visible"
                   exit="exit"
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                    width: '100%',
-                    maxWidth: '500px',
-                    maxHeight: '90vh',
-                    overflowY: 'auto'
+                    backgroundColor: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0 20px 50px rgba(0, 0, 0, 0.3)",
+                    width: "100%",
+                    maxWidth: "500px",
+                    maxHeight: "90vh",
+                    overflowY: "auto",
                   }}
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div style={{ padding: '1.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h3 style={{
-                        margin: 0,
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        color: '#1e293b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}>
+                  <div style={{ padding: "1.75rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: "1.5rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                        }}
+                      >
                         {editSlot ? <FaEdit /> : <FaPlus />}
-                        {editSlot ? 'Edit Timetable Slot' : 'Add New Timetable Slot'}
+                        {editSlot
+                          ? "Edit Timetable Slot"
+                          : "Add New Timetable Slot"}
                       </h3>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setShowModal(false)}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          fontSize: '1.5rem',
-                          color: '#64748b',
-                          cursor: 'pointer',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease'
+                          background: "none",
+                          border: "none",
+                          fontSize: "1.5rem",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          width: "32px",
+                          height: "32px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "8px",
+                          transition: "all 0.2s ease",
                         }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        onMouseEnter={(e) =>
+                          (e.target.style.backgroundColor = "#f1f5f9")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.target.style.backgroundColor = "transparent")
+                        }
                       >
                         &times;
                       </motion.button>
                     </div>
-                    
+
                     {error && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         style={{
-                          marginBottom: '1.5rem',
-                          padding: '1rem',
-                          borderRadius: '12px',
+                          marginBottom: "1.5rem",
+                          padding: "1rem",
+                          borderRadius: "12px",
                           backgroundColor: `${BRAND_COLORS.danger.main}0a`,
                           border: `1px solid ${BRAND_COLORS.danger.main}`,
                           color: BRAND_COLORS.danger.main,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem'
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
                         }}
                       >
                         <FaTimesCircle size={20} />
                         <span>{error}</span>
                       </motion.div>
                     )}
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1.25rem",
+                      }}
+                    >
                       <FormField label="Subject" icon={<FaBook />}>
                         <select
                           value={form.subject_id}
-                          onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, subject_id: e.target.value })
+                          }
                           style={inputStyle}
                         >
                           <option value="">Select subject</option>
-                          {subjects.map(s => (
+                          {subjects.map((s) => (
                             <option key={s._id} value={s._id}>
                               {s.name} ({s.code})
                             </option>
                           ))}
                         </select>
                       </FormField>
-                      
-                      <FormField label="Assigned Teacher" icon={<FaChalkboardTeacher />}>
+
+                      <FormField
+                        label="Assigned Teacher"
+                        icon={<FaChalkboardTeacher />}
+                      >
                         <input
                           type="text"
-                          value={teachers.find(t => t._id === form.teacher_id)?.name || "Select a subject to auto-assign teacher"}
+                          value={
+                            teachers.find((t) => t._id === form.teacher_id)
+                              ?.name ||
+                            "Select a subject to auto-assign teacher"
+                          }
                           disabled
                           style={{
                             ...inputStyle,
-                            backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
-                            color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
+                            backgroundColor: form.teacher_id
+                              ? "#f0fdf4"
+                              : "#f8fafc",
+                            color: form.teacher_id
+                              ? BRAND_COLORS.success.main
+                              : "#94a3b8",
                             fontWeight: form.teacher_id ? 600 : 400,
-                            fontStyle: form.teacher_id ? 'normal' : 'italic'
+                            fontStyle: form.teacher_id ? "normal" : "italic",
                           }}
                         />
                       </FormField>
-                      
+
                       <FormField label="Room Number" icon={<FaDoorOpen />}>
                         <input
                           type="text"
                           placeholder="e.g., A-101, Lab-2"
                           value={form.room}
-                          onChange={(e) => setForm({ ...form, room: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, room: e.target.value })
+                          }
                           style={inputStyle}
                         />
                       </FormField>
-                      
+
                       <FormField label="Slot Type" icon={<FaLayerGroup />}>
                         <select
                           value={form.slotType}
-                          onChange={(e) => setForm({ ...form, slotType: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, slotType: e.target.value })
+                          }
                           style={inputStyle}
                         >
                           <option value="LECTURE">Lecture</option>
@@ -1012,79 +1289,102 @@ export default function WeeklyTimetable() {
                           <option value="PRACTICAL">Practical</option>
                         </select>
                       </FormField>
-                      
-                      <div style={{
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        backgroundColor: '#dbeafe',
-                        border: '1px solid #93c5fd',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}>
-                        <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>
-                          <strong>Time:</strong> {form.startTime} - {form.endTime} • <strong>Day:</strong> {form.day}
+
+                      <div
+                        style={{
+                          padding: "1rem",
+                          borderRadius: "12px",
+                          backgroundColor: "#dbeafe",
+                          border: "1px solid #93c5fd",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                        }}
+                      >
+                        <FaInfoCircle
+                          style={{
+                            color: BRAND_COLORS.primary.main,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span style={{ fontSize: "0.9rem", color: "#1e293b" }}>
+                          <strong>Time:</strong> {form.startTime} -{" "}
+                          {form.endTime} • <strong>Day:</strong> {form.day}
                         </span>
                       </div>
                     </div>
-                    
-                    <div style={{
-                      display: 'flex',
-                      gap: '0.75rem',
-                      marginTop: '1.5rem',
-                      justifyContent: 'flex-end'
-                    }}>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.75rem",
+                        marginTop: "1.5rem",
+                        justifyContent: "flex-end",
+                      }}
+                    >
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowModal(false)}
                         style={{
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          backgroundColor: 'white',
-                          color: '#1e293b',
-                          fontSize: '1rem',
+                          padding: "0.75rem 1.5rem",
+                          borderRadius: "12px",
+                          border: "1px solid #e2e8f0",
+                          backgroundColor: "white",
+                          color: "#1e293b",
+                          fontSize: "1rem",
                           fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease'
+                          cursor: "pointer",
+                          transition: "all 0.3s ease",
                         }}
                       >
                         Cancel
                       </motion.button>
-                      
+
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={submitSlot}
                         disabled={submitting || !form.subject_id}
                         style={{
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '12px',
-                          border: 'none',
-                          backgroundColor: (!form.subject_id || submitting) ? '#cbd5e1' : BRAND_COLORS.primary.main,
-                          color: 'white',
-                          fontSize: '1rem',
+                          padding: "0.75rem 1.5rem",
+                          borderRadius: "12px",
+                          border: "none",
+                          backgroundColor:
+                            !form.subject_id || submitting
+                              ? "#cbd5e1"
+                              : BRAND_COLORS.primary.main,
+                          color: "white",
+                          fontSize: "1rem",
                           fontWeight: 600,
-                          cursor: (!form.subject_id || submitting) ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          transition: 'all 0.3s ease',
-                          boxShadow: (!form.subject_id || submitting) ? 'none' : '0 4px 15px rgba(26, 75, 109, 0.3)'
+                          cursor:
+                            !form.subject_id || submitting
+                              ? "not-allowed"
+                              : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          transition: "all 0.3s ease",
+                          boxShadow:
+                            !form.subject_id || submitting
+                              ? "none"
+                              : "0 4px 15px rgba(26, 75, 109, 0.3)",
                         }}
                       >
                         {submitting ? (
                           <>
-                            <motion.div variants={spinVariants} animate="animate">
+                            <motion.div
+                              variants={spinVariants}
+                              animate="animate"
+                            >
                               <FaSyncAlt size={16} />
                             </motion.div>
                             Saving...
                           </>
                         ) : (
                           <>
-                            <FaCheckCircle /> {editSlot ? 'Update Slot' : 'Add Slot'}
+                            <FaCheckCircle />{" "}
+                            {editSlot ? "Update Slot" : "Add Slot"}
                           </>
                         )}
                       </motion.button>
@@ -1094,34 +1394,36 @@ export default function WeeklyTimetable() {
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           {/* ================= INFO TOOLTIP ================= */}
           {showTooltip && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                position: 'fixed',
+                position: "fixed",
                 top: tooltipPosition.top,
                 left: tooltipPosition.left,
-                transform: 'translateX(-50%)',
-                backgroundColor: 'white',
-                padding: '1rem',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                transform: "translateX(-50%)",
+                backgroundColor: "white",
+                padding: "1rem",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
                 zIndex: 1001,
-                maxWidth: '300px',
-                fontSize: '0.9rem',
-                border: '1px solid #e2e8f0'
+                maxWidth: "300px",
+                fontSize: "0.9rem",
+                border: "1px solid #e2e8f0",
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
                 <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
                 <span>{tooltipContent}</span>
               </div>
             </motion.div>
           )}
-          
+
           {/* ================= INFO MODAL ================= */}
           <AnimatePresence>
             {showInfoModal && (
@@ -1130,17 +1432,17 @@ export default function WeeklyTimetable() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 style={{
-                  position: 'fixed',
+                  position: "fixed",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  backgroundColor: "rgba(0, 0, 0, 0.6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   zIndex: 1001,
-                  padding: '1rem'
+                  padding: "1rem",
                 }}
                 onClick={() => setShowInfoModal(false)}
               >
@@ -1150,27 +1452,36 @@ export default function WeeklyTimetable() {
                   animate="visible"
                   exit="exit"
                   style={{
-                    backgroundColor: 'white',
-                    borderRadius: '16px',
-                    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
-                    width: '100%',
-                    maxWidth: '500px',
-                    maxHeight: '90vh',
-                    overflowY: 'auto'
+                    backgroundColor: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0 20px 50px rgba(0, 0, 0, 0.3)",
+                    width: "100%",
+                    maxWidth: "500px",
+                    maxHeight: "90vh",
+                    overflowY: "auto",
                   }}
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div style={{ padding: '1.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h3 style={{
-                        margin: 0,
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        color: '#1e293b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem'
-                      }}>
+                  <div style={{ padding: "1.75rem" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      <h3
+                        style={{
+                          margin: 0,
+                          fontSize: "1.5rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                        }}
+                      >
                         <FaInfoCircle /> Information
                       </h3>
                       <motion.button
@@ -1178,46 +1489,66 @@ export default function WeeklyTimetable() {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setShowInfoModal(false)}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          fontSize: '1.5rem',
-                          color: '#64748b',
-                          cursor: 'pointer',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease'
+                          background: "none",
+                          border: "none",
+                          fontSize: "1.5rem",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          width: "32px",
+                          height: "32px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "8px",
+                          transition: "all 0.2s ease",
                         }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        onMouseEnter={(e) =>
+                          (e.target.style.backgroundColor = "#f1f5f9")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.target.style.backgroundColor = "transparent")
+                        }
                       >
                         &times;
                       </motion.button>
                     </div>
-                    
-                    <div style={{ 
-                      padding: '1rem', 
-                      borderRadius: '12px', 
-                      backgroundColor: '#f8fafc',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.75rem',
-                        marginBottom: '0.75rem'
-                      }}>
-                        <FaLightbulb style={{ color: BRAND_COLORS.warning.main }} />
-                        <h4 style={{ margin: 0, color: '#1e293b', fontWeight: 600 }}>Timetable Information</h4>
+
+                    <div
+                      style={{
+                        padding: "1rem",
+                        borderRadius: "12px",
+                        backgroundColor: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        <FaLightbulb
+                          style={{ color: BRAND_COLORS.warning.main }}
+                        />
+                        <h4
+                          style={{
+                            margin: 0,
+                            color: "#1e293b",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Timetable Information
+                        </h4>
                       </div>
-                      <p style={{ 
-                        margin: 0, 
-                        color: '#4a5568',
-                        lineHeight: 1.6
-                      }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#4a5568",
+                          lineHeight: 1.6,
+                        }}
+                      >
                         {infoContent}
                       </p>
                     </div>
@@ -1229,10 +1560,32 @@ export default function WeeklyTimetable() {
         </div>
       </motion.div>
 
+      {/* ================= TOAST CONTAINER ================= */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+
       {/* ================= CONFIRM MODAL ================= */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ isOpen: false, slotId: null, title: "", message: "", type: "danger" })}
+        onClose={() =>
+          setConfirmModal({
+            isOpen: false,
+            slotId: null,
+            title: "",
+            message: "",
+            type: "danger",
+          })
+        }
         onConfirm={confirmDeleteSlot}
         title={confirmModal.title}
         message={confirmModal.message}
@@ -1247,15 +1600,17 @@ export default function WeeklyTimetable() {
 /* ================= FORM FIELD ================= */
 function FormField({ label, icon, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        fontWeight: 600,
-        color: '#1e293b',
-        fontSize: '0.95rem'
-      }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontWeight: 600,
+          color: "#1e293b",
+          fontSize: "0.95rem",
+        }}
+      >
         {icon}
         {label}
       </label>
@@ -1265,170 +1620,208 @@ function FormField({ label, icon, children }) {
 }
 
 /* ================= TIMETABLE SLOT ================= */
-function TimetableSlot({ slot, isHOD, onEdit, onDelete, handleTooltip, handleTooltipLeave }) {
-  const slotType = BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
-  
+function TimetableSlot({
+  slot,
+  isHOD,
+  onEdit,
+  onDelete,
+  handleTooltip,
+  handleTooltipLeave,
+}) {
+  const slotType =
+    BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
+
   return (
     <motion.div
-      whileHover={{ 
-        y: -2, 
-        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
-        scale: 1.02
+      whileHover={{
+        y: -2,
+        boxShadow: "0 8px 20px rgba(0, 0, 0, 0.1)",
+        scale: 1.02,
       }}
       style={{
-        backgroundColor: 'white',
+        backgroundColor: "white",
         border: `1px solid ${slotType.border}`,
-        borderRadius: '12px',
-        padding: '0.875rem',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        transition: 'all 0.3s ease',
-        position: 'relative',
-        overflow: 'hidden'
+        borderRadius: "12px",
+        padding: "0.875rem",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.75rem",
+        transition: "all 0.3s ease",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '3px',
-        background: slotType.text,
-        zIndex: 1
-      }} />
-      
-      <div style={{
-        fontWeight: 700,
-        color: slotType.text,
-        fontSize: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.375rem'
-      }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "3px",
+          background: slotType.text,
+          zIndex: 1,
+        }}
+      />
+
+      <div
+        style={{
+          fontWeight: 700,
+          color: slotType.text,
+          fontSize: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.375rem",
+        }}
+      >
         <FaBook size={14} />
-        {slot.subject_id?.name || 'N/A'}
+        {slot.subject_id?.name || "Subject not assigned"}
       </div>
-      
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-        fontSize: '0.85rem',
-        color: '#4a5568'
-      }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          flexWrap: "wrap",
+          fontSize: "0.85rem",
+          color: "#4a5568",
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
           <FaChalkboardTeacher size={12} />
-          {slot.teacher_id?.name || 'N/A'}
+          {slot.teacher_id?.name || "Teacher not assigned"}
           <motion.span
             whileHover={{ scale: 1.2 }}
             style={{
-              cursor: 'pointer',
+              cursor: "pointer",
               color: BRAND_COLORS.info.main,
-              fontSize: '0.85rem'
+              fontSize: "0.85rem",
             }}
-            onMouseEnter={(e) => handleTooltip(e, "The teacher assigned to this subject. Click to view teacher details or contact information.")}
+            onMouseEnter={(e) =>
+              handleTooltip(
+                e,
+                "The teacher assigned to this subject. Click to view teacher details or contact information.",
+              )
+            }
             onMouseLeave={handleTooltipLeave}
           >
-            <FaQuestionCircle />
+            <FaInfoCircle />
           </motion.span>
         </span>
         {slot.room && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span
+            style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
+          >
             <FaDoorOpen size={12} />
             Room {slot.room}
             <motion.span
               whileHover={{ scale: 1.2 }}
               style={{
-                cursor: 'pointer',
+                cursor: "pointer",
                 color: BRAND_COLORS.info.main,
-                fontSize: '0.85rem'
+                fontSize: "0.85rem",
               }}
-              onMouseEnter={(e) => handleTooltip(e, "The room where this class will be held. Click to view room details or location on campus map.")}
+              onMouseEnter={(e) =>
+                handleTooltip(
+                  e,
+                  "The room where this class will be held. Click to view room details or location on campus map.",
+                )
+              }
               onMouseLeave={handleTooltipLeave}
             >
-              <FaQuestionCircle />
+              <FaInfoCircle />
             </motion.span>
           </span>
         )}
       </div>
-      
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.375rem',
-        marginTop: '0.25rem'
-      }}>
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.25rem',
-          padding: '0.25rem 0.625rem',
-          borderRadius: '6px',
-          backgroundColor: slotType.bg,
-          color: slotType.text,
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          border: `1px solid ${slotType.border}`
-        }}>
+
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.375rem",
+          marginTop: "0.25rem",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            padding: "0.25rem 0.625rem",
+            borderRadius: "6px",
+            backgroundColor: slotType.bg,
+            color: slotType.text,
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            border: `1px solid ${slotType.border}`,
+          }}
+        >
           <FaLayerGroup size={10} />
           {slot.slotType}
         </span>
       </div>
-      
+
       {isHOD && (
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginTop: '0.5rem',
-          paddingTop: '0.5rem',
-          borderTop: '1px dashed #e2e8f0'
-        }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            marginTop: "0.5rem",
+            paddingTop: "0.5rem",
+            borderTop: "1px dashed #e2e8f0",
+          }}
+        >
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             style={{
               flex: 1,
-              padding: '0.5rem',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: 'white',
+              padding: "0.5rem",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              backgroundColor: "white",
               color: BRAND_COLORS.primary.main,
-              fontSize: '0.85rem',
+              fontSize: "0.85rem",
               fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.375rem',
-              transition: 'all 0.2s ease'
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.375rem",
+              transition: "all 0.2s ease",
             }}
           >
             <FaEdit size={14} /> Edit
           </motion.button>
-          
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             style={{
               flex: 1,
-              padding: '0.5rem',
-              borderRadius: '8px',
-              border: '1px solid #fecaca',
-              backgroundColor: '#fee2e2',
+              padding: "0.5rem",
+              borderRadius: "8px",
+              border: "1px solid #fecaca",
+              backgroundColor: "#fee2e2",
               color: BRAND_COLORS.danger.main,
-              fontSize: '0.85rem',
+              fontSize: "0.85rem",
               fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.375rem',
-              transition: 'all 0.2s ease'
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.375rem",
+              transition: "all 0.2s ease",
             }}
           >
             <FaTrash size={14} /> Delete
@@ -1440,57 +1833,70 @@ function TimetableSlot({ slot, isHOD, onEdit, onDelete, handleTooltip, handleToo
 }
 
 /* ================= ADD SLOT BUTTON ================= */
-function AddSlotButton({ onClick, time, day, handleTooltip, handleTooltipLeave }) {
+function AddSlotButton({
+  onClick,
+  time,
+  day,
+  handleTooltip,
+  handleTooltipLeave,
+}) {
   return (
     <motion.button
-      whileHover={{ 
-        scale: 1.05, 
-        backgroundColor: '#dbeafe',
-        transform: 'translateY(-3px)'
+      whileHover={{
+        scale: 1.05,
+        backgroundColor: "#dbeafe",
+        transform: "translateY(-3px)",
       }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
       style={{
-        width: '100%',
-        height: '100%',
-        border: '2px dashed #93c5fd',
-        borderRadius: '12px',
-        backgroundColor: '#eff6ff',
+        width: "100%",
+        height: "100%",
+        border: "2px dashed #93c5fd",
+        borderRadius: "12px",
+        backgroundColor: "#eff6ff",
         color: BRAND_COLORS.primary.main,
-        fontSize: '2.5rem',
+        fontSize: "2.5rem",
         fontWeight: 300,
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        transition: 'all 0.3s ease',
-        padding: '0.5rem'
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.5rem",
+        transition: "all 0.3s ease",
+        padding: "0.5rem",
       }}
     >
       <FaPlus size={24} />
-      <span style={{
-        fontSize: '0.75rem',
-        fontWeight: 500,
-        marginTop: '-0.5rem'
-      }}>
+      <span
+        style={{
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          marginTop: "-0.5rem",
+        }}
+      >
         Add Slot
       </span>
       <motion.div
         whileHover={{ scale: 1.2 }}
         style={{
-          cursor: 'pointer',
+          cursor: "pointer",
           color: BRAND_COLORS.info.main,
-          fontSize: '0.85rem',
-          position: 'absolute',
-          bottom: '8px',
-          right: '8px'
+          fontSize: "0.85rem",
+          position: "absolute",
+          bottom: "8px",
+          right: "8px",
         }}
-        onMouseEnter={(e) => handleTooltip(e, "Click to add a new timetable slot for this time period. Only HODs can add slots to published timetables.")}
+        onMouseEnter={(e) =>
+          handleTooltip(
+            e,
+            "Click to add a new timetable slot for this time period. Only HODs can add slots to published timetables.",
+          )
+        }
         onMouseLeave={handleTooltipLeave}
       >
-        <FaQuestionCircle size={16} />
+        <FaInfoCircle size={16} />
       </motion.div>
     </motion.button>
   );
@@ -1498,35 +1904,35 @@ function AddSlotButton({ onClick, time, day, handleTooltip, handleTooltipLeave }
 
 /* ================= STYLES ================= */
 const headerCellStyle = {
-  padding: '1rem',
-  textAlign: 'center',
+  padding: "1rem",
+  textAlign: "center",
   fontWeight: 700,
-  color: '#1e293b',
-  fontSize: '0.9rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  position: 'sticky',
+  color: "#1e293b",
+  fontSize: "0.9rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  position: "sticky",
   top: 0,
   zIndex: 10,
-  backgroundColor: '#f1f5f9'
+  backgroundColor: "#f1f5f9",
 };
 
 const cellStyle = {
-  padding: '0.75rem',
-  fontSize: '0.95rem',
-  color: '#1e293b',
-  borderBottom: '1px solid #e2e8f0',
-  verticalAlign: 'middle',
-  minWidth: '150px'
+  padding: "0.75rem",
+  fontSize: "0.95rem",
+  color: "#1e293b",
+  borderBottom: "1px solid #e2e8f0",
+  verticalAlign: "middle",
+  minWidth: "150px",
 };
 
 const inputStyle = {
-  width: '100%',
-  padding: '0.875rem 1.25rem',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  fontSize: '1rem',
-  backgroundColor: 'white',
-  color: '#1e293b',
-  fontWeight: 500
+  width: "100%",
+  padding: "0.875rem 1.25rem",
+  borderRadius: "12px",
+  border: "1px solid #e2e8f0",
+  fontSize: "1rem",
+  backgroundColor: "white",
+  color: "#1e293b",
+  fontWeight: 500,
 };

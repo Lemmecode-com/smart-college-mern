@@ -22,7 +22,7 @@ const CONFIG = {
     autoClose: 3000,
     hideProgressBar: true,
     closeOnClick: true,
-    pauseOnHover: true,   
+    pauseOnHover: true,
     draggable: true,
     theme: "colored",
   },
@@ -55,13 +55,11 @@ export default function UpdateNotifications() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
-
   // Confirm modal for navigation
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     action: null,
   });
-  
 
   /* ================= LOAD EXISTING ================= */
   const loadNote = useCallback(async () => {
@@ -69,12 +67,12 @@ export default function UpdateNotifications() {
       setLoading(true);
       setError("");
       const res = await api.get(`/notifications/admin/read`);
-      
+
       // Check in myNotifications first (user owns these - can edit)
       const myNotes = res.data.myNotifications || [];
       let note = myNotes.find((n) => n._id === id);
       let isOwner = false;
-      
+
       // If not found in myNotifications, check staffNotifications (cannot edit)
       if (!note) {
         const staffNotes = res.data.staffNotifications || [];
@@ -161,7 +159,6 @@ export default function UpdateNotifications() {
     }
   };
 
-  
   /* ================= NAVIGATION HANDLER ================= */
   const handleBackClick = () => {
     // Check if form has unsaved changes
@@ -259,10 +256,7 @@ export default function UpdateNotifications() {
           </div>
         </div>
         <div className="header-actions">
-          <button
-            className="btn-header"
-            onClick={() => navigate("/notifications")}
-          >
+          <button className="btn-header" onClick={handleBackClick}>
             <FaArrowLeft /> <span>Back</span>
           </button>
         </div>
@@ -284,7 +278,10 @@ export default function UpdateNotifications() {
                 {/* TITLE */}
                 <div className="mb-4">
                   <label className="form-label fw-semibold">
-                    <FaBell className="me-1" style={{ color: CONFIG.THEME.PRIMARY }} />
+                    <FaBell
+                      className="me-1"
+                      style={{ color: CONFIG.THEME.PRIMARY }}
+                    />
                     Title <span className="text-danger">*</span>
                   </label>
                   <input
@@ -305,7 +302,10 @@ export default function UpdateNotifications() {
                 {/* MESSAGE */}
                 <div className="mb-4">
                   <label className="form-label fw-semibold">
-                    <FaBell className="me-1" style={{ color: CONFIG.THEME.INFO }} />
+                    <FaBell
+                      className="me-1"
+                      style={{ color: CONFIG.THEME.INFO }}
+                    />
                     Message <span className="text-danger">*</span>
                   </label>
                   <textarea
@@ -327,7 +327,10 @@ export default function UpdateNotifications() {
                   {/* TYPE */}
                   <div className="col-md-6">
                     <label className="form-label fw-semibold">
-                      <FaBell className="me-1" style={{ color: CONFIG.THEME.PRIMARY }} />
+                      <FaBell
+                        className="me-1"
+                        style={{ color: CONFIG.THEME.PRIMARY }}
+                      />
                       Type
                     </label>
                     <select
@@ -353,7 +356,10 @@ export default function UpdateNotifications() {
                   {/* PRIORITY */}
                   <div className="col-md-6">
                     <label className="form-label fw-semibold">
-                      <FaExclamationTriangle className="me-1" style={{ color: CONFIG.THEME.WARNING }} />
+                      <FaExclamationTriangle
+                        className="me-1"
+                        style={{ color: CONFIG.THEME.WARNING }}
+                      />
                       Priority
                     </label>
                     <select
@@ -375,7 +381,10 @@ export default function UpdateNotifications() {
                 {/* EXPIRY */}
                 <div className="mb-4">
                   <label className="form-label fw-semibold">
-                    <FaCalendarAlt className="me-1" style={{ color: CONFIG.THEME.PRIMARY_LIGHT }} />
+                    <FaCalendarAlt
+                      className="me-1"
+                      style={{ color: CONFIG.THEME.PRIMARY_LIGHT }}
+                    />
                     Expiry Date
                   </label>
                   <input
@@ -431,9 +440,13 @@ export default function UpdateNotifications() {
               <h6 className="fw-bold mb-1">Editing Information</h6>
               <ul className="mb-0 small ps-3">
                 <li>Changes are saved immediately upon clicking "Update"</li>
-                <li>Updated notifications retain their original creation date</li>
+                <li>
+                  Updated notifications retain their original creation date
+                </li>
                 <li>All recipients will see the updated content</li>
-                <li>Use expiry date to auto-archive time-sensitive notifications</li>
+                <li>
+                  Use expiry date to auto-archive time-sensitive notifications
+                </li>
               </ul>
             </div>
           </div>
