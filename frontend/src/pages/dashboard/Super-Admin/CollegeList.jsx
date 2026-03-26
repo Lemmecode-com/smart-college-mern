@@ -1,10 +1,18 @@
-import { useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
+import {
+  useContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
 
 import {
   FaUniversity,
@@ -17,18 +25,16 @@ import {
   FaToggleOff,
   FaToggleOn,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaInfoCircle,
   FaDownload,
   FaFilter,
   FaChevronDown,
   FaChevronUp,
-  FaChevronLeft,
   FaChevronRight,
   FaPlus,
   FaListOl,
   FaFileExcel,
-  FaFilePdf
+  FaFilePdf,
 } from "react-icons/fa";
 
 const ITEMS_PER_PAGE = 10;
@@ -46,7 +52,10 @@ export default function CollegeList() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [toggleData, setToggleData] = useState({ id: null, currentStatus: null });
+  const [toggleData, setToggleData] = useState({
+    id: null,
+    currentStatus: null,
+  });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -65,7 +74,7 @@ export default function CollegeList() {
   const fetchColleges = async () => {
     // Prevent duplicate fetches in Strict Mode
     if (hasLoadedRef.current) return;
-    
+
     try {
       setLoading(true);
       setError("");
@@ -79,7 +88,10 @@ export default function CollegeList() {
     } catch (err) {
       // Only show error if not already loaded
       if (!hasLoadedRef.current) {
-        const errorMsg = err.response?.data?.message || err.response?.data?.error?.message || "Failed to load colleges. Please try again.";
+        const errorMsg =
+          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
+          "Failed to load colleges. Please try again.";
         setError(errorMsg);
       }
     } finally {
@@ -123,7 +135,7 @@ export default function CollegeList() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchColleges();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
@@ -133,21 +145,25 @@ export default function CollegeList() {
   /* ================= FILTER + PAGINATION ================= */
   const filteredColleges = useMemo(() => {
     return colleges
-      .filter(college =>
-        college.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        college.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        college.contactNumber.includes(debouncedSearch)
+      .filter(
+        (college) =>
+          college.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          college.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          college.contactNumber.includes(debouncedSearch),
       )
-      .filter(college =>
-        filterStatus === "ALL" ? true :
-        filterStatus === "ACTIVE" ? college.isActive : !college.isActive
+      .filter((college) =>
+        filterStatus === "ALL"
+          ? true
+          : filterStatus === "ACTIVE"
+            ? college.isActive
+            : !college.isActive,
       );
   }, [colleges, debouncedSearch, filterStatus]);
 
   const totalPages = Math.ceil(filteredColleges.length / ITEMS_PER_PAGE);
   const paginatedColleges = filteredColleges.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   /* ================= TOGGLE STATUS ================= */
@@ -162,13 +178,12 @@ export default function CollegeList() {
 
     try {
       await api.put(`/master/toggle/college/${id}`);
-      setColleges(prev =>
-        prev.map(c =>
-          c._id === id ? { ...c, isActive: !c.isActive } : c
-        )
+      setColleges((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
     } catch (err) {
-      const errorMsg = err.response?.data?.message || `Failed to ${action} college`;
+      const errorMsg =
+        err.response?.data?.message || `Failed to ${action} college`;
       setError(errorMsg);
     }
     setShowConfirmModal(false);
@@ -176,62 +191,50 @@ export default function CollegeList() {
   };
 
   /* ================= EXPORT FUNCTIONALITY ================= */
-  const handleExport = useCallback(async (format) => {
-    setExporting(true);
-    setShowExportMenu(false);
+  const handleExport = useCallback(
+    async (format) => {
+      setExporting(true);
+      setShowExportMenu(false);
 
-    try {
-      // Prepare data for export
-      const exportData = filteredColleges.map(college => ({
-        "College Name": college.name,
-        "Email": college.email,
-        "Contact": college.contactNumber,
-        "Established": college.establishedYear,
-        "Status": college.isActive ? "Active" : "Inactive",
-        "Created": new Date(college.createdAt).toLocaleDateString()
-      }));
+      try {
+        // Prepare data for export
+        const exportData = filteredColleges.map((college) => ({
+          "College Name": college.name,
+          Email: college.email,
+          Contact: college.contactNumber,
+          Established: college.establishedYear,
+          Status: college.isActive ? "Active" : "Inactive",
+          Created: new Date(college.createdAt).toLocaleDateString(),
+        }));
 
-      if (format === 'excel') {
-        // Excel export logic (you can integrate with ExcelJS)
-        console.log("Excel export coming soon!");
-      } else if (format === 'pdf') {
-        // PDF export logic (you can integrate with jsPDF)
-        console.log("PDF export coming soon!");
+        if (format === "excel") {
+          // Excel export logic (you can integrate with ExcelJS)
+          console.log("Excel export coming soon!");
+        } else if (format === "pdf") {
+          // PDF export logic (you can integrate with jsPDF)
+          console.log("PDF export coming soon!");
+        }
+      } catch (err) {
+        console.error("Export failed. Please try again.");
+      } finally {
+        setExporting(false);
       }
-    } catch (err) {
-      console.error("Export failed. Please try again.");
-    } finally {
-      setExporting(false);
-    }
-  }, [filteredColleges]);
+    },
+    [filteredColleges],
+  );
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Colleges Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate("/super-admin/dashboard")}
-          >
-            <FaChevronLeft className="erp-btn-icon" />
-            Go to Dashboard
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Colleges Loading Error"
+        message={error}
+        onRetry={handleRetry}
+        onGoBack={() => navigate("/super-admin/dashboard")}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
@@ -258,7 +261,7 @@ export default function CollegeList() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/super-admin/dashboard" },
-          { label: "Colleges Management" }
+          { label: "Colleges Management" },
         ]}
       />
 
@@ -291,7 +294,7 @@ export default function CollegeList() {
               <div className="export-menu">
                 <button
                   className="export-option"
-                  onClick={() => handleExport('excel')}
+                  onClick={() => handleExport("excel")}
                   disabled={exporting}
                 >
                   <FaFileExcel className="export-icon excel" />
@@ -299,7 +302,7 @@ export default function CollegeList() {
                 </button>
                 <button
                   className="export-option"
-                  onClick={() => handleExport('pdf')}
+                  onClick={() => handleExport("pdf")}
                   disabled={exporting}
                 >
                   <FaFilePdf className="export-icon pdf" />
@@ -324,7 +327,8 @@ export default function CollegeList() {
           <FaInfoCircle />
         </div>
         <div className="info-content">
-          <strong>Tip:</strong> Use search to find colleges quickly. Toggle status to enable/disable college access.
+          <strong>Tip:</strong> Use search to find colleges quickly. Toggle
+          status to enable/disable college access.
         </div>
       </div>
 
@@ -356,14 +360,16 @@ export default function CollegeList() {
               <div className="filter-dropdown">
                 <button className="filter-btn" aria-label="Open status filter">
                   <FaFilter className="filter-icon" />
-                  <span>{filterStatus === "ALL" ? "All Statuses" : filterStatus}</span>
+                  <span>
+                    {filterStatus === "ALL" ? "All Statuses" : filterStatus}
+                  </span>
                   <FaChevronDown className="filter-arrow" />
                 </button>
                 <div className="filter-menu">
-                  {["ALL", "ACTIVE", "INACTIVE"].map(status => (
+                  {["ALL", "ACTIVE", "INACTIVE"].map((status) => (
                     <button
                       key={status}
-                      className={`filter-option ${filterStatus === status ? 'active' : ''}`}
+                      className={`filter-option ${filterStatus === status ? "active" : ""}`}
                       onClick={() => {
                         setFilterStatus(status);
                         setCurrentPage(1);
@@ -398,10 +404,11 @@ export default function CollegeList() {
             Colleges List
           </h3>
           <span className="record-count">
-            {filteredColleges.length} {filteredColleges.length === 1 ? "College" : "Colleges"}
+            {filteredColleges.length}{" "}
+            {filteredColleges.length === 1 ? "College" : "Colleges"}
           </span>
         </div>
-        
+
         <div className="erp-card-body">
           {paginatedColleges.length === 0 ? (
             <div className="empty-state">
@@ -410,12 +417,12 @@ export default function CollegeList() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {search || filterStatus !== "ALL" 
+                {search || filterStatus !== "ALL"
                   ? "No colleges match your search criteria. Try adjusting your filters."
                   : "There are no colleges registered yet. Create your first college to get started."}
               </p>
               {!search && filterStatus === "ALL" && (
-                <button 
+                <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
                 >
@@ -430,8 +437,12 @@ export default function CollegeList() {
                 <thead>
                   <tr>
                     <th>College</th>
-                    <th><FaEnvelope className="header-icon" /> Email</th>
-                    <th><FaPhone className="header-icon" /> Contact</th>
+                    <th>
+                      <FaEnvelope className="header-icon" /> Email
+                    </th>
+                    <th>
+                      <FaPhone className="header-icon" /> Contact
+                    </th>
                     <th>Status</th>
                     <th className="text-center">Actions</th>
                   </tr>
@@ -462,7 +473,9 @@ export default function CollegeList() {
                         </div>
                       </td>
                       <td>
-                        <span className={`status-badge status-${college.isActive ? 'active' : 'inactive'}`}>
+                        <span
+                          className={`status-badge status-${college.isActive ? "active" : "inactive"}`}
+                        >
                           {college.isActive ? (
                             <>
                               <FaCheckCircle className="status-icon" />
@@ -481,16 +494,28 @@ export default function CollegeList() {
                           <button
                             className="action-btn view-btn"
                             title="View College Details"
-                            onClick={() => navigate(`/super-admin/college/${college._id}`)}
+                            onClick={() =>
+                              navigate(`/super-admin/college/${college._id}`)
+                            }
                             aria-label={`View details for ${college.name}`}
                           >
                             <FaEye />
                           </button>
                           <button
                             className="action-btn toggle-btn"
-                            title={college.isActive ? "Deactivate College" : "Activate College"}
-                            onClick={() => handleToggleClick(college._id, college.isActive)}
-                            aria-label={college.isActive ? `Deactivate ${college.name}` : `Activate ${college.name}`}
+                            title={
+                              college.isActive
+                                ? "Deactivate College"
+                                : "Activate College"
+                            }
+                            onClick={() =>
+                              handleToggleClick(college._id, college.isActive)
+                            }
+                            aria-label={
+                              college.isActive
+                                ? `Deactivate ${college.name}`
+                                : `Activate ${college.name}`
+                            }
                           >
                             {college.isActive ? (
                               <FaToggleOff className="toggle-icon" />
@@ -506,36 +531,40 @@ export default function CollegeList() {
               </table>
             </div>
           )}
-          
+
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="erp-pagination">
               <button
                 className="page-btn prev-btn"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 aria-label="Previous page"
               >
                 <FaChevronLeft />
               </button>
-              
+
               <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
-                  <button
-                    key={num}
-                    className={`page-btn ${currentPage === num ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={currentPage === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (num) => (
+                    <button
+                      key={num}
+                      className={`page-btn ${currentPage === num ? "active" : ""}`}
+                      onClick={() => setCurrentPage(num)}
+                      aria-label={`Page ${num}`}
+                      aria-current={currentPage === num ? "page" : undefined}
+                    >
+                      {num}
+                    </button>
+                  ),
+                )}
               </div>
-              
+
               <button
                 className="page-btn next-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
                 aria-label="Next page"
               >
@@ -1394,55 +1423,7 @@ export default function CollegeList() {
           gap: 1rem;
           background: #f8f9fa;
         }
-        
-        /* ERROR CONTAINER */
-        .erp-error-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          text-align: center;
-          padding: 2rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin: 2rem;
-        }
-        
-        .erp-error-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 1.5rem;
-          color: #F44336;
-          font-size: 3rem;
-        }
-        
-        .erp-error-container h3 {
-          font-size: 1.8rem;
-          color: #0f3a4a;
-          margin-bottom: 1rem;
-        }
-        
-        .erp-error-container p {
-          color: #666;
-          font-size: 1.1rem;
-          max-width: 600px;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-        }
-        
-        .error-actions {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1rem;
-        }
-        
+
         /* LOADING CONTAINER */
         .erp-loading-container {
           display: flex;
