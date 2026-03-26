@@ -1143,11 +1143,12 @@ export default function SuperAdminDashboard() {
           border-bottom: 1px solid var(--border-light);
           background: rgba(61, 181, 230, 0.03);
           flex-shrink: 0;
+          min-height: 68px;
         }
 
         .stat-icon-wrapper {
-          width: 40px;
-          height: 40px;
+          width: 48px;
+          height: 48px;
           border-radius: var(--radius-md);
           display: flex;
           align-items: center;
@@ -1155,10 +1156,11 @@ export default function SuperAdminDashboard() {
           flex-shrink: 0;
           font-size: 1.25rem;
           transition: all var(--transition-base);
+          overflow: hidden;
         }
 
         .stat-card:hover .stat-icon-wrapper {
-          transform: scale(1.08);
+          transform: scale(1.05);
         }
 
         .stat-icon-wrapper.stat-icon-colleges {
@@ -1300,7 +1302,10 @@ export default function SuperAdminDashboard() {
           transition: all var(--transition-base);
           border: 1px solid var(--border-light);
           position: relative;
-          overflow: hidden;
+          overflow: visible;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .college-card::before {
@@ -1477,7 +1482,8 @@ export default function SuperAdminDashboard() {
           align-items: center;
           gap: 1rem;
           position: relative;
-          overflow: hidden;
+          overflow: visible;
+          height: 100%;
         }
 
         .quick-action-card::before {
@@ -1493,8 +1499,8 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-action-card:hover {
-          transform: translateX(5px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.25);
+          transform: translateY(-4px);
+          box-shadow: 0 8px 24px rgba(61, 181, 230, 0.3);
           border-color: var(--sidebar-accent);
           background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
         }
@@ -1509,8 +1515,8 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-action-icon {
-          width: 52px;
-          height: 52px;
+          width: 56px;
+          height: 56px;
           border-radius: 14px;
           display: flex;
           align-items: center;
@@ -1518,10 +1524,11 @@ export default function SuperAdminDashboard() {
           font-size: 1.5rem;
           flex-shrink: 0;
           transition: all 0.3s ease;
+          overflow: hidden;
         }
 
         .quick-action-card:hover .quick-action-icon {
-          transform: scale(1.1);
+          transform: scale(1.08);
         }
 
         .quick-action-icon.add-college {
@@ -1570,76 +1577,6 @@ export default function SuperAdminDashboard() {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-        }
-
-        /* QUICK ACTIONS - Sidebar themed (Old - Keep for fallback) */
-        .quick-actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .quick-action-card {
-          background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-          border-radius: 16px;
-          padding: 1.5rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          border: 1px solid rgba(61, 181, 230, 0.15);
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .quick-action-card:hover {
-          transform: translateX(5px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.25);
-          border-color: var(--sidebar-accent);
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
-        }
-
-        .quick-action-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-          flex-shrink: 0;
-        }
-
-        .quick-action-icon.add-college { 
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%);
-          color: #10b981;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-        }
-        .quick-action-icon.reports { 
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.25) 100%);
-          color: var(--sidebar-accent);
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
-        }
-        .quick-action-icon.settings { 
-          background: linear-gradient(135deg, rgba(15, 58, 74, 0.15) 0%, rgba(12, 45, 58, 0.25) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.2);
-        }
-
-        .quick-action-content {
-          flex: 1;
-        }
-
-        .quick-action-title {
-          font-weight: 700;
-          color: var(--sidebar-primary);
-          font-size: 1.05rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .quick-action-description {
-          font-size: 0.9rem;
-          color: #6c757d;
-          line-height: 1.4;
         }
 
         /* EMPTY STATE */

@@ -39,9 +39,11 @@ export default function LandingPage() {
       });
     }, observerOptions);
 
-    document.querySelectorAll(".gsap-fade-up, .gsap-scale-up, .gsap-card").forEach((el) => {
-      observer.observe(el);
-    });
+    document
+      .querySelectorAll(".gsap-fade-up, .gsap-scale-up, .gsap-card")
+      .forEach((el) => {
+        observer.observe(el);
+      });
 
     // Floating Back to Top button visibility
     const floatingBackToTop = document.querySelector(".floating-back-to-top");
@@ -459,6 +461,33 @@ export default function LandingPage() {
           transform: translateY(0);
         }
 
+        .carousel-control-prev,
+        .carousel-control-next {
+          width: 50px;
+          height: 50px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: 50%;
+          top: 50%;
+          transform: translateY(-50%);
+          opacity: 1;
+          transition: all 0.3s ease;
+        }
+
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+          background: white;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+          background-color: black;
+          mask-size: 60%;
+          -webkit-mask-size: 60%;
+          mask-position: center;
+          -webkit-mask-position: center;
+        }
+
         @media (max-width: 768px) {
           .hero-title {
             font-size: 2.5rem;
@@ -480,7 +509,11 @@ export default function LandingPage() {
       <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
         <div className="container">
           <a className="navbar-brand fs-2" href="#">
-            <img src="/novaaa.png" alt="NOVAA Logo" style={{ height: "50px", width: "auto" }} />
+            <img
+              src="/novaaa.png"
+              alt="NOVAA Logo"
+              style={{ height: "50px", width: "auto" }}
+            />
           </a>
           <button
             className="navbar-toggler"
@@ -496,13 +529,19 @@ export default function LandingPage() {
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav ms-auto align-items-center">
               <li className="nav-item">
-                <a className="nav-link" href="#about">About</a>
+                <a className="nav-link" href="#about">
+                  About
+                </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link" href="#features">Features</a>
+                <a className="nav-link" href="#features">
+                  Features
+                </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link" href="#contact">Contact</a>
+                <a className="nav-link" href="#contact">
+                  Contact
+                </a>
               </li>
               <li className="nav-item ms-2">
                 <a className="btn nav-btn" href="/login">
@@ -520,7 +559,8 @@ export default function LandingPage() {
           <div className="row justify-content-center">
             <div className="col-lg-10 hero-content text-center">
               <h1 className="hero-title mb-4">
-                Transform Your<br />
+                Transform Your
+                <br />
                 Educational <span className="highlight">Institution</span>
               </h1>
               <p className="hero-lead mb-5">
@@ -558,10 +598,10 @@ export default function LandingPage() {
                 Revolutionizing Educational Management
               </h3>
               <p className="mb-4 gsap-fade-up">
-                NOVAA is a comprehensive education management platform designed to
-                streamline operations across educational institutions. Our
-                platform connects students, teachers, administrators, and parents
-                through a unified digital ecosystem.
+                NOVAA is a comprehensive education management platform designed
+                to streamline operations across educational institutions. Our
+                platform connects students, teachers, administrators, and
+                parents through a unified digital ecosystem.
               </p>
             </div>
           </div>
@@ -575,37 +615,53 @@ export default function LandingPage() {
             <div className="col-12 text-center">
               <h2 className="section-title gsap-fade-up">Powerful Features</h2>
               <p className="section-subtitle gsap-fade-up">
-                Everything you need to manage your educational institution efficiently
+                Everything you need to manage your educational institution
+                efficiently
               </p>
             </div>
           </div>
 
-          <div id="featuresCarousel" className="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
+          <div
+            id="featuresCarousel"
+            className="carousel slide"
+            data-bs-ride="carousel"
+            data-bs-interval="4000"
+          >
             <div className="carousel-inner">
               {/* Slide 1 - Student Management */}
               <div className="carousel-item active">
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa03.png"
                           className="img-fluid w-100"
                           alt="Student Management"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-user-graduate me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-user-graduate me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Student Management
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
-                          Complete student lifecycle management from admission to
-                          graduation with detailed records and analytics.
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
+                          Complete student lifecycle management from admission
+                          to graduation with detailed records and analytics.
                         </p>
                       </div>
                     </div>
@@ -618,23 +674,33 @@ export default function LandingPage() {
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa04.png"
                           className="img-fluid w-100"
                           alt="Teacher Portal"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-chalkboard-teacher me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-chalkboard-teacher me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Teacher Portal
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
                           Empower educators with tools for attendance, grading,
                           timetables, and communication with students.
                         </p>
@@ -649,25 +715,35 @@ export default function LandingPage() {
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa05.png"
                           className="img-fluid w-100"
                           alt="Timetable Management"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-calendar-alt me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-calendar-alt me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Timetable Management
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
-                          Intelligent scheduling system that creates conflict-free
-                          timetables for classes and exams.
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
+                          Intelligent scheduling system that creates
+                          conflict-free timetables for classes and exams.
                         </p>
                       </div>
                     </div>
@@ -680,25 +756,35 @@ export default function LandingPage() {
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa06.png"
                           className="img-fluid w-100"
                           alt="Fee Management"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-file-invoice-dollar me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-file-invoice-dollar me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Fee Management
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
-                          Automated fee calculation, payment processing, and financial
-                          reporting for transparent billing.
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
+                          Automated fee calculation, payment processing, and
+                          financial reporting for transparent billing.
                         </p>
                       </div>
                     </div>
@@ -711,23 +797,33 @@ export default function LandingPage() {
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa07.png"
                           className="img-fluid w-100"
                           alt="Analytics & Reports"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-chart-line me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-chart-line me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Analytics & Reports
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
                           Comprehensive dashboards with insights on academics,
                           attendance, and institutional performance.
                         </p>
@@ -742,25 +838,35 @@ export default function LandingPage() {
                 <div className="row justify-content-center">
                   <div className="col-md-8 col-lg-5">
                     <div className="card feature-card h-100 border-0 shadow-sm gsap-card">
-                      <div className="card-img-top" style={{ height: "200px", overflow: "hidden" }}>
+                      <div
+                        className="card-img-top"
+                        style={{ height: "200px", overflow: "hidden" }}
+                      >
                         <img
                           src="./images/novaa08.png"
                           className="img-fluid w-100"
                           alt="Notifications"
                           style={{ objectFit: "cover" }}
                           onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
+                            e.target.src =
+                              "https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=250&q=80";
                           }}
                         />
                       </div>
                       <div className="card-body p-4">
                         <h5 className="card-title text-center mb-3">
-                          <i className="fas fa-bell me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                          <i
+                            className="fas fa-bell me-2"
+                            style={{ color: "var(--primary-lighter)" }}
+                          ></i>
                           Notifications
                         </h5>
-                        <p className="card-text text-center" style={{ color: "#5a6c75" }}>
-                          Real-time alerts and notifications to keep all stakeholders
-                          informed about important updates.
+                        <p
+                          className="card-text text-center"
+                          style={{ color: "#5a6c75" }}
+                        >
+                          Real-time alerts and notifications to keep all
+                          stakeholders informed about important updates.
                         </p>
                       </div>
                     </div>
@@ -776,7 +882,10 @@ export default function LandingPage() {
               data-bs-target="#featuresCarousel"
               data-bs-slide="prev"
             >
-              <span className="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span
+                className="carousel-control-prev-icon"
+                aria-hidden="true"
+              ></span>
               <span className="visually-hidden">Previous</span>
             </button>
             <button
@@ -785,7 +894,10 @@ export default function LandingPage() {
               data-bs-target="#featuresCarousel"
               data-bs-slide="next"
             >
-              <span className="carousel-control-next-icon" aria-hidden="true"></span>
+              <span
+                className="carousel-control-next-icon"
+                aria-hidden="true"
+              ></span>
               <span className="visually-hidden">Next</span>
             </button>
           </div>
@@ -852,18 +964,29 @@ export default function LandingPage() {
             <div className="col-lg-8">
               <div className="card feature-card h-100 border-0 shadow-sm gsap-fade-up">
                 <div className="card-body p-5">
-                  <h3 className="fw-bold mb-3 text-center" style={{ color: "var(--primary-darkest)" }}>
-                    <i className="fas fa-paper-plane me-2" style={{ color: "var(--primary-lighter)" }}></i>
+                  <h3
+                    className="fw-bold mb-3 text-center"
+                    style={{ color: "var(--primary-darkest)" }}
+                  >
+                    <i
+                      className="fas fa-paper-plane me-2"
+                      style={{ color: "var(--primary-lighter)" }}
+                    ></i>
                     Send Us a Message
                   </h3>
                   <p className="text-center mb-4" style={{ color: "#5a6c75" }}>
-                    Fill out the form below and we'll get back to you within 24 hours.
+                    Fill out the form below and we'll get back to you within 24
+                    hours.
                   </p>
 
                   <form id="contactForm">
                     <div className="row g-4">
                       <div className="col-md-6">
-                        <label htmlFor="firstName" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
+                        <label
+                          htmlFor="firstName"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
                           First Name <span className="text-danger">*</span>
                         </label>
                         <input
@@ -878,7 +1001,11 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-md-6">
-                        <label htmlFor="lastName" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
+                        <label
+                          htmlFor="lastName"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
                           Last Name <span className="text-danger">*</span>
                         </label>
                         <input
@@ -893,7 +1020,11 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-md-6">
-                        <label htmlFor="email" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
+                        <label
+                          htmlFor="email"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
                           Email Address <span className="text-danger">*</span>
                         </label>
                         <input
@@ -906,8 +1037,13 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-md-6">
-                        <label htmlFor="phone" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
-                          Phone Number <span className="text-muted">(Optional)</span>
+                        <label
+                          htmlFor="phone"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
+                          Phone Number{" "}
+                          <span className="text-muted">(Optional)</span>
                         </label>
                         <input
                           type="tel"
@@ -920,8 +1056,13 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-12">
-                        <label htmlFor="institution" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
-                          Institution/Organization <span className="text-danger">*</span>
+                        <label
+                          htmlFor="institution"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
+                          Institution/Organization{" "}
+                          <span className="text-danger">*</span>
                         </label>
                         <input
                           type="text"
@@ -934,7 +1075,11 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-12">
-                        <label htmlFor="role" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
+                        <label
+                          htmlFor="role"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
                           Your Role <span className="text-danger">*</span>
                         </label>
                         <select
@@ -942,7 +1087,9 @@ export default function LandingPage() {
                           id="role"
                           required
                         >
-                          <option value="" disabled selected>Select your role</option>
+                          <option value="" disabled selected>
+                            Select your role
+                          </option>
                           <option value="principal">Principal</option>
                           <option value="admin">Administrator</option>
                           <option value="teacher">Teacher</option>
@@ -953,7 +1100,11 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-12">
-                        <label htmlFor="message" className="form-label fw-bold" style={{ color: "var(--primary-dark)" }}>
+                        <label
+                          htmlFor="message"
+                          className="form-label fw-bold"
+                          style={{ color: "var(--primary-dark)" }}
+                        >
                           Your Message <span className="text-danger">*</span>
                         </label>
                         <textarea
@@ -967,7 +1118,10 @@ export default function LandingPage() {
                       </div>
 
                       <div className="col-12 text-center">
-                        <button type="submit" className="btn btn-hero btn-lg px-5 py-3">
+                        <button
+                          type="submit"
+                          className="btn btn-hero btn-lg px-5 py-3"
+                        >
                           <i className="fas fa-paper-plane me-2"></i>
                           <span>Send Message</span>
                         </button>
@@ -982,15 +1136,32 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="" style={{ background: "linear-gradient(135deg, #0a1f29 0%, #0f3a4a 50%, #134a5f 100%)", padding: "60px 0 30px" }}>
+      <footer
+        className=""
+        style={{
+          background:
+            "linear-gradient(135deg, #0a1f29 0%, #0f3a4a 50%, #134a5f 100%)",
+          padding: "60px 0 30px",
+        }}
+      >
         <div className="container">
           <div className="row">
             <div className="col-lg-4 col-md-6 mb-4">
               <h5 className="fw-bold mb-3" style={{ color: "white" }}>
-                <img src="/novaaa.png" alt="NOVAA Logo" style={{ height: "40px", width: "auto", marginRight: "0.5rem" }} />
+                <img
+                  src="/novaaa.png"
+                  alt="NOVAA Logo"
+                  style={{
+                    height: "40px",
+                    width: "auto",
+                    marginRight: "0.5rem",
+                  }}
+                />
                 NOVAA
               </h5>
-              <p style={{ color: "rgba(255, 255, 255, 0.7)", lineHeight: "1.8" }}>
+              <p
+                style={{ color: "rgba(255, 255, 255, 0.7)", lineHeight: "1.8" }}
+              >
                 Modern education management platform designed to streamline
                 operations and enhance learning experiences for institutions
                 worldwide.
@@ -1001,7 +1172,23 @@ export default function LandingPage() {
           <div className="row">
             <div className="col-12 text-center">
               <p className="mb-0" style={{ color: "rgba(255, 255, 255, 0.5)" }}>
-                &copy; 2026 NOVAA <span className="version-badge" style={{ display: "inline-block", background: "var(--gradient-accent)", color: "white", padding: "0.2rem 0.6rem", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "600", marginLeft: "0.5rem" }}>v2.1.0</span>. All rights reserved.
+                &copy; 2026 NOVAA{" "}
+                <span
+                  className="version-badge"
+                  style={{
+                    display: "inline-block",
+                    background: "var(--gradient-accent)",
+                    color: "white",
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "20px",
+                    fontSize: "0.75rem",
+                    fontWeight: "600",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  v2.1.0
+                </span>
+                . All rights reserved.
               </p>
             </div>
           </div>
