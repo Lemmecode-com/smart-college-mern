@@ -13,12 +13,12 @@ import {
   FaBook,
   FaInfoCircle,
   FaExclamationTriangle,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 
 /* ================= PUBLIC AXIOS (NO TOKEN) ================= */
 const publicApi = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 /* ================= API CACHING ================= */
@@ -35,13 +35,13 @@ const cachedGet = async (url, cacheKey) => {
 
   // Make API call
   const res = await publicApi.get(url);
-  
+
   // Cache the response
   apiCache.set(cacheKey, {
     data: res.data,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  
+
   return res.data;
 };
 
@@ -90,7 +90,7 @@ export default function StudentRegister() {
     // STEP 5 - 12th Academic Details
     hscSchoolName: "",
     hscBoard: "",
-    hscStream: "",  // ✅ Empty by default - only filled if 12th is required
+    hscStream: "", // ✅ Empty by default - only filled if 12th is required
     hscPassingYear: "",
     hscPercentage: "",
     hscRollNumber: "",
@@ -104,11 +104,16 @@ export default function StudentRegister() {
     // Documents will be added dynamically based on config
   });
 
+  const [success, setSuccess] = useState("");
+
   /* ================= LOAD COLLEGE NAME ================= */
   useEffect(() => {
     const fetchCollege = async () => {
       try {
-        const res = await cachedGet(`/public/departments/${collegeCode}`, `college-${collegeCode}`);
+        const res = await cachedGet(
+          `/public/departments/${collegeCode}`,
+          `college-${collegeCode}`,
+        );
         if (res && res.collegeName) {
           setCollegeName(res.collegeName);
         }
@@ -127,7 +132,10 @@ export default function StudentRegister() {
     const loadDocumentConfig = async () => {
       try {
         setConfigLoading(true);
-        const res = await cachedGet(`/document-config/${collegeCode}`, `doc-config-${collegeCode}`);
+        const res = await cachedGet(
+          `/document-config/${collegeCode}`,
+          `doc-config-${collegeCode}`,
+        );
 
         if (res && res.documents) {
           setDocumentConfig(res.documents);
@@ -148,7 +156,10 @@ export default function StudentRegister() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await cachedGet(`/public/departments/${collegeCode}`, `departments-${collegeCode}`);
+        const res = await cachedGet(
+          `/public/departments/${collegeCode}`,
+          `departments-${collegeCode}`,
+        );
         setDepartments(res.departments || res || []);
       } catch (err) {
         setError("Failed to load departments");
@@ -165,7 +176,7 @@ export default function StudentRegister() {
     const fetchCourses = async () => {
       try {
         const res = await publicApi.get(
-          `/public/courses/${collegeCode}/department/${form.department_id}`
+          `/public/courses/${collegeCode}/department/${form.department_id}`,
         );
         setCourses(res.data || []);
       } catch (err) {
@@ -179,6 +190,9 @@ export default function StudentRegister() {
   /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Clear success/error messages when user starts typing
+    if (success) setSuccess("");
+    if (error) setError("");
   };
 
   /* ================= HANDLE FILE CHANGE ================= */
@@ -188,20 +202,22 @@ export default function StudentRegister() {
 
     if (file) {
       // Validate: Only accept documents that are enabled in config
-      const docConfig = documentConfig ? documentConfig.find(doc => doc.type === fieldName) : undefined;
+      const docConfig = documentConfig
+        ? documentConfig.find((doc) => doc.type === fieldName)
+        : undefined;
 
       // Special handling for category certificate
-      if (!docConfig && fieldName === 'category_certificate') {
+      if (!docConfig && fieldName === "category_certificate") {
         // Allow upload if category is not GEN
-        if (form.category === 'GEN') {
+        if (form.category === "GEN") {
           alert(`Category certificate is not required for GEN category`);
-          e.target.value = ''; // Clear file input
+          e.target.value = ""; // Clear file input
           return;
         }
         // If config doesn't exist but category is not GEN, allow it
         setForm((prevForm) => ({
           ...prevForm,
-          [fieldName]: file
+          [fieldName]: file,
         }));
         return;
       }
@@ -212,52 +228,63 @@ export default function StudentRegister() {
         if (!documentConfig || documentConfig.length === 0) {
           setForm((prevForm) => ({
             ...prevForm,
-            [fieldName]: file
+            [fieldName]: file,
           }));
           return;
         }
-        alert(`${fieldName} is not configured for this college. Please contact admin.`);
-        e.target.value = ''; // Clear file input
+        alert(
+          `${fieldName} is not configured for this college. Please contact admin.`,
+        );
+        e.target.value = ""; // Clear file input
         return;
       }
 
       // Validate file format
-      const fileExt = file.name.split('.').pop().toLowerCase();
-      const allowedFormats = docConfig.allowedFormats || ['pdf', 'jpg', 'jpeg', 'png'];
+      const fileExt = file.name.split(".").pop().toLowerCase();
+      const allowedFormats = docConfig.allowedFormats || [
+        "pdf",
+        "jpg",
+        "jpeg",
+        "png",
+      ];
 
       if (!allowedFormats.includes(fileExt)) {
-        alert(`${docConfig.label} accepts only: ${allowedFormats.join(', ').toUpperCase()}`);
-        e.target.value = ''; // Clear file input
+        alert(
+          `${docConfig.label} accepts only: ${allowedFormats.join(", ").toUpperCase()}`,
+        );
+        e.target.value = ""; // Clear file input
         return;
       }
 
       // Validate file size (use config max size or default 5MB)
       const maxSize = (docConfig.maxFileSize || 5) * 1024 * 1024;
       if (file.size > maxSize) {
-        alert(`${docConfig.label} file size should be less than ${docConfig.maxFileSize || 5}MB`);
-        e.target.value = ''; // Clear file input
+        alert(
+          `${docConfig.label} file size should be less than ${docConfig.maxFileSize || 5}MB`,
+        );
+        e.target.value = ""; // Clear file input
         return;
       }
 
       setForm((prevForm) => ({
         ...prevForm,
-        [fieldName]: file
+        [fieldName]: file,
       }));
     }
   };
 
   /* ================= CHECK IF DOCUMENT TYPE IS ENABLED ================= */
   const isDocEnabled = (type) => {
-    return documentConfig.some(doc => doc.type === type && doc.enabled);
+    return documentConfig.some((doc) => doc.type === type && doc.enabled);
   };
 
   /* ================= GET DYNAMIC STEP NUMBERS ================= */
   const getStepNumbers = () => {
     const has10th = isDocEnabled("10th_marksheet");
     const has12th = isDocEnabled("12th_marksheet");
-    
+
     let step = 3; // After personal, parent, address
-    
+
     const result = {
       personal: 1,
       parent: 2,
@@ -265,9 +292,9 @@ export default function StudentRegister() {
       ssc: null,
       hsc: null,
       course: null,
-      documents: null
+      documents: null,
     };
-    
+
     if (has10th) {
       step++;
       result.ssc = step;
@@ -280,19 +307,25 @@ export default function StudentRegister() {
     result.course = step;
     step++;
     result.documents = step;
-    
+
     result.total = step;
-    
+
     return result;
   };
 
   /* ================= VALIDATE STEP ================= */
   const validateStep = (step) => {
     const steps = getStepNumbers();
-    
+
     // Validate Personal Info
     if (step === steps.personal) {
-      if (!form.fullName || !form.email || !form.password || !form.mobileNumber || !form.dateOfBirth) {
+      if (
+        !form.fullName ||
+        !form.email ||
+        !form.password ||
+        !form.mobileNumber ||
+        !form.dateOfBirth
+      ) {
         alert("Please fill all required fields in Personal Information");
         return false;
       }
@@ -307,10 +340,15 @@ export default function StudentRegister() {
       }
       return true;
     }
-    
+
     // Validate Parent Details
     if (step === steps.parent) {
-      if (!form.fatherName || !form.fatherMobile || !form.motherName || !form.motherMobile) {
+      if (
+        !form.fatherName ||
+        !form.fatherMobile ||
+        !form.motherName ||
+        !form.motherMobile
+      ) {
         alert("Please fill all parent details");
         return false;
       }
@@ -324,7 +362,7 @@ export default function StudentRegister() {
       }
       return true;
     }
-    
+
     // Validate Address
     if (step === steps.address) {
       if (!form.addressLine || !form.city || !form.state || !form.pincode) {
@@ -337,33 +375,51 @@ export default function StudentRegister() {
       }
       return true;
     }
-    
+
     // Validate 10th Details (only if enabled)
     if (step === steps.ssc) {
-      if (!form.sscSchoolName || !form.sscBoard || !form.sscPassingYear || !form.sscPercentage || !form.sscRollNumber) {
+      if (
+        !form.sscSchoolName ||
+        !form.sscBoard ||
+        !form.sscPassingYear ||
+        !form.sscPercentage ||
+        !form.sscRollNumber
+      ) {
         alert("Please fill all 10th academic details");
         return false;
       }
-      if (parseFloat(form.sscPercentage) > 100 || parseFloat(form.sscPercentage) < 0) {
+      if (
+        parseFloat(form.sscPercentage) > 100 ||
+        parseFloat(form.sscPercentage) < 0
+      ) {
         alert("Please enter a valid percentage (0-100)");
         return false;
       }
       return true;
     }
-    
+
     // Validate 12th Details (only if enabled)
     if (step === steps.hsc) {
-      if (!form.hscSchoolName || !form.hscBoard || !form.hscPassingYear || !form.hscPercentage || !form.hscRollNumber) {
+      if (
+        !form.hscSchoolName ||
+        !form.hscBoard ||
+        !form.hscPassingYear ||
+        !form.hscPercentage ||
+        !form.hscRollNumber
+      ) {
         alert("Please fill all 12th academic details");
         return false;
       }
-      if (parseFloat(form.hscPercentage) > 100 || parseFloat(form.hscPercentage) < 0) {
+      if (
+        parseFloat(form.hscPercentage) > 100 ||
+        parseFloat(form.hscPercentage) < 0
+      ) {
         alert("Please enter a valid percentage (0-100)");
         return false;
       }
       return true;
     }
-    
+
     // Validate Course Selection
     if (step === steps.course) {
       if (!form.department_id || !form.course_id || !form.admissionYear) {
@@ -372,7 +428,7 @@ export default function StudentRegister() {
       }
       return true;
     }
-    
+
     // Validate Document Upload
     if (step === steps.documents) {
       // If no documents configured, allow submission
@@ -382,7 +438,7 @@ export default function StudentRegister() {
 
       for (const doc of documentConfig) {
         // Skip category certificate if category is GEN
-        if (doc.type === 'category_certificate' && form.category === 'GEN') {
+        if (doc.type === "category_certificate" && form.category === "GEN") {
           continue;
         }
 
@@ -393,33 +449,34 @@ export default function StudentRegister() {
       }
       return true;
     }
-    
+
     return true;
   };
 
   /* ================= NAVIGATION ================= */
   const handleNext = () => {
     const steps = getStepNumbers();
-    
+
     // Validate current step before moving to next
     if (currentStep === steps.ssc && !validateStep(steps.ssc)) return;
     if (currentStep === steps.hsc && !validateStep(steps.hsc)) return;
     if (currentStep === steps.course && !validateStep(steps.course)) return;
-    if (currentStep === steps.documents && !validateStep(steps.documents)) return;
+    if (currentStep === steps.documents && !validateStep(steps.documents))
+      return;
     if (currentStep === steps.personal && !validateStep(steps.personal)) return;
     if (currentStep === steps.parent && !validateStep(steps.parent)) return;
     if (currentStep === steps.address && !validateStep(steps.address)) return;
-    
+
     // Don't go beyond the last step
     if (currentStep >= steps.total) return;
-    
-    setCurrentStep(prev => prev + 1);
+
+    setCurrentStep((prev) => prev + 1);
     window.scrollTo(0, 0);
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
+      setCurrentStep((prev) => prev - 1);
       window.scrollTo(0, 0);
     }
   };
@@ -450,7 +507,7 @@ export default function StudentRegister() {
       formData.append("city", form.city);
       formData.append("state", form.state);
       formData.append("pincode", form.pincode);
-      
+
       // Parent/Guardian Details
       formData.append("fatherName", form.fatherName);
       formData.append("fatherMobile", form.fatherMobile);
@@ -475,7 +532,7 @@ export default function StudentRegister() {
         formData.append("hscPercentage", form.hscPercentage);
         formData.append("hscRollNumber", form.hscRollNumber);
       }
-      
+
       // Course & Department
       formData.append("department_id", form.department_id);
       formData.append("course_id", form.course_id);
@@ -531,7 +588,7 @@ export default function StudentRegister() {
       });
 
       // Special handling: Append category certificate if category is not GEN
-      if (form.category !== 'GEN' && form.category_certificate) {
+      if (form.category !== "GEN" && form.category_certificate) {
         formData.append("categoryCertificate", form.category_certificate);
       }
 
@@ -541,18 +598,62 @@ export default function StudentRegister() {
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
 
-      alert(response.data.message || "🎉 Registration successful! Wait for college approval.");
-      navigate("/login");
+      // Show success message and stay on the registration page
+      setSuccess(
+        response.data.message ||
+          "🎉 Registration successful! Wait for college approval.",
+      );
+      setError("");
+
+      // Reset form and go to first step
+      setTimeout(() => {
+        setForm({
+          fullName: "",
+          email: "",
+          password: "",
+          mobileNumber: "",
+          gender: "",
+          dateOfBirth: "",
+          category: "GEN",
+          fatherName: "",
+          fatherMobile: "",
+          motherName: "",
+          motherMobile: "",
+          addressLine: "",
+          city: "",
+          state: "",
+          pincode: "",
+          sscSchoolName: "",
+          sscBoard: "",
+          sscPassingYear: "",
+          sscPercentage: "",
+          sscRollNumber: "",
+          hscSchoolName: "",
+          hscBoard: "",
+          hscStream: "",
+          hscPassingYear: "",
+          hscPercentage: "",
+          hscRollNumber: "",
+          department_id: "",
+          course_id: "",
+          admissionYear: new Date().getFullYear(),
+        });
+        setCurrentStep(1);
+        window.scrollTo(0, 0);
+      }, 100);
     } catch (err) {
       // 🔧 IMPROVED: Extract and show actual validation error
       let errorMessage = "Registration failed";
 
-      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+      if (
+        err.response?.data?.errors &&
+        Array.isArray(err.response.data.errors)
+      ) {
         // Validation errors - show the first error message
         const validationError = err.response.data.errors[0];
         errorMessage = `${validationError.field}: ${validationError.message}`;
@@ -571,14 +672,14 @@ export default function StudentRegister() {
   /* ================= RENDER STEP INDICATOR ================= */
   const renderStepIndicator = () => {
     const steps = getStepNumbers();
-    
+
     // Build dynamic steps array based on config
     const dynamicSteps = [
       { num: 1, title: "Personal Info" },
       { num: 2, title: "Parent Details" },
       { num: 3, title: "Address" },
     ];
-    
+
     if (steps.ssc) {
       dynamicSteps.push({ num: steps.ssc, title: "10th Details" });
     }
@@ -591,9 +692,9 @@ export default function StudentRegister() {
     return (
       <div className="step-indicator mb-4">
         {dynamicSteps.map((step) => (
-          <div 
-            key={step.num} 
-            className={`step-item ${currentStep === step.num ? 'active' : ''} ${currentStep > step.num ? 'completed' : ''}`}
+          <div
+            key={step.num}
+            className={`step-item ${currentStep === step.num ? "active" : ""} ${currentStep > step.num ? "completed" : ""}`}
           >
             <div className="step-number">
               {currentStep > step.num ? <FaCheckCircle /> : step.num}
@@ -678,55 +779,71 @@ export default function StudentRegister() {
       </h5>
       <div className="row g-3">
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Full Name <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="fullName" 
-            placeholder="Enter your full name" 
+          <label className="form-label fw-semibold">
+            Full Name <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="fullName"
+            placeholder="Enter your full name"
             value={form.fullName}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Email <span className="text-danger">*</span></label>
-          <input 
+          <label className="form-label fw-semibold">
+            Email <span className="text-danger">*</span>
+          </label>
+          <input
             type="email"
-            className="form-control" 
-            name="email" 
-            placeholder="your.email@example.com" 
+            className="form-control"
+            name="email"
+            placeholder="your.email@example.com"
             value={form.email}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Password <span className="text-danger">*</span></label>
-          <input 
-            type="password" 
-            className="form-control" 
-            name="password" 
-            placeholder="Create a strong password" 
+          <label className="form-label fw-semibold">
+            Password <span className="text-danger">*</span>
+          </label>
+          <input
+            type="password"
+            className="form-control"
+            name="password"
+            placeholder="Create a strong password"
             value={form.password}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Mobile Number <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="mobileNumber" 
-            placeholder="10-digit mobile number" 
+          <label className="form-label fw-semibold">
+            Mobile Number <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="mobileNumber"
+            placeholder="10-digit mobile number"
             value={form.mobileNumber}
-            onChange={handleChange} 
+            onChange={handleChange}
             maxLength="10"
-            required 
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Gender <span className="text-danger">*</span></label>
-          <select className="form-select" name="gender" value={form.gender} onChange={handleChange} required>
+          <label className="form-label fw-semibold">
+            Gender <span className="text-danger">*</span>
+          </label>
+          <select
+            className="form-select"
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            required
+          >
             <option value="">Select gender</option>
             <option value="Female">Female</option>
             <option value="Male">Male</option>
@@ -734,19 +851,29 @@ export default function StudentRegister() {
           </select>
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Date of Birth <span className="text-danger">*</span></label>
-          <input 
-            type="date" 
-            className="form-control" 
-            name="dateOfBirth" 
+          <label className="form-label fw-semibold">
+            Date of Birth <span className="text-danger">*</span>
+          </label>
+          <input
+            type="date"
+            className="form-control"
+            name="dateOfBirth"
             value={form.dateOfBirth}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Category <span className="text-danger">*</span></label>
-          <select className="form-select" name="category" value={form.category} onChange={handleChange} required>
+          <label className="form-label fw-semibold">
+            Category <span className="text-danger">*</span>
+          </label>
+          <select
+            className="form-select"
+            name="category"
+            value={form.category}
+            onChange={handleChange}
+            required
+          >
             <option value="GEN">General (GEN)</option>
             <option value="OBC">Other Backward Classes (OBC)</option>
             <option value="SC">Scheduled Caste (SC)</option>
@@ -767,49 +894,57 @@ export default function StudentRegister() {
       </h5>
       <div className="row g-3">
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Father's Name <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="fatherName" 
-            placeholder="Enter father's full name" 
+          <label className="form-label fw-semibold">
+            Father's Name <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="fatherName"
+            placeholder="Enter father's full name"
             value={form.fatherName}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Father's Mobile Number <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="fatherMobile" 
-            placeholder="10-digit mobile number" 
+          <label className="form-label fw-semibold">
+            Father's Mobile Number <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="fatherMobile"
+            placeholder="10-digit mobile number"
             value={form.fatherMobile}
-            onChange={handleChange} 
+            onChange={handleChange}
             maxLength="10"
-            required 
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Mother's Name <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="motherName" 
-            placeholder="Enter mother's full name" 
+          <label className="form-label fw-semibold">
+            Mother's Name <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="motherName"
+            placeholder="Enter mother's full name"
             value={form.motherName}
-            onChange={handleChange} 
-            required 
+            onChange={handleChange}
+            required
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Mother's Mobile Number <span className="text-danger">*</span></label>
-          <input 
-            className="form-control" 
-            name="motherMobile" 
-            placeholder="10-digit mobile number" 
+          <label className="form-label fw-semibold">
+            Mother's Mobile Number <span className="text-danger">*</span>
+          </label>
+          <input
+            className="form-control"
+            name="motherMobile"
+            placeholder="10-digit mobile number"
             value={form.motherMobile}
-            onChange={handleChange} 
+            onChange={handleChange}
             maxLength="10"
-            required 
+            required
           />
         </div>
       </div>
@@ -825,11 +960,14 @@ export default function StudentRegister() {
       </h5>
       <p className="text-muted mb-3">
         <FaInfoCircle className="me-2" />
-        This address will be used for all official communication and correspondence.
+        This address will be used for all official communication and
+        correspondence.
       </p>
       <div className="row g-3">
         <div className="col-md-12">
-          <label className="form-label fw-semibold">Address Line <span className="text-danger">*</span></label>
+          <label className="form-label fw-semibold">
+            Address Line <span className="text-danger">*</span>
+          </label>
           <input
             className="form-control"
             name="addressLine"
@@ -840,7 +978,9 @@ export default function StudentRegister() {
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">City <span className="text-danger">*</span></label>
+          <label className="form-label fw-semibold">
+            City <span className="text-danger">*</span>
+          </label>
           <input
             className="form-control"
             name="city"
@@ -851,7 +991,9 @@ export default function StudentRegister() {
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">State <span className="text-danger">*</span></label>
+          <label className="form-label fw-semibold">
+            State <span className="text-danger">*</span>
+          </label>
           <input
             className="form-control"
             name="state"
@@ -862,7 +1004,9 @@ export default function StudentRegister() {
           />
         </div>
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Pincode <span className="text-danger">*</span></label>
+          <label className="form-label fw-semibold">
+            Pincode <span className="text-danger">*</span>
+          </label>
           <input
             type="text"
             className="form-control"
@@ -902,7 +1046,9 @@ export default function StudentRegister() {
         </h5>
         <div className="row g-3">
           <div className="col-md-6">
-            <label className="form-label fw-semibold">School Name <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              School Name <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="sscSchoolName"
@@ -913,7 +1059,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-6">
-            <label className="form-label fw-semibold">Board <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Board <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="sscBoard"
@@ -924,7 +1072,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Passing Year <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Passing Year <span className="text-danger">*</span>
+            </label>
             <input
               type="number"
               className="form-control"
@@ -938,7 +1088,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Percentage / CGPA <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Percentage / CGPA <span className="text-danger">*</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -953,7 +1105,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Roll Number <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Roll Number <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="sscRollNumber"
@@ -990,7 +1144,9 @@ export default function StudentRegister() {
         </h5>
         <div className="row g-3">
           <div className="col-md-6">
-            <label className="form-label fw-semibold">School / College Name <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              School / College Name <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="hscSchoolName"
@@ -1001,7 +1157,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-6">
-            <label className="form-label fw-semibold">Board <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Board <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="hscBoard"
@@ -1012,8 +1170,16 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-6">
-            <label className="form-label fw-semibold">Stream <span className="text-danger">*</span></label>
-            <select className="form-select" name="hscStream" value={form.hscStream} onChange={handleChange} required>
+            <label className="form-label fw-semibold">
+              Stream <span className="text-danger">*</span>
+            </label>
+            <select
+              className="form-select"
+              name="hscStream"
+              value={form.hscStream}
+              onChange={handleChange}
+              required
+            >
               <option value="Science">Science</option>
               <option value="Commerce">Commerce</option>
               <option value="Arts">Arts</option>
@@ -1022,7 +1188,9 @@ export default function StudentRegister() {
             </select>
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Passing Year <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Passing Year <span className="text-danger">*</span>
+            </label>
             <input
               type="number"
               className="form-control"
@@ -1036,7 +1204,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Percentage / CGPA <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Percentage / CGPA <span className="text-danger">*</span>
+            </label>
             <input
               type="number"
               step="0.01"
@@ -1051,7 +1221,9 @@ export default function StudentRegister() {
             />
           </div>
           <div className="col-md-4">
-            <label className="form-label fw-semibold">Roll Number <span className="text-danger">*</span></label>
+            <label className="form-label fw-semibold">
+              Roll Number <span className="text-danger">*</span>
+            </label>
             <input
               className="form-control"
               name="hscRollNumber"
@@ -1075,42 +1247,54 @@ export default function StudentRegister() {
       </h5>
       <div className="row g-3">
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Select Department <span className="text-danger">*</span></label>
-          <select 
-            className="form-select" 
-            name="department_id" 
-            value={form.department_id} 
-            onChange={handleChange} 
-            required 
+          <label className="form-label fw-semibold">
+            Select Department <span className="text-danger">*</span>
+          </label>
+          <select
+            className="form-select"
+            name="department_id"
+            value={form.department_id}
+            onChange={handleChange}
+            required
           >
             <option value="">-- Select Department --</option>
             {departments.map((d) => (
-              <option key={d._id} value={d._id}>{d.name}</option>
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Select Course <span className="text-danger">*</span></label>
-          <select 
-            className="form-select" 
-            name="course_id" 
-            value={form.course_id} 
-            onChange={handleChange} 
-            required 
+          <label className="form-label fw-semibold">
+            Select Course <span className="text-danger">*</span>
+          </label>
+          <select
+            className="form-select"
+            name="course_id"
+            value={form.course_id}
+            onChange={handleChange}
+            required
             disabled={!form.department_id}
           >
             <option value="">
-              {!form.department_id ? "Select department first" : "-- Select Course --"}
+              {!form.department_id
+                ? "Select department first"
+                : "-- Select Course --"}
             </option>
             {courses.map((c) => (
-              <option key={c._id} value={c._id}>{c.name}</option>
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="col-md-6">
-          <label className="form-label fw-semibold">Admission Year <span className="text-danger">*</span></label>
+          <label className="form-label fw-semibold">
+            Admission Year <span className="text-danger">*</span>
+          </label>
           <input
             type="number"
             className="form-control"
@@ -1127,10 +1311,10 @@ export default function StudentRegister() {
       {form.course_id && (
         <div className="alert alert-info mt-3">
           <FaInfoCircle className="me-2" />
-          <strong>Selected:</strong> {courses.find(c => c._id === form.course_id)?.name || ''}
-          {departments.find(d => d._id === form.department_id)?.name && 
-            ` in ${departments.find(d => d._id === form.department_id)?.name}`
-          }
+          <strong>Selected:</strong>{" "}
+          {courses.find((c) => c._id === form.course_id)?.name || ""}
+          {departments.find((d) => d._id === form.department_id)?.name &&
+            ` in ${departments.find((d) => d._id === form.department_id)?.name}`}
         </div>
       )}
     </div>
@@ -1173,17 +1357,18 @@ export default function StudentRegister() {
         </h5>
         <p className="text-muted mb-4">
           <FaInfoCircle className="me-2" />
-          <strong>Note:</strong> Upload the required documents as per your college guidelines.
-          Maximum file size: 5MB per file (unless specified).
+          <strong>Note:</strong> Upload the required documents as per your
+          college guidelines. Maximum file size: 5MB per file (unless
+          specified).
         </p>
 
         <div className="row g-3">
           {(() => {
-            const filteredDocs = documentConfig.filter(doc => {
+            const filteredDocs = documentConfig.filter((doc) => {
               // Conditional rendering for category certificate
-              if (doc.type === 'category_certificate') {
+              if (doc.type === "category_certificate") {
                 // Show category certificate only if category is not GEN
-                return doc.enabled && form.category !== 'GEN';
+                return doc.enabled && form.category !== "GEN";
               }
               return doc.enabled;
             });
@@ -1198,14 +1383,20 @@ export default function StudentRegister() {
                   <input
                     type="file"
                     name={doc.type}
-                    accept={doc.allowedFormats.map(f => `.${f}`).join(',')}
+                    accept={doc.allowedFormats.map((f) => `.${f}`).join(",")}
                     onChange={handleFileChange}
                     className="form-control"
-                    required={doc.mandatory && (doc.type !== 'category_certificate' || form.category !== 'GEN')}
+                    required={
+                      doc.mandatory &&
+                      (doc.type !== "category_certificate" ||
+                        form.category !== "GEN")
+                    }
                   />
                   <small className="text-muted">
-                    {doc.allowedFormats.join(', ').toUpperCase()} only
-                    {doc.description && <div className="mt-1">{doc.description}</div>}
+                    {doc.allowedFormats.join(", ").toUpperCase()} only
+                    {doc.description && (
+                      <div className="mt-1">{doc.description}</div>
+                    )}
                   </small>
                   {form[doc.type] && (
                     <div className="file-preview mt-2 text-success">
@@ -1217,16 +1408,20 @@ export default function StudentRegister() {
               </div>
             ));
           })()}
-          
+
           {/* Show info message for GEN category */}
-          {form.category === 'GEN' && documentConfig.some(doc => doc.type === 'category_certificate' && doc.enabled) && (
-            <div className="col-md-12">
-              <div className="alert alert-info mb-0">
-                <FaInfoCircle className="me-2" />
-                <strong>Category Certificate:</strong> Not required for General (GEN) category students.
+          {form.category === "GEN" &&
+            documentConfig.some(
+              (doc) => doc.type === "category_certificate" && doc.enabled,
+            ) && (
+              <div className="col-md-12">
+                <div className="alert alert-info mb-0">
+                  <FaInfoCircle className="me-2" />
+                  <strong>Category Certificate:</strong> Not required for
+                  General (GEN) category students.
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         <div className="alert alert-warning mt-4">
@@ -1288,16 +1483,20 @@ export default function StudentRegister() {
       >
         <div
           className="card p-4"
-          style={{ 
-            width: "100%", 
-            maxWidth: "1100px", 
+          style={{
+            width: "100%",
+            maxWidth: "1100px",
             borderRadius: "16px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.15)"
+            boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
           }}
         >
           {/* Header */}
           <div className="text-center mb-4">
-            <FaUniversity size={48} className="mb-2" style={{ color: "#286079" }} />
+            <FaUniversity
+              size={48}
+              className="mb-2"
+              style={{ color: "#286079" }}
+            />
             <h3 className="fw-bold">{collegeName || "NOVAA"}</h3>
             <p className="text-muted mb-1">Student Self Registration</p>
             <div className="d-flex gap-2 justify-content-center">
@@ -1310,8 +1509,14 @@ export default function StudentRegister() {
 
           {/* Error Message */}
           {error && (
-            <div className="alert alert-danger text-center">
-              {error}
+            <div className="alert alert-danger text-center">{error}</div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="alert alert-success text-center">
+              <FaCheckCircle className="me-2" />
+              {success}
             </div>
           )}
 
@@ -1323,15 +1528,16 @@ export default function StudentRegister() {
             {/* Render Current Step based on dynamic step numbers */}
             {(() => {
               const steps = getStepNumbers();
-              
+
               if (currentStep === steps.personal) return renderPersonalInfo();
               if (currentStep === steps.parent) return renderParentDetails();
               if (currentStep === steps.address) return renderAddressDetails();
               if (currentStep === steps.ssc) return render10thDetails();
               if (currentStep === steps.hsc) return render12thDetails();
               if (currentStep === steps.course) return renderCourseSelection();
-              if (currentStep === steps.documents) return renderDocumentUpload();
-              
+              if (currentStep === steps.documents)
+                return renderDocumentUpload();
+
               return null;
             })()}
 
@@ -1349,13 +1555,15 @@ export default function StudentRegister() {
 
               {(() => {
                 const steps = getStepNumbers();
-                
+
                 if (currentStep < steps.total) {
                   return (
                     <button
                       type="button"
                       className="btn px-4 text-light fw-semibold"
-                      style={{ background: "linear-gradient(45deg, #286079, #5798b7)" }}
+                      style={{
+                        background: "linear-gradient(45deg, #286079, #5798b7)",
+                      }}
                       onClick={handleNext}
                     >
                       Next
@@ -1367,7 +1575,9 @@ export default function StudentRegister() {
                     <button
                       type="submit"
                       className="btn px-4 text-light fw-semibold"
-                      style={{ background: "linear-gradient(45deg, #28a745, #20c997)" }}
+                      style={{
+                        background: "linear-gradient(45deg, #28a745, #20c997)",
+                      }}
                       disabled={loading}
                     >
                       {loading ? (
@@ -1390,8 +1600,8 @@ export default function StudentRegister() {
 
           <div className="text-center mt-3 text-muted">
             <small>
-              After registration, your application will be reviewed by the college admin.
-              You will be notified once approved.
+              After registration, your application will be reviewed by the
+              college admin. You will be notified once approved.
             </small>
           </div>
         </div>
