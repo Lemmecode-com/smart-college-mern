@@ -71,14 +71,15 @@ export default function CollegeList() {
     return <Navigate to="/super-admin/dashboard" />;
 
   /* ================= FETCH COLLEGES ================= */
-  const fetchColleges = async () => {
-    // Prevent duplicate fetches in Strict Mode
-    if (hasLoadedRef.current) return;
+  const fetchColleges = async (forceRefresh = false) => {
+    // Prevent duplicate fetches in Strict Mode (unless force refresh)
+    if (!forceRefresh && hasLoadedRef.current) return;
 
     try {
       setLoading(true);
       setError("");
-      const res = await api.get("/master/get/colleges");
+      // Fetch all colleges including inactive ones for Super Admin
+      const res = await api.get("/master/get/colleges?includeInactive=true");
 
       const collegesData = res.data.colleges || res.data || [];
       setColleges(Array.isArray(collegesData) ? collegesData : []);
@@ -140,6 +141,13 @@ export default function CollegeList() {
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
     }
+  };
+
+  /* ================= REFRESH HANDLER ================= */
+  const handleRefresh = () => {
+    // Reset the loaded flag to allow re-fetching
+    hasLoadedRef.current = false;
+    fetchColleges(true); // Force refresh
   };
 
   /* ================= FILTER + PAGINATION ================= */
@@ -392,7 +400,7 @@ export default function CollegeList() {
             <div className="actions-group">
               <button
                 className="refresh-btn"
-                onClick={fetchColleges}
+                onClick={handleRefresh}
                 title="Refresh college list"
                 aria-label="Refresh colleges"
               >
