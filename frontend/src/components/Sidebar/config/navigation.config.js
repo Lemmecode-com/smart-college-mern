@@ -397,6 +397,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/timetable/my-timetable",
+            icon: FaListOl,
+            label: "My Timetables",
+            exact: true,
+          },
+          {
             path: "/timetable/list",
             icon: FaListOl,
             label: "View Timetables",
