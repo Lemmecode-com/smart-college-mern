@@ -1194,6 +1194,11 @@ exports.getRegisteredStudentById = async (req, res) => {
  */
 exports.getStudentsForTeacher = async (req, res) => {
   try {
+    // 📄 Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     // First, get the teacher's profile to find their assigned subjects
     const teacher = await require("../models/teacher.model").findOne({
       user_id: req.user.id,
@@ -1213,29 +1218,59 @@ exports.getStudentsForTeacher = async (req, res) => {
       .select("course_id");
 
     if (!subjects || subjects.length === 0) {
-      return res.json({ students: [] });
+      return res.json({
+        students: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          pages: 0,
+          hasMore: false,
+        },
+      });
     }
 
     // Extract course IDs from subjects
     const courseIds = subjects.map((subject) => subject.course_id);
 
-    // Get students enrolled in those courses
-    const students = await Student.find({
+    // Build filter for students
+    const filter = {
       course_id: { $in: courseIds },
       college_id: req.college_id,
       status: "APPROVED",
-    }).select("fullName email course_id status");
+    };
+
+    // Get total count
+    const total = await require("../models/student.model").countDocuments(
+      filter,
+    );
+
+    // Get paginated students
+    const students = await require("../models/student.model")
+      .find(filter)
+      .select("fullName email course_id status")
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 });
 
     // Populate course names
-    const populatedStudents = await Student.populate(students, {
-      path: "course_id",
-      select: "name",
-    });
-
-    ApiResponse.success(
-      res,
+    const populatedStudents = await require("../models/student.model").populate(
+      students,
       {
-        students: populatedStudents,
+        path: "course_id",
+        select: "name",
+      },
+    );
+
+    ApiResponse.paginate(
+      res,
+      { students: populatedStudents },
+      {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
       },
       "Students fetched successfully",
     );
