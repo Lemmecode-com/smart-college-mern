@@ -3,13 +3,9 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Pagination from "../../../components/Pagination";
 
-import {
-  FaUsers,
-  FaEnvelope,
-  FaGraduationCap,
-  FaIdCard
-} from "react-icons/fa";
+import { FaUsers, FaEnvelope, FaGraduationCap, FaIdCard } from "react-icons/fa";
 
 export default function MyStudents() {
   const { user } = useContext(AuthContext);
@@ -17,18 +13,32 @@ export default function MyStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER")
-    return <Navigate to="/teacher/dashboard" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= FETCH STUDENTS ================= */
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await api.get("/students/teacher");
-        setStudents(res.data.students || res.data || []);
+        const res = await api.get("/students/teacher", {
+          params: {
+            page: currentPage,
+            limit: 20,
+          },
+        });
+        setStudents(res.data.data?.students || res.data?.students || []);
+        setPagination(
+          res.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 },
+        );
       } catch (err) {
         setError("Failed to load students");
       } finally {
@@ -37,16 +47,17 @@ export default function MyStudents() {
     };
 
     fetchStudents();
-  }, []);
+  }, [currentPage]);
 
   /* ================= LOADING ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Students..." />;
   }
 
+  const totalPages = pagination.pages || 0;
+
   return (
     <div className="container-fluid">
-
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
@@ -58,11 +69,7 @@ export default function MyStudents() {
         </p>
       </div>
 
-      {error && (
-        <div className="alert alert-danger text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-danger text-center">{error}</div>}
 
       {students.length === 0 && !error && (
         <div className="alert alert-warning text-center">
@@ -74,7 +81,6 @@ export default function MyStudents() {
       {students.length > 0 && (
         <div className="card shadow-lg border-0 rounded-4 glass-card">
           <div className="card-body">
-
             <table className="table table-hover align-middle">
               <thead className="table-dark">
                 <tr>
@@ -103,13 +109,9 @@ export default function MyStudents() {
                     <td>{s.course?.name || "Course"}</td>
                     <td>
                       {s.status === "APPROVED" ? (
-                        <span className="badge bg-success">
-                          ACTIVE
-                        </span>
+                        <span className="badge bg-success">ACTIVE</span>
                       ) : (
-                        <span className="badge bg-secondary">
-                          PENDING
-                        </span>
+                        <span className="badge bg-secondary">PENDING</span>
                       )}
                     </td>
                   </tr>
@@ -117,6 +119,14 @@ export default function MyStudents() {
               </tbody>
             </table>
 
+            {/* ================= PAGINATION ================= */}
+            <div className="mt-4">
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
+            </div>
           </div>
         </div>
       )}
