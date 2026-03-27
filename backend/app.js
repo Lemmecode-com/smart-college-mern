@@ -73,6 +73,9 @@ app.use("/api/fees/structure", paymentLimiter);
 // Global limiter applied to remaining /api/* routes
 app.use("/api/", globalLimiter);
 
+// Global limiter applied to remaining /api/* routes
+app.use("/api/", globalLimiter);
+
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/college", require("./src/routes/college.routes"));
