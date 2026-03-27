@@ -28,6 +28,7 @@ import {
   FaSpinner,
   FaBuilding,
   FaIdBadge,
+  FaArrowLeft,
   FaGraduationCap,
   FaMapMarkerAlt,
   FaPhone

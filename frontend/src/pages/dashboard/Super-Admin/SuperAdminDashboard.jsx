@@ -24,6 +24,7 @@ import {
   FaDatabase,
   FaChevronRight,
   FaCog,
+  FaArrowLeft,
   FaCheckCircle,
   FaSearch,
   FaFilter,

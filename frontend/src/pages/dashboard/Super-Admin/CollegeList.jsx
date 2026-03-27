@@ -71,14 +71,15 @@ export default function CollegeList() {
     return <Navigate to="/super-admin/dashboard" />;
 
   /* ================= FETCH COLLEGES ================= */
-  const fetchColleges = async () => {
-    // Prevent duplicate fetches in Strict Mode
-    if (hasLoadedRef.current) return;
+  const fetchColleges = async (forceRefresh = false) => {
+    // Prevent duplicate fetches in Strict Mode (unless force refresh)
+    if (!forceRefresh && hasLoadedRef.current) return;
 
     try {
       setLoading(true);
       setError("");
-      const res = await api.get("/master/get/colleges");
+      // Fetch all colleges including inactive ones for Super Admin
+      const res = await api.get("/master/get/colleges?includeInactive=true");
 
       const collegesData = res.data.colleges || res.data || [];
       setColleges(Array.isArray(collegesData) ? collegesData : []);
@@ -142,6 +143,13 @@ export default function CollegeList() {
     }
   };
 
+  /* ================= REFRESH HANDLER ================= */
+  const handleRefresh = () => {
+    // Reset the loaded flag to allow re-fetching
+    hasLoadedRef.current = false;
+    fetchColleges(true); // Force refresh
+  };
+
   /* ================= FILTER + PAGINATION ================= */
   const filteredColleges = useMemo(() => {
     return colleges
@@ -177,7 +185,14 @@ export default function CollegeList() {
     const action = currentStatus ? "deactivate" : "activate";
 
     try {
-      await api.put(`/master/toggle/college/${id}`);
+      if (currentStatus) {
+        // College is ACTIVE - Deactivate it
+        await api.delete(`/master/${id}`);
+      } else {
+        // College is INACTIVE - Activate it
+        await api.patch(`/master/${id}/restore`);
+      }
+
       setColleges((prev) =>
         prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
@@ -385,7 +400,7 @@ export default function CollegeList() {
             <div className="actions-group">
               <button
                 className="refresh-btn"
-                onClick={fetchColleges}
+                onClick={handleRefresh}
                 title="Refresh college list"
                 aria-label="Refresh colleges"
               >
