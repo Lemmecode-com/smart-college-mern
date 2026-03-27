@@ -167,7 +167,6 @@ import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
 
 /* ================= TEACHER ================= */
@@ -972,15 +971,6 @@ function AppContent({
             />
 
             <Route
-              path="/timetable/view"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <ViewTimetable />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
               path="/timetable/my-timetable"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
@@ -1026,7 +1016,7 @@ function AppContent({
             />
 
             {/* ================= FALLBACK ================= */}
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/home" />} />
           </Route>
         </Routes>
       </div>
