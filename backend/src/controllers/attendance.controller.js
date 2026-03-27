@@ -1069,6 +1069,9 @@
 // };
 
 const mongoose = require("mongoose");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
@@ -1144,7 +1147,9 @@ exports.createAttendanceSession = async (req, res, next) => {
     const slot = await TimetableSlot.findOne({
       _id: slot_id,
       college_id: collegeId,
-    }).populate("subject_id", "teacher_id name code").session(session);
+    })
+      .populate("subject_id", "teacher_id name code")
+      .session(session);
 
     console.log(
       "🔵 [CREATE SESSION] Slot found:",
@@ -1276,31 +1281,40 @@ exports.createAttendanceSession = async (req, res, next) => {
       throw new AppError(
         "Cannot create attendance session: No students enrolled in this course",
         400,
-        "NO_STUDENTS_ENROLLED"
+        "NO_STUDENTS_ENROLLED",
       );
     }
 
     // Create session with snapshot (within transaction)
-    const [attendanceSession] = await AttendanceSession.create([{
-      college_id: collegeId,
-      department_id: slot.department_id,
-      course_id: slot.course_id,
-      subject_id: slot.subject_id,
-      teacher_id: slot.teacher_id,
-      slot_id: slot._id,
-      lectureDate: new Date(lectureDate),
-      lectureNumber,
-      totalStudents,
-      status: "OPEN",
-      slotSnapshot: slotSnapshot, // ✅ Preserve slot data
-    }], { session });
+    const [attendanceSession] = await AttendanceSession.create(
+      [
+        {
+          college_id: collegeId,
+          department_id: slot.department_id,
+          course_id: slot.course_id,
+          subject_id: slot.subject_id,
+          teacher_id: slot.teacher_id,
+          slot_id: slot._id,
+          lectureDate: new Date(lectureDate),
+          lectureNumber,
+          totalStudents,
+          status: "OPEN",
+          slotSnapshot: slotSnapshot, // ✅ Preserve slot data
+        },
+      ],
+      { session },
+    );
 
     // Commit transaction
     await session.commitTransaction();
 
-    ApiResponse.created(res, {
-      session: attendanceSession
-    }, "Attendance session created successfully");
+    ApiResponse.created(
+      res,
+      {
+        session: attendanceSession,
+      },
+      "Attendance session created successfully",
+    );
   } catch (error) {
     // Abort transaction on error
     await session.abortTransaction();
@@ -1558,7 +1572,11 @@ exports.markAttendance = async (req, res, next) => {
     const collegeId = req.college_id;
 
     if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
-      throw new AppError("Attendance data is required", 400, "MISSING_ATTENDANCE");
+      throw new AppError(
+        "Attendance data is required",
+        400,
+        "MISSING_ATTENDANCE",
+      );
     }
 
     const teacher = await Teacher.findOne({
@@ -1593,12 +1611,20 @@ exports.markAttendance = async (req, res, next) => {
     for (let item of attendance) {
       if (!item.student_id || !item.status) {
         await session.abortTransaction();
-        throw new AppError(`Invalid attendance data for student: ${item.student_id}`, 400, "INVALID_ATTENDANCE_DATA");
+        throw new AppError(
+          `Invalid attendance data for student: ${item.student_id}`,
+          400,
+          "INVALID_ATTENDANCE_DATA",
+        );
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
         await session.abortTransaction();
-        throw new AppError(`Invalid status "${item.status}" for student: ${item.student_id}`, 400, "INVALID_STATUS");
+        throw new AppError(
+          `Invalid status "${item.status}" for student: ${item.student_id}`,
+          400,
+          "INVALID_STATUS",
+        );
       }
 
       operations.push({
@@ -1671,7 +1697,11 @@ exports.editAttendance = async (req, res, next) => {
 
     if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
       await session.abortTransaction();
-      throw new AppError("Attendance data is required", 400, "MISSING_ATTENDANCE");
+      throw new AppError(
+        "Attendance data is required",
+        400,
+        "MISSING_ATTENDANCE",
+      );
     }
 
     // Resolve teacher
@@ -1708,12 +1738,20 @@ exports.editAttendance = async (req, res, next) => {
     for (const item of attendance) {
       if (!item.student_id || !item.status) {
         await session.abortTransaction();
-        throw new AppError(`Invalid attendance data for student: ${item.student_id}`, 400, "INVALID_ATTENDANCE_DATA");
+        throw new AppError(
+          `Invalid attendance data for student: ${item.student_id}`,
+          400,
+          "INVALID_ATTENDANCE_DATA",
+        );
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
         await session.abortTransaction();
-        throw new AppError(`Invalid status "${item.status}" for student: ${item.student_id}`, 400, "INVALID_STATUS");
+        throw new AppError(
+          `Invalid status "${item.status}" for student: ${item.student_id}`,
+          400,
+          "INVALID_STATUS",
+        );
       }
 
       operations.push({
@@ -2171,18 +2209,24 @@ exports.getTeacherCourses = async (req, res) => {
     });
 
     if (!teacher) {
-      console.log('[getTeacherCourses] Teacher not found for user:', req.user.id);
+      console.log(
+        "[getTeacherCourses] Teacher not found for user:",
+        req.user.id,
+      );
       return res.status(404).json({
         message: "Teacher not found",
       });
     }
 
-    console.log('[getTeacherCourses] Teacher found:', teacher.name);
-    console.log('[getTeacherCourses] Teacher courses array:', teacher.courses);
-    console.log('[getTeacherCourses] Teacher courses length:', teacher.courses?.length);
+    console.log("[getTeacherCourses] Teacher found:", teacher.name);
+    console.log("[getTeacherCourses] Teacher courses array:", teacher.courses);
+    console.log(
+      "[getTeacherCourses] Teacher courses length:",
+      teacher.courses?.length,
+    );
 
     if (!teacher.courses || teacher.courses.length === 0) {
-      console.log('[getTeacherCourses] No courses assigned to teacher');
+      console.log("[getTeacherCourses] No courses assigned to teacher");
       return res.json([]);
     }
 
@@ -2191,9 +2235,9 @@ exports.getTeacherCourses = async (req, res) => {
       college_id: collegeId,
     }).select("name code");
 
-    console.log('[getTeacherCourses] Courses from DB:', courses);
-    console.log('[getTeacherCourses] Courses found:', courses.length);
-    
+    console.log("[getTeacherCourses] Courses from DB:", courses);
+    console.log("[getTeacherCourses] Courses found:", courses.length);
+
     // Return courses array directly (frontend expects array)
     res.json(courses);
   } catch (error) {
@@ -2212,8 +2256,8 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
     const { courseId } = req.params;
     const collegeId = req.college_id;
 
-    console.log('[getTeacherSubjectsByCourse] courseId:', courseId);
-    console.log('[getTeacherSubjectsByCourse] collegeId:', collegeId);
+    console.log("[getTeacherSubjectsByCourse] courseId:", courseId);
+    console.log("[getTeacherSubjectsByCourse] collegeId:", collegeId);
 
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
@@ -2221,15 +2265,20 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
     });
 
     if (!teacher) {
-      console.log('[getTeacherSubjectsByCourse] Teacher not found');
+      console.log("[getTeacherSubjectsByCourse] Teacher not found");
       return res.status(403).json({ message: "Teacher not found" });
     }
 
-    console.log('[getTeacherSubjectsByCourse] Teacher found:', teacher.name, 'ID:', teacher._id);
-    console.log('[getTeacherSubjectsByCourse] Querying subjects with:', {
+    console.log(
+      "[getTeacherSubjectsByCourse] Teacher found:",
+      teacher.name,
+      "ID:",
+      teacher._id,
+    );
+    console.log("[getTeacherSubjectsByCourse] Querying subjects with:", {
       college_id: collegeId,
       course_id: courseId,
-      teacher_id: teacher._id
+      teacher_id: teacher._id,
     });
 
     // Fetch subjects from Subject collection
@@ -2241,27 +2290,38 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
       status: "ACTIVE",
     }).select("_id name code");
 
-    console.log('[getTeacherSubjectsByCourse] Subjects with teacher_id filter:', subjects.length);
+    console.log(
+      "[getTeacherSubjectsByCourse] Subjects with teacher_id filter:",
+      subjects.length,
+    );
 
     // Option 2: If no subjects found, try without teacher_id filter
     // This handles cases where subjects are linked to course but not directly to teacher
     if (subjects.length === 0) {
-      console.log('[getTeacherSubjectsByCourse] No subjects found with teacher_id, trying without teacher filter...');
+      console.log(
+        "[getTeacherSubjectsByCourse] No subjects found with teacher_id, trying without teacher filter...",
+      );
       subjects = await Subject.find({
         college_id: collegeId,
         course_id: courseId,
         status: "ACTIVE",
       }).select("_id name code");
-      console.log('[getTeacherSubjectsByCourse] Subjects without teacher_id filter:', subjects.length);
+      console.log(
+        "[getTeacherSubjectsByCourse] Subjects without teacher_id filter:",
+        subjects.length,
+      );
     }
 
-    console.log('[getTeacherSubjectsByCourse] Raw subjects from DB:', subjects);
-    console.log('[getTeacherSubjectsByCourse] Subjects found:', subjects.length);
-    
+    console.log("[getTeacherSubjectsByCourse] Raw subjects from DB:", subjects);
+    console.log(
+      "[getTeacherSubjectsByCourse] Subjects found:",
+      subjects.length,
+    );
+
     // Return subjects array directly (frontend expects array)
     res.json(subjects);
   } catch (error) {
-    console.error('[getTeacherSubjectsByCourse] Error:', error);
+    console.error("[getTeacherSubjectsByCourse] Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -2357,3 +2417,386 @@ exports.getTodaySlotsForTeacher = async (req, res, next) => {
     next(error);
   }
 };
+
+/* =========================================================
+   GET STUDENT ATTENDANCE REPORT AS PDF
+   GET /attendance/student/report
+   Purpose: Generate and download attendance report as PDF
+========================================================= */
+exports.getStudentAttendanceReportPDF = async (req, res, next) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const { startDate, endDate, subjectId } = req.query;
+
+    // Fetch college info
+    const college = await College.findById(student.college_id).select(
+      "name code address",
+    );
+
+    // Fetch student info
+    const studentInfo = await Student.findById(student._id)
+      .populate("department_id", "name code")
+      .populate("course_id", "name code");
+
+    // Build query for sessions
+    const sessionQuery = {
+      college_id: student.college_id,
+      department_id: student.department_id?._id || student.department_id,
+      course_id: student.course_id?._id || student.course_id,
+    };
+
+    // Add date filter if provided
+    if (startDate && endDate) {
+      sessionQuery.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    // Add subject filter if provided
+    if (subjectId) {
+      sessionQuery.subject_id = new mongoose.Types.ObjectId(subjectId);
+    }
+
+    const sessions = await AttendanceSession.find(sessionQuery)
+      .populate("subject_id", "name code")
+      .sort({ lectureDate: 1 });
+
+    const sessionIds = sessions.map((s) => s._id);
+
+    // Fetch attendance records for this student
+    const records = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+      student_id: student._id,
+    });
+
+    // Build session-wise data
+    const sessionReport = sessions.map((session) => {
+      const record = records.find(
+        (r) => r.session_id.toString() === session._id.toString(),
+      );
+      return {
+        date: session.lectureDate,
+        subject: session.subject_id?.name || "N/A",
+        subjectCode: session.subject_id?.code || "N/A",
+        lectureNumber: session.lectureNumber,
+        startTime: session.slotSnapshot?.startTime || "N/A",
+        endTime: session.slotSnapshot?.endTime || "N/A",
+        room: session.slotSnapshot?.room || "N/A",
+        teacher: session.slotSnapshot?.teacher_name || "N/A",
+        status: record?.status || "N/A",
+      };
+    });
+
+    // Calculate summary
+    let total = records.length;
+    let present = records.filter((r) => r.status === "PRESENT").length;
+    let absent = records.filter((r) => r.status === "ABSENT").length;
+    const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : 0;
+
+    // Subject-wise breakdown
+    const subjectMap = {};
+    sessions.forEach((session) => {
+      const record = records.find(
+        (r) => r.session_id.toString() === session._id.toString(),
+      );
+      if (!record) return;
+
+      const subjectId = session.subject_id?._id?.toString();
+      if (!subjectId) return;
+
+      if (!subjectMap[subjectId]) {
+        subjectMap[subjectId] = {
+          subject: session.subject_id?.name || "N/A",
+          code: session.subject_id?.code || "N/A",
+          total: 0,
+          present: 0,
+          absent: 0,
+        };
+      }
+
+      subjectMap[subjectId].total++;
+      if (record.status === "PRESENT") {
+        subjectMap[subjectId].present++;
+      } else if (record.status === "ABSENT") {
+        subjectMap[subjectId].absent++;
+      }
+    });
+
+    const subjectBreakdown = Object.values(subjectMap).map((sub) => {
+      const percentage =
+        sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
+      return {
+        ...sub,
+        percentage,
+        warning: parseFloat(percentage) < 75,
+      };
+    });
+
+    // Create PDF document
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 50, bottom: 50, left: 40, right: 40 },
+    });
+
+    // Set response headers
+    const fileName = `attendance-report-${student._id}-${new Date().toISOString().split("T")[0]}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    // Pipe PDF to response
+    doc.pipe(res);
+
+    // ==================== PDF CONTENT ====================
+
+    // Header - College Name
+    doc
+      .fontSize(18)
+      .font("Helvetica-Bold")
+      .text(college?.name || "College", { align: "center" })
+      .moveDown(0.5);
+
+    if (college?.address) {
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .text(college.address, { align: "center" })
+        .moveDown(0.5);
+    }
+
+    // Title
+    doc
+      .moveDown(1)
+      .fontSize(16)
+      .font("Helvetica-Bold")
+      .text("Student Attendance Report", { align: "center" })
+      .moveDown(1);
+
+    // Student Information
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .text("Student Information:", { underline: true })
+      .moveDown(0.3);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
+      .text(`Roll Number: ${studentInfo?.rollNumber || "N/A"}`)
+      .text(`Email: ${studentInfo?.email || "N/A"}`)
+      .text(
+        `Department: ${studentInfo?.department_id?.name || "N/A"} (${studentInfo?.department_id?.code || "N/A"})`,
+      )
+      .text(
+        `Course: ${studentInfo?.course_id?.name || "N/A"} (${studentInfo?.course_id?.code || "N/A"})`,
+      )
+      .moveDown(0.5);
+
+    // Report Period
+    if (startDate && endDate) {
+      doc.text(
+        `Report Period: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`,
+      );
+    } else {
+      doc.text(`Report Period: All Time`);
+    }
+    doc.text(`Generated On: ${new Date().toLocaleString()}`);
+    doc.moveDown(1);
+
+    // Summary Section
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Attendance Summary:", { underline: true })
+      .moveDown(0.5);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(`Total Lectures: ${total}`)
+      .text(`Present: ${present}`)
+      .text(`Absent: ${absent}`)
+      .text(`Attendance Percentage: ${percentage}%`)
+      .moveDown(0.5);
+
+    // Attendance Status
+    const statusColor = parseFloat(percentage) >= 75 ? "✓" : "⚠";
+    const statusText =
+      parseFloat(percentage) >= 75 ? "ELIGIBLE" : "NOT ELIGIBLE";
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        `${statusColor} Exam Eligibility: ${statusText} (Minimum 75% required)`,
+      );
+    doc.moveDown(1);
+
+    // Subject-wise Breakdown
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Subject-wise Breakdown:", { underline: true })
+      .moveDown(0.5);
+
+    subjectBreakdown.forEach((sub, index) => {
+      const warningSymbol = sub.warning ? " ⚠" : " ✓";
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(`${index + 1}. ${sub.subject} (${sub.code})`, {
+          continued: true,
+        });
+      doc
+        .font("Helvetica")
+        .text(
+          ` - Total: ${sub.total}, Present: ${sub.present}, Absent: ${sub.absent}, Percentage: ${sub.percentage}%${warningSymbol}`,
+        );
+    });
+    doc.moveDown(1);
+
+    // Session-wise Details (Table)
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Session-wise Details:", { underline: true })
+      .moveDown(0.5);
+
+    // Table headers
+    const tableTop = doc.y;
+    const tableLeft = 40;
+    const colWidths = [60, 120, 50, 50, 60]; // Date, Subject, Lecture, Time, Status
+
+    // Header row background
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(9)
+      .text("Date", tableLeft, tableTop, {
+        width: colWidths[0],
+        align: "center",
+      })
+      .text("Subject", tableLeft + colWidths[0], tableTop, {
+        width: colWidths[1],
+        align: "center",
+      })
+      .text("Lec #", tableLeft + colWidths[0] + colWidths[1], tableTop, {
+        width: colWidths[2],
+        align: "center",
+      })
+      .text(
+        "Time",
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
+        tableTop,
+        {
+          width: colWidths[3],
+          align: "center",
+        },
+      )
+      .text(
+        "Status",
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+        tableTop,
+        {
+          width: colWidths[4],
+          align: "center",
+        },
+      );
+
+    doc.moveDown(0.5);
+
+    // Table rows
+    let rowY = doc.y;
+    sessionReport.slice(0, 100).forEach((session, index) => {
+      // Limit to 100 rows to prevent extremely long PDFs
+      const yPos = rowY + index * 15;
+
+      // Alternate row colors
+      if (index % 2 === 0) {
+        doc
+          .rect(
+            tableLeft,
+            yPos,
+            colWidths.reduce((a, b) => a + b, 0),
+            14,
+          )
+          .fill("#f5f5f5");
+      }
+
+      const dateStr = new Date(session.date).toLocaleDateString();
+      const timeStr = `${session.startTime} - ${session.endTime}`;
+      const statusSymbol =
+        session.status === "PRESENT"
+          ? "✓"
+          : session.status === "ABSENT"
+            ? "✗"
+            : "-";
+
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .text(dateStr, tableLeft, yPos + 3, {
+          width: colWidths[0],
+          align: "center",
+        })
+        .text(session.subject, tableLeft + colWidths[0], yPos + 3, {
+          width: colWidths[1],
+          align: "left",
+        })
+        .text(
+          session.lectureNumber.toString(),
+          tableLeft + colWidths[0] + colWidths[1],
+          yPos + 3,
+          {
+            width: colWidths[2],
+            align: "center",
+          },
+        )
+        .text(
+          timeStr,
+          tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
+          yPos + 3,
+          {
+            width: colWidths[3],
+            align: "center",
+          },
+        )
+        .text(
+          `${statusSymbol} ${session.status}`,
+          tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+          yPos + 3,
+          {
+            width: colWidths[4],
+            align: "center",
+          },
+        );
+    });
+
+    // Footer
+    const pageCount = doc.bufferedPageRange();
+    for (let i = 0; i < pageCount.count; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .text(`Page ${i + 1} of ${pageCount.count}`, 0, doc.page.height - 30, {
+          width: doc.page.width,
+          align: "center",
+        });
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Student attendance PDF report error:", error);
+    res.status(500).json({
+      message: "Failed to generate attendance report PDF",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = exports;
