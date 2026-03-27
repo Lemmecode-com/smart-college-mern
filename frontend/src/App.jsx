@@ -167,7 +167,6 @@ import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
 
 /* ================= TEACHER ================= */
@@ -967,15 +966,6 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <WeeklyTimetable />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/timetable/view"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <ViewTimetable />
                 </ProtectedRoute>
               }
             />
