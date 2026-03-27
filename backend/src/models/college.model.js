@@ -66,7 +66,7 @@ const collegeSchema = new mongoose.Schema({
 });
 
 // 🔒 SOFT DELETE: Cascade isActive=false to all related data when college is deactivated
-collegeSchema.pre("findOneAndUpdate", async function (next) {
+collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
 
   // Only trigger soft delete when isActive is being set to false
@@ -74,7 +74,7 @@ collegeSchema.pre("findOneAndUpdate", async function (next) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
-        return next();
+        return;
       }
 
       const collegeId = college._id;
@@ -164,18 +164,15 @@ collegeSchema.pre("findOneAndUpdate", async function (next) {
       ]);
 
       console.log(`✅ Soft delete completed for college: ${collegeId}`);
-      next();
     } catch (error) {
       console.error("❌ Soft delete failed:", error.message);
-      next(error);
+      throw error; // Throw error instead of calling next(error)
     }
-  } else {
-    next();
   }
 });
 
 // 🔄 RESTORE: Cascade isActive=true when college is reactivated
-collegeSchema.pre("findOneAndUpdate", async function (next) {
+collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
 
   // Only trigger restore when isActive is being set to true
@@ -183,7 +180,7 @@ collegeSchema.pre("findOneAndUpdate", async function (next) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
-        return next();
+        return;
       }
 
       const collegeId = college._id;
@@ -270,13 +267,10 @@ collegeSchema.pre("findOneAndUpdate", async function (next) {
       ]);
 
       console.log(`✅ Restore completed for college: ${collegeId}`);
-      next();
     } catch (error) {
       console.error("❌ Restore failed:", error.message);
-      next(error);
+      throw error; // Throw error instead of calling next(error)
     }
-  } else {
-    next();
   }
 });
 
