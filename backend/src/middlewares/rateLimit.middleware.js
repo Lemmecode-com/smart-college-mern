@@ -47,8 +47,6 @@ const globalLimiter = rateLimit({
     });
     res.status(options.statusCode).json(options.message);
   },
-  // Skip rate limiting for health checks
-  skip: (req) => req.path === '/health' || req.path === '/health-check',
 });
 
 /**
@@ -85,9 +83,6 @@ const authLimiter = rateLimit({
       code: 'RATE_LIMIT_EXCEEDED'
     });
   },
-  requestWasSuccessful: (req, res) => {
-    return false;
-  },
 });
 
 /**
@@ -107,6 +102,7 @@ const passwordResetLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Password Reset from IP: ${req.ip}`, {
       ip: req.ip,
@@ -141,6 +137,7 @@ const paymentLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
   handler: (req, res, next, options) => {
     logger.logWarning(`RATE LIMIT HIT - Payment endpoint from IP: ${req.ip}`, {
       ip: req.ip,
@@ -172,6 +169,7 @@ const healthCheckLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
 });
 
 /**
@@ -188,6 +186,7 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
 });
 
 /**
@@ -207,6 +206,7 @@ const publicLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
 });
 
 module.exports = {
