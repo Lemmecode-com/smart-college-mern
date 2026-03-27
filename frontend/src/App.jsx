@@ -1016,7 +1016,7 @@ function AppContent({
             />
 
             {/* ================= FALLBACK ================= */}
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/home" />} />
           </Route>
         </Routes>
       </div>
