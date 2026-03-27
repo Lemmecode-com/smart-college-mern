@@ -36,7 +36,8 @@ const VALIDATION = {
   PHONE_PATTERN: /^(\+91|0)?[6-9]\d{9}$/,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PASSWORD_MIN_LENGTH: 8,
-  PASSWORD_PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+  PASSWORD_PATTERN:
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
   MIN_YEAR: 1800,
   MAX_YEAR: new Date().getFullYear(),
   ADDRESS_MIN_LENGTH: 20,
@@ -45,11 +46,13 @@ const VALIDATION = {
 const MESSAGES = {
   COLLEGE_NAME_REQUIRED: "College name is required",
   COLLEGE_CODE_REQUIRED: "College code is required",
-  COLLEGE_CODE_INVALID: "College code must be 3-10 alphanumeric characters (A-Z, 0-9)",
+  COLLEGE_CODE_INVALID:
+    "College code must be 3-10 alphanumeric characters (A-Z, 0-9)",
   COLLEGE_EMAIL_REQUIRED: "College email is required",
   COLLEGE_EMAIL_INVALID: "Invalid college email format",
   PHONE_REQUIRED: "Contact number is required",
-  PHONE_INVALID: "Enter valid 10-digit Indian mobile number (e.g., +91 9876543210)",
+  PHONE_INVALID:
+    "Enter valid 10-digit Indian mobile number (e.g., +91 9876543210)",
   ADDRESS_REQUIRED: "Address is required",
   ADDRESS_TOO_SHORT: "Address must be at least 20 characters",
   ESTABLISHED_YEAR_REQUIRED: "Established year is required",
@@ -59,7 +62,8 @@ const MESSAGES = {
   ADMIN_EMAIL_INVALID: "Invalid admin email format",
   PASSWORD_REQUIRED: "Admin password is required",
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters",
-  PASSWORD_WEAK: "Password must contain uppercase, lowercase, number & special character (@$!%*?&)",
+  PASSWORD_WEAK:
+    "Password must contain uppercase, lowercase, number & special character (@$!%*?&)",
 };
 
 export default function CreateNewCollege() {
@@ -95,50 +99,58 @@ export default function CreateNewCollege() {
   /* ================= VALIDATION ================= */
   const validateField = useCallback((name, value) => {
     switch (name) {
-      case 'collegeName':
+      case "collegeName":
         if (!value.trim()) return MESSAGES.COLLEGE_NAME_REQUIRED;
-        return '';
-      case 'collegeCode':
+        return "";
+      case "collegeCode":
         if (!value.trim()) return MESSAGES.COLLEGE_CODE_REQUIRED;
-        if (!VALIDATION.CODE_PATTERN.test(value.toUpperCase())) return MESSAGES.COLLEGE_CODE_INVALID;
-        return '';
-      case 'collegeEmail':
+        if (!VALIDATION.CODE_PATTERN.test(value.toUpperCase()))
+          return MESSAGES.COLLEGE_CODE_INVALID;
+        return "";
+      case "collegeEmail":
         if (!value.trim()) return MESSAGES.COLLEGE_EMAIL_REQUIRED;
-        if (!VALIDATION.EMAIL_PATTERN.test(value)) return MESSAGES.COLLEGE_EMAIL_INVALID;
-        return '';
-      case 'contactNumber':
+        if (!VALIDATION.EMAIL_PATTERN.test(value))
+          return MESSAGES.COLLEGE_EMAIL_INVALID;
+        return "";
+      case "contactNumber":
         if (!value.trim()) return MESSAGES.PHONE_REQUIRED;
-        if (!VALIDATION.PHONE_PATTERN.test(value)) return MESSAGES.PHONE_INVALID;
-        return '';
-      case 'address':
+        if (!VALIDATION.PHONE_PATTERN.test(value))
+          return MESSAGES.PHONE_INVALID;
+        return "";
+      case "address":
         if (!value.trim()) return MESSAGES.ADDRESS_REQUIRED;
-        if (value.trim().length < VALIDATION.ADDRESS_MIN_LENGTH) return MESSAGES.ADDRESS_TOO_SHORT;
-        return '';
-      case 'establishedYear':
+        if (value.trim().length < VALIDATION.ADDRESS_MIN_LENGTH)
+          return MESSAGES.ADDRESS_TOO_SHORT;
+        return "";
+      case "establishedYear":
         if (!value.trim()) return MESSAGES.ESTABLISHED_YEAR_REQUIRED;
         const year = Number(value);
-        if (year < VALIDATION.MIN_YEAR || year > VALIDATION.MAX_YEAR) return MESSAGES.ESTABLISHED_YEAR_INVALID;
-        return '';
-      case 'adminName':
+        if (year < VALIDATION.MIN_YEAR || year > VALIDATION.MAX_YEAR)
+          return MESSAGES.ESTABLISHED_YEAR_INVALID;
+        return "";
+      case "adminName":
         if (!value.trim()) return MESSAGES.ADMIN_NAME_REQUIRED;
-        return '';
-      case 'adminEmail':
+        return "";
+      case "adminEmail":
         if (!value.trim()) return MESSAGES.ADMIN_EMAIL_REQUIRED;
-        if (!VALIDATION.EMAIL_PATTERN.test(value)) return MESSAGES.ADMIN_EMAIL_INVALID;
-        return '';
-      case 'adminPassword':
+        if (!VALIDATION.EMAIL_PATTERN.test(value))
+          return MESSAGES.ADMIN_EMAIL_INVALID;
+        return "";
+      case "adminPassword":
         if (!value.trim()) return MESSAGES.PASSWORD_REQUIRED;
-        if (value.length < VALIDATION.PASSWORD_MIN_LENGTH) return MESSAGES.PASSWORD_TOO_SHORT;
-        if (!VALIDATION.PASSWORD_PATTERN.test(value)) return MESSAGES.PASSWORD_WEAK;
-        return '';
+        if (value.length < VALIDATION.PASSWORD_MIN_LENGTH)
+          return MESSAGES.PASSWORD_TOO_SHORT;
+        if (!VALIDATION.PASSWORD_PATTERN.test(value))
+          return MESSAGES.PASSWORD_WEAK;
+        return "";
       default:
-        return '';
+        return "";
     }
   }, []);
 
   const validateForm = useCallback(() => {
     const errors = {};
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       const error = validateField(key, formData[key]);
       if (error) errors[key] = error;
     });
@@ -148,25 +160,25 @@ export default function CreateNewCollege() {
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setTouched(prev => ({ ...prev, [name]: true }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
     if (error) setError("");
   };
 
   const handleBlur = (e) => {
     const { name } = e.target;
-    setTouched(prev => ({ ...prev, [name]: true }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const getFieldError = (name) => {
-    if (!touched[name]) return '';
+    if (!touched[name]) return "";
     return validateField(name, formData[name]);
   };
 
   const handleSubmitClick = (e) => {
     e.preventDefault();
     const errors = validateForm();
-    
+
     if (Object.keys(errors).length > 0) {
       const firstError = Object.values(errors)[0];
       setError(firstError);
@@ -211,10 +223,13 @@ export default function CreateNewCollege() {
 
       toast.success("College created successfully!", {
         position: "top-right",
-        autoClose: 3000
+        autoClose: 3000,
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create college. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to create college. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -226,13 +241,13 @@ export default function CreateNewCollege() {
       setCopiedField(field);
       toast.success("Copied to clipboard!", {
         position: "top-right",
-        autoClose: 2000
+        autoClose: 2000,
       });
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
       toast.error("Failed to copy", {
         position: "top-right",
-        autoClose: 2000
+        autoClose: 2000,
       });
     }
   };
@@ -258,29 +273,29 @@ export default function CreateNewCollege() {
   const getPasswordStrength = () => {
     const password = formData.adminPassword;
     const checks = [
-      { label: '8+ characters', met: password.length >= 8 },
-      { label: 'Uppercase letter', met: /[A-Z]/.test(password) },
-      { label: 'Lowercase letter', met: /[a-z]/.test(password) },
-      { label: 'Number', met: /\d/.test(password) },
-      { label: 'Special character', met: /[@$!%*?&]/.test(password) },
+      { label: "8+ characters", met: password.length >= 8 },
+      { label: "Uppercase letter", met: /[A-Z]/.test(password) },
+      { label: "Lowercase letter", met: /[a-z]/.test(password) },
+      { label: "Number", met: /\d/.test(password) },
+      { label: "Special character", met: /[@$!%*?&]/.test(password) },
     ];
-    const strength = checks.filter(c => c.met).length;
+    const strength = checks.filter((c) => c.met).length;
     return { strength, checks };
   };
 
   const { strength, checks } = getPasswordStrength();
 
   const getStrengthColor = () => {
-    if (strength <= 2) return '#dc3545';
-    if (strength <= 4) return '#ffc107';
-    return '#28a745';
+    if (strength <= 2) return "#dc3545";
+    if (strength <= 4) return "#ffc107";
+    return "#28a745";
   };
 
   const getStrengthLabel = () => {
-    if (strength === 0) return '';
-    if (strength <= 2) return 'Weak';
-    if (strength <= 4) return 'Medium';
-    return 'Strong';
+    if (strength === 0) return "";
+    if (strength <= 2) return "Weak";
+    if (strength <= 4) return "Medium";
+    return "Strong";
   };
 
   /* ================= LOADING STATE ================= */
@@ -320,7 +335,7 @@ export default function CreateNewCollege() {
         items={[
           { label: "Dashboard", path: "/super-admin/dashboard" },
           { label: "Colleges", path: "/super-admin/colleges-list" },
-          { label: "Create New College" }
+          { label: "Create New College" },
         ]}
       />
 
@@ -333,7 +348,8 @@ export default function CreateNewCollege() {
           <div className="erp-header-text">
             <h1 className="erp-page-title">Create New College</h1>
             <p className="erp-page-subtitle">
-              Register a new educational institution and generate administrator credentials
+              Register a new educational institution and generate administrator
+              credentials
             </p>
           </div>
         </div>
@@ -354,8 +370,10 @@ export default function CreateNewCollege() {
           <FaGraduationCap className="pulse" />
         </div>
         <div className="info-content">
-          <strong>Important:</strong> This action will create a new college institution with a dedicated administrator account.
-          Please ensure all information is accurate before submission. Admin credentials will be displayed after successful creation.
+          <strong>Important:</strong> This action will create a new college
+          institution with a dedicated administrator account. Please ensure all
+          information is accurate before submission. Admin credentials will be
+          displayed after successful creation.
         </div>
       </div>
 
@@ -387,27 +405,46 @@ export default function CreateNewCollege() {
             <strong>Success!</strong> {success.message}
             <div className="success-details">
               <div className="success-detail-row">
-                <span><strong>College Name:</strong> {success.college?.collegeName || 'N/A'}</span>
-                <span><strong>College Code:</strong> {success.college?.collegeCode || 'N/A'}</span>
+                <span>
+                  <strong>College Name:</strong>{" "}
+                  {success.college?.name || "N/A"}
+                </span>
+                <span>
+                  <strong>College Code:</strong>{" "}
+                  {success.college?.code || "N/A"}
+                </span>
               </div>
               <div className="success-detail-row">
-                <span><strong>Admin Email:</strong> {success.collegeAdmin?.email || 'N/A'}</span>
+                <span>
+                  <strong>Admin Email:</strong>{" "}
+                  {success.collegeAdmin?.email || "N/A"}
+                </span>
                 <button
                   className="copy-btn"
-                  onClick={() => handleCopyToClipboard(success.collegeAdmin?.email, 'email')}
+                  onClick={() =>
+                    handleCopyToClipboard(success.collegeAdmin?.email, "email")
+                  }
                   aria-label="Copy email"
                 >
-                  {copiedField === 'email' ? <FaCheck /> : <FaCopy />}
+                  {copiedField === "email" ? <FaCheck /> : <FaCopy />}
                 </button>
               </div>
               <div className="success-detail-row">
-                <span><strong>Admin Password:</strong> <span className="password-mask">••••••••</span></span>
+                <span>
+                  <strong>Admin Password:</strong>{" "}
+                  <span className="password-mask">••••••••</span>
+                </span>
                 <button
                   className="copy-btn"
-                  onClick={() => handleCopyToClipboard(success.collegeAdmin?.password || '', 'password')}
+                  onClick={() =>
+                    handleCopyToClipboard(
+                      formData.adminPassword || "",
+                      "password",
+                    )
+                  }
                   aria-label="Copy password"
                 >
-                  {copiedField === 'password' ? <FaCheck /> : <FaCopy />}
+                  {copiedField === "password" ? <FaCheck /> : <FaCopy />}
                 </button>
               </div>
               <div className="success-actions">
@@ -439,8 +476,9 @@ export default function CreateNewCollege() {
             <h3>College Registration Form</h3>
           </div>
           <div className="erp-form-subtitle">
-            Fill in all required fields marked with <span className="required">*</span>.
-            All information is confidential and securely stored.
+            Fill in all required fields marked with{" "}
+            <span className="required">*</span>. All information is confidential
+            and securely stored.
           </div>
         </div>
 
@@ -462,17 +500,17 @@ export default function CreateNewCollege() {
                   <input
                     type="text"
                     name="collegeName"
-                    className={`erp-input ${getFieldError('collegeName') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("collegeName") ? "erp-input-error" : ""}`}
                     value={formData.collegeName}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="Enter full college name"
                     autoComplete="off"
                   />
-                  {getFieldError('collegeName') && (
+                  {getFieldError("collegeName") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('collegeName')}
+                      {getFieldError("collegeName")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -491,18 +529,18 @@ export default function CreateNewCollege() {
                   <input
                     type="text"
                     name="collegeCode"
-                    className={`erp-input ${getFieldError('collegeCode') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("collegeCode") ? "erp-input-error" : ""}`}
                     value={formData.collegeCode}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="e.g., ABC123"
                     autoComplete="off"
-                    style={{ textTransform: 'uppercase' }}
+                    style={{ textTransform: "uppercase" }}
                   />
-                  {getFieldError('collegeCode') && (
+                  {getFieldError("collegeCode") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('collegeCode')}
+                      {getFieldError("collegeCode")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -521,17 +559,17 @@ export default function CreateNewCollege() {
                   <input
                     type="email"
                     name="collegeEmail"
-                    className={`erp-input ${getFieldError('collegeEmail') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("collegeEmail") ? "erp-input-error" : ""}`}
                     value={formData.collegeEmail}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="admissions@college.edu"
                     autoComplete="off"
                   />
-                  {getFieldError('collegeEmail') && (
+                  {getFieldError("collegeEmail") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('collegeEmail')}
+                      {getFieldError("collegeEmail")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -550,17 +588,17 @@ export default function CreateNewCollege() {
                   <input
                     type="tel"
                     name="contactNumber"
-                    className={`erp-input ${getFieldError('contactNumber') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("contactNumber") ? "erp-input-error" : ""}`}
                     value={formData.contactNumber}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="+91 9876543210"
                     autoComplete="off"
                   />
-                  {getFieldError('contactNumber') && (
+                  {getFieldError("contactNumber") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('contactNumber')}
+                      {getFieldError("contactNumber")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -579,7 +617,7 @@ export default function CreateNewCollege() {
                   <input
                     type="number"
                     name="establishedYear"
-                    className={`erp-input ${getFieldError('establishedYear') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("establishedYear") ? "erp-input-error" : ""}`}
                     value={formData.establishedYear}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -588,10 +626,10 @@ export default function CreateNewCollege() {
                     max={VALIDATION.MAX_YEAR}
                     autoComplete="off"
                   />
-                  {getFieldError('establishedYear') && (
+                  {getFieldError("establishedYear") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('establishedYear')}
+                      {getFieldError("establishedYear")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -609,7 +647,7 @@ export default function CreateNewCollege() {
                   </label>
                   <textarea
                     name="address"
-                    className={`erp-textarea ${getFieldError('address') ? 'erp-input-error' : ''}`}
+                    className={`erp-textarea ${getFieldError("address") ? "erp-input-error" : ""}`}
                     value={formData.address}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -617,10 +655,10 @@ export default function CreateNewCollege() {
                     rows="3"
                     autoComplete="off"
                   />
-                  {getFieldError('address') && (
+                  {getFieldError("address") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('address')}
+                      {getFieldError("address")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -639,7 +677,8 @@ export default function CreateNewCollege() {
               College Admin Credentials
             </h4>
             <p className="section-description">
-              Create the primary administrator account for this college. Credentials will be displayed after successful creation.
+              Create the primary administrator account for this college.
+              Credentials will be displayed after successful creation.
             </p>
 
             <div className="erp-row">
@@ -652,17 +691,17 @@ export default function CreateNewCollege() {
                   <input
                     type="text"
                     name="adminName"
-                    className={`erp-input ${getFieldError('adminName') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("adminName") ? "erp-input-error" : ""}`}
                     value={formData.adminName}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="Full name of administrator"
                     autoComplete="off"
                   />
-                  {getFieldError('adminName') && (
+                  {getFieldError("adminName") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('adminName')}
+                      {getFieldError("adminName")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -681,17 +720,17 @@ export default function CreateNewCollege() {
                   <input
                     type="email"
                     name="adminEmail"
-                    className={`erp-input ${getFieldError('adminEmail') ? 'erp-input-error' : ''}`}
+                    className={`erp-input ${getFieldError("adminEmail") ? "erp-input-error" : ""}`}
                     value={formData.adminEmail}
                     onChange={handleChange}
                     onBlur={handleBlur}
                     placeholder="admin@college.edu"
                     autoComplete="off"
                   />
-                  {getFieldError('adminEmail') && (
+                  {getFieldError("adminEmail") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('adminEmail')}
+                      {getFieldError("adminEmail")}
                     </div>
                   )}
                   <div className="erp-hint-text">
@@ -711,7 +750,7 @@ export default function CreateNewCollege() {
                     <input
                       type={showPassword ? "text" : "password"}
                       name="adminPassword"
-                      className={`erp-input ${getFieldError('adminPassword') ? 'erp-input-error' : ''}`}
+                      className={`erp-input ${getFieldError("adminPassword") ? "erp-input-error" : ""}`}
                       value={formData.adminPassword}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -722,47 +761,56 @@ export default function CreateNewCollege() {
                       type="button"
                       className="toggle-password"
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  {getFieldError('adminPassword') && (
+                  {getFieldError("adminPassword") && (
                     <div className="erp-error-text">
                       <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError('adminPassword')}
+                      {getFieldError("adminPassword")}
                     </div>
                   )}
-                  
+
                   {/* Password Strength Meter */}
                   {formData.adminPassword && (
                     <div className="password-strength-meter">
                       <div className="strength-bar-container">
-                        <div 
-                          className="strength-bar" 
-                          style={{ 
+                        <div
+                          className="strength-bar"
+                          style={{
                             width: `${(strength / 5) * 100}%`,
-                            background: getStrengthColor()
+                            background: getStrengthColor(),
                           }}
                         />
                       </div>
                       <div className="strength-info">
-                        <span className="strength-label" style={{ color: getStrengthColor() }}>
+                        <span
+                          className="strength-label"
+                          style={{ color: getStrengthColor() }}
+                        >
                           {getStrengthLabel()}
                         </span>
                         <span className="strength-text">{strength}/5</span>
                       </div>
                       <ul className="requirements-list">
                         {checks.map((check, idx) => (
-                          <li key={idx} className={check.met ? 'met' : ''}>
-                            {check.met ? <FaCheck className="check-icon" /> : <FaTimes className="check-icon" />}
+                          <li key={idx} className={check.met ? "met" : ""}>
+                            {check.met ? (
+                              <FaCheck className="check-icon" />
+                            ) : (
+                              <FaTimes className="check-icon" />
+                            )}
                             <span>{check.label}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
-                  
+
                   <div className="erp-hint-text">
                     <FaInfoCircle className="erp-hint-icon" />
                     Strong password required for security
