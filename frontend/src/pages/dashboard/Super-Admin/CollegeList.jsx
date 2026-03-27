@@ -177,7 +177,14 @@ export default function CollegeList() {
     const action = currentStatus ? "deactivate" : "activate";
 
     try {
-      await api.put(`/master/toggle/college/${id}`);
+      if (currentStatus) {
+        // College is ACTIVE - Deactivate it
+        await api.delete(`/master/${id}`);
+      } else {
+        // College is INACTIVE - Activate it
+        await api.patch(`/master/${id}/restore`);
+      }
+
       setColleges((prev) =>
         prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
