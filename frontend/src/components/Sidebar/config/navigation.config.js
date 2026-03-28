@@ -34,6 +34,7 @@ import {
   FaEdit,
   FaClock,
   FaChartLine,
+  FaCreditCard,
 } from "react-icons/fa";
 
 export const navigationConfig = {
