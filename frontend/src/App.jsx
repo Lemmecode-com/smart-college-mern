@@ -172,6 +172,7 @@ import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacher
 /* ================= TEACHER ================= */
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
+import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -885,6 +886,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <DocumentSettings />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/stripe-configuration"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <StripeConfiguration />
                 </ProtectedRoute>
               }
             />
