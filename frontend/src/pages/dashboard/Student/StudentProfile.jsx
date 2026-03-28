@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -37,12 +38,12 @@ import {
   FaDownload,
   FaPrint,
   FaExclamationTriangle,
-  FaFileAlt,      // ✅ VALID: Generic file
-  FaFilePdf,      // ✅ VALID: PDF document (REPLACES FaFileCertificate)
-  FaFileInvoice,  // ✅ VALID
-  FaFileMedical,  // ✅ VALID
-  FaFileSignature,// ✅ VALID
-  FaCertificate   // ✅ VALID: Standalone certificate icon
+  FaFileAlt, // ✅ VALID: Generic file
+  FaFilePdf, // ✅ VALID: PDF document (REPLACES FaFileCertificate)
+  FaFileInvoice, // ✅ VALID
+  FaFileMedical, // ✅ VALID
+  FaFileSignature, // ✅ VALID
+  FaCertificate, // ✅ VALID: Standalone certificate icon
 } from "react-icons/fa";
 
 export default function StudentProfile() {
@@ -53,9 +54,11 @@ export default function StudentProfile() {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [activeTab, setActiveTab] = useState('personal'); // 'personal', 'academic', 'contact', 'address', 'education', 'college'
+  const [activeTab, setActiveTab] = useState("personal"); // 'personal', 'academic', 'contact', 'address', 'education', 'college'
   const [documentConfig, setDocumentConfig] = useState([]);
 
   /* ================= SECURITY ================= */
@@ -65,7 +68,7 @@ export default function StudentProfile() {
   /* ================= DATA VALIDATION HELPER ================= */
   const validateProfileData = (data) => {
     const errors = [];
-    
+
     if (!data) {
       errors.push("Profile data is missing");
     } else {
@@ -74,18 +77,19 @@ export default function StudentProfile() {
       } else {
         if (!data.student.fullName) errors.push("Student name is missing");
         if (!data.student.email) errors.push("Student email is missing");
-        if (!data.student.mobileNumber) errors.push("Student mobile number is missing");
+        if (!data.student.mobileNumber)
+          errors.push("Student mobile number is missing");
       }
-      
+
       if (!data.department) errors.push("Department information is missing");
       if (!data.course) errors.push("Course information is missing");
     }
-    
+
     return errors;
   };
 
   /* ================= FETCH PROFILE ================= */
-  useEffect(() => {
+  const fetchProfile = async () => {
     // Clear any existing timeout
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
@@ -93,88 +97,86 @@ export default function StudentProfile() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError("Request timed out. Please check your connection and try again.");
+      setError({
+        message:
+          "Request timed out. Please check your connection and try again.",
+        statusCode: 408,
+      });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
     }, 30000);
 
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get("/students/my-profile");
+    try {
+      const res = await api.get("/students/my-profile");
 
-        if (!res.data || !res.data.student) {
-          throw new Error("Invalid profile response structure");
-        }
-
-        // Validate profile data
-        const validation = validateProfileData(res.data);
-        if (validation.length > 0) {
-          throw new Error(`Invalid profile data: ${validation.join(', ')}`);
-        }
-
-        // Clear timeout on success - user is actively viewing the page
-        if (loadTimeoutRef.current) {
-          clearTimeout(loadTimeoutRef.current);
-        }
-
-        setProfile(res.data);
-
-        // Extract document config for conditional rendering
-        if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
-          setDocumentConfig(res.data.documentConfig);
-        } else {
-          // No document config - use empty array (no documents shown)
-          // This means college admin hasn't configured any documents
-          setDocumentConfig([]);
-        }
-      } catch (err) {
-        // Clear timeout on error
-        if (loadTimeoutRef.current) {
-          clearTimeout(loadTimeoutRef.current);
-        }
-
-        if (err.response?.status === 401) {
-          setError("Session expired. Please login again.");
-          toast.error("Session expired. Please login again.", {
-            position: "top-right",
-            autoClose: 3000,
-            icon: <FaTimesCircle />
-          });
-          setTimeout(() => navigate("/login"), 3000);
-        } else if (err.response?.status === 404) {
-          const errorMsg = "Student profile not found. Please contact administration.";
-          setError(errorMsg);
-          toast.error(errorMsg, {
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />
-          });
-        } else if (err.response?.status === 500) {
-          const errorMsg = "Server error while loading profile. Please try again later.";
-          setError(errorMsg);
-          toast.error(errorMsg, {
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />
-          });
-        } else {
-          const errorMsg = err.response?.data?.message || "Failed to load student profile. Please try again.";
-          setError(errorMsg);
-          toast.error(errorMsg, {
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />
-          });
-        }
-      } finally {
-        setLoading(false);
+      if (!res.data || !res.data.student) {
+        throw new Error("Invalid profile response structure");
       }
-    };
 
+      // Validate profile data
+      const validation = validateProfileData(res.data);
+      if (validation.length > 0) {
+        throw new Error(`Invalid profile data: ${validation.join(", ")}`);
+      }
+
+      // Clear timeout on success - user is actively viewing the page
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+
+      setProfile(res.data);
+
+      // Extract document config for conditional rendering
+      if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
+        setDocumentConfig(res.data.documentConfig);
+      } else {
+        setDocumentConfig([]);
+      }
+    } catch (err) {
+      // Clear timeout on error
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+
+      const statusCode = err.response?.status;
+      let errorMessage = "";
+
+      if (statusCode === 401) {
+        errorMessage = "Session expired. Please login again.";
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaTimesCircle />,
+        });
+        setTimeout(() => navigate("/login"), 3000);
+      } else if (statusCode === 404) {
+        errorMessage =
+          "Student profile not found. Please contact administration.";
+      } else if (statusCode === 500) {
+        errorMessage =
+          "Server error while loading profile. Please try again later.";
+      } else {
+        errorMessage =
+          err.response?.data?.message ||
+          "Failed to load student profile. Please try again.";
+      }
+
+      setError({ message: errorMessage, statusCode });
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProfile();
 
     // Cleanup timeout on unmount
@@ -186,14 +188,17 @@ export default function StudentProfile() {
   }, [user, navigate]);
 
   /* ================= RETRY HANDLER ================= */
-  const handleRetry = () => {
-    setError("");
-    setLoading(true);
-    toast.info("Retrying...", {
-      position: "top-right",
-      autoClose: 1000,
-      icon: <FaSync />
-    });
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
+    setRetryCount((prev) => prev + 1);
+    await fetchProfile();
+    setIsRetrying(false);
+  };
+
+  // Handle go back action
+  const handleGoBack = () => {
+    navigate("/student/dashboard");
   };
 
   /* ================= LOADING STATE ================= */
@@ -204,38 +209,18 @@ export default function StudentProfile() {
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <div className="container-fluid py-5" role="main">
-        <ToastContainer position="top-right" />
-        <div className="row justify-content-center">
-          <div className="col-md-8">
-            <div className="card border-0 shadow-lg rounded-4">
-              <div className="card-body text-center p-5" role="alert" aria-live="assertive">
-                <div className="text-danger mb-3">
-                  <FaTimesCircle size={64} aria-hidden="true" />
-                </div>
-                <h4 className="fw-bold mb-2">Profile Loading Error</h4>
-                <p className="text-muted mb-4">{error}</p>
-                <div className="d-flex justify-content-center gap-3">
-                  <button
-                    onClick={handleRetry}
-                    className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2"
-                    aria-label="Retry loading profile"
-                  >
-                    <FaSync className="spin-icon" aria-hidden="true" /> Retry
-                  </button>
-                  <button
-                    onClick={() => navigate("/student/dashboard")}
-                    className="btn btn-outline-secondary px-4 py-2 d-flex align-items-center gap-2"
-                    aria-label="Go back to student dashboard"
-                  >
-                    <FaArrowLeft aria-hidden="true" /> Back to Dashboard
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ApiError
+        title="Profile Loading Error"
+        message={
+          error.message || "Failed to load student profile. Please try again."
+        }
+        statusCode={error.statusCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 
@@ -247,9 +232,16 @@ export default function StudentProfile() {
           <div className="col-md-8">
             <div className="card border-0 shadow-lg rounded-4">
               <div className="card-body text-center p-5">
-                <FaUserGraduate className="text-muted mb-3" size={64} aria-hidden="true" />
+                <FaUserGraduate
+                  className="text-muted mb-3"
+                  size={64}
+                  aria-hidden="true"
+                />
                 <h4 className="fw-bold mb-2">No Profile Data Found</h4>
-                <p className="text-muted mb-4">Your profile information could not be retrieved. Please contact your college administrator.</p>
+                <p className="text-muted mb-4">
+                  Your profile information could not be retrieved. Please
+                  contact your college administrator.
+                </p>
                 <button
                   onClick={() => navigate("/student/dashboard")}
                   className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
@@ -269,130 +261,166 @@ export default function StudentProfile() {
 
   // Helper functions to check if documents are enabled
   const is10thEnabled = () => {
-    return documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "10th_marksheet" && doc.enabled,
+    );
   };
 
   const is12thEnabled = () => {
-    return documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "12th_marksheet" && doc.enabled,
+    );
   };
 
   const isPassportPhotoEnabled = () => {
-    return documentConfig.some(doc => doc.type === "passport_photo" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "passport_photo" && doc.enabled,
+    );
   };
 
   const isCategoryCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "category_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "category_certificate" && doc.enabled,
+    );
   };
 
   const isIncomeCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "income_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "income_certificate" && doc.enabled,
+    );
   };
 
   const isCharacterCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "character_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "character_certificate" && doc.enabled,
+    );
   };
 
   const isTransferCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "transfer_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "transfer_certificate" && doc.enabled,
+    );
   };
 
   const isAadharCardEnabled = () => {
-    return documentConfig.some(doc => doc.type === "aadhar_card" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "aadhar_card" && doc.enabled,
+    );
   };
 
   const isEntranceExamScoreEnabled = () => {
-    return documentConfig.some(doc => doc.type === "entrance_exam_score" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "entrance_exam_score" && doc.enabled,
+    );
   };
 
   const isMigrationCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "migration_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "migration_certificate" && doc.enabled,
+    );
   };
 
   const isDomicileCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "domicile_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "domicile_certificate" && doc.enabled,
+    );
   };
 
   const isCasteCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "caste_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "caste_certificate" && doc.enabled,
+    );
   };
 
   const isNonCreamyLayerEnabled = () => {
-    return documentConfig.some(doc => doc.type === "non_creamy_layer_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "non_creamy_layer_certificate" && doc.enabled,
+    );
   };
 
   const isPhysicallyChallengedEnabled = () => {
-    return documentConfig.some(doc => doc.type === "physically_challenged_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "physically_challenged_certificate" && doc.enabled,
+    );
   };
 
   const isSportsQuotaEnabled = () => {
-    return documentConfig.some(doc => doc.type === "sports_quota_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "sports_quota_certificate" && doc.enabled,
+    );
   };
 
   const isNriSponsorEnabled = () => {
-    return documentConfig.some(doc => doc.type === "nri_sponsor_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "nri_sponsor_certificate" && doc.enabled,
+    );
   };
 
   const isGapCertificateEnabled = () => {
-    return documentConfig.some(doc => doc.type === "gap_certificate" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "gap_certificate" && doc.enabled,
+    );
   };
 
   const isAffidavitEnabled = () => {
-    return documentConfig.some(doc => doc.type === "affidavit" && doc.enabled);
+    return documentConfig.some(
+      (doc) => doc.type === "affidavit" && doc.enabled,
+    );
   };
 
   // Mock educational documents data (to be replaced with real API later)
   const educationalDocuments = [
-  {
-    id: 1,
-    type: "10th Marksheet",
-    name: "Secondary School Certificate",
-    board: "State Board",
-    year: "2018",
-    percentage: "85.4%",
-    file: "10th_marksheet.pdf",
-    icon: <FaFileAlt />  // Generic file icon
-  },
-  {
-    id: 2,
-    type: "12th Marksheet",
-    name: "Higher Secondary Certificate",
-    board: "CBSE",
-    year: "2020",
-    percentage: "78.9%",
-    file: "12th_marksheet.pdf",
-    icon: <FaFilePdf />  // ✅ CORRECTED: PDF icon instead of invalid FaFileCertificate
-  },
-  {
-    id: 3,
-    type: "Migration Certificate",
-    name: "Inter-State Migration Certificate",
-    board: "State Education Board",
-    year: "2020",
-    percentage: "",
-    file: "migration_certificate.pdf",
-    icon: <FaCertificate />  // ✅ CORRECTED: Standalone certificate icon
-  },
-  {
-    id: 4,
-    type: "Character Certificate",
-    name: "School Character Certificate",
-    board: "Delhi Public School",
-    year: "2020",
-    percentage: "",
-    file: "character_certificate.pdf",
-    icon: <FaCertificate />  // ✅ CORRECTED
-  },
-  {
-    id: 5,
-    type: "Income Certificate",
-    name: "Family Income Certificate",
-    board: "Municipal Corporation",
-    year: "2022",
-    percentage: "",
-    file: "income_certificate.pdf",
-    icon: <FaFileInvoice />
-  }
-];
+    {
+      id: 1,
+      type: "10th Marksheet",
+      name: "Secondary School Certificate",
+      board: "State Board",
+      year: "2018",
+      percentage: "85.4%",
+      file: "10th_marksheet.pdf",
+      icon: <FaFileAlt />, // Generic file icon
+    },
+    {
+      id: 2,
+      type: "12th Marksheet",
+      name: "Higher Secondary Certificate",
+      board: "CBSE",
+      year: "2020",
+      percentage: "78.9%",
+      file: "12th_marksheet.pdf",
+      icon: <FaFilePdf />, // ✅ CORRECTED: PDF icon instead of invalid FaFileCertificate
+    },
+    {
+      id: 3,
+      type: "Migration Certificate",
+      name: "Inter-State Migration Certificate",
+      board: "State Education Board",
+      year: "2020",
+      percentage: "",
+      file: "migration_certificate.pdf",
+      icon: <FaCertificate />, // ✅ CORRECTED: Standalone certificate icon
+    },
+    {
+      id: 4,
+      type: "Character Certificate",
+      name: "School Character Certificate",
+      board: "Delhi Public School",
+      year: "2020",
+      percentage: "",
+      file: "character_certificate.pdf",
+      icon: <FaCertificate />, // ✅ CORRECTED
+    },
+    {
+      id: 5,
+      type: "Income Certificate",
+      name: "Family Income Certificate",
+      board: "Municipal Corporation",
+      year: "2022",
+      percentage: "",
+      file: "income_certificate.pdf",
+      icon: <FaFileInvoice />,
+    },
+  ];
 
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
@@ -416,7 +444,10 @@ export default function StudentProfile() {
         </div>
       </div>
       {/* ================= PROFILE HEADER CARD ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <div
+        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
+        style={{ animationDelay: "0.1s" }}
+      >
         <div className="card-header bg-gradient-primary text-white py-4">
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
             <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
@@ -425,39 +456,59 @@ export default function StudentProfile() {
                   <FaUserGraduate size={64} />
                 </div>
                 <div className="profile-status-indicator">
-                  <span className={`status-dot ${
-                    student?.status === "APPROVED" ? "bg-success" : 
-                    student?.status === "REJECTED" ? "bg-danger" : "bg-warning"
-                  }`}></span>
+                  <span
+                    className={`status-dot ${
+                      student?.status === "APPROVED"
+                        ? "bg-success"
+                        : student?.status === "REJECTED"
+                          ? "bg-danger"
+                          : "bg-warning"
+                    }`}
+                  ></span>
                 </div>
               </div>
               <div>
-                <h2 className="h3 fw-bold mb-1">{student?.fullName || "N/A"}</h2>
+                <h2 className="h3 fw-bold mb-1">
+                  {student?.fullName || "N/A"}
+                </h2>
                 <div className="d-flex flex-wrap gap-3">
                   <div className="d-flex align-items-center gap-1">
-                    <FaGraduationCap className="text-white opacity-75" /> 
+                    <FaGraduationCap className="text-white opacity-75" />
                     <span className="opacity-75">{course?.name || "N/A"}</span>
                   </div>
                   <div className="d-flex align-items-center gap-1">
-                    <FaLayerGroup className="text-white opacity-75" /> 
-                    <span className="opacity-75">{department?.name || "N/A"}</span>
+                    <FaLayerGroup className="text-white opacity-75" />
+                    <span className="opacity-75">
+                      {department?.name || "N/A"}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-2 d-flex flex-wrap gap-2">
-                  <span className={`badge ${
-                    student?.status === "APPROVED" ? "bg-success" : 
-                    student?.status === "REJECTED" ? "bg-danger" : "bg-warning"
-                  }`}>
+                  <span
+                    className={`badge ${
+                      student?.status === "APPROVED"
+                        ? "bg-success"
+                        : student?.status === "REJECTED"
+                          ? "bg-danger"
+                          : "bg-warning"
+                    }`}
+                  >
                     <FaCheckCircle className="me-1" />
                     {student?.status || "PENDING"}
                   </span>
                   <span className="badge bg-light text-dark">
                     <FaClock className="me-1" />
-                    {student?.currentYear ? `Year ${student.currentYear}` : student?.currentSemester ? `Semester ${student.currentSemester}` : "N/A"}
+                    {student?.currentYear
+                      ? `Year ${student.currentYear}`
+                      : student?.currentSemester
+                        ? `Semester ${student.currentSemester}`
+                        : "N/A"}
                   </span>
                   <span className="badge bg-light text-dark">
                     <FaGraduationCap className="me-1" />
-                    {student?.currentSemester ? `Semester ${student.currentSemester}` : "N/A"}
+                    {student?.currentSemester
+                      ? `Semester ${student.currentSemester}`
+                      : "N/A"}
                   </span>
                   <span className="badge bg-light text-dark">
                     <FaCalendarAlt className="me-1" />
@@ -468,21 +519,25 @@ export default function StudentProfile() {
             </div>
           </div>
         </div>
-        
+
         <div className="card-body bg-light py-3">
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center text-center text-md-start">
             <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mb-2 mb-md-0">
               <div className="d-flex align-items-center gap-2">
-                <FaEnvelope className="text-primary" /> 
+                <FaEnvelope className="text-primary" />
                 <span className="fw-medium">{student?.email || "N/A"}</span>
               </div>
               <div className="d-flex align-items-center gap-2">
-                <FaPhoneAlt className="text-success" /> 
-                <span className="fw-medium">{student?.mobileNumber || "N/A"}</span>
+                <FaPhoneAlt className="text-success" />
+                <span className="fw-medium">
+                  {student?.mobileNumber || "N/A"}
+                </span>
               </div>
               <div className="d-flex align-items-center gap-2">
-                <FaGlobe className="text-info" /> 
-                <span className="fw-medium">{student?.nationality || "N/A"}</span>
+                <FaGlobe className="text-info" />
+                <span className="fw-medium">
+                  {student?.nationality || "N/A"}
+                </span>
               </div>
             </div>
             <small className="text-muted">
@@ -498,171 +553,372 @@ export default function StudentProfile() {
         <div className="card-body p-0">
           <div className="d-flex flex-column flex-lg-row">
             {/* Tab Navigation - Vertical on desktop, horizontal on mobile */}
-            <div className="tabs-navigation bg-light border-end border-bottom border-lg-end-0 border-lg-bottom-0" role="tablist" aria-label="Profile sections">
+            <div
+              className="tabs-navigation bg-light border-end border-bottom border-lg-end-0 border-lg-bottom-0"
+              role="tablist"
+              aria-label="Profile sections"
+            >
               <TabItem
                 icon={<FaUserGraduate />}
                 label="Personal Information"
-                active={activeTab === 'personal'}
-                onClick={() => setActiveTab('personal')}
+                active={activeTab === "personal"}
+                onClick={() => setActiveTab("personal")}
                 id="personal"
               />
               <TabItem
                 icon={<FaUserFriends />}
                 label="Parent Details"
-                active={activeTab === 'parent'}
-                onClick={() => setActiveTab('parent')}
+                active={activeTab === "parent"}
+                onClick={() => setActiveTab("parent")}
                 id="parent"
               />
               <TabItem
                 icon={<FaBook />}
                 label="Academic Information"
-                active={activeTab === 'academic'}
-                onClick={() => setActiveTab('academic')}
+                active={activeTab === "academic"}
+                onClick={() => setActiveTab("academic")}
                 id="academic"
               />
               <TabItem
                 icon={<FaPhoneAlt />}
                 label="Contact Information"
-                active={activeTab === 'contact'}
-                onClick={() => setActiveTab('contact')}
+                active={activeTab === "contact"}
+                onClick={() => setActiveTab("contact")}
                 id="contact"
               />
               <TabItem
                 icon={<FaHome />}
                 label="Address Information"
-                active={activeTab === 'address'}
-                onClick={() => setActiveTab('address')}
+                active={activeTab === "address"}
+                onClick={() => setActiveTab("address")}
                 id="address"
               />
               <TabItem
                 icon={<FaGraduationCap />}
                 label="10th Details"
-                active={activeTab === 'ssc'}
-                onClick={() => setActiveTab('ssc')}
+                active={activeTab === "ssc"}
+                onClick={() => setActiveTab("ssc")}
                 hidden={!is10thEnabled()}
               />
               <TabItem
                 icon={<FaGraduationCap />}
                 label="12th Details"
-                active={activeTab === 'hsc'}
-                onClick={() => setActiveTab('hsc')}
+                active={activeTab === "hsc"}
+                onClick={() => setActiveTab("hsc")}
                 hidden={!is12thEnabled()}
               />
               <TabItem
                 icon={<FaFileAlt />}
                 label="Uploaded Documents"
-                active={activeTab === 'documents'}
-                onClick={() => setActiveTab('documents')}
+                active={activeTab === "documents"}
+                onClick={() => setActiveTab("documents")}
                 id="documents"
               />
               <TabItem
                 icon={<FaUniversity />}
                 label="College Information"
-                active={activeTab === 'college'}
-                onClick={() => setActiveTab('college')}
+                active={activeTab === "college"}
+                onClick={() => setActiveTab("college")}
                 id="college"
               />
             </div>
 
             {/* Tab Content */}
-            <div className="tabs-content flex-grow-1 p-4" role="tabpanel" aria-label="Profile information">
-              {activeTab === 'personal' && (
-                <SectionContent title="Personal Information" icon={<FaUserGraduate />} color="info">
+            <div
+              className="tabs-content flex-grow-1 p-4"
+              role="tabpanel"
+              aria-label="Profile information"
+            >
+              {activeTab === "personal" && (
+                <SectionContent
+                  title="Personal Information"
+                  icon={<FaUserGraduate />}
+                  color="info"
+                >
                   <div className="row g-3">
-                    <InfoItem label="Full Name" value={student?.fullName || "N/A"} icon={<FaUserGraduate />} col={12} />
-                    <InfoItem label="Gender" value={student?.gender || "N/A"} icon={<FaVial />} />
+                    <InfoItem
+                      label="Full Name"
+                      value={student?.fullName || "N/A"}
+                      icon={<FaUserGraduate />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Gender"
+                      value={student?.gender || "N/A"}
+                      icon={<FaVial />}
+                    />
                     <InfoItem
                       label="Date of Birth"
-                      value={student?.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : "N/A"}
+                      value={
+                        student?.dateOfBirth
+                          ? new Date(student.dateOfBirth).toLocaleDateString()
+                          : "N/A"
+                      }
                       icon={<FaCalendarAlt />}
                     />
-                    <InfoItem label="Nationality" value={student?.nationality || "N/A"} icon={<FaGlobe />} />
-                    <InfoItem label="Religion" value={student?.religion || "N/A"} icon={<FaHeartbeat />} />
-                    <InfoItem label="Category" value={student?.category || "N/A"} icon={<FaUserFriends />} />
-                    <InfoItem label="Blood Group" value={student?.bloodGroup || "N/A"} icon={<FaHeartbeat />} />
+                    <InfoItem
+                      label="Nationality"
+                      value={student?.nationality || "N/A"}
+                      icon={<FaGlobe />}
+                    />
+                    <InfoItem
+                      label="Religion"
+                      value={student?.religion || "N/A"}
+                      icon={<FaHeartbeat />}
+                    />
+                    <InfoItem
+                      label="Category"
+                      value={student?.category || "N/A"}
+                      icon={<FaUserFriends />}
+                    />
+                    <InfoItem
+                      label="Blood Group"
+                      value={student?.bloodGroup || "N/A"}
+                      icon={<FaHeartbeat />}
+                    />
                   </div>
                 </SectionContent>
               )}
 
-              {activeTab === 'parent' && (
-                <SectionContent title="Parent / Guardian Information" icon={<FaUserFriends />} color="primary">
+              {activeTab === "parent" && (
+                <SectionContent
+                  title="Parent / Guardian Information"
+                  icon={<FaUserFriends />}
+                  color="primary"
+                >
                   <div className="row g-3">
-                    <InfoItem label="Father's Name" value={student?.fatherName || "N/A"} icon={<FaUserGraduate />} col={12} />
-                    <InfoItem label="Father's Mobile" value={student?.fatherMobile || "N/A"} icon={<FaPhoneAlt />} />
-                    <InfoItem label="Mother's Name" value={student?.motherName || "N/A"} icon={<FaUserGraduate />} col={12} />
-                    <InfoItem label="Mother's Mobile" value={student?.motherMobile || "N/A"} icon={<FaPhoneAlt />} />
+                    <InfoItem
+                      label="Father's Name"
+                      value={student?.fatherName || "N/A"}
+                      icon={<FaUserGraduate />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Father's Mobile"
+                      value={student?.fatherMobile || "N/A"}
+                      icon={<FaPhoneAlt />}
+                    />
+                    <InfoItem
+                      label="Mother's Name"
+                      value={student?.motherName || "N/A"}
+                      icon={<FaUserGraduate />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Mother's Mobile"
+                      value={student?.motherMobile || "N/A"}
+                      icon={<FaPhoneAlt />}
+                    />
                   </div>
                 </SectionContent>
               )}
 
-              {activeTab === 'academic' && (
-                <SectionContent title="Academic Information" icon={<FaBook />} color="success">
+              {activeTab === "academic" && (
+                <SectionContent
+                  title="Academic Information"
+                  icon={<FaBook />}
+                  color="success"
+                >
                   <div className="row g-3">
-                    <InfoItem label="Department" value={department?.name || "N/A"} icon={<FaUniversity />} />
-                    <InfoItem label="Course" value={course?.name || "N/A"} icon={<FaGraduationCap />} />
-                    <InfoItem label="Course Code" value={course?.code || "N/A"} icon={<FaLayerGroup />} />
-                    <InfoItem label="Current Semester" value={student?.currentSemester ? `Semester ${student.currentSemester}` : "N/A"} icon={<FaGraduationCap />} />
-                    <InfoItem label="Admission Year" value={student?.admissionYear || "N/A"} icon={<FaCalendarAlt />} />
-                    <InfoItem label="Academic Status" value={student?.status || "N/A"} icon={<FaCheckCircle />} />
-                  </div>
-                </SectionContent>
-              )}
-              
-              {activeTab === 'contact' && (
-                <SectionContent title="Contact Information" icon={<FaPhoneAlt />} color="warning">
-                  <div className="row g-3">
-                    <InfoItem label="Personal Email" value={student?.email || "N/A"} icon={<FaEnvelope />} col={12} />
-                    <InfoItem label="Mobile Number" value={student?.mobileNumber || "N/A"} icon={<FaPhoneAlt />} col={12} />
-                  </div>
-                </SectionContent>
-              )}
-              
-              {activeTab === 'address' && (
-                <SectionContent title="Address Information" icon={<FaHome />} color="dark">
-                  <div className="row g-3">
-                    <InfoItem label="Address Line 1" value={student?.addressLine || "N/A"} icon={<FaMapMarkerAlt />} col={12} />
-                    <InfoItem label="City" value={student?.city || "N/A"} icon={<FaMapMarkerAlt />} />
-                    <InfoItem label="State" value={student?.state || "N/A"} icon={<FaMapMarkerAlt />} />
-                    <InfoItem label="Pincode" value={student?.pincode || "N/A"} icon={<FaMapMarkerAlt />} />
-                    <InfoItem label="Country" value={student?.country || "N/A"} icon={<FaGlobe />} />
-                  </div>
-                </SectionContent>
-              )}
-
-              {activeTab === 'ssc' && is10thEnabled() && (
-                <SectionContent title="10th (SSC) Academic Details" icon={<FaGraduationCap />} color="info">
-                  <div className="row g-3">
-                    <InfoItem label="School Name" value={student?.sscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
-                    <InfoItem label="Board" value={student?.sscBoard || "N/A"} icon={<FaUniversity />} />
-                    <InfoItem label="Passing Year" value={student?.sscPassingYear || "N/A"} icon={<FaCalendarAlt />} />
-                    <InfoItem label="Percentage / CGPA" value={student?.sscPercentage ? `${student.sscPercentage}%` : "N/A"} icon={<FaCheckCircle />} />
-                    <InfoItem label="Roll Number" value={student?.sscRollNumber || "N/A"} icon={<FaIdCard />} />
-                  </div>
-                </SectionContent>
-              )}
-
-              {activeTab === 'hsc' && is12thEnabled() && (
-                <SectionContent title="12th (HSC) Academic Details" icon={<FaGraduationCap />} color="success">
-                  <div className="row g-3">
-                    <InfoItem label="School / College Name" value={student?.hscSchoolName || "N/A"} icon={<FaUniversity />} col={12} />
-                    <InfoItem label="Board" value={student?.hscBoard || "N/A"} icon={<FaUniversity />} />
-                    <InfoItem label="Stream" value={student?.hscStream || "N/A"} icon={<FaBook />} />
-                    <InfoItem label="Passing Year" value={student?.hscPassingYear || "N/A"} icon={<FaCalendarAlt />} />
-                    <InfoItem label="Percentage / CGPA" value={student?.hscPercentage ? `${student.hscPercentage}%` : "N/A"} icon={<FaCheckCircle />} />
-                    <InfoItem label="Roll Number" value={student?.hscRollNumber || "N/A"} icon={<FaIdCard />} />
+                    <InfoItem
+                      label="Department"
+                      value={department?.name || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <InfoItem
+                      label="Course"
+                      value={course?.name || "N/A"}
+                      icon={<FaGraduationCap />}
+                    />
+                    <InfoItem
+                      label="Course Code"
+                      value={course?.code || "N/A"}
+                      icon={<FaLayerGroup />}
+                    />
+                    <InfoItem
+                      label="Current Semester"
+                      value={
+                        student?.currentSemester
+                          ? `Semester ${student.currentSemester}`
+                          : "N/A"
+                      }
+                      icon={<FaGraduationCap />}
+                    />
+                    <InfoItem
+                      label="Admission Year"
+                      value={student?.admissionYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <InfoItem
+                      label="Academic Status"
+                      value={student?.status || "N/A"}
+                      icon={<FaCheckCircle />}
+                    />
                   </div>
                 </SectionContent>
               )}
 
-              {activeTab === 'documents' && (
-                <SectionContent title="Uploaded Documents" icon={<FaFileAlt />} color="primary">
+              {activeTab === "contact" && (
+                <SectionContent
+                  title="Contact Information"
+                  icon={<FaPhoneAlt />}
+                  color="warning"
+                >
+                  <div className="row g-3">
+                    <InfoItem
+                      label="Personal Email"
+                      value={student?.email || "N/A"}
+                      icon={<FaEnvelope />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Mobile Number"
+                      value={student?.mobileNumber || "N/A"}
+                      icon={<FaPhoneAlt />}
+                      col={12}
+                    />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === "address" && (
+                <SectionContent
+                  title="Address Information"
+                  icon={<FaHome />}
+                  color="dark"
+                >
+                  <div className="row g-3">
+                    <InfoItem
+                      label="Address Line 1"
+                      value={student?.addressLine || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="City"
+                      value={student?.city || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                    />
+                    <InfoItem
+                      label="State"
+                      value={student?.state || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                    />
+                    <InfoItem
+                      label="Pincode"
+                      value={student?.pincode || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                    />
+                    <InfoItem
+                      label="Country"
+                      value={student?.country || "N/A"}
+                      icon={<FaGlobe />}
+                    />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === "ssc" && is10thEnabled() && (
+                <SectionContent
+                  title="10th (SSC) Academic Details"
+                  icon={<FaGraduationCap />}
+                  color="info"
+                >
+                  <div className="row g-3">
+                    <InfoItem
+                      label="School Name"
+                      value={student?.sscSchoolName || "N/A"}
+                      icon={<FaUniversity />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Board"
+                      value={student?.sscBoard || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <InfoItem
+                      label="Passing Year"
+                      value={student?.sscPassingYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <InfoItem
+                      label="Percentage / CGPA"
+                      value={
+                        student?.sscPercentage
+                          ? `${student.sscPercentage}%`
+                          : "N/A"
+                      }
+                      icon={<FaCheckCircle />}
+                    />
+                    <InfoItem
+                      label="Roll Number"
+                      value={student?.sscRollNumber || "N/A"}
+                      icon={<FaIdCard />}
+                    />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === "hsc" && is12thEnabled() && (
+                <SectionContent
+                  title="12th (HSC) Academic Details"
+                  icon={<FaGraduationCap />}
+                  color="success"
+                >
+                  <div className="row g-3">
+                    <InfoItem
+                      label="School / College Name"
+                      value={student?.hscSchoolName || "N/A"}
+                      icon={<FaUniversity />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Board"
+                      value={student?.hscBoard || "N/A"}
+                      icon={<FaUniversity />}
+                    />
+                    <InfoItem
+                      label="Stream"
+                      value={student?.hscStream || "N/A"}
+                      icon={<FaBook />}
+                    />
+                    <InfoItem
+                      label="Passing Year"
+                      value={student?.hscPassingYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <InfoItem
+                      label="Percentage / CGPA"
+                      value={
+                        student?.hscPercentage
+                          ? `${student.hscPercentage}%`
+                          : "N/A"
+                      }
+                      icon={<FaCheckCircle />}
+                    />
+                    <InfoItem
+                      label="Roll Number"
+                      value={student?.hscRollNumber || "N/A"}
+                      icon={<FaIdCard />}
+                    />
+                  </div>
+                </SectionContent>
+              )}
+
+              {activeTab === "documents" && (
+                <SectionContent
+                  title="Uploaded Documents"
+                  icon={<FaFileAlt />}
+                  color="primary"
+                >
                   <div className="mb-4">
                     <h5 className="fw-bold mb-3 text-primary">
                       <FaFilePdf className="me-2" />
                       Your Uploaded Documents
                     </h5>
                     <p className="text-muted mb-0">
-                      These are the documents you uploaded during registration. They are verified by the college admin.
+                      These are the documents you uploaded during registration.
+                      They are verified by the college admin.
                     </p>
                   </div>
 
@@ -675,12 +931,19 @@ export default function StudentProfile() {
                         name="Secondary School Certificate"
                         board={student?.sscBoard || "N/A"}
                         year={student?.sscPassingYear || "N/A"}
-                        percentage={student?.sscPercentage ? `${student.sscPercentage}%` : ""}
-                        file={student?.sscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        percentage={
+                          student?.sscPercentage
+                            ? `${student.sscPercentage}%`
+                            : ""
+                        }
+                        file={
+                          student?.sscMarksheetPath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.sscMarksheetPath}
                       />
                     )}
-                    
+
                     {/* 12th Marksheet - Only if enabled */}
                     {is12thEnabled() && (
                       <DocumentCard
@@ -689,12 +952,19 @@ export default function StudentProfile() {
                         name="Higher Secondary Certificate"
                         board={student?.hscBoard || "N/A"}
                         year={student?.hscPassingYear || "N/A"}
-                        percentage={student?.hscPercentage ? `${student.hscPercentage}%` : ""}
-                        file={student?.hscMarksheetPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        percentage={
+                          student?.hscPercentage
+                            ? `${student.hscPercentage}%`
+                            : ""
+                        }
+                        file={
+                          student?.hscMarksheetPath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.hscMarksheetPath}
                       />
                     )}
-                    
+
                     {/* Passport Photo - Only if enabled */}
                     {isPassportPhotoEnabled() && (
                       <DocumentCard
@@ -704,24 +974,32 @@ export default function StudentProfile() {
                         board="N/A"
                         year="N/A"
                         percentage=""
-                        file={student?.passportPhotoPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.passportPhotoPath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.passportPhotoPath}
                       />
                     )}
-                    
+
                     {/* Category Certificate - Only if enabled and category is not GEN */}
-                    {isCategoryCertificateEnabled() && student?.category !== 'GEN' && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Category Certificate"
-                        name={`${student?.category || "N/A"} Category Certificate`}
-                        board="Issuing Authority"
-                        year="N/A"
-                        percentage=""
-                        file={student?.categoryCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
-                        filePath={student?.categoryCertificatePath}
-                      />
-                    )}
+                    {isCategoryCertificateEnabled() &&
+                      student?.category !== "GEN" && (
+                        <DocumentCard
+                          icon={<FaCertificate />}
+                          type="Category Certificate"
+                          name={`${student?.category || "N/A"} Category Certificate`}
+                          board="Issuing Authority"
+                          year="N/A"
+                          percentage=""
+                          file={
+                            student?.categoryCertificatePath
+                              ?.split(/[\\/]/)
+                              .pop() || "Not uploaded"
+                          }
+                          filePath={student?.categoryCertificatePath}
+                        />
+                      )}
 
                     {/* Income Certificate - Only if enabled */}
                     {isIncomeCertificateEnabled() && (
@@ -732,7 +1010,11 @@ export default function StudentProfile() {
                         board="Issuing Authority"
                         year="N/A"
                         percentage=""
-                        file={student?.incomeCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.incomeCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.incomeCertificatePath}
                       />
                     )}
@@ -746,7 +1028,11 @@ export default function StudentProfile() {
                         board={student?.sscSchoolName || "N/A"}
                         year="N/A"
                         percentage=""
-                        file={student?.characterCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.characterCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.characterCertificatePath}
                       />
                     )}
@@ -760,7 +1046,11 @@ export default function StudentProfile() {
                         board="N/A"
                         year="N/A"
                         percentage=""
-                        file={student?.transferCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.transferCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.transferCertificatePath}
                       />
                     )}
@@ -774,7 +1064,10 @@ export default function StudentProfile() {
                         board="UIDAI"
                         year="N/A"
                         percentage=""
-                        file={student?.aadharCardPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.aadharCardPath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.aadharCardPath}
                       />
                     )}
@@ -788,7 +1081,11 @@ export default function StudentProfile() {
                         board="Exam Authority"
                         year="N/A"
                         percentage=""
-                        file={student?.entranceExamScorePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.entranceExamScorePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.entranceExamScorePath}
                       />
                     )}
@@ -802,7 +1099,11 @@ export default function StudentProfile() {
                         board="Board/University"
                         year="N/A"
                         percentage=""
-                        file={student?.migrationCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.migrationCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.migrationCertificatePath}
                       />
                     )}
@@ -816,38 +1117,52 @@ export default function StudentProfile() {
                         board="State Government"
                         year="N/A"
                         percentage=""
-                        file={student?.domicileCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.domicileCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.domicileCertificatePath}
                       />
                     )}
 
                     {/* Caste Certificate - Only if enabled */}
-                    {isCasteCertificateEnabled() && student?.category !== 'GEN' && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Caste Certificate"
-                        name="Caste Certificate"
-                        board="Competent Authority"
-                        year="N/A"
-                        percentage=""
-                        file={student?.casteCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
-                        filePath={student?.casteCertificatePath}
-                      />
-                    )}
+                    {isCasteCertificateEnabled() &&
+                      student?.category !== "GEN" && (
+                        <DocumentCard
+                          icon={<FaCertificate />}
+                          type="Caste Certificate"
+                          name="Caste Certificate"
+                          board="Competent Authority"
+                          year="N/A"
+                          percentage=""
+                          file={
+                            student?.casteCertificatePath
+                              ?.split(/[\\/]/)
+                              .pop() || "Not uploaded"
+                          }
+                          filePath={student?.casteCertificatePath}
+                        />
+                      )}
 
                     {/* Non Creamy Layer Certificate - Only if enabled */}
-                    {isNonCreamyLayerEnabled() && student?.category === 'OBC' && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Non Creamy Layer Certificate"
-                        name="Non Creamy Layer Certificate"
-                        board="Competent Authority"
-                        year="N/A"
-                        percentage=""
-                        file={student?.nonCreamyLayerCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
-                        filePath={student?.nonCreamyLayerCertificatePath}
-                      />
-                    )}
+                    {isNonCreamyLayerEnabled() &&
+                      student?.category === "OBC" && (
+                        <DocumentCard
+                          icon={<FaFileAlt />}
+                          type="Non Creamy Layer Certificate"
+                          name="Non Creamy Layer Certificate"
+                          board="Competent Authority"
+                          year="N/A"
+                          percentage=""
+                          file={
+                            student?.nonCreamyLayerCertificatePath
+                              ?.split(/[\\/]/)
+                              .pop() || "Not uploaded"
+                          }
+                          filePath={student?.nonCreamyLayerCertificatePath}
+                        />
+                      )}
 
                     {/* Physically Challenged Certificate - Only if enabled */}
                     {isPhysicallyChallengedEnabled() && (
@@ -858,7 +1173,11 @@ export default function StudentProfile() {
                         board="Medical Board"
                         year="N/A"
                         percentage={student?.pwdDisability || ""}
-                        file={student?.physicallyChallengedCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.physicallyChallengedCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.physicallyChallengedCertificatePath}
                       />
                     )}
@@ -872,7 +1191,11 @@ export default function StudentProfile() {
                         board="Sports Authority"
                         year="N/A"
                         percentage=""
-                        file={student?.sportsQuotaCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.sportsQuotaCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.sportsQuotaCertificatePath}
                       />
                     )}
@@ -886,7 +1209,11 @@ export default function StudentProfile() {
                         board="Embassy/Consulate"
                         year="N/A"
                         percentage=""
-                        file={student?.nriSponsorCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.nriSponsorCertificatePath
+                            ?.split(/[\\/]/)
+                            .pop() || "Not uploaded"
+                        }
                         filePath={student?.nriSponsorCertificatePath}
                       />
                     )}
@@ -900,7 +1227,10 @@ export default function StudentProfile() {
                         board="N/A"
                         year="N/A"
                         percentage=""
-                        file={student?.gapCertificatePath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.gapCertificatePath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.gapCertificatePath}
                       />
                     )}
@@ -914,30 +1244,45 @@ export default function StudentProfile() {
                         board="N/A"
                         year="N/A"
                         percentage=""
-                        file={student?.affidavitPath?.split(/[\\/]/).pop() || "Not uploaded"}
+                        file={
+                          student?.affidavitPath?.split(/[\\/]/).pop() ||
+                          "Not uploaded"
+                        }
                         filePath={student?.affidavitPath}
                       />
                     )}
-                    
+
                     {/* Show message if no documents are configured */}
-                    {!is10thEnabled() && !is12thEnabled() && !isPassportPhotoEnabled() && 
-                     (!isCategoryCertificateEnabled() || student?.category === 'GEN') &&
-                     !isIncomeCertificateEnabled() && !isCharacterCertificateEnabled() &&
-                     !isTransferCertificateEnabled() && !isAadharCardEnabled() &&
-                     !isEntranceExamScoreEnabled() && !isMigrationCertificateEnabled() &&
-                     !isDomicileCertificateEnabled() && !isCasteCertificateEnabled() &&
-                     !isNonCreamyLayerEnabled() && !isPhysicallyChallengedEnabled() &&
-                     !isSportsQuotaEnabled() && !isNriSponsorEnabled() &&
-                     !isGapCertificateEnabled() && !isAffidavitEnabled() && (
-                      <div className="col-12">
-                        <div className="alert alert-warning d-flex align-items-center">
-                          <FaExclamationTriangle className="me-2" size={20} />
-                          <div>
-                            <strong>No Documents Required:</strong> Your college has not configured any document requirements for your batch.
+                    {!is10thEnabled() &&
+                      !is12thEnabled() &&
+                      !isPassportPhotoEnabled() &&
+                      (!isCategoryCertificateEnabled() ||
+                        student?.category === "GEN") &&
+                      !isIncomeCertificateEnabled() &&
+                      !isCharacterCertificateEnabled() &&
+                      !isTransferCertificateEnabled() &&
+                      !isAadharCardEnabled() &&
+                      !isEntranceExamScoreEnabled() &&
+                      !isMigrationCertificateEnabled() &&
+                      !isDomicileCertificateEnabled() &&
+                      !isCasteCertificateEnabled() &&
+                      !isNonCreamyLayerEnabled() &&
+                      !isPhysicallyChallengedEnabled() &&
+                      !isSportsQuotaEnabled() &&
+                      !isNriSponsorEnabled() &&
+                      !isGapCertificateEnabled() &&
+                      !isAffidavitEnabled() && (
+                        <div className="col-12">
+                          <div className="alert alert-warning d-flex align-items-center">
+                            <FaExclamationTriangle className="me-2" size={20} />
+                            <div>
+                              <strong>No Documents Required:</strong> Your
+                              college has not configured any document
+                              requirements for your batch.
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
 
                   <div className="mt-4 p-3 bg-light rounded-3">
@@ -955,14 +1300,40 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === 'college' && (
-                <SectionContent title="College Information" icon={<FaUniversity />} color="secondary">
+              {activeTab === "college" && (
+                <SectionContent
+                  title="College Information"
+                  icon={<FaUniversity />}
+                  color="secondary"
+                >
                   <div className="row g-3">
-                    <InfoItem label="College Name" value={college?.name || "N/A"} icon={<FaGraduationCap />} col={12} />
-                    <InfoItem label="Email" value={college?.email || "N/A"} icon={<FaEnvelope />} />
-                    <InfoItem label="Contact Number" value={college?.contactNumber || "N/A"} icon={<FaPhoneAlt />} />
-                    <InfoItem label="Established Year" value={college?.establishedYear || "N/A"} icon={<FaCalendarAlt />} />
-                    <InfoItem label="Address" value={college?.address || "N/A"} icon={<FaMapMarkerAlt />} col={12} />
+                    <InfoItem
+                      label="College Name"
+                      value={college?.name || "N/A"}
+                      icon={<FaGraduationCap />}
+                      col={12}
+                    />
+                    <InfoItem
+                      label="Email"
+                      value={college?.email || "N/A"}
+                      icon={<FaEnvelope />}
+                    />
+                    <InfoItem
+                      label="Contact Number"
+                      value={college?.contactNumber || "N/A"}
+                      icon={<FaPhoneAlt />}
+                    />
+                    <InfoItem
+                      label="Established Year"
+                      value={college?.establishedYear || "N/A"}
+                      icon={<FaCalendarAlt />}
+                    />
+                    <InfoItem
+                      label="Address"
+                      value={college?.address || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                      col={12}
+                    />
                   </div>
                 </SectionContent>
               )}
@@ -985,7 +1356,8 @@ export default function StudentProfile() {
               <p className="mb-0">
                 <small className="text-muted">
                   <FaSync className="spin-icon me-1" aria-hidden="true" />
-                  Profile last updated: <strong>{lastRefreshed.toLocaleString()}</strong>
+                  Profile last updated:{" "}
+                  <strong>{lastRefreshed.toLocaleString()}</strong>
                 </small>
               </p>
             </div>
@@ -1403,14 +1775,13 @@ export default function StudentProfile() {
   );
 }
 
-
 /* ================= TAB ITEM COMPONENT ================= */
 function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
   if (hidden) return null;
 
   // Handle keyboard navigation
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onClick();
     }
@@ -1418,14 +1789,16 @@ function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
 
   return (
     <div
-      className={`tab-item ${active ? 'active' : ''}`}
+      className={`tab-item ${active ? "active" : ""}`}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       role="tab"
       aria-selected={active}
       tabIndex={active ? 0 : -1}
     >
-      <span className="fs-4" aria-hidden="true">{icon}</span>
+      <span className="fs-4" aria-hidden="true">
+        {icon}
+      </span>
       <div className="flex-grow-1">
         <div className="fw-medium">{label}</div>
       </div>
@@ -1454,7 +1827,10 @@ function SectionContent({ title, icon, color, children }) {
 /* ================= INFO ITEM COMPONENT ================= */
 function InfoItem({ label, value, icon, col = 6 }) {
   return (
-    <div className={`col-md-${col} info-item animate-fade-in`} style={{ animationDelay: "0.1s" }}>
+    <div
+      className={`col-md-${col} info-item animate-fade-in`}
+      style={{ animationDelay: "0.1s" }}
+    >
       <div className="info-label">
         <span aria-hidden="true">{icon}</span>
         {label}
@@ -1465,58 +1841,86 @@ function InfoItem({ label, value, icon, col = 6 }) {
 }
 
 /* ================= DOCUMENT CARD COMPONENT ================= */
-function DocumentCard({ icon, type, name, board, year, percentage, file, filePath }) {
+function DocumentCard({
+  icon,
+  type,
+  name,
+  board,
+  year,
+  percentage,
+  file,
+  filePath,
+}) {
   const getDocumentColor = () => {
-    switch(type) {
-      case "10th Marksheet": return "#dbeafe";
-      case "12th Marksheet": return "#dcfce7";
-      case "Migration Certificate": return "#ffedd5";
-      case "Character Certificate": return "#ede9fe";
-      case "Income Certificate": return "#fee2e2";
-      default: return "#f1f5f9";
+    switch (type) {
+      case "10th Marksheet":
+        return "#dbeafe";
+      case "12th Marksheet":
+        return "#dcfce7";
+      case "Migration Certificate":
+        return "#ffedd5";
+      case "Character Certificate":
+        return "#ede9fe";
+      case "Income Certificate":
+        return "#fee2e2";
+      default:
+        return "#f1f5f9";
     }
   };
 
   const getDocumentIconColor = () => {
-    switch(type) {
-      case "10th Marksheet": return "#1e40af";
-      case "12th Marksheet": return "#166534";
-      case "Migration Certificate": return "#c2410c";
-      case "Character Certificate": return "#5b21b6";
-      case "Income Certificate": return "#b91c1c";
-      default: return "#4a5568";
+    switch (type) {
+      case "10th Marksheet":
+        return "#1e40af";
+      case "12th Marksheet":
+        return "#166534";
+      case "Migration Certificate":
+        return "#c2410c";
+      case "Character Certificate":
+        return "#5b21b6";
+      case "Income Certificate":
+        return "#b91c1c";
+      default:
+        return "#4a5568";
     }
   };
 
   // Get base URL from environment variable
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-  
+  const baseUrl =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
   // Construct document URL properly
   // Backend serves static files at /uploads (NOT /api/uploads)
   // Backend returns: "uploads/filename.pdf"
   // We need: "http://localhost:5000/uploads/filename.pdf"
-  const documentUrl = filePath ? (() => {
-    // Get server root URL (remove /api if present)
-    let serverUrl = baseUrl.replace(/\/api\/?$/, '');
-    // Ensure filePath starts with /uploads/
-    let cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath;
-    if (!cleanPath.startsWith('/uploads')) {
-      cleanPath = '/uploads/' + cleanPath;
-    }
-    return serverUrl + cleanPath;
-  })() : null;
+  const documentUrl = filePath
+    ? (() => {
+        // Get server root URL (remove /api if present)
+        let serverUrl = baseUrl.replace(/\/api\/?$/, "");
+        // Ensure filePath starts with /uploads/
+        let cleanPath = filePath.startsWith("/") ? filePath : "/" + filePath;
+        if (!cleanPath.startsWith("/uploads")) {
+          cleanPath = "/uploads/" + cleanPath;
+        }
+        return serverUrl + cleanPath;
+      })()
+    : null;
 
   // Check if file actually exists (not null, not undefined, not empty string)
-  const hasFile = filePath && String(filePath).trim() !== '' && filePath !== 'null' && filePath !== 'undefined';
+  const hasFile =
+    filePath &&
+    String(filePath).trim() !== "" &&
+    filePath !== "null" &&
+    filePath !== "undefined";
 
   const handleView = () => {
     if (documentUrl && hasFile) {
-      window.open(documentUrl, '_blank');
+      window.open(documentUrl, "_blank");
     } else {
       toast.error("Document not available for viewing", {
         position: "top-right",
         autoClose: 3000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
     }
   };
@@ -1524,9 +1928,9 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
   const handleDownload = () => {
     try {
       if (documentUrl && hasFile) {
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.setAttribute('download', file);
+        link.setAttribute("download", file);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1535,14 +1939,14 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
         toast.success("Document downloaded successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaCheckCircle />
+          icon: <FaCheckCircle />,
         });
       }
     } catch (err) {
       toast.error("Failed to download document. Please try again.", {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaTimesCircle />
+        icon: <FaTimesCircle />,
       });
     }
   };
@@ -1553,7 +1957,7 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
         className="document-icon"
         style={{
           backgroundColor: getDocumentColor(),
-          color: getDocumentIconColor()
+          color: getDocumentIconColor(),
         }}
         aria-label={`${type} document icon`}
       >
@@ -1575,7 +1979,7 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
           disabled={!hasFile}
           style={{
             opacity: hasFile ? 1 : 0.5,
-            cursor: hasFile ? 'pointer' : 'not-allowed'
+            cursor: hasFile ? "pointer" : "not-allowed",
           }}
           aria-label={`View ${type}`}
         >
@@ -1587,7 +1991,7 @@ function DocumentCard({ icon, type, name, board, year, percentage, file, filePat
           disabled={!hasFile}
           style={{
             opacity: hasFile ? 1 : 0.5,
-            cursor: hasFile ? 'pointer' : 'not-allowed'
+            cursor: hasFile ? "pointer" : "not-allowed",
           }}
           aria-label={`Download ${type}`}
         >
