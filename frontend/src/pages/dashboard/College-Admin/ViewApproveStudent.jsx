@@ -9,11 +9,32 @@ import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import {
-  FaUserGraduate, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt,
-  FaUniversity, FaArrowLeft, FaCheckCircle, FaClock, FaRupeeSign,
-  FaExclamationTriangle, FaSyncAlt, FaInfoCircle, FaGraduationCap,
-  FaBuilding, FaBookOpen, FaCreditCard, FaHistory, FaShieldAlt,
-  FaDownload, FaUser, FaFileAlt, FaImage, FaCopy, FaPrint, FaExternalLinkAlt
+  FaUserGraduate,
+  FaEnvelope,
+  FaPhone,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaUniversity,
+  FaArrowLeft,
+  FaCheckCircle,
+  FaClock,
+  FaRupeeSign,
+  FaExclamationTriangle,
+  FaSyncAlt,
+  FaInfoCircle,
+  FaGraduationCap,
+  FaBuilding,
+  FaBookOpen,
+  FaCreditCard,
+  FaHistory,
+  FaShieldAlt,
+  FaDownload,
+  FaUser,
+  FaFileAlt,
+  FaImage,
+  FaCopy,
+  FaPrint,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
@@ -28,20 +49,20 @@ const CONFIG = {
     TABLE: 6,
   },
   STATUS: {
-    APPROVED: 'APPROVED',
-    PENDING: 'PENDING',
-    REJECTED: 'REJECTED',
-    PAID: 'PAID',
-    UNPAID: 'UNPAID',
+    APPROVED: "APPROVED",
+    PENDING: "PENDING",
+    REJECTED: "REJECTED",
+    PAID: "PAID",
+    UNPAID: "UNPAID",
   },
 };
 
 const ERROR_TYPES = {
-  NOT_FOUND: 'Student not found or does not exist',
-  UNAUTHORIZED: 'You do not have permission to view this student',
-  NETWORK: 'Network error. Please check your internet connection',
-  SERVER: 'Server error. Please try again later',
-  UNKNOWN: 'An unexpected error occurred',
+  NOT_FOUND: "Student not found or does not exist",
+  UNAUTHORIZED: "You do not have permission to view this student",
+  NETWORK: "Network error. Please check your internet connection",
+  SERVER: "Server error. Please try again later",
+  UNKNOWN: "An unexpected error occurred",
 };
 
 /* ================= ERROR TYPE DETECTOR ================= */
@@ -49,7 +70,8 @@ const getErrorType = (error) => {
   const status = error.response?.status;
   if (status === 404) return ERROR_TYPES.NOT_FOUND;
   if (status === 403 || status === 401) return ERROR_TYPES.UNAUTHORIZED;
-  if (!error.response && error.code === 'ERR_NETWORK') return ERROR_TYPES.NETWORK;
+  if (!error.response && error.code === "ERR_NETWORK")
+    return ERROR_TYPES.NETWORK;
   if (status && status >= 500) return ERROR_TYPES.SERVER;
   return ERROR_TYPES.UNKNOWN;
 };
@@ -59,7 +81,7 @@ const copyToClipboard = async (text, label) => {
   try {
     await navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard!`, {
-      position: 'top-right',
+      position: "top-right",
       autoClose: 2000,
       hideProgressBar: false,
       closeOnClick: true,
@@ -67,8 +89,8 @@ const copyToClipboard = async (text, label) => {
       draggable: true,
     });
   } catch {
-    toast.error('Failed to copy to clipboard', {
-      position: 'top-right',
+    toast.error("Failed to copy to clipboard", {
+      position: "top-right",
       autoClose: 3000,
     });
   }
@@ -85,17 +107,17 @@ const getFileName = (filePath) => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 
 const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return '₹ 0';
-  return `₹ ${amount.toLocaleString('en-IN')}`;
+  if (amount === null || amount === undefined) return "₹ 0";
+  return `₹ ${amount.toLocaleString("en-IN")}`;
 };
 
 /* ================= REUSABLE INTERNAL COMPONENTS ================= */
@@ -124,17 +146,18 @@ CopyButton.propTypes = {
 };
 
 /* ---- StatusBadge Component ---- */
-function StatusBadge({ status, type = 'default' }) {
+function StatusBadge({ status, type = "default" }) {
   const statusConfig = {
-    APPROVED: { class: 'status-approved', icon: FaCheckCircle },
-    PENDING: { class: 'status-pending', icon: FaClock },
-    REJECTED: { class: 'status-rejected', icon: FaExclamationTriangle },
-    PAID: { class: 'status-paid', icon: FaCheckCircle },
-    UNPAID: { class: 'status-unpaid', icon: FaClock },
-    default: { class: 'status-default', icon: FaInfoCircle },
+    APPROVED: { class: "status-approved", icon: FaCheckCircle },
+    PENDING: { class: "status-pending", icon: FaClock },
+    REJECTED: { class: "status-rejected", icon: FaExclamationTriangle },
+    PAID: { class: "status-paid", icon: FaCheckCircle },
+    UNPAID: { class: "status-unpaid", icon: FaClock },
+    default: { class: "status-default", icon: FaInfoCircle },
   };
 
-  const config = statusConfig[status] || statusConfig[type] || statusConfig.default;
+  const config =
+    statusConfig[status] || statusConfig[type] || statusConfig.default;
   const IconComponent = config.icon;
 
   return (
@@ -151,11 +174,18 @@ function StatusBadge({ status, type = 'default' }) {
 
 StatusBadge.propTypes = {
   status: PropTypes.string.isRequired,
-  type: PropTypes.oneOf(['APPROVED', 'PENDING', 'REJECTED', 'PAID', 'UNPAID', 'default']),
+  type: PropTypes.oneOf([
+    "APPROVED",
+    "PENDING",
+    "REJECTED",
+    "PAID",
+    "UNPAID",
+    "default",
+  ]),
 };
 
 StatusBadge.defaultProps = {
-  type: 'default',
+  type: "default",
 };
 
 /* ---- EmptyState Component ---- */
@@ -181,16 +211,27 @@ EmptyState.defaultProps = {
 };
 
 /* ---- DetailRow Component ---- */
-function DetailRow({ label, value, icon, isEmail = false, isMultiline = false, isCopyable = false }) {
-  const displayValue = value || 'N/A';
-  
+function DetailRow({
+  label,
+  value,
+  icon,
+  isEmail = false,
+  isMultiline = false,
+  isCopyable = false,
+}) {
+  const displayValue = value || "N/A";
+
   return (
     <tr className="detail-row">
       <td className="detail-label">
-        <span className="detail-label-icon" aria-hidden="true">{icon}</span>
+        <span className="detail-label-icon" aria-hidden="true">
+          {icon}
+        </span>
         {label}
       </td>
-      <td className={`detail-value ${isEmail ? 'email' : ''} ${isMultiline ? 'multiline' : ''}`}>
+      <td
+        className={`detail-value ${isEmail ? "email" : ""} ${isMultiline ? "multiline" : ""}`}
+      >
         <span className="value-content">{displayValue}</span>
         {isCopyable && value && <CopyButton value={value} label={label} />}
       </td>
@@ -216,13 +257,16 @@ DetailRow.defaultProps = {
 
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  const baseUrl =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
   const fileName = getFileName(path);
 
   return (
     <tr className="detail-row">
       <td className="detail-label">
-        <span className="detail-label-icon" aria-hidden="true">{icon}</span>
+        <span className="detail-label-icon" aria-hidden="true">
+          {icon}
+        </span>
         {label}
       </td>
       <td className="detail-value">
@@ -238,7 +282,10 @@ function DocumentRow({ label, path, icon }) {
             {fileName || "View Document"}
           </a>
         ) : (
-          <span className="document-not-uploaded" aria-label="Document not uploaded">
+          <span
+            className="document-not-uploaded"
+            aria-label="Document not uploaded"
+          >
             Not uploaded
           </span>
         )}
@@ -259,7 +306,7 @@ DocumentRow.defaultProps = {
 
 /* ---- InfoCard Component ---- */
 // eslint-disable-next-line no-unused-vars
-function InfoCard({ title, icon: Icon, children, className = '' }) {
+function InfoCard({ title, icon: Icon, children, className = "" }) {
   return (
     <div className={`erp-card ${className}`}>
       <div className="erp-card-header">
@@ -268,9 +315,7 @@ function InfoCard({ title, icon: Icon, children, className = '' }) {
           {title}
         </h3>
       </div>
-      <div className="erp-card-body">
-        {children}
-      </div>
+      <div className="erp-card-body">{children}</div>
     </div>
   );
 }
@@ -283,16 +328,22 @@ InfoCard.propTypes = {
 };
 
 InfoCard.defaultProps = {
-  className: '',
+  className: "",
 };
 
 /* ---- FeeCard Component ---- */
-function FeeCard({ label, value, subtitle, variant = 'default', highlight = false }) {
+function FeeCard({
+  label,
+  value,
+  subtitle,
+  variant = "default",
+  highlight = false,
+}) {
   const variantClasses = {
-    default: '',
-    total: 'total-fee',
-    paid: 'paid-fee',
-    pending: `pending-fee ${highlight ? 'highlight' : ''}`,
+    default: "",
+    total: "total-fee",
+    paid: "paid-fee",
+    pending: `pending-fee ${highlight ? "highlight" : ""}`,
   };
 
   return (
@@ -308,12 +359,12 @@ FeeCard.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   subtitle: PropTypes.string.isRequired,
-  variant: PropTypes.oneOf(['default', 'total', 'paid', 'pending']),
+  variant: PropTypes.oneOf(["default", "total", "paid", "pending"]),
   highlight: PropTypes.bool,
 };
 
 FeeCard.defaultProps = {
-  variant: 'default',
+  variant: "default",
   highlight: false,
 };
 
@@ -331,7 +382,11 @@ function InstallmentTable({ installments }) {
 
   return (
     <div className="table-container">
-      <table className="erp-installments-table" role="table" aria-label="Payment installments">
+      <table
+        className="erp-installments-table"
+        role="table"
+        aria-label="Payment installments"
+      >
         <thead>
           <tr>
             <th scope="col">#</th>
@@ -349,7 +404,10 @@ function InstallmentTable({ installments }) {
               <td>{formatCurrency(inst.amount)}</td>
               <td>{formatDate(inst.dueDate)}</td>
               <td>
-                <StatusBadge status={inst.status} type={inst.status.toLowerCase()} />
+                <StatusBadge
+                  status={inst.status}
+                  type={inst.status.toLowerCase()}
+                />
               </td>
             </tr>
           ))}
@@ -367,14 +425,18 @@ InstallmentTable.propTypes = {
       amount: PropTypes.number.isRequired,
       dueDate: PropTypes.string.isRequired,
       status: PropTypes.string.isRequired,
-    })
+    }),
   ).isRequired,
 };
 
 /* ---- Skeleton Components ---- */
 function ProfileSkeleton() {
   return (
-    <div className="erp-skeleton-container" role="status" aria-label="Loading student profile">
+    <div
+      className="erp-skeleton-container"
+      role="status"
+      aria-label="Loading student profile"
+    >
       <div className="skeleton-header">
         <div className="skeleton-avatar" aria-hidden="true" />
         <div className="skeleton-text skeleton-title" />
@@ -493,7 +555,9 @@ function ErrorDisplay({ error, onRetry, onBack, retryCount }) {
           aria-label={`Retry loading (attempt ${retryCount} of ${CONFIG.MAX_RETRY})`}
         >
           <FaSyncAlt className="erp-btn-icon" aria-hidden="true" />
-          {retryCount >= CONFIG.MAX_RETRY ? "Max Retries" : `Retry (${retryCount}/${CONFIG.MAX_RETRY})`}
+          {retryCount >= CONFIG.MAX_RETRY
+            ? "Max Retries"
+            : `Retry (${retryCount}/${CONFIG.MAX_RETRY})`}
         </button>
       </motion.div>
     </motion.div>
@@ -549,14 +613,24 @@ export default function ViewApproveStudent() {
     setError("");
     try {
       const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(id));
-      const studentData = res.data?.student || (res.data?.fullName ? res.data : null);
+
+      // API returns: { student: {...}, fee: {...} }
+      const studentData =
+        res.data?.student || (res.data?.fullName ? res.data : null);
+      const feeData = res.data?.fee || null;
+
+      // Merge fee data into student object for compatibility
+      if (studentData && feeData) {
+        studentData.fee = feeData;
+      }
+
       setStudent(studentData);
       setRetryCount(0);
     } catch (fetchError) {
       const errorType = getErrorType(fetchError);
       setError(errorType);
       toast.error(errorType, {
-        position: 'top-right',
+        position: "top-right",
         autoClose: 4000,
       });
     } finally {
@@ -565,14 +639,15 @@ export default function ViewApproveStudent() {
   }, [id]);
 
   useEffect(() => {
-    if (user?.role === 'COLLEGE_ADMIN') {
+    if (user?.role === "COLLEGE_ADMIN") {
       fetchStudent();
     }
   }, [fetchStudent, user]);
 
   /* ================= SECURITY CHECK ================= */
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "COLLEGE_ADMIN")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -605,31 +680,83 @@ export default function ViewApproveStudent() {
     if (!student) return [];
 
     const docMap = [
-      { key: 'sscMarksheetPath', label: "10th Marksheet", icon: <FaFileAlt /> },
-      { key: 'hscMarksheetPath', label: "12th Marksheet", icon: <FaFileAlt /> },
-      { key: 'passportPhotoPath', label: "Passport Photo", icon: <FaImage /> },
-      { key: 'categoryCertificatePath', label: "Category Certificate", icon: <FaFileAlt /> },
-      { key: 'incomeCertificatePath', label: "Income Certificate", icon: <FaFileAlt /> },
-      { key: 'characterCertificatePath', label: "Character Certificate", icon: <FaFileAlt /> },
-      { key: 'transferCertificatePath', label: "Transfer Certificate", icon: <FaFileAlt /> },
-      { key: 'aadharCardPath', label: "Aadhar Card", icon: <FaFileAlt /> },
-      { key: 'entranceExamScorePath', label: "Entrance Exam Score", icon: <FaFileAlt /> },
-      { key: 'migrationCertificatePath', label: "Migration Certificate", icon: <FaFileAlt /> },
-      { key: 'domicileCertificatePath', label: "Domicile Certificate", icon: <FaFileAlt /> },
-      { key: 'casteCertificatePath', label: "Caste Certificate", icon: <FaFileAlt /> },
-      { key: 'nonCreamyLayerCertificatePath', label: "Non-Creamy Layer Certificate", icon: <FaFileAlt /> },
-      { key: 'physicallyChallengedCertificatePath', label: "Physically Challenged Certificate", icon: <FaFileAlt /> },
-      { key: 'sportsQuotaCertificatePath', label: "Sports Quota Certificate", icon: <FaFileAlt /> },
-      { key: 'nriSponsorCertificatePath', label: "NRI Sponsor Certificate", icon: <FaFileAlt /> },
-      { key: 'gapCertificatePath', label: "Gap Certificate", icon: <FaFileAlt /> },
-      { key: 'affidavitPath', label: "Affidavit", icon: <FaFileAlt /> },
+      { key: "sscMarksheetPath", label: "10th Marksheet", icon: <FaFileAlt /> },
+      { key: "hscMarksheetPath", label: "12th Marksheet", icon: <FaFileAlt /> },
+      { key: "passportPhotoPath", label: "Passport Photo", icon: <FaImage /> },
+      {
+        key: "categoryCertificatePath",
+        label: "Category Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "incomeCertificatePath",
+        label: "Income Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "characterCertificatePath",
+        label: "Character Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "transferCertificatePath",
+        label: "Transfer Certificate",
+        icon: <FaFileAlt />,
+      },
+      { key: "aadharCardPath", label: "Aadhar Card", icon: <FaFileAlt /> },
+      {
+        key: "entranceExamScorePath",
+        label: "Entrance Exam Score",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "migrationCertificatePath",
+        label: "Migration Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "domicileCertificatePath",
+        label: "Domicile Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "casteCertificatePath",
+        label: "Caste Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "nonCreamyLayerCertificatePath",
+        label: "Non-Creamy Layer Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "physicallyChallengedCertificatePath",
+        label: "Physically Challenged Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "sportsQuotaCertificatePath",
+        label: "Sports Quota Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "nriSponsorCertificatePath",
+        label: "NRI Sponsor Certificate",
+        icon: <FaFileAlt />,
+      },
+      {
+        key: "gapCertificatePath",
+        label: "Gap Certificate",
+        icon: <FaFileAlt />,
+      },
+      { key: "affidavitPath", label: "Affidavit", icon: <FaFileAlt /> },
     ];
 
     return docMap
       .filter(({ key }) => student[key])
       .map(({ label, ...rest }) => ({
         label,
-        path: student[docMap.find(d => d.label === label).key],
+        path: student[docMap.find((d) => d.label === label).key],
         ...rest,
       }));
   }, [student]);
@@ -658,7 +785,7 @@ export default function ViewApproveStudent() {
       fetchStudent();
     } else {
       toast.error("Maximum retry attempts reached", {
-        position: 'top-right',
+        position: "top-right",
         autoClose: 3000,
       });
     }
@@ -672,15 +799,22 @@ export default function ViewApproveStudent() {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const handlePrint = useCallback(() => {
     printProfile();
-    toast.info('Preparing print view...', {
-      position: 'top-right',
+    toast.info("Preparing print view...", {
+      position: "top-right",
       autoClose: 1500,
     });
   }, []);
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
-    return <ErrorDisplay error={error} onRetry={handleRetry} onBack={handleBack} retryCount={retryCount} />;
+    return (
+      <ErrorDisplay
+        error={error}
+        onRetry={handleRetry}
+        onBack={handleBack}
+        retryCount={retryCount}
+      />
+    );
   }
 
   /* ================= LOADING STATE ================= */
@@ -705,9 +839,9 @@ export default function ViewApproveStudent() {
         <div className="erp-header-content">
           {/* Student Avatar */}
           <div className="student-avatar" aria-hidden="true">
-            {(student.fullName || 'S').charAt(0).toUpperCase()}
+            {(student.fullName || "S").charAt(0).toUpperCase()}
           </div>
-          
+
           {/* Student Details */}
           <div className="erp-header-text">
             <h1 className="erp-page-title">{student.fullName || "N/A"}</h1>
@@ -723,7 +857,7 @@ export default function ViewApproveStudent() {
             </div>
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="erp-header-actions">
           <button
@@ -755,7 +889,11 @@ export default function ViewApproveStudent() {
           {/* PERSONAL INFORMATION */}
           <InfoCard title="Personal Information" icon={FaUserGraduate}>
             <div className="erp-table-container">
-              <table className="erp-detail-table" role="table" aria-label="Personal information">
+              <table
+                className="erp-detail-table"
+                role="table"
+                aria-label="Personal information"
+              >
                 <tbody>
                   <DetailRow
                     label="Email Address"
@@ -788,7 +926,11 @@ export default function ViewApproveStudent() {
           {/* ADDRESS DETAILS */}
           <InfoCard title="Address Details" icon={FaMapMarkerAlt}>
             <div className="erp-table-container">
-              <table className="erp-detail-table" role="table" aria-label="Address details">
+              <table
+                className="erp-detail-table"
+                role="table"
+                aria-label="Address details"
+              >
                 <tbody>
                   <DetailRow
                     label="Address"
@@ -820,7 +962,11 @@ export default function ViewApproveStudent() {
           {/* PARENT / GUARDIAN INFORMATION */}
           <InfoCard title="Parent / Guardian Information" icon={FaUser}>
             <div className="erp-table-container">
-              <table className="erp-detail-table" role="table" aria-label="Parent guardian information">
+              <table
+                className="erp-detail-table"
+                role="table"
+                aria-label="Parent guardian information"
+              >
                 <tbody>
                   <DetailRow
                     label="Father's Name"
@@ -851,9 +997,16 @@ export default function ViewApproveStudent() {
 
           {/* 10TH (SSC) ACADEMIC DETAILS */}
           {has10thDetails && (
-            <InfoCard title="10th (SSC) Academic Details" icon={FaGraduationCap}>
+            <InfoCard
+              title="10th (SSC) Academic Details"
+              icon={FaGraduationCap}
+            >
               <div className="erp-table-container">
-                <table className="erp-detail-table" role="table" aria-label="10th academic details">
+                <table
+                  className="erp-detail-table"
+                  role="table"
+                  aria-label="10th academic details"
+                >
                   <tbody>
                     <DetailRow
                       label="School Name"
@@ -872,7 +1025,11 @@ export default function ViewApproveStudent() {
                     />
                     <DetailRow
                       label="Percentage / CGPA"
-                      value={student.sscPercentage ? `${student.sscPercentage}%` : null}
+                      value={
+                        student.sscPercentage
+                          ? `${student.sscPercentage}%`
+                          : null
+                      }
                       icon={<FaGraduationCap />}
                     />
                     <DetailRow
@@ -889,9 +1046,16 @@ export default function ViewApproveStudent() {
 
           {/* 12TH (HSC) ACADEMIC DETAILS */}
           {has12thDetails && (
-            <InfoCard title="12th (HSC) Academic Details" icon={FaGraduationCap}>
+            <InfoCard
+              title="12th (HSC) Academic Details"
+              icon={FaGraduationCap}
+            >
               <div className="erp-table-container">
-                <table className="erp-detail-table" role="table" aria-label="12th academic details">
+                <table
+                  className="erp-detail-table"
+                  role="table"
+                  aria-label="12th academic details"
+                >
                   <tbody>
                     <DetailRow
                       label="School / College Name"
@@ -915,7 +1079,11 @@ export default function ViewApproveStudent() {
                     />
                     <DetailRow
                       label="Percentage / CGPA"
-                      value={student.hscPercentage ? `${student.hscPercentage}%` : null}
+                      value={
+                        student.hscPercentage
+                          ? `${student.hscPercentage}%`
+                          : null
+                      }
                       icon={<FaGraduationCap />}
                     />
                     <DetailRow
@@ -933,12 +1101,20 @@ export default function ViewApproveStudent() {
           {/* UPLOADED DOCUMENTS */}
           {uploadedDocuments.length > 0 && (
             <InfoCard title="Uploaded Documents" icon={FaFileAlt}>
-              <p className="document-count" aria-label={`${uploadedDocuments.length} documents uploaded`}>
+              <p
+                className="document-count"
+                aria-label={`${uploadedDocuments.length} documents uploaded`}
+              >
                 <FaFileAlt className="count-icon" aria-hidden="true" />
-                {uploadedDocuments.length} document{uploadedDocuments.length !== 1 ? 's' : ''} uploaded
+                {uploadedDocuments.length} document
+                {uploadedDocuments.length !== 1 ? "s" : ""} uploaded
               </p>
               <div className="erp-table-container">
-                <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
+                <table
+                  className="erp-detail-table"
+                  role="table"
+                  aria-label="Uploaded documents"
+                >
                   <tbody>
                     {uploadedDocuments.map((doc, index) => (
                       <DocumentRow
@@ -957,7 +1133,11 @@ export default function ViewApproveStudent() {
           {/* ACADEMIC DETAILS */}
           <InfoCard title="Academic Details" icon={FaGraduationCap}>
             <div className="erp-table-container">
-              <table className="erp-detail-table" role="table" aria-label="Academic details">
+              <table
+                className="erp-detail-table"
+                role="table"
+                aria-label="Academic details"
+              >
                 <tbody>
                   <DetailRow
                     label="College"
@@ -999,7 +1179,11 @@ export default function ViewApproveStudent() {
         {/* RIGHT COLUMN - FEE & SYSTEM INFO */}
         <div className="right-column">
           {/* FEE SUMMARY */}
-          <InfoCard title="Fee Summary" icon={FaRupeeSign} className="fee-summary-card">
+          <InfoCard
+            title="Fee Summary"
+            icon={FaRupeeSign}
+            className="fee-summary-card"
+          >
             <div className="fee-summary-grid">
               <FeeCard
                 label="Total Fee"
@@ -1016,7 +1200,9 @@ export default function ViewApproveStudent() {
               <FeeCard
                 label="Pending Amount"
                 value={formatCurrency(feeData?.pendingAmount)}
-                subtitle={feeData?.pendingAmount > 0 ? 'Payment due' : 'Fully paid'}
+                subtitle={
+                  feeData?.pendingAmount > 0 ? "Payment due" : "Fully paid"
+                }
                 variant="pending"
                 highlight={feeData?.pendingAmount > 0}
               />
@@ -1025,8 +1211,14 @@ export default function ViewApproveStudent() {
 
           {/* INSTALLMENTS TABLE */}
           <InfoCard title="Payment Installments" icon={FaCreditCard}>
-            <span className="installment-count" aria-label={`${feeData?.installments?.length || 0} installments`}>
-              {feeData?.installments?.length || 0} {feeData?.installments?.length === 1 ? "Installment" : "Installments"}
+            <span
+              className="installment-count"
+              aria-label={`${feeData?.installments?.length || 0} installments`}
+            >
+              {feeData?.installments?.length || 0}{" "}
+              {feeData?.installments?.length === 1
+                ? "Installment"
+                : "Installments"}
             </span>
             <div className="erp-card-body">
               <InstallmentTable installments={feeData?.installments || []} />
@@ -1036,7 +1228,11 @@ export default function ViewApproveStudent() {
           {/* SYSTEM INFORMATION */}
           <InfoCard title="System Information" icon={FaShieldAlt}>
             <div className="erp-table-container">
-              <table className="erp-detail-table" role="table" aria-label="System information">
+              <table
+                className="erp-detail-table"
+                role="table"
+                aria-label="System information"
+              >
                 <tbody>
                   <DetailRow
                     label="Status"
