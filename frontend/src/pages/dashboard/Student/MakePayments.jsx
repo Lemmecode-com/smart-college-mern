@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loading from "../../../components/Loading";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaMoneyBillWave,
@@ -44,6 +45,7 @@ export default function MakePayments() {
   const [result, setResult] = useState(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -110,7 +112,7 @@ export default function MakePayments() {
   /* ======================================================
      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
      ====================================================== */
-  const handleStripePayment = async () => {
+  const handleStripePayment = () => {
     // Prevent duplicate requests
     if (isRequestInProgressRef.current) {
       console.warn(
@@ -160,29 +162,18 @@ export default function MakePayments() {
       return;
     }
 
-    // Confirm payment with user
-    const confirmed = window.confirm(
-      `Payment Confirmation\n\n` +
-        `Installment: ${installmentName}\n` +
-        `Amount: ₹${installmentDetails.amount.toLocaleString()}\n` +
-        `Due Date: ${installmentDetails.dueDate ? new Date(installmentDetails.dueDate).toLocaleDateString("en-IN") : "N/A"}\n\n` +
-        `⚠️ You will be redirected to Stripe's secure checkout.\n` +
-        `After payment, you'll be automatically redirected back.\n\n` +
-        `Click OK to proceed.`,
-    );
+    // Show confirmation modal instead of window.confirm
+    setShowConfirmModal(true);
+  };
 
-    if (!confirmed) {
-      toast.info("Payment cancelled by user", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaInfoCircle />,
-      });
-      return;
-    }
+  /* ======================================================
+     🔹 CONFIRMED PAYMENT PROCESSING (extracted from handleStripePayment)
+     ====================================================== */
+  const processPayment = async () => {
+    // Set flag to prevent duplicate requests
+    isRequestInProgressRef.current = true;
 
     try {
-      // Set flag to prevent duplicate requests
-      isRequestInProgressRef.current = true;
       setLoading(true);
       setShowError(false);
 
@@ -872,6 +863,48 @@ export default function MakePayments() {
           }
         }
       `}</style>
+
+      {/* ================= PAYMENT CONFIRMATION MODAL ================= */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={() => {
+          setShowConfirmModal(false);
+          processPayment();
+        }}
+        title="Payment Confirmation"
+        message={
+          <div className="text-start">
+            <div className="mb-2">
+              <strong>Installment:</strong> {installmentName}
+            </div>
+            <div className="mb-2">
+              <strong>Amount:</strong> ₹
+              {installmentDetails.amount?.toLocaleString()}
+            </div>
+            <div className="mb-3">
+              <strong>Due Date:</strong>{" "}
+              {installmentDetails.dueDate
+                ? new Date(installmentDetails.dueDate).toLocaleDateString(
+                    "en-IN",
+                  )
+                : "N/A"}
+            </div>
+            <div
+              className="alert alert-warning mb-0"
+              style={{ fontSize: "0.9rem" }}
+            >
+              <FaExclamationTriangle className="me-2" />
+              You will be redirected to Stripe's secure checkout. After payment,
+              you'll be automatically redirected back.
+            </div>
+          </div>
+        }
+        type="info"
+        confirmText="OK"
+        cancelText="Cancel"
+        isLoading={loading}
+      />
     </div>
   );
 }
