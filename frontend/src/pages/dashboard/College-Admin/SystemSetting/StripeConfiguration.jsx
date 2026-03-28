@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,6 +14,7 @@ const API_BASE_URL =
  * for their institution with test/live mode support
  */
 const StripeConfiguration = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -223,6 +225,15 @@ const StripeConfiguration = () => {
       <div className="mb-4">
         <div className="d-flex justify-content-between align-items-center">
           <div>
+            <div className="d-flex align-items-center mb-2">
+              <button
+                className="btn btn-outline-secondary btn-sm me-2"
+                onClick={() => navigate("/system-settings/fees")}
+                style={{ borderRadius: "6px" }}
+              >
+                <i className="fas fa-arrow-left me-1"></i> Back
+              </button>
+            </div>
             <h4 className="fw-bold mb-1">Stripe Payment Configuration</h4>
             <p className="text-muted mb-0">
               Configure Stripe payment gateway for your college
@@ -247,32 +258,6 @@ const StripeConfiguration = () => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* INFO ALERT */}
-      <div className="alert alert-info mb-4">
-        <i className="fas fa-info-circle me-2"></i>
-        <strong>How to get your keys:</strong>
-        <ol className="mb-0 mt-2">
-          <li>
-            Log in to your{" "}
-            <a
-              href="https://dashboard.stripe.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Stripe Dashboard
-            </a>
-          </li>
-          <li>Go to Developers → API Keys</li>
-          <li>Copy your Publishable Key and Secret Key</li>
-          <li>
-            For webhooks, create a webhook endpoint pointing to:{" "}
-            <code className="bg-light px-2 py-1 rounded">
-              {`${API_BASE_URL}/stripe/webhook`}
-            </code>
-          </li>
-        </ol>
       </div>
 
       <div className="row">
@@ -456,34 +441,6 @@ const StripeConfiguration = () => {
               </div>
             </div>
           </div>
-
-          {/* Security Information */}
-          <div className="card mt-3" style={{ borderRadius: "10px" }}>
-            <div className="card-body">
-              <h6 className="fw-bold mb-3">
-                <i className="fas fa-shield-alt text-success me-2"></i>
-                Security Features
-              </h6>
-              <ul className="mb-0">
-                <li className="mb-2">
-                  <strong>Encryption at Rest:</strong> Secret keys are encrypted
-                  using AES-256-GCM before storage
-                </li>
-                <li className="mb-2">
-                  <strong>Multi-tenant Isolation:</strong> Each college has
-                  separate Stripe credentials
-                </li>
-                <li className="mb-2">
-                  <strong>Webhook Verification:</strong> Optional webhook
-                  signature verification for enhanced security
-                </li>
-                <li>
-                  <strong>Secure Transmission:</strong> All API calls use HTTPS
-                  with JWT authentication
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         {/* SIDEBAR - STATUS & HELP */}
@@ -534,61 +491,6 @@ const StripeConfiguration = () => {
               </div>
             </div>
           )}
-
-          {/* Help Card */}
-          <div className="card" style={{ borderRadius: "10px" }}>
-            <div className="card-body">
-              <h6 className="fw-bold mb-3">
-                <i className="fas fa-question-circle me-2"></i>
-                Need Help?
-              </h6>
-              <p className="small text-muted mb-3">
-                Follow our setup guide to configure Stripe for your college.
-              </p>
-              <a
-                href="https://stripe.com/docs/keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline-primary btn-sm w-100 mb-2"
-              >
-                <i className="fas fa-external-link-alt me-2"></i>
-                Stripe Keys Documentation
-              </a>
-              <a
-                href="https://stripe.com/docs/webhooks"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline-secondary btn-sm w-100"
-              >
-                <i className="fas fa-external-link-alt me-2"></i>
-                Stripe Webhooks Guide
-              </a>
-            </div>
-          </div>
-
-          {/* Test Cards */}
-          <div className="card mt-3" style={{ borderRadius: "10px" }}>
-            <div className="card-body">
-              <h6 className="fw-bold mb-3">
-                <i className="fas fa-credit-card me-2"></i>
-                Test Card Numbers
-              </h6>
-              <p className="small text-muted mb-2">
-                Use these cards for testing:
-              </p>
-              <div className="small">
-                <code className="d-block bg-light p-2 mb-2 rounded">
-                  4242 4242 4242 4242
-                </code>
-                <code className="d-block bg-light p-2 mb-2 rounded">
-                  5555 5555 5555 4444
-                </code>
-                <code className="d-block bg-light p-2 rounded">
-                  Any future date, any CVC
-                </code>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
