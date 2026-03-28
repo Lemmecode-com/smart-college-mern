@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../../../components/ConfirmModal";
@@ -166,7 +167,9 @@ export default function WeeklyTimetable() {
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editSlot, setEditSlot] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -202,6 +205,7 @@ export default function WeeklyTimetable() {
       const loadTeacherWeekly = async () => {
         try {
           setLoading(true);
+          setError(null);
           const res = await api.get("/timetable/weekly");
           setTimetable(res.data.timetable || null);
           setWeekly(res.data.weekly || {});
@@ -212,10 +216,11 @@ export default function WeeklyTimetable() {
 
           setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
         } catch (err) {
-          setError(
+          const errorMessage =
             err.response?.data?.message ||
-              "Failed to load weekly timetable. Please try again.",
-          );
+            "Failed to load weekly timetable. Please try again.";
+          const statusCode = err.response?.status;
+          setError({ message: errorMessage, statusCode });
         } finally {
           setLoading(false);
         }
@@ -233,6 +238,7 @@ export default function WeeklyTimetable() {
 
       try {
         setLoading(true);
+        setError(null);
         const res = await api.get(`/timetable/${timetableId}/weekly`);
         setTimetable(res.data.timetable);
         setWeekly(res.data.weekly || {});
@@ -249,10 +255,11 @@ export default function WeeklyTimetable() {
         setSubjects(subRes.data.subjects || subRes.data || []);
         setTeachers(teachRes.data.teachers || teachRes.data || []);
       } catch (err) {
-        setError(
+        const errorMessage =
           err.response?.data?.message ||
-            "Failed to load weekly timetable. Please try again.",
-        );
+          "Failed to load weekly timetable. Please try again.";
+        const statusCode = err.response?.status;
+        setError({ message: errorMessage, statusCode });
       } finally {
         setLoading(false);
       }
@@ -260,6 +267,53 @@ export default function WeeklyTimetable() {
 
     load();
   }, [timetableId, user]);
+
+  // Handle retry action
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
+    setRetryCount((prev) => prev + 1);
+    setError(null);
+    setLoading(true);
+
+    try {
+      if (!timetableId) {
+        const res = await api.get("/timetable/weekly");
+        setTimetable(res.data.timetable || null);
+        setWeekly(res.data.weekly || {});
+        if (res.data.timetable) {
+          setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+        }
+      } else {
+        const res = await api.get(`/timetable/${timetableId}/weekly`);
+        setTimetable(res.data.timetable);
+        setWeekly(res.data.weekly || {});
+        setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+
+        const [subRes, teachRes] = await Promise.all([
+          api.get(`/subjects/course/${res.data.timetable.course_id}`),
+          api.get(`/teachers/department/${res.data.timetable.department_id}`),
+        ]);
+        setSubjects(subRes.data.subjects || subRes.data || []);
+        setTeachers(teachRes.data.teachers || teachRes.data || []);
+      }
+      setError(null);
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        "Failed to load weekly timetable. Please try again.";
+      const statusCode = err.response?.status;
+      setError({ message: errorMessage, statusCode });
+    } finally {
+      setLoading(false);
+      setIsRetrying(false);
+    }
+  };
+
+  // Handle go back action
+  const handleGoBack = () => {
+    navigate(-1);
+  };
 
   /* ================= AUTO SET TEACHER ================= */
   useEffect(() => {
@@ -419,29 +473,16 @@ export default function WeeklyTimetable() {
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{
-          margin: "2rem",
-          padding: "1.5rem",
-          borderRadius: "12px",
-          backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-          border: `1px solid ${BRAND_COLORS.danger.main}`,
-          color: BRAND_COLORS.danger.main,
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
-        <FaTimesCircle size={24} />
-        <div>
-          <h4 style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
-            Error Loading Timetable
-          </h4>
-          <p style={{ margin: 0 }}>{error}</p>
-        </div>
-      </motion.div>
+      <ApiError
+        title="Error Loading Timetable"
+        message={error.message || "Failed to load timetable. Please try again."}
+        statusCode={error.statusCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 

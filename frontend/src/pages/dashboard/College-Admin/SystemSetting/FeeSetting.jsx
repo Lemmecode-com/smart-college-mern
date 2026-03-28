@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import StripeConfiguration from "./StripeConfiguration";
+import { useNavigate } from "react-router-dom";
 
 const FeeSetting = () => {
-  const [activeGateway, setActiveGateway] = useState("stripe");
-  const [showStripeConfig, setShowStripeConfig] = useState(false);
+  const navigate = useNavigate();
+  const [activeGateway, setActiveGateway] = useState("razorpay");
 
   const gateways = [
     { key: "paypal", label: "Paypal" },
@@ -15,10 +15,25 @@ const FeeSetting = () => {
     { key: "instamojo", label: "InstaMojo" },
   ];
 
-  // If viewing Stripe config, show the full configuration component
-  if (activeGateway === "stripe") {
-    return <StripeConfiguration />;
-  }
+  // Gateway status: 'active' = functional, 'coming-soon' = not yet implemented
+  const GATEWAY_STATUS = {
+    stripe: "active",
+    razorpay: "coming-soon",
+    paypal: "coming-soon",
+    paytm: "coming-soon",
+    payu: "coming-soon",
+    cashfree: "coming-soon",
+    instamojo: "coming-soon",
+  };
+
+  // Handle gateway selection
+  const handleGatewaySelect = (gatewayKey) => {
+    if (gatewayKey === "stripe") {
+      navigate("/system-settings/stripe-configuration");
+    } else {
+      setActiveGateway(gatewayKey);
+    }
+  };
 
   const renderGatewayFields = () => {
     switch (activeGateway) {
@@ -28,14 +43,6 @@ const FeeSetting = () => {
             <Input label="Paypal Username" />
             <Input label="Paypal Password" type="password" />
             <Input label="Paypal Signature" />
-          </>
-        );
-
-      case "stripe":
-        return (
-          <>
-            <Input label="Stripe API Secret Key" />
-            <Input label="Stripe Publishable Key" />
           </>
         );
 
@@ -85,6 +92,37 @@ const FeeSetting = () => {
     }
   };
 
+  // Coming Soon Card Component
+  const ComingSoonCard = ({ gatewayName }) => (
+    <div
+      className="card"
+      style={{
+        borderRadius: "10px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+        border: "2px dashed #dee2e6",
+      }}
+    >
+      <div className="card-body text-center py-5">
+        <div className="mb-3">
+          <i
+            className="fas fa-tools"
+            style={{ fontSize: "3rem", color: "#ffc107" }}
+          ></i>
+        </div>
+        <h5 className="fw-bold mb-2">{gatewayName} Coming Soon!</h5>
+        <p className="text-muted mb-4">
+          We're working on integrating {gatewayName}. Stay tuned!
+        </p>
+        <button className="btn btn-outline-secondary" disabled>
+          <i className="fas fa-ban me-2"></i>Not Available Yet
+        </button>
+      </div>
+    </div>
+  );
+
+  // Check if gateway is coming soon
+  const isComingSoon = GATEWAY_STATUS[activeGateway] === "coming-soon";
+
   return (
     <div
       className="container-fluid"
@@ -103,7 +141,7 @@ const FeeSetting = () => {
         {gateways.map((g) => (
           <button
             key={g.key}
-            onClick={() => setActiveGateway(g.key)}
+            onClick={() => handleGatewaySelect(g.key)}
             className={`btn btn-sm ${
               activeGateway === g.key ? "btn-primary" : "btn-outline-secondary"
             }`}
@@ -117,68 +155,79 @@ const FeeSetting = () => {
       <div className="row">
         {/* LEFT FORM */}
         <div className="col-lg-8">
-          <div
-            className="card"
-            style={{
-              borderRadius: "10px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-            }}
-          >
-            <div className="card-body">
-              <h6 className="fw-bold mb-3">
-                {activeGateway.toUpperCase()} Configuration
-              </h6>
+          {isComingSoon ? (
+            <ComingSoonCard
+              gatewayName={
+                gateways.find((g) => g.key === activeGateway)?.label ||
+                activeGateway
+              }
+            />
+          ) : (
+            <div
+              className="card"
+              style={{
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div className="card-body">
+                <h6 className="fw-bold mb-3">
+                  {activeGateway.toUpperCase()} Configuration
+                </h6>
 
-              {/* CONDITIONAL FIELDS */}
-              {renderGatewayFields()}
+                {/* CONDITIONAL FIELDS */}
+                {renderGatewayFields()}
 
-              <hr />
+                <hr />
 
-              {/* FEES */}
-              <h6 className="fw-bold mb-2">Processing Fees</h6>
+                {/* FEES */}
+                <h6 className="fw-bold mb-2">Processing Fees</h6>
 
-              <div className="d-flex gap-4 mb-3">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="feeType"
-                    defaultChecked
-                  />
-                  <label className="form-check-label">None</label>
+                <div className="d-flex gap-4 mb-3">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="feeType"
+                      defaultChecked
+                    />
+                    <label className="form-check-label">None</label>
+                  </div>
+
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="feeType"
+                    />
+                    <label className="form-check-label">Percentage (%)</label>
+                  </div>
+
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="feeType"
+                    />
+                    <label className="form-check-label">Fixed Amount</label>
+                  </div>
                 </div>
 
-                <div className="form-check">
+                <div className="mb-4">
+                  <label className="form-label">
+                    Percentage / Fixed Amount
+                  </label>
                   <input
-                    className="form-check-input"
-                    type="radio"
-                    name="feeType"
+                    type="number"
+                    className="form-control"
+                    placeholder="Enter value"
                   />
-                  <label className="form-check-label">Percentage (%)</label>
                 </div>
 
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    name="feeType"
-                  />
-                  <label className="form-check-label">Fixed Amount</label>
-                </div>
+                <button className="btn btn-primary px-4">Save Settings</button>
               </div>
-
-              <div className="mb-4">
-                <label className="form-label">Percentage / Fixed Amount</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  placeholder="Enter value"
-                />
-              </div>
-
-              <button className="btn btn-primary px-4">Save Settings</button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* RIGHT SIDEBAR */}
@@ -196,16 +245,39 @@ const FeeSetting = () => {
               {gateways.map((g) => (
                 <div
                   key={g.key}
-                  className="form-check mb-2"
-                  style={{ cursor: "pointer" }}
+                  onClick={() => handleGatewaySelect(g.key)}
+                  className="d-flex align-items-center justify-content-between p-2 mb-2 rounded"
+                  style={{
+                    cursor: "pointer",
+                    background:
+                      activeGateway === g.key ? "#e9ecef" : "transparent",
+                  }}
                 >
-                  <input
-                    className="form-check-input"
-                    type="radio"
-                    checked={activeGateway === g.key}
-                    onChange={() => setActiveGateway(g.key)}
-                  />
-                  <label className="form-check-label">{g.label}</label>
+                  <div className="form-check" style={{ cursor: "pointer" }}>
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="gatewayRadio"
+                      checked={activeGateway === g.key}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleGatewaySelect(g.key);
+                      }}
+                    />
+                    <label
+                      className="form-check-label"
+                      style={{ cursor: "pointer" }}
+                    >
+                      {g.label}
+                    </label>
+                  </div>
+                  {GATEWAY_STATUS[g.key] === "active" ? (
+                    <span className="badge bg-success">Active</span>
+                  ) : (
+                    <span className="badge bg-warning text-dark">
+                      Coming Soon
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

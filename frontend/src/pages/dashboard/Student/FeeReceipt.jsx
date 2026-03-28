@@ -3,6 +3,7 @@ import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -33,6 +34,8 @@ export default function FeeReceipt() {
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -204,7 +207,7 @@ export default function FeeReceipt() {
           errorMessage += "Please check your connection and try again.";
         }
 
-        setError(errorMessage);
+        setError({ message: errorMessage, statusCode: err.response?.status });
 
         toast.update(toastId, {
           render: errorMessage,
@@ -219,6 +222,22 @@ export default function FeeReceipt() {
 
     fetchReceipt();
   }, [paymentId, navigate]);
+
+  // Handle retry action
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
+    setRetryCount((prev) => prev + 1);
+    setError(null);
+    setLoading(true);
+    await fetchReceipt();
+    setIsRetrying(false);
+  };
+
+  // Handle go back action
+  const handleGoBack = () => {
+    navigate("/student/fees");
+  };
 
   /* ================= PDF DOWNLOAD ================= */
   const downloadPDF = async () => {
@@ -344,148 +363,16 @@ export default function FeeReceipt() {
   // Error state should be checked before loading state
   if (error) {
     return (
-      <div className="receipt-error-wrapper">
-        <ToastContainer position="top-right" />
-        <motion.div
-          className="error-card"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="error-icon-wrapper">
-            <FaExclamationTriangle className="error-icon" />
-          </div>
-          <h3 className="error-title">Unable to Load Receipt</h3>
-          <p className="error-message">{error}</p>
-
-          <div className="error-actions">
-            <button
-              className="btn-retry"
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-              }}
-            >
-              <FaSync /> Try Again
-            </button>
-
-            <button
-              className="btn-back"
-              onClick={() => navigate("/student/fees")}
-            >
-              <FaArrowLeft /> Back to Fees
-            </button>
-          </div>
-
-          <div className="error-help">
-            <FaInfoCircle className="help-icon" />
-            <p>
-              If the problem persists, please contact support with your
-              transaction ID.
-            </p>
-          </div>
-        </motion.div>
-
-        <style>{`
-          .receipt-error-wrapper {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            padding: 20px;
-          }
-          .error-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(220, 53, 69, 0.2);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-          }
-          .error-icon-wrapper {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            background: #fee2e2;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .error-icon {
-            font-size: 40px;
-            color: #dc3545;
-          }
-          .error-title {
-            margin: 0 0 10px 0;
-            color: #dc3545;
-            font-weight: 700;
-          }
-          .error-message {
-            color: #6b7280;
-            margin: 0 0 25px 0;
-            line-height: 1.6;
-          }
-          .error-actions {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-          }
-          .btn-retry {
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-          }
-          .btn-retry:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(15, 58, 74, 0.4);
-          }
-          .btn-back {
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: 2px solid #0f3a4a;
-            background: white;
-            color: #0f3a4a;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-          }
-          .btn-back:hover {
-            background: #0f3a4a;
-            color: white;
-          }
-          .error-help {
-            background: #f0f9ff;
-            padding: 15px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-align: left;
-            font-size: 0.9rem;
-            color: #0369a1;
-          }
-          .help-icon {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-          }
-        `}</style>
-      </div>
+      <ApiError
+        title="Unable to Load Receipt"
+        message={error.message || "Unable to fetch receipt. Please try again."}
+        statusCode={error.statusCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 
@@ -572,6 +459,17 @@ export default function FeeReceipt() {
   return (
     <div className="container py-4" role="main">
       <ToastContainer position="top-right" />
+
+      {/* BACK BUTTON */}
+      <div className="mb-3">
+        <button
+          className="btn-back-to-fees"
+          onClick={() => navigate("/student/fees")}
+          aria-label="Go back to fees page"
+        >
+          <FaArrowLeft className="me-1" aria-hidden="true" /> Back to Fees
+        </button>
+      </div>
 
       {/* Skip Link for Screen Readers */}
       <a href="#receipt-content" className="sr-only sr-only-focusable">
@@ -730,6 +628,27 @@ export default function FeeReceipt() {
           border-radius: 20px;
           box-shadow: 0 15px 40px rgba(0,0,0,0.08);
           overflow: hidden;
+        }
+        
+        /* Back Button Styling */
+        .btn-back-to-fees {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 20px;
+          border: 2px solid #6c757d;
+          background: white;
+          color: #6c757d;
+          border-radius: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        .btn-back-to-fees:hover {
+          background: #6c757d;
+          color: white;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 15px rgba(108, 117, 125, 0.3);
         }
 
         .section-title {
