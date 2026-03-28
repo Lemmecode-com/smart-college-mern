@@ -667,11 +667,12 @@
 }
 
 .logout-btn {
-  min-height: var(--nav-item-height) !important;
+  min-height: 40px !important;
   font-weight: 600 !important;
-  font-size: 0.875rem !important;
+  font-size: 0.8125rem !important;
   transition: all var(--transition-base) !important;
   border-radius: var(--radius-lg) !important;
+  padding: 8px 12px !important;
 }
 
 .logout-btn:hover:not(:disabled) {
