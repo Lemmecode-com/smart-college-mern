@@ -1,5 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { FaExclamationTriangle, FaQuestionCircle, FaInfoCircle } from "react-icons/fa";
+import {
+  FaExclamationTriangle,
+  FaQuestionCircle,
+  FaInfoCircle,
+} from "react-icons/fa";
 
 export default function ConfirmModal({
   isOpen,
@@ -10,33 +14,33 @@ export default function ConfirmModal({
   type = "warning", // warning, danger, info
   confirmText = "Confirm",
   cancelText = "Cancel",
-  isLoading = false
+  isLoading = false,
 }) {
   const typeConfig = {
     warning: {
       icon: FaExclamationTriangle,
       iconColor: "#ffc107",
       confirmBtnClass: "btn-warning",
-      bgGradient: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)"
+      bgGradient: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
     },
     danger: {
       icon: FaExclamationTriangle,
       iconColor: "#dc3545",
       confirmBtnClass: "btn-danger",
-      bgGradient: "linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)"
+      bgGradient: "linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)",
     },
     info: {
       icon: FaQuestionCircle,
       iconColor: "#17a2b8",
       confirmBtnClass: "btn-info",
-      bgGradient: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)"
+      bgGradient: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
     },
     success: {
       icon: FaInfoCircle,
       iconColor: "#28a745",
       confirmBtnClass: "btn-success",
-      bgGradient: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)"
-    }
+      bgGradient: "linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)",
+    },
   };
 
   const config = typeConfig[type] || typeConfig.warning;
@@ -62,7 +66,7 @@ export default function ConfirmModal({
             alignItems: "center",
             justifyContent: "center",
             zIndex: 9999,
-            padding: "1rem"
+            padding: "1rem",
           }}
         >
           <motion.div
@@ -77,7 +81,7 @@ export default function ConfirmModal({
               maxWidth: "500px",
               width: "calc(100% - 2rem)",
               boxShadow: "0 25px 50px rgba(0, 0, 0, 0.2)",
-              overflow: "hidden"
+              overflow: "hidden",
             }}
           >
             {/* Header with gradient */}
@@ -85,7 +89,7 @@ export default function ConfirmModal({
               style={{
                 background: config.bgGradient,
                 padding: "2rem",
-                textAlign: "center"
+                textAlign: "center",
               }}
             >
               <motion.div
@@ -101,14 +105,14 @@ export default function ConfirmModal({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)"
+                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
                 }}
               >
                 <IconComponent
                   style={{
                     width: "40px",
                     height: "40px",
-                    color: config.iconColor
+                    color: config.iconColor,
                   }}
                 />
               </motion.div>
@@ -117,7 +121,7 @@ export default function ConfirmModal({
                   margin: 0,
                   fontSize: "1.5rem",
                   fontWeight: 700,
-                  color: "#1e293b"
+                  color: "#1e293b",
                 }}
               >
                 {title}
@@ -126,24 +130,24 @@ export default function ConfirmModal({
 
             {/* Message */}
             <div style={{ padding: "2rem" }}>
-              <p
+              <div
                 style={{
                   margin: 0,
                   color: "#64748b",
                   fontSize: "1.05rem",
                   lineHeight: 1.6,
-                  textAlign: "center"
+                  textAlign: "center",
                 }}
               >
                 {message}
-              </p>
+              </div>
 
               {/* Actions */}
               <div
                 style={{
                   display: "flex",
                   gap: "1rem",
-                  marginTop: "2rem"
+                  marginTop: "2rem",
                 }}
               >
                 <button
@@ -160,7 +164,7 @@ export default function ConfirmModal({
                     fontSize: "1rem",
                     cursor: isLoading ? "not-allowed" : "pointer",
                     transition: "all 0.3s ease",
-                    opacity: isLoading ? 0.6 : 1
+                    opacity: isLoading ? 0.6 : 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isLoading) {
@@ -190,19 +194,23 @@ export default function ConfirmModal({
                     fontSize: "1rem",
                     cursor: isLoading ? "not-allowed" : "pointer",
                     transition: "all 0.3s ease",
-                    boxShadow: isLoading ? "none" : "0 4px 15px rgba(0, 0, 0, 0.1)",
-                    opacity: isLoading ? 0.7 : 1
+                    boxShadow: isLoading
+                      ? "none"
+                      : "0 4px 15px rgba(0, 0, 0, 0.1)",
+                    opacity: isLoading ? 0.7 : 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isLoading) {
                       e.target.style.transform = "translateY(-2px)";
-                      e.target.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.15)";
+                      e.target.style.boxShadow =
+                        "0 6px 20px rgba(0, 0, 0, 0.15)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isLoading) {
                       e.target.style.transform = "translateY(0)";
-                      e.target.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.1)";
+                      e.target.style.boxShadow =
+                        "0 4px 15px rgba(0, 0, 0, 0.1)";
                     }
                   }}
                 >
