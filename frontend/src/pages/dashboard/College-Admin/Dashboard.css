@@ -1,31 +1,38 @@
 /* =====================================================
-   COLLEGE ADMIN DASHBOARD - MODERN UI STYLES
-   Clean, consistent spacing with sidebar color theme
+   COLLEGE ADMIN DASHBOARD - ENTERPRISE SaaS UI
+   Matching Sidebar Teal/Cyan Theme
    ===================================================== */
 
 /* ================= CSS VARIABLES ================= */
 :root {
-  --brand-primary: #1a4b6d;
-  --brand-primary-dark: #0f3a4a;
-  --brand-primary-light: #2a6b8d;
-  --brand-success: #28a745;
-  --brand-info: #17a2b8;
-  --brand-warning: #ffc107;
-  --brand-danger: #dc3545;
-  --brand-secondary: #6c757d;
-  
-  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
-  --border-radius-lg: 16px;
-  --border-radius-md: 12px;
-  --border-radius-sm: 10px;
-  
+  /* Sidebar-inspired colors */
+  --brand-primary: #0f3a4a;
+  --brand-primary-dark: #0c2d3a;
+  --brand-primary-light: #3db5e6;
+  --brand-cyan: #3db5e6;
+  --brand-cyan-light: #4fc3f7;
+
+  --brand-success: #38a169;
+  --brand-info: #3182ce;
+  --brand-warning: #ed8936;
+  --brand-danger: #e53e3e;
+  --brand-secondary: #718096;
+
+  --bg-gradient: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --border-radius-lg: 1rem;
+  --border-radius-md: 0.75rem;
+  --border-radius-sm: 0.5rem;
+
   --spacing-xs: 0.5rem;
   --spacing-sm: 0.75rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
+
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ================= DASHBOARD WRAPPER ================= */
@@ -51,7 +58,11 @@
 
 .dashboard-header-hero {
   padding: var(--spacing-xl);
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-dark) 100%
+  );
   color: white;
 }
 
@@ -184,37 +195,60 @@
 /* ================= STAT CARD ================= */
 .stat-card {
   background: white;
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--card-shadow);
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-md);
   height: 100%;
-  transition: all 0.3s ease;
-  border-left: 4px solid transparent;
+  transition: all var(--transition-slow);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--brand-cyan),
+    var(--brand-primary-light)
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .stat-card:hover {
   box-shadow: var(--card-shadow-hover);
-  transform: translateY(-3px);
+  transform: translateY(-4px);
+}
+
+.stat-card:hover::before {
+  opacity: 1;
 }
 
 .stat-card:focus-within {
-  outline: 2px solid var(--brand-primary);
+  outline: 2px solid var(--brand-cyan);
   outline-offset: 2px;
 }
 
 .stat-card-icon {
   width: 56px;
   height: 56px;
-  border-radius: var(--border-radius-sm);
+  border-radius: var(--border-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 1.5rem;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card-content {
@@ -227,14 +261,14 @@
 .card-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--brand-secondary);
   line-height: 1.4;
 }
 
 .card-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--brand-primary);
   line-height: 1.2;
   letter-spacing: -0.5px;
 }
@@ -253,19 +287,25 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all var(--transition-slow);
+}
+
+.section-card:hover {
+  box-shadow: var(--card-shadow-hover);
 }
 
 .section-card-header {
   padding: var(--spacing-lg) var(--spacing-xl);
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 1px solid #eaeaea;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid rgba(61, 181, 230, 0.1);
 }
 
 .section-card-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--brand-primary);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -273,11 +313,12 @@
 
 .section-card-icon {
   font-size: 1.2rem;
+  color: var(--brand-cyan);
 }
 
 .section-card-subtitle {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--brand-secondary);
   margin-left: 1.9rem;
   display: block;
   margin-top: 0.25rem;
@@ -290,8 +331,8 @@
 /* ================= QUICK ACTION CARD ================= */
 .quick-action-card {
   background: white;
-  border: 2px solid transparent;
-  border-radius: var(--border-radius-md);
+  border: 2px solid #e2e8f0;
+  border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
@@ -299,18 +340,42 @@
   text-align: center;
   gap: var(--spacing-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow);
   min-height: 140px;
   height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--brand-cyan),
+    var(--brand-primary-light)
+  );
+  transition: width var(--transition-base);
+  border-radius: 3px 3px 0 0;
 }
 
 .quick-action-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(61, 181, 230, 0.2);
+  border-color: var(--brand-cyan);
+}
+
+.quick-action-card:hover::after {
+  width: 80%;
 }
 
 .quick-action-card:focus-within {
-  outline: 2px solid var(--brand-primary);
+  outline: 2px solid var(--brand-cyan);
   outline-offset: 2px;
 }
 
@@ -324,11 +389,17 @@
   color: white;
   font-size: 1.5rem;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-base);
+}
+
+.quick-action-card:hover .quick-action-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .quick-action-label {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--brand-primary);
   font-size: 0.95rem;
   line-height: 1.4;
   flex: 1;
@@ -338,14 +409,15 @@
 }
 
 .quick-action-arrow {
-  color: var(--brand-primary);
+  color: var(--brand-cyan);
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   font-size: 1rem;
 }
 
 .quick-action-card:hover .quick-action-arrow {
   opacity: 1;
+  transform: translateX(5px);
 }
 
 /* ================= STUDENT ITEM ================= */
@@ -377,7 +449,11 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-dark) 100%
+  );
   color: white;
   display: flex;
   align-items: center;
@@ -434,7 +510,11 @@
   width: 40px;
   height: 40px;
   border-radius: var(--border-radius-sm);
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-dark) 100%
+  );
   color: white;
   display: flex;
   align-items: center;

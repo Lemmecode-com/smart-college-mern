@@ -666,7 +666,7 @@ export default function SuperAdminDashboard() {
           --sidebar-primary: #0f3a4a;
           --sidebar-primary-dark: #0c2d3a;
           --sidebar-primary-light: #1a4a5a;
-          --sidebar-accent: #3db5e6;
+          --sidebar-accent: #20a0d3;
           --sidebar-accent-light: #4fc3f7;
           --sidebar-accent-bright: #7dd3fc;
           --sidebar-text: #e6f2f5;
@@ -1137,25 +1137,24 @@ export default function SuperAdminDashboard() {
         .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
         .stat-card-header {
-          padding: var(--spacing-md) var(--spacing-lg);
+          padding: var(--spacing-lg) var(--spacing-xl);
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: var(--spacing-md);
-          border-bottom: 1px solid var(--border-light);
-          background: rgba(61, 181, 230, 0.03);
+          background: transparent;
           flex-shrink: 0;
-          min-height: 68px;
+          min-height: 72px;
         }
 
         .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
+          width: 52px;
+          height: 52px;
           border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.25rem;
+          font-size: 1.5rem;
           transition: all var(--transition-base);
           overflow: hidden;
         }
@@ -1165,43 +1164,46 @@ export default function SuperAdminDashboard() {
         }
 
         .stat-icon-wrapper.stat-icon-colleges {
-          background: var(--sidebar-gradient);
-          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+          background: linear-gradient(135deg, rgba(15, 58, 74, 0.1) 0%, rgba(12, 45, 58, 0.15) 100%);
+          color: var(--sidebar-primary);
+          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.2);
         }
 
         .stat-icon-wrapper.stat-icon-students {
-          background: var(--accent-gradient);
-          box-shadow: 0 4px 12px rgba(19, 66, 84, 0.3);
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
+          color: var(--sidebar-accent);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
         }
 
         .stat-icon-wrapper.stat-icon-teachers {
-          background: linear-gradient(135deg, #0c2d3a 0%, #18495c 100%);
-          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.3);
+          background: linear-gradient(135deg, rgba(12, 45, 58, 0.1) 0%, rgba(24, 73, 92, 0.15) 100%);
+          color: var(--sidebar-primary);
+          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.2);
         }
 
         .stat-icon {
-          color: white;
-          font-size: 1.25rem;
+          font-size: 1.5rem;
         }
 
         .stat-title {
           font-weight: 600;
           color: var(--text-secondary);
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           flex: 1;
+          padding-top: 0.25rem;
         }
 
         .stat-card-body {
-          padding: var(--spacing-lg);
+          padding: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
           flex: 1;
           display: flex;
           flex-direction: column;
-          justify-content: center;
+          justify-content: flex-start;
           gap: var(--spacing-sm);
         }
 
         .stat-value {
-          font-size: 2rem;
+          font-size: 2.25rem;
           font-weight: 800;
           color: var(--sidebar-primary);
           line-height: 1.2;
@@ -1212,7 +1214,7 @@ export default function SuperAdminDashboard() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           font-weight: 500;
           color: var(--text-muted);
         }
@@ -1222,7 +1224,7 @@ export default function SuperAdminDashboard() {
         }
 
         .trend-icon {
-          font-size: 0.85rem;
+          font-size: 0.9rem;
         }
 
         /* ================= COLLEGES SECTION ================= */
@@ -1252,7 +1254,7 @@ export default function SuperAdminDashboard() {
           color: var(--sidebar-primary);
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: var(--spacing-sm);
           letter-spacing: -0.3px;
         }
 
@@ -1298,7 +1300,7 @@ export default function SuperAdminDashboard() {
         .college-card {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
+          padding: var(--spacing-xl);
           cursor: pointer;
           transition: all var(--transition-base);
           border: 1px solid var(--border-light);
@@ -1362,10 +1364,22 @@ export default function SuperAdminDashboard() {
           border-radius: 20px;
           font-weight: 600;
           font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+        }
+
+        .college-status::before {
+          content: "";
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: currentColor;
         }
 
         .college-card-body {
           margin-bottom: var(--spacing-md);
+          flex: 1;
         }
 
         .college-name {
@@ -1384,18 +1398,18 @@ export default function SuperAdminDashboard() {
         .college-meta {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: var(--spacing-sm);
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: var(--spacing-xs);
           font-size: 0.875rem;
           color: var(--text-muted);
         }
 
-        .meta-icon {
+        .meta-item .meta-icon {
           color: var(--sidebar-accent);
           font-size: 0.9rem;
         }
@@ -1419,9 +1433,9 @@ export default function SuperAdminDashboard() {
 
         .quick-actions-header h3 {
           margin: 0;
-          font-size: 1.15rem;
+          font-size: 1.25rem;
           font-weight: 700;
-          color: var(--text-primary);
+          color: var(--sidebar-primary);
           display: flex;
           align-items: center;
           gap: 0.75rem;
@@ -1434,34 +1448,9 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-actions-subtitle {
-          margin: 0.375rem 0 0 0;
-          font-size: 0.85rem;
-          color: var(--text-muted);
-          font-weight: 400;
-        }
-          padding-bottom: 1rem;
-          border-bottom: 1px solid rgba(61, 181, 230, 0.15);
-        }
-
-        .quick-actions-header h3 {
-          margin: 0;
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: var(--sidebar-primary);
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .quick-actions-icon {
-          color: var(--sidebar-accent);
-          font-size: 1.25rem;
-        }
-
-        .quick-actions-subtitle {
           margin: 0.5rem 0 0 0;
           font-size: 0.9rem;
-          color: #6c757d;
+          color: var(--text-muted);
           font-weight: 400;
         }
 
@@ -1469,19 +1458,19 @@ export default function SuperAdminDashboard() {
         .quick-actions-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.25rem;
+          gap: var(--spacing-lg);
         }
 
         .quick-action-card {
-          background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-          border-radius: 14px;
-          padding: 1.25rem;
+          background: var(--card-gradient);
+          border-radius: var(--radius-lg);
+          padding: var(--spacing-lg);
           cursor: pointer;
-          transition: all 0.3s ease;
-          border: 1px solid rgba(61, 181, 230, 0.15);
+          transition: all var(--transition-base);
+          border: 1px solid var(--border-light);
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: var(--spacing-md);
           position: relative;
           overflow: visible;
           height: 100%;
@@ -1496,14 +1485,14 @@ export default function SuperAdminDashboard() {
           height: 100%;
           background: var(--accent-gradient);
           opacity: 0;
-          transition: opacity 0.3s ease;
+          transition: opacity var(--transition-base);
         }
 
         .quick-action-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(61, 181, 230, 0.3);
+          box-shadow: var(--shadow-colored);
           border-color: var(--sidebar-accent);
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05) 0%, rgba(79, 195, 247, 0.08) 100%);
+          background: var(--card-hover-gradient);
         }
 
         .quick-action-card:hover::before {
@@ -1518,13 +1507,13 @@ export default function SuperAdminDashboard() {
         .quick-action-icon {
           width: 56px;
           height: 56px;
-          border-radius: 14px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.5rem;
           flex-shrink: 0;
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
           overflow: hidden;
         }
 
@@ -1533,27 +1522,27 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-action-icon.add-college {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%);
-          color: #10b981;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .quick-action-icon.view-colleges {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.25) 100%);
-          color: var(--sidebar-accent);
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
+          background: var(--accent-gradient);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.3);
         }
 
         .quick-action-icon.reports {
-          background: linear-gradient(135deg, rgba(12, 45, 58, 0.15) 0%, rgba(15, 58, 74, 0.25) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.2);
+          background: var(--sidebar-gradient);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
         }
 
         .quick-action-icon.security {
-          background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.25) 100%);
-          color: #f59e0b;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .quick-action-content {
@@ -1573,7 +1562,7 @@ export default function SuperAdminDashboard() {
 
         .quick-action-description {
           font-size: 0.85rem;
-          color: #6c757d;
+          color: var(--text-muted);
           line-height: 1.3;
           white-space: nowrap;
           overflow: hidden;
@@ -1583,37 +1572,37 @@ export default function SuperAdminDashboard() {
         /* EMPTY STATE */
         .empty-state {
           text-align: center;
-          padding: 3rem 2rem;
-          color: #666;
+          padding: var(--spacing-xl) var(--spacing-lg);
+          color: var(--text-muted);
         }
 
         .empty-icon {
           width: 80px;
           height: 80px;
-          margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.2) 100%);
-          border-radius: 20px;
+          margin: 0 auto var(--spacing-xl);
+          background: var(--card-hover-gradient);
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--sidebar-accent);
           font-size: 2.5rem;
-          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.2);
+          box-shadow: var(--shadow-md);
         }
 
         .empty-state h3 {
           font-size: 1.75rem;
           color: var(--sidebar-primary);
-          margin-bottom: 0.75rem;
+          margin-bottom: var(--spacing-md);
         }
 
         .empty-description {
           font-size: 1.1rem;
-          margin-bottom: 1.5rem;
+          margin-bottom: var(--spacing-xl);
           max-width: 600px;
           margin-left: auto;
           margin-right: auto;
-          color: #6c757d;
+          color: var(--text-secondary);
         }
 
         .empty-action {
@@ -1622,34 +1611,34 @@ export default function SuperAdminDashboard() {
           padding: 0.875rem 2rem;
           font-size: 1.05rem;
           font-weight: 600;
-          border-radius: 10px;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-colored);
         }
 
         .empty-action:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.5);
         }
 
-        /* FOOTER NOTE - Sidebar themed */
+        /* FOOTER NOTE */
         .footer-note {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
+          background: var(--card-hover-gradient);
+          border-radius: var(--radius-md);
+          padding: var(--spacing-md) var(--spacing-lg);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
-          margin-top: 1rem;
+          gap: var(--spacing-md);
+          margin-top: var(--spacing-md);
           border-left: 4px solid var(--sidebar-accent);
           font-size: 0.9rem;
-          color: var(--sidebar-primary);
+          color: var(--text-secondary);
         }
 
         .footer-note-content {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: var(--spacing-sm);
           flex: 1;
         }
 
@@ -1664,13 +1653,13 @@ export default function SuperAdminDashboard() {
           border: none;
           width: 36px;
           height: 36px;
-          border-radius: 8px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--sidebar-accent);
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
           flex-shrink: 0;
         }
 
@@ -1705,44 +1694,44 @@ export default function SuperAdminDashboard() {
           justify-content: center;
           min-height: 60vh;
           text-align: center;
-          padding: 2rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin: 2rem;
+          padding: var(--spacing-xl);
+          background: var(--bg-secondary);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-lg);
+          margin: var(--spacing-xl);
         }
-        
+
         .erp-error-icon {
           width: 80px;
           height: 80px;
           border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
+          background: rgba(239, 68, 68, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 1.5rem;
-          color: #F44336;
+          margin-bottom: var(--spacing-xl);
+          color: var(--error);
           font-size: 3rem;
         }
-        
+
         .erp-error-container h3 {
           font-size: 1.8rem;
-          color: #1a4b6d;
-          margin-bottom: 1rem;
+          color: var(--sidebar-primary);
+          margin-bottom: var(--spacing-md);
         }
-        
+
         .erp-error-container p {
-          color: #666;
+          color: var(--text-secondary);
           font-size: 1.1rem;
           max-width: 600px;
-          margin-bottom: 1.5rem;
+          margin-bottom: var(--spacing-xl);
           line-height: 1.6;
         }
-        
+
         .error-actions {
           display: flex;
-          gap: 1rem;
-          margin-top: 1rem;
+          gap: var(--spacing-md);
+          margin-top: var(--spacing-md);
         }
         
         /* ANIMATIONS */
