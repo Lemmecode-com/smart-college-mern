@@ -10,6 +10,7 @@ const {
   healthCheckLimiter,
   publicLimiter,
   paymentLimiter,
+  webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
 
@@ -46,8 +47,10 @@ app.use(
 
 /* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
 // Stripe webhook needs raw body, so we handle it separately
+// Rate limiting applied to prevent webhook abuse
 app.use(
   "/api/stripe/webhook",
+  webhookLimiter,
   require("./src/webhooks/stripe.webhook").handleStripeWebhook,
 );
 
