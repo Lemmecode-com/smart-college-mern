@@ -118,6 +118,20 @@ app.use(
   require("./src/routes/collegeStripeConfig.routes"),
 );
 
+/* ================= RAZORPAY ================= */
+app.use("/api/razorpay", require("./src/routes/razorpay.routes"));
+app.use(
+  "/api/admin/razorpay",
+  require("./src/routes/collegeRazorpayConfig.routes"),
+);
+
+/* ================= RAZORPAY WEBHOOK (NEEDS RAW BODY) ================= */
+app.use(
+  "/api/razorpay/webhook",
+  webhookLimiter,
+  require("./src/webhooks/razorpay.webhook").handleRazorpayWebhook,
+);
+
 /* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
 app.use("/api/public", require("./src/routes/public.department.course.routes"));
 

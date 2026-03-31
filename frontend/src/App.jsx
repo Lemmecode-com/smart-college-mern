@@ -173,6 +173,7 @@ import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacher
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
+import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -895,6 +896,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <StripeConfiguration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/razorpay-configuration"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <RazorpayConfiguration />
                 </ProtectedRoute>
               }
             />
