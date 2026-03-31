@@ -578,7 +578,14 @@ export default function ReportDashboard() {
             <FaCalendarCheck />
           </div>
           <div className="card-content">
-            <h3>{attendanceData?.percentage || 0}%</h3>
+            <h3>
+              {attendanceData?.averageAttendance !== undefined &&
+              attendanceData?.averageAttendance !== null
+                ? `${Math.round(attendanceData.averageAttendance)}%`
+                : attendanceData?.percentage !== undefined
+                  ? `${attendanceData.percentage}%`
+                  : "0%"}
+            </h3>
             <p>Avg Attendance</p>
           </div>
         </div>
@@ -589,7 +596,7 @@ export default function ReportDashboard() {
             <FaExclamationTriangle />
           </div>
           <div className="card-content">
-            <h3>{lowAttendanceStudents.length}</h3>
+            <h3>{lowAttendanceStudents?.length || 0}</h3>
             <p>Low Attendance</p>
           </div>
         </div>
@@ -676,14 +683,39 @@ export default function ReportDashboard() {
                     outerRadius={CONFIG.CHART.PIE.outerRadius}
                     paddingAngle={5}
                     dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
+                    label={false}
+                    labelLine={false}
                   >
                     {admissionPieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip
+                    formatter={(value, name, props) => [
+                      `${value} (${name})`,
+                      "Status",
+                    ]}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      padding: "12px",
+                      fontSize: "14px",
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    formatter={(value, entry, index) => {
+                      const data = admissionPieData[index];
+                      return `${value}: ${data?.value || 0}`;
+                    }}
+                    wrapperStyle={{
+                      paddingTop: "20px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -952,24 +984,34 @@ export default function ReportDashboard() {
               <div className="stat-item">
                 <span className="stat-label">Overall Attendance</span>
                 <span className="stat-value large">
-                  {attendanceData?.percentage ||
-                    attendanceData?.attendancePercentage ||
-                    0}
-                  %
+                  {attendanceData?.averageAttendance !== undefined &&
+                  attendanceData?.averageAttendance !== null
+                    ? `${Math.round(attendanceData.averageAttendance)}%`
+                    : attendanceData?.percentage !== undefined
+                      ? `${attendanceData.percentage}%`
+                      : "0%"}
                 </span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Total Sessions</span>
                 <span className="stat-value">
-                  {attendanceData?.totalSessions || attendanceData?.total || 0}
+                  {attendanceData?.totalSessions !== undefined &&
+                  attendanceData?.totalSessions !== null
+                    ? attendanceData.totalSessions
+                    : attendanceData?.totalRecords !== undefined
+                      ? attendanceData.totalRecords
+                      : attendanceData?.total || 0}
                 </span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Avg Attendance</span>
                 <span className="stat-value">
-                  {attendanceData?.averageAttendance ||
-                    attendanceData?.present ||
-                    0}
+                  {attendanceData?.averageAttendance !== undefined &&
+                  attendanceData?.averageAttendance !== null
+                    ? Math.round(attendanceData.averageAttendance)
+                    : attendanceData?.present !== undefined
+                      ? Math.round(attendanceData.present)
+                      : 0}
                 </span>
               </div>
             </div>
