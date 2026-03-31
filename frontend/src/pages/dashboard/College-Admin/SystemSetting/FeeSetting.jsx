@@ -784,7 +784,7 @@ const FeeSetting = () => {
             <ul>
               <li>Select a payment gateway from the options below</li>
               <li>Configure API credentials for the selected gateway</li>
-              <li>Set processing fees (percentage or fixed amount)</li>
+              {/* <li>Set processing fees (percentage or fixed amount)</li> */}
               <li>
                 Only Stripe is currently active. Other gateways coming soon!
               </li>
