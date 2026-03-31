@@ -10,6 +10,7 @@ const {
   healthCheckLimiter,
   publicLimiter,
   paymentLimiter,
+  webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
 
@@ -46,8 +47,10 @@ app.use(
 
 /* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
 // Stripe webhook needs raw body, so we handle it separately
+// Rate limiting applied to prevent webhook abuse
 app.use(
   "/api/stripe/webhook",
+  webhookLimiter,
   require("./src/webhooks/stripe.webhook").handleStripeWebhook,
 );
 
@@ -113,6 +116,20 @@ app.use("/api/stripe", require("./src/routes/stripe.routes"));
 app.use(
   "/api/admin/stripe",
   require("./src/routes/collegeStripeConfig.routes"),
+);
+
+/* ================= RAZORPAY ================= */
+app.use("/api/razorpay", require("./src/routes/razorpay.routes"));
+app.use(
+  "/api/admin/razorpay",
+  require("./src/routes/collegeRazorpayConfig.routes"),
+);
+
+/* ================= RAZORPAY WEBHOOK (NEEDS RAW BODY) ================= */
+app.use(
+  "/api/razorpay/webhook",
+  webhookLimiter,
+  require("./src/webhooks/razorpay.webhook").handleRazorpayWebhook,
 );
 
 /* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
