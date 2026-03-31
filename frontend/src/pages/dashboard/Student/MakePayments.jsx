@@ -24,6 +24,17 @@ import {
   FaSync,
 } from "react-icons/fa";
 
+// Razorpay script loader
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export default function MakePayments() {
   const { user, loading: authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -46,6 +57,7 @@ export default function MakePayments() {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedGateway, setSelectedGateway] = useState(null);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -162,8 +174,217 @@ export default function MakePayments() {
       return;
     }
 
-    // Show confirmation modal instead of window.confirm
+    // Set selected gateway and show confirmation modal
+    setSelectedGateway("stripe");
     setShowConfirmModal(true);
+  };
+
+  /* ======================================================
+     🔹 RAZORPAY PAYMENT HANDLER
+     ====================================================== */
+  const handleRazorpayPayment = async () => {
+    // Prevent duplicate requests
+    if (isRequestInProgressRef.current) {
+      console.warn(
+        "⚠️ Payment request already in progress, ignoring duplicate click",
+      );
+      return;
+    }
+
+    // Validate installment ID
+    if (!installmentDetails.id) {
+      toast.error("Invalid installment. Please select from fee dashboard.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
+      });
+      navigate("/student/fees");
+      return;
+    }
+
+    // Validate amount
+    if (!installmentDetails.amount || installmentDetails.amount <= 0) {
+      toast.error("Invalid payment amount. Please contact support.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    // Validate installment name
+    if (!installmentName.trim()) {
+      toast.error("Installment name is required", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    // Check network status
+    if (!navigator.onLine) {
+      toast.error("No internet connection. Please check your network.", {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      isRequestInProgressRef.current = true;
+
+      // Load Razorpay script
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        throw new Error(
+          "Failed to load Razorpay. Please check your internet connection.",
+        );
+      }
+
+      // Create Razorpay order
+      const res = await api.post("/razorpay/create-order", {
+        installmentName,
+      });
+
+      const { orderId, amount, currency, keyId } = res.data;
+
+      console.log("🟢 Razorpay Order created:", orderId);
+
+      // Configure Razorpay options
+      const options = {
+        key: keyId,
+        amount: amount,
+        currency: currency,
+        name: user.collegeName || "College Fee Payment",
+        description: `Fee Payment - ${installmentName}`,
+        order_id: orderId,
+        handler: async (response) => {
+          console.log("🟢 Razorpay payment successful:", response);
+
+          try {
+            // Verify payment
+            const verifyRes = await api.post("/razorpay/verify-payment", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            console.log("✅ Payment verified:", verifyRes.data);
+
+            toast.success("🎉 Payment successful!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+            });
+
+            // Redirect to success page
+            navigate(
+              `/student/payment-success?payment_id=${response.razorpay_payment_id}`,
+              {
+                state: {
+                  paymentGateway: "RAZORPAY",
+                  orderId: response.razorpay_order_id,
+                },
+              },
+            );
+          } catch (verifyError) {
+            console.error("❌ Payment verification failed:", verifyError);
+            toast.error(
+              "Payment verification failed. Please contact support.",
+              {
+                position: "top-right",
+                autoClose: 5000,
+                icon: <FaExclamationTriangle />,
+              },
+            );
+          }
+        },
+        prefill: {
+          name: user.name || "",
+          email: user.email || "",
+          contact: user.phone || "",
+        },
+        theme: {
+          color: "#686CE7",
+        },
+        modal: {
+          ondismiss: () => {
+            console.log("⚪ Razorpay modal closed");
+            toast.info("Payment cancelled", {
+              position: "top-right",
+              autoClose: 3000,
+            });
+            setLoading(false);
+            isRequestInProgressRef.current = false;
+          },
+        },
+      };
+
+      // Open Razorpay checkout
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (response) => {
+        const errorCode = response.error.code;
+        const errorDescription = response.error.description;
+
+        console.error("🔴 Razorpay payment failed:", response.error);
+
+        toast.error(`Payment failed: ${errorDescription}`, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        });
+
+        // Log failure
+        api
+          .post("/razorpay/payment-failed", {
+            razorpay_order_id: orderId,
+            error_code: errorCode,
+            error_description: errorDescription,
+          })
+          .catch(() => {}); // Ignore logging errors
+
+        setLoading(false);
+        isRequestInProgressRef.current = false;
+      });
+
+      rzp.open();
+    } catch (err) {
+      console.error("❌ Razorpay payment error:", err);
+
+      let errorMsg =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        "Payment initiation failed. Please try again.";
+
+      const errorCode =
+        err.response?.data?.error?.code || err.response?.data?.code;
+
+      if (errorCode === "RAZORPAY_NOT_CONFIGURED") {
+        errorMsg =
+          "Razorpay is not configured for your college. Please contact the college administrator.";
+      } else if (errorCode === "PAYMENT_CONFIG_ERROR") {
+        errorMsg = "Payment configuration error. Please contact support.";
+      } else if (errorCode === "PAYMENT_INIT_FAILED") {
+        errorMsg =
+          "Failed to initialize payment gateway. Please try again later.";
+      } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
+        errorMsg =
+          "This installment has already been paid or is invalid. Please refresh the page.";
+      }
+
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />,
+      });
+
+      setLoading(false);
+      isRequestInProgressRef.current = false;
+    }
   };
 
   /* ======================================================
@@ -429,28 +650,30 @@ export default function MakePayments() {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+              background: linear-gradient(135deg, rgba(15, 58, 74, 0.05) 0%, rgba(61, 181, 230, 0.1) 100%);
               display: flex;
               justify-content: center;
               align-items: center;
               z-index: 9999;
+              backdrop-filter: blur(4px);
             }
             .loading-content {
               text-align: center;
               background: white;
               padding: 50px;
               border-radius: 24px;
-              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+              box-shadow: 0 20px 60px rgba(15, 58, 74, 0.15);
               max-width: 500px;
+              border: 1px solid rgba(61, 181, 230, 0.2);
             }
             .loading-spinner {
               font-size: 4rem;
-              color: #3b82f6;
+              color: var(--sidebar-accent);
               margin-bottom: 1.5rem;
             }
             .loading-content h3 {
               margin: 0 0 0.5rem 0;
-              color: #1e293b;
+              color: var(--sidebar-dark);
               font-weight: 700;
               font-size: 1.5rem;
             }
@@ -483,7 +706,7 @@ export default function MakePayments() {
             <FaMoneyBillWave className="me-2 blink" aria-hidden="true" />
             Make Payment
           </h4>
-          <p className="opacity-75 mb-0">Secure Stripe installment payment</p>
+          <p className="opacity-75 mb-0">Secure online fee payment</p>
         </div>
 
         <button
@@ -540,40 +763,87 @@ export default function MakePayments() {
         </div>
 
         <div className="d-flex flex-column align-items-center">
-          {/* ====== STRIPE BUTTON ====== */}
-          <button
-            className="btn stripe-btn w-100 w-md-75 w-lg-50 w-xl-25 mb-3"
-            onClick={handleStripePayment}
-            disabled={loading}
-            aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
-            aria-busy={loading}
-          >
-            {loading ? (
-              <>
-                <FaSpinner className="me-2 spin" aria-hidden="true" />
-                Redirecting to Secure Checkout...
-              </>
-            ) : (
-              <>
-                <FaCreditCard className="me-2" aria-hidden="true" />
-                Pay Securely with Stripe
-              </>
-            )}
-          </button>
+          {/* ====== PAYMENT GATEWAY SELECTION ====== */}
+          <div className="text-center mb-4">
+            <h6 className="text-muted mb-2 fw-semibold">
+              Select Payment Method
+            </h6>
+            <div className="payment-methods-divider"></div>
+          </div>
 
-          {/* ====== MOCK BUTTON (DEV ONLY) ====== */}
-          {process.env.NODE_ENV === "development" && (
-            <button
-              className="btn btn-outline-success w-100 w-md-75 w-lg-50 w-xl-25 rounded-pill"
-              onClick={handleMockPayment}
-              disabled={loading}
-              aria-label="Mock payment for testing"
-              aria-busy={loading}
-            >
-              <FaMoneyBillWave className="me-2" aria-hidden="true" />
-              Mock Pay (Test Mode)
-            </button>
-          )}
+          {/* ====== PAYMENT GATEWAYS GRID ====== */}
+          <div className="row w-100 g-3 mb-3">
+            {/* ====== STRIPE ====== */}
+            <div className="col-12 col-md-6">
+              <button
+                className="payment-gateway-btn stripe-gateway w-100"
+                onClick={handleStripePayment}
+                disabled={loading}
+                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
+                aria-busy={loading}
+              >
+                <div className="gateway-icon-wrapper">
+                  <FaCreditCard className="gateway-icon" aria-hidden="true" />
+                </div>
+                <div className="gateway-content">
+                  <span className="gateway-name">Stripe</span>
+                  <span className="gateway-desc">Card / UPI / Net Banking</span>
+                </div>
+                <div className="gateway-action">
+                  {loading ? (
+                    <FaSpinner className="spin" aria-hidden="true" />
+                  ) : (
+                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* ====== RAZORPAY ====== */}
+            <div className="col-12 col-md-6">
+              <button
+                className="payment-gateway-btn razorpay-gateway w-100"
+                onClick={handleRazorpayPayment}
+                disabled={loading}
+                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Razorpay`}
+                aria-busy={loading}
+              >
+                <div className="gateway-icon-wrapper razorpay">
+                  <FaMoneyBillWave
+                    className="gateway-icon"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="gateway-content">
+                  <span className="gateway-name">Razorpay</span>
+                  <span className="gateway-desc">UPI / Cards / Wallets</span>
+                </div>
+                <div className="gateway-action">
+                  {loading ? (
+                    <FaSpinner className="spin" aria-hidden="true" />
+                  ) : (
+                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                  )}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* ====== SECURITY BADGES ====== */}
+          <div className="security-badges-container mt-3">
+            <div className="badge-item">
+              <FaLock className="badge-icon" aria-hidden="true" />
+              <span className="badge-text">100% Secure</span>
+            </div>
+            <div className="badge-item">
+              <FaShieldAlt className="badge-icon" aria-hidden="true" />
+              <span className="badge-text">PCI Certified</span>
+            </div>
+            <div className="badge-item">
+              <FaCheckCircle className="badge-icon" aria-hidden="true" />
+              <span className="badge-text">Verified</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -737,6 +1007,19 @@ export default function MakePayments() {
 
       {/* ================= CSS ================= */}
       <style>{`
+        /* ================= SIDEBAR-MATCHED THEME ================= */
+        :root {
+          --sidebar-dark: #0f3a4a;
+          --sidebar-darker: #0c2d3a;
+          --sidebar-accent: #3db5e6;
+          --sidebar-accent-light: #4fc3f7;
+          --sidebar-text: #e6f2f5;
+          --sidebar-muted: rgba(255, 255, 255, 0.7);
+          --sidebar-border: rgba(255, 255, 255, 0.1);
+          --sidebar-hover: rgba(255, 255, 255, 0.08);
+          --sidebar-active: rgba(61, 181, 230, 0.15);
+        }
+
         /* ================= SCREEN READER ONLY ================= */
         .sr-only {
           position: absolute;
@@ -767,10 +1050,34 @@ export default function MakePayments() {
           border: 2px solid #28a745 !important;
         }
 
-        /* ================= HEADER ================= */
+        /* ================= HEADER - SIDEBAR MATCHED ================= */
         .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
+          background: linear-gradient(180deg, var(--sidebar-dark) 0%, var(--sidebar-darker) 100%);
+          position: relative;
+          overflow: hidden;
         }
+
+        .gradient-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, var(--sidebar-accent), transparent);
+        }
+
+        .gradient-header::after {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -10%;
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(circle, rgba(61, 181, 230, 0.1) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
         .glass-card {
           background: rgba(255,255,255,0.95);
           backdrop-filter: blur(8px);
@@ -797,33 +1104,213 @@ export default function MakePayments() {
 
         /* ================= PAYMENT CARD BODY ================= */
         .payment-card-body {
-          background: linear-gradient(145deg, #ffffff, #f8fbfd);
+          background: linear-gradient(145deg, #ffffff, #f0f7fa);
           border-radius: 20px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          box-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
+          border: 1px solid rgba(61, 181, 230, 0.1);
         }
 
         .installment-badge {
           display: inline-flex;
           align-items: center;
           padding: 8px 16px;
-          background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
+          background: linear-gradient(135deg, var(--sidebar-dark), var(--sidebar-darker));
           color: white;
           font-size: 14px;
           border-radius: 50px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.2);
+          border: 1px solid rgba(61, 181, 230, 0.2);
         }
 
         .payment-info-box {
-          background: rgba(15, 58, 74, 0.05);
+          background: linear-gradient(135deg, rgba(15, 58, 74, 0.03), rgba(61, 181, 230, 0.05));
           padding: 18px;
           border-radius: 14px;
           font-size: 14px;
           backdrop-filter: blur(6px);
+          border: 1px solid rgba(61, 181, 230, 0.15);
         }
 
-        /* ================= STRIPE BUTTON ================= */
+        /* ================= PAYMENT GATEWAY BUTTONS ================= */
+        .payment-methods-divider {
+          width: 60px;
+          height: 3px;
+          background: linear-gradient(90deg, var(--sidebar-accent), var(--sidebar-dark));
+          margin: 0 auto;
+          border-radius: 2px;
+        }
+
+        .payment-gateway-btn {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px 24px;
+          background: #ffffff;
+          border: 2px solid rgba(15, 58, 74, 0.12);
+          border-radius: 16px;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .payment-gateway-btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(15, 58, 74, 0.04), rgba(61, 181, 230, 0.08));
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .payment-gateway-btn:hover::before {
+          opacity: 1;
+        }
+
+        .payment-gateway-btn:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(15, 58, 74, 0.12);
+          border-color: var(--sidebar-accent);
+        }
+
+        .payment-gateway-btn:active {
+          transform: translateY(-2px);
+        }
+
+        .payment-gateway-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        /* Stripe Gateway */
+        .stripe-gateway:hover {
+          border-color: var(--sidebar-accent);
+          box-shadow: 0 12px 24px rgba(61, 181, 230, 0.25);
+        }
+
+        .stripe-gateway .gateway-icon-wrapper {
+          background: linear-gradient(135deg, var(--sidebar-accent), var(--sidebar-accent-light));
+        }
+
+        /* Razorpay Gateway */
+        .razorpay-gateway:hover {
+          border-color: var(--sidebar-accent);
+          box-shadow: 0 12px 24px rgba(61, 181, 230, 0.25);
+        }
+
+        .razorpay-gateway .gateway-icon-wrapper.razorpay {
+          background: linear-gradient(135deg, var(--sidebar-dark), var(--sidebar-accent));
+        }
+
+        /* Gateway Icon Wrapper */
+        .gateway-icon-wrapper {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .payment-gateway-btn:hover .gateway-icon-wrapper {
+          transform: scale(1.1);
+          box-shadow: 0 6px 16px rgba(61, 181, 230, 0.3);
+        }
+
+        .gateway-icon {
+          font-size: 24px;
+          color: #ffffff;
+        }
+
+        /* Gateway Content */
+        .gateway-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .gateway-name {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--sidebar-dark);
+        }
+
+        .gateway-desc {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        /* Gateway Action */
+        .gateway-action {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #f7fafc, #edf2f7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          flex-shrink: 0;
+          border: 1px solid rgba(15, 58, 74, 0.08);
+        }
+
+        .payment-gateway-btn:hover .gateway-action {
+          background: linear-gradient(135deg, var(--sidebar-accent), var(--sidebar-accent-light));
+          border-color: transparent;
+        }
+
+        .payment-gateway-btn:hover .gateway-action .rotate-arrow {
+          transform: rotate(180deg);
+          color: #ffffff;
+        }
+
+        .gateway-action .rotate-arrow {
+          font-size: 18px;
+          color: var(--sidebar-dark);
+          transition: transform 0.3s ease;
+        }
+
+        /* Security Badges */
+        .security-badges-container {
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          flex-wrap: wrap;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(15, 58, 74, 0.03), rgba(61, 181, 230, 0.05));
+          border-radius: 12px;
+          border: 1px solid rgba(61, 181, 230, 0.1);
+        }
+
+        .badge-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: var(--sidebar-dark);
+          font-weight: 600;
+        }
+
+        .badge-icon {
+          font-size: 16px;
+          color: #38a169;
+        }
+
+        /* ================= STRIPE BUTTON - SIDEBAR THEME ================= */
         .stripe-btn {
-          background: linear-gradient(90deg, #635bff, #4f46e5);
+          background: linear-gradient(135deg, var(--sidebar-accent) 0%, var(--sidebar-accent-light) 100%);
           color: white;
           border: none;
           padding: 14px 28px;
@@ -831,12 +1318,12 @@ export default function MakePayments() {
           font-size: 1rem;
           border-radius: 50px;
           transition: all 0.3s ease;
-          box-shadow: 0 6px 18px rgba(99, 91, 255, 0.4);
+          box-shadow: 0 6px 18px rgba(61, 181, 230, 0.4);
         }
 
         .stripe-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 22px rgba(99, 91, 255, 0.5);
+          box-shadow: 0 8px 22px rgba(61, 181, 230, 0.5);
         }
 
         .stripe-btn:disabled {
@@ -861,6 +1348,28 @@ export default function MakePayments() {
           .payment-info-box {
             font-size: 13px;
           }
+          .payment-gateway-btn {
+            padding: 16px 18px;
+          }
+          .gateway-icon-wrapper {
+            width: 48px;
+            height: 48px;
+          }
+          .gateway-icon {
+            font-size: 20px;
+          }
+          .gateway-name {
+            font-size: 15px;
+          }
+          .gateway-desc {
+            font-size: 12px;
+          }
+          .security-badges-container {
+            gap: 16px;
+          }
+          .badge-item {
+            font-size: 12px;
+          }
         }
       `}</style>
 
@@ -870,7 +1379,11 @@ export default function MakePayments() {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={() => {
           setShowConfirmModal(false);
-          processPayment();
+          if (selectedGateway === "stripe") {
+            processPayment();
+          } else if (selectedGateway === "razorpay") {
+            handleRazorpayPayment();
+          }
         }}
         title="Payment Confirmation"
         message={
@@ -882,7 +1395,7 @@ export default function MakePayments() {
               <strong>Amount:</strong> ₹
               {installmentDetails.amount?.toLocaleString()}
             </div>
-            <div className="mb-3">
+            <div className="mb-2">
               <strong>Due Date:</strong>{" "}
               {installmentDetails.dueDate
                 ? new Date(installmentDetails.dueDate).toLocaleDateString(
@@ -890,18 +1403,34 @@ export default function MakePayments() {
                   )
                 : "N/A"}
             </div>
+            <div className="mb-3">
+              <strong>Payment Method:</strong>{" "}
+              <span className="badge bg-primary ms-1">
+                {selectedGateway === "stripe" ? "Stripe" : "Razorpay"}
+              </span>
+            </div>
             <div
               className="alert alert-warning mb-0"
               style={{ fontSize: "0.9rem" }}
             >
               <FaExclamationTriangle className="me-2" />
-              You will be redirected to Stripe's secure checkout. After payment,
-              you'll be automatically redirected back.
+              {selectedGateway === "stripe" ? (
+                <>
+                  You will be redirected to{" "}
+                  <strong>Stripe's secure checkout</strong>. After payment,
+                  you'll be automatically redirected back.
+                </>
+              ) : (
+                <>
+                  A <strong>secure payment modal</strong> will open. Complete
+                  your payment using UPI, Card, or Net Banking.
+                </>
+              )}
             </div>
           </div>
         }
         type="info"
-        confirmText="OK"
+        confirmText="Proceed"
         cancelText="Cancel"
         isLoading={loading}
       />
