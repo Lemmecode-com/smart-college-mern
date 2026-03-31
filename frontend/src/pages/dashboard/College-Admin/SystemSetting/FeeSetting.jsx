@@ -30,27 +30,20 @@ const FeeSetting = () => {
   const gateways = [
     { key: "stripe", label: "Stripe", icon: "💳" },
     { key: "razorpay", label: "Razorpay", icon: "🔷" },
-    { key: "paypal", label: "PayPal", icon: "🅿️" },
-    { key: "paytm", label: "Paytm", icon: "📱" },
-    { key: "payu", label: "PayU", icon: "🚀" },
-    { key: "cashfree", label: "Cashfree", icon: "💰" },
-    { key: "instamojo", label: "InstaMojo", icon: "🛒" },
   ];
 
   const GATEWAY_STATUS = {
     stripe: "active",
-    razorpay: "coming-soon",
-    paypal: "coming-soon",
-    paytm: "coming-soon",
-    payu: "coming-soon",
-    cashfree: "coming-soon",
-    instamojo: "coming-soon",
+    razorpay: "active",
   };
 
   const handleGatewaySelect = (gatewayKey) => {
     if (gatewayKey === "stripe") {
       // Navigate to Stripe Configuration page
       navigate("/system-settings/stripe-configuration");
+    } else if (gatewayKey === "razorpay") {
+      // Navigate to Razorpay Configuration page
+      navigate("/system-settings/razorpay-configuration");
     } else {
       setActiveGateway(gatewayKey);
     }
@@ -784,7 +777,7 @@ const FeeSetting = () => {
             <ul>
               <li>Select a payment gateway from the options below</li>
               <li>Configure API credentials for the selected gateway</li>
-              <li>Set processing fees (percentage or fixed amount)</li>
+              {/* <li>Set processing fees (percentage or fixed amount)</li> */}
               <li>
                 Only Stripe is currently active. Other gateways coming soon!
               </li>
