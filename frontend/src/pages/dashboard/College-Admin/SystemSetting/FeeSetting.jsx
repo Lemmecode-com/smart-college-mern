@@ -779,7 +779,7 @@ const FeeSetting = () => {
               <li>Configure API credentials for the selected gateway</li>
               {/* <li>Set processing fees (percentage or fixed amount)</li> */}
               <li>
-                Only Stripe is currently active. Other gateways coming soon!
+                Only Stripe and Razorpay are currently active. Other gateways coming soon!
               </li>
             </ul>
           </div>
