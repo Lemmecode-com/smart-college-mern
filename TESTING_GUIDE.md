@@ -79,13 +79,13 @@ npm run dev
 
 1. **College Admin**
    - Email: `admin@testcollege.com`
-   - Password: `Test123!`
+   - Password: `Test1234!`
    - College: Test College
    - **How to create:** Use Super Admin panel to create college, then create admin account
 
 2. **Teacher 1** (Computer Science Dept)
    - Email: `teacher1@testcollege.com`
-   - Password: `Test123!`
+   - Password: `Test1234!`
    - Department: Computer Science
    - **How to create:** Login as Admin → Teachers → Add Teacher
 
