@@ -88,7 +88,6 @@ import CloseSession from "./pages/dashboard/Teacher/Attendance/CloseSession";
 
 /* ================= MY ATTENDANCE ================= */
 import MyAttendance from "./pages/dashboard/Student/MyAttendance";
-import AttendanceList from "./pages/attendance/AttendanceList";
 
 // Notifications
 import CreateNotifications from "./pages/dashboard/Teacher/Notifications/CreateNotifications";
@@ -151,7 +150,6 @@ import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
 import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
 import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
-import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
 import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
 
 /* ================= SECURITY AUDIT ================= */
@@ -781,15 +779,6 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
                   <AttendanceReport />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/attendance/list"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
-                  <AttendanceList />
                 </ProtectedRoute>
               }
             />
