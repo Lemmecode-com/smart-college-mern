@@ -274,10 +274,10 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
  */
 const sendTokens = async (res, id, role, college_id, req) => {
   // 🔒 SECURITY: Short-lived access token (15 minutes)
-  const accessExpiry = process.env.JWT_ACCESS_EXPIRY || "15m";
+  const accessExpiry = process.env.JWT_ACCESS_EXPIRY;
   
   // 🔒 SECURITY: Long-lived refresh token (7 days)
-  const refreshExpiry = "7d";
+  const refreshExpiry = process.env.JWT_REFRESH_EXPIRY;
 
   // Generate access token
   const accessToken = jwt.sign(
@@ -322,6 +322,7 @@ const sendTokens = async (res, id, role, college_id, req) => {
 
   // Send user info in the response (not the tokens)
   res.json({
+    accessToken,
     user: { id, role, college_id },
     success: true,
     message: "Login successful"
