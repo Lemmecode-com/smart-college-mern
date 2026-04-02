@@ -13,9 +13,13 @@ const errorHandler = (err, req, res, next) => {
   console.error("❌ [Error Handler]");
   console.error("   - Message:", err.message);
   console.error("   - Code:", err.code || "UNKNOWN");
+  console.error("   - StatusCode:", err.statusCode);
+  console.error("   - Name:", err.name);
   console.error("   - Stack:", err.stack);
   console.error("   - URL:", req.originalUrl);
   console.error("   - Method:", req.method);
+  console.error("   - Error object keys:", Object.keys(err));
+  console.error("   - Full error:", err);
   console.error("=".repeat(60));
 
   // Log to file
@@ -97,22 +101,44 @@ const errorHandler = (err, req, res, next) => {
     };
   }
 
-  // Operational errors (AppError)
+  // Operational errors (AppError or errors with statusCode/code properties)
   if (err instanceof AppError) {
     error = {
       statusCode: err.statusCode,
       message: err.message,
       code: err.code,
     };
+  } else if (err.statusCode && err.code) {
+    // Handle errors from services that have statusCode and code but aren't AppError instances
+    error = {
+      statusCode: err.statusCode,
+      message: err.message || "Operation failed",
+      code: err.code,
+    };
+  } else if (err.statusCode) {
+    // Handle errors with only statusCode
+    error = {
+      statusCode: err.statusCode,
+      message: err.message || "Operation failed",
+      code: err.code || "OPERATIONAL_ERROR",
+    };
+  } else if (err.code) {
+    // Handle errors with only error code
+    error = {
+      statusCode: 500,
+      message: err.message || "Operation failed",
+      code: err.code,
+    };
   }
 
   // Default values
   const statusCode = error.statusCode || 500;
-  const message =
-    process.env.NODE_ENV === "production" && statusCode === 500
-      ? "Internal server error"
-      : error.message;
+  const message = error.message || "Internal server error";
   const code = error.code || "INTERNAL_ERROR";
+
+  console.log(
+    `🔴 [Error Handler] Sending response: status=${statusCode}, code=${code}, message=${message}`,
+  );
 
   // Send standardized error response
   res.status(statusCode).json({
