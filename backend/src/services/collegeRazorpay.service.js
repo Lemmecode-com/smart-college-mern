@@ -32,37 +32,53 @@ setInterval(clearExpiredCache, 10 * 60 * 1000);
  */
 async function getCollegeRazorpayConfig(collegeId) {
   if (!collegeId) {
-    throw new Error("College ID is required");
+    const error = new Error("College ID is required");
+    error.code = "MISSING_COLLEGE_ID";
+    error.statusCode = 400;
+    throw error;
   }
+
+  console.log(
+    `🔵 [getCollegeRazorpayConfig] Looking for config for college: ${collegeId}`,
+  );
 
   const config = await CollegePaymentConfig.getActiveConfig(
     collegeId,
-    "razorpay"
+    "razorpay",
   );
 
   if (!config) {
+    console.error(
+      `❌ [getCollegeRazorpayConfig] No config found for college: ${collegeId}`,
+    );
     const error = new Error(
-      "Razorpay payment gateway is not configured for this college. Please contact the college administrator."
+      "Razorpay payment gateway is not configured for this college. Please contact the college administrator.",
     );
     error.code = "RAZORPAY_NOT_CONFIGURED";
     error.statusCode = 400;
     throw error;
   }
 
+  console.log(
+    `✅ [getCollegeRazorpayConfig] Config found, decrypting keySecret`,
+  );
+
   // Decrypt the secret key
   let keySecret;
   try {
     keySecret = decryptRazorpayKey(config.credentials.keySecret);
+    console.log(`✅ [getCollegeRazorpayConfig] Key decrypted successfully`);
   } catch (decryptError) {
     console.error(
-      `Failed to decrypt Razorpay key for college ${collegeId}:`,
-      decryptError.message
+      `❌ [getCollegeRazorpayConfig] Failed to decrypt Razorpay key for college ${collegeId}:`,
+      decryptError.message,
     );
     const error = new Error(
-      "Unable to process payment configuration. Please contact support."
+      "Unable to process payment configuration. Please contact support.",
     );
     error.code = "DECRYPTION_FAILED";
     error.statusCode = 500;
+    error.cause = decryptError;
     throw error;
   }
 
@@ -80,7 +96,10 @@ async function getCollegeRazorpayConfig(collegeId) {
  */
 async function getRazorpayInstance(collegeId) {
   if (!collegeId) {
-    throw new Error("College ID is required");
+    const err = new Error("College ID is required");
+    err.code = "MISSING_COLLEGE_ID";
+    err.statusCode = 400;
+    throw err;
   }
 
   // Check cache first
@@ -89,9 +108,28 @@ async function getRazorpayInstance(collegeId) {
     return cached.razorpay;
   }
 
-  const { config, keySecret } = await getCollegeRazorpayConfig(collegeId);
+  console.log(
+    `🔵 [getRazorpayInstance] Fetching config for college: ${collegeId}`,
+  );
+
+  let config, keySecret;
+  try {
+    const configResult = await getCollegeRazorpayConfig(collegeId);
+    config = configResult.config;
+    keySecret = configResult.keySecret;
+    console.log(`✅ [getRazorpayInstance] Config fetched successfully`);
+  } catch (configError) {
+    console.error(
+      `❌ [getRazorpayInstance] Failed to get config:`,
+      configError.message,
+    );
+    throw configError;
+  }
 
   try {
+    console.log(
+      `🔵 [getRazorpayInstance] Creating Razorpay instance with keyId: ${config.credentials.keyId}`,
+    );
     const razorpay = new Razorpay({
       key_id: config.credentials.keyId,
       key_secret: keySecret,
@@ -104,17 +142,21 @@ async function getRazorpayInstance(collegeId) {
       timestamp: Date.now(),
     });
 
+    console.log(
+      `✅ [getRazorpayInstance] Razorpay instance created and cached`,
+    );
     return razorpay;
   } catch (error) {
     console.error(
-      `Failed to initialize Razorpay for college ${collegeId}:`,
-      error
+      `❌ [getRazorpayInstance] Failed to initialize Razorpay for college ${collegeId}:`,
+      error,
     );
     const razorpayError = new Error(
-      "Failed to initialize payment gateway. Please try again later."
+      "Failed to initialize payment gateway. Please try again later.",
     );
     razorpayError.code = "RAZORPAY_INIT_FAILED";
     razorpayError.statusCode = 500;
+    razorpayError.cause = error;
     throw razorpayError;
   }
 }
@@ -137,7 +179,7 @@ async function verifyCollegeRazorpayCredentials(collegeId) {
       { collegeId },
       {
         lastVerifiedAt: new Date(),
-      }
+      },
     );
 
     return {
@@ -147,7 +189,7 @@ async function verifyCollegeRazorpayCredentials(collegeId) {
   } catch (error) {
     console.error(
       `Razorpay credential verification failed for college ${collegeId}:`,
-      error
+      error,
     );
 
     let message = "Razorpay credentials verification failed";

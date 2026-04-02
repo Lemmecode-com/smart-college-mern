@@ -53,6 +53,9 @@ export default function MakePayments() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Redirecting to Secure Checkout...",
+  );
   const [result, setResult] = useState(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -245,61 +248,229 @@ export default function MakePayments() {
       }
 
       // Create Razorpay order
+      console.log(
+        "🔵 [Razorpay] Creating order for installment:",
+        installmentName,
+      );
       const res = await api.post("/razorpay/create-order", {
         installmentName,
       });
 
+      console.log("🟢 [Razorpay] Order response:", res.data);
+
       const { orderId, amount, currency, keyId } = res.data;
 
-      console.log("🟢 Razorpay Order created:", orderId);
+      // ✅ CRITICAL VALIDATION: Ensure all required fields are present
+      if (!orderId) {
+        console.error("❌ [Razorpay] Order ID is missing in response!");
+        throw new Error("Payment order creation failed. Please try again.");
+      }
+
+      if (!keyId) {
+        console.error("❌ [Razorpay] Key ID is missing in response!");
+        throw new Error(
+          "Razorpay is not configured properly. Please contact the college administrator.",
+        );
+      }
+
+      if (!amount || amount <= 0) {
+        console.error("❌ [Razorpay] Invalid amount in response:", amount);
+        throw new Error("Invalid payment amount. Please contact support.");
+      }
+
+      console.log("🟢 [Razorpay] Order created successfully:", {
+        orderId,
+        amount,
+        currency,
+        keyId: keyId.substring(0, 8) + "...", // Log first 8 chars for security
+      });
 
       // Configure Razorpay options
       const options = {
-        key: keyId,
+        key: keyId, // ← This was undefined before the fix
         amount: amount,
         currency: currency,
         name: user.collegeName || "College Fee Payment",
         description: `Fee Payment - ${installmentName}`,
         order_id: orderId,
         handler: async (response) => {
-          console.log("🟢 Razorpay payment successful:", response);
+          console.log("🟢 [Razorpay] Payment successful:", response);
+
+          // ⚠️ CRITICAL: Show loading state with message IMMEDIATELY
+          // Razorpay modal will close, but we need to keep user informed
+          setLoadingMessage("Verifying your payment...");
+          setLoading(true);
+          isRequestInProgressRef.current = true;
 
           try {
-            // Verify payment
+            // Verify payment signature
+            console.log("🔵 [Razorpay] Verifying payment signature...");
             const verifyRes = await api.post("/razorpay/verify-payment", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
 
-            console.log("✅ Payment verified:", verifyRes.data);
+            console.log("✅ [Razorpay] Payment verified:", verifyRes.data);
 
-            toast.success("🎉 Payment successful!", {
-              position: "top-right",
-              autoClose: 3000,
-              icon: <FaCheckCircle />,
-            });
-
-            // Redirect to success page
-            navigate(
-              `/student/payment-success?payment_id=${response.razorpay_payment_id}`,
-              {
-                state: {
-                  paymentGateway: "RAZORPAY",
-                  orderId: response.razorpay_order_id,
-                },
-              },
-            );
-          } catch (verifyError) {
-            console.error("❌ Payment verification failed:", verifyError);
-            toast.error(
-              "Payment verification failed. Please contact support.",
-              {
+            // Check if already paid
+            if (verifyRes.data.alreadyPaid) {
+              console.log("🟡 [Razorpay] Installment was already paid");
+              toast.info("This installment was already paid", {
                 position: "top-right",
                 autoClose: 5000,
-                icon: <FaExclamationTriangle />,
-              },
+                icon: <FaInfoCircle />,
+              });
+            } else {
+              toast.success("🎉 Payment successful!", {
+                position: "top-right",
+                autoClose: 3000,
+                icon: <FaCheckCircle />,
+              });
+            }
+
+            // ⚠️ CRITICAL: Stop loading BEFORE navigation
+            setLoading(false);
+            isRequestInProgressRef.current = false;
+
+            // Debug: Log the BACKEND response structure (NOT Razorpay response!)
+            console.log(
+              " [Razorpay] BACKEND response object:",
+              JSON.stringify(verifyRes.data, null, 2),
             );
+            console.log(" [Razorpay] verifyRes.data:", verifyRes.data);
+            console.log(
+              "🔍 [Razorpay] Installment from backend:",
+              verifyRes.data?.installment,
+            );
+            console.log(
+              "🔍 [Razorpay] Installment _id:",
+              verifyRes.data?.installment?._id,
+            );
+            console.log(
+              "🔍 [Razorpay] totalFee:",
+              verifyRes.data?.totalFee,
+              "Type:",
+              typeof verifyRes.data?.totalFee,
+            );
+            console.log(
+              "🔍 [Razorpay] paidAmount:",
+              verifyRes.data?.paidAmount,
+              "Type:",
+              typeof verifyRes.data?.paidAmount,
+            );
+            console.log(
+              "🔍 [Razorpay] remainingAmount:",
+              verifyRes.data?.remainingAmount,
+              "Type:",
+              typeof verifyRes.data?.remainingAmount,
+            );
+
+            // Small delay to allow toast to show and user to see success message
+            setTimeout(() => {
+              setLoadingMessage("Redirecting to receipt...");
+
+              // Prepare payment data from BACKEND response (verifyRes)
+              const paymentData = {
+                paymentGateway: "RAZORPAY",
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                installment: verifyRes.data?.installment || {
+                  _id: installmentDetails.id,
+                  name: installmentName,
+                  amount: installmentDetails.amount,
+                  paidAt: new Date(),
+                  transactionId: response.razorpay_payment_id,
+                },
+                totalFee: verifyRes.data?.totalFee || 0,
+                paidAmount: verifyRes.data?.paidAmount || 0,
+                remainingAmount: verifyRes.data?.remainingAmount || 0,
+              };
+
+              console.log(
+                "💾 [Razorpay] Payment data being saved to state:",
+                paymentData,
+              );
+              console.log(
+                "💾 [Razorpay] totalFee:",
+                paymentData.totalFee,
+                typeof paymentData.totalFee,
+              );
+              console.log(
+                "💾 [Razorpay] paidAmount:",
+                paymentData.paidAmount,
+                typeof paymentData.paidAmount,
+              );
+              console.log(
+                "💾 [Razorpay] remainingAmount:",
+                paymentData.remainingAmount,
+                typeof paymentData.remainingAmount,
+              );
+
+              // Redirect to success page with all Razorpay parameters in URL
+              navigate(
+                `/student/payment-success?payment_id=${paymentData.paymentId}&order_id=${paymentData.orderId}&gateway=razorpay`,
+                {
+                  state: {
+                    paymentGateway: "RAZORPAY",
+                    orderId: paymentData.orderId,
+                    paymentId: paymentData.paymentId,
+                    paymentData: paymentData,
+                  },
+                },
+              );
+            }, 800);
+          } catch (verifyError) {
+            console.error(
+              "❌ [Razorpay] Payment verification failed:",
+              verifyError,
+            );
+            console.error(
+              "❌ [Razorpay] Verification error response:",
+              verifyError.response?.data,
+            );
+
+            // ⚠️ CRITICAL: Stop loading on error too
+            setLoading(false);
+            isRequestInProgressRef.current = false;
+
+            const verifyErrorCode =
+              verifyError.response?.data?.error?.code ||
+              verifyError.response?.data?.code;
+            let verifyErrorMsg =
+              "Payment verification failed. Please contact support.";
+
+            if (verifyErrorCode === "INSTALLMENT_NOT_FOUND") {
+              verifyErrorMsg =
+                "Payment record not found. This may happen if the order expired. Please try creating a new payment.";
+            } else if (verifyErrorCode === "INVALID_SIGNATURE") {
+              verifyErrorMsg =
+                "Payment verification failed. Please contact support immediately with payment ID.";
+            } else if (verifyErrorCode === "FEE_RECORD_NOT_FOUND") {
+              verifyErrorMsg = "Fee record not found. Please contact support.";
+            }
+
+            toast.error(verifyErrorMsg, {
+              position: "top-right",
+              autoClose: 8000,
+              icon: <FaExclamationTriangle />,
+            });
+
+            // Log the error for support
+            console.error(
+              "❌ [Razorpay] Verification error code:",
+              verifyErrorCode,
+            );
+            console.error(
+              "❌ [Razorpay] Verification error message:",
+              verifyErrorMsg,
+            );
+
+            // 🔁 AUTO-REDIRECT: After showing error for 3 seconds, redirect to fees page
+            setTimeout(() => {
+              console.log("🔵 [Razorpay] Redirecting to fees page after error");
+              navigate("/student/fees", { replace: true });
+            }, 3000);
           }
         },
         prefill: {
@@ -324,12 +495,21 @@ export default function MakePayments() {
       };
 
       // Open Razorpay checkout
+      console.log("🔵 [Razorpay] Opening checkout modal");
       const rzp = new window.Razorpay(options);
+
+      // Verify Razorpay instance was created properly
+      if (!rzp) {
+        throw new Error(
+          "Failed to initialize Razorpay checkout. Please refresh the page.",
+        );
+      }
+
       rzp.on("payment.failed", (response) => {
         const errorCode = response.error.code;
         const errorDescription = response.error.description;
 
-        console.error("🔴 Razorpay payment failed:", response.error);
+        console.error("🔴 [Razorpay] Payment failed:", response.error);
 
         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
@@ -350,19 +530,35 @@ export default function MakePayments() {
         isRequestInProgressRef.current = false;
       });
 
+      console.log("🟢 [Razorpay] Checkout modal opened successfully");
       rzp.open();
     } catch (err) {
-      console.error("❌ Razorpay payment error:", err);
+      console.error("❌ [Razorpay] Payment error:", err);
+      console.error("❌ [Razorpay] Full error response:", err.response?.data);
+      console.error("❌ [Razorpay] Error status:", err.response?.status);
+      console.error("❌ [Razorpay] Error stack:", err.stack);
 
-      let errorMsg =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        err.message ||
-        "Payment initiation failed. Please try again.";
+      let errorMsg = "Payment initiation failed. Please try again.";
+
+      // Extract error from standardized backend format
+      // Backend sends: { success: false, error: { code, message, details } }
+      if (err.response?.data?.error?.message) {
+        errorMsg = err.response.data.error.message;
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
 
       const errorCode =
-        err.response?.data?.error?.code || err.response?.data?.code;
+        err.response?.data?.error?.code ||
+        err.response?.data?.code ||
+        err.response?.data?.error?.code;
 
+      console.error("❌ [Razorpay] Extracted error code:", errorCode);
+      console.error("❌ [Razorpay] Extracted error message:", errorMsg);
+
+      // Handle specific error codes
       if (errorCode === "RAZORPAY_NOT_CONFIGURED") {
         errorMsg =
           "Razorpay is not configured for your college. Please contact the college administrator.";
@@ -374,6 +570,23 @@ export default function MakePayments() {
       } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
         errorMsg =
           "This installment has already been paid or is invalid. Please refresh the page.";
+      } else if (errorCode === "DECRYPTION_FAILED") {
+        errorMsg = "Payment configuration error. Please contact support.";
+      } else if (errorCode === "RAZORPAY_INIT_FAILED") {
+        errorMsg =
+          "Failed to initialize payment gateway. Please try again later.";
+      } else if (errorCode === "RAZORPAY_KEY_MISSING") {
+        errorMsg =
+          "Razorpay configuration error. Please contact the college administrator.";
+      } else if (errorCode === "RAZORPAY_CONFIG_ERROR") {
+        errorMsg = "Payment configuration error. Please contact support.";
+      } else if (errorCode === "COLLEGE_ID_MISSING") {
+        errorMsg =
+          "College information missing. Please login again or contact support.";
+      } else if (errorCode === "ORDER_SAVE_FAILED") {
+        errorMsg = "Failed to save payment order. Please try again.";
+      } else if (errorCode === "INSTALLMENT_NOT_IN_ARRAY") {
+        errorMsg = "Installment configuration error. Please contact support.";
       }
 
       toast.error(errorMsg, {
@@ -395,6 +608,7 @@ export default function MakePayments() {
     isRequestInProgressRef.current = true;
 
     try {
+      setLoadingMessage("Redirecting to Secure Checkout...");
       setLoading(true);
       setShowError(false);
 
@@ -632,7 +846,7 @@ export default function MakePayments() {
             >
               <FaSpinner />
             </motion.div>
-            <h3>Redirecting to Secure Checkout...</h3>
+            <h3>{loadingMessage}</h3>
             <p>Please do not close this window</p>
             <div className="security-badges">
               <span>
