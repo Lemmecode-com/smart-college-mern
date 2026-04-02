@@ -560,7 +560,14 @@ export default function FeeReceipt() {
               label="Amount"
               value={`₹ ${receipt.amount?.toLocaleString()}`}
             />
-            <Info label="Payment Method" value="Stripe (Card)" />
+            <Info
+              label="Payment Method"
+              value={
+                receipt.paymentGateway === "RAZORPAY"
+                  ? "Razorpay"
+                  : "Stripe (Card)"
+              }
+            />
             <Info
               label="Paid On"
               value={new Date(receipt.paidAt).toLocaleString("en-IN")}
