@@ -4,13 +4,13 @@ const AppError = require("../utils/AppError");
 
 exports.getStudentFeeDashboard = async (req, res, next) => {
   try {
-    const userId = req.user.id;  // This is User._id
+    const userId = req.user.id; // This is User._id
     const collegeId = req.college_id;
 
     // ✅ First find the student by user_id
     const student = await Student.findOne({
       user_id: userId,
-      college_id: collegeId
+      college_id: collegeId,
     });
 
     if (!student) {
@@ -19,7 +19,7 @@ exports.getStudentFeeDashboard = async (req, res, next) => {
 
     // 1️⃣ Fetch student fee record using student._id
     const studentFee = await StudentFee.findOne({
-      student_id: student._id  // ✅ Use student._id (not user_id)
+      student_id: student._id, // ✅ Use student._id (not user_id)
     })
       .populate("college_id", "name code")
       .populate("course_id", "name code");
@@ -48,9 +48,8 @@ exports.getStudentFeeDashboard = async (req, res, next) => {
       totalFee,
       totalPaid,
       totalDue,
-      installments: studentFee.installments
+      installments: studentFee.installments,
     });
-
   } catch (error) {
     next(error);
   }
@@ -58,14 +57,14 @@ exports.getStudentFeeDashboard = async (req, res, next) => {
 
 exports.getStudentReceipt = async (req, res, next) => {
   try {
-    const userId = req.user.id;  // This is User._id
+    const userId = req.user.id; // This is User._id
     const collegeId = req.college_id;
     const { installmentId } = req.params;
 
     // ✅ First find the student by user_id
     const student = await Student.findOne({
       user_id: userId,
-      college_id: collegeId
+      college_id: collegeId,
     });
 
     if (!student) {
@@ -73,7 +72,7 @@ exports.getStudentReceipt = async (req, res, next) => {
     }
 
     const studentFee = await StudentFee.findOne({
-      student_id: student._id,  // ✅ Use student._id
+      student_id: student._id, // ✅ Use student._id
       "installments._id": installmentId,
     })
       .populate("student_id")
@@ -93,7 +92,11 @@ exports.getStudentReceipt = async (req, res, next) => {
     const installment = studentFee.installments.id(installmentId);
 
     if (!installment || installment.status !== "PAID") {
-      throw new AppError("Installment not paid or invalid receipt", 404, "INSTALLMENT_NOT_PAID");
+      throw new AppError(
+        "Installment not paid or invalid receipt",
+        404,
+        "INSTALLMENT_NOT_PAID",
+      );
     }
 
     const receiptNumber = `RCPT-${installment._id
@@ -108,13 +111,13 @@ exports.getStudentReceipt = async (req, res, next) => {
       amount: installment.amount,
       paidAt: installment.paidAt,
       status: "SUCCESS",
+      paymentGateway: installment.paymentGateway || "STRIPE", // ← Add payment gateway
 
       student: {
         name: studentFee.student_id.fullName,
         email: studentFee.student_id.email,
         enrollment: studentFee.student_id.enrollmentNumber,
-        department:
-          studentFee.course_id?.department_id?.name || "N/A", // ✅ FIXED
+        department: studentFee.course_id?.department_id?.name || "N/A", // ✅ FIXED
         course: studentFee.course_id.name,
         academicYear: "2025-2026",
       },
@@ -129,8 +132,7 @@ exports.getStudentReceipt = async (req, res, next) => {
       summary: {
         totalFee: studentFee.totalFee,
         totalPaid: studentFee.paidAmount,
-        remaining:
-          studentFee.totalFee - studentFee.paidAmount,
+        remaining: studentFee.totalFee - studentFee.paidAmount,
       },
     });
   } catch (error) {
