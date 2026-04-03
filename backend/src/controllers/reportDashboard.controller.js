@@ -257,9 +257,11 @@ exports.getAllReports = async (req, res, next) => {
     };
 
     // ==========================================
-    // 5. LOW ATTENDANCE STUDENTS
+    // 5. LOW ATTENDANCE STUDENTS (OPTIMIZED WITH AGGREGATION)
     // ==========================================
-    const lowAttendanceResult = await AttendanceRecord.aggregate([
+    
+    // 🔥 OPTIMIZED: Single aggregation pipeline instead of N+1 queries
+    const lowAttendanceStudents = await AttendanceRecord.aggregate([
       { $match: { college_id } },
       {
         $group: {
@@ -284,38 +286,53 @@ exports.getAllReports = async (req, res, next) => {
       },
       { $match: { percentage: { $lt: 75 } } },
       { $sort: { percentage: 1 } },
-      { $limit: 50 }
+      { $limit: 50 },
+      // 🔥 OPTIMIZED: Lookup student details in the same pipeline
+      {
+        $lookup: {
+          from: "students",
+          localField: "student_id",
+          foreignField: "_id",
+          as: "student"
+        }
+      },
+      { $unwind: "$student" },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "student.course_id",
+          foreignField: "_id",
+          as: "course"
+        }
+      },
+      {
+        $project: {
+          _id: "$student._id",
+          name: "$student.fullName",
+          email: "$student.email",
+          course: { $arrayElemAt: ["$course.name", 0] },
+          semester: "$student.semester",
+          attendancePercentage: { $round: ["$percentage", 0] },
+          totalSessions: "$total",
+          attendedSessions: "$present",
+          status: {
+            $cond: [
+              { $lt: ["$percentage", 50] },
+              "CRITICAL",
+              "LOW"
+            ]
+          }
+        }
+      }
     ]);
 
-    // Enrich with student details
-    const lowAttendanceStudents = await Promise.all(
-      lowAttendanceResult.map(async (item) => {
-        const student = await Student.findById(item.student_id)
-          .populate("course_id", "name")
-          .select("fullName email course_id semester");
-        
-        let matchesCourse = true;
-        if (course && course !== "ALL") {
-          matchesCourse = student.course_id?.name?.toLowerCase().includes(course.toLowerCase());
-        }
-
-        if (!matchesCourse) return null;
-
-        return {
-          _id: item.student_id,
-          name: student?.fullName || "Unknown",
-          email: student?.email || "",
-          course: student?.course_id?.name || "Unknown",
-          semester: student?.semester || 0,
-          attendancePercentage: Math.round(item.percentage),
-          totalSessions: item.total,
-          attendedSessions: item.present,
-          status: item.percentage < 50 ? "CRITICAL" : "LOW"
-        };
-      })
-    );
-
-    const filteredLowAttendance = lowAttendanceStudents.filter(item => item !== null);
+    // 🔥 OPTIMIZED: Filter in memory after aggregation (no more DB queries)
+    const filteredLowAttendance = lowAttendanceStudents.filter(item => {
+      if (course && course !== "ALL") {
+        return item.course?.toLowerCase().includes(course.toLowerCase());
+      }
+      return true;
+    });
 
     // ==========================================
     // RETURN ALL DATA

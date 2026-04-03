@@ -63,7 +63,6 @@ export default function EditSubject() {
         setCourses(courseRes.data || []);
         setTeachers(teachersData);
       } catch (err) {
-        console.error(err);
         setError(err.response?.data?.message || "Failed to load subject data");
       } finally {
         setLoading(false);

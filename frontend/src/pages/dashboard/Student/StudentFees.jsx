@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -37,15 +38,19 @@ export default function StudentFees() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
-  const [toastShown, setToastShown] = useState({ success: false, error: false });
+  const [toastShown, setToastShown] = useState({
+    success: false,
+    error: false,
+  });
   const [copiedId, setCopiedId] = useState(null);
 
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [studentProfile, setStudentProfile] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -54,17 +59,21 @@ export default function StudentFees() {
   /* ================= DATA VALIDATION HELPER ================= */
   const validateFeeDashboard = (data) => {
     const errors = [];
-    
+
     if (!data) {
       errors.push("Dashboard data is missing");
     } else {
-      if (typeof data.totalFee === 'undefined') errors.push("Total fee is missing");
-      if (typeof data.totalPaid === 'undefined') errors.push("Total paid is missing");
-      if (typeof data.totalDue === 'undefined') errors.push("Total due is missing");
-      if (!Array.isArray(data.installments)) errors.push("Installments array is missing");
+      if (typeof data.totalFee === "undefined")
+        errors.push("Total fee is missing");
+      if (typeof data.totalPaid === "undefined")
+        errors.push("Total paid is missing");
+      if (typeof data.totalDue === "undefined")
+        errors.push("Total due is missing");
+      if (!Array.isArray(data.installments))
+        errors.push("Installments array is missing");
       if (!data.course) errors.push("Course information is missing");
     }
-    
+
     return errors;
   };
 
@@ -77,7 +86,6 @@ export default function StudentFees() {
           setStudentProfile(res.data.student);
         }
       } catch (err) {
-        console.error("Profile fetch error:", err);
         // Continue without profile - use AuthContext data
       }
     };
@@ -102,18 +110,22 @@ export default function StudentFees() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError("Request timed out. Please check your connection and try again.");
+      setError({
+        message:
+          "Request timed out. Please check your connection and try again.",
+        statusCode: 408,
+      });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
         position: "top-right",
         autoClose: 5000,
-        icon: <FaExclamationTriangle />
+        icon: <FaExclamationTriangle />,
       });
     }, 30000);
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       const res = await api.get("/student/payments/my-fee-dashboard");
 
@@ -124,7 +136,7 @@ export default function StudentFees() {
       // Validate dashboard data
       const validation = validateFeeDashboard(res.data);
       if (validation.length > 0) {
-        throw new Error(`Invalid dashboard data: ${validation.join(', ')}`);
+        throw new Error(`Invalid dashboard data: ${validation.join(", ")}`);
       }
 
       setDashboard(res.data);
@@ -144,22 +156,21 @@ export default function StudentFees() {
         clearTimeout(loadTimeoutRef.current);
       }
     } catch (err) {
-      console.error("Fee dashboard error:", err);
-
       // Clear timeout on error
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
 
+      const statusCode = err.response?.status;
       const errorMsg =
-        err.response?.status === 401
+        statusCode === 401
           ? "Session expired. Please login again."
-          : err.response?.status === 404
-          ? "Fee structure not found for your course. Contact administration."
-          : err.response?.data?.message ||
-            "Unable to load fee dashboard. Please try again.";
+          : statusCode === 404
+            ? "Fee structure not found for your course. Contact administration."
+            : err.response?.data?.message ||
+              "Unable to load fee dashboard. Please try again.";
 
-      setError(errorMsg);
+      setError({ message: errorMsg, statusCode });
 
       // Show error toast only once per session
       if (!toastShown.error) {
@@ -170,23 +181,40 @@ export default function StudentFees() {
         });
         setToastShown({ ...toastShown, error: true });
       }
-
-      if (err.response?.status === 401) {
-        setTimeout(() => navigate("/login"), 3000);
-      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle retry action
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
+    setRetryCount((prev) => prev + 1);
+    await loadFees();
+    setIsRetrying(false);
+  };
+
+  // Handle go back action
+  const handleGoBack = () => {
+    navigate("/student/dashboard");
+  };
+
   useEffect(() => {
     loadFees();
-  }, [retryCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ================= CALCULATIONS ================= */
-  const progress = dashboard?.totalFee > 0
-    ? Math.min(100, Math.round((dashboard.totalPaid / dashboard.totalFee) * 100))
-    : dashboard?.totalPaid === 0 ? 100 : 0;
+  const progress =
+    dashboard?.totalFee > 0
+      ? Math.min(
+          100,
+          Math.round((dashboard.totalPaid / dashboard.totalFee) * 100),
+        )
+      : dashboard?.totalPaid === 0
+        ? 100
+        : 0;
 
   // Copy to clipboard handler
   const copyToClipboard = async (text, id) => {
@@ -196,15 +224,14 @@ export default function StudentFees() {
       toast.success("Transaction ID copied!", {
         position: "top-right",
         autoClose: 2000,
-        icon: <FaCheckCircle />
+        icon: <FaCheckCircle />,
       });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error("Copy failed:", err);
       toast.error("Failed to copy Transaction ID", {
         position: "top-right",
         autoClose: 2000,
-        icon: <FaTimesCircle />
+        icon: <FaTimesCircle />,
       });
     }
   };
@@ -246,14 +273,6 @@ export default function StudentFees() {
     });
   };
 
-  /* ================= RETRY HANDLER ================= */
-  const handleRetry = () => {
-    // Reset toast flags for retry
-    setToastShown({ success: false, error: false });
-    setCopiedId(null);
-    setRetryCount((prev) => prev + 1);
-  };
-
   /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Fee Dashboard..." />;
@@ -262,29 +281,18 @@ export default function StudentFees() {
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <div className="fees-container" role="main">
-        <div className="error-wrapper fade-in" role="alert" aria-live="assertive">
-          <div className="error-content">
-            <FaExclamationTriangle className="error-icon" aria-hidden="true" />
-            <h3>Fee Dashboard Error</h3>
-            <p className="error-message">{error}</p>
-            <div className="error-actions">
-              <button onClick={handleRetry} className="retry-btn" aria-label="Try loading fee dashboard again">
-                <FaSync className="me-2" />
-                Try Again
-              </button>
-              <button
-                onClick={() => navigate("/student/dashboard")}
-                className="back-btn"
-                aria-label="Go back to student dashboard"
-              >
-                <FaArrowLeft className="me-2" />
-                Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ApiError
+        title="Fee Dashboard Error"
+        message={
+          error.message || "Unable to load fee dashboard. Please try again."
+        }
+        statusCode={error.statusCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 
@@ -360,7 +368,9 @@ export default function StudentFees() {
           <button
             onClick={() => setShowHelp(!showHelp)}
             className="btn-action"
-            aria-label={showHelp ? "Close fee dashboard help" : "Show fee dashboard help"}
+            aria-label={
+              showHelp ? "Close fee dashboard help" : "Show fee dashboard help"
+            }
             aria-expanded={showHelp}
           >
             <FaInfoCircle aria-hidden="true" />
@@ -406,8 +416,8 @@ export default function StudentFees() {
                       soon (yellow)
                     </li>
                     <li>
-                      <span className="badge bg-danger">PENDING</span> -
-                      Overdue (red)
+                      <span className="badge bg-danger">PENDING</span> - Overdue
+                      (red)
                     </li>
                   </ul>
                 </li>
@@ -457,11 +467,7 @@ export default function StudentFees() {
             amount={`${progress}%`}
             icon={<FaCreditCard aria-hidden="true" />}
             color={
-              progress === 100
-                ? "success"
-                : progress > 50
-                ? "warning"
-                : "info"
+              progress === 100 ? "success" : progress > 50 ? "warning" : "info"
             }
             subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
             delay="0.4s"
@@ -470,7 +476,10 @@ export default function StudentFees() {
       </section>
 
       {/* ================= PROGRESS BAR SECTION ================= */}
-      <section className="progress-section fade-in-up" aria-label="Payment progress">
+      <section
+        className="progress-section fade-in-up"
+        aria-label="Payment progress"
+      >
         <div className="progress-card">
           <div className="progress-header">
             <h3>
@@ -499,10 +508,10 @@ export default function StudentFees() {
                   progress === 100
                     ? "bg-success"
                     : progress > 75
-                    ? "bg-primary"
-                    : progress > 50
-                    ? "bg-warning"
-                    : "bg-info"
+                      ? "bg-primary"
+                      : progress > 50
+                        ? "bg-warning"
+                        : "bg-info"
                 }`}
                 role="progressbar"
                 aria-valuenow={progress}
@@ -515,29 +524,29 @@ export default function StudentFees() {
             </div>
             <div className="progress-stats">
               <div className="stat-item">
-                <FaCheckCircle className="text-success me-1" aria-hidden="true" />
+                <FaCheckCircle
+                  className="text-success me-1"
+                  aria-hidden="true"
+                />
                 <span>
-                  {
-                    dashboard.installments?.filter(
-                      (i) => i.status === "PAID"
-                    ).length || 0
-                  }{" "}
+                  {dashboard.installments?.filter((i) => i.status === "PAID")
+                    .length || 0}{" "}
                   Paid
                 </span>
               </div>
               <div className="stat-item">
                 <FaClock className="text-warning me-1" aria-hidden="true" />
                 <span>
-                  {
-                    dashboard.installments?.filter(
-                      (i) => i.status === "PENDING"
-                    ).length || 0
-                  }{" "}
+                  {dashboard.installments?.filter((i) => i.status === "PENDING")
+                    .length || 0}{" "}
                   Pending
                 </span>
               </div>
               <div className="stat-item">
-                <FaMoneyCheckAlt className="text-primary me-1" aria-hidden="true" />
+                <FaMoneyCheckAlt
+                  className="text-primary me-1"
+                  aria-hidden="true"
+                />
                 <span>
                   {dashboard.installments?.length || 0} Total Installments
                 </span>
@@ -548,7 +557,10 @@ export default function StudentFees() {
       </section>
 
       {/* ================= INSTALLMENTS TABLE ================= */}
-      <section className="installments-section fade-in-up" aria-label="Fee installments">
+      <section
+        className="installments-section fade-in-up"
+        aria-label="Fee installments"
+      >
         <div className="installments-card">
           <div className="installments-header">
             <h3 id="installments-heading">
@@ -556,9 +568,9 @@ export default function StudentFees() {
               Fee Installments
             </h3>
           </div>
-          <div 
-            className="installments-body" 
-            role="region" 
+          <div
+            className="installments-body"
+            role="region"
             aria-labelledby="installments-heading"
           >
             {dashboard.installments?.length === 0 ? (
@@ -580,15 +592,31 @@ export default function StudentFees() {
               </div>
             ) : (
               <div className="table-responsive">
-                <table className="fees-table" role="table" aria-label="Fee installments table">
+                <table
+                  className="fees-table"
+                  role="table"
+                  aria-label="Fee installments table"
+                >
                   <thead>
                     <tr>
-                      <th className="col-installment" scope="col">Installment</th>
-                      <th className="col-amount" scope="col">Amount</th>
-                      <th className="col-due" scope="col">Due Date</th>
-                      <th className="col-status" scope="col">Status</th>
-                      <th className="col-payment" scope="col">Payment Date</th>
-                      <th className="col-action" scope="col">Action</th>
+                      <th className="col-installment" scope="col">
+                        Installment
+                      </th>
+                      <th className="col-amount" scope="col">
+                        Amount
+                      </th>
+                      <th className="col-due" scope="col">
+                        Due Date
+                      </th>
+                      <th className="col-status" scope="col">
+                        Status
+                      </th>
+                      <th className="col-payment" scope="col">
+                        Payment Date
+                      </th>
+                      <th className="col-action" scope="col">
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -600,17 +628,13 @@ export default function StudentFees() {
                         }`}
                         style={{ animationDelay: `${idx * 0.05}s` }}
                       >
-                        <td className="cell-installment">
-                          {installment.name}
-                        </td>
+                        <td className="cell-installment">{installment.name}</td>
                         <td className="cell-amount">
                           ₹{installment.amount.toLocaleString()}
                         </td>
                         <td className="cell-due">
                           <div className="due-date">
-                            {new Date(
-                              installment.dueDate
-                            ).toLocaleDateString()}
+                            {new Date(installment.dueDate).toLocaleDateString()}
                           </div>
                           {isNearDue(installment.dueDate) &&
                             installment.status !== "PAID" && (
@@ -618,9 +642,8 @@ export default function StudentFees() {
                                 <FaClock className="me-1" aria-hidden="true" />
                                 Due in{" "}
                                 {Math.ceil(
-                                  (new Date(installment.dueDate) -
-                                    new Date()) /
-                                    (1000 * 60 * 60 * 24)
+                                  (new Date(installment.dueDate) - new Date()) /
+                                    (1000 * 60 * 60 * 24),
                                 )}{" "}
                                 days
                               </small>
@@ -628,12 +651,14 @@ export default function StudentFees() {
                           {new Date(installment.dueDate) < new Date() &&
                             installment.status !== "PAID" && (
                               <small className="due-overdue">
-                                <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                                <FaExclamationTriangle
+                                  className="me-1"
+                                  aria-hidden="true"
+                                />
                                 Overdue by{" "}
                                 {Math.ceil(
-                                  (new Date() -
-                                    new Date(installment.dueDate)) /
-                                    (1000 * 60 * 60 * 24)
+                                  (new Date() - new Date(installment.dueDate)) /
+                                    (1000 * 60 * 60 * 24),
                                 )}{" "}
                                 days
                               </small>
@@ -643,12 +668,15 @@ export default function StudentFees() {
                           <span
                             className={`status-badge bg-${getInstallmentStatusColor(
                               installment.status,
-                              installment.dueDate
+                              installment.dueDate,
                             )}`}
                             aria-label={`Status: ${installment.status}`}
                           >
                             {installment.status === "PAID" && (
-                              <FaCheckCircle className="me-1" aria-hidden="true" />
+                              <FaCheckCircle
+                                className="me-1"
+                                aria-hidden="true"
+                              />
                             )}
                             {installment.status}
                           </span>
@@ -658,35 +686,45 @@ export default function StudentFees() {
                             <div className="payment-info">
                               <div className="payment-date">
                                 {installment.paidAt
-                                  ? new Date(
-                                      installment.paidAt
-                                    ).toLocaleString("en-IN")
+                                  ? new Date(installment.paidAt).toLocaleString(
+                                      "en-IN",
+                                    )
                                   : "N/A"}
                               </div>
                               <small className="payment-ref">
                                 Ref:{" "}
                                 <span
-                                  className={`ref-id ${copiedId === installment._id ? 'copied' : ''}`}
-                                  onClick={() => copyToClipboard(installment.transactionId, installment._id)}
+                                  className={`ref-id ${copiedId === installment._id ? "copied" : ""}`}
+                                  onClick={() =>
+                                    copyToClipboard(
+                                      installment.transactionId,
+                                      installment._id,
+                                    )
+                                  }
                                   title="Click to copy Transaction ID"
                                   role="button"
                                   tabIndex={0}
                                   aria-label={`Copy transaction ID: ${installment.transactionId}`}
                                   onKeyPress={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      copyToClipboard(installment.transactionId, installment._id);
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      copyToClipboard(
+                                        installment.transactionId,
+                                        installment._id,
+                                      );
                                     }
                                   }}
                                 >
                                   {copiedId === installment._id ? (
-                                    <><FaCheckCircle className="me-1" /> Copied!</>
+                                    <>
+                                      <FaCheckCircle className="me-1" /> Copied!
+                                    </>
                                   ) : (
                                     installment.transactionId || "N/A"
                                   )}
                                 </span>
                               </small>
                               <span className="payment-method">
-                                {installment.paymentMethod || 'Card'}
+                                {installment.paymentMethod || "Card"}
                               </span>
                             </div>
                           ) : (
@@ -699,7 +737,7 @@ export default function StudentFees() {
                               className="btn-receipt"
                               onClick={() =>
                                 navigate(
-                                  `/student/fee-receipt/${installment._id}`
+                                  `/student/fee-receipt/${installment._id}`,
                                 )
                               }
                               aria-label={`View receipt for ${installment.name}`}
@@ -710,9 +748,7 @@ export default function StudentFees() {
                           ) : (
                             <button
                               className="btn-pay"
-                              onClick={() =>
-                                handleRedirectPayment(installment)
-                              }
+                              onClick={() => handleRedirectPayment(installment)}
                               aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
                               title="Pay Now"
                             >

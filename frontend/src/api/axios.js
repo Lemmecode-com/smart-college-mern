@@ -17,17 +17,67 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle 401 errors globally
+// 🔒 RESPONSE INTERCEPTOR - Standardize API Response Format
+// This unwraps the new standardized format so frontend code doesn't break
+// Backend sends: { success: true, data: {...}, message: "..." }
+// Frontend receives: Depends on the data type
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Check if response has standardized format
+    if (response.data && response.data.success !== undefined) {
+      const { success, data, message, pagination, error } = response.data;
+
+      // Case 1: Response has array data - return array directly for backward compatibility
+      if (Array.isArray(data)) {
+        response.data = data;  // Return: [...]
+      }
+      // Case 2: Response has nested 'data' object
+      else if (data && typeof data === 'object') {
+        // Check if data object contains a single key with array data
+        const keys = Object.keys(data);
+        if (keys.length === 1 && Array.isArray(data[keys[0]])) {
+          // Extract array from nested object (e.g., { departments: [...] })
+          response.data = data[keys[0]];
+        } else {
+          // Keep the object structure for single object responses
+          response.data = {
+            ...data,
+            success,
+            message,
+            pagination,
+            error
+          };
+        }
+      }
+      // Case 3: No 'data' field - response is already flat
+      else {
+        response.data = {
+          ...response.data,
+          message: message || response.data.message,
+          pagination: pagination || response.data.pagination,
+          error: error || response.data.error
+        };
+      }
+    }
+    return response;
+  },
   (error) => {
-    // If we get 401, the session has expired or is invalid
-    // Don't do anything here - let the component handle it
-    // The AuthContext will detect 401 and set user to null
+    // 🔒 STANDARDIZE ERROR FORMAT
+    // Backend sends: { success: false, error: { code, message, details } }
+    // Transform to: { success: false, message, code, details }
+    if (error.response?.data?.error) {
+      const { error: errorObj } = error.response.data;
+      error.response.data.message = errorObj.message;
+      error.response.data.code = errorObj.code;
+      error.response.data.details = errorObj.details;
+    }
+    
+    // Handle 401 errors globally
     if (error.response?.status === 401) {
       // Optionally: Clear any local storage if you store anything there
       // localStorage.removeItem('someKey');
     }
+    
     return Promise.reject(error);
   }
 );
