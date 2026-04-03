@@ -72,7 +72,6 @@
   .navbar {
     min-height: 56px;
   }
-
   .navbar-fluid-container {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
@@ -974,7 +973,6 @@
   .navbar-user-dropdown {
     padding: 0.5rem !important;
   }
-
   .user-name-display,
   .user-dropdown-chevron {
     display: none !important;
