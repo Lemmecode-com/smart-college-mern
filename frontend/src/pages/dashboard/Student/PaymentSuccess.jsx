@@ -13,53 +13,174 @@ import {
   FaSpinner,
   FaMoneyBillWave,
   FaArrowLeft,
+  FaExclamationTriangle,
+  FaCreditCard,
+  FaInfoCircle,
 } from "react-icons/fa";
 
 export default function PaymentSuccess() {
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const sessionId = searchParams.get("session_id");
+  const paymentId = searchParams.get("payment_id");
+  const paymentGateway = searchParams.get("gateway") || "stripe";
 
   const [loading, setLoading] = useState(true);
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
+  // Wait for auth to finish loading before any redirects
+  if (authLoading) {
+    return <Loading fullScreen text="Verifying your session..." />;
+  }
 
-  /* ================= CONFIRM PAYMENT ================= */
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "STUDENT")
+    return <Navigate to="/student/dashboard" replace />;
+
+  /* ================= CONFIRM PAYMENT (STRIPE) ================= */
   useEffect(() => {
-    const confirmPayment = async () => {
+    if (!sessionId) return;
+
+    const confirmStripePayment = async () => {
       try {
+        console.log(
+          "🔵 [PaymentSuccess] Confirming Stripe payment:",
+          sessionId,
+        );
         const res = await api.post("/stripe/confirm-payment", {
           sessionId,
         });
 
-        setPayment(res.data);
+        console.log("🟢 [PaymentSuccess] Stripe payment confirmed:", res.data);
+        setPayment({
+          ...res.data,
+          paymentGateway: "STRIPE",
+        });
         toast.success("Payment confirmed successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaCheckCircle />
+          icon: <FaCheckCircle />,
         });
       } catch (err) {
-        console.error(err);
-        const errorMsg = err.response?.data?.message || "Payment confirmation failed";
+        console.error("❌ [PaymentSuccess] Stripe confirmation failed:", err);
+        const errorMsg =
+          err.response?.data?.message || "Payment confirmation failed";
         setError(errorMsg);
         toast.error(errorMsg, {
           position: "top-right",
           autoClose: 5000,
-          icon: <FaExclamationTriangle />
+          icon: <FaExclamationTriangle />,
         });
       } finally {
         setLoading(false);
       }
     };
 
-    if (sessionId) confirmPayment();
+    confirmStripePayment();
   }, [sessionId]);
+
+  /* ================= VERIFY PAYMENT (RAZORPAY) ================= */
+  useEffect(() => {
+    if (!paymentId) return;
+
+    const processRazorpayPayment = async () => {
+      try {
+        console.log(
+          "🔵 [PaymentSuccess] Processing Razorpay payment:",
+          paymentId,
+        );
+
+        // Payment was already verified in MakePayments.jsx
+        // Check if we have payment data from navigation state
+        const stateData = window.history.state?.usr;
+
+        if (stateData?.paymentData) {
+          console.log(
+            "🟢 [PaymentSuccess] Using payment data from navigation state:",
+            stateData.paymentData,
+          );
+          console.log(
+            "🔍 [PaymentSuccess] Installment _id:",
+            stateData.paymentData.installment?._id,
+          );
+          console.log(
+            "🔍 [PaymentSuccess] totalFee:",
+            stateData.paymentData.totalFee,
+          );
+          console.log(
+            "🔍 [PaymentSuccess] paidAmount:",
+            stateData.paymentData.paidAmount,
+          );
+          console.log(
+            "🔍 [PaymentSuccess] remainingAmount:",
+            stateData.paymentData.remainingAmount,
+          );
+          setPayment(stateData.paymentData);
+          toast.success("Payment successful!", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaCheckCircle />,
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: If no state data, create display data from URL params
+        console.log("⚠️ [PaymentSuccess] No state data, using URL params");
+        setPayment({
+          paymentGateway: "RAZORPAY",
+          paymentId: paymentId,
+          orderId: searchParams.get("order_id"),
+          installment: {
+            name: "Payment",
+            amount: 0,
+            paidAt: new Date(),
+            transactionId: paymentId,
+          },
+          totalFee: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error("❌ [PaymentSuccess] Razorpay processing failed:", err);
+
+        // If payment was already verified (alreadyPaid), use the response data
+        if (err.response?.data?.alreadyPaid) {
+          console.log(
+            "� [PaymentSuccess] Payment was already paid:",
+            err.response.data,
+          );
+          setPayment({
+            ...err.response.data,
+            paymentGateway: "RAZORPAY",
+          });
+          toast.info("This installment was already paid", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaInfoCircle />,
+          });
+          setLoading(false);
+        } else {
+          const errorMsg =
+            err.response?.data?.message || "Payment verification failed";
+          setError(errorMsg);
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />,
+          });
+          setLoading(false);
+        }
+      }
+    };
+
+    processRazorpayPayment();
+  }, [paymentId, searchParams]);
 
   /* ================= LOADING UI ================= */
   if (loading) {
@@ -79,9 +200,9 @@ export default function PaymentSuccess() {
         >
           <div className="error-icon-wrapper">
             <motion.div
-              animate={{ 
+              animate={{
                 rotate: [0, -10, 10, -10, 10, 0],
-                scale: [1, 1.1, 1]
+                scale: [1, 1.1, 1],
               }}
               transition={{ duration: 0.5 }}
             >
@@ -175,6 +296,25 @@ export default function PaymentSuccess() {
           Your payment has been processed securely.
         </p>
 
+        {/* PAYMENT GATEWAY BADGE */}
+        {paymentGateway && (
+          <div className="gateway-badge-wrapper">
+            <span className={`gateway-badge ${paymentGateway.toLowerCase()}`}>
+              {paymentGateway === "RAZORPAY" ? (
+                <>
+                  <FaCreditCard /> Razorpay
+                </>
+              ) : paymentGateway === "STRIPE" ? (
+                <>
+                  <FaCreditCard /> Stripe
+                </>
+              ) : (
+                paymentGateway
+              )}
+            </span>
+          </div>
+        )}
+
         {/* INSTALLMENT INFO */}
         <div className="payment-info">
           <div className="info-row">
@@ -203,6 +343,11 @@ export default function PaymentSuccess() {
             <strong className="transaction-id">
               {payment?.installment?.transactionId || "N/A"}
             </strong>
+            {paymentGateway === "RAZORPAY" && payment?.paymentId && (
+              <div className="razorpay-payment-id">
+                <small>Payment ID: {payment.paymentId}</small>
+              </div>
+            )}
           </div>
         </div>
 
@@ -235,9 +380,23 @@ export default function PaymentSuccess() {
 
           <button
             className="btn-primary"
-            onClick={() =>
-              navigate(`/student/fee-receipt/${payment?.installment?._id}`)
-            }
+            onClick={() => {
+              const installmentId =
+                payment?.installment?._id ||
+                window.history.state?.usr?.paymentData?.installment?._id;
+              if (installmentId) {
+                navigate(`/student/fee-receipt/${installmentId}`);
+              } else {
+                toast.error(
+                  "Receipt ID not found. Please go back and try again.",
+                  {
+                    position: "top-right",
+                    autoClose: 5000,
+                    icon: <FaExclamationTriangle />,
+                  },
+                );
+              }
+            }}
           >
             View Receipt
           </button>
@@ -290,6 +449,46 @@ export default function PaymentSuccess() {
       .success-subtitle {
         color: #6b7280;
         margin-bottom: 25px;
+      }
+
+      .gateway-badge-wrapper {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .gateway-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .gateway-badge.razorpay {
+        background: linear-gradient(135deg, #528bff, #3b82f6);
+        color: white;
+        box-shadow: 0 4px 12px rgba(82, 138, 255, 0.3);
+      }
+
+      .gateway-badge.stripe {
+        background: linear-gradient(135deg, #635bff, #7c73ff);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
+      }
+
+      .razorpay-payment-id {
+        margin-top: 4px;
+        padding: 4px 8px;
+        background: #f0f7ff;
+        border-radius: 4px;
+        color: #0369a1;
+        font-size: 11px;
+        font-family: 'Consolas', monospace;
       }
 
       .payment-info {

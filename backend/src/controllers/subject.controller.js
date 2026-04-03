@@ -5,6 +5,7 @@ const AppError = require("../utils/AppError");
 
 /**
  * CREATE SUBJECT
+ * UPDATED: Validate semester is within course duration
  */
 exports.createSubject = async (req, res, next) => {
   const { course_id, name, code, semester, credits, teacher_id } = req.body;
@@ -17,6 +18,17 @@ exports.createSubject = async (req, res, next) => {
 
   if (!course) {
     throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+  }
+
+  // ✅ UPDATED: Validate subject semester is within course duration
+  // Subject can be for ANY semester within the program (1 to durationSemesters)
+  if (!semester || semester < 1 || semester > course.durationSemesters) {
+    throw new AppError(
+      `Subject semester (${semester}) must be between 1 and ${course.durationSemesters} (course duration). ` +
+      `Subjects can be created for any semester within the program duration.`,
+      400,
+      "SEMESTER_OUT_OF_RANGE"
+    );
   }
 
   // ✅ FIX: validate teacher WITH department
@@ -42,7 +54,11 @@ exports.createSubject = async (req, res, next) => {
     createdBy: req.user.id,
   });
 
-  res.status(201).json(subject);
+  res.status(201).json({
+    success: true,
+    message: "Subject created successfully",
+    subject
+  });
 };
 
 /**
