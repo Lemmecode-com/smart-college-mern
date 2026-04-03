@@ -22,6 +22,7 @@ const {
   getTeacherCourses,
   getTeacherSubjectsByCourse,
   getStudentAttendanceReport,
+  getStudentAttendanceReportPDF,
   getTodaySlotsForTeacher,
 } = require("../controllers/attendance.controller");
 
@@ -35,7 +36,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getTodaySlotsForTeacher
+  getTodaySlotsForTeacher,
 );
 
 // ➕ Create attendance session
@@ -44,7 +45,7 @@ router.post(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  createAttendanceSession
+  createAttendanceSession,
 );
 
 // 📋 Get all sessions (teacher-wise also HOD can get all teacher's sessions)
@@ -62,7 +63,7 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   teacherMiddleware,
-  getAttendanceReport
+  getAttendanceReport,
 );
 
 router.get(
@@ -71,7 +72,16 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  getStudentAttendanceReport
+  getStudentAttendanceReport,
+);
+
+router.get(
+  "/student/report",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentAttendanceReportPDF,
 );
 
 router.get(
@@ -79,7 +89,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getTeacherCourses
+  getTeacherCourses,
 );
 
 // 📄 Get single session using its ID
@@ -154,7 +164,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getAttendanceRecordsBySession
+  getAttendanceRecordsBySession,
 );
 
 router.get(
@@ -162,7 +172,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getTeacherSubjectsByCourse
+  getTeacherSubjectsByCourse,
 );
 
 module.exports = router;

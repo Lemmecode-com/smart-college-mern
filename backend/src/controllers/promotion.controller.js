@@ -3,6 +3,7 @@ const StudentFee = require("../models/studentFee.model");
 const PromotionHistory = require("../models/promotionHistory.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * Helper function to get academic year label based on semester
@@ -34,14 +35,19 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
   try {
     const { course_id, currentSemester } = req.query;
 
-    // Build filter - include students with isPromotionEligible = true OR field doesn't exist (backward compatibility)
+    console.log('============ [PROMOTION] DEBUG INFO ============');
+    console.log('[PROMOTION] Request received:', {
+      college_id: req.college_id?.toString(),
+      user: req.user?.email,
+      role: req.user?.role,
+      query: req.query
+    });
+
+    // Build filter - show ALL APPROVED students (for display purposes)
+    // Promotion eligibility is shown in UI via fee status
     const filter = {
       college_id: req.college_id,
-      status: "APPROVED",
-      $or: [
-        { isPromotionEligible: true },
-        { isPromotionEligible: { $exists: false } }
-      ]
+      status: "APPROVED"
     };
 
     if (course_id) {
@@ -52,11 +58,27 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       filter.currentSemester = parseInt(currentSemester);
     }
 
+    console.log('[PROMOTION] Filter:', JSON.stringify(filter));
+
+    // Debug: Check total students in college regardless of status
+    const totalStudentsInCollege = await Student.countDocuments({ 
+      college_id: req.college_id 
+    });
+    const studentsByStatus = await Student.aggregate([
+      { $match: { college_id: req.college_id } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    console.log('[PROMOTION] Total students in college:', totalStudentsInCollege);
+    console.log('[PROMOTION] Students by status:', studentsByStatus);
+
     // Get all eligible students
     const students = await Student.find(filter)
-      .populate("course_id", "name code semester")
+      .populate("course_id", "name code durationSemesters durationYears")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
+
+    console.log('[PROMOTION] Found students with APPROVED status:', students.length);
+    console.log('============ [PROMOTION] END DEBUG ============');
 
     // Attach fee information for each student
     const studentsWithFee = await Promise.all(
@@ -88,8 +110,8 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           }
         }
 
-        // Get max semester from course
-        const maxSemester = student.course_id?.semester || 8;
+        // Get max semester from course duration
+        const maxSemester = student.course_id?.durationSemesters || 8;
         const academicYearLabel = getAcademicYearLabel(student.currentSemester);
         const isFinalYear = student.currentSemester >= maxSemester - 1;
 
@@ -121,12 +143,11 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       return acc;
     }, {});
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: studentsWithFee.length,
       students: studentsWithFee,
       groupedBySemester,
-    });
+    }, "Students fetched successfully for promotion");
   } catch (error) {
     next(error);
   }
@@ -189,8 +210,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
     const maxSemester = 8; // Assuming 4-year program with 2 semesters per year
     const canPromote = nextSemester <= maxSemester;
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       student: {
         ...student.toObject(),
         fee: fee || {
@@ -206,7 +226,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
         maxSemester,
       },
       promotionHistory,
-    });
+    }, "Student promotion details fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -243,13 +263,13 @@ exports.promoteStudent = async (req, res, next) => {
       throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 2. Get max semester from course (dynamic based on course)
-    const maxSemester = student.course_id?.semester || 8;
-    
+    // 2. Get max semester from course duration (dynamic based on course)
+    const maxSemester = student.course_id?.durationSemesters || 8;
+
     // 3. Check if already at max semester - move to Alumni
     if (student.currentSemester >= maxSemester) {
       throw new AppError(
-        "Student has completed the course. Moving to Alumni status requires separate process.",
+        "Student has completed the course. Moving to alumni status requires separate process.",
         400,
         "ALREADY_FINAL_SEMESTER"
       );
@@ -347,11 +367,7 @@ exports.promoteStudent = async (req, res, next) => {
     const fromYearLabel = getAcademicYearLabel(fromSemester);
     const toYearLabel = getAcademicYearLabel(toSemester);
 
-    res.json({
-      success: true,
-      message: isMovingToFinalSemester
-        ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
-        : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`,
+    ApiResponse.success(res, {
       promotion: {
         fromSemester,
         toSemester,
@@ -364,10 +380,12 @@ exports.promoteStudent = async (req, res, next) => {
         promotedBy: req.user.name,
         promotionDate: promotionRecord.promotionDate,
         remarks,
-        isFinalSemesterPromotion,
+        isFinalSemesterPromotion: isMovingToFinalSemester,
         maxSemester,
       },
-    });
+    }, isMovingToFinalSemester
+      ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
+      : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`);
   } catch (error) {
     next(error);
   }
@@ -407,9 +425,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           continue;
         }
 
-        // Get max semester from course
-        const maxSemester = student.course_id?.semester || 8;
-        
+        // Get max semester from course duration
+        const maxSemester = student.course_id?.durationSemesters || 8;
+
         if (student.currentSemester >= maxSemester) {
           results.failed.push({
             studentId,
@@ -503,7 +521,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           toSemester,
           fromYearLabel,
           toYearLabel,
-          isFinalSemesterPromotion,
+          isFinalSemesterPromotion: isMovingToFinalSemester,
         });
       } catch (error) {
         results.failed.push({
@@ -513,11 +531,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       }
     }
 
-    res.json({
-      success: true,
-      message: `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`,
+    ApiResponse.success(res, {
       results,
-    });
+    }, `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`);
   } catch (error) {
     next(error);
   }
@@ -542,11 +558,10 @@ exports.getCollegePromotionHistory = async (req, res, next) => {
       .sort({ promotionDate: -1 })
       .limit(parseInt(limit));
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: promotions.length,
       promotions,
-    });
+    }, "Promotion history fetched successfully");
   } catch (error) {
     next(error);
   }
