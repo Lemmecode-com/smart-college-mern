@@ -534,6 +534,7 @@ export default function NavbarComponent({
                     className="notification-badge"
                     aria-label={`${count} unread notifications`}
                     data-badge={count > 99 ? "99+" : count}
+                    style={{ borderRadius: "50%" }}
                   >
                     {count > 99 ? "99+" : count}
                   </Badge>
