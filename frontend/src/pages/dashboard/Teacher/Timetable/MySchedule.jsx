@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../../../components/ConfirmModal";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -848,6 +849,11 @@ export default function MySchedule() {
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
   const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    slot: null,
+    timeSlot: null,
+  });
   const navigate = useNavigate();
   const toastIds = useRef({});
 
@@ -875,14 +881,14 @@ export default function MySchedule() {
       try {
         setActiveSessions(JSON.parse(storedSessions));
       } catch (e) {
-        console.error("Failed to parse stored sessions:", e);
+        // Failed to parse stored sessions
       }
     }
     if (storedAttendance) {
       try {
         setAttendanceSessions(JSON.parse(storedAttendance));
       } catch (e) {
-        console.error("Failed to parse stored attendance:", e);
+        // Failed to parse stored attendance
       }
     }
     setSessionsLoaded(true);
@@ -914,7 +920,6 @@ export default function MySchedule() {
           toastIds.current.success = true;
         }
       } catch (err) {
-        console.error("Failed to load schedule:", err);
         const errorMsg =
           err.response?.data?.message ||
           "Failed to load your schedule. Please try again.";
@@ -944,7 +949,6 @@ export default function MySchedule() {
       const today = new Date().toISOString().split("T")[0];
       localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
     } catch (err) {
-      console.error("Failed to load today's slots:", err);
       // Don't fail the entire load, just use weekly data
     }
   };
@@ -986,7 +990,6 @@ export default function MySchedule() {
         );
       }
     } catch (err) {
-      console.error("Failed to load active sessions:", err);
       // Don't show error toast for this, just use empty state
     }
   };
@@ -1029,11 +1032,11 @@ export default function MySchedule() {
     return null;
   };
 
-  /* ================= CREATE ATTENDANCE ================= */
-  const startAttendance = async (slot, timeSlot) => {
+  /* ================= OPEN CONFIRM MODAL ================= */
+  const openConfirmModal = (slot, timeSlot) => {
     const today = new Date();
 
-    // ✅ CORRECT: Get today's day abbreviation
+    // Get today's day abbreviation
     const dayMap = {
       0: "SUN",
       1: "MON",
@@ -1056,7 +1059,7 @@ export default function MySchedule() {
       return;
     }
 
-    // ✅ STRICT TIME CHECK: Verify current time is within slot time
+    // STRICT TIME CHECK: Verify current time is within slot time
     const [startTime, endTime] = timeSlot.split(" - ");
     const [startHour, startMin] = startTime.split(":").map(Number);
     const [endHour, endMin] = endTime.split(":").map(Number);
@@ -1065,7 +1068,7 @@ export default function MySchedule() {
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
 
-    // ✅ Check if class time has started
+    // Check if class time has started
     if (currentMinutes < startMinutes) {
       toast.error(
         `Class hasn't started yet. Attendance can be started from ${startTime}.`,
@@ -1079,7 +1082,7 @@ export default function MySchedule() {
       return;
     }
 
-    // ✅ Check if class time has ended
+    // Check if class time has ended
     if (currentMinutes >= endMinutes) {
       toast.error(
         `Class has ended at ${endTime}. Attendance cannot be started after class time.`,
@@ -1115,14 +1118,20 @@ export default function MySchedule() {
       return;
     }
 
-    // Confirm before creating
-    const confirmed = window.confirm(
-      `Start attendance for ${slot.subject_id?.name}?\n` +
-        `Time: ${timeSlot}\n` +
-        `Room: ${slot.room || "N/A"}\n` +
-        `This will create a new attendance session for today's lecture.`,
-    );
-    if (!confirmed) return;
+    // Open the confirm modal instead of using window.confirm()
+    setConfirmModal({
+      isOpen: true,
+      slot,
+      timeSlot,
+    });
+  };
+
+  /* ================= CREATE ATTENDANCE (API CALL) ================= */
+  const createAttendanceSession = async () => {
+    const { slot, timeSlot } = confirmModal;
+    if (!slot || !timeSlot) return;
+
+    const today = new Date();
 
     try {
       setCreating(slot._id);
@@ -1169,6 +1178,9 @@ export default function MySchedule() {
         icon: <FaCheckCircle />,
       });
 
+      // Close the modal
+      setConfirmModal({ isOpen: false, slot: null, timeSlot: null });
+
       // Refresh today's slots data
       await loadTodaySlots();
 
@@ -1177,7 +1189,6 @@ export default function MySchedule() {
         navigate(`/attendance/session/${newSession._id}`);
       }, 2000);
     } catch (err) {
-      console.error("Failed to create attendance session:", err);
       const message =
         err.response?.data?.message ||
         "Failed to create attendance session. Please try again.";
@@ -1217,6 +1228,9 @@ export default function MySchedule() {
           );
         }
       }
+
+      // Close the modal on error
+      setConfirmModal({ isOpen: false, slot: null, timeSlot: null });
     } finally {
       setCreating(null);
     }
@@ -1508,7 +1522,7 @@ export default function MySchedule() {
                         time={time}
                         slot={slot}
                         isCurrent={isCurrentTimeSlot(time)}
-                        onStartAttendance={startAttendance}
+                        onStartAttendance={openConfirmModal}
                         creating={creating === slot._id}
                         delay={idx * 0.05}
                         hasActiveSession={
@@ -1544,6 +1558,31 @@ export default function MySchedule() {
               end time. Once started, attendance cannot be created again.
             </div>
           </motion.div>
+
+          {/* Confirm Modal */}
+          <ConfirmModal
+            isOpen={confirmModal.isOpen}
+            onClose={() => setConfirmModal({ isOpen: false, slot: null, timeSlot: null })}
+            onConfirm={createAttendanceSession}
+            title="Start Attendance"
+            message={
+              confirmModal.slot ? (
+                <>
+                  Start attendance for <strong>{confirmModal.slot.subject_id?.name}</strong>?
+                  <br /><br />
+                  <strong>Time:</strong> {confirmModal.timeSlot}
+                  <br />
+                  <strong>Room:</strong> {confirmModal.slot.room || "N/A"}
+                  <br /><br />
+                  This will create a new attendance session for today's lecture.
+                </>
+              ) : ""
+            }
+            type="info"
+            confirmText="Start Attendance"
+            cancelText="Cancel"
+            isLoading={creating === confirmModal.slot?._id}
+          />
         </div>
       </motion.div>
     </AnimatePresence>

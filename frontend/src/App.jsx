@@ -1,12 +1,53 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// Suppress specific React Router development warnings and excessive console logs for cleaner output
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  const originalWarn = console.warn;
+  const originalLog = console.log;
+
+  // Suppress specific warnings
+  console.warn = (...args) => {
+    const message = typeof args[0] === "string" ? args[0] : String(args[0]);
+    if (
+      message.includes("No routes matched") ||
+      message.includes("react-i18next")
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+
+  // Reduce excessive logging from React Strict Mode and development tools
+  console.log = (...args) => {
+    const message = typeof args[0] === "string" ? args[0] : String(args[0]);
+    // Filter out common development noise
+    if (
+      message.includes("Download the React DevTools") ||
+      message.includes("react-i18next") ||
+      message.includes("$ReactRefresh")
+    ) {
+      return;
+    }
+    originalLog(...args);
+  };
+}
 
 import { AuthContext } from "./auth/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
+
+/* ================= LANDING PAGE ================= */
+import LandingPage from "./pages/LandingPage";
 
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
@@ -21,6 +62,10 @@ import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminD
 import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
 import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
 import DocumentSettings from "./pages/dashboard/College-Admin/SystemSetting/DocumentSettings";
+
+/* ================= SUPER ADMIN SYSTEM SETTINGS ================= */
+import GeneralSuperSett from "./pages/dashboard/Super-Admin/System-Settings/GeneralSuperSett";
+import UserManagementSett from "./pages/dashboard/Super-Admin/System-Settings/UserManagementSett";
 
 /* ================= DEPARTMENTS ================= */
 import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
@@ -43,7 +88,6 @@ import CloseSession from "./pages/dashboard/Teacher/Attendance/CloseSession";
 
 /* ================= MY ATTENDANCE ================= */
 import MyAttendance from "./pages/dashboard/Student/MyAttendance";
-import AttendanceList from "./pages/attendance/AttendanceList";
 
 // Notifications
 import CreateNotifications from "./pages/dashboard/Teacher/Notifications/CreateNotifications";
@@ -84,6 +128,7 @@ import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 /* ================= COLLEGE ADMIN ================= */
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
+import PendingApprovals from "./pages/dashboard/College-Admin/PendingApprovals";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
 import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
 import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
@@ -99,15 +144,16 @@ import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessions
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
-import CreateSessionModal from "./pages/dashboard/Teacher/CreateSessionModal";
 
 /* ================= SUPER ADMIN ================= */
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
 import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
 import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
 import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
-import UpdateSubject from "./pages/dashboard/College-Admin/EditSubject";
 import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
+
+/* ================= SECURITY AUDIT ================= */
+import SecurityAudit from "./pages/dashboard/Super-Admin/SecurityAudit";
 
 /* ================= SUBJECTS / TEACHERS ================= */
 import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
@@ -119,19 +165,19 @@ import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import ViewTimetable from "./pages/dashboard/College-Admin/ViewTimetable";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
 
 /* ================= TEACHER ================= */
-import CreateSession from "./pages/dashboard/Teacher/Attendance/CreateSession";
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
+import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
+import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
 
 export default function App() {
   const { user } = useContext(AuthContext);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
 
   // Handle window resize
@@ -169,7 +215,13 @@ export default function App() {
   );
 }
 
-function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggleSidebar }) {
+function AppContent({
+  user,
+  isMobileOpen,
+  setIsMobileOpen,
+  isMobileDevice,
+  toggleSidebar,
+}) {
   const location = useLocation();
 
   // Hide layout on public/auth routes
@@ -187,9 +239,12 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
       <div className="app-wrapper">
         {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
         <Routes>
-          {/* ================= ROOT DECIDER ================= */}
+          {/* ================= LANDING PAGE (ROOT) ================= */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* ================= ROOT DECIDER (Redirect after login) ================= */}
           <Route
-            path="/"
+            path="/home"
             element={
               !user ? (
                 <Navigate to="/login" />
@@ -211,83 +266,107 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
-          <Route
-            path="/register/:collegeCode"
-            element={<StudentRegister />}
-          />
+          <Route path="/register/:collegeCode" element={<StudentRegister />} />
 
           {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
-          {isAuthenticated && !hideLayout ? (
-            <Route
-              element={
+          <Route
+            element={
+              isAuthenticated && !hideLayout ? (
                 <Layout
                   isMobileOpen={isMobileOpen}
                   setIsMobileOpen={setIsMobileOpen}
                 />
+              ) : null
+            }
+          >
+            {/* ================= SUPER ADMIN ================= */}
+            <Route
+              path="/super-admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
               }
-            >
-              {/* ================= SUPER ADMIN ================= */}
-              <Route
-                path="/super-admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <SuperAdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            />
 
-              <Route
-                path="/super-admin/create-college"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <CreateNewCollege />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/create-college"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CreateNewCollege />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/super-admin/colleges-list"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <CollegeList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/super-admin/college/:id"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <ViewCollegeDetails />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/super-admin/college/:id/edit"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <EditCollege />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/colleges-list"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <CollegeList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <ViewCollegeDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/college/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <EditCollege />
+                </ProtectedRoute>
+              }
+            />
 
-              <Route
-                path="/super-admin/reports"
-                element={
-                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-                    <SuperAdminReports />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/super-admin/reports"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SuperAdminReports />
+                </ProtectedRoute>
+              }
+            />
 
-              {/* ================= COLLEGE ADMIN ================= */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                    <CollegeAdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/admin/security-audit"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <SecurityAudit />
+                </ProtectedRoute>
+              }
+            />
+            {/* System-Settings */}
+            <Route
+              path="/super-admin/system-settings/general"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <GeneralSuperSett />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/super-admin/system-settings/user-management"
+              element={
+                <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                  <UserManagementSett />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= COLLEGE ADMIN ================= */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CollegeAdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/college/profile"
@@ -321,6 +400,15 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <ApproveStudents />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/pending-approvals"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PendingApprovals />
                 </ProtectedRoute>
               }
             />
@@ -651,15 +739,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
 
             {/* ================= ATTENDANCE ================= */}
             <Route
-              path="/attendance/create-session"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateSessionModal />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
               path="/attendance/my-sessions-list"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
@@ -704,15 +783,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               }
             />
 
-            <Route
-              path="/attendance/list"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
-                  <AttendanceList />
-                </ProtectedRoute>
-              }
-            />
-
             {/* ================= MY ATTENDANCE ================= */}
             <Route
               path="/my-attendance"
@@ -724,6 +794,14 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             {/* ================= SUBJECTS ================= */}
+            <Route
+              path="/subjects"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <SubjectList />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/subjects/course/:courseId"
               element={
@@ -803,6 +881,24 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             <Route
+              path="/system-settings/stripe-configuration"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <StripeConfiguration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/razorpay-configuration"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <RazorpayConfiguration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/teachers"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
@@ -845,15 +941,9 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             {/* ================= TEACHERS ================= */}
+
             {/* TIMETABLE */}
-            <Route
-              path="/timetable/create-timetable"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateTimetable />
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/timetable/list"
               element={
@@ -885,15 +975,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <WeeklyTimetable />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/timetable/view"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <ViewTimetable />
                 </ProtectedRoute>
               }
             />
@@ -932,14 +1013,6 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             {/* Sessions */}
-            <Route
-              path="/sessions/create"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateSession />
-                </ProtectedRoute>
-              }
-            />
 
             {/* New Timetable created by teacher(hod) */}
             <Route
@@ -952,9 +1025,8 @@ function AppContent({ user, isMobileOpen, setIsMobileOpen, isMobileDevice, toggl
             />
 
             {/* ================= FALLBACK ================= */}
-            <Route path="*" element={<Navigate to="/" />} />
-            </Route>
-          ) : null}
+            <Route path="*" element={<Navigate to="/home" />} />
+          </Route>
         </Routes>
       </div>
 

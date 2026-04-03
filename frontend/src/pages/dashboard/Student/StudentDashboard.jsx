@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import {
   FaUserGraduate,
   FaBook,
@@ -49,10 +50,42 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function StudentDashboard() {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Defensive: Safe access to attendance data
+  const attendanceSummary = dashboardData?.attendanceSummary || {
+    total: 0,
+    present: 0,
+    absent: 0,
+    percentage: 0,
+    warning: false,
+  };
+
+  // Defensive: Safe access to student data
+  const studentData = dashboardData?.student || {
+    name: "Student",
+    enrollmentNumber: "N/A",
+    course: "Not Assigned",
+    department: "Not Assigned",
+    semester: 1,
+  };
+
+  // Defensive: Safe access to pie chart data
+  const attendanceData = [
+    {
+      name: "Present",
+      value: attendanceSummary.present || 0,
+    },
+    {
+      name: "Absent",
+      value: attendanceSummary.absent || 0,
+    },
+  ];
 
   useEffect(() => {
     fetchDashboardData();
@@ -64,25 +97,27 @@ export default function StudentDashboard() {
       setError(null);
       const response = await api.get("/dashboard/student");
       setDashboardData(response.data);
-      
+
       // Show success toast only on successful load (not initial)
       if (dashboardData) {
         toast.success("Dashboard loaded successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaCheckCircle />
+          icon: <FaCheckCircle />,
         });
       }
     } catch (err) {
       // Silently handle auth errors
       if (err.response?.status !== 403 && err.response?.status !== 401) {
-        console.error("Dashboard fetch error:", err);
-        const errorMsg = err.response?.data?.message || "Failed to load dashboard. Please check your connection and try again.";
-        setError(errorMsg);
+        const statusCode = err.response?.status;
+        const errorMsg =
+          err.response?.data?.message ||
+          "Failed to load dashboard. Please check your connection and try again.";
+        setError({ message: errorMsg, statusCode });
         toast.error(errorMsg, {
           position: "top-right",
           autoClose: 5000,
-          icon: <FaExclamationTriangle />
+          icon: <FaExclamationTriangle />,
         });
       }
     } finally {
@@ -90,13 +125,17 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleRetry = () => {
-    toast.info("Refreshing dashboard...", {
-      position: "top-right",
-      autoClose: 2000,
-      icon: <FaSync />
-    });
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
+    await fetchDashboard();
+    setIsRetrying(false);
+  };
+
+  // Handle go back action
+  const handleGoBack = () => {
+    navigate("/student/dashboard");
   };
 
   // Tooltip Component
@@ -116,7 +155,11 @@ export default function StudentDashboard() {
         <div className="custom-chart-tooltip">
           <p className="tooltip-label">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="tooltip-value" style={{ color: entry.fill }}>
+            <p
+              key={index}
+              className="tooltip-value"
+              style={{ color: entry.fill }}
+            >
               {entry.name}: {entry.value}
             </p>
           ))}
@@ -126,30 +169,28 @@ export default function StudentDashboard() {
     return null;
   };
 
-  // Prepare Attendance Pie Chart Data
-  const attendancePieData = dashboardData
-    ? [
-        {
-          name: "Present",
-          value: dashboardData.attendanceSummary.present,
-          color: "#28a745",
-        },
-        {
-          name: "Absent",
-          value: dashboardData.attendanceSummary.absent,
-          color: "#dc3545",
-        },
-      ]
-    : [];
+  // Prepare Attendance Pie Chart Data (with defensive checks)
+  const attendancePieData = [
+    {
+      name: "Present",
+      value: attendanceSummary.present || 0,
+      color: "#28a745",
+    },
+    {
+      name: "Absent",
+      value: attendanceSummary.absent || 0,
+      color: "#dc3545",
+    },
+  ];
 
-  // Prepare Subject-wise Bar Chart Data
+  // Prepare Subject-wise Bar Chart Data (with defensive checks)
   const subjectBarData =
-    dashboardData?.subjectWiseAttendance.map((subject) => ({
-      subject: subject.subject,
-      code: subject.code,
-      present: subject.present,
-      total: subject.total,
-      percentage: subject.percentage,
+    (dashboardData?.subjectWiseAttendance || []).map((subject) => ({
+      subject: subject.subject || "Unknown",
+      code: subject.code || "N/A",
+      present: subject.present || 0,
+      total: subject.total || 0,
+      percentage: subject.percentage || 0,
     })) || [];
 
   // Loading State
@@ -160,24 +201,25 @@ export default function StudentDashboard() {
   // Error State
   if (error) {
     return (
-      <div className="dashboard-error">
-        <div className="error-content">
-          <FaExclamationTriangle className="error-icon" />
-          <h3>Oops! Something went wrong</h3>
-          <p className="error-message">{error}</p>
-          <button onClick={handleRetry} className="retry-btn">
-            <FaSync /> Try Again
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Dashboard Loading Error"
+        message={error.message || "Failed to load dashboard. Please try again."}
+        statusCode={error.statusCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 
   if (!dashboardData) return null;
 
+  // Use the safe variables declared at the top (already have defaults)
+  // No need to destructure again - attendanceSummary, studentData already defined
+
   const {
-    student,
-    attendanceSummary,
     subjectWiseAttendance,
     todayTimetable,
     feeSummary,
@@ -238,7 +280,7 @@ export default function StudentDashboard() {
         pauseOnHover
         theme="colored"
       />
-      
+
       {/* ================= HEADER ================= */}
       <div className="dashboard-header fade-in">
         <div className="header-left">
@@ -246,7 +288,7 @@ export default function StudentDashboard() {
             <FaGraduationCap />
           </div>
           <div>
-            <h1 className="dashboard-title">Welcome, {student.name}!</h1>
+            <h1 className="dashboard-title">Welcome, {studentData.name}!</h1>
           </div>
         </div>
         <div className="header-right">
@@ -260,7 +302,10 @@ export default function StudentDashboard() {
       </div>
 
       {/* ================= QUICK ACTIONS (MOVED TO TOP) ================= */}
-      <div className="dashboard-card quick-actions-card fade-in-up" style={{ marginBottom: '1.5rem' }}>
+      <div
+        className="dashboard-card quick-actions-card fade-in-up"
+        style={{ marginBottom: "1.5rem" }}
+      >
         <div className="card-header">
           <div className="card-title-wrapper">
             <FaStar className="card-icon blink-fast" />
@@ -271,23 +316,38 @@ export default function StudentDashboard() {
 
         <div className="card-body">
           <div className="quick-actions-grid">
-            <Link to="/my-attendance" className="quick-action-item quick-action-blink">
+            <Link
+              to="/my-attendance"
+              className="quick-action-item quick-action-blink"
+            >
               <FaChartPie className="action-icon" />
               <span>Attendance</span>
             </Link>
-            <Link to="/student/timetable" className="quick-action-item quick-action-blink">
+            <Link
+              to="/student/timetable"
+              className="quick-action-item quick-action-blink"
+            >
               <FaCalendarAlt className="action-icon" />
               <span>Timetable</span>
             </Link>
-            <Link to="/student/fees" className="quick-action-item quick-action-blink">
+            <Link
+              to="/student/fees"
+              className="quick-action-item quick-action-blink"
+            >
               <FaWallet className="action-icon" />
               <span>Fees</span>
             </Link>
-            <Link to="/student/profile" className="quick-action-item quick-action-blink">
+            <Link
+              to="/student/profile"
+              className="quick-action-item quick-action-blink"
+            >
               <FaUserGraduate className="action-icon" />
               <span>Profile</span>
             </Link>
-            <Link to="/notification/student" className="quick-action-item quick-action-blink">
+            <Link
+              to="/notification/student"
+              className="quick-action-item quick-action-blink"
+            >
               <FaBell className="action-icon" />
               <span>Notifications</span>
             </Link>
@@ -300,12 +360,14 @@ export default function StudentDashboard() {
         <div className="col-12 col-sm-6 col-lg-3">
           <div className="info-card fade-in-up card border-0 shadow-sm h-100">
             <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div className="card-icon-wrapper blue bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+              <div
+                className="card-icon-wrapper blue bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
+              >
                 <FaUserGraduate />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.name}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.name}</h3>
                 <p className="text-muted small mb-0">Student Name</p>
               </div>
             </div>
@@ -315,12 +377,14 @@ export default function StudentDashboard() {
         <div className="col-12 col-sm-6 col-lg-3">
           <div className="info-card fade-in-up card border-0 shadow-sm h-100">
             <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div className="card-icon-wrapper green bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+              <div
+                className="card-icon-wrapper green bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
+              >
                 <FaGraduationCap />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.course}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.course}</h3>
                 <p className="text-muted small mb-0">Current Course</p>
               </div>
             </div>
@@ -330,12 +394,14 @@ export default function StudentDashboard() {
         <div className="col-12 col-sm-6 col-lg-3">
           <div className="info-card fade-in-up card border-0 shadow-sm h-100">
             <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div className="card-icon-wrapper purple bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+              <div
+                className="card-icon-wrapper purple bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
+              >
                 <FaUniversity />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{student.department}</h3>
+                <h3 className="h6 mb-0 fw-bold">{studentData.department}</h3>
                 <p className="text-muted small mb-0">Department</p>
               </div>
             </div>
@@ -345,12 +411,16 @@ export default function StudentDashboard() {
         <div className="col-12 col-sm-6 col-lg-3">
           <div className="info-card fade-in-up card border-0 shadow-sm h-100">
             <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div className="card-icon-wrapper orange bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                   style={{ width: '48px', height: '48px', fontSize: '1.5rem' }}>
+              <div
+                className="card-icon-wrapper orange bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
+              >
                 <FaClipboardCheck />
               </div>
               <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{attendanceSummary.percentage}%</h3>
+                <h3 className="h6 mb-0 fw-bold">
+                  {attendanceSummary.percentage}%
+                </h3>
                 <p className="text-muted small mb-0">Attendance</p>
               </div>
             </div>
@@ -363,239 +433,318 @@ export default function StudentDashboard() {
         {/* ================= ATTENDANCE SUMMARY ================= */}
         <div className="col-12 col-lg-8">
           <div className="dashboard-card attendance-card fade-in-up card border-0 shadow-sm h-100">
-          <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaChartPie className="card-icon" />
-              <h3>Attendance Summary</h3>
-              <InfoTooltip message="Your overall attendance statistics" />
-            </div>
-            <Link to="/my-attendance" className="view-all-link">
-              <FaEye /> View All
-            </Link>
-          </div>
-
-          <div className="card-body">
-            {/* Enhanced Stats with Hover Effects */}
-            <div className="attendance-stats">
-              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.present} lectures present`}>
-                <FaCheckCircle className="stat-icon present" aria-hidden="true" />
-                <div>
-                  <span className="stat-value stat-value-large">{attendanceSummary.present}</span>
-                  <span className="stat-label">Present</span>
-                </div>
+            <div className="card-header">
+              <div className="card-title-wrapper">
+                <FaChartPie className="card-icon" />
+                <h3>Attendance Summary</h3>
+                <InfoTooltip message="Your overall attendance statistics" />
               </div>
-              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.absent} lectures absent`}>
-                <FaTimesCircle className="stat-icon absent" aria-hidden="true" />
-                <div>
-                  <span className="stat-value stat-value-large">{attendanceSummary.absent}</span>
-                  <span className="stat-label">Absent</span>
-                </div>
-              </div>
-              <div className="stat-item stat-item-hover" role="listitem" aria-label={`${attendanceSummary.total} total lectures`}>
-                <FaClock className="stat-icon total" aria-hidden="true" />
-                <div>
-                  <span className="stat-value stat-value-large">{attendanceSummary.total}</span>
-                  <span className="stat-label">Total</span>
-                </div>
-              </div>
+              <Link to="/my-attendance" className="view-all-link">
+                <FaEye /> View All
+              </Link>
             </div>
 
-            {/* Enhanced Pie Chart with better dimensions */}
-            <div className="attendance-chart">
-              <ResponsiveContainer width="100%" height="100%" minHeight={280}>
-                <PieChart>
-                  <Pie
-                    data={attendancePieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    labelLine={false}
-                  >
-                    {attendancePieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Enhanced Progress Bar with Integrated Warning */}
-            <div className="attendance-percentage">
-              <div className="percentage-header">
-                <span
-                  className="percentage-text percentage-text-large"
-                  style={{
-                    color: getAttendanceWarningColor(attendanceSummary.percentage),
-                  }}
-                >
-                  {attendanceSummary.percentage}% Overall Attendance
-                </span>
-                {attendanceSummary.warning && (
-                  <div className="attendance-warning attendance-warning-inline">
-                    <FaExclamationTriangle aria-hidden="true" /> 
-                    <span>Low Attendance! Minimum 75% required for exam eligibility.</span>
-                  </div>
-                )}
-              </div>
-              <div
-                className="progress-bar-wrapper progress-bar-thick"
-                role="progressbar"
-                aria-valuenow={attendanceSummary.percentage}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
-              >
+            <div className="card-body">
+              {/* Enhanced Stats with Hover Effects */}
+              <div className="attendance-stats">
                 <div
-                  className="progress-bar progress-bar-animated"
-                  style={{
-                    width: `${attendanceSummary.percentage}%`,
-                    backgroundColor: getAttendanceWarningColor(
-                      attendanceSummary.percentage
-                    ),
-                  }}
-                />
+                  className="stat-item stat-item-hover"
+                  role="listitem"
+                  aria-label={`${attendanceSummary.present} lectures present`}
+                >
+                  <FaCheckCircle
+                    className="stat-icon present"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <span className="stat-value stat-value-large">
+                      {attendanceSummary.present}
+                    </span>
+                    <span className="stat-label">Present</span>
+                  </div>
+                </div>
+                <div
+                  className="stat-item stat-item-hover"
+                  role="listitem"
+                  aria-label={`${attendanceSummary.absent} lectures absent`}
+                >
+                  <FaTimesCircle
+                    className="stat-icon absent"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <span className="stat-value stat-value-large">
+                      {attendanceSummary.absent}
+                    </span>
+                    <span className="stat-label">Absent</span>
+                  </div>
+                </div>
+                <div
+                  className="stat-item stat-item-hover"
+                  role="listitem"
+                  aria-label={`${attendanceSummary.total} total lectures`}
+                >
+                  <FaClock className="stat-icon total" aria-hidden="true" />
+                  <div>
+                    <span className="stat-value stat-value-large">
+                      {attendanceSummary.total}
+                    </span>
+                    <span className="stat-label">Total</span>
+                  </div>
+                </div>
               </div>
-              <div className="progress-thresholds">
-                <span className="threshold-marker" style={{ left: '75%' }}>
-                  <span className="threshold-line"></span>
-                  <span className="threshold-label">75% Min</span>
-                </span>
+
+              {/* Enhanced Pie Chart with better dimensions */}
+              <div
+                className="attendance-chart"
+                style={{ width: "100%", height: "300px", minHeight: "280px" }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={attendancePieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="value"
+                      labelLine={false}
+                    >
+                      {attendancePieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Enhanced Progress Bar with Integrated Warning */}
+              <div className="attendance-percentage">
+                <div className="percentage-header">
+                  <span
+                    className="percentage-text percentage-text-large"
+                    style={{
+                      color: getAttendanceWarningColor(
+                        attendanceSummary.percentage,
+                      ),
+                    }}
+                  >
+                    {attendanceSummary.percentage}% Overall Attendance
+                  </span>
+                  {attendanceSummary.warning && (
+                    <div className="attendance-warning attendance-warning-inline">
+                      <FaExclamationTriangle aria-hidden="true" />
+                      <span>
+                        Low Attendance! Minimum 75% required for exam
+                        eligibility.
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div
+                  className="progress-bar-wrapper progress-bar-thick"
+                  role="progressbar"
+                  aria-valuenow={attendanceSummary.percentage}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
+                >
+                  <div
+                    className="progress-bar progress-bar-animated"
+                    style={{
+                      width: `${attendanceSummary.percentage}%`,
+                      backgroundColor: getAttendanceWarningColor(
+                        attendanceSummary.percentage,
+                      ),
+                    }}
+                  />
+                </div>
+                <div className="progress-thresholds">
+                  <span className="threshold-marker" style={{ left: "75%" }}>
+                    <span className="threshold-line"></span>
+                    <span className="threshold-label">75% Min</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
 
         {/* ================= SUBJECT-WISE ATTENDANCE ================= */}
         <div className="col-12 col-lg-4">
           <div className="dashboard-card subject-attendance-card fade-in-up card border-0 shadow-sm h-100">
             <div className="card-header">
-            <div className="card-title-wrapper">
-              <FaChartBar className="card-icon" />
-              <h3>Subject-wise Attendance</h3>
-              <InfoTooltip message="Attendance breakdown by subject. Subjects with low attendance are highlighted in red." />
+              <div className="card-title-wrapper">
+                <FaChartBar className="card-icon" />
+                <h3>Subject-wise Attendance</h3>
+                <InfoTooltip message="Attendance breakdown by subject. Subjects with low attendance are highlighted in red." />
+              </div>
             </div>
-          </div>
 
-          <div className="card-body">
-            {/* Enhanced Bar Chart with Risk-Based Colors */}
-            <div className="subject-chart">
-              <ResponsiveContainer width="100%" height="100%" minHeight={350}>
-                <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis
-                    dataKey="code"
-                    tick={{ fontSize: 11, fontWeight: 500 }}
-                    interval={0}
-                    height={50}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    label={{ value: 'Lectures', angle: -90, position: 'insideLeft', fontSize: 11 }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                  <ReferenceLine
-                    y={Math.max(...subjectBarData.map(s => s.total)) * 0.75}
-                    stroke="#dc3545"
-                    strokeDasharray="3 3"
-                    label={{ value: '75% Target', fill: '#dc3545', fontSize: 10, position: 'right' }}
-                  />
-                  <Bar
-                    dataKey="present"
-                    name="Present"
-                    radius={[6, 6, 0, 0]}
-                    animationDuration={1000}
+            <div className="card-body">
+              {/* Enhanced Bar Chart with Risk-Based Colors */}
+              <div
+                className="subject-chart"
+                style={{ width: "100%", height: "400px", minHeight: "350px" }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={subjectBarData}
+                    margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
                   >
-                    {subjectBarData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.percentage >= 75 ? '#28a745' : entry.percentage >= 60 ? '#ffc107' : '#dc3545'}
-                      />
-                    ))}
-                  </Bar>
-                  <Bar
-                    dataKey="total"
-                    name="Total"
-                    fill="#80adda"
-                    radius={[6, 6, 0, 0]}
-                    animationDuration={1000}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Enhanced Subject List with Teacher Info and Trends */}
-            <div className="subject-list" role="list" aria-label="Subject-wise attendance list">
-              {subjectWiseAttendance
-                .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
-                .map((subject, index) => {
-                  const attendanceColor = getAttendanceWarningColor(subject.percentage);
-                  const needsAttention = subject.percentage < 75;
-                  const lecturesNeeded = Math.ceil(
-                    ((75 * (subject.present + subject.total - subject.present)) / 25) - subject.present
-                  );
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`subject-item subject-item-hover ${needsAttention ? 'subject-item-warning' : ''}`}
-                      role="listitem"
-                      aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f0f0f0"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="code"
+                      tick={{ fontSize: 11, fontWeight: 500 }}
+                      interval={0}
+                      height={50}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      label={{
+                        value: "Lectures",
+                        angle: -90,
+                        position: "insideLeft",
+                        fontSize: 11,
+                      }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                    />
+                    <ReferenceLine
+                      y={Math.max(...subjectBarData.map((s) => s.total)) * 0.75}
+                      stroke="#dc3545"
+                      strokeDasharray="3 3"
+                      label={{
+                        value: "75% Target",
+                        fill: "#dc3545",
+                        fontSize: 10,
+                        position: "right",
+                      }}
+                    />
+                    <Bar
+                      dataKey="present"
+                      name="Present"
+                      radius={[6, 6, 0, 0]}
+                      animationDuration={1000}
                     >
-                      <div className="subject-info">
-                        <div className="subject-info-main">
-                          <span className="subject-name">{subject.subject}</span>
-                          <span className="subject-code">{subject.code}</span>
-                        </div>
-                        {needsAttention && (
-                          <div className="subject-attention-badge">
-                            <FaExclamationTriangle size={12} />
-                            <span>Needs Attention</span>
+                      {subjectBarData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={
+                            entry.percentage >= 75
+                              ? "#28a745"
+                              : entry.percentage >= 60
+                                ? "#ffc107"
+                                : "#dc3545"
+                          }
+                        />
+                      ))}
+                    </Bar>
+                    <Bar
+                      dataKey="total"
+                      name="Total"
+                      fill="#80adda"
+                      radius={[6, 6, 0, 0]}
+                      animationDuration={1000}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Enhanced Subject List with Teacher Info and Trends */}
+              <div
+                className="subject-list"
+                role="list"
+                aria-label="Subject-wise attendance list"
+              >
+                {subjectWiseAttendance
+                  .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
+                  .map((subject, index) => {
+                    const attendanceColor = getAttendanceWarningColor(
+                      subject.percentage,
+                    );
+                    const needsAttention = subject.percentage < 75;
+                    const lecturesNeeded = Math.ceil(
+                      (75 *
+                        (subject.present + subject.total - subject.present)) /
+                        25 -
+                        subject.present,
+                    );
+
+                    return (
+                      <div
+                        key={index}
+                        className={`subject-item subject-item-hover ${needsAttention ? "subject-item-warning" : ""}`}
+                        role="listitem"
+                        aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
+                      >
+                        <div className="subject-info">
+                          <div className="subject-info-main">
+                            <span className="subject-name">
+                              {subject.subject}
+                            </span>
+                            <span className="subject-code">{subject.code}</span>
                           </div>
-                        )}
-                      </div>
-                      <div className="subject-progress">
-                        <div className="progress-bar-wrapper progress-bar-thick" role="progressbar" aria-valuenow={subject.percentage} aria-valuemin={0} aria-valuemax={100}>
+                          {needsAttention && (
+                            <div className="subject-attention-badge">
+                              <FaExclamationTriangle size={12} />
+                              <span>Needs Attention</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="subject-progress">
                           <div
-                            className="progress-bar progress-bar-animated"
-                            style={{
-                              width: `${subject.percentage}%`,
-                              backgroundColor: attendanceColor,
-                            }}
-                          />
-                        </div>
-                        <div className="subject-progress-info">
-                          <span
-                            className="percentage-text percentage-text-bold"
-                            style={{ color: attendanceColor }}
+                            className="progress-bar-wrapper progress-bar-thick"
+                            role="progressbar"
+                            aria-valuenow={subject.percentage}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
                           >
-                            {subject.percentage}%
-                          </span>
-                          <span className="subject-lectures-count">
-                            {subject.present}/{subject.total}
-                          </span>
-                        </div>
-                        {needsAttention && lecturesNeeded > 0 && lecturesNeeded < subject.total && (
-                          <div className="subject-action-needed">
-                            Need {lecturesNeeded} more to reach 75%
+                            <div
+                              className="progress-bar progress-bar-animated"
+                              style={{
+                                width: `${subject.percentage}%`,
+                                backgroundColor: attendanceColor,
+                              }}
+                            />
                           </div>
-                        )}
+                          <div className="subject-progress-info">
+                            <span
+                              className="percentage-text percentage-text-bold"
+                              style={{ color: attendanceColor }}
+                            >
+                              {subject.percentage}%
+                            </span>
+                            <span className="subject-lectures-count">
+                              {subject.present}/{subject.total}
+                            </span>
+                          </div>
+                          {needsAttention &&
+                            lecturesNeeded > 0 &&
+                            lecturesNeeded < subject.total && (
+                              <div className="subject-action-needed">
+                                Need {lecturesNeeded} more to reach 75%
+                              </div>
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
           </div>
-        </div>
         </div>
 
         {/* ================= TODAY'S TIMETABLE ================= */}
@@ -612,45 +761,45 @@ export default function StudentDashboard() {
               </Link>
             </div>
 
-          <div className="card-body">
-            {todayTimetable.length === 0 ? (
-              <div className="no-data">
-                <FaCalendarAlt className="no-data-icon" />
-                <p>No classes scheduled for today</p>
-              </div>
-            ) : (
-              <div className="timetable-list">
-                {todayTimetable.map((slot, index) => (
-                  <div key={index} className="timetable-slot">
-                    <div className="slot-time">
-                      <FaClock className="time-icon" />
-                      <div className="time-range">
-                        <span className="start-time">{slot.startTime}</span>
-                        <span className="time-separator">-</span>
-                        <span className="end-time">{slot.endTime}</span>
+            <div className="card-body">
+              {todayTimetable.length === 0 ? (
+                <div className="no-data">
+                  <FaCalendarAlt className="no-data-icon" />
+                  <p>No classes scheduled for today</p>
+                </div>
+              ) : (
+                <div className="timetable-list">
+                  {todayTimetable.map((slot, index) => (
+                    <div key={index} className="timetable-slot">
+                      <div className="slot-time">
+                        <FaClock className="time-icon" />
+                        <div className="time-range">
+                          <span className="start-time">{slot.startTime}</span>
+                          <span className="time-separator">-</span>
+                          <span className="end-time">{slot.endTime}</span>
+                        </div>
+                      </div>
+                      <div className="slot-details">
+                        <h4 className="slot-subject">{slot.subject}</h4>
+                        <div className="slot-meta">
+                          <span className="slot-code">{slot.code}</span>
+                          <span className="slot-type">{slot.slotType}</span>
+                        </div>
+                        <div className="slot-info">
+                          <span className="slot-teacher">
+                            <FaChalkboardTeacher /> {slot.teacher}
+                          </span>
+                          <span className="slot-room">
+                            <FaMapMarkerAlt /> Room {slot.room}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="slot-details">
-                      <h4 className="slot-subject">{slot.subject}</h4>
-                      <div className="slot-meta">
-                        <span className="slot-code">{slot.code}</span>
-                        <span className="slot-type">{slot.slotType}</span>
-                      </div>
-                      <div className="slot-info">
-                        <span className="slot-teacher">
-                          <FaChalkboardTeacher /> {slot.teacher}
-                        </span>
-                        <span className="slot-room">
-                          <FaMapMarkerAlt /> Room {slot.room}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         </div>
 
         {/* ================= FEE SUMMARY ================= */}
@@ -667,62 +816,71 @@ export default function StudentDashboard() {
               </Link>
             </div>
 
-          <div className="card-body">
-            <div className="fee-overview">
-              <div className="fee-stat">
-                <span className="fee-label">Total Fee</span>
-                <span className="fee-value">
-                  {formatCurrency(safeFeeSummary.totalFee)}
-                </span>
+            <div className="card-body">
+              <div className="fee-overview">
+                <div className="fee-stat">
+                  <span className="fee-label">Total Fee</span>
+                  <span className="fee-value">
+                    {formatCurrency(safeFeeSummary.totalFee)}
+                  </span>
+                </div>
+                <div className="fee-stat">
+                  <span className="fee-label">Paid</span>
+                  <span className="fee-value paid">
+                    {formatCurrency(safeFeeSummary.paid)}
+                  </span>
+                </div>
+                <div className="fee-stat">
+                  <span className="fee-label">Due</span>
+                  <span className="fee-value due">
+                    {formatCurrency(safeFeeSummary.due)}
+                  </span>
+                </div>
               </div>
-              <div className="fee-stat">
-                <span className="fee-label">Paid</span>
-                <span className="fee-value paid">
-                  {formatCurrency(safeFeeSummary.paid)}
-                </span>
-              </div>
-              <div className="fee-stat">
-                <span className="fee-label">Due</span>
-                <span className="fee-value due">
-                  {formatCurrency(safeFeeSummary.due)}
-                </span>
-              </div>
-            </div>
 
-            <div className="fee-status">
-              <div
-                className="status-badge"
-                style={{ backgroundColor: getFeeStatusColor(safeFeeSummary.paymentStatus) }}
-              >
-                {safeFeeSummary.paymentStatus}
-              </div>
-            </div>
-
-            <div className="fee-progress">
-              <div className="progress-label">
-                <span>Payment Progress</span>
-                <span>
-                  {Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)}%
-                </span>
-              </div>
-              <div className="progress-bar-wrapper">
+              <div className="fee-status">
                 <div
-                  className="progress-bar"
+                  className="status-badge"
                   style={{
-                    width: `${(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}%`,
-                    backgroundColor: getFeeStatusColor(safeFeeSummary.paymentStatus),
+                    backgroundColor: getFeeStatusColor(
+                      safeFeeSummary.paymentStatus,
+                    ),
                   }}
-                />
+                >
+                  {safeFeeSummary.paymentStatus}
+                </div>
               </div>
-            </div>
 
-            {safeFeeSummary.paymentStatus !== "PAID" && (
-              <Link to="/student/make-payment" className="btn-pay-now">
-                <FaRupeeSign /> Pay Now
-              </Link>
-            )}
+              <div className="fee-progress">
+                <div className="progress-label">
+                  <span>Payment Progress</span>
+                  <span>
+                    {Math.round(
+                      (safeFeeSummary.paid / safeFeeSummary.totalFee) * 100,
+                    )}
+                    %
+                  </span>
+                </div>
+                <div className="progress-bar-wrapper">
+                  <div
+                    className="progress-bar"
+                    style={{
+                      width: `${(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}%`,
+                      backgroundColor: getFeeStatusColor(
+                        safeFeeSummary.paymentStatus,
+                      ),
+                    }}
+                  />
+                </div>
+              </div>
+
+              {safeFeeSummary.paymentStatus !== "PAID" && (
+                <Link to="/student/make-payment" className="btn-pay-now">
+                  <FaRupeeSign /> Pay Now
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
         </div>
 
         {/* ================= LATEST NOTIFICATIONS ================= */}
@@ -739,44 +897,48 @@ export default function StudentDashboard() {
               </Link>
             </div>
 
-          <div className="card-body">
-            {latestNotifications.length === 0 ? (
-              <div className="no-data">
-                <FaBell className="no-data-icon" />
-                <p>No new notifications</p>
-              </div>
-            ) : (
-              <div className="notifications-list">
-                {latestNotifications.slice(0, 5).map((notification) => (
-                  <div
-                    key={notification._id}
-                    className={`notification-item ${
-                      !notification.isRead ? "unread" : ""
-                    }`}
-                  >
-                    <div className="notification-icon">
-                      <FaBell
-                        className={notification.isRead ? "read" : "unread"}
-                      />
-                    </div>
-                    <div className="notification-content">
-                      <h4 className="notification-title">{notification.title}</h4>
-                      <p className="notification-message">{notification.message}</p>
-                      <div className="notification-meta">
-                        <span className="notification-type">
-                          {notification.type}
-                        </span>
-                        <span className="notification-date">
-                          {formatDate(notification.createdAt)}
-                        </span>
+            <div className="card-body">
+              {latestNotifications.length === 0 ? (
+                <div className="no-data">
+                  <FaBell className="no-data-icon" />
+                  <p>No new notifications</p>
+                </div>
+              ) : (
+                <div className="notifications-list">
+                  {latestNotifications.slice(0, 5).map((notification) => (
+                    <div
+                      key={notification._id}
+                      className={`notification-item ${
+                        !notification.isRead ? "unread" : ""
+                      }`}
+                    >
+                      <div className="notification-icon">
+                        <FaBell
+                          className={notification.isRead ? "read" : "unread"}
+                        />
+                      </div>
+                      <div className="notification-content">
+                        <h4 className="notification-title">
+                          {notification.title}
+                        </h4>
+                        <p className="notification-message">
+                          {notification.message}
+                        </p>
+                        <div className="notification-meta">
+                          <span className="notification-type">
+                            {notification.type}
+                          </span>
+                          <span className="notification-date">
+                            {formatDate(notification.createdAt)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 

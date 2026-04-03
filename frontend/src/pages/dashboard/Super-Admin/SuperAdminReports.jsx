@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaUsers,
   FaCheckCircle,
@@ -32,7 +33,6 @@ export default function SuperAdminReports() {
       setData(res.data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Reports fetch error:", err);
       setError(err.response?.data?.message || "Failed to load admission summary. Please try again.");
     } finally {
       setLoading(false);
@@ -126,12 +126,12 @@ export default function SuperAdminReports() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/super-admin/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Admission Reports</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/super-admin/dashboard" },
+          { label: "Admission Reports" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -189,7 +189,7 @@ export default function SuperAdminReports() {
             <div className="stat-footer-item">
               <span className="footer-label">Growth (30d)</span>
               <span className="footer-value positive">
-                <FaArrowUp /> +12.5%
+                <FaArrowUp /> {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
               </span>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function SuperAdminReports() {
             <div className="stat-footer-item">
               <span className="footer-label">Avg. Processing Time</span>
               <span className="footer-value warning">
-                <FaClock /> 2.3 days
+                <FaClock /> {data.avgProcessingTime ? `${data.avgProcessingTime} days` : 'N/A'}
               </span>
             </div>
           </div>
@@ -407,34 +407,12 @@ export default function SuperAdminReports() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
         }
         
         .erp-page-header {
