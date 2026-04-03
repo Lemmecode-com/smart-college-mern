@@ -2,6 +2,7 @@ import { useEffect, useState, useContext, useRef } from "react";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaUserGraduate,
   FaClipboardList,
@@ -176,7 +177,6 @@ export default function StudentAttendanceReport() {
       
       addToast("Report downloaded successfully!", "success");
     } catch (err) {
-      console.error("Download error:", err);
       addToast("Failed to download report. Please try again.", "error");
     }
   };
@@ -202,13 +202,8 @@ export default function StudentAttendanceReport() {
 
     const fetchData = async () => {
       try {
-        const [reportRes, subjectRes] = await Promise.all([
-          api.get("/attendance/student", { params: filters }),
-          api.get("/subjects/student").catch((err) => {
-            console.error("Failed to load subjects:", err);
-            return { data: [] };
-          })
-        ]);
+        // Single API call - attendance data already includes subjectWise info
+        const reportRes = await api.get("/attendance/student", { params: filters });
 
         // Validate data
         const validation = validateAttendanceData(reportRes.data);
@@ -217,7 +212,19 @@ export default function StudentAttendanceReport() {
         }
 
         setData(reportRes.data);
-        setSubjects(subjectRes.data || []);
+        // Extract subjects from attendance API response (subjectWise array)
+        // Backend returns: {subject, code, total, present, absent, percentage}
+        // Frontend needs: {_id, name, code} for dropdown
+        const subjectsFromAttendance = (reportRes.data.subjectWise || []).map((subj, index) => ({
+          _id: subj._id || `subject-${index}`,  // Use index as fallback ID
+          name: subj.subject || subj.name,      // Backend uses 'subject' field
+          code: subj.code,
+          total: subj.total,
+          present: subj.present,
+          absent: subj.absent,
+          percentage: subj.percentage
+        }));
+        setSubjects(subjectsFromAttendance);
         setError("");
 
         // Show success toast only on subsequent loads (not initial)
@@ -230,8 +237,6 @@ export default function StudentAttendanceReport() {
           clearTimeout(loadTimeoutRef.current);
         }
       } catch (err) {
-        console.error("Failed to load attendance report:", err);
-        
         // Clear timeout on error
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
@@ -420,46 +425,12 @@ export default function StudentAttendanceReport() {
           </div>
 
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.history.back()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              My Attendance Report
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/student/dashboard" },
+              { label: "My Attendance Report" }
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div

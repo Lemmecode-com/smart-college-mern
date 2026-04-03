@@ -50,7 +50,6 @@ export default function EditAttendance() {
         setAttendance(map);
 
       } catch (err) {
-        console.error(err);
         setError("Failed to load attendance data");
       } finally {
         setLoading(false);

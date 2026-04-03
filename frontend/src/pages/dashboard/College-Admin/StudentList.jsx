@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaUsers,
@@ -43,6 +45,12 @@ export default function StudentList() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
+  /* ================= CONFIRM MODAL STATE ================= */
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmType, setConfirmType] = useState(null); // 'approve' or 'reject'
+  const [confirmData, setConfirmData] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
@@ -53,7 +61,7 @@ export default function StudentList() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/registered");
-      
+
       // 🔧 Handle new paginated response structure
       if (res.data.data) {
         // New format: { success: true, data: [...], pagination: {...} }
@@ -64,10 +72,9 @@ export default function StudentList() {
       } else {
         setStudents([]);
       }
-      
+
       setRetryCount(0);
     } catch (err) {
-      console.error("Students fetch error:", err);
       setError(err.response?.data?.message || "Failed to load students. Please try again.");
     } finally {
       setLoading(false);
@@ -109,9 +116,20 @@ export default function StudentList() {
   );
 
   /* ================= ACTIONS ================= */
-  const approveStudent = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this student?")) return;
+  const handleApproveClick = (id) => {
+    setConfirmType('approve');
+    setConfirmData(id);
+    setShowConfirmModal(true);
+  };
 
+  const handleRejectClick = (id) => {
+    setConfirmType('reject');
+    setConfirmData(id);
+    setShowConfirmModal(true);
+  };
+
+  const approveStudent = async (id) => {
+    setModalLoading(true);
     try {
       await api.put(`/students/${id}/approve`);
       // Refresh the list
@@ -119,24 +137,38 @@ export default function StudentList() {
       // Navigate to Approved Students list with refresh flag
       navigate("/students/approve", { state: { refresh: true } });
     } catch (err) {
-      alert("Failed to approve student. Please try again.");
-      console.error("Approve error:", err);
+      throw err;
+    } finally {
+      setModalLoading(false);
     }
   };
 
   const rejectStudent = async (id) => {
-    const reason = prompt("Enter rejection reason (required):");
-    if (!reason || reason.trim().length < 5) {
-      alert("Rejection reason is required and must be at least 5 characters.");
-      return;
-    }
-    
+    setModalLoading(true);
     try {
-      await api.put(`/students/${id}/reject`, { reason: reason.trim() });
+      await api.put(`/students/${id}/reject`, { reason: "Rejected by admin" });
       fetchStudents();
     } catch (err) {
-      alert("Failed to reject student. Please try again.");
-      console.error("Reject error:", err);
+      throw err;
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmType || !confirmData) return;
+
+    try {
+      if (confirmType === 'approve') {
+        await approveStudent(confirmData);
+      } else if (confirmType === 'reject') {
+        await rejectStudent(confirmData);
+      }
+      setShowConfirmModal(false);
+      setConfirmType(null);
+      setConfirmData(null);
+    } catch (err) {
+      // Error is handled in the action function
     }
   };
 
@@ -223,12 +255,12 @@ export default function StudentList() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Student Management</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Student Management" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -372,76 +404,74 @@ export default function StudentList() {
               <table className="erp-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Name</th>
-                    <th><FaEnvelope className="header-icon" /> Email</th>
-                    <th><FaBuilding className="header-icon" /> Department</th>
-                    <th><FaBookOpen className="header-icon" /> Course</th>
-                    <th>Status</th>
-                    <th className="text-center">Actions</th>
+                    <th className="th-student">
+                      <FaUserCheck className="header-icon" /> Student Name
+                    </th>
+                    <th className="th-course">
+                      <FaBookOpen className="header-icon" /> Course
+                    </th>
+                    <th className="th-department">
+                      <FaBuilding className="header-icon" /> Department
+                    </th>
+                    <th className="th-status">Status</th>
+                    <th className="th-actions text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedStudents.map((student, index) => (
                     <tr key={student._id} className="table-row">
-                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                      <td>
-                        <div className="student-name">
-                          <div className="student-avatar">
-                            {student.fullName.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="student-details">
-                            <div className="student-fullname">{student.fullName}</div>
-                            <div className="student-meta">
-                              <span className="student-id">ID: {student.studentId || 'N/A'}</span>
-                            </div>
-                          </div>
+                      <td className="cell-student">
+                        <div className="student-info">
+                          <span className="student-name-cell">{student.fullName}</span>
+                          <span className="student-email">{student.email}</span>
                         </div>
                       </td>
-                      <td>
-                        <div className="contact-info">
-                          <FaEnvelope className="contact-icon" />
-                          <span>{student.email}</span>
-                        </div>
+                      <td className="cell-course">
+                        <span className="badge badge-course">
+                          {student.course_id?.name || "N/A"}
+                        </span>
                       </td>
-                      <td>{student.department_id?.name || "N/A"}</td>
-                      <td>{student.course_id?.name || "N/A"}</td>
-                      <td>
-                        <span className={`status-badge status-${student.status.toLowerCase()}`}>
-                          {student.status === "PENDING" && <FaUserClock />}
-                          {student.status === "APPROVED" && <FaUserCheck />}
-                          {student.status === "REJECTED" && <FaUserTimes />}
+                      <td className="cell-department">
+                        <span className="department-name">
+                          {student.department_id?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td className="cell-status">
+                        <span className={`badge badge-status-${student.status.toLowerCase()}`}>
+                          {student.status === "PENDING" && <FaUserClock className="badge-icon" />}
+                          {student.status === "APPROVED" && <FaUserCheck className="badge-icon" />}
+                          {student.status === "REJECTED" && <FaUserTimes className="badge-icon" />}
                           {student.status}
                         </span>
                       </td>
-                      <td className="action-cell">
+                      <td className="cell-actions">
                         <div className="action-buttons">
                           <button
-                            className="action-btn view-btn"
-                            title="View Student Details"
+                            className="btn btn-action btn-view-student"
                             onClick={() => navigate(`/college/view-student/${student._id}`)}
-                            aria-label={`View details for ${student.fullName}`}
+                            title="View Student Details"
                           >
                             <FaEye />
+                            <span className="btn-text">View</span>
                           </button>
-                          
+
                           {student.status === "PENDING" && (
                             <>
                               <button
-                                className="action-btn approve-btn"
+                                className="btn btn-action btn-approve-student"
+                                onClick={() => handleApproveClick(student._id)}
                                 title="Approve Student"
-                                onClick={() => approveStudent(student._id)}
-                                aria-label={`Approve ${student.fullName}`}
                               >
                                 <FaCheck />
+                                <span className="btn-text">Approve</span>
                               </button>
                               <button
-                                className="action-btn reject-btn"
+                                className="btn btn-action btn-reject-student"
+                                onClick={() => handleRejectClick(student._id)}
                                 title="Reject Student"
-                                onClick={() => rejectStudent(student._id)}
-                                aria-label={`Reject ${student.fullName}`}
                               >
                                 <FaTimes />
+                                <span className="btn-text">Reject</span>
                               </button>
                             </>
                           )}
@@ -493,35 +523,37 @@ export default function StudentList() {
         </div>
       </div>
 
+      {/* CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setConfirmType(null);
+          setConfirmData(null);
+        }}
+        onConfirm={handleConfirm}
+        title={confirmType === 'approve' ? "Approve Student" : "Reject Student"}
+        message={
+          confirmType === 'approve'
+            ? "Are you sure you want to approve this student? This action will grant them full access to the system."
+            : "Are you sure you want to reject this student? This action will notify the student and remove their pending status."
+        }
+        type={confirmType === 'approve' ? "success" : "danger"}
+        confirmText={confirmType === 'approve' ? "Approve" : "Reject"}
+        cancelText="Cancel"
+        isLoading={modalLoading}
+      />
+
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
+        /* ================= GLOBAL TYPOGRAPHY ================= */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
         }
         
         .erp-page-header {
@@ -834,180 +866,244 @@ export default function StudentList() {
           box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
         }
         
-        /* TABLE */
+        /* ================= TABLE ================= */
         .table-container {
           overflow-x: auto;
-          border-radius: 0 0 16px 16px;
+          border-radius: 12px;
         }
-        
+
         .erp-table {
           width: 100%;
           border-collapse: collapse;
-          min-width: 900px;
         }
-        
+
         .erp-table thead {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
         }
-        
+
         .erp-table th {
-          padding: 1rem 1.25rem;
+          padding: 16px 20px;
           text-align: left;
+          font-size: 12px;
           font-weight: 600;
-          font-size: 0.95rem;
-          position: relative;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border-bottom: none;
           white-space: nowrap;
+          opacity: 0.95;
+          font-family: 'Inter', sans-serif;
         }
-        
+
+        .erp-table th:first-child {
+          border-top-left-radius: 12px;
+        }
+
+        .erp-table th:last-child {
+          border-top-right-radius: 12px;
+        }
+
         .header-icon {
           margin-right: 0.5rem;
           font-size: 0.9rem;
+          color: #3db5e6;
         }
-        
+
         .erp-table tbody tr {
-          border-bottom: 1px solid #f0f2f5;
-          transition: all 0.2s ease;
+          transition: all 0.25s ease;
+          border-bottom: 1px solid #e2e8f0;
         }
-        
+
         .erp-table tbody tr:hover {
-          background: #f8f9ff;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
-        
+
         .erp-table td {
-          padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
+          padding: 18px 20px;
+          border-bottom: 1px solid #e2e8f0;
           vertical-align: middle;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-name {
+
+        /* Table Cell Styles */
+        .th-student,
+        .cell-student {
+          min-width: 240px;
+        }
+
+        .th-course,
+        .cell-course {
+          min-width: 180px;
+        }
+
+        .th-department,
+        .cell-department {
+          min-width: 200px;
+        }
+
+        .th-status,
+        .cell-status {
+          min-width: 140px;
+        }
+
+        .th-actions,
+        .cell-actions {
+          min-width: 180px;
+        }
+
+        /* Student Info Cell */
+        .student-info {
           display: flex;
-          align-items: center;
-          gap: 1rem;
+          flex-direction: column;
+          gap: 6px;
         }
-        
-        .student-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 1rem;
-          flex-shrink: 0;
+
+        .student-name-cell {
+          font-weight: 700;
+          color: #0f3a4a;
+          font-size: 15px;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-details {
-          flex: 1;
+
+        .student-email {
+          font-size: 13px;
+          color: #64748b;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-fullname {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 0.95rem;
-        }
-        
-        .student-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          margin-top: 0.25rem;
-        }
-        
-        .student-id {
-          font-size: 0.8rem;
-          color: #6c757d;
-          background: #f0f2f5;
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-        }
-        
-        .contact-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #1a4b6d;
-        }
-        
-        .contact-icon {
-          color: #6c757d;
-          font-size: 0.9rem;
-        }
-        
-        .status-badge {
+
+        /* Badges */
+        .badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .badge-icon {
+          font-size: 12px;
+        }
+
+        .badge-course {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+        }
+
+        .badge-status-pending {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-status-approved {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+        }
+
+        .badge-status-rejected {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+        }
+
+        .department-name {
+          color: #475569;
           font-weight: 600;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .status-pending {
-          background: rgba(255, 152, 0, 0.15);
-          color: #e68a00;
-        }
-        
-        .status-approved {
-          background: rgba(76, 175, 80, 0.15);
-          color: #4CAF50;
-        }
-        
-        .status-rejected {
-          background: rgba(244, 67, 54, 0.15);
-          color: #F44336;
-        }
-        
-        .action-cell {
+
+        .text-center {
           text-align: center;
-          min-width: 160px;
         }
-        
+
+        /* Action Buttons */
         .action-buttons {
           display: flex;
+          gap: 8px;
           justify-content: center;
-          gap: 0.5rem;
         }
-        
-        .action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          display: flex;
+
+        .btn {
+          display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
+          padding: 10px 18px;
           border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          white-space: nowrap;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .btn:hover:not(:disabled) {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+          transform: translateY(-1px);
+        }
+
+        .btn-action {
+          padding: 10px 18px;
+          font-size: 13px;
+          border-radius: 8px;
+          transition: all 0.25s ease;
+        }
+
+        .btn-action svg {
+          font-size: 14px;
+        }
+
+        .btn-view-student {
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
-          font-size: 0.9rem;
+          box-shadow: 0 3px 10px rgba(61, 181, 230, 0.3);
         }
-        
-        .view-btn {
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+
+        .btn-view-student:hover {
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          box-shadow: 0 5px 15px rgba(61, 181, 230, 0.4);
         }
-        
-        .approve-btn {
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
+
+        .btn-approve-student {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3);
         }
-        
-        .reject-btn {
-          background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+
+        .btn-approve-student:hover {
+          background: linear-gradient(135deg, #047857 0%, #059669 100%);
+          box-shadow: 0 5px 15px rgba(5, 150, 105, 0.4);
         }
-        
-        .action-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+
+        .btn-reject-student {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
         }
-        
-        .action-btn:active {
-          transform: translateY(0);
+
+        .btn-reject-student:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+          box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-text {
+          margin-left: 4px;
         }
         
         /* PAGINATION */
@@ -1418,39 +1514,51 @@ export default function StudentList() {
           .erp-table {
             min-width: 550px;
           }
-          
+
           .erp-card-header h3 {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
           }
-          
+
           .erp-card-header .erp-card-icon {
             font-size: 1.1rem;
           }
-          
-          .student-name {
-            flex-direction: column;
-            align-items: flex-start;
+
+          .student-name-cell {
+            font-size: 14px;
           }
-          
-          .student-meta {
-            margin-left: 2.5rem;
+
+          .student-email {
+            font-size: 12px;
           }
-          
+
+          .department-name {
+            font-size: 13px;
+          }
+
+          .badge {
+            font-size: 11px;
+            padding: 6px 12px;
+          }
+
           .stat-card-label {
             font-size: 0.85rem;
           }
-          
+
           .stat-card-value {
             font-size: 1.5rem;
           }
+
+          .erp-page-title {
+            font-size: 1.375rem;
+          }
         }
-        
+
         @media print {
           .erp-container {
             padding: 0;
             background: white;
           }
-          
+
           .erp-breadcrumb,
           .erp-page-header,
           .stats-grid,
@@ -1460,31 +1568,27 @@ export default function StudentList() {
           .erp-pagination {
             display: none !important;
           }
-          
+
           .erp-card {
             box-shadow: none;
             border-radius: 0;
           }
-          
+
           .erp-table {
             width: 100%;
             min-width: auto;
           }
-          
+
           .erp-table thead {
-            background: #1a4b6d !important;
+            background: #0f3a4a !important;
           }
-          
+
           .erp-table th,
           .erp-table td {
             padding: 8px;
             font-size: 12px;
           }
-          
-          .student-avatar {
-            display: none;
-          }
-          
+
           .student-fullname {
             font-size: 14px;
           }

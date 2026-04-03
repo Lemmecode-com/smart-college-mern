@@ -21,12 +21,12 @@ const { STUDENT_STATUS, CATEGORY, GENDER } = require("../utils/constants");
 const studentSchema = new mongoose.Schema(
   {
     // 🔗 User Reference (Links to User collection)
+    // FIX: Issue #1 - Make user_id required to ensure consistent authentication
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: false, // Made optional for backward compatibility during migration
+      required: [true, "Student must have a linked User account"],
       unique: true,
-      index: true,
       sparse: true // Allows documents without user_id during migration
     },
 
@@ -126,6 +126,16 @@ const studentSchema = new mongoose.Schema(
     currentSemester: {
       type: Number,
       required: true,
+      min: 1,
+      max: 8
+    },
+
+    // ✅ NEW: Current academic year (auto-calculated from semester: Sem 1-2 = Year 1, etc.)
+    currentYear: {
+      type: Number,
+      min: 1,
+      max: 4,
+      default: 1
     },
 
     previousQualification: String,
@@ -327,6 +337,18 @@ const studentSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// ✅ NEW: Auto-calculate currentYear from currentSemester before saving
+studentSchema.pre('save', async function(next) {
+  try {
+    if (this.currentSemester) {
+      // Calculate year: Sem 1-2 = Year 1, Sem 3-4 = Year 2, etc.
+      this.currentYear = Math.ceil(this.currentSemester / 2);
+    }
+  } catch (error) {
+    throw error;
+  }
+});
+
 // Prevent duplicate registration per college
 studentSchema.index({ college_id: 1, email: 1 }, { unique: true });
 
@@ -336,6 +358,7 @@ studentSchema.index({ college_id: 1, department_id: 1 }); // Department-wise stu
 studentSchema.index({ college_id: 1, course_id: 1 }); // Course-wise students
 studentSchema.index({ user_id: 1 }); // Student lookup by user_id
 studentSchema.index({ college_id: 1, currentSemester: 1 }); // Semester-wise students
+studentSchema.index({ college_id: 1, currentYear: 1 }); // Year-wise students
 studentSchema.index({ status: 1, admissionYear: 1 }); // Admission year filtering
 
 module.exports = mongoose.model("Student", studentSchema);

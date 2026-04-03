@@ -62,7 +62,7 @@ export default function EditCourse() {
         type: formData.type,
         status: formData.status,
         programLevel: formData.programLevel,
-        semester: Number(formData.semester),
+        durationSemesters: Number(formData.durationSemesters),
         credits: Number(formData.credits),
         maxStudents: Number(formData.maxStudents)
       });
@@ -124,7 +124,7 @@ export default function EditCourse() {
               <Select label="Program Level" name="programLevel" value={formData.programLevel} onChange={handleChange}
                 options={["UG", "PG", "DIPLOMA", "PHD"]} />
 
-              <Input label="Semester" type="number" name="semester" value={formData.semester} onChange={handleChange} />
+              <Input label="Program Duration (Semesters)" type="number" name="durationSemesters" value={formData.durationSemesters} onChange={handleChange} min="1" max="8" />
               <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
               <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} />
             </div>

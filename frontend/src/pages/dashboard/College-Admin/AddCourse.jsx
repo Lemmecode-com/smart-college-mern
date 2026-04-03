@@ -15,7 +15,8 @@ import {
   FaChalkboardTeacher,
   FaUsers,
   FaClock,
-  FaAward
+  FaAward,
+  FaCalendarAlt
 } from "react-icons/fa";
 
 export default function AddCourse() {
@@ -39,7 +40,7 @@ export default function AddCourse() {
     type: "THEORY",
     status: "ACTIVE",
     programLevel: "UG",
-    semester: "",
+    durationSemesters: "",
     credits: "",
     maxStudents: ""
   });
@@ -136,7 +137,7 @@ export default function AddCourse() {
       return;
     }
 
-    if (!formData.semester || !formData.credits || !formData.maxStudents) {
+    if (!formData.durationSemesters || !formData.credits || !formData.maxStudents) {
       setError("Please fill all required fields");
       return;
     }
@@ -152,7 +153,7 @@ export default function AddCourse() {
         type: formData.type,
         status: formData.status,
         programLevel: formData.programLevel,
-        semester: Number(formData.semester),
+        durationSemesters: Number(formData.durationSemesters),
         credits: Number(formData.credits),
         maxStudents: Number(formData.maxStudents)
       });
@@ -356,24 +357,27 @@ export default function AddCourse() {
                 </div>
               </div>
 
-              {/* SEMESTER */}
-              <div className="col-md-4">
+              {/* PROGRAM DURATION (SEMESTERS) */}
+              <div className="col-md-6">
                 <div className="form-group">
                   <label className="form-label">
                     <FaClock className="me-2 label-icon" />
-                    Semester <span className="text-danger">*</span>
+                    Program Duration (Semesters) <span className="text-danger">*</span>
                   </label>
                   <input
                     type="number"
                     className="form-control form-control-lg"
-                    name="semester"
-                    value={formData.semester}
+                    name="durationSemesters"
+                    value={formData.durationSemesters}
                     onChange={handleChange}
-                    placeholder="e.g., 1"
+                    placeholder="e.g., 6"
                     min="1"
-                    max="10"
+                    max="8"
                     required
                   />
+                  <small className="text-muted">
+                    Total semesters in this program (e.g., BCA = 6 semesters). Years will be auto-calculated.
+                  </small>
                 </div>
               </div>
 
@@ -474,7 +478,7 @@ export default function AddCourse() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .header-section {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 2rem;

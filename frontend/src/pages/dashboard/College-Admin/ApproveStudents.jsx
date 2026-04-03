@@ -1,12 +1,12 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
-  FaUsers,
   FaSearch,
   FaEye,
   FaCheckCircle,
@@ -14,19 +14,13 @@ import {
   FaBuilding,
   FaBookOpen,
   FaCalendarAlt,
-  FaFilter,
   FaChevronLeft,
   FaChevronRight,
-  FaChevronDown,
   FaExclamationTriangle,
   FaSyncAlt,
-  FaSpinner,
-  FaInfoCircle,
   FaUserCheck,
-  FaUserGraduate,
-  FaChartPie,
-  FaDownload,
-  FaEnvelope
+  FaEnvelope,
+  FaUsers
 } from "react-icons/fa";
 
 const PAGE_SIZE = 5;
@@ -78,7 +72,6 @@ export default function ApproveStudents() {
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
-      console.error("Approved students fetch error:", err);
       setError(err.response?.data?.message || "Failed to load approved students. Please try again.");
     } finally {
       setLoading(false);
@@ -126,10 +119,15 @@ export default function ApproveStudents() {
     }
   }, [location.state?.refresh]);
 
-  // Refresh on page focus (when user returns to tab)
+  // Refresh on page focus (when user returns to tab) - with debounce to prevent excessive calls
   useEffect(() => {
+    let lastRefreshTime = 0;
+    const MIN_REFRESH_INTERVAL = 30000; // Minimum 30 seconds between refreshes
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      const now = Date.now();
+      if (document.visibilityState === 'visible' && now - lastRefreshTime > MIN_REFRESH_INTERVAL) {
+        lastRefreshTime = now;
         fetchApprovedStudents();
       }
     };
@@ -153,7 +151,7 @@ export default function ApproveStudents() {
   /* ================= SEARCH ================= */
   const filteredStudents = useMemo(() => {
     return students.filter((s) =>
-      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''}`
+      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''} ${s.admissionYear || ''}`
         .toLowerCase()
         .includes(search.toLowerCase())
     );
@@ -164,43 +162,6 @@ export default function ApproveStudents() {
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
-  );
-
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="skeleton-table">
-        <div className="skeleton-table-header">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="skeleton-header-cell"></div>
-          ))}
-        </div>
-        {[...Array(PAGE_SIZE)].map((_, i) => (
-          <div key={i} className="skeleton-table-row">
-            <div className="skeleton-cell skeleton-text short"></div>
-            <div className="skeleton-cell skeleton-text long"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text medium"></div>
-            <div className="skeleton-cell skeleton-text short"></div>
-            <div className="skeleton-cell skeleton-badge"></div>
-            <div className="skeleton-cell skeleton-action"></div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 
   /* ================= ERROR STATE ================= */
@@ -241,13 +202,13 @@ export default function ApproveStudents() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/students">Students</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Approved Students</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Students", path: "/students" },
+          { label: "Approved Students" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -293,15 +254,6 @@ export default function ApproveStudents() {
             <div className="stat-card-value">{Object.keys(stats.byCourse).length}</div>
           </div>
         </div>
-        {/* <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'}}>
-            <FaCalendarAlt />
-          </div>
-          <div className="stat-card-content">
-            <div className="stat-card-label">Admission Years</div>
-            <div className="stat-card-value">{Object.keys(stats.byYear).length}</div>
-          </div>
-        </div> */}
       </div>
 
       {/* CONTROLS SECTION */}
@@ -355,54 +307,64 @@ export default function ApproveStudents() {
               <table className="erp-table">
                 <thead>
                   <tr>
-                    <th>Sr. No.</th>
-                    <th>Name</th>
-                    <th><FaEnvelope className="header-icon" /> Email</th>
-                    <th><FaBuilding className="header-icon" /> Department</th>
-                    <th><FaBookOpen className="header-icon" /> Course</th>
-                    <th><FaCalendarAlt className="header-icon" /> Admission Year</th>
-                    <th>Status</th>
-                    <th className="text-center">Actions</th>
+                    <th className="th-student">
+                      <FaUserCheck className="header-icon" /> Student Name
+                    </th>
+                    <th className="th-course">
+                      <FaBookOpen className="header-icon" /> Course
+                    </th>
+                    <th className="th-department">
+                      <FaBuilding className="header-icon" /> Department
+                    </th>
+                    <th className="th-year">
+                      <FaCalendarAlt className="header-icon" /> Admission Year
+                    </th>
+                    <th className="th-status">Status</th>
+                    <th className="th-actions text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedStudents.map((student, index) => (
                     <tr key={student._id} className="table-row">
-                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                      <td>
-                        <div className="student-name">
-                          <div className="student-details">
-                            <div className="student-fullname">{student.fullName}</div>
-                            <div className="student-meta">
-                              {/* <span className="student-id">ID: {student.studentId || 'N/A'}</span> */}
-                            </div>
-                          </div>
+                      <td className="cell-student">
+                        <div className="student-info">
+                          <span className="student-name-cell">{student.fullName}</span>
+                          <span className="student-email">{student.email}</span>
                         </div>
                       </td>
-                      <td>
-                        <div className="contact-info">
-                          <FaEnvelope className="contact-icon" />
-                          <span>{student.email}</span>
-                        </div>
+                      <td className="cell-course">
+                        <span className="badge badge-course">
+                          {student.course_id?.name || "N/A"}
+                        </span>
                       </td>
-                      <td>{student.department_id?.name || "N/A"}</td>
-                      <td>{student.course_id?.name || "N/A"}</td>
-                      <td>{student.admissionYear || "N/A"}</td>
-                      <td>
-                        <span className="status-badge status-approved">
-                          <FaCheckCircle className="status-icon" />
+                      <td className="cell-department">
+                        <span className="department-name">
+                          {student.department_id?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td className="cell-year">
+                        <span className="badge badge-graduation-year">
+                          <FaCalendarAlt className="badge-icon" />
+                          {student.admissionYear || "N/A"}
+                        </span>
+                      </td>
+                      <td className="cell-status">
+                        <span className="badge badge-status">
+                          <FaCheckCircle className="badge-icon" />
                           APPROVED
                         </span>
                       </td>
-                      <td className="action-cell">
-                        <button
-                          className="action-btn view-btn"
-                          title="View Student Details"
-                          onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
-                          aria-label={`View details for ${student.fullName}`}
-                        >
-                          <FaEye />
-                        </button>
+                      <td className="cell-actions">
+                        <div className="action-buttons">
+                          <button
+                            className="btn btn-action btn-view-student"
+                            onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                            title="View Student Details"
+                          >
+                            <FaEye />
+                            <span className="btn-text">View</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -425,106 +387,98 @@ export default function ApproveStudents() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
+        /* ================= GLOBAL TYPOGRAPHY ================= */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
           animation: fadeIn 0.6s ease;
         }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-        
+
+        /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1c6f86 100%);
+          padding: 2rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
+          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
           animation: slideDown 0.6s ease;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1.5rem;
         }
-        
+
         .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
+          width: 64px;
+          height: 64px;
+          background: rgba(61, 181, 230, 0.15);
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
+          font-size: 2rem;
+          color: #3db5e6;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(61, 181, 230, 0.3);
         }
-        
+
         .erp-page-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 1.875rem;
           font-weight: 700;
+          font-family: 'Poppins', sans-serif;
+          letter-spacing: -0.5px;
         }
-        
+
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
-          opacity: 0.85;
+          opacity: 0.9;
           font-size: 1rem;
+          font-weight: 400;
         }
-        
-        /* STATS GRID */
+
+        /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
         }
-        
+
         .stat-card {
           background: white;
-          padding: 1.5rem;
+          padding: 1.75rem;
           border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
           display: flex;
           align-items: center;
           gap: 1.25rem;
-          border-left: 4px solid transparent;
+          border: 1px solid #e2e8f0;
+          border-left: 4px solid #3db5e6;
           transition: all 0.3s ease;
+          height: 100px;
         }
-        
+
         .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+          transform: translateY(-5px);
+          box-shadow: 0 12px 28px rgba(15, 58, 74, 0.15);
+          border-color: #3db5e6;
         }
-        
+
         .stat-card-icon {
-          width: 52px;
-          height: 52px;
+          width: 56px;
+          height: 56px;
           border-radius: 14px;
           display: flex;
           align-items: center;
@@ -533,26 +487,28 @@ export default function ApproveStudents() {
           flex-shrink: 0;
           font-size: 1.5rem;
         }
-        
+
         .stat-card-content {
           flex: 1;
         }
-        
+
         .stat-card-label {
-          font-size: 0.95rem;
-          color: #666;
+          font-size: 0.9rem;
+          color: #64748b;
           font-weight: 600;
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.375rem;
+          font-family: 'Inter', sans-serif;
         }
-        
+
         .stat-card-value {
           font-size: 2rem;
-          font-weight: 800;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f3a4a;
           line-height: 1;
+          font-family: 'Poppins', sans-serif;
         }
         
-        /* CONTROLS CARD */
+        /* ================= CONTROLS CARD ================= */
         .erp-card {
           background: white;
           border-radius: 16px;
@@ -560,447 +516,403 @@ export default function ApproveStudents() {
           margin-bottom: 1.5rem;
           overflow: hidden;
           transition: all 0.3s ease;
+          border: 1px solid #e2e8f0;
         }
-        
+
         .erp-card:hover {
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
-        
+
         .erp-card-header {
-          padding: 1.5rem 1.75rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #e9ecef;
+          padding: 1.5rem 2rem;
+          background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+          border-bottom: 1px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .erp-card-header h3 {
           margin: 0;
-          font-size: 1.35rem;
+          font-size: 1.25rem;
           font-weight: 700;
-          color: #1a4b6d;
+          color: #0f3a4a;
           display: flex;
           align-items: center;
           gap: 0.75rem;
+          font-family: 'Poppins', sans-serif;
         }
-        
+
         .erp-card-icon {
-          color: #1a4b6d;
+          color: #3db5e6;
           font-size: 1.25rem;
         }
-        
+
         .record-count {
-          background: rgba(76, 175, 80, 0.15);
-          color: #4CAF50;
-          padding: 0.25rem 0.75rem;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: white;
+          padding: 0.375rem 1rem;
           border-radius: 20px;
           font-size: 0.875rem;
           font-weight: 600;
+          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
         }
-        
+
         .erp-card-body {
           padding: 0;
         }
-        
+
         .controls-container {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 1.25rem 1.75rem;
+          padding: 1.5rem 2rem;
           flex-wrap: wrap;
           gap: 1rem;
         }
-        
+
         .search-box {
           position: relative;
           flex: 1;
-          min-width: 300px;
+          min-width: 320px;
           max-width: 500px;
         }
-        
+
         .search-icon {
           position: absolute;
-          left: 1rem;
+          left: 1.25rem;
           top: 50%;
           transform: translateY(-50%);
-          color: #666;
+          color: #94a3b8;
           font-size: 1rem;
         }
-        
+
         .search-box input {
           width: 100%;
-          padding: 0.75rem 1rem 0.75rem 2.5rem;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
+          padding: 0.875rem 1.25rem 0.875rem 2.75rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
           font-size: 0.95rem;
           transition: all 0.3s ease;
+          font-family: 'Inter', sans-serif;
         }
-        
+
         .search-box input:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.1);
+          outline: none;
         }
-        
-        .export-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+
+        .search-box input::placeholder {
+          color: #94a3b8;
         }
-        
-        .export-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-        }
-        
-        .export-icon {
-          font-size: 1.1rem;
-        }
-        
-        /* TABLE */
+
+        /* ================= TABLE ================= */
         .table-container {
           overflow-x: auto;
-          border-radius: 0 0 16px 16px;
+          border-radius: 12px;
         }
-        
+
         .erp-table {
           width: 100%;
           border-collapse: collapse;
-          min-width: 900px;
         }
-        
+
         .erp-table thead {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
         }
-        
+
         .erp-table th {
-          padding: 1rem 1.25rem;
+          padding: 16px 20px;
           text-align: left;
+          font-size: 12px;
           font-weight: 600;
-          font-size: 0.95rem;
-          position: relative;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border-bottom: none;
           white-space: nowrap;
+          opacity: 0.95;
+          font-family: 'Inter', sans-serif;
         }
-        
+
+        .erp-table th:first-child {
+          border-top-left-radius: 12px;
+        }
+
+        .erp-table th:last-child {
+          border-top-right-radius: 12px;
+        }
+
         .header-icon {
           margin-right: 0.5rem;
           font-size: 0.9rem;
+          color: #3db5e6;
         }
-        
+
         .erp-table tbody tr {
-          border-bottom: 1px solid #f0f2f5;
-          transition: all 0.2s ease;
+          transition: all 0.25s ease;
+          border-bottom: 1px solid #e2e8f0;
         }
-        
+
         .erp-table tbody tr:hover {
-          background: #f8f9ff;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
-        
+
         .erp-table td {
-          padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
+          padding: 18px 20px;
+          border-bottom: 1px solid #e2e8f0;
           vertical-align: middle;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-name {
+
+        /* Table Cell Styles */
+        .th-student,
+        .cell-student {
+          min-width: 240px;
+        }
+
+        .th-course,
+        .cell-course {
+          min-width: 180px;
+        }
+
+        .th-department,
+        .cell-department {
+          min-width: 200px;
+        }
+
+        .th-year,
+        .cell-year {
+          min-width: 150px;
+        }
+
+        .th-status,
+        .cell-status {
+          min-width: 140px;
+        }
+
+        .th-actions,
+        .cell-actions {
+          min-width: 140px;
+        }
+
+        /* Student Info Cell */
+        .student-info {
           display: flex;
-          align-items: center;
-          gap: 1rem;
+          flex-direction: column;
+          gap: 6px;
         }
-        
-        .student-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 1rem;
-          flex-shrink: 0;
+
+        .student-name-cell {
+          font-weight: 700;
+          color: #0f3a4a;
+          font-size: 15px;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-details {
-          flex: 1;
+
+        .student-email {
+          font-size: 13px;
+          color: #64748b;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .student-fullname {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 0.95rem;
-        }
-        
-        .student-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          margin-top: 0.25rem;
-        }
-        
-        .student-id {
-          font-size: 0.8rem;
-          color: #6c757d;
-          background: #f0f2f5;
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-        }
-        
-        .contact-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #1a4b6d;
-        }
-        
-        .contact-icon {
-          color: #6c757d;
-          font-size: 0.9rem;
-        }
-        
-        .status-badge {
+
+        /* Badges */
+        .badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .badge-icon {
+          font-size: 12px;
+        }
+
+        .badge-course {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+        }
+
+        .badge-graduation-year {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-status {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+        }
+
+        .department-name {
+          color: #475569;
           font-weight: 600;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
         }
-        
-        .status-approved {
-          background: rgba(76, 175, 80, 0.15);
-          color: #4CAF50;
-        }
-        
-        .status-icon {
-          font-size: 0.8rem;
-        }
-        
-        .action-cell {
+
+        .text-center {
           text-align: center;
-          min-width: 100px;
         }
-        
-        .action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
+
+        /* Action Buttons */
+        .action-buttons {
           display: flex;
+          gap: 8px;
+          justify-content: center;
+        }
+
+        .btn {
+          display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
+          padding: 10px 18px;
           border: none;
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-          color: white;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
-          font-size: 0.9rem;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          white-space: nowrap;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .btn:hover:not(:disabled) {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+          transform: translateY(-1px);
+        }
+
+        .btn-action {
+          padding: 10px 18px;
+          font-size: 13px;
+          border-radius: 8px;
+          transition: all 0.25s ease;
+        }
+
+        .btn-action svg {
+          font-size: 14px;
+        }
+
+        .btn-view-student {
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(61, 181, 230, 0.3);
+        }
+
+        .btn-view-student:hover {
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          box-shadow: 0 5px 15px rgba(61, 181, 230, 0.4);
+        }
+
+        .btn-text {
+          margin-left: 4px;
         }
         
-        .view-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
-        }
-        
-        .view-btn:active {
-          transform: translateY(0);
-        }
-        
-        /* PAGINATION */
+        /* ================= PAGINATION ================= */
         .erp-pagination {
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 1.5rem;
-          border-top: 1px solid #e9ecef;
+          border-top: 1px solid #e2e8f0;
           gap: 0.5rem;
         }
-        
+
         .page-btn {
           width: 40px;
           height: 40px;
-          border-radius: 8px;
-          border: none;
-          background: #f8f9fa;
-          color: #1a4b6d;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          background: white;
+          color: #0f3a4a;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-family: 'Inter', sans-serif;
         }
-        
+
         .page-btn:hover:not(:disabled) {
-          background: #e9ecef;
+          background: #f6fbff;
+          border-color: #3db5e6;
           transform: translateY(-1px);
         }
-        
+
         .page-btn:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
         }
-        
+
         .page-btn.active {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
+          border-color: transparent;
+          box-shadow: 0 3px 10px rgba(61, 181, 230, 0.3);
         }
-        
+
         .page-numbers {
           display: flex;
-          gap: 0.25rem;
+          gap: 0.375rem;
         }
-        
-        /* EMPTY STATE */
+
+        /* ================= EMPTY STATE ================= */
         .empty-state {
           text-align: center;
-          padding: 3rem 2rem;
-          color: #666;
+          padding: 4rem 2rem;
+          color: #64748b;
         }
-        
+
         .empty-icon {
-          width: 80px;
-          height: 80px;
-          margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(67, 160, 71, 0.1) 100%);
-          border-radius: 20px;
+          width: 96px;
+          height: 96px;
+          margin: 0 auto 2rem;
+          background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(4, 120, 87, 0.08) 100%);
+          border-radius: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #4CAF50;
-          font-size: 2.5rem;
+          color: #059669;
+          font-size: 3rem;
         }
-        
+
         .empty-state h3 {
-          font-size: 1.75rem;
-          color: #2c3e50;
+          font-size: 1.5rem;
+          color: #0f3a4a;
           margin-bottom: 0.75rem;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 600;
         }
-        
+
         .empty-description {
-          font-size: 1.1rem;
+          font-size: 1rem;
           margin-bottom: 1.5rem;
-          max-width: 600px;
+          max-width: 500px;
           margin-left: auto;
           margin-right: auto;
-          color: #6c757d;
+          color: #64748b;
+          line-height: 1.6;
+          font-family: 'Inter', sans-serif;
         }
-        
-        /* SKELETON LOADING */
-        .skeleton-container {
-          padding: 1.5rem;
-        }
-        
-        .skeleton-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .skeleton-stat-card {
-          background: #f8f9fa;
-          padding: 1.5rem;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .skeleton-stat-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
-          background: #e9ecef;
-        }
-        
-        .skeleton-stat-content {
-          flex: 1;
-        }
-        
-        .skeleton-stat-label {
-          height: 16px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 60%;
-          margin-bottom: 0.5rem;
-        }
-        
-        .skeleton-stat-value {
-          height: 28px;
-          background: #e9ecef;
-          border-radius: 4px;
-          width: 40%;
-        }
-        
-        .skeleton-table {
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        
-        .skeleton-table-header {
-          display: grid;
-          grid-template-columns: 60px repeat(6, 1fr) 100px;
-          background: #f8f9fa;
-          border-bottom: 1px solid #e9ecef;
-        }
-        
-        .skeleton-header-cell {
-          height: 40px;
-          background: #e9ecef;
-        }
-        
-        .skeleton-table-row {
-          display: grid;
-          grid-template-columns: 60px repeat(6, 1fr) 100px;
-          border-bottom: 1px solid #f0f2f5;
-          padding: 1rem 1.25rem;
-        }
-        
-        .skeleton-cell {
-          height: 24px;
-          background: #f0f2f5;
-          border-radius: 6px;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .skeleton-cell::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: skeleton-loading 1.5s infinite;
-        }
-        
-        .skeleton-text.long { width: 80%; }
-        .skeleton-text.medium { width: 60%; }
-        .skeleton-text.short { width: 40%; }
-        .skeleton-badge { width: 50%; height: 20px; }
-        .skeleton-action { width: 36px; height: 36px; border-radius: 8px; }
-        
-        @keyframes skeleton-loading {
-          to { left: 100%; }
-        }
-        
-        /* ERROR CONTAINER */
+
+        /* ================= ERROR CONTAINER ================= */
         .erp-error-container {
           display: flex;
           flex-direction: column;
@@ -1014,229 +926,233 @@ export default function ApproveStudents() {
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
           margin: 2rem;
         }
-        
+
         .erp-error-icon {
           width: 80px;
           height: 80px;
           border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
+          background: rgba(239, 68, 68, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 1.5rem;
-          color: #F44336;
+          color: #ef4444;
           font-size: 3rem;
         }
-        
+
         .erp-error-container h3 {
-          font-size: 1.8rem;
-          color: #1a4b6d;
+          font-size: 1.75rem;
+          color: #0f3a4a;
           margin-bottom: 1rem;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 600;
         }
-        
+
         .erp-error-container p {
-          color: #666;
-          font-size: 1.1rem;
-          max-width: 600px;
+          color: #64748b;
+          font-size: 1rem;
+          max-width: 500px;
           margin-bottom: 1.5rem;
           line-height: 1.6;
+          font-family: 'Inter', sans-serif;
         }
-        
+
         .error-actions {
           display: flex;
           gap: 1rem;
           margin-top: 1rem;
         }
-        
-        /* LOADING CONTAINER */
-        .erp-loading-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-          position: relative;
-        }
-        
-        .erp-loading-spinner {
-          position: relative;
-          width: 80px;
-          height: 80px;
-        }
-        
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #1a4b6d;
-          animation: spin 1s linear infinite;
-        }
-        
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
-          animation-delay: 0.1s;
-        }
-        
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
-          animation-delay: 0.2s;
-        }
-        
-        .erp-loading-text {
-          font-size: 1.35rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-        
-        .loading-progress {
-          width: 250px;
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: -1rem;
-        }
-        
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d 0%, #0f3a4a 100%);
-          width: 35%;
-          animation: progressPulse 1.8s ease-in-out infinite;
-        }
-        
-        /* ANIMATIONS */
+
+        /* ================= ANIMATIONS ================= */
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        
-        @keyframes progressPulse {
-          0%, 100% { width: 35%; }
-          50% { width: 65%; }
-        }
-        
+
         .animate-fade-in {
           animation: fadeIn 0.6s ease;
         }
-        
-        /* RESPONSIVE DESIGN */
+
+        /* ================= RESPONSIVE DESIGN ================= */
         @media (max-width: 992px) {
           .controls-container {
             flex-direction: column;
             align-items: stretch;
           }
-          
+
           .search-box {
             min-width: auto;
             max-width: 100%;
           }
-          
+
           .erp-table {
             min-width: 750px;
           }
         }
-        
+
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
           }
-          
+
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
           }
-          
+
+          .erp-header-content {
+            gap: 1rem;
+          }
+
+          .erp-header-icon {
+            width: 56px;
+            height: 56px;
+            font-size: 1.75rem;
+          }
+
+          .erp-page-title {
+            font-size: 1.5rem;
+          }
+
           .stats-grid {
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
           }
-          
+
+          .stat-card {
+            padding: 1.25rem;
+            height: auto;
+          }
+
+          .stat-card-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+          }
+
           .stat-card-value {
             font-size: 1.75rem;
           }
-          
+
           .erp-card-header {
             flex-direction: column;
             align-items: flex-start;
-            gap: 0.75rem;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
           }
-          
+
           .record-count {
             align-self: flex-end;
           }
-          
+
+          .controls-container {
+            padding: 1.25rem 1.5rem;
+          }
+
+          .search-box {
+            min-width: 100%;
+          }
+
           .erp-table {
             min-width: 650px;
           }
-          
+
+          .erp-table th {
+            padding: 14px 16px;
+            font-size: 11px;
+          }
+
+          .erp-table td {
+            padding: 16px 16px;
+          }
+
           .page-numbers {
             flex-wrap: wrap;
           }
-          
+
           .page-btn {
             width: 36px;
             height: 36px;
             font-size: 0.85rem;
           }
-          
+
           .empty-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 2rem;
+            width: 80px;
+            height: 80px;
+            font-size: 2.5rem;
           }
-          
+
           .empty-state h3 {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
           }
-          
-          .skeleton-table-header,
-          .skeleton-table-row {
-            grid-template-columns: 60px 2fr 1fr 1fr 100px;
+
+          .btn-action {
+            padding: 8px 14px;
+            font-size: 12px;
           }
         }
-        
+
         @media (max-width: 480px) {
           .erp-table {
             min-width: 550px;
           }
-          
+
           .erp-card-header h3 {
-            font-size: 1.25rem;
+            font-size: 1.125rem;
           }
-          
+
           .erp-card-header .erp-card-icon {
             font-size: 1.1rem;
           }
-          
-          .student-name {
-            flex-direction: column;
-            align-items: flex-start;
+
+          .student-name-cell {
+            font-size: 14px;
           }
-          
-          .student-meta {
-            margin-left: 2.5rem;
+
+          .student-email {
+            font-size: 12px;
           }
-          
+
+          .department-name {
+            font-size: 13px;
+          }
+
+          .badge {
+            font-size: 11px;
+            padding: 6px 12px;
+          }
+
           .stat-card-label {
             font-size: 0.85rem;
           }
-          
+
           .stat-card-value {
             font-size: 1.5rem;
+          }
+
+          .erp-page-title {
+            font-size: 1.375rem;
+          }
+
+          .erp-table th {
+            padding: 12px 14px;
+            font-size: 10px;
+          }
+
+          .erp-table td {
+            padding: 14px 14px;
           }
         }
       `}</style>

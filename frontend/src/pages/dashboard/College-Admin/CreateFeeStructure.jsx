@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaMoneyBillWave,
@@ -66,8 +67,11 @@ export default function CreateFeeStructure() {
   const loadCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      setCourses(res.data || []);
-    } catch {
+      // Handle different API response formats
+      const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
+                          Array.isArray(res.data) ? res.data : [];
+      setCourses(coursesData);
+    } catch (err) {
       setCourses([]);
     }
   };
@@ -140,13 +144,13 @@ export default function CreateFeeStructure() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/fees">Fee Management</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Create Fee Structure</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Fee Management", path: "/fees" },
+          { label: "Create Fee Structure" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -265,7 +269,7 @@ export default function CreateFeeStructure() {
                     disabled={!department_id}
                   >
                     <option value="">-- Select Course --</option>
-                    {courses.map((c) => (
+                    {Array.isArray(courses) && courses.map((c) => (
                       <option key={c._id} value={c._id}>
                         {c.name} ({c.code})
                       </option>
@@ -494,36 +498,14 @@ export default function CreateFeeStructure() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-        
+
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -536,7 +518,7 @@ export default function CreateFeeStructure() {
           align-items: center;
           animation: slideDown 0.6s ease;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;

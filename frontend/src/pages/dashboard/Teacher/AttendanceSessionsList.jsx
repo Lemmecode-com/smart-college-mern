@@ -96,7 +96,6 @@ export default function AttendanceSessionsList() {
       const res = await api.get("/attendance/sessions");
       setSessions(res.data || []);
     } catch (err) {
-      console.error("Failed to load sessions:", err);
       setError("Failed to load attendance sessions. Please try again.");
     } finally {
       setLoading(false);
@@ -108,7 +107,7 @@ export default function AttendanceSessionsList() {
     try {
       const res = await api.get("/timetable");
       const allTimetables = res.data || [];
-      
+
       // Get all slots from all timetables
       const allSlots = [];
       for (const timetable of allTimetables) {
@@ -118,7 +117,7 @@ export default function AttendanceSessionsList() {
       }
       setSlots(allSlots);
     } catch (err) {
-      console.error("Failed to load slots:", err);
+      // Silently fail - slots are optional
     }
   };
 

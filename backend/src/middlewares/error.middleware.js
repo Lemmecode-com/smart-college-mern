@@ -2,131 +2,156 @@ const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 
 /**
- * Global Error Handler Middleware
+ * Global Error Handler Middleware for Express 5
+ *
+ * Must have 4 parameters (err, req, res, next) to be recognized as error handler
+ * In Express 5, error handlers should NOT call next() after sending response
  */
 const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
+  // Log error details
+  console.error("=".repeat(60));
+  console.error("❌ [Error Handler]");
+  console.error("   - Message:", err.message);
+  console.error("   - Code:", err.code || "UNKNOWN");
+  console.error("   - StatusCode:", err.statusCode);
+  console.error("   - Name:", err.name);
+  console.error("   - Stack:", err.stack);
+  console.error("   - URL:", req.originalUrl);
+  console.error("   - Method:", req.method);
+  console.error("   - Error object keys:", Object.keys(err));
+  console.error("   - Full error:", err);
+  console.error("=".repeat(60));
 
-  // Log error using Winston (file only, not console)
-  logger.logError(`[Error Handler] ${err.name}: ${err.message}`, {
+  // Log to file
+  logger.logError(`[Error Handler] ${err.name || "Error"}: ${err.message}`, {
     name: err.name,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     url: req.originalUrl,
     method: req.method,
     userId: req.user?._id || req.user?.id,
   });
 
-  // Mongoose CastError (Invalid ObjectId)
-  if (err.name === 'CastError') {
+  let error = { ...err };
+  error.message = err.message || "Internal server error";
+
+  // Handle specific error types
+  if (err.name === "MongooseError" || err.name === "MongoServerError") {
     error = {
-      statusCode: 400,
-      message: 'Invalid ID format',
-      code: 'INVALID_ID'
+      statusCode: 500,
+      message: "Database error occurred",
+      code: "DATABASE_ERROR",
     };
   }
 
-  // Mongoose Duplicate Key Error (E11000)
+  if (err.name === "CastError") {
+    error = {
+      statusCode: 400,
+      message: "Invalid ID format",
+      code: "INVALID_ID",
+    };
+  }
+
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
     error = {
       statusCode: 409,
       message: `${field} already exists`,
-      code: 'DUPLICATE_FIELD'
+      code: "DUPLICATE_FIELD",
     };
   }
 
-  // Mongoose ValidationError
-  if (err.name === 'ValidationError') {
-    const messages = Object.values(err.errors).map(val => val.message);
+  if (err.name === "ValidationError") {
+    const messages = Object.values(err.errors).map((val) => val.message);
     error = {
       statusCode: 400,
-      message: messages.join(', '),
-      code: 'VALIDATION_ERROR'
+      message: messages.join(", "),
+      code: "VALIDATION_ERROR",
     };
   }
 
-  // JWT JsonWebTokenError
-  if (err.name === 'JsonWebTokenError') {
+  if (err.name === "JsonWebTokenError") {
     error = {
       statusCode: 401,
-      message: 'Invalid token',
-      code: 'INVALID_TOKEN'
+      message: "Invalid token",
+      code: "INVALID_TOKEN",
     };
   }
 
-  // JWT TokenExpiredError
-  if (err.name === 'TokenExpiredError') {
+  if (err.name === "TokenExpiredError") {
     error = {
       statusCode: 401,
-      message: 'Token expired',
-      code: 'TOKEN_EXPIRED'
+      message: "Token expired",
+      code: "TOKEN_EXPIRED",
     };
   }
 
-  // Stripe API Errors
-  if (err.type === 'StripeCardError' || err.type === 'StripeAPIError') {
+  if (err.type === "StripeCardError" || err.type === "StripeAPIError") {
     error = {
       statusCode: 400,
-      message: err.message || 'Payment failed',
-      code: 'STRIPE_ERROR'
+      message: err.message || "Payment failed",
+      code: "STRIPE_ERROR",
     };
   }
 
-  // Express Validator Errors
-  if (err.array && typeof err.array === 'function') {
-    const validationErrors = err.array();
-    error = {
-      statusCode: 400,
-      message: validationErrors.map(e => e.msg).join(', '),
-      code: 'VALIDATION_ERROR',
-      details: validationErrors
-    };
-  }
-
-  // Multer Errors (File Upload)
-  if (err.name === 'MulterError') {
+  if (err.name === "MulterError") {
     error = {
       statusCode: 400,
       message: `File upload error: ${err.message}`,
-      code: 'FILE_UPLOAD_ERROR'
+      code: "FILE_UPLOAD_ERROR",
     };
   }
 
-  // Operational Error (AppError)
+  // Operational errors (AppError or errors with statusCode/code properties)
   if (err instanceof AppError) {
     error = {
       statusCode: err.statusCode,
       message: err.message,
-      code: err.code
+      code: err.code,
+    };
+  } else if (err.statusCode && err.code) {
+    // Handle errors from services that have statusCode and code but aren't AppError instances
+    error = {
+      statusCode: err.statusCode,
+      message: err.message || "Operation failed",
+      code: err.code,
+    };
+  } else if (err.statusCode) {
+    // Handle errors with only statusCode
+    error = {
+      statusCode: err.statusCode,
+      message: err.message || "Operation failed",
+      code: err.code || "OPERATIONAL_ERROR",
+    };
+  } else if (err.code) {
+    // Handle errors with only error code
+    error = {
+      statusCode: 500,
+      message: err.message || "Operation failed",
+      code: err.code,
     };
   }
 
-  // Determine final response values
+  // Default values
   const statusCode = error.statusCode || 500;
-  const message = error.message || 'Internal server error';
-  const code = error.code || 'INTERNAL_ERROR';
+  const message = error.message || "Internal server error";
+  const code = error.code || "INTERNAL_ERROR";
 
-  // Build response object
-  const response = {
+  console.log(
+    `🔴 [Error Handler] Sending response: status=${statusCode}, code=${code}, message=${message}`,
+  );
+
+  // Send standardized error response
+  res.status(statusCode).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' && statusCode === 500
-      ? 'Internal server error' // Hide detailed error messages in production for 500s
-      : message,
-    code
-  };
+    error: {
+      code,
+      message,
+      details: error.details || {},
+    },
+  });
 
-  // Add validation details if available
-  if (error.details) {
-    response.details = error.details;
-  }
-
-  // Add stack trace in development only
-  if (process.env.NODE_ENV === 'development' && err.stack) {
-    response.stack = err.stack;
-  }
-
-  res.status(statusCode).json(response);
+  // IMPORTANT: In Express 5, do NOT call next() after sending response
+  // This prevents "next is not a function" error
 };
 
 module.exports = errorHandler;

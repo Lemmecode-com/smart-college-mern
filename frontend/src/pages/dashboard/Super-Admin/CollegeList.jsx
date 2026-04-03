@@ -1,8 +1,18 @@
-import { useContext, useEffect, useState, useMemo } from "react";
+import {
+  useContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
 
 import {
   FaUniversity,
@@ -15,16 +25,16 @@ import {
   FaToggleOff,
   FaToggleOn,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaInfoCircle,
   FaDownload,
   FaFilter,
   FaChevronDown,
   FaChevronUp,
-  FaChevronLeft,
   FaChevronRight,
   FaPlus,
-  FaListOl
+  FaListOl,
+  FaFileExcel,
+  FaFilePdf,
 } from "react-icons/fa";
 
 const ITEMS_PER_PAGE = 10;
@@ -41,6 +51,19 @@ export default function CollegeList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toggleData, setToggleData] = useState({
+    id: null,
+    currentStatus: null,
+  });
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Debounce search
+  const searchTimeoutRef = useRef(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const hasLoadedRef = useRef(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -48,16 +71,30 @@ export default function CollegeList() {
     return <Navigate to="/super-admin/dashboard" />;
 
   /* ================= FETCH COLLEGES ================= */
-  const fetchColleges = async () => {
+  const fetchColleges = async (forceRefresh = false) => {
+    // Prevent duplicate fetches in Strict Mode (unless force refresh)
+    if (!forceRefresh && hasLoadedRef.current) return;
+
     try {
       setLoading(true);
       setError("");
-      const res = await api.get("/master/get/colleges");
-      setColleges(res.data || []);
+      // Fetch all colleges including inactive ones for Super Admin
+      const res = await api.get("/master/get/colleges?includeInactive=true");
+
+      const collegesData = res.data.colleges || res.data || [];
+      setColleges(Array.isArray(collegesData) ? collegesData : []);
       setRetryCount(0);
+      hasLoadedRef.current = true;
+      setHasLoaded(true);
     } catch (err) {
-      console.error("Colleges fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load colleges. Please try again.");
+      // Only show error if not already loaded
+      if (!hasLoadedRef.current) {
+        const errorMsg =
+          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
+          "Failed to load colleges. Please try again.";
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,83 +104,152 @@ export default function CollegeList() {
     fetchColleges();
   }, []);
 
+  /* ================= DEBOUNCED SEARCH ================= */
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [search]);
+
+  /* ================= CLEANUP ================= */
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      // Reset hasLoaded flag on unmount for next navigation
+      hasLoadedRef.current = false;
+    };
+  }, []);
+
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchColleges();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   };
 
+  /* ================= REFRESH HANDLER ================= */
+  const handleRefresh = () => {
+    // Reset the loaded flag to allow re-fetching
+    hasLoadedRef.current = false;
+    fetchColleges(true); // Force refresh
+  };
+
   /* ================= FILTER + PAGINATION ================= */
   const filteredColleges = useMemo(() => {
     return colleges
-      .filter(college => 
-        college.name.toLowerCase().includes(search.toLowerCase()) ||
-        college.email.toLowerCase().includes(search.toLowerCase()) ||
-        college.contactNumber.includes(search)
+      .filter(
+        (college) =>
+          college.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          college.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          college.contactNumber.includes(debouncedSearch),
       )
-      .filter(college => 
-        filterStatus === "ALL" ? true : 
-        filterStatus === "ACTIVE" ? college.isActive : !college.isActive
+      .filter((college) =>
+        filterStatus === "ALL"
+          ? true
+          : filterStatus === "ACTIVE"
+            ? college.isActive
+            : !college.isActive,
       );
-  }, [colleges, search, filterStatus]);
+  }, [colleges, debouncedSearch, filterStatus]);
 
   const totalPages = Math.ceil(filteredColleges.length / ITEMS_PER_PAGE);
   const paginatedColleges = filteredColleges.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   /* ================= TOGGLE STATUS ================= */
-  const toggleStatus = async (id, currentStatus) => {
+  const handleToggleClick = (id, currentStatus) => {
+    setToggleData({ id, currentStatus });
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmToggle = async () => {
+    const { id, currentStatus } = toggleData;
     const action = currentStatus ? "deactivate" : "activate";
-    const confirmMessage = `Are you sure you want to ${action} this college? All associated users will ${action === "deactivate" ? "lose access" : "regain access"}.`;
-    
-    if (!window.confirm(confirmMessage)) return;
 
     try {
-      await api.put(`/master/toggle/college/${id}`);
-      setColleges(prev => 
-        prev.map(c => 
-          c._id === id ? { ...c, isActive: !c.isActive } : c
-        )
+      if (currentStatus) {
+        // College is ACTIVE - Deactivate it
+        await api.delete(`/master/${id}`);
+      } else {
+        // College is INACTIVE - Activate it
+        await api.patch(`/master/${id}/restore`);
+      }
+
+      setColleges((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
     } catch (err) {
-      alert(err.response?.data?.message || `Failed to ${action} college. Please try again.`);
-      console.error(`${action} error:`, err);
+      const errorMsg =
+        err.response?.data?.message || `Failed to ${action} college`;
+      setError(errorMsg);
     }
+    setShowConfirmModal(false);
+    setToggleData({ id: null, currentStatus: null });
   };
+
+  /* ================= EXPORT FUNCTIONALITY ================= */
+  const handleExport = useCallback(
+    async (format) => {
+      setExporting(true);
+      setShowExportMenu(false);
+
+      try {
+        // Prepare data for export
+        const exportData = filteredColleges.map((college) => ({
+          "College Name": college.name,
+          Email: college.email,
+          Contact: college.contactNumber,
+          Established: college.establishedYear,
+          Status: college.isActive ? "Active" : "Inactive",
+          Created: new Date(college.createdAt).toLocaleDateString(),
+        }));
+
+        if (format === "excel") {
+          // Excel export logic (you can integrate with ExcelJS)
+          console.log("Excel export coming soon!");
+        } else if (format === "pdf") {
+          // PDF export logic (you can integrate with jsPDF)
+          console.log("PDF export coming soon!");
+        }
+      } catch (err) {
+        console.error("Export failed. Please try again.");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [filteredColleges],
+  );
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Colleges Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate("/super-admin/dashboard")}
-          >
-            <FaChevronLeft className="erp-btn-icon" />
-            Go to Dashboard
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Colleges Loading Error"
+        message={error}
+        onRetry={handleRetry}
+        onGoBack={() => navigate("/super-admin/dashboard")}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
@@ -154,13 +260,25 @@ export default function CollegeList() {
 
   return (
     <div className="erp-container">
+      {/* CONFIRM MODAL */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmToggle}
+        title="Confirm Action"
+        message={`Are you sure you want to ${toggleData.currentStatus ? "deactivate" : "activate"} this college? All associated users will ${toggleData.currentStatus ? "lose" : "regain"} access.`}
+        type="warning"
+        confirmText={toggleData.currentStatus ? "Deactivate" : "Activate"}
+        cancelText="Cancel"
+      />
+
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/super-admin/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Colleges Management</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/super-admin/dashboard" },
+          { label: "Colleges Management" },
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -176,6 +294,38 @@ export default function CollegeList() {
           </div>
         </div>
         <div className="erp-header-actions">
+          <div className="export-dropdown">
+            <button
+              className="erp-btn erp-btn-secondary"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={exporting || filteredColleges.length === 0}
+              aria-label="Export options"
+            >
+              <FaDownload className="erp-btn-icon" />
+              <span>Export</span>
+              <FaChevronDown className="erp-btn-arrow" />
+            </button>
+            {showExportMenu && (
+              <div className="export-menu">
+                <button
+                  className="export-option"
+                  onClick={() => handleExport("excel")}
+                  disabled={exporting}
+                >
+                  <FaFileExcel className="export-icon excel" />
+                  <span>Excel Spreadsheet</span>
+                </button>
+                <button
+                  className="export-option"
+                  onClick={() => handleExport("pdf")}
+                  disabled={exporting}
+                >
+                  <FaFilePdf className="export-icon pdf" />
+                  <span>PDF Document</span>
+                </button>
+              </div>
+            )}
+          </div>
           <button
             className="erp-btn erp-btn-primary"
             onClick={() => navigate("/super-admin/create-college")}
@@ -192,7 +342,8 @@ export default function CollegeList() {
           <FaInfoCircle />
         </div>
         <div className="info-content">
-          <strong>Tip:</strong> Use search to find colleges quickly. Toggle status to enable/disable college access.
+          <strong>Tip:</strong> Use search to find colleges quickly. Toggle
+          status to enable/disable college access.
         </div>
       </div>
 
@@ -207,25 +358,33 @@ export default function CollegeList() {
                   type="text"
                   placeholder="Search by name, email, or contact..."
                   value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
+                  onChange={(e) => setSearch(e.target.value)}
                   aria-label="Search colleges"
                 />
+                {search && (
+                  <button
+                    className="search-clear"
+                    onClick={() => setSearch("")}
+                    aria-label="Clear search"
+                  >
+                    <FaTimesCircle />
+                  </button>
+                )}
               </div>
-              
+
               <div className="filter-dropdown">
                 <button className="filter-btn" aria-label="Open status filter">
                   <FaFilter className="filter-icon" />
-                  <span>{filterStatus === "ALL" ? "All Statuses" : filterStatus}</span>
+                  <span>
+                    {filterStatus === "ALL" ? "All Statuses" : filterStatus}
+                  </span>
                   <FaChevronDown className="filter-arrow" />
                 </button>
                 <div className="filter-menu">
-                  {["ALL", "ACTIVE", "INACTIVE"].map(status => (
+                  {["ALL", "ACTIVE", "INACTIVE"].map((status) => (
                     <button
                       key={status}
-                      className={`filter-option ${filterStatus === status ? 'active' : ''}`}
+                      className={`filter-option ${filterStatus === status ? "active" : ""}`}
                       onClick={() => {
                         setFilterStatus(status);
                         setCurrentPage(1);
@@ -241,7 +400,7 @@ export default function CollegeList() {
             <div className="actions-group">
               <button
                 className="refresh-btn"
-                onClick={fetchColleges}
+                onClick={handleRefresh}
                 title="Refresh college list"
                 aria-label="Refresh colleges"
               >
@@ -260,10 +419,11 @@ export default function CollegeList() {
             Colleges List
           </h3>
           <span className="record-count">
-            {filteredColleges.length} {filteredColleges.length === 1 ? "College" : "Colleges"}
+            {filteredColleges.length}{" "}
+            {filteredColleges.length === 1 ? "College" : "Colleges"}
           </span>
         </div>
-        
+
         <div className="erp-card-body">
           {paginatedColleges.length === 0 ? (
             <div className="empty-state">
@@ -272,12 +432,12 @@ export default function CollegeList() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {search || filterStatus !== "ALL" 
+                {search || filterStatus !== "ALL"
                   ? "No colleges match your search criteria. Try adjusting your filters."
                   : "There are no colleges registered yet. Create your first college to get started."}
               </p>
               {!search && filterStatus === "ALL" && (
-                <button 
+                <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
                 >
@@ -292,8 +452,12 @@ export default function CollegeList() {
                 <thead>
                   <tr>
                     <th>College</th>
-                    <th><FaEnvelope className="header-icon" /> Email</th>
-                    <th><FaPhone className="header-icon" /> Contact</th>
+                    <th>
+                      <FaEnvelope className="header-icon" /> Email
+                    </th>
+                    <th>
+                      <FaPhone className="header-icon" /> Contact
+                    </th>
                     <th>Status</th>
                     <th className="text-center">Actions</th>
                   </tr>
@@ -324,7 +488,9 @@ export default function CollegeList() {
                         </div>
                       </td>
                       <td>
-                        <span className={`status-badge status-${college.isActive ? 'active' : 'inactive'}`}>
+                        <span
+                          className={`status-badge status-${college.isActive ? "active" : "inactive"}`}
+                        >
                           {college.isActive ? (
                             <>
                               <FaCheckCircle className="status-icon" />
@@ -343,16 +509,28 @@ export default function CollegeList() {
                           <button
                             className="action-btn view-btn"
                             title="View College Details"
-                            onClick={() => navigate(`/super-admin/college/${college._id}`)}
+                            onClick={() =>
+                              navigate(`/super-admin/college/${college._id}`)
+                            }
                             aria-label={`View details for ${college.name}`}
                           >
                             <FaEye />
                           </button>
                           <button
                             className="action-btn toggle-btn"
-                            title={college.isActive ? "Deactivate College" : "Activate College"}
-                            onClick={() => toggleStatus(college._id, college.isActive)}
-                            aria-label={college.isActive ? `Deactivate ${college.name}` : `Activate ${college.name}`}
+                            title={
+                              college.isActive
+                                ? "Deactivate College"
+                                : "Activate College"
+                            }
+                            onClick={() =>
+                              handleToggleClick(college._id, college.isActive)
+                            }
+                            aria-label={
+                              college.isActive
+                                ? `Deactivate ${college.name}`
+                                : `Activate ${college.name}`
+                            }
                           >
                             {college.isActive ? (
                               <FaToggleOff className="toggle-icon" />
@@ -368,36 +546,40 @@ export default function CollegeList() {
               </table>
             </div>
           )}
-          
+
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="erp-pagination">
               <button
                 className="page-btn prev-btn"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 aria-label="Previous page"
               >
                 <FaChevronLeft />
               </button>
-              
+
               <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
-                  <button
-                    key={num}
-                    className={`page-btn ${currentPage === num ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={currentPage === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (num) => (
+                    <button
+                      key={num}
+                      className={`page-btn ${currentPage === num ? "active" : ""}`}
+                      onClick={() => setCurrentPage(num)}
+                      aria-label={`Page ${num}`}
+                      aria-current={currentPage === num ? "page" : undefined}
+                    >
+                      {num}
+                    </button>
+                  ),
+                )}
               </div>
-              
+
               <button
                 className="page-btn next-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={currentPage === totalPages}
                 aria-label="Next page"
               >
@@ -410,79 +592,66 @@ export default function CollegeList() {
 
       {/* STYLES */}
       <style>{`
+        /* ================= CONTAINER ================= */
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
         }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-        
+
+        /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           padding: 1.75rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
+          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;
           gap: 1.25rem;
         }
-        
+
         .erp-header-icon {
           width: 56px;
           height: 56px;
-          background: rgba(255, 255, 255, 0.15);
+          background: rgba(61, 181, 230, 0.2);
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.75rem;
+          color: #3db5e6;
         }
-        
+
         .erp-page-title {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
         }
-        
+
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
           opacity: 0.85;
           font-size: 1rem;
         }
-        
+
+        .erp-header-actions {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+
         .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.3);
           padding: 0.75rem 1.5rem;
           font-weight: 600;
           border-radius: 8px;
@@ -490,11 +659,83 @@ export default function CollegeList() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          transition: all 0.3s ease;
         }
-        
+
         .erp-header-actions .erp-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .erp-header-actions .erp-btn-primary {
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          border: none;
+        }
+
+        .erp-header-actions .erp-btn-primary:hover {
+          background: linear-gradient(135deg, #4fc3f7 0%, #1a4b6d 100%);
+        }
+
+        .erp-btn-arrow {
+          font-size: 0.75rem;
+          margin-left: 0.25rem;
+          transition: transform 0.3s ease;
+        }
+
+        /* ================= EXPORT DROPDOWN ================= */
+        .export-dropdown {
+          position: relative;
+        }
+
+        .export-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 0.5rem;
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+          padding: 0.5rem;
+          min-width: 200px;
+          z-index: 1000;
+          border: 1px solid #e9ecef;
+        }
+
+        .export-option {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          border: none;
+          background: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          color: #2c3e50;
+        }
+
+        .export-option:hover:not(:disabled) {
+          background: #f0f8ff;
+        }
+
+        .export-option:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .export-icon {
+          font-size: 1.1rem;
+        }
+
+        .export-icon.excel {
+          color: #1d6f42;
+        }
+
+        .export-icon.pdf {
+          color: #f40f02;
         }
         
         /* INFO BANNER */
@@ -533,7 +774,7 @@ export default function CollegeList() {
           font-weight: 600;
         }
         
-        /* CONTROLS CARD */
+        /* ================= CARD COMPONENT ================= */
         .erp-card {
           background: white;
           border-radius: 16px;
@@ -541,7 +782,7 @@ export default function CollegeList() {
           margin-bottom: 1.5rem;
           overflow: hidden;
         }
-        
+
         .erp-card-header {
           padding: 1.5rem 1.75rem;
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -550,25 +791,25 @@ export default function CollegeList() {
           justify-content: space-between;
           align-items: center;
         }
-        
+
         .erp-card-header h3 {
           margin: 0;
           font-size: 1.35rem;
           font-weight: 700;
-          color: #1a4b6d;
+          color: #0f3a4a;
           display: flex;
           align-items: center;
           gap: 0.75rem;
         }
-        
+
         .erp-card-icon {
-          color: #1a4b6d;
+          color: #0f3a4a;
           font-size: 1.25rem;
         }
-        
+
         .record-count {
-          background: rgba(26, 75, 109, 0.1);
-          color: #1a4b6d;
+          background: rgba(15, 58, 74, 0.1);
+          color: #0f3a4a;
           padding: 0.25rem 0.75rem;
           border-radius: 20px;
           font-size: 0.875rem;
@@ -619,9 +860,30 @@ export default function CollegeList() {
         }
         
         .search-box input:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+          border-color: #0f3a4a;
+          box-shadow: 0 0 0 0.2rem rgba(15, 58, 74, 0.15);
           outline: none;
+        }
+
+        .search-clear {
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #6c757d;
+          cursor: pointer;
+          font-size: 1rem;
+          padding: 0.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: color 0.2s ease;
+        }
+
+        .search-clear:hover {
+          color: #dc3545;
         }
         
         .filter-dropdown {
@@ -642,7 +904,7 @@ export default function CollegeList() {
         }
         
         .filter-btn:hover {
-          border-color: #1a4b6d;
+          border-color: #0f3a4a;
           background: #f8f9fa;
         }
         
@@ -741,7 +1003,7 @@ export default function CollegeList() {
         }
         
         .refresh-btn:hover {
-          border-color: #1a4b6d;
+          border-color: #0f3a4a;
           background: #f8f9fa;
           transform: rotate(90deg);
         }
@@ -763,7 +1025,7 @@ export default function CollegeList() {
         }
         
         .erp-table thead {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           color: white;
         }
         
@@ -800,7 +1062,7 @@ export default function CollegeList() {
           align-items: center;
           gap: 1rem;
         }
-        
+
         .college-avatar {
           width: 40px;
           height: 40px;
@@ -814,29 +1076,32 @@ export default function CollegeList() {
           font-size: 1rem;
           flex-shrink: 0;
         }
-        
+
         .college-details {
           flex: 1;
         }
-        
+
         .college-title {
-          font-weight: 600;
-          color: #1a4b6d;
+          font-weight: 700;
+          color: #0f172a;
           font-size: 0.95rem;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.2;
         }
         
         .contact-info {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: #1a4b6d;
+          color: #0f3a4a;
+          font-size: 0.875rem;
         }
-        
+
         .contact-icon {
           color: #6c757d;
           font-size: 0.9rem;
         }
-        
+
         .status-badge {
           display: inline-flex;
           align-items: center;
@@ -957,7 +1222,7 @@ export default function CollegeList() {
         }
         
         .page-btn.active {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           color: white;
         }
         
@@ -977,12 +1242,12 @@ export default function CollegeList() {
           width: 80px;
           height: 80px;
           margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, rgba(26, 75, 109, 0.1) 0%, rgba(15, 58, 74, 0.1) 100%);
+          background: linear-gradient(135deg, rgba(15, 58, 74, 0.1) 0%, rgba(12, 45, 58, 0.1) 100%);
           border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #1a4b6d;
+          color: #0f3a4a;
           font-size: 2.5rem;
         }
         
@@ -1002,18 +1267,18 @@ export default function CollegeList() {
         }
         
         .empty-action {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           border: none;
           padding: 0.875rem 2rem;
           font-size: 1.05rem;
           font-weight: 600;
           border-radius: 10px;
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.4);
+          box-shadow: 0 4px 15px rgba(15, 58, 74, 0.4);
         }
-        
+
         .empty-action:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.5);
+          box-shadow: 0 6px 20px rgba(15, 58, 74, 0.5);
         }
         
         /* MODAL STYLES */
@@ -1044,24 +1309,24 @@ export default function CollegeList() {
         
         .modal-header {
           padding: 1.5rem 2rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .modal-title {
           display: flex;
           align-items: center;
           gap: 1rem;
         }
-        
+
         .modal-icon {
           font-size: 1.75rem;
         }
-        
+
         .modal-title h3 {
           margin: 0;
           font-size: 1.5rem;
@@ -1135,7 +1400,7 @@ export default function CollegeList() {
         }
         
         .detail-value.email {
-          color: #1976d2;
+          color: #0f3a4a;
           text-decoration: underline;
           cursor: pointer;
         }
@@ -1173,55 +1438,7 @@ export default function CollegeList() {
           gap: 1rem;
           background: #f8f9fa;
         }
-        
-        /* ERROR CONTAINER */
-        .erp-error-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          text-align: center;
-          padding: 2rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin: 2rem;
-        }
-        
-        .erp-error-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: rgba(244, 67, 54, 0.1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 1.5rem;
-          color: #F44336;
-          font-size: 3rem;
-        }
-        
-        .erp-error-container h3 {
-          font-size: 1.8rem;
-          color: #1a4b6d;
-          margin-bottom: 1rem;
-        }
-        
-        .erp-error-container p {
-          color: #666;
-          font-size: 1.1rem;
-          max-width: 600px;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-        }
-        
-        .error-actions {
-          display: flex;
-          gap: 1rem;
-          margin-top: 1rem;
-        }
-        
+
         /* LOADING CONTAINER */
         .erp-loading-container {
           display: flex;
@@ -1244,24 +1461,24 @@ export default function CollegeList() {
           height: 100%;
           border-radius: 50%;
           border: 4px solid transparent;
-          border-top-color: #1a4b6d;
+          border-top-color: #0f3a4a;
           animation: spin 1s linear infinite;
         }
-        
+
         .spinner-ring:nth-child(2) {
-          border-top-color: #0f3a4a;
+          border-top-color: #0c2d3a;
           animation-delay: 0.1s;
         }
-        
+
         .spinner-ring:nth-child(3) {
-          border-top-color: rgba(26, 75, 109, 0.5);
+          border-top-color: rgba(15, 58, 74, 0.5);
           animation-delay: 0.2s;
         }
         
         .erp-loading-text {
           font-size: 1.35rem;
           font-weight: 600;
-          color: #1a4b6d;
+          color: #0f3a4a;
         }
         
         .skeleton-table {

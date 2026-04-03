@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaClipboardList,
   FaChartPie,
@@ -27,9 +29,15 @@ export default function AttendanceSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const hasLoadedRef = useRef(false);
 
   /* ================= FETCH ATTENDANCE SUMMARY ================= */
-  const fetchAttendanceSummary = async () => {
+  const fetchAttendanceSummary = useCallback(async () => {
+    // Prevent duplicate fetches
+    if (hasLoadedRef.current) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -37,44 +45,86 @@ export default function AttendanceSummary() {
       // API returns an object, not an array
       setData(res.data || {});
       setRetryCount(0);
+      toast.success("Attendance summary loaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "attendance-summary-success",
+      });
     } catch (err) {
       console.error("Attendance summary fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load attendance summary. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load attendance summary. Please try again.",
+      );
+      toast.error("Failed to load attendance summary.", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "attendance-summary-error",
+      });
     } finally {
       setLoading(false);
+      hasLoadedRef.current = true;
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAttendanceSummary();
-  }, []);
+    // Cleanup function to reset flag on unmount - fixes blank page on second navigation
+    return () => {
+      hasLoadedRef.current = false;
+    };
+  }, [fetchAttendanceSummary]);
 
   /* ================= RETRY HANDLER ================= */
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
+      // Reset flag to allow retry
+      hasLoadedRef.current = false;
       fetchAttendanceSummary();
     } else {
+      toast.error("Maximum retry attempts reached.", {
+        position: "top-right",
+        autoClose: 3000,
+        toastId: "attendance-max-retry",
+      });
       setError("Maximum retry attempts reached. Please check your connection.");
     }
-  };
+  }, [retryCount, fetchAttendanceSummary]);
 
   /* ================= EXPORT DATA PREPARATION ================= */
   const getExportData = () => {
-    if (!data || !data.totalRecords) return [];
+    if (!data || data.totalRecords === undefined) return [];
     return [
-      { metric: "Total Attendance Records", value: summary.totalRecords?.toLocaleString() || "0" },
-      { metric: "Total Sessions Conducted", value: (Math.round(summary.totalRecords / 50) || 0).toLocaleString() },
-      { metric: "Average Present Students", value: summary.averageAttendance?.toLocaleString() || "0" },
-      { metric: "Average Absent Students", value: (50 - (summary.averageAttendance || 0)).toLocaleString() },
+      {
+        metric: "Total Attendance Records",
+        value: data.totalRecords?.toLocaleString() || "0",
+      },
+      {
+        metric: "Total Sessions Conducted",
+        value: (Math.round(data.totalRecords / 50) || 0).toLocaleString(),
+      },
+      {
+        metric: "Average Present Students",
+        value: data.averageAttendance?.toLocaleString() || "0",
+      },
+      {
+        metric: "Average Absent Students",
+        value: (50 - (data.averageAttendance || 0)).toLocaleString(),
+      },
       { metric: "Attendance Rate", value: `${attendanceRate.toFixed(1)}%` },
-      { metric: "Status", value: attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1) },
+      {
+        metric: "Status",
+        value:
+          attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1),
+      },
     ];
   };
 
   /* ================= EXTRACT SUMMARY DATA ================= */
   const summary = useMemo(() => {
-    if (!data || !data.totalRecords) return { totalRecords: 0, averageAttendance: 0 };
+    if (!data || data.totalRecords === undefined)
+      return { totalRecords: 0, averageAttendance: 0 };
     return data;
   }, [data]);
 
@@ -94,32 +144,6 @@ export default function AttendanceSummary() {
     return "poor";
   }, [attendanceRate]);
 
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-container">
-      <div className="skeleton-stats-grid">
-        {[...Array(2)].map((_, i) => (
-          <div key={i} className="skeleton-stat-card">
-            <div className="skeleton-stat-icon"></div>
-            <div className="skeleton-stat-content">
-              <div className="skeleton-stat-label"></div>
-              <div className="skeleton-stat-value"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="skeleton-visual-section">
-        <div className="skeleton-chart"></div>
-        <div className="skeleton-metrics">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="skeleton-metric-item"></div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
@@ -130,15 +154,15 @@ export default function AttendanceSummary() {
         <h3>Attendance Reports Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => window.history.back()}
           >
             <FaArrowLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -151,33 +175,27 @@ export default function AttendanceSummary() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading || data === null) {
+  if (loading) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Loading attendance summary reports...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
-      </div>
+      <Loading
+        size="lg"
+        color="primary"
+        text="Loading attendance summary reports..."
+        fullScreen={true}
+      />
     );
   }
 
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/reports/admission">Reports</a></li>
-          <li className="breadcrumb-item active" aria-current="page">Attendance Summary</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          { label: "Attendance Summary" },
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -188,22 +206,25 @@ export default function AttendanceSummary() {
           <div className="erp-header-text">
             <h1 className="erp-page-title">Attendance Summary Report</h1>
             <p className="erp-page-subtitle">
-              Comprehensive overview of student attendance records across all sessions
+              Comprehensive overview of student attendance records across all
+              sessions
             </p>
           </div>
         </div>
         <div className="erp-header-actions">
-          <ExportButtons
-            title="Attendance Summary Report"
-            columns={[
-              { header: 'Metric', key: 'metric', dataKey: 'metric' },
-              { header: 'Value', key: 'value', dataKey: 'value' }
-            ]}
-            data={getExportData()}
-            filename="attendance_summary_report"
-            showPDF={true}
-            showExcel={true}
-          />
+          <div className="export-actions-group">
+            <ExportButtons
+              title="Attendance Summary Report"
+              columns={[
+                { header: "Metric", key: "metric", dataKey: "metric" },
+                { header: "Value", key: "value", dataKey: "value" },
+              ]}
+              data={getExportData()}
+              filename="attendance_summary_report"
+              showPDF={true}
+              showExcel={true}
+            />
+          </div>
           <button
             className="erp-btn erp-btn-secondary"
             onClick={fetchAttendanceSummary}
@@ -221,7 +242,9 @@ export default function AttendanceSummary() {
           <FaGraduationCap className="pulse" />
         </div>
         <div className="info-content">
-          <strong>Attendance Overview:</strong> This report provides a real-time summary of student attendance records. Data is aggregated from all academic sessions and updated automatically.
+          <strong>Attendance Overview:</strong> This report provides a real-time
+          summary of student attendance records. Data is aggregated from all
+          academic sessions and updated automatically.
         </div>
       </div>
 
@@ -236,7 +259,9 @@ export default function AttendanceSummary() {
             <div className="stat-title">Total Attendance Records</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">{summary.totalRecords?.toLocaleString() || "0"}</div>
+            <div className="stat-value">
+              {summary.totalRecords?.toLocaleString() || "0"}
+            </div>
             <div className="stat-trend neutral">
               <FaCalendarAlt className="trend-icon" />
               Records across all sessions
@@ -261,7 +286,9 @@ export default function AttendanceSummary() {
             <div className="stat-title">Average Attendance</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value attendance">{summary.averageAttendance?.toLocaleString() || "0"}</div>
+            <div className="stat-value attendance">
+              {summary.averageAttendance?.toLocaleString() || "0"}
+            </div>
             <div className={`stat-trend ${attendanceStatus}`}>
               <FaUserCheck className="trend-icon" />
               Estimated Rate: {attendanceRate.toFixed(1)}%
@@ -271,7 +298,8 @@ export default function AttendanceSummary() {
             <div className="stat-footer-item">
               <span className="footer-label">Status</span>
               <span className={`footer-value ${attendanceStatus}`}>
-                {attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)}
+                {attendanceStatus.charAt(0).toUpperCase() +
+                  attendanceStatus.slice(1)}
               </span>
             </div>
           </div>
@@ -290,29 +318,39 @@ export default function AttendanceSummary() {
           <div className="visual-container">
             {/* CIRCULAR PROGRESS */}
             <div className="circular-progress">
-              <div 
+              <div
                 className="progress-circle"
                 style={{
-                  background: `conic-gradient(#4CAF50 ${attendanceRate}%, #e0e0e0 ${attendanceRate}% 100%)`
+                  background: `conic-gradient(#4CAF50 ${attendanceRate}%, #e0e0e0 ${attendanceRate}% 100%)`,
                 }}
               >
                 <div className="progress-center">
-                  <div className="progress-value">{attendanceRate.toFixed(0)}%</div>
+                  <div className="progress-value">
+                    {attendanceRate.toFixed(0)}%
+                  </div>
                   <div className="progress-label">Attendance Rate</div>
                 </div>
               </div>
-              
+
               <div className="progress-legend">
                 <div className="legend-item present">
                   <span className="legend-color present"></span>
-                  <span>Present: {summary.averageAttendance?.toLocaleString() || "0"} students</span>
+                  <span>
+                    Present:{" "}
+                    {summary.averageAttendance?.toLocaleString() || "0"}{" "}
+                    students
+                  </span>
                 </div>
                 <div className="legend-item absent">
                   <span className="legend-color absent"></span>
-                  <span>Absent: {(50 - summary.averageAttendance)?.toLocaleString() || "0"} students*</span>
+                  <span>
+                    Absent:{" "}
+                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}{" "}
+                    students*
+                  </span>
                 </div>
               </div>
-              
+
               <div className="progress-note">
                 <FaInfoCircle className="note-icon" />
                 <span>*Based on estimated class size of 50 students</span>
@@ -327,33 +365,39 @@ export default function AttendanceSummary() {
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Average Present</div>
-                  <div className="metric-value">{summary.averageAttendance?.toLocaleString() || "0"}</div>
+                  <div className="metric-value">
+                    {summary.averageAttendance?.toLocaleString() || "0"}
+                  </div>
                   <div className="metric-description">Students per session</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon absent">
                   <FaUserTimes />
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Estimated Absent</div>
-                  <div className="metric-value">{(50 - summary.averageAttendance)?.toLocaleString() || "0"}</div>
+                  <div className="metric-value">
+                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}
+                  </div>
                   <div className="metric-description">Students per session</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon sessions">
                   <FaCalendarAlt />
                 </div>
                 <div className="metric-content">
                   <div className="metric-label">Total Sessions</div>
-                  <div className="metric-value">{Math.round(summary.totalRecords / 50) || "0"}</div>
+                  <div className="metric-value">
+                    {Math.round(summary.totalRecords / 50) || "0"}
+                  </div>
                   <div className="metric-description">Estimated sessions*</div>
                 </div>
               </div>
-              
+
               <div className="metric-item">
                 <div className="metric-icon rate">
                   <FaPercentage />
@@ -399,7 +443,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card good">
               <div className="analysis-icon">
                 <FaCheckCircle />
@@ -412,7 +456,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card fair">
               <div className="analysis-icon">
                 <FaClock />
@@ -425,7 +469,7 @@ export default function AttendanceSummary() {
                 </div>
               </div>
             </div>
-            
+
             <div className="analysis-card poor">
               <div className="analysis-icon">
                 <FaTimesCircle />
@@ -439,14 +483,20 @@ export default function AttendanceSummary() {
               </div>
             </div>
           </div>
-          
+
           <div className="analysis-footer">
             <div className="footer-note">
               <FaInfoCircle className="note-icon" />
-              <span>* Attendance rate calculated based on estimated class size of 50 students per session</span>
+              <span>
+                * Attendance rate calculated based on estimated class size of 50
+                students per session
+              </span>
             </div>
             <div className="footer-disclaimer">
-              <span>Note: This is an aggregated summary. For detailed session-wise analysis, please refer to the Attendance Reports module.</span>
+              <span>
+                Note: This is an aggregated summary. For detailed session-wise
+                analysis, please refer to the Attendance Reports module.
+              </span>
             </div>
           </div>
         </div>
@@ -456,11 +506,12 @@ export default function AttendanceSummary() {
       <div className="footer-note animate-fade-in">
         <FaInfoCircle className="note-icon" />
         <span>
-          This report shows aggregated attendance summary for your college. Data is automatically updated with each attendance entry. 
-          Last refreshed: {new Date().toLocaleString()}
+          This report shows aggregated attendance summary for your college. Data
+          is automatically updated with each attendance entry. Last refreshed:{" "}
+          {new Date().toLocaleString()}
         </span>
-        <button 
-          className="refresh-btn" 
+        <button
+          className="refresh-btn"
           onClick={fetchAttendanceSummary}
           title="Refresh data"
         >
@@ -469,34 +520,12 @@ export default function AttendanceSummary() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
         }
         
         .erp-page-header {
@@ -543,9 +572,99 @@ export default function AttendanceSummary() {
         
         .erp-header-actions {
           display: flex;
-          gap: 0.75rem;
+          align-items: center;
+          gap: 1rem;
         }
-        
+
+        .export-actions-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        /* ================= EXPORT BUTTONS - ENHANCED UI ================= */
+        .export-buttons {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-export {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.625rem 1.125rem;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          font-size: 0.875rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          backdrop-filter: blur(10px);
+          min-width: 100px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-export::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          transition: left 0.5s;
+        }
+
+        .btn-export:hover::before {
+          left: 100%;
+        }
+
+        .btn-export:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-export-pdf:hover:not(:disabled) {
+          background: rgba(220, 53, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-export-excel:hover:not(:disabled) {
+          background: rgba(40, 167, 69, 0.9);
+          border-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-export:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-export.exporting {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-export svg {
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .btn-export span {
+          white-space: nowrap;
+        }
+
         .erp-header-actions .erp-btn {
           background: white;
           color: #1a4b6d;
@@ -559,7 +678,7 @@ export default function AttendanceSummary() {
           align-items: center;
           gap: 0.5rem;
         }
-        
+
         .erp-header-actions .erp-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
@@ -1357,77 +1476,105 @@ export default function AttendanceSummary() {
             grid-template-columns: 1fr;
             text-align: center;
           }
-          
+
           .metrics-grid {
             grid-template-columns: 1fr;
           }
-          
+
           .erp-header-actions {
             flex-direction: column;
             width: 100%;
+            align-items: flex-start;
+            gap: 1rem;
           }
-          
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .export-buttons {
+            flex-wrap: wrap;
+          }
+
           .erp-header-actions .erp-btn {
             width: 100%;
             justify-content: center;
           }
-          
+
           .info-banner {
             flex-direction: column;
             text-align: center;
             gap: 0.75rem;
           }
         }
-        
+
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
           }
-          
+
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
           }
-          
+
           .erp-header-actions {
             width: 100%;
-            flex-direction: row;
+            flex-direction: column;
+            align-items: stretch;
           }
-          
+
+          .export-actions-group {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .export-buttons {
+            justify-content: center;
+            gap: 0.5rem;
+          }
+
+          .btn-export {
+            min-width: 90px;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+          }
+
           .erp-header-actions .erp-btn {
             flex: 1;
             justify-content: center;
           }
-          
+
           .stats-grid {
             grid-template-columns: 1fr;
           }
-          
+
           .footer-note {
             flex-direction: column;
             text-align: center;
             gap: 0.75rem;
           }
-          
+
           .refresh-btn {
             align-self: center;
           }
-          
+
           .visual-container {
             gap: 1rem;
           }
-          
+
           .progress-circle {
             width: 160px;
             height: 160px;
           }
-          
+
           .progress-value {
             font-size: 2rem;
           }
-          
+
           .metrics-grid,
           .analysis-grid {
             grid-template-columns: 1fr;

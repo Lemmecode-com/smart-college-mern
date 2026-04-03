@@ -152,9 +152,11 @@ export default function MyProfile() {
       try {
         setLoading(true);
         const res = await api.get("/teachers/my-profile");
-        setProfile(res.data);
+
+        // Backend returns { teacher: {...} }, axios keeps it nested
+        const profileData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+        setProfile(profileData);
       } catch (err) {
-        console.error("Failed to load profile:", err);
         setError("Failed to load profile data. Please try again.");
       } finally {
         setLoading(false);
@@ -413,7 +415,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaPhoneAlt />}
                         label="Contact Number"
-                        value={profile.contactNumber || 'N/A'}
+                        value={profile.mobileNumber || 'N/A'}
                         copyable
                       />
                     </div>
@@ -441,13 +443,6 @@ export default function MyProfile() {
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
                       <InfoItem
-                        icon={<FaAward />}
-                        label="Specialization"
-                        value={profile.specialization || 'N/A'}
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
                         icon={<FaBriefcase />}
                         label="Total Experience"
                         value={`${profile.experienceYears || 0} years`}
@@ -457,7 +452,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaClock />}
                         label="Joining Date"
-                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
+                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A')}
                       />
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
@@ -877,12 +872,12 @@ function CourseCard({ course, delay = 0 }) {
             }}>
               {course.code}
             </span>
-            <span style={{
+            {/* <span style={{
               color: '#64748b',
               fontSize: '0.9rem'
             }}>
               {course.credits ? `${course.credits} Credits` : 'N/A'}
-            </span>
+            </span> */}
           </div>
           {course.description && (
             <p style={{

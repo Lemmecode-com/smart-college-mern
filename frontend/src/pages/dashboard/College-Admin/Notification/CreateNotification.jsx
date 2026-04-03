@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
+import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaBell,
   FaCalendarAlt,
@@ -20,27 +24,49 @@ import {
   FaDownload,
   FaSpinner,
   FaChalkboardTeacher,
-  FaLightbulb
+  FaLightbulb,
 } from "react-icons/fa";
 
+/* ================= CONFIGURATION ================= */
+const CONFIG = {
+  TOAST: {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "colored",
+  },
+  THEME: {
+    PRIMARY: "#0f3a4a",
+    PRIMARY_DARK: "#0c2d3a",
+    PRIMARY_LIGHT: "#1a4b6d",
+    ACCENT: "#3db5e6",
+    SUCCESS: "#28a745",
+    WARNING: "#ffc107",
+    DANGER: "#dc3545",
+    INFO: "#17a2b8",
+  },
+};
+
 export default function CreateNotification() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
     message: "",
     type: "GENERAL",
     priority: "LOW",
     expiresAt: "",
-    target: "ALL", // Changed from targetAudience to match backend
-    target_department: "", // Department targeting
-    target_course: "", // Course targeting
-    target_semester: "", // Semester targeting
+    target: "ALL",
+    target_department: "",
+    target_course: "",
+    target_semester: "",
     sendImmediately: true,
     scheduledTime: "",
   });
 
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
   const [showPreview, setShowPreview] = useState(true);
   const [titleCount, setTitleCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
@@ -60,7 +86,7 @@ export default function CreateNotification() {
       try {
         const [deptRes, courseRes] = await Promise.all([
           api.get("/departments"),
-          api.get("/courses")
+          api.get("/courses"),
         ]);
         setDepartments(deptRes.data || []);
         setCourses(courseRes.data || []);
@@ -79,11 +105,11 @@ export default function CreateNotification() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(async (e) => {
+    e?.preventDefault();
 
     if (!form.title || !form.message) {
-      setError("Title and Message are required");
+      toast.error("Title and Message are required", CONFIG.TOAST);
       return;
     }
 
@@ -93,16 +119,13 @@ export default function CreateNotification() {
       form.scheduledTime &&
       new Date(form.scheduledTime) < new Date()
     ) {
-      setError("Scheduled time cannot be in the past");
+      toast.error("Scheduled time cannot be in the past", CONFIG.TOAST);
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
-      // Build payload with new targeting fields
       const payload = {
         title: form.title,
         message: form.message,
@@ -110,15 +133,18 @@ export default function CreateNotification() {
         target: form.target,
         target_department: form.target_department || undefined,
         target_course: form.target_course || undefined,
-        target_semester: form.target_semester ? parseInt(form.target_semester) : undefined,
+        target_semester: form.target_semester
+          ? parseInt(form.target_semester)
+          : undefined,
         expiresAt: form.expiresAt || null,
       };
 
       await api.post("/notifications/admin/create", payload);
 
-      setSuccess(
-        "✅ Notification created successfully! It will be delivered to all recipients immediately.",
-      );
+      toast.success("Notification created successfully!", {
+        ...CONFIG.TOAST,
+        toastId: "notification-create-success",
+      });
 
       // Reset form with slight delay for user feedback
       setTimeout(() => {
@@ -134,57 +160,61 @@ export default function CreateNotification() {
           sendImmediately: true,
           scheduledTime: "",
         });
-        setSuccess("");
-      }, 3000);
+      }, 2000);
     } catch (err) {
       console.error("Notification creation error:", err);
-      setError(
+      toast.error(
         err.response?.data?.message ||
-          "Failed to create notification. Please check all fields and try again.",
+          "Failed to create notification. Please try again.",
+        CONFIG.TOAST
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [form]);
 
   /* ================= GET ICON & COLOR FOR TYPE ================= */
   const getTypeConfig = (type) => {
     const configs = {
-      GENERAL: { icon: <FaBell />, color: "info", bg: "bg-info bg-opacity-10" },
+      GENERAL: {
+        icon: <FaBell />,
+        color: CONFIG.THEME.INFO,
+        bg: "bg-info-subtle",
+      },
       ACADEMIC: {
         icon: <FaGraduationCap />,
-        color: "primary",
-        bg: "bg-primary bg-opacity-10",
+        color: CONFIG.THEME.PRIMARY,
+        bg: "bg-primary-subtle",
       },
       EXAM: {
         icon: <FaCalendarAlt />,
-        color: "warning",
-        bg: "bg-warning bg-opacity-10",
+        color: CONFIG.THEME.WARNING,
+        bg: "bg-warning-subtle",
       },
       FEE: {
         icon: <FaFileAlt />,
-        color: "danger",
-        bg: "bg-danger bg-opacity-10",
+        color: CONFIG.THEME.DANGER,
+        bg: "bg-danger-subtle",
       },
       ATTENDANCE: {
         icon: <FaUsers />,
-        color: "success",
-        bg: "bg-success bg-opacity-10",
+        color: CONFIG.THEME.SUCCESS,
+        bg: "bg-success-subtle",
       },
       EVENT: {
         icon: <FaCalendarAlt />,
-        color: "secondary",
-        bg: "bg-secondary bg-opacity-10",
+        color: CONFIG.THEME.PRIMARY_LIGHT,
+        bg: "bg-secondary-subtle",
       },
       ASSIGNMENT: {
         icon: <FaFileAlt />,
-        color: "info",
-        bg: "bg-info bg-opacity-10",
+        color: CONFIG.THEME.INFO,
+        bg: "bg-info-subtle",
       },
       URGENT: {
         icon: <FaExclamationTriangle />,
-        color: "danger",
-        bg: "bg-danger bg-opacity-10",
+        color: CONFIG.THEME.DANGER,
+        bg: "bg-danger-subtle",
       },
     };
     return configs[type] || configs.GENERAL;
@@ -193,172 +223,161 @@ export default function CreateNotification() {
   /* ================= GET PRIORITY BADGE ================= */
   const getPriorityBadge = (priority) => {
     const badges = {
-      LOW: { text: "Low Priority", class: "bg-success" },
-      MEDIUM: { text: "Medium Priority", class: "bg-warning text-dark" },
-      HIGH: { text: "High Priority", class: "bg-danger" },
+      LOW: { text: "Low", class: "badge-success" },
+      MEDIUM: { text: "Medium", class: "badge-warning" },
+      HIGH: { text: "High", class: "badge-danger" },
     };
     return badges[priority] || badges.LOW;
   };
 
+  const loadSample = () => {
+    const sample = {
+      title: "Fee Payment Deadline Extended",
+      message:
+        "Dear Students,\n\nThe deadline for semester fee payment has been extended to February 28, 2026.\n\nPlease complete your payment before the deadline to avoid late fees.\n\nContact accounts@college.edu for queries.",
+      type: "FEE",
+      priority: "MEDIUM",
+      expiresAt: new Date(
+        new Date().setDate(new Date().getDate() + 7)
+      )
+        .toISOString()
+        .slice(0, 16),
+      target: "ALL",
+      target_department: "",
+      target_course: "",
+      target_semester: "",
+      sendImmediately: true,
+      scheduledTime: "",
+    };
+    setForm(sample);
+    setTitleCount(sample.title.length);
+    setMessageCount(sample.message.length);
+    toast.info("Sample notification loaded", CONFIG.TOAST);
+  };
+
+  /* ================= LOADING STATE ================= */
+  if (loading && !form.title) {
+    return (
+      <Loading
+        size="lg"
+        color="primary"
+        text="Preparing notification form..."
+        fullScreen={true}
+      />
+    );
+  }
+
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="erp-container">
+      {/* BREADCRUMBS */}
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Notifications", path: "/notification/list" },
+          { label: "Create Notification" },
+        ]}
+      />
+
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
-        <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
-          <div className="d-flex align-items-start gap-2">
-            <FaInfoCircle className="mt-1 flex-shrink-0" size={20} />
-            <div>
-              <h6 className="fw-bold mb-1">Notification Creation Guide</h6>
-              <ul className="mb-0 small ps-3">
-                <li>
-                  <strong>Title</strong>: Keep under 60 characters for best
-                  visibility
-                </li>
-                <li>
-                  <strong>Message</strong>: Include clear call-to-action if
-                  needed
-                </li>
-                <li>
-                  <strong>Type</strong>: Determines icon and category in
-                  recipient's inbox
-                </li>
-                <li>
-                  <strong>Priority</strong>: Affects notification color and
-                  urgency indicators
-                </li>
-                <li>
-                  <strong>Expiry Date</strong>: Notification auto-archives after
-                  this date
-                </li>
-                <li>
-                  <strong>Preview Panel</strong>: See exactly how recipients
-                  will view your notification
-                </li>
-                <li>
-                  Click <FaEye className="mx-1" /> to toggle preview panel
-                </li>
-              </ul>
-              <button
-                onClick={() => setShowHelp(false)}
-                className="btn btn-sm btn-outline-info mt-2 px-3"
-              >
-                Got it!
-              </button>
-            </div>
+        <div className="info-banner mb-4 animate-fade-in">
+          <div className="info-banner-icon">
+            <FaInfoCircle />
+          </div>
+          <div className="info-banner-content">
+            <h6 className="fw-bold mb-1">Notification Creation Guide</h6>
+            <ul className="mb-0 small ps-3">
+              <li>
+                <strong>Title</strong>: Keep under 60 characters for best
+                visibility
+              </li>
+              <li>
+                <strong>Message</strong>: Include clear call-to-action if needed
+              </li>
+              <li>
+                <strong>Type</strong>: Determines icon and category in
+                recipient's inbox
+              </li>
+              <li>
+                <strong>Priority</strong>: Affects notification color and
+                urgency indicators
+              </li>
+              <li>
+                <strong>Expiry Date</strong>: Notification auto-archives after
+                this date
+              </li>
+              <li>
+                Click <FaEye className="mx-1" /> to toggle preview panel
+              </li>
+            </ul>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="btn btn-sm btn-outline-info mt-2 px-3"
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}
 
       {/* ================= HEADER ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-           <div className="d-flex align-items-center gap-3">
-            <div className="notification-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaBell size={28} />
-            </div>
-            <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">
-                Create Notification
-              </h1>
-              <p className="text-muted mb-0 small">
-                <FaPaperPlane className="me-1" />
-                Send important announcements to your college community
-              </p>
-            </div>
+      <div className="erp-page-header">
+        <div className="erp-header-content">
+          <div className="header-icon-wrapper">
+            <FaBell />
+          </div>
+          <div className="header-text">
+            <h1 className="dashboard-title">Create Notification</h1>
+            <p className="dashboard-subtitle">
+              Send important announcements to your college community
+            </p>
           </div>
         </div>
-
-        <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div className="header-actions">
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
+            className="btn-header"
             title="Notification Help"
           >
-            <FaInfoCircle size={16} /> Help
+            <FaInfoCircle /> <span>Help</span>
           </button>
-
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
+            className="btn-header"
             title={showPreview ? "Hide Preview" : "Show Preview"}
           >
-            <FaEye size={16} /> {showPreview ? "Hide Preview" : "Show Preview"}
+            <FaEye /> <span>{showPreview ? "Hide" : "Show"} Preview</span>
           </button>
-
           <button
             type="button"
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            onClick={() =>
-              setForm({
-                title: "",
-                message: "",
-                type: "GENERAL",
-                target: "ALL",
-                target_department: "",
-                target_course: "",
-                target_semester: "",
-                expiresAt: "",
-                sendImmediately: true,
-                scheduledTime: "",
-              })
-            }
+            className="btn-header"
+            onClick={loadSample}
+            title="Load sample notification"
           >
-            <FaSync size={16} /> Reset Form
+            <FaDownload /> <span>Load Sample</span>
           </button>
         </div>
       </div>
 
-      {/* ================= ALERTS ================= */}
-      {success && (
-        <div
-          className="alert alert-success d-flex align-items-center alert-dismissible fade show mb-3 mb-md-4 animate-slide-down"
-          role="alert"
-        >
-          <FaCheckCircle className="me-2 flex-shrink-0" size={24} />
-          <div className="flex-grow-1">{success}</div>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setSuccess("")}
-          ></button>
-        </div>
-      )}
-
-      {error && (
-        <div
-          className="alert alert-danger d-flex align-items-center alert-dismissible fade show mb-3 mb-md-4 animate-slide-down"
-          role="alert"
-        >
-          <FaExclamationTriangle className="me-2 flex-shrink-0" size={24} />
-          <div className="flex-grow-1">{error}</div>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setError("")}
-          ></button>
-        </div>
-      )}
-
       {/* ================= MAIN CONTENT GRID ================= */}
-      <div className="row g-3 g-md-4">
+      <div className="row g-4">
         {/* FORM COLUMN */}
-        <div
-          className={`col-lg-${showPreview ? "7" : "12"} order-2 order-lg-1`}
-        >
-          <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-            <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
-              <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
-                <FaBell /> Notification Details
-              </h2>
+        <div className={showPreview ? "col-lg-7" : "col-lg-12"}>
+          <div className="erp-card">
+            <div className="erp-card-header">
+              <h3>
+                <FaBell className="erp-card-icon" />
+                Notification Details
+              </h3>
             </div>
 
-            <div className="card-body p-3 p-md-4">
+            <div className="erp-card-body">
               <form onSubmit={handleSubmit}>
                 {/* TITLE */}
                 <div className="mb-4">
                   <label className="form-label fw-semibold d-flex justify-content-between align-items-center">
                     <span>
-                      <FaBell className="me-1 text-primary" />
+                      <FaBell className="me-1" style={{ color: CONFIG.THEME.PRIMARY }} />
                       Notification Title <span className="text-danger">*</span>
                     </span>
                     <small
@@ -388,7 +407,7 @@ export default function CreateNotification() {
                 <div className="mb-4">
                   <label className="form-label fw-semibold d-flex justify-content-between align-items-center">
                     <span>
-                      <FaFileAlt className="me-1 text-info" />
+                      <FaFileAlt className="me-1" style={{ color: CONFIG.THEME.INFO }} />
                       Message Content <span className="text-danger">*</span>
                     </span>
                     <small
@@ -418,7 +437,7 @@ export default function CreateNotification() {
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold">
-                      <FaLayerGroup className="me-1 text-primary" />
+                      <FaLayerGroup className="me-1" style={{ color: CONFIG.THEME.PRIMARY }} />
                       Notification Type
                     </label>
                     <select
@@ -445,7 +464,7 @@ export default function CreateNotification() {
 
                   <div className="col-md-6">
                     <label className="form-label fw-semibold">
-                      <FaExclamationTriangle className="me-1 text-warning" />
+                      <FaExclamationTriangle className="me-1" style={{ color: CONFIG.THEME.WARNING }} />
                       Priority Level
                     </label>
                     <select
@@ -454,9 +473,9 @@ export default function CreateNotification() {
                       value={form.priority}
                       onChange={handleChange}
                     >
-                      <option value="LOW">Low Priority (Blue)</option>
-                      <option value="MEDIUM">Medium Priority (Orange)</option>
-                      <option value="HIGH">High Priority (Red) - Urgent</option>
+                      <option value="LOW">Low Priority</option>
+                      <option value="MEDIUM">Medium Priority</option>
+                      <option value="HIGH">High Priority - Urgent</option>
                     </select>
                     <div className="form-text">
                       <FaInfoCircle className="me-1" size={12} />
@@ -466,265 +485,264 @@ export default function CreateNotification() {
                 </div>
 
                 {/* SCHEDULING & EXPIRY */}
-                <div className="card border-0 bg-light rounded-3 mb-4">
-                  <div className="card-body p-3 p-md-4">
-                    <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                      <FaClock className="text-secondary" /> Scheduling & Expiry
-                    </h5>
+                <div className="info-box mb-4">
+                  <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <FaClock className="text-secondary" /> Scheduling & Expiry
+                  </h5>
 
-                    <div className="form-check form-switch mb-3">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="sendImmediately"
-                        name="sendImmediately"
-                        checked={form.sendImmediately}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            sendImmediately: e.target.checked,
-                          })
-                        }
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="sendImmediately"
-                      >
-                        Send Immediately
-                      </label>
-                    </div>
+                  <div className="form-check form-switch mb-3">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="sendImmediately"
+                      name="sendImmediately"
+                      checked={form.sendImmediately}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          sendImmediately: e.target.checked,
+                        })
+                      }
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="sendImmediately"
+                    >
+                      Send Immediately
+                    </label>
+                  </div>
 
-                    {!form.sendImmediately && (
-                      <div className="mb-3">
-                        <label className="form-label fw-semibold">
-                          <FaCalendarAlt className="me-1 text-success" />
-                          Scheduled Send Time
-                        </label>
-                        <input
-                          type="datetime-local"
-                          className="form-control border-2 py-2"
-                          name="scheduledTime"
-                          value={form.scheduledTime}
-                          onChange={handleChange}
-                          min={new Date().toISOString().slice(0, 16)}
-                        />
-                        <div className="form-text">
-                          <FaInfoCircle className="me-1" size={12} />
-                          Notification will be sent automatically at this time
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
+                  {!form.sendImmediately && (
+                    <div className="mb-3">
                       <label className="form-label fw-semibold">
-                        <FaCalendarAlt className="me-1 text-muted" />
-                        Expiry Date (Optional)
+                        <FaCalendarAlt className="me-1" style={{ color: CONFIG.THEME.SUCCESS }} />
+                        Scheduled Send Time
                       </label>
                       <input
                         type="datetime-local"
                         className="form-control border-2 py-2"
-                        name="expiresAt"
-                        value={form.expiresAt}
+                        name="scheduledTime"
+                        value={form.scheduledTime}
                         onChange={handleChange}
                         min={new Date().toISOString().slice(0, 16)}
                       />
                       <div className="form-text">
                         <FaInfoCircle className="me-1" size={12} />
-                        Notification will auto-archive after this date. Leave
-                        blank for no expiry.
+                        Notification will be sent automatically at this time
                       </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="form-label fw-semibold">
+                      <FaCalendarAlt className="me-1" style={{ color: CONFIG.THEME.PRIMARY_LIGHT }} />
+                      Expiry Date (Optional)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="form-control border-2 py-2"
+                      name="expiresAt"
+                      value={form.expiresAt}
+                      onChange={handleChange}
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                    <div className="form-text">
+                      <FaInfoCircle className="me-1" size={12} />
+                      Notification will auto-archive after this date. Leave
+                      blank for no expiry.
                     </div>
                   </div>
                 </div>
 
-                {/* TARGET AUDIENCE - ENABLED */}
-                <div className="card border-0 bg-light rounded-3 mb-4">
-                  <div className="card-body p-3 p-md-4">
-                    <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                      <FaUsers className="text-primary" /> Target Audience
-                    </h5>
+                {/* TARGET AUDIENCE */}
+                <div className="info-box mb-4">
+                  <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <FaUsers className="me-1" style={{ color: CONFIG.THEME.PRIMARY }} />
+                    Target Audience
+                  </h5>
 
-                    <div className="form-check mb-2">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetAll"
-                        value="ALL"
-                        checked={form.target === "ALL"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetAll"
-                      >
-                        <FaUsers className="me-1" /> All Users (Students, Teachers, Admins)
-                      </label>
-                    </div>
-
-                    <div className="form-check mb-2">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetStudents"
-                        value="STUDENTS"
-                        checked={form.target === "STUDENTS"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetStudents"
-                      >
-                        <FaGraduationCap className="me-1" /> Students Only
-                      </label>
-                    </div>
-
-                    <div className="form-check mb-2">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetTeachers"
-                        value="TEACHERS"
-                        checked={form.target === "TEACHERS"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetTeachers"
-                      >
-                        <FaChalkboardTeacher className="me-1" /> Teachers Only
-                      </label>
-                    </div>
-
-                    <div className="form-check mb-3">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetDepartment"
-                        value="DEPARTMENT"
-                        checked={form.target === "DEPARTMENT"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetDepartment"
-                      >
-                        <FaLayerGroup className="me-1" /> Specific Department
-                      </label>
-                    </div>
-                    
-                    {form.target === "DEPARTMENT" && (
-                      <div className="ms-4 mb-3">
-                        <select
-                          className="form-select"
-                          name="target_department"
-                          value={form.target_department}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Select Department</option>
-                          {departments.map(dept => (
-                            <option key={dept._id} value={dept._id}>
-                              {dept.name} ({dept.code})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="form-check mb-3">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetCourse"
-                        value="COURSE"
-                        checked={form.target === "COURSE"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetCourse"
-                      >
-                        <FaGraduationCap className="me-1" /> Specific Course
-                      </label>
-                    </div>
-                    
-                    {form.target === "COURSE" && (
-                      <div className="ms-4 mb-3">
-                        <select
-                          className="form-select"
-                          name="target_course"
-                          value={form.target_course}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Select Course</option>
-                          {courses.map(course => (
-                            <option key={course._id} value={course._id}>
-                              {course.name} ({course.code})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="form-check mb-3">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="target"
-                        id="targetSemester"
-                        value="SEMESTER"
-                        checked={form.target === "SEMESTER"}
-                        onChange={handleChange}
-                      />
-                      <label
-                        className="form-check-label fw-medium"
-                        htmlFor="targetSemester"
-                      >
-                        <FaClock className="me-1" /> Specific Semester
-                      </label>
-                    </div>
-                    
-                    {form.target === "SEMESTER" && (
-                      <div className="ms-4">
-                        <select
-                          className="form-select"
-                          name="target_semester"
-                          value={form.target_semester}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="">Select Semester</option>
-                          {[1,2,3,4,5,6,7,8].map(sem => (
-                            <option key={sem} value={sem}>
-                              Semester {sem}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                  <div className="form-check mb-2">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetAll"
+                      value="ALL"
+                      checked={form.target === "ALL"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetAll"
+                    >
+                      <FaUsers className="me-1" /> All Users (Students, Teachers, Admins)
+                    </label>
                   </div>
+
+                  <div className="form-check mb-2">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetStudents"
+                      value="STUDENTS"
+                      checked={form.target === "STUDENTS"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetStudents"
+                    >
+                      <FaGraduationCap className="me-1" /> Students Only
+                    </label>
+                  </div>
+
+                  <div className="form-check mb-2">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetTeachers"
+                      value="TEACHERS"
+                      checked={form.target === "TEACHERS"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetTeachers"
+                    >
+                      <FaChalkboardTeacher className="me-1" /> Teachers Only
+                    </label>
+                  </div>
+
+                  <div className="form-check mb-3">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetDepartment"
+                      value="DEPARTMENT"
+                      checked={form.target === "DEPARTMENT"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetDepartment"
+                    >
+                      <FaLayerGroup className="me-1" /> Specific Department
+                    </label>
+                  </div>
+
+                  {form.target === "DEPARTMENT" && (
+                    <div className="ms-4 mb-3">
+                      <select
+                        className="form-select"
+                        name="target_department"
+                        value={form.target_department}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dept) => (
+                          <option key={dept._id} value={dept._id}>
+                            {dept.name} ({dept.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="form-check mb-3">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetCourse"
+                      value="COURSE"
+                      checked={form.target === "COURSE"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetCourse"
+                    >
+                      <FaGraduationCap className="me-1" /> Specific Course
+                    </label>
+                  </div>
+
+                  {form.target === "COURSE" && (
+                    <div className="ms-4 mb-3">
+                      <select
+                        className="form-select"
+                        name="target_course"
+                        value={form.target_course}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Select Course</option>
+                        {courses.map((course) => (
+                          <option key={course._id} value={course._id}>
+                            {course.name} ({course.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="form-check mb-3">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="target"
+                      id="targetSemester"
+                      value="SEMESTER"
+                      checked={form.target === "SEMESTER"}
+                      onChange={handleChange}
+                    />
+                    <label
+                      className="form-check-label fw-medium"
+                      htmlFor="targetSemester"
+                    >
+                      <FaClock className="me-1" /> Specific Semester
+                    </label>
+                  </div>
+
+                  {form.target === "SEMESTER" && (
+                    <div className="ms-4">
+                      <select
+                        className="form-select"
+                        name="target_semester"
+                        value={form.target_semester}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Select Semester</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                          <option key={sem} value={sem}>
+                            Semester {sem}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* ACTION BUTTONS */}
-                <div className="d-grid gap-3 d-md-flex justify-content-md-between">
+                <div className="d-flex gap-3 flex-wrap justify-content-between">
                   <button
                     type="button"
                     className="btn btn-outline-secondary d-flex align-items-center gap-2 px-4 py-2"
-                    onClick={() => window.history.back()}
+                    onClick={() => navigate("/notifications")}
                   >
                     <FaArrowLeft /> Cancel
                   </button>
 
                   <button
                     type="submit"
-                    className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 pulse-button"
-                    disabled={loading || titleCount === 0 || messageCount === 0}
+                    className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2"
+                    disabled={
+                      loading || titleCount === 0 || messageCount === 0
+                    }
                   >
                     {loading ? (
                       <>
@@ -747,21 +765,19 @@ export default function CreateNotification() {
 
         {/* PREVIEW COLUMN (CONDITIONAL) */}
         {showPreview && (
-          <div className="col-lg-5 order-1 order-lg-2">
-            <div
-              className="card border-0 shadow-lg rounded-4 overflow-hidden sticky-top animate-fade-in-up"
-              style={{ top: "15px" }}
-            >
-              <div className="card-header bg-gradient-info text-white py-3 py-md-4">
+          <div className="col-lg-5">
+            <div className="erp-card sticky-preview-card">
+              <div className="erp-card-header">
                 <div className="d-flex justify-content-between align-items-center">
-                  <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
-                    <FaEye /> Live Preview
-                  </h2>
+                  <h3>
+                    <FaEye className="erp-card-icon" />
+                    Live Preview
+                  </h3>
                   <span className="badge bg-light text-dark">Student View</span>
                 </div>
               </div>
 
-              <div className="card-body p-3 p-md-4 bg-light">
+              <div className="erp-card-body bg-light">
                 {/* PREVIEW NOTIFICATION */}
                 <div
                   className={`notification-preview border rounded-3 p-3 mb-4 ${getTypeConfig(form.type).bg}`}
@@ -779,7 +795,7 @@ export default function CreateNotification() {
                       </h6>
                     </div>
                     <span
-                      className={`badge ${getPriorityBadge(form.priority).class} py-2`}
+                      className={`badge ${getPriorityBadge(form.priority).class}`}
                     >
                       {getPriorityBadge(form.priority).text}
                     </span>
@@ -790,7 +806,7 @@ export default function CreateNotification() {
                     style={{ whiteSpace: "pre-line", minHeight: "80px" }}
                   >
                     {form.message ||
-                      "Your notification message will appear here. Format it with clear paragraphs and important details."}
+                      "Your notification message will appear here..."}
                   </p>
 
                   <div className="d-flex flex-wrap justify-content-between align-items-center text-muted small">
@@ -804,8 +820,8 @@ export default function CreateNotification() {
                         {form.sendImmediately
                           ? "Just now"
                           : form.scheduledTime
-                            ? new Date(form.scheduledTime).toLocaleString()
-                            : "Scheduled"}
+                          ? new Date(form.scheduledTime).toLocaleString()
+                          : "Scheduled"}
                       </span>
                     </div>
                   </div>
@@ -819,30 +835,29 @@ export default function CreateNotification() {
                 </div>
 
                 {/* PREVIEW INFO */}
-                <div className="alert alert-info bg-info bg-opacity-10 mb-4">
-                  <div className="d-flex align-items-start gap-2">
-                    <FaInfoCircle className="mt-1 flex-shrink-0" />
-                    <div>
-                      <h6 className="fw-bold mb-1">Preview Notes</h6>
-                      <ul className="mb-0 small ps-3">
-                        <li>
-                          This is exactly how students will see your
-                          notification
-                        </li>
-                        <li>
-                          High priority notifications appear with red badges
-                        </li>
-                        <li>
-                          Expiry dates automatically archive old notifications
-                        </li>
-                        <li>Icons change based on notification type</li>
-                      </ul>
-                    </div>
+                <div className="info-banner-small mb-4">
+                  <div className="info-banner-small-icon">
+                    <FaInfoCircle />
+                  </div>
+                  <div className="info-banner-small-content">
+                    <h6 className="fw-bold mb-1">Preview Notes</h6>
+                    <ul className="mb-0 small ps-3">
+                      <li>
+                        This is exactly how students will see your notification
+                      </li>
+                      <li>
+                        High priority notifications appear with red badges
+                      </li>
+                      <li>
+                        Expiry dates automatically archive old notifications
+                      </li>
+                      <li>Icons change based on notification type</li>
+                    </ul>
                   </div>
                 </div>
 
                 {/* QUICK TIPS */}
-                <div className="border rounded-3 p-3 bg-white">
+                <div className="tips-box">
                   <h6 className="fw-bold mb-2 d-flex align-items-center gap-2">
                     <FaLightbulb className="text-warning" /> Pro Tips
                   </h6>
@@ -860,7 +875,7 @@ export default function CreateNotification() {
                 </div>
               </div>
 
-              <div className="card-footer bg-light py-3">
+              <div className="erp-card-footer">
                 <div className="d-flex justify-content-between align-items-center">
                   <small className="text-muted">
                     <FaCheckCircle className="text-success me-1" />
@@ -870,7 +885,9 @@ export default function CreateNotification() {
                     type="button"
                     className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                     onClick={handleSubmit}
-                    disabled={loading || titleCount === 0 || messageCount === 0}
+                    disabled={
+                      loading || titleCount === 0 || messageCount === 0
+                    }
                   >
                     <FaPaperPlane size={14} /> Send from Preview
                   </button>
@@ -881,222 +898,303 @@ export default function CreateNotification() {
         )}
       </div>
 
-      {/* ================= FOOTER ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up">
-        <div className="card-body p-3 p-md-4 bg-light">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div className="text-center text-md-start">
-              <p className="mb-1">
-                <small className="text-muted">
-                  <FaBell className="me-1" />
-                  Notification Management | Smart College ERP System
-                </small>
-              </p>
-              <p className="mb-0">
-                <small className="text-muted">
-                  <FaSync className="spin-icon me-1" />
-                  Last Updated: <strong>{new Date().toLocaleString()}</strong>
-                </small>
-              </p>
-            </div>
-            <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button
-                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                onClick={() => window.history.back()}
-              >
-                <FaArrowLeft size={12} /> Back to Notifications
-              </button>
-              <button
-                className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
-                onClick={() => {
-                  setForm({
-                    title: "Fee Payment Deadline Extended",
-                    message:
-                      "Dear Students,\n\nThe deadline for semester fee payment has been extended to February 28, 2026.\n\nPlease complete your payment before the deadline to avoid late fees.\n\nContact accounts@college.edu for queries.",
-                    type: "FEE",
-                    priority: "MEDIUM",
-                    expiresAt: new Date(
-                      new Date().setDate(new Date().getDate() + 7),
-                    )
-                      .toISOString()
-                      .slice(0, 16),
-                    targetAudience: "ALL",
-                    departmentIds: [],
-                    courseIds: [],
-                    sendImmediately: true,
-                    scheduledTime: "",
-                  });
-                  setTitleCount(32);
-                  setMessageCount(180);
-                }}
-              >
-                <FaDownload size={12} /> Load Sample
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= STYLES ================= */}
+      {/* STYLES */}
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0.4); }
-          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(26, 75, 109, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0); }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        @keyframes lift {
-          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .erp-container {
+          padding: 1.5rem;
+          background: #f5f7fa;
+          min-height: 100vh;
         }
 
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
-        .animate-fade-in-up { animation: slideUp 0.6s ease-out forwards; }
-        .pulse-icon { animation: pulse 2s infinite; }
-        .hover-lift:hover { animation: lift 0.3s ease forwards; }
-        .spin-icon { animation: spin 1s linear infinite; }
-        .float-badge { animation: float 3s ease-in-out infinite; }
-        .pulse-button { position: relative; overflow: hidden; }
-        .pulse-button::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 5px;
-          height: 5px;
-          background: rgba(255,255,255,0.5);
-          opacity: 0;
-          border-radius: 100%;
-          transform: scale(1, 1) translate(-50%);
-          transform-origin: 50% 50%;
-        }
-        .pulse-button:focus:not(:active)::after {
-          animation: ripple 1s ease-out;
-        }
-        @keyframes ripple {
-          0% { transform: scale(0, 0); opacity: 0.5; }
-          100% { transform: scale(100, 100); opacity: 0; }
+        .erp-page-header {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a4b6d 100%);
+          padding: 1.75rem;
+          border-radius: 16px;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
+          color: white;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
         }
 
-        .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
-        }
-        .bg-gradient-info {
-          background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        .erp-header-content {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
         }
 
-        .notification-logo-container {
-          width: 60px;
-          height: 60px;
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.4);
+        .header-icon-wrapper {
+          width: 56px;
+          height: 56px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.75rem;
         }
 
-        .preview-icon {
-          font-size: 1.2rem;
+        .dashboard-title {
+          margin: 0;
+          font-size: 1.75rem;
+          font-weight: 700;
         }
 
-        .form-control:focus, .form-select:focus {
-          border-color: #1a4b6d;
-          box-shadow: 0 0 0 0.25rem rgba(26, 75, 109, 0.25);
+        .dashboard-subtitle {
+          margin: 0.375rem 0 0 0;
+          opacity: 0.9;
+          font-size: 1rem;
         }
 
-        .form-label {
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
+        .btn-header {
+          padding: 0.625rem 1rem;
+          border-radius: 10px;
           font-weight: 600;
-          color: #212529;
-          margin-bottom: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
         }
 
-        .form-text {
-          font-size: 0.875rem;
-          color: #6c757d;
-          margin-top: 0.25rem;
+        .btn-header:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .erp-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          overflow: hidden;
+          margin-bottom: 1.5rem;
+        }
+
+        .erp-card-header {
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a4b6d 100%);
+          color: white;
+          border-bottom: none;
+        }
+
+        .erp-card-header h3 {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .erp-card-body {
+          padding: 1.5rem;
+        }
+
+        .erp-card-footer {
+          padding: 1rem 1.5rem;
+          background: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .sticky-preview-card {
+          position: sticky;
+          top: 1.5rem;
+        }
+
+        .info-box {
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 1.25rem;
+          border: 1px solid #e2e8f0;
+        }
+
+        .info-banner {
+          background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          border-left: 4px solid #0284c7;
+        }
+
+        .info-banner-icon {
+          width: 40px;
+          height: 40px;
+          background: rgba(2, 132, 199, 0.15);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #0284c7;
+          flex-shrink: 0;
+          font-size: 1.25rem;
+        }
+
+        .info-banner-content {
+          flex: 1;
+        }
+
+        .info-banner-small {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border-radius: 12px;
+          padding: 1rem 1.25rem;
+          display: flex;
+          gap: 0.75rem;
+          align-items: flex-start;
+          border: 1px solid #bae6fd;
+        }
+
+        .info-banner-small-icon {
+          width: 32px;
+          height: 32px;
+          background: rgba(2, 132, 199, 0.1);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #0284c7;
+          flex-shrink: 0;
+          font-size: 1rem;
+        }
+
+        .info-banner-small-content {
+          flex: 1;
+        }
+
+        .tips-box {
+          background: white;
+          border-radius: 12px;
+          padding: 1rem 1.25rem;
+          border: 1px solid #fde68a;
         }
 
         .notification-preview {
           transition: all 0.3s ease;
-          border-color: #dee2e6;
         }
+
         .notification-preview:hover {
           transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-          border-color: #adb5bd;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .preview-icon {
+          font-size: 1rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+          border-color: #1a4b6d;
+          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+        }
+
+        .form-label {
+          color: #1e293b;
+        }
+
+        .form-text {
+          font-size: 0.8rem;
+          color: #64748b;
+          margin-top: 0.375rem;
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .badge-success {
+          background-color: #28a745;
+        }
+
+        .badge-warning {
+          background-color: #ffc107;
+          color: #000;
+        }
+
+        .badge-danger {
+          background-color: #dc3545;
         }
 
         @media (max-width: 992px) {
-          .sticky-top {
+          .sticky-preview-card {
             position: static !important;
           }
-          .notification-logo-container {
-            width: 50px;
-            height: 50px;
+
+          .erp-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .header-actions {
+            width: 100%;
+          }
+
+          .btn-header {
+            flex: 1;
+            justify-content: center;
+            min-width: 120px;
           }
         }
 
         @media (max-width: 768px) {
-          .btn-sm {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.75rem !important;
+          .erp-container {
+            padding: 1rem;
           }
-          .form-control-lg {
-            padding: 0.75rem 1rem !important;
-            font-size: 1rem !important;
-          }
-          .form-select-lg {
-            padding: 0.75rem 1rem !important;
-            font-size: 1rem !important;
-          }
-        }
 
-        @media (max-width: 576px) {
-          .notification-logo-container {
-            width: 45px;
-            height: 45px;
+          .erp-page-header {
+            padding: 1.25rem;
           }
-          .preview-icon {
-            width: 32px;
-            height: 32px;
-            font-size: 1rem;
+
+          .dashboard-title {
+            font-size: 1.5rem;
           }
-          .card-footer {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.5rem;
+
+          .header-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            font-size: 1.5rem;
           }
-          .card-footer .d-flex {
-            width: 100%;
-          }
-          .card-footer button {
-            width: 100%;
-            justify-content: center;
+
+          .erp-card-header,
+          .erp-card-body,
+          .erp-card-footer {
+            padding: 1rem;
           }
         }
       `}</style>

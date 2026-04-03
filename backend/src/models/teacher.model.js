@@ -34,6 +34,7 @@ const teacherSchema = new mongoose.Schema(
       },
     ],
 
+    // Personal Details
     name: {
       type: String,
       required: true,
@@ -51,13 +52,48 @@ const teacherSchema = new mongoose.Schema(
 
     mobileNumber: {
       type: String,
-      required: true,
       validate: {
-        validator: validateIndianMobile,
+        validator: function(v) {
+          if (!v) return true;
+          return validateIndianMobile(v);
+        },
         message: mobileValidatorMessage
       }
     },
 
+    // Additional Personal Information
+    gender: {
+      type: String,
+      enum: ["Male", "Female", "Other", "Prefer not to say"],
+    },
+
+    bloodGroup: {
+      type: String,
+      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "N/A"],
+    },
+
+    dateOfBirth: {
+      type: Date,
+    },
+
+    // Address Information
+    address: {
+      type: String,
+    },
+
+    city: {
+      type: String,
+    },
+
+    state: {
+      type: String,
+    },
+
+    pincode: {
+      type: String,
+    },
+
+    // Professional Details
     employeeId: {
       type: String,
       required: true,
@@ -80,6 +116,24 @@ const teacherSchema = new mongoose.Schema(
       max: [50, "Experience years cannot exceed 50"]
     },
 
+    employmentType: {
+      type: String,
+      enum: ["FULL_TIME", "PART_TIME", "CONTRACT", "ADJUNCT", "VISITING"],
+      default: "FULL_TIME",
+    },
+
+    joiningDate: {
+      type: Date,
+    },
+
+    subjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subject",
+      },
+    ],
+
+    // Status
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE"],

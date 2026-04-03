@@ -29,16 +29,16 @@ const {
 router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
-router.get("/weekly", auth, collegeMiddleware, getWeeklyTimetableForTeacher);
+router.get(
+  "/weekly",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getWeeklyTimetableForTeacher,
+);
 
 /* ================= LIST ================= */
-router.get(
-  "/",
-  auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
-  collegeMiddleware,
-  getTimetables,
-);
+router.get("/", auth, role("TEACHER"), collegeMiddleware, getTimetables);
 
 /* ================= SLOTS ================= */
 router.post("/slot", auth, role("TEACHER"), collegeMiddleware, hod, addSlot);
@@ -64,6 +64,7 @@ router.get(
 router.get(
   "/:timetableId/weekly",
   auth,
+  role("TEACHER"),
   collegeMiddleware,
   getWeeklyTimetableById,
 );
@@ -79,7 +80,7 @@ router.put(
 );
 
 /* ================= GET BY ID (LAST) ================= */
-router.get("/:id", auth, collegeMiddleware, getTimetableById);
+router.get("/:id", auth, role("TEACHER"), collegeMiddleware, getTimetableById);
 
 /* ================= DELETE ================= */
 router.delete(
@@ -106,7 +107,7 @@ router.delete(
   role("TEACHER"),
   collegeMiddleware,
   hod, // ✅ FIXED: Added role + HOD check
-  deleteTimetableSlot
+  deleteTimetableSlot,
 );
 
 module.exports = router;

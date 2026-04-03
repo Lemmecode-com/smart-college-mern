@@ -49,11 +49,12 @@ export default function EditFeeStructure() {
   const loadData = async () => {
     try {
       const [feeRes, deptRes] = await Promise.all([
-        api.get(`/api/fees/structure/${id}`),
+        api.get(`/fees/structure/${id}`),
         api.get("/departments"),
       ]);
 
-      const fee = feeRes.data;
+      // Handle both old format (direct object) and new format (wrapped in feeStructure key)
+      const fee = feeRes.data.feeStructure || feeRes.data;
 
       setCategory(fee.category);
       setTotalFee(fee.totalFee);
@@ -68,7 +69,6 @@ export default function EditFeeStructure() {
         loadCourses(fee.course_id.department_id);
       }
     } catch (err) {
-      console.error(err);
       setError("Failed to load fee structure details. Please try again.");
     } finally {
       setLoading(false);
@@ -122,7 +122,7 @@ export default function EditFeeStructure() {
     try {
       setSaving(true);
 
-      await api.put(`/api/fees/structure/${id}`, {
+      await api.put(`/fees/structure/${id}`, {
         course_id,
         category,
         totalFee: Number(totalFee),

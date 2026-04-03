@@ -74,13 +74,11 @@ export default function SidebarSection({
  * - Visible focus state
  * - Consistent indentation
  */
-export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick }) {
+export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exact = false }) {
   const location = useLocation();
 
   // Check if current route matches or is a child of the target path
-  const isActive = location.pathname === to ||
-                   location.pathname.startsWith(to + '/') ||
-                   (to.includes(':') && isDynamicRouteMatch(to, location.pathname));
+  const isActive = checkRouteActive(to, location.pathname, exact);
 
   return (
     <NavLink
@@ -97,6 +95,30 @@ export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick }) {
       <span className="sub-link-text">{label}</span>
     </NavLink>
   );
+}
+
+/**
+ * Check if a route is active based on exact or partial matching
+ * @param {string} route - Route to check
+ * @param {string} currentPath - Current pathname
+ * @param {boolean} exact - Whether to use exact matching
+ * @returns {boolean} True if route is active
+ */
+function checkRouteActive(route, currentPath, exact) {
+  // Exact match
+  if (currentPath === route) return true;
+  
+  // Handle dynamic routes (e.g., /subjects/course/:courseId)
+  if (route.includes(':')) {
+    return isDynamicRouteMatch(route, currentPath);
+  }
+  
+  // For non-exact matching, check if current path starts with route
+  if (!exact) {
+    return currentPath.startsWith(route + '/');
+  }
+  
+  return false;
 }
 
 /**
