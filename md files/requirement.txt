@@ -1,0 +1,131 @@
+=============== Smart College MERN - Complete Dependencies ==================
+# Based on actual package.json files (Version 2.1.0)
+
+=============== Frontend Dependencies ==================
+# Core React (v19.2.3)
+npm install react@^19.2.3
+npm install react-dom@^19.1.0
+npm install react-router-dom@^7.13.0
+npm install react-icons@^5.5.0
+npm install prop-types@^15.8.1
+
+# UI Frameworks
+npm install bootstrap@^5.3.8
+npm install react-bootstrap@^2.10.10
+
+# Animation
+npm install framer-motion@^12.34.0
+npm install motion@^12.34.0
+
+# HTTP & API
+npm install axios@^1.13.4
+
+# Charts & Visualization
+npm install recharts@^3.7.0
+
+# PDF Generation
+npm install jspdf@^4.2.0
+npm install jspdf-autotable@^5.0.7
+npm install html2canvas@^1.4.1
+
+# Excel & File Handling
+npm install exceljs@^4.4.0
+npm install file-saver@^2.0.5
+npm install jszip@^3.10.1
+
+# Authentication
+npm install jwt-decode@^4.0.0
+
+# Utilities
+npm install moment@^2.30.1
+npm install uuid@^13.0.0
+npm install dom@^0.0.3
+npm install router@^2.2.0
+
+# Notifications
+npm install react-toastify@^11.0.5
+
+# Development Dependencies
+npm install -D vite@^7.0.0
+npm install -D @vitejs/plugin-react@^4.5.2
+npm install -D eslint@^9.39.4
+npm install -D eslint-plugin-react-hooks@^5.2.0
+npm install -D eslint-plugin-react-refresh@^0.4.20
+npm install -D @eslint/js@^9.29.0
+npm install -D globals@^16.2.0
+npm install -D @types/react@^19.1.8
+npm install -D @types/react-dom@^19.1.6
+
+
+=============== Backend Dependencies ==================
+# Core Framework
+npm install express@^5.2.1
+npm install mongoose@^9.1.3
+
+# Environment & Security
+npm install dotenv@^17.2.3
+npm install bcryptjs@^3.0.3
+npm install jsonwebtoken@^9.0.3
+npm install helmet@^8.1.0
+npm install cookie-parser@^1.4.7
+
+# Middleware & Validation
+npm install cors@^2.8.5
+npm install express-validator@^7.3.1
+npm install express-rate-limit@^8.2.1
+npm install morgan@^1.10.1
+
+# File Upload
+npm install multer@^2.0.2
+
+# Payment Integration
+npm install razorpay@^2.9.6
+npm install stripe@^20.3.0
+
+# Email & Communication
+npm install nodemailer@^7.0.13
+
+# QR Code Generation
+npm install qrcode@^1.5.4
+
+# PDF Generation
+npm install pdfkit@^0.18.0
+
+# Scheduling
+npm install node-cron@^4.2.1
+
+# Logging
+npm install winston@^3.19.0
+
+# Development Dependencies
+npm install -D nodemon
+
+
+=============== Installation Commands ==================
+
+# Backend Installation
+cd backend
+npm install
+
+# Frontend Installation
+cd frontend
+npm install
+
+
+=============== Verify Installation ==================
+
+# Check backend dependencies
+npm list --depth=0
+
+# Check frontend dependencies
+npm list --depth=0
+
+
+=============== Notes ==================
+- All versions are based on the actual package.json files
+- Frontend uses Vite as build tool (not Create React App)
+- Backend uses CommonJS modules (type: "commonjs")
+- Frontend uses ES modules (type: "module")
+- React 19 is being used (latest version)
+- Express 5 is being used (latest version)
+- Mongoose 9 is being used (latest version)

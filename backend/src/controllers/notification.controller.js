@@ -1,6 +1,7 @@
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
 
 const getValidExpiryCondition = () => ({
   $or: [
@@ -75,11 +76,9 @@ exports.createAdminNotification = async (req, res, next) => {
       target_users
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Notification created successfully",
+    ApiResponse.created(res, {
       notification
-    });
+    }, "Notification created successfully");
   } catch (error) {
     next(error);
   }
@@ -133,11 +132,9 @@ exports.createTeacherNotification = async (req, res, next) => {
       target_users
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Notification created successfully",
+    ApiResponse.created(res, {
       notification
-    });
+    }, "Notification created successfully");
   } catch (error) {
     next(error);
   }
@@ -219,12 +216,11 @@ exports.getStudentNotifications = async (req, res, next) => {
       }
     });
 
-    res.json({
-      success: true,
+    ApiResponse.success(res, {
       count: notifications.length,
       adminNotifications,
       teacherNotifications,
-    });
+    }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -236,7 +232,7 @@ exports.getStudentNotifications = async (req, res, next) => {
  * Sees: Admin notifications only
  * ================================
  */
-exports.getTeacherNotifications = async (req, res) => {
+exports.getTeacherNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({
       college_id: req.college_id,
@@ -261,12 +257,12 @@ exports.getTeacherNotifications = async (req, res) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myNotifications,
       adminNotifications,
-    });
+    }, "Teacher notifications fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -276,7 +272,7 @@ exports.getTeacherNotifications = async (req, res) => {
  * (Admin + Teacher)
  * ================================
  */
-exports.getAdminNotifications = async (req, res) => {
+exports.getAdminNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({
       college_id: req.college_id,
@@ -297,12 +293,12 @@ exports.getAdminNotifications = async (req, res) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myNotifications,
       staffNotifications,
-    });
+    }, "Student notifications fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -314,7 +310,7 @@ exports.getAdminNotifications = async (req, res) => {
  * - Teacher can update ONLY teacher notifications
  * ================================
  */
-exports.updateNotification = async (req, res) => {
+exports.updateNotification = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
@@ -344,9 +340,11 @@ exports.updateNotification = async (req, res) => {
 
     await notification.save();
 
-    res.json(notification);
+    ApiResponse.success(res, {
+      notification
+    }, "Notification updated successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -358,7 +356,7 @@ exports.updateNotification = async (req, res) => {
  * - Teacher deletes teacher notifications
  * ================================
  */
-exports.deleteNotification = async (req, res) => {
+exports.deleteNotification = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
@@ -377,16 +375,21 @@ exports.deleteNotification = async (req, res) => {
 
     await notification.deleteOne();
 
-    res.json({ message: "Notification deleted successfully" });
+    ApiResponse.success(res, null, "Notification deleted successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 
-exports.getStudentNotificationCount = async (req, res) => {
+exports.getStudentNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -404,19 +407,24 @@ exports.getStudentNotificationCount = async (req, res) => {
       if (n.createdByRole === "TEACHER") teacherCount++;
     });
 
-    res.json({
+    ApiResponse.success(res, {
       adminCount,
       teacherCount,
       total: adminCount + teacherCount
-    });
+    }, "Notification count fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getTeacherNotificationCount = async (req, res) => {
+exports.getTeacherNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -443,19 +451,24 @@ exports.getTeacherNotificationCount = async (req, res) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myCount,
       adminCount,
       total: myCount + adminCount
-    });
+    }, "Teacher notification count fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getAdminNotificationCount = async (req, res) => {
+exports.getAdminNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+    
     const readIds = await getReadNotificationIds(userId);
 
     const notifications = await Notification.find({
@@ -478,18 +491,22 @@ exports.getAdminNotificationCount = async (req, res) => {
       }
     });
 
-    res.json({
+    ApiResponse.success(res, {
       myCount,
       staffCount,
       total: myCount + staffCount
-    });
+    }, "Admin notification count fetched successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-exports.getUnreadForBell = async (req, res) => {
+exports.getUnreadForBell = async (req, res, next) => {
   try {
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+
     const readIds = await getReadNotificationIds(req.user.id);
 
     let query = {
@@ -498,28 +515,34 @@ exports.getUnreadForBell = async (req, res) => {
       _id: { $nin: readIds }
     };
 
+    // Role-based filtering
     if (req.user.role === "STUDENT") {
       query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
-    }
-
-    if (req.user.role === "TEACHER") {
+    } else if (req.user.role === "TEACHER") {
       query.$or = [
         { createdByRole: "COLLEGE_ADMIN" },
         { createdBy: req.user.id }
+      ];
+    } else if (req.user.role === "COLLEGE_ADMIN") {
+      // Admin sees: Admin-created notifications + Teacher-created notifications
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN", createdBy: req.user.id },
+        { createdByRole: "TEACHER" }
       ];
     }
 
     const unread = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(6);
+      .limit(20);  // Increased limit for better UX
 
-    res.json(unread);
+    // ✅ Return array directly for frontend compatibility
+    ApiResponse.success(res, unread, "Unread notifications fetched successfully");
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.markAsRead = async (req, res) => {
+exports.markAsRead = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
     const { id: userId, role } = req.user;
@@ -538,9 +561,9 @@ exports.markAsRead = async (req, res) => {
       { upsert: true }
     );
 
-    res.json({ message: "Notification marked as read" });
+    ApiResponse.success(res, null, "Notification marked as read");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -550,10 +573,10 @@ exports.markAsRead = async (req, res) => {
  * Rule: Only COLLEGE_ADMIN can send promotion notifications
  * ================================
  */
-exports.sendPromotionNotification = async (req, res) => {
+exports.sendPromotionNotification = async (req, res, next) => {
   try {
     const { studentId, studentName, newSemester, newAcademicYear, adminName } = req.body;
-    
+
     await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
@@ -565,8 +588,8 @@ exports.sendPromotionNotification = async (req, res) => {
       actionUrl: "/dashboard/student/profile"
     });
 
-    res.json({ message: "Notification sent successfully" });
+    ApiResponse.success(res, null, "Notification sent successfully");
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };

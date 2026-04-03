@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import Pagination from "../../../../components/Pagination";
 
 import {
   FaListAlt,
@@ -10,7 +11,7 @@ import {
   FaLock,
   FaEdit,
   FaEye,
-  FaCheckCircle
+  FaCheckCircle,
 } from "react-icons/fa";
 
 export default function MySessions() {
@@ -20,20 +21,33 @@ export default function MySessions() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER")
-    return <Navigate to="/teacher/dashboard" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= FETCH SESSIONS ================= */
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await api.get("/attendance/sessions");
-        setSessions(res.data.sessions || []);
+        const res = await api.get("/attendance/sessions", {
+          params: {
+            page: currentPage,
+            limit: 20,
+          },
+        });
+        setSessions(res.data.data || []);
+        setPagination(
+          res.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 },
+        );
       } catch (err) {
-        console.error(err);
         setError("Failed to load attendance sessions");
       } finally {
         setLoading(false);
@@ -41,16 +55,17 @@ export default function MySessions() {
     };
 
     fetchSessions();
-  }, []);
+  }, [currentPage]);
 
   /* ================= LOADING ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading My Sessions..." />;
   }
 
+  const totalPages = pagination.pages || 0;
+
   return (
     <div className="container-fluid">
-
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
@@ -62,11 +77,7 @@ export default function MySessions() {
         </p>
       </div>
 
-      {error && (
-        <div className="alert alert-danger text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-danger text-center">{error}</div>}
 
       {/* ================= EMPTY ================= */}
       {sessions.length === 0 && !error && (
@@ -79,7 +90,6 @@ export default function MySessions() {
       {sessions.length > 0 && (
         <div className="card shadow-lg border-0 rounded-4 glass-card">
           <div className="card-body">
-
             <table className="table table-hover align-middle">
               <thead className="table-dark">
                 <tr>
@@ -98,13 +108,9 @@ export default function MySessions() {
                 {sessions.map((s, i) => (
                   <tr key={s._id}>
                     <td>{i + 1}</td>
-                    <td>
-                      {new Date(s.lectureDate).toLocaleDateString()}
-                    </td>
+                    <td>{new Date(s.lectureDate).toLocaleDateString()}</td>
                     <td>{s.lectureNumber}</td>
-                    <td className="text-muted small">
-                      {s._id}
-                    </td>
+                    <td className="text-muted small">{s._id}</td>
                     <td>
                       {s.status === "OPEN" ? (
                         <span className="badge bg-success">
@@ -112,13 +118,10 @@ export default function MySessions() {
                           OPEN
                         </span>
                       ) : (
-                        <span className="badge bg-danger">
-                          CLOSED
-                        </span>
+                        <span className="badge bg-danger">CLOSED</span>
                       )}
                     </td>
                     <td className="text-center d-flex gap-2 justify-content-center">
-
                       {/* VIEW / MARK */}
                       <button
                         className="btn btn-sm btn-primary"
@@ -147,21 +150,26 @@ export default function MySessions() {
                       {s.status === "OPEN" && (
                         <button
                           className="btn btn-sm btn-danger"
-                          onClick={() =>
-                            navigate(`/session/close/${s._id}`)
-                          }
+                          onClick={() => navigate(`/session/close/${s._id}`)}
                           title="Close Session"
                         >
                           <FaLock />
                         </button>
                       )}
-
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
+            {/* ================= PAGINATION ================= */}
+            <div className="mt-4">
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
+            </div>
           </div>
         </div>
       )}

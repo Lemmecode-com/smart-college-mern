@@ -1,6 +1,7 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
+const College = require("../models/college.model");
 
 /* =====================================================
    COLLEGE LEVEL REPORTS
@@ -143,11 +144,9 @@ exports.attendanceSummary = async (college_id) => {
   ]);
 
   const data = result[0] || { total: 0, present: 0 };
-  const percentage = data.total > 0 ? Math.round((data.present / data.total) * 100) : 0;
 
   return {
-    percentage,
-    totalSessions: data.total,
+    totalRecords: data.total,
     averageAttendance: data.present
   };
 };
@@ -213,11 +212,41 @@ exports.admissionSummaryAll = async () => {
   const total = await Student.countDocuments();
   const approved = await Student.countDocuments({ status: "APPROVED" });
   const pending = await Student.countDocuments({ status: "PENDING" });
+  const rejected = await Student.countDocuments({ status: "REJECTED" });
+  
+  const totalColleges = await College.countDocuments();
+  const activeColleges = await College.countDocuments({ isActive: true });
+  
+  // Calculate monthly admissions (current month)
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  
+  const monthlyAdmissions = await Student.countDocuments({
+    createdAt: { $gte: startOfMonth }
+  });
+  
+  // Calculate previous month admissions for growth calculation
+  const prevMonthStart = new Date(startOfMonth);
+  prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+  
+  const prevMonthAdmissions = await Student.countDocuments({
+    createdAt: { $gte: prevMonthStart, $lt: startOfMonth }
+  });
+  
+  const monthlyGrowth = prevMonthAdmissions > 0 
+    ? Math.round(((monthlyAdmissions - prevMonthAdmissions) / prevMonthAdmissions) * 100)
+    : monthlyAdmissions > 0 ? 100 : 0;
 
   return {
     totalStudents: total,
     approved,
-    pending
+    pending,
+    rejected,
+    totalColleges,
+    activeColleges,
+    monthlyAdmissions,
+    monthlyGrowth
   };
 };
 
@@ -272,7 +301,7 @@ exports.studentPaymentStatusAll = async (status) => {
 const mongoose = require("mongoose");
 
 exports.attendanceSummary = async (college_id) => {
-  return AttendanceRecord.aggregate([
+  const result = await AttendanceRecord.aggregate([
     {
       $match: {
         college_id: new mongoose.Types.ObjectId(college_id)
@@ -307,5 +336,8 @@ exports.attendanceSummary = async (college_id) => {
       }
     }
   ]);
+
+  // Return first object or default values
+  return result[0] || { totalRecords: 0, averageAttendance: 0 };
 };
 

@@ -94,8 +94,10 @@ export default function CreateTimetable() {
     const loadProfile = async () => {
       try {
         const res = await api.get("/teachers/my-profile");
-        setDepartment(res.data.department_id);
-      } catch {
+        // The API interceptor unwraps the response, so teacher data is at res.data.teacher
+        const teacherData = res.data.teacher || res.data;
+        setDepartment(teacherData.department_id);
+      } catch (err) {
         setError("Failed to load department information");
       } finally {
         setLoading(false);
@@ -110,9 +112,12 @@ export default function CreateTimetable() {
     const loadCourses = async () => {
       try {
         const res = await api.get(`/courses/department/${department._id}`);
-        setCourses(res.data);
-      } catch {
+        // The API interceptor wraps arrays in res.data.data
+        const coursesList = res.data.data || res.data.courses || res.data;
+        setCourses(Array.isArray(coursesList) ? coursesList : []);
+      } catch (err) {
         setError("Failed to load courses for your department");
+        setCourses([]);
       }
     };
     loadCourses();
@@ -127,12 +132,12 @@ export default function CreateTimetable() {
 
     const selectedCourse = courses.find((c) => c._id === form.course_id);
 
-    if (!selectedCourse?.semester) {
+    if (!selectedCourse?.durationSemesters) {
       setAvailableSemesters([]);
       return;
     }
 
-    const totalSem = selectedCourse.semester;
+    const totalSem = selectedCourse.durationSemesters;
     const semArray = Array.from({ length: totalSem }, (_, i) => i + 1);
     setAvailableSemesters(semArray);
   }, [form.course_id, courses]);
@@ -170,9 +175,8 @@ export default function CreateTimetable() {
 
       // ✅ FIXED: Access timetable object from response
       const timetableId = response.data.timetable?._id || response.data._id;
-      
+
       if (!timetableId) {
-        console.error("No timetable ID in response:", response.data);
         setError("Timetable created but failed to get ID. Please navigate manually.");
         return;
       }
@@ -182,7 +186,6 @@ export default function CreateTimetable() {
         navigate(`/timetable/${timetableId}/weekly`);
       }, 2000);
     } catch (err) {
-      console.error("Timetable creation failed:", err);
       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
     } finally {
       setSubmitting(false);
