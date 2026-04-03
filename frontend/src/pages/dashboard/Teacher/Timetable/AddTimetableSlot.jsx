@@ -158,7 +158,7 @@ export default function AddTimetableSlot() {
     const loadTimetables = async () => {
       try {
         const res = await api.get("/timetable");
-        setTimetables(res.data);
+        setTimetables(res.data.timetables || res.data);
       } catch {
         setError("Failed to load timetables");
       } finally {
@@ -177,16 +177,15 @@ export default function AddTimetableSlot() {
 
     const loadDeps = async () => {
       try {
-        
+
         const [subjectsRes, teachersRes] = await Promise.all([
           api.get(`/subjects/course/${timetable.course_id}`),
           api.get(`/teachers/department/${timetable.department_id}`)
         ]);
 
-        setSubjects(subjectsRes.data || []);
-        setTeachers(teachersRes.data || []);
+        setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
+        setTeachers(teachersRes.data.teachers || teachersRes.data || []);
       } catch (err) {
-        console.error("Failed to load subjects/teachers:", err);
         setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
       }
     };

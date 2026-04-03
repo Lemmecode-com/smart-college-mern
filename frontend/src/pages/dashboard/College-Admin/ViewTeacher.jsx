@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 import {
   FaUserTie,
@@ -15,6 +16,7 @@ import {
   FaArrowLeft,
   FaFilePdf,
   FaFileImage,
+  FaPhoneAlt,
   FaFileAlt,
   FaVenusMars,
   FaTint,
@@ -26,7 +28,8 @@ import {
   FaPhone,
   FaCalendarAlt,
   FaUsers,
-  FaInfoCircle
+  FaInfoCircle,
+  FaBookOpen
 } from "react-icons/fa";
 
 export default function ViewTeacher() {
@@ -50,10 +53,13 @@ export default function ViewTeacher() {
     setError("");
     try {
       const res = await api.get(`/teachers/${id}`);
-      setTeacher(res.data);
+
+      // Backend returns { teacher: {...} }, axios keeps it nested
+      // Check if teacher is nested OR if fields are directly on res.data
+      const teacherData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+      setTeacher(teacherData);
       setRetryCount(0);
     } catch (err) {
-      console.error("Teacher fetch error:", err);
       setError(err.response?.data?.message || "Failed to load teacher profile. Please try again.");
     } finally {
       setLoading(false);
@@ -170,13 +176,13 @@ export default function ViewTeacher() {
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}
-      <nav aria-label="breadcrumb" className="erp-breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-          <li className="breadcrumb-item"><a href="/teachers">Teachers</a></li>
-          <li className="breadcrumb-item active" aria-current="page">{teacher.name}</li>
-        </ol>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/dashboard" },
+          { label: "Teachers", path: "/teachers" },
+          { label: teacher.name || "Teacher Profile" }
+        ]}
+      />
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -267,19 +273,24 @@ export default function ViewTeacher() {
                       value={`${teacher.experienceYears || 0} Years`} 
                       icon={<FaClock />}
                     />
-                    <DetailRow 
-                      label="Department" 
-                      value={teacher.department?.name || "N/A"} 
+                    <DetailRow
+                      label="Department"
+                      value={teacher.department_id?.name || "N/A"}
                       icon={<FaBuilding />}
                     />
-                    <DetailRow 
-                      label="Employment Type" 
-                      value={teacher.employmentType?.replace('_', ' ') || "FULL TIME"} 
+                    <DetailRow
+                      label="Employment Type"
+                      value={teacher.employmentType?.replace('_', ' ') || "FULL TIME"}
                       icon={<FaUsers />}
                     />
-                    <DetailRow 
-                      label="Assigned Subjects" 
-                      value={teacher.subjects?.length?.toString() || "0"} 
+                    <DetailRow
+                      label="Assigned Courses"
+                      value={teacher.courses?.length?.toString() || "0"}
+                      icon={<FaBookOpen />}
+                    />
+                    <DetailRow
+                      label="Assigned Subjects"
+                      value={teacher.subjects?.length?.toString() || "0"}
                       icon={<FaGraduationCap />}
                     />
                   </tbody>
@@ -302,53 +313,78 @@ export default function ViewTeacher() {
               <div className="erp-table-container">
                 <table className="erp-detail-table">
                   <tbody>
-                    <DetailRow 
-                      label="Gender" 
-                      value={teacher.gender || "N/A"} 
+                    <DetailRow
+                      label="Full Name"
+                      value={teacher.name || "N/A"}
+                      icon={<FaUserTie />}
+                    />
+                    <DetailRow
+                      label="Gender"
+                      value={teacher.gender || "N/A"}
                       icon={<FaVenusMars />}
                     />
-                    <DetailRow 
-                      label="Blood Group" 
-                      value={teacher.bloodGroup || "N/A"} 
+                    <DetailRow
+                      label="Blood Group"
+                      value={teacher.bloodGroup || "N/A"}
                       icon={<FaTint />}
                     />
-                    <DetailRow 
-                      label="Contact Number" 
-                      value={teacher.contactNumber || "N/A"} 
-                      icon={<FaPhone />}
+                    <DetailRow
+                      label="Date of Birth"
+                      value={teacher.dateOfBirth ? new Date(teacher.dateOfBirth).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : "N/A"}
+                      icon={<FaCalendarAlt />}
                     />
-                    <DetailRow 
-                      label="Address" 
-                      value={teacher.address || "N/A"} 
+                    <DetailRow
+                      label="Mobile Number"
+                      value={teacher.mobileNumber || "N/A"}
+                      icon={<FaPhoneAlt />}
+                    />
+                    <DetailRow
+                      label="Email"
+                      value={teacher.email || "N/A"}
+                      icon={<FaEnvelope />}
+                      isEmail={true}
+                    />
+                    <DetailRow
+                      label="Address"
+                      value={teacher.address || "N/A"}
                       icon={<FaMapMarkerAlt />}
                       isMultiline={true}
                     />
-                    <DetailRow 
-                      label="City" 
-                      value={teacher.city || "N/A"} 
+                    <DetailRow
+                      label="City"
+                      value={teacher.city || "N/A"}
                       icon={<FaCity />}
                     />
-                    <DetailRow 
-                      label="State" 
-                      value={teacher.state || "N/A"} 
+                    <DetailRow
+                      label="State"
+                      value={teacher.state || "N/A"}
                       icon={<FaBuilding />}
                     />
-                    <DetailRow 
-                      label="Joined On" 
+                    <DetailRow
+                      label="Pincode"
+                      value={teacher.pincode || "N/A"}
+                      icon={<FaMapMarkerAlt />}
+                    />
+                    <DetailRow
+                      label="Joined On"
                       value={new Date(teacher.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} 
+                      })}
                       icon={<FaCalendarAlt />}
                     />
-                    <DetailRow 
-                      label="Last Updated" 
+                    <DetailRow
+                      label="Last Updated"
                       value={new Date(teacher.updatedAt).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} 
+                      })}
                       icon={<FaClock />}
                     />
                   </tbody>
@@ -413,36 +449,14 @@ export default function ViewTeacher() {
       </div>
 
       {/* STYLES */}
-      <style jsx>{`
+      <style>{`
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
-        
-        .erp-breadcrumb {
-          background: transparent;
-          padding: 0;
-          margin-bottom: 1.5rem;
-        }
-        
-        .breadcrumb {
-          background: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        
-        .breadcrumb-item a {
-          color: #1a4b6d;
-          text-decoration: none;
-        }
-        
-        .breadcrumb-item a:hover {
-          text-decoration: underline;
-        }
-        
+
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -455,7 +469,7 @@ export default function ViewTeacher() {
           align-items: center;
           animation: slideDown 0.6s ease;
         }
-        
+
         .erp-header-content {
           display: flex;
           align-items: center;

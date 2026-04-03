@@ -1,10 +1,12 @@
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
+const User = require("../models/user.model");
 const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const { sendAdmissionApprovalEmail, sendAdmissionRejectionEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 
 exports.approveStudent = async (req, res, next) => {
   try {
@@ -21,6 +23,37 @@ exports.approveStudent = async (req, res, next) => {
       throw new AppError("Student not found or already processed", 404, "STUDENT_NOT_FOUND");
     }
 
+    // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
+    if (!student.user_id) {
+      console.log(`⚠️  Student ${student.email} missing user_id. Creating User account...`);
+      
+      // Check if User already exists with this email
+      const existingUser = await User.findOne({ email: student.email });
+      
+      if (existingUser) {
+        // Link existing User to student
+        student.user_id = existingUser._id;
+        await student.save();
+        console.log(`✅ Linked existing User ${existingUser._id} to student`);
+      } else {
+        // Create new User account
+        // Generate a temporary password (student will reset via forgot password)
+        const tempPassword = 'TempPass' + Math.random().toString(36).slice(-8);
+        
+        const newUser = await User.create({
+          name: student.fullName,
+          email: student.email,
+          password: tempPassword,
+          role: "STUDENT",
+          college_id: student.college_id,
+        });
+        
+        student.user_id = newUser._id;
+        await student.save();
+        console.log(`✅ Created new User ${newUser._id} for student`);
+      }
+    }
+
     // 2️⃣ Validate course
     const course = await Course.findOne({
       _id: student.course_id,
@@ -29,6 +62,26 @@ exports.approveStudent = async (req, res, next) => {
 
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+    }
+
+    // ✅ UPDATED: Validate student semester is within course duration
+    // Student can be in ANY semester of their enrolled program (1 to durationSemesters)
+    if (student.currentSemester > course.durationSemesters) {
+      throw new AppError(
+        `Student's semester (${student.currentSemester}) exceeds course duration (${course.durationSemesters} semesters). ` +
+        `Please verify the student is enrolled in the correct course.`,
+        400,
+        "SEMESTER_EXCEEDS_DURATION"
+      );
+    }
+
+    // ✅ Also validate semester is not less than 1
+    if (student.currentSemester < 1) {
+      throw new AppError(
+        `Student's semester must be at least 1, got ${student.currentSemester}`,
+        400,
+        "INVALID_SEMESTER"
+      );
     }
 
     // 3️⃣ Admission capacity check
@@ -90,14 +143,18 @@ exports.approveStudent = async (req, res, next) => {
       try {
         const college = await College.findById(student.college_id).select('name email');
         const course = await Course.findById(student.course_id).select('name');
-        
+        // Build dynamic login URL using utility function
+        const loginUrl = buildFrontendUrl('/login');
+
         await sendAdmissionApprovalEmail({
           to: student.email,
           studentName: student.fullName,
           courseName: course?.name || 'N/A',
           collegeName: college?.name || 'Our College',
           admissionYear: student.admissionYear,
-          enrollmentNumber: student.enrollmentNumber
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl: loginUrl,
+          email: student.email
         });
         console.log(`✅ Admission approval email sent to ${student.email}`);
       } catch (emailError) {

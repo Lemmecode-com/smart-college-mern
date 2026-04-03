@@ -4,6 +4,7 @@ const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const { getValidDatesForSlot, getDayName } = require("../utils/date.utils");
 const teacherService = require("../services/teacher.service");
+const ApiResponse = require("../utils/ApiResponse");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -67,7 +68,9 @@ exports.createTimetable = async (req, res) => {
       createdBy: teacher._id,
     });
 
-    res.status(201).json({ message: "Timetable created successfully", timetable });
+    ApiResponse.created(res, {
+      timetable,
+    }, "Timetable created successfully");
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to create timetable" });
@@ -88,10 +91,9 @@ exports.publishTimetable = async (req, res) => {
     return res.status(404).json({ message: "Timetable not found" });
   }
 
-  res.json({
-    message: "Timetable published successfully",
+  ApiResponse.success(res, {
     timetable,
-  });
+  }, "Timetable published successfully");
 };
 
 
@@ -136,11 +138,10 @@ exports.getTimetableById = async (req, res) => {
       };
     });
 
-    res.json({
+    ApiResponse.success(res, {
       timetable,
       slots: slotsWithDates,
-      message: "Timetable with valid dates retrieved successfully"
-    });
+    }, "Timetable with valid dates retrieved successfully");
   } catch (error) {
     console.error("Get Timetable Error:", error);
     res.status(500).json({ message: error.message });
@@ -168,7 +169,10 @@ exports.getTimetables = async (req, res) => {
         // Regular teacher: Get courses they teach
         const teacherCourses = teacher.courses || [];
         if (teacherCourses.length === 0) {
-          return res.json([]); // No courses assigned
+          return ApiResponse.success(res, {
+            timetables: [],
+            count: 0,
+          }, "No courses assigned to teacher");
         }
         filter.course_id = { $in: teacherCourses };
       }
@@ -191,7 +195,10 @@ exports.getTimetables = async (req, res) => {
     }
 
     const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
-    res.json(timetables);
+    ApiResponse.success(res, {
+      timetables,
+      count: timetables.length,
+    }, "Timetables fetched successfully");
   } catch (error) {
     console.error("Get Timetables Error:", error);
     res.status(500).json({ message: "Failed to fetch timetables" });
@@ -236,7 +243,9 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       weekly[slot.day].push(slot);
     });
 
-    res.json({ weekly });
+    ApiResponse.success(res, {
+      weekly,
+    }, "Weekly timetable fetched successfully");
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to load schedule" });
@@ -271,8 +280,10 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter(slot => slot.timetable_id);
 
-    res.json(filteredSlots);
-
+    ApiResponse.success(res, {
+      slots: filteredSlots,
+      count: filteredSlots.length,
+    }, "Student timetable fetched successfully");
   } catch (error) {
     console.error("Student timetable error:", error);
     res.status(500).json({ message: error.message });
@@ -317,13 +328,12 @@ exports.getStudentTodayTimetable = async (req, res) => {
     // Filter only slots from PUBLISHED timetables
     const publishedSlots = slots.filter(slot => slot.timetable_id);
 
-    res.json({
+    ApiResponse.success(res, {
       today: todayStr,
       dayName: todayDayName,
       totalSlots: publishedSlots.length,
       slots: publishedSlots
-    });
-
+    }, "Today's timetable fetched successfully");
   } catch (error) {
     console.error("Student today timetable error:", error);
     res.status(500).json({ message: "Failed to fetch today's timetable" });
@@ -374,12 +384,15 @@ exports.getWeeklyTimetableById = async (req, res) => {
     const weekly = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] };
     slots.forEach(s => weekly[s.day].push(s));
 
-    res.json({ timetable, weekly });
+    ApiResponse.success(res, {
+      timetable,
+      weekly,
+    }, "Weekly timetable fetched successfully");
   } catch (error) {
     // ✅ Handle MongoDB ObjectId cast errors gracefully
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        message: "Invalid timetable ID format. Please provide a valid ID." 
+      return res.status(400).json({
+        message: "Invalid timetable ID format. Please provide a valid ID."
       });
     }
     console.error("Get Weekly Timetable Error:", error);
@@ -416,8 +429,7 @@ exports.deleteTimetable = async (req, res) => {
     // 5️⃣ Delete timetable
     await Timetable.findByIdAndDelete(id);
 
-    res.json({ message: "Timetable deleted successfully" });
-
+    ApiResponse.success(res, null, "Timetable deleted successfully");
   } catch (error) {
     console.error("Delete Timetable Error:", error);
     res.status(500).json({ message: "Failed to delete timetable" });
