@@ -97,6 +97,7 @@ import CreateNotification from "./pages/dashboard/College-Admin/Notification/Cre
 import NotificationList from "./pages/dashboard/College-Admin/Notification/NotificationList";
 import UpdateNotifications from "./pages/dashboard/College-Admin/Notification/UpdateNotifications";
 import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
+import NotificationDetails from "./pages/dashboard/Notifications/NotificationDetails";
 
 /* ================= REPORTS ================= */
 import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
@@ -475,6 +476,21 @@ function AppContent({
               }
             />
             <Route
+              path="/notification/view/:id"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "COLLEGE_ADMIN",
+                    "TEACHER",
+                    "STUDENT",
+                    "SUPER_ADMIN",
+                  ]}
+                >
+                  <NotificationDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/notification/edit/:id"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
@@ -549,6 +565,21 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/notifications/view/:id"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "TEACHER",
+                    "COLLEGE_ADMIN",
+                    "STUDENT",
+                    "SUPER_ADMIN",
+                  ]}
+                >
+                  <NotificationDetails />
                 </ProtectedRoute>
               }
             />
