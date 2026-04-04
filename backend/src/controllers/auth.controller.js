@@ -410,7 +410,6 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 const sendTokens = async (res, id, role, college_id, req) => {
   // 🔒 SECURITY: Short-lived access token (15 minutes)
   const accessExpiry = process.env.JWT_ACCESS_EXPIRY;
-
   // 🔒 SECURITY: Long-lived refresh token (7 days)
   const refreshExpiry = process.env.JWT_REFRESH_EXPIRY;
 
