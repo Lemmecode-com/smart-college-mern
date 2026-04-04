@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import NotificationCard from "../../../components/NotificationCard";
 import {
   FaBell,
   FaUserTie,
@@ -131,13 +132,6 @@ export default function StudentNotificationList() {
         .gradient-header {
           background: linear-gradient(180deg, #0f3a4a, #134952);
         }
-        .note-card {
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .note-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
       `}</style>
     </div>
   );
@@ -160,25 +154,11 @@ function Section({ title, icon, notes }) {
       <div className="row g-4">
         {notes.map((note) => (
           <div className="col-lg-4 col-md-6" key={note._id}>
-            <div className="card note-card shadow-sm border-0 rounded-4 h-100">
-              <div className="card-body">
-                <span className="badge bg-primary mb-2">{note.type}</span>
-
-                <h6 className="fw-bold">{note.title}</h6>
-                <p className="text-muted small">{note.message}</p>
-
-                <small className="text-muted d-flex align-items-center gap-1">
-                  <FaClock />
-                  {new Date(note.createdAt).toLocaleString()}
-                </small>
-
-                {note.expiresAt && (
-                  <small className="text-danger d-block mt-2">
-                    Expires on: {new Date(note.expiresAt).toDateString()}
-                  </small>
-                )}
-              </div>
-            </div>
+            <NotificationCard
+              note={note}
+              isOwner={false}
+              showViewButton={true}
+            />
           </div>
         ))}
       </div>
