@@ -5,6 +5,7 @@ import Loading from "../../../../components/Loading";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import Pagination from "../../../../components/Pagination";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import NotificationCard from "../../../../components/NotificationCard";
 import {
   FaBell,
   FaTrash,
@@ -73,19 +74,23 @@ export default function NotificationList() {
       setLoading(true);
       setError("");
       const res = await api.get("/notifications/admin/read");
-      
+
       // Mark myNotifications with isOwner = true
-      const myNotesData = (res.data.myNotifications || res.data || []).map(note => ({
-        ...note,
-        isOwner: true,
-      }));
-      
+      const myNotesData = (res.data.myNotifications || res.data || []).map(
+        (note) => ({
+          ...note,
+          isOwner: true,
+        }),
+      );
+
       // Mark staffNotifications with isOwner = false
-      const staffNotesData = (res.data.staffNotifications || []).map(note => ({
-        ...note,
-        isOwner: false,
-      }));
-      
+      const staffNotesData = (res.data.staffNotifications || []).map(
+        (note) => ({
+          ...note,
+          isOwner: false,
+        }),
+      );
+
       setMyNotes(myNotesData);
       setStaffNotes(staffNotesData);
 
@@ -140,10 +145,10 @@ export default function NotificationList() {
 
       // Update state optimistically
       setMyNotes((prev) =>
-        prev.filter((note) => note._id !== confirmModal.noteId)
+        prev.filter((note) => note._id !== confirmModal.noteId),
       );
       setStaffNotes((prev) =>
-        prev.filter((note) => note._id !== confirmModal.noteId)
+        prev.filter((note) => note._id !== confirmModal.noteId),
       );
 
       toast.success("Notification deleted successfully!", {
@@ -151,10 +156,13 @@ export default function NotificationList() {
         toastId: "notification-delete-success",
       });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete notification", {
-        ...CONFIG.TOAST,
-        toastId: "notification-delete-error",
-      });
+      toast.error(
+        err.response?.data?.message || "Failed to delete notification",
+        {
+          ...CONFIG.TOAST,
+          toastId: "notification-delete-error",
+        },
+      );
     } finally {
       setDeletingId(null);
       setConfirmModal({ isOpen: false, noteId: null, noteTitle: "" });
@@ -188,17 +196,17 @@ export default function NotificationList() {
         return matchesSearch && matchesType;
       });
     },
-    [activeTab, searchQuery, typeFilter]
+    [activeTab, searchQuery, typeFilter],
   );
 
   const filteredMyNotes = useMemo(
     () => filterNotifications(myNotes),
-    [myNotes, filterNotifications]
+    [myNotes, filterNotifications],
   );
 
   const filteredStaffNotes = useMemo(
     () => filterNotifications(staffNotes),
-    [staffNotes, filterNotifications]
+    [staffNotes, filterNotifications],
   );
 
   /* ================= PAGINATION ================= */
@@ -219,9 +227,7 @@ export default function NotificationList() {
     return getUniqueNotes.slice(startIndex, endIndex);
   }, [getUniqueNotes, currentPage]);
 
-  const totalPages = Math.ceil(
-    getUniqueNotes.length / CONFIG.ITEMS_PER_PAGE
-  );
+  const totalPages = Math.ceil(getUniqueNotes.length / CONFIG.ITEMS_PER_PAGE);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -786,209 +792,6 @@ export default function NotificationList() {
 
         .erp-btn-icon.spin {
           animation: spin 1s linear infinite;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* ================= NOTIFICATION CARD COMPONENT ================= */
-function NotificationCard({ note, isOwner, onEdit, onDelete, deletingId }) {
-  const isDeleting = deletingId === note._id;
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("en-US", CONFIG.DATE_OPTIONS);
-  };
-
-  const getTypeBadgeClass = (type) => {
-    const classes = {
-      INFO: "bg-info",
-      WARNING: "bg-warning",
-      URGENT: "bg-danger",
-      SUCCESS: "bg-success",
-      GENERAL: "bg-primary",
-    };
-    return classes[type] || "bg-secondary";
-  };
-
-  return (
-    <div className="notification-card">
-      <div className="card-header-custom">
-        <span
-          className={`notification-badge ${getTypeBadgeClass(note.type)}`}
-        >
-          {note.type || "GENERAL"}
-        </span>
-        {isOwner && (
-          <div className="card-actions">
-            <button
-              className="action-btn edit"
-              onClick={() => onEdit(note._id)}
-              disabled={isDeleting}
-              aria-label={`Edit notification: ${note.title}`}
-              title="Edit"
-            >
-              <FaEdit />
-            </button>
-            <button
-              className="action-btn delete"
-              onClick={() => onDelete(note._id, note.title)}
-              disabled={isDeleting}
-              aria-label={`Delete notification: ${note.title}`}
-              title="Delete"
-            >
-              {isDeleting ? (
-                <span className="spinner-border spinner-border-sm" />
-              ) : (
-                <FaTrash />
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="card-body-custom">
-        <h6 className="notification-title">{note.title}</h6>
-        <p className="notification-message">{note.message}</p>
-
-        <div className="notification-footer">
-          <div className="notification-date">
-            <FaClock className="date-icon" />
-            <span>{formatDate(note.createdAt)}</span>
-          </div>
-          {note.expiresAt && (
-            <div className="notification-expires">
-              <span>Expires: {new Date(note.expiresAt).toLocaleDateString("en-US", CONFIG.DATE_OPTIONS)}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <style>{`
-        .notification-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s ease;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .notification-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header-custom {
-          padding: 1rem 1.25rem;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .notification-badge {
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .card-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          font-size: 0.875rem;
-        }
-
-        .action-btn.edit {
-          background: #e0f2fe;
-          color: #0284c7;
-        }
-
-        .action-btn.edit:hover:not(:disabled) {
-          background: #0284c7;
-          color: white;
-          transform: scale(1.1);
-        }
-
-        .action-btn.delete {
-          background: #fee2e2;
-          color: #dc3545;
-        }
-
-        .action-btn.delete:hover:not(:disabled) {
-          background: #dc3545;
-          color: white;
-          transform: scale(1.1);
-        }
-
-        .action-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .card-body-custom {
-          padding: 1.25rem;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .notification-title {
-          margin: 0 0 0.75rem;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #1e293b;
-          line-height: 1.4;
-        }
-
-        .notification-message {
-          margin: 0 0 1rem;
-          color: #64748b;
-          font-size: 0.95rem;
-          line-height: 1.6;
-          flex: 1;
-        }
-
-        .notification-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 0.75rem;
-          border-top: 1px solid #f1f5f9;
-          font-size: 0.85rem;
-        }
-
-        .notification-date {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          color: #94a3b8;
-        }
-
-        .date-icon {
-          font-size: 0.75rem;
-        }
-
-        .notification-expires {
-          color: #dc3545;
-          font-weight: 500;
         }
       `}</style>
     </div>
