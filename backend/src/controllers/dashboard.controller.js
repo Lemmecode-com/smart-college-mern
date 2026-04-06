@@ -21,7 +21,11 @@ exports.studentDashboard = async (req, res, next) => {
     const collegeId = req.college_id;
 
     if (!userId || !collegeId) {
-      throw new AppError("User ID or College ID missing", 400, "INVALID_REQUEST");
+      throw new AppError(
+        "User ID or College ID missing",
+        400,
+        "INVALID_REQUEST",
+      );
     }
 
     /* =====================================================
@@ -49,30 +53,30 @@ exports.studentDashboard = async (req, res, next) => {
       {
         $match: {
           student_id: student._id,
-          college_id: collegeId
-        }
+          college_id: collegeId,
+        },
       },
       {
         $lookup: {
           from: "attendancesessions",
           localField: "session_id",
           foreignField: "_id",
-          as: "session"
-        }
+          as: "session",
+        },
       },
       {
-        $unwind: "$session"
+        $unwind: "$session",
       },
       {
         $lookup: {
           from: "subjects",
           localField: "session.subject_id",
           foreignField: "_id",
-          as: "subject"
-        }
+          as: "subject",
+        },
       },
       {
-        $unwind: "$subject"
+        $unwind: "$subject",
       },
       {
         $group: {
@@ -81,10 +85,10 @@ exports.studentDashboard = async (req, res, next) => {
           subjectCode: { $first: "$subject.code" },
           total: { $sum: 1 },
           present: {
-            $sum: { $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     // Calculate overall attendance
@@ -94,12 +98,13 @@ exports.studentDashboard = async (req, res, next) => {
     const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
     // Format subject-wise attendance with null safety
-    const subjectWiseAttendance = attendanceStats.map(stat => ({
+    const subjectWiseAttendance = attendanceStats.map((stat) => ({
       subject: stat.subjectName || "Unknown",
       code: stat.subjectCode || "N/A",
       total: stat.total || 0,
       present: stat.present || 0,
-      percentage: stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0
+      percentage:
+        stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0,
     }));
 
     /* =====================================================
@@ -113,7 +118,7 @@ exports.studentDashboard = async (req, res, next) => {
     const todaySlots = await TimetableSlot.find({
       college_id: collegeId,
       day: todayName,
-      semester: student.semester,
+      semester: student.currentSemester,
     })
       .populate("subject_id", "name code")
       .populate("teacher_id", "name")
@@ -134,7 +139,7 @@ exports.studentDashboard = async (req, res, next) => {
     ===================================================== */
 
     const fee = await StudentFee.findOne({
-      student_id: student._id,  // ✅ Use student._id (not user_id)
+      student_id: student._id, // ✅ Use student._id (not user_id)
     });
 
     let feeSummary = null;
@@ -156,12 +161,12 @@ exports.studentDashboard = async (req, res, next) => {
     ===================================================== */
 
     const readRecords = await NotificationRead.find({
-      user_id: student.user_id,  // ✅ Use student.user_id
+      user_id: student.user_id, // ✅ Use student.user_id
     }).select("notification_id");
 
     const readIds = readRecords.map((r) => r.notification_id);
 
-    const latestNotifications = await Notification.find({
+    const rawNotifications = await Notification.find({
       college_id: student.college_id,
       isActive: true,
       target: { $in: ["ALL", "STUDENTS"] },
@@ -171,7 +176,7 @@ exports.studentDashboard = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
-    latestNotifications: latestNotifications.map((n) => ({
+    const latestNotifications = rawNotifications.map((n) => ({
       _id: n._id,
       title: n.title,
       message: n.message,
@@ -184,31 +189,35 @@ exports.studentDashboard = async (req, res, next) => {
        7️⃣ FINAL RESPONSE
     ===================================================== */
 
-    ApiResponse.success(res, {
-      student: {
-        name: student.fullName || "Student",
-        enrollmentNumber: student.enrollmentNumber || "N/A",
-        course: student.course_id?.name || "Not Assigned",
-        department: student.department_id?.name || "Not Assigned",
-        semester: student.currentSemester || student.semester || 1,
-      },
+    ApiResponse.success(
+      res,
+      {
+        student: {
+          name: student.fullName || "Student",
+          enrollmentNumber: student.enrollmentNumber || "N/A",
+          course: student.course_id?.name || "Not Assigned",
+          department: student.department_id?.name || "Not Assigned",
+          semester: student.currentSemester || student.semester || 1,
+        },
 
-      attendanceSummary: {
-        total: total || 0,
-        present: present || 0,
-        absent: absent || 0,
-        percentage: percentage || 0,
-        warning: percentage < 75,
-      },
+        attendanceSummary: {
+          total: total || 0,
+          present: present || 0,
+          absent: absent || 0,
+          percentage: percentage || 0,
+          warning: percentage < 75,
+        },
 
-      subjectWiseAttendance,
-      todayTimetable,
-      feeSummary,
-      latestNotifications: latestNotifications || [],
-    }, "Dashboard data fetched successfully");
+        subjectWiseAttendance,
+        todayTimetable,
+        feeSummary,
+        latestNotifications: latestNotifications || [],
+      },
+      "Dashboard data fetched successfully",
+    );
   } catch (error) {
-    console.error('❌ [DASHBOARD] Student Dashboard Error:', error);
-    console.error('❌ [DASHBOARD] Error Stack:', error.stack);
+    console.error("❌ [DASHBOARD] Student Dashboard Error:", error);
+    console.error("❌ [DASHBOARD] Error Stack:", error.stack);
     next(error);
   }
 };
@@ -266,24 +275,28 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
-    ApiResponse.success(res, {
-      teacher: {
-        name: teacher.name,
-        email: teacher.email,
-        employeeId: teacher.employeeId,
+    ApiResponse.success(
+      res,
+      {
+        teacher: {
+          name: teacher.name,
+          email: teacher.email,
+          employeeId: teacher.employeeId,
+        },
+        stats: {
+          totalLecturesTaken,
+          openSessions,
+          closedSessions,
+          attendanceMarked,
+          totalStudentsHandled,
+          totalPresent,
+          totalAbsent,
+          attendancePercentage,
+        },
+        recentLectures: sessions.slice(0, 5),
       },
-      stats: {
-        totalLecturesTaken,
-        openSessions,
-        closedSessions,
-        attendanceMarked,
-        totalStudentsHandled,
-        totalPresent,
-        totalAbsent,
-        attendancePercentage,
-      },
-      recentLectures: sessions.slice(0, 5),
-    }, "Teacher dashboard data fetched successfully");
+      "Teacher dashboard data fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -296,7 +309,11 @@ exports.teacherDashboard = async (req, res, next) => {
 exports.collegeAdminDashboard = async (req, res, next) => {
   try {
     if (!req.college_id) {
-      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+      throw new AppError(
+        "College ID not available. Please login again.",
+        403,
+        "COLLEGE_ID_MISSING",
+      );
     }
 
     const collegeId = req.college_id;
@@ -333,33 +350,37 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     // 🔥 OPTIMIZED: Fetch only pending admissions (usually small count)
     const pendingAdmissions = await Student.find({
       college_id: collegeId,
-      status: "PENDING"
+      status: "PENDING",
     })
       .sort({ createdAt: -1 })
       .limit(50)
       .select("fullName email enrollmentNumber createdAt");
 
-    ApiResponse.success(res, {
-      college: {
-        id: college._id,
-        name: college.name,
-        code: college.code,
-        email: college.email,
-        establishedYear: college.establishedYear,
-        logo: college.logo,
-      },
+    ApiResponse.success(
+      res,
+      {
+        college: {
+          id: college._id,
+          name: college.name,
+          code: college.code,
+          email: college.email,
+          establishedYear: college.establishedYear,
+          logo: college.logo,
+        },
 
-      stats: {
-        totalStudents,
-        totalTeachers,
-        totalDepartments,
-        totalCourses,
-        pendingAdmissions: pendingAdmissionsCount,
-      },
+        stats: {
+          totalStudents,
+          totalTeachers,
+          totalDepartments,
+          totalCourses,
+          pendingAdmissions: pendingAdmissionsCount,
+        },
 
-      recentStudents,
-      pendingAdmissions,
-    }, "College admin dashboard data fetched successfully");
+        recentStudents,
+        pendingAdmissions,
+      },
+      "College admin dashboard data fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -376,14 +397,18 @@ exports.superAdminDashboard = async (req, res, next) => {
       Teacher.countDocuments(),
     ]);
 
-    ApiResponse.success(res, {
-      stats: {
-        totalColleges: colleges.length,
-        totalStudents: students,
-        totalTeachers: teachers,
+    ApiResponse.success(
+      res,
+      {
+        stats: {
+          totalColleges: colleges.length,
+          totalStudents: students,
+          totalTeachers: teachers,
+        },
+        colleges,
       },
-      colleges,
-    }, "Super admin dashboard data fetched successfully");
+      "Super admin dashboard data fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
