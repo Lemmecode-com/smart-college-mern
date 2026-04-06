@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
+import { toast } from "react-toastify";
 
 import {
   FaUsers,
@@ -28,7 +29,7 @@ import {
   FaBookOpen,
   FaUserCheck,
   FaUserTimes,
-  FaUserClock
+  FaUserClock,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 5;
@@ -75,7 +76,10 @@ export default function StudentList() {
 
       setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load students. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load students. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +92,7 @@ export default function StudentList() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchStudents();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
@@ -99,12 +103,12 @@ export default function StudentList() {
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) =>
-        `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''}`
+        `${s.fullName} ${s.email} ${s.department_id?.name || ""} ${s.course_id?.name || ""}`
           .toLowerCase()
-          .includes(search.toLowerCase())
+          .includes(search.toLowerCase()),
       )
       .filter((s) =>
-        statusFilter === "ALL" ? true : s.status === statusFilter
+        statusFilter === "ALL" ? true : s.status === statusFilter,
       );
   }, [students, search, statusFilter]);
 
@@ -112,18 +116,18 @@ export default function StudentList() {
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
+    page * PAGE_SIZE,
   );
 
   /* ================= ACTIONS ================= */
   const handleApproveClick = (id) => {
-    setConfirmType('approve');
+    setConfirmType("approve");
     setConfirmData(id);
     setShowConfirmModal(true);
   };
 
   const handleRejectClick = (id) => {
-    setConfirmType('reject');
+    setConfirmType("reject");
     setConfirmData(id);
     setShowConfirmModal(true);
   };
@@ -131,7 +135,14 @@ export default function StudentList() {
   const approveStudent = async (id) => {
     setModalLoading(true);
     try {
-      await api.put(`/students/${id}/approve`);
+      const response = await api.put(`/students/${id}/approve`);
+      toast.success(
+        response.data?.message || "Student approved successfully!",
+        {
+          position: "top-right",
+          autoClose: 3000,
+        },
+      );
       // Refresh the list
       fetchStudents();
       // Navigate to Approved Students list with refresh flag
@@ -159,16 +170,23 @@ export default function StudentList() {
     if (!confirmType || !confirmData) return;
 
     try {
-      if (confirmType === 'approve') {
+      if (confirmType === "approve") {
         await approveStudent(confirmData);
-      } else if (confirmType === 'reject') {
+      } else if (confirmType === "reject") {
         await rejectStudent(confirmData);
       }
       setShowConfirmModal(false);
       setConfirmType(null);
       setConfirmData(null);
     } catch (err) {
-      // Error is handled in the action function
+      const errorMsg =
+        err.response?.data?.message ||
+        err.response?.data?.error?.message ||
+        `Failed to ${confirmType} student. Please try again.`;
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     }
   };
 
@@ -191,7 +209,7 @@ export default function StudentList() {
           </div>
         ))}
       </div>
-      
+
       <div className="skeleton-table">
         <div className="skeleton-table-header">
           {[...Array(7)].map((_, i) => (
@@ -227,15 +245,15 @@ export default function StudentList() {
         <h3>Students Loading Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => navigate(-1)}
           >
             <FaChevronLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -258,7 +276,7 @@ export default function StudentList() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Student Management" }
+          { label: "Student Management" },
         ]}
       />
 
@@ -280,7 +298,12 @@ export default function StudentList() {
       {/* STATS CARDS */}
       <div className="stats-grid animate-fade-in">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            }}
+          >
             <FaGraduationCap />
           </div>
           <div className="stat-card-content">
@@ -289,30 +312,51 @@ export default function StudentList() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+            }}
+          >
             <FaUserCheck />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Approved</div>
-            <div className="stat-card-value">{students.filter(s => s.status === "APPROVED").length}</div>
+            <div className="stat-card-value">
+              {students.filter((s) => s.status === "APPROVED").length}
+            </div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+            }}
+          >
             <FaUserClock />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Pending</div>
-            <div className="stat-card-value">{students.filter(s => s.status === "PENDING").length}</div>
+            <div className="stat-card-value">
+              {students.filter((s) => s.status === "PENDING").length}
+            </div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+            }}
+          >
             <FaUserTimes />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Rejected</div>
-            <div className="stat-card-value">{students.filter(s => s.status === "REJECTED").length}</div>
+            <div className="stat-card-value">
+              {students.filter((s) => s.status === "REJECTED").length}
+            </div>
           </div>
         </div>
       </div>
@@ -335,18 +379,20 @@ export default function StudentList() {
                   aria-label="Search students"
                 />
               </div>
-              
+
               <div className="filter-dropdown">
                 <button className="filter-btn">
                   <FaFilter className="filter-icon" />
-                  <span>Status: {statusFilter === "ALL" ? "All" : statusFilter}</span>
+                  <span>
+                    Status: {statusFilter === "ALL" ? "All" : statusFilter}
+                  </span>
                   <FaChevronDown className="filter-arrow" />
                 </button>
                 <div className="filter-menu">
-                  {["ALL", "PENDING", "APPROVED", "REJECTED"].map(status => (
+                  {["ALL", "PENDING", "APPROVED", "REJECTED"].map((status) => (
                     <button
                       key={status}
-                      className={`filter-option ${statusFilter === status ? 'active' : ''}`}
+                      className={`filter-option ${statusFilter === status ? "active" : ""}`}
                       onClick={() => {
                         setStatusFilter(status);
                         setPage(1);
@@ -382,10 +428,11 @@ export default function StudentList() {
             Student Records
           </h3>
           <span className="record-count">
-            {filteredStudents.length} {filteredStudents.length === 1 ? "Student" : "Students"} Found
+            {filteredStudents.length}{" "}
+            {filteredStudents.length === 1 ? "Student" : "Students"} Found
           </span>
         </div>
-        
+
         <div className="erp-card-body">
           {paginatedStudents.length === 0 ? (
             <div className="empty-state">
@@ -394,7 +441,7 @@ export default function StudentList() {
               </div>
               <h3>No Students Found</h3>
               <p className="empty-description">
-                {search || statusFilter !== "ALL" 
+                {search || statusFilter !== "ALL"
                   ? "No students match your search criteria. Try adjusting your filters."
                   : "There are no student registrations yet."}
               </p>
@@ -422,7 +469,9 @@ export default function StudentList() {
                     <tr key={student._id} className="table-row">
                       <td className="cell-student">
                         <div className="student-info">
-                          <span className="student-name-cell">{student.fullName}</span>
+                          <span className="student-name-cell">
+                            {student.fullName}
+                          </span>
                           <span className="student-email">{student.email}</span>
                         </div>
                       </td>
@@ -437,10 +486,18 @@ export default function StudentList() {
                         </span>
                       </td>
                       <td className="cell-status">
-                        <span className={`badge badge-status-${student.status.toLowerCase()}`}>
-                          {student.status === "PENDING" && <FaUserClock className="badge-icon" />}
-                          {student.status === "APPROVED" && <FaUserCheck className="badge-icon" />}
-                          {student.status === "REJECTED" && <FaUserTimes className="badge-icon" />}
+                        <span
+                          className={`badge badge-status-${student.status.toLowerCase()}`}
+                        >
+                          {student.status === "PENDING" && (
+                            <FaUserClock className="badge-icon" />
+                          )}
+                          {student.status === "APPROVED" && (
+                            <FaUserCheck className="badge-icon" />
+                          )}
+                          {student.status === "REJECTED" && (
+                            <FaUserTimes className="badge-icon" />
+                          )}
                           {student.status}
                         </span>
                       </td>
@@ -448,7 +505,9 @@ export default function StudentList() {
                         <div className="action-buttons">
                           <button
                             className="btn btn-action btn-view-student"
-                            onClick={() => navigate(`/college/view-student/${student._id}`)}
+                            onClick={() =>
+                              navigate(`/college/view-student/${student._id}`)
+                            }
                             title="View Student Details"
                           >
                             <FaEye />
@@ -483,36 +542,40 @@ export default function StudentList() {
               </table>
             </div>
           )}
-          
+
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="erp-pagination">
               <button
                 className="page-btn prev-btn"
-                onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
                 disabled={page === 1}
                 aria-label="Previous page"
               >
                 <FaChevronLeft />
               </button>
-              
+
               <div className="page-numbers">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
-                  <button
-                    key={num}
-                    className={`page-btn ${page === num ? 'active' : ''}`}
-                    onClick={() => setPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={page === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (num) => (
+                    <button
+                      key={num}
+                      className={`page-btn ${page === num ? "active" : ""}`}
+                      onClick={() => setPage(num)}
+                      aria-label={`Page ${num}`}
+                      aria-current={page === num ? "page" : undefined}
+                    >
+                      {num}
+                    </button>
+                  ),
+                )}
               </div>
-              
+
               <button
                 className="page-btn next-btn"
-                onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={page === totalPages}
                 aria-label="Next page"
               >
@@ -532,14 +595,14 @@ export default function StudentList() {
           setConfirmData(null);
         }}
         onConfirm={handleConfirm}
-        title={confirmType === 'approve' ? "Approve Student" : "Reject Student"}
+        title={confirmType === "approve" ? "Approve Student" : "Reject Student"}
         message={
-          confirmType === 'approve'
+          confirmType === "approve"
             ? "Are you sure you want to approve this student? This action will grant them full access to the system."
             : "Are you sure you want to reject this student? This action will notify the student and remove their pending status."
         }
-        type={confirmType === 'approve' ? "success" : "danger"}
-        confirmText={confirmType === 'approve' ? "Approve" : "Reject"}
+        type={confirmType === "approve" ? "success" : "danger"}
+        confirmText={confirmType === "approve" ? "Approve" : "Reject"}
         cancelText="Cancel"
         isLoading={modalLoading}
       />
