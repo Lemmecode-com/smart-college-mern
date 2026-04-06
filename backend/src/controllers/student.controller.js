@@ -14,14 +14,10 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
 const collegeService = require("../services/college.service");
+const logger = require("../utils/logger");
 
 exports.registerStudent = async (req, res, next) => {
   try {
-    console.log("📝 [STUDENT REGISTER] Request received");
-    console.log("📝 [STUDENT REGISTER] Request body:", req.body);
-    console.log("📝 [STUDENT REGISTER] Files:", req.files);
-    console.log("📝 [STUDENT REGISTER] Params:", req.params);
-
     const { collegeCode } = req.params;
 
     // Extract category early from req.body for validation
@@ -30,28 +26,13 @@ exports.registerStudent = async (req, res, next) => {
     // Get uploaded files
     const files = req.files || {};
 
-    console.log("📁 UPLOADED FILES:", Object.keys(files));
-    console.log("📁 All files details:", files);
-    console.log("📁 Aadhar Card:", files.aadharCard);
-    console.log("📁 Category Certificate:", files.categoryCertificate);
-    console.log("📁 SSC Marksheet:", files.sscMarksheet);
-
     // Load document configuration for this college
     const docConfig = await DocumentConfig.findOne({
       collegeCode,
       isActive: true,
     });
-    console.log(
-      "📋 Doc Config loaded:",
-      docConfig ? "YES" : "NO",
-      "- Documents:",
-      docConfig?.documents?.length,
-    );
     if (docConfig) {
-      console.log(
-        "📋 Enabled documents:",
-        docConfig.documents.filter((d) => d.enabled).map((d) => d.type),
-      );
+      // Document config loaded successfully
     }
 
     // Map document type to field name (backward compatibility)
@@ -80,20 +61,8 @@ exports.registerStudent = async (req, res, next) => {
     const documentPaths = {};
 
     if (docConfig && docConfig.documents) {
-      // Use college-specific document config
-      console.log("📋 Processing document config for college:", collegeCode);
-
       // First pass: Check mandatory documents and validate
       for (const doc of docConfig.documents) {
-        console.log(
-          "📄 Checking document:",
-          doc.type,
-          "Enabled:",
-          doc.enabled,
-          "Mandatory:",
-          doc.mandatory,
-        );
-
         // Map document type to backend field name
         const backendFieldName = documentFieldMap[doc.type] || doc.type;
 
@@ -101,17 +70,8 @@ exports.registerStudent = async (req, res, next) => {
         if (doc.enabled && doc.mandatory && !files[backendFieldName]) {
           // Skip category certificate if category is GEN
           if (doc.type === "category_certificate" && category === "GEN") {
-            console.log("⏭️ Skipping category certificate (GEN category)");
             continue;
           }
-          console.log(
-            "❌ Missing mandatory document:",
-            doc.label,
-            "(looking for field:",
-            backendFieldName,
-            ")",
-          );
-          console.log("📁 Files received:", Object.keys(files));
           return res.status(400).json({
             message: `${doc.label} is mandatory`,
           });
@@ -143,17 +103,8 @@ exports.registerStudent = async (req, res, next) => {
             /^.*?[\\\/]uploads[\\\/]/,
             "uploads/",
           );
-          console.log(
-            "💾 Saved uploaded document:",
-            docType,
-            documentPaths[docType],
-          );
         }
       }
-
-      console.log("📄 FINAL documentPaths:", documentPaths);
-      console.log("📄 Aadhar Path to save:", documentPaths["aadhar_card"]);
-      console.log("📄 SSC Path to save:", documentPaths["10th_marksheet"]);
     } else {
       // Use default document fields (backward compatibility)
       // Also handle ALL uploaded files dynamically
@@ -202,9 +153,6 @@ exports.registerStudent = async (req, res, next) => {
           // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
           const docType = fieldName.replace(/([A-Z])/g, "_$1").toLowerCase();
           documentPaths[docType] = filePath;
-          console.log("💾 Saved (fallback):", docType, filePath);
-        } else {
-          console.log("⚠️ Skipped file (no path):", fieldName, fieldFiles);
         }
       }
     }
@@ -381,16 +329,16 @@ exports.registerStudent = async (req, res, next) => {
           courseName: course?.name,
           admissionYear: registeredStud.admissionYear,
         });
-        console.log(
-          `✅ Registration success email sent to ${registeredStud.email}`,
-        );
       } catch (emailError) {
-        console.error(
-          "❌ Failed to send registration email:",
-          emailError.message,
-        );
+        // Non-critical - continue
       }
     })();
+
+    logger.logInfo("Student registration successful", {
+      controller: "student.controller",
+      action: "registerStudent",
+      collegeCode,
+    });
 
     ApiResponse.created(
       res,
@@ -400,8 +348,11 @@ exports.registerStudent = async (req, res, next) => {
       "Registration successful. Await college approval.",
     );
   } catch (error) {
-    console.error("❌ [STUDENT REGISTER] Error:", error.message);
-    console.error("❌ [STUDENT REGISTER] Full error:", error);
+    logger.logError("Student registration failed", {
+      controller: "student.controller",
+      action: "registerStudent",
+      error: error.message,
+    });
     next(error);
   }
 };
@@ -586,8 +537,6 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       attendanceSummary = await AttendanceSession.aggregate(attendancePipeline);
     } catch (aggError) {
-      console.error("❌ Attendance aggregation error:", aggError.message);
-      // Fallback: Return empty attendance if aggregation fails
       attendanceSummary = [];
     }
 
@@ -610,8 +559,6 @@ exports.getMyFullProfile = async (req, res, next) => {
         .sort({ startTime: 1 })
         .limit(10);
     } catch (timetableError) {
-      console.error("❌ Timetable fetch error:", timetableError.message);
-      // Fallback: Return empty timetable if fetch fails
       todaysTimetable = [];
     }
 
@@ -778,8 +725,6 @@ exports.getMyFullProfile = async (req, res, next) => {
       "Profile fetched successfully",
     );
   } catch (error) {
-    console.error("❌ [STUDENT CONTROLLER] Error in getMyFullProfile:", error);
-    console.error("❌ [STUDENT CONTROLLER] Error stack:", error.stack);
     next(error);
   }
 };
@@ -787,7 +732,7 @@ exports.getMyFullProfile = async (req, res, next) => {
 /**
  * STUDENT: Update own profile
  */
-exports.updateMyProfile = async (req, res) => {
+exports.updateMyProfile = async (req, res, next) => {
   try {
     const student = req.student;
 
@@ -823,7 +768,7 @@ exports.updateMyProfile = async (req, res) => {
 /**
  * COLLEGE ADMIN: Update student profile (SAFE)
  */
-exports.updateStudentByAdmin = async (req, res) => {
+exports.updateStudentByAdmin = async (req, res, next) => {
   try {
     const studentId = req.params.id;
 
@@ -867,7 +812,7 @@ exports.updateStudentByAdmin = async (req, res) => {
 /**
  * COLLEGE ADMIN: Delete student (soft delete)
  */
-exports.deleteStudent = async (req, res) => {
+exports.deleteStudent = async (req, res, next) => {
   try {
     const studentId = req.params.id;
 
@@ -962,10 +907,6 @@ exports.getApprovedStudents = async (req, res) => {
 // GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN (WITH FEES)
 exports.getStudentById = async (req, res) => {
   try {
-    console.log("[getStudentById] Request params:", req.params);
-    console.log("[getStudentById] College ID:", req.college_id);
-    console.log("[getStudentById] User:", req.user?.email);
-
     const student = await Student.findOne({
       _id: req.params.id,
       college_id: req.college_id,
@@ -974,11 +915,6 @@ exports.getStudentById = async (req, res) => {
       .populate("department_id", "name")
       .populate("course_id", "name");
 
-    console.log(
-      "[getStudentById] Found student:",
-      student ? student.fullName : "NULL",
-    );
-
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
@@ -986,8 +922,6 @@ exports.getStudentById = async (req, res) => {
     const fee = await StudentFee.findOne({
       student_id: student._id,
     }).select("totalFee paidAmount installments");
-
-    console.log("[getStudentById] Found fee:", fee ? "Yes" : "No");
 
     ApiResponse.success(
       res,
@@ -1002,7 +936,6 @@ exports.getStudentById = async (req, res) => {
       "Student fetched successfully",
     );
   } catch (error) {
-    console.error("[getStudentById] Error:", error);
     next(error);
   }
 };
@@ -1275,7 +1208,6 @@ exports.getStudentsForTeacher = async (req, res) => {
       "Students fetched successfully",
     );
   } catch (error) {
-    console.error("Get Students For Teacher Error:", error);
     next(error);
   }
 };
@@ -1289,9 +1221,6 @@ exports.moveToAlumni = async (req, res, next) => {
   try {
     const { studentId } = req.params;
     const { graduationYear } = req.body;
-
-    console.log("Moving student to Alumni:", studentId);
-    console.log("Graduation year from request:", graduationYear);
 
     // Find student
     const student = await Student.findOne({
@@ -1307,12 +1236,6 @@ exports.moveToAlumni = async (req, res, next) => {
         "STUDENT_NOT_FOUND",
       );
     }
-
-    console.log("Student found:", {
-      fullName: student.fullName,
-      course_id: student.course_id,
-      currentSemester: student.currentSemester,
-    });
 
     // Check if student is in final semester (based on course duration)
     const maxSemester = student.course_id?.durationSemesters || 8;
@@ -1330,11 +1253,7 @@ exports.moveToAlumni = async (req, res, next) => {
     student.alumniDate = new Date();
     student.graduationYear = graduationYear || new Date().getFullYear();
 
-    console.log("Saving alumni with graduationYear:", student.graduationYear);
-
     await student.save();
-
-    console.log("Student saved as Alumni successfully");
 
     ApiResponse.success(
       res,
@@ -1352,7 +1271,6 @@ exports.moveToAlumni = async (req, res, next) => {
       `${student.fullName} has been moved to Alumni successfully`,
     );
   } catch (error) {
-    console.error("Move to Alumni error:", error);
     next(error);
   }
 };
@@ -1382,12 +1300,6 @@ exports.getAlumni = async (req, res, next) => {
       .populate("course_id", "name code")
       .populate("department_id", "name code")
       .sort({ alumniDate: -1 });
-
-    console.log("Alumni fetched:", alumni.length);
-    if (alumni.length > 0) {
-      console.log("First alumni course_id:", alumni[0].course_id);
-      console.log("First alumni graduationYear:", alumni[0].graduationYear);
-    }
 
     ApiResponse.success(
       res,
