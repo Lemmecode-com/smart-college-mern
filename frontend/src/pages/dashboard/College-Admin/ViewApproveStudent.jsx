@@ -914,6 +914,11 @@ export default function ViewApproveStudent() {
                     icon={<FaUserGraduate />}
                   />
                   <DetailRow
+                    label="Category"
+                    value={student.category}
+                    icon={<FaBookOpen />}
+                  />
+                  <DetailRow
                     label="Date of Birth"
                     value={formatDate(student.dateOfBirth)}
                     icon={<FaCalendarAlt />}
