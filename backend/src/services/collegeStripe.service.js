@@ -1,6 +1,7 @@
 const Stripe = require("stripe");
 const CollegePaymentConfig = require("../models/collegePaymentConfig.model");
 const { decryptStripeKey } = require("../utils/encryption.util");
+const logger = require("../utils/logger");
 
 /**
  * Cache for Stripe instances to avoid recreating them frequently
@@ -27,7 +28,7 @@ setInterval(clearExpiredCache, 10 * 60 * 1000);
 /**
  * Get Stripe configuration for a college
  * @param {string} collegeId - The college ID
- * @returns {Promise<{config: Object, secretKey: string}>}
+ * @returns {Promise<{config: Object, secretKey: string, webhookSecret: string|null}>}
  * @throws {Error} If Stripe is not configured for the college
  */
 async function getCollegeStripeConfig(collegeId) {
@@ -35,14 +36,15 @@ async function getCollegeStripeConfig(collegeId) {
     throw new Error("College ID is required");
   }
 
-  const config = await CollegePaymentConfig.getActiveConfig(
+  const config = await CollegePaymentConfig.findOne({
     collegeId,
-    "stripe"
-  );
+    gatewayCode: "stripe",
+    isActive: true,
+  });
 
   if (!config) {
     const error = new Error(
-      "Stripe payment gateway is not configured for this college. Please contact the college administrator."
+      "Stripe payment gateway is not configured for this college. Please contact the college administrator.",
     );
     error.code = "STRIPE_NOT_CONFIGURED";
     error.statusCode = 400;
@@ -54,21 +56,34 @@ async function getCollegeStripeConfig(collegeId) {
   try {
     secretKey = decryptStripeKey(config.credentials.keySecret);
   } catch (decryptError) {
-    console.error(
-      `Failed to decrypt Stripe key for college ${collegeId}:`,
-      decryptError.message
-    );
+    logger.logError(`Failed to decrypt Stripe key for college ${collegeId}`, {
+      error: decryptError.message,
+    });
     const error = new Error(
-      "Unable to process payment configuration. Please contact support."
+      "Unable to process payment configuration. Please contact support.",
     );
     error.code = "DECRYPTION_FAILED";
     error.statusCode = 500;
     throw error;
   }
 
+  // Decrypt webhook secret if present
+  let webhookSecret = null;
+  if (config.credentials.webhookSecret) {
+    try {
+      webhookSecret = decryptStripeKey(config.credentials.webhookSecret);
+    } catch (decryptError) {
+      logger.logError(
+        `Failed to decrypt webhook secret for college ${collegeId}`,
+        { error: decryptError.message },
+      );
+    }
+  }
+
   return {
     config,
     secretKey,
+    webhookSecret,
   };
 }
 
@@ -94,7 +109,6 @@ async function getStripeInstance(collegeId) {
   try {
     const stripe = new Stripe(secretKey, {
       apiVersion: "2023-10-16",
-      // Add metadata for debugging
       appInfo: {
         name: "NOVAA SaaS",
         version: "1.0.0",
@@ -110,9 +124,11 @@ async function getStripeInstance(collegeId) {
 
     return stripe;
   } catch (error) {
-    console.error(`Failed to initialize Stripe for college ${collegeId}:`, error);
+    logger.logError(`Failed to initialize Stripe for college ${collegeId}`, {
+      error: error.message,
+    });
     const stripeError = new Error(
-      "Failed to initialize payment gateway. Please try again later."
+      "Failed to initialize payment gateway. Please try again later.",
     );
     stripeError.code = "STRIPE_INIT_FAILED";
     stripeError.statusCode = 500;
@@ -137,7 +153,7 @@ async function verifyCollegeStripeCredentials(collegeId) {
       { collegeId },
       {
         lastVerifiedAt: new Date(),
-      }
+      },
     );
 
     return {
@@ -145,9 +161,9 @@ async function verifyCollegeStripeCredentials(collegeId) {
       message: "Stripe credentials verified successfully",
     };
   } catch (error) {
-    console.error(
-      `Stripe credential verification failed for college ${collegeId}:`,
-      error
+    logger.logError(
+      `Stripe credential verification failed for college ${collegeId}`,
+      { error: error.message },
     );
 
     let message = "Stripe credentials verification failed";
@@ -175,7 +191,7 @@ async function verifyCollegeStripeCredentials(collegeId) {
  */
 function invalidateStripeInstanceCache(collegeId) {
   stripeInstanceCache.delete(collegeId);
-  console.log(`Invalidated Stripe cache for college ${collegeId}`);
+  logger.logInfo(`Invalidated Stripe cache for college ${collegeId}`);
 }
 
 /**
