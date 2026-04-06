@@ -10,6 +10,7 @@ const {
   healthCheckLimiter,
   publicLimiter,
   paymentLimiter,
+  paymentStatusLimiter,
   webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
@@ -65,9 +66,9 @@ app.use(securityMiddleware);
 app.use("/health-check", healthCheckLimiter);
 app.use("/api/public", publicLimiter);
 app.use("/api/stripe", paymentLimiter);
-app.use("/api/student/payments", paymentLimiter);
 app.use("/api/admin/payments", paymentLimiter);
 app.use("/api/fees/structure", paymentLimiter);
+// Note: /api/student/payments limiter is applied per-route in student.payment.routes.js
 
 // Global limiter applied to remaining /api/* routes
 app.use("/api/", globalLimiter);
