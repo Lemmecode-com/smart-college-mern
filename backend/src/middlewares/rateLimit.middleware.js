@@ -163,6 +163,25 @@ const paymentLimiter = rateLimit({
 });
 
 /**
+ * Payment Status Polling Limiter - Higher limit for polling
+ * Allows frequent polling (every 2-3 seconds) without hitting rate limit
+ * For development: 500 requests per minute
+ * For production: 200 requests per 5 minutes
+ */
+const paymentStatusLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 5 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 500 : 200,
+  message: {
+    success: false,
+    message: "Payment status polling rate limit exceeded, please wait",
+    code: "RATE_LIMIT_EXCEEDED",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => normalizeIp(req),
+});
+
+/**
  * Health Check Rate Limiter - Higher limit for monitoring
  * Limits each IP to 60 requests per minute
  */
@@ -268,6 +287,7 @@ module.exports = {
   authLimiter,
   passwordResetLimiter,
   paymentLimiter,
+  paymentStatusLimiter,
   healthCheckLimiter,
   apiLimiter,
   publicLimiter,
