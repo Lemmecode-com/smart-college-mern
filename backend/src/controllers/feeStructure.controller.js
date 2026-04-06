@@ -1,8 +1,8 @@
 const FeeStructure = require("../../src/models/feeStructure.model");
 const Course = require("../../src/models/course.model");
+const StudentFee = require("../../src/models/studentFee.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
-// const StudentFee = require("../models/studentFee.model"); // uncomment if exists
 
 /**
  * CREATE Fee Structure
@@ -18,7 +18,11 @@ exports.createFeeStructure = async (req, res, next) => {
     });
 
     if (!course) {
-      throw new AppError("Invalid course for this college", 404, "COURSE_NOT_FOUND");
+      throw new AppError(
+        "Invalid course for this college",
+        404,
+        "COURSE_NOT_FOUND",
+      );
     }
 
     // Prevent duplicate
@@ -29,17 +33,25 @@ exports.createFeeStructure = async (req, res, next) => {
     });
 
     if (exists) {
-      throw new AppError("Fee structure already exists for this course & category", 409, "DUPLICATE_FEE_STRUCTURE");
+      throw new AppError(
+        "Fee structure already exists for this course & category",
+        409,
+        "DUPLICATE_FEE_STRUCTURE",
+      );
     }
 
     // Validate installments
     const totalInstallmentAmount = installments.reduce(
       (sum, i) => sum + i.amount,
-      0
+      0,
     );
 
     if (totalInstallmentAmount !== totalFee) {
-      throw new AppError("Installment total must match total fee", 400, "INVALID_INSTALLMENTS");
+      throw new AppError(
+        "Installment total must match total fee",
+        400,
+        "INVALID_INSTALLMENTS",
+      );
     }
 
     const feeStructure = await FeeStructure.create({
@@ -50,7 +62,11 @@ exports.createFeeStructure = async (req, res, next) => {
       installments,
     });
 
-    ApiResponse.created(res, { feeStructure }, "Fee structure created successfully");
+    ApiResponse.created(
+      res,
+      { feeStructure },
+      "Fee structure created successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -85,16 +101,21 @@ exports.updateFeeStructure = async (req, res, next) => {
     });
 
     if (!feeStructure) {
-      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
+      throw new AppError(
+        "Fee structure not found",
+        404,
+        "FEE_STRUCTURE_NOT_FOUND",
+      );
     }
 
-    const installmentTotal = installments.reduce(
-      (sum, i) => sum + i.amount,
-      0
-    );
+    const installmentTotal = installments.reduce((sum, i) => sum + i.amount, 0);
 
     if (installmentTotal !== totalFee) {
-      throw new AppError("Installment total must match total fee", 400, "INVALID_INSTALLMENTS");
+      throw new AppError(
+        "Installment total must match total fee",
+        400,
+        "INVALID_INSTALLMENTS",
+      );
     }
 
     feeStructure.totalFee = totalFee;
@@ -102,7 +123,11 @@ exports.updateFeeStructure = async (req, res, next) => {
 
     await feeStructure.save();
 
-    ApiResponse.success(res, { feeStructure }, "Fee structure updated successfully");
+    ApiResponse.success(
+      res,
+      { feeStructure },
+      "Fee structure updated successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -121,19 +146,26 @@ exports.deleteFeeStructure = async (req, res, next) => {
     });
 
     if (!feeStructure) {
-      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
+      throw new AppError(
+        "Fee structure not found",
+        404,
+        "FEE_STRUCTURE_NOT_FOUND",
+      );
     }
 
-    // Optional safety check
-    // const inUse = await StudentFee.exists({
-    //   college_id: req.college_id,
-    //   course_id: feeStructure.course_id,
-    // });
-    // if (inUse) {
-    //   return res.status(400).json({
-    //     message: "Fee structure already in use",
-    //   });
-    // }
+    // Safety check: prevent deletion of fee structure assigned to students
+    const inUse = await StudentFee.exists({
+      college_id: req.college_id,
+      course_id: feeStructure.course_id,
+    });
+
+    if (inUse) {
+      throw new AppError(
+        "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
+        400,
+        "FEE_STRUCTURE_IN_USE",   
+      );
+    }
 
     await feeStructure.deleteOne();
 
@@ -157,10 +189,18 @@ exports.getFeeStructureById = async (req, res) => {
     }).populate("course_id", "name");
 
     if (!feeStructure) {
-      throw new AppError("Fee structure not found", 404, "FEE_STRUCTURE_NOT_FOUND");
+      throw new AppError(
+        "Fee structure not found",
+        404,
+        "FEE_STRUCTURE_NOT_FOUND",
+      );
     }
 
-    ApiResponse.success(res, { feeStructure }, "Fee structure fetched successfully");
+    ApiResponse.success(
+      res,
+      { feeStructure },
+      "Fee structure fetched successfully",
+    );
   } catch (error) {
     throw error;
   }
