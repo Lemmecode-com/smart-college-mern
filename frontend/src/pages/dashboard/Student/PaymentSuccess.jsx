@@ -41,46 +41,70 @@ export default function PaymentSuccess() {
   if (user.role !== "STUDENT")
     return <Navigate to="/student/dashboard" replace />;
 
-  /* ================= CONFIRM PAYMENT (STRIPE) ================= */
+  /* ================= POLL FOR PAYMENT STATUS (WEBHOOK FLOW) ================= */
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      setError("No session ID provided");
+      setLoading(false);
+      return;
+    }
 
-    const confirmStripePayment = async () => {
-      try {
-        console.log(
-          "🔵 [PaymentSuccess] Confirming Stripe payment:",
-          sessionId,
-        );
-        const res = await api.post("/stripe/confirm-payment", {
-          sessionId,
-        });
+    const pollPaymentStatus = async () => {
+      const maxAttempts = 15; // 30 seconds total (2s intervals)
+      let attempts = 0;
 
-        console.log("🟢 [PaymentSuccess] Stripe payment confirmed:", res.data);
-        setPayment({
-          ...res.data,
-          paymentGateway: "STRIPE",
-        });
-        toast.success("Payment confirmed successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-        });
-      } catch (err) {
-        console.error("❌ [PaymentSuccess] Stripe confirmation failed:", err);
-        const errorMsg =
-          err.response?.data?.message || "Payment confirmation failed";
-        setError(errorMsg);
-        toast.error(errorMsg, {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaExclamationTriangle />,
-        });
-      } finally {
-        setLoading(false);
-      }
+      const interval = setInterval(async () => {
+        attempts++;
+
+        try {
+          const res = await api.get(
+            `/student/payments/status?sessionId=${sessionId}`,
+          );
+
+          if (res.data.status === "PAID") {
+            clearInterval(interval);
+            setPayment({
+              ...res.data,
+              paymentGateway: res.data.paymentGateway || "STRIPE",
+            });
+            toast.success("Payment confirmed successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+            });
+            setLoading(false);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setError(
+              "Payment is still processing. Please check back in a few moments.",
+            );
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error(
+            "❌ [PaymentSuccess] Payment status check failed:",
+            err,
+          );
+
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            const errorMsg =
+              err.response?.data?.message || "Payment confirmation timeout";
+            setError(errorMsg);
+            toast.error(errorMsg, {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+            setLoading(false);
+          }
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(interval);
     };
 
-    confirmStripePayment();
+    pollPaymentStatus();
   }, [sessionId]);
 
   /* ================= VERIFY PAYMENT (RAZORPAY) ================= */
