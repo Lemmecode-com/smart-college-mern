@@ -84,6 +84,7 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
+app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
 
 /* ================= ATTENDANCE ================= */

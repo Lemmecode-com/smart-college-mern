@@ -2,11 +2,11 @@ import { useEffect, useState, useCallback, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import api from "../../../api/axios";
-import Loading from "../../../components/Loading";
-import Breadcrumb from "../../../components/Breadcrumb";
-import ConfirmModal from "../../../components/ConfirmModal";
-import { AuthContext } from "../../../auth/AuthContext";
+import api from "../api/axios";
+import Loading from "../components/Loading";
+import Breadcrumb from "../components/Breadcrumb";
+import ConfirmModal from "../components/ConfirmModal";
+import { AuthContext } from "../auth/AuthContext";
 import {
   FaBell,
   FaArrowLeft,
