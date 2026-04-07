@@ -30,6 +30,7 @@ const {
 const {
   approveStudent,
   rejectStudent,
+  bulkApproveStudents,
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
@@ -69,6 +70,15 @@ router.put(
   collegeMiddleware,
   validateStudentId,
   rejectStudent,
+);
+
+// 🔐 COLLEGE ADMIN → BULK APPROVE STUDENTS
+router.post(
+  "/bulk-approve",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  bulkApproveStudents,
 );
 
 // 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
