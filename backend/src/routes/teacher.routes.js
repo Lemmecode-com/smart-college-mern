@@ -13,9 +13,12 @@ const {
   updateTeacher,
   deleteTeacher,
   getMyProfile,
-  updateMyProfile, // ✅ NEW
+  updateMyProfile,
   getTeachersByDepartment,
-  getTeachersByCourse, // ✅ NEW
+  getTeachersByCourse,
+  getTeacherReassignmentData,
+  getAvailableTeachersForReassignment,
+  deactivateTeacherWithReassignment,
 } = require("../controllers/teacher.controller");
 
 /* =========================================================
@@ -26,95 +29,108 @@ router.get(
   auth,
   collegeMiddleware,
   teacherMiddleware,
-  getMyProfile
+  getMyProfile,
 );
 
-/* =========================================================
-   TEACHER – UPDATE MY PROFILE
-========================================================= */
 router.put(
   "/my-profile",
   auth,
   collegeMiddleware,
   teacherMiddleware,
-  updateMyProfile
+  updateMyProfile,
 );
 
 /* =========================================================
-   CREATE TEACHER (Admin)
+   CRUD
 ========================================================= */
-router.post(
-  "/",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  createTeacher
-);
+router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createTeacher);
 
-/* =========================================================
-   GET ALL TEACHERS
-========================================================= */
 router.get(
   "/",
   auth,
   role("COLLEGE_ADMIN", "TEACHER"),
   collegeMiddleware,
-  getTeachers
+  getTeachers,
 );
 
 /* =========================================================
-   GET TEACHER BY ID
+   ⚠️ SPECIFIC ROUTES MUST COME BEFORE /:id
 ========================================================= */
-router.get(
-  "/:id",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  getTeacherById
-);
 
-/* =========================================================
-   UPDATE TEACHER
-========================================================= */
-router.put(
-  "/:id",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  updateTeacher
-);
-
-/* =========================================================
-   DELETE TEACHER
-========================================================= */
-router.delete(
-  "/:id",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  deleteTeacher
-);
-
-/* =========================================================
-   GET TEACHERS BY DEPARTMENT
-========================================================= */
+/* GET TEACHERS BY DEPARTMENT */
 router.get(
   "/department/:departmentId",
   auth,
   role("COLLEGE_ADMIN", "TEACHER"),
   collegeMiddleware,
-  getTeachersByDepartment
+  getTeachersByDepartment,
 );
 
-/* =========================================================
-   ✅ GET TEACHERS BY COURSE (IMPORTANT)
-========================================================= */
+/* GET TEACHERS BY COURSE */
 router.get(
   "/course/:courseId",
   auth,
   role("COLLEGE_ADMIN", "TEACHER"),
   collegeMiddleware,
-  getTeachersByCourse
+  getTeachersByCourse,
+);
+
+/* GET AVAILABLE TEACHERS FOR REASSIGNMENT */
+router.get(
+  "/available-for-reassignment",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getAvailableTeachersForReassignment,
+);
+
+/* =========================================================
+   /:id ROUTES (must be AFTER specific routes above)
+========================================================= */
+
+/* GET TEACHER BY ID */
+router.get(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getTeacherById,
+);
+
+/* GET REASSIGNMENT DATA FOR A TEACHER */
+router.get(
+  "/:id/reassignment-data",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getTeacherReassignmentData,
+);
+
+/* UPDATE TEACHER */
+router.put(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  updateTeacher,
+);
+
+/* DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT */
+router.put(
+  "/:id/deactivate-with-reassignment",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deactivateTeacherWithReassignment,
+);
+
+/* DELETE TEACHER */
+router.delete(
+  "/:id",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  deleteTeacher,
 );
 
 module.exports = router;

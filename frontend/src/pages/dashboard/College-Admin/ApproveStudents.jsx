@@ -19,9 +19,11 @@ import {
   FaExclamationTriangle,
   FaSyncAlt,
   FaUserCheck,
+  FaUserTimes,
   FaEnvelope,
-  FaUsers
+  FaUsers,
 } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 const PAGE_SIZE = 5;
 
@@ -40,7 +42,7 @@ export default function ApproveStudents() {
     total: 0,
     byDepartment: {},
     byCourse: {},
-    byYear: {}
+    byYear: {},
   });
 
   /* ================= SECURITY ================= */
@@ -53,7 +55,7 @@ export default function ApproveStudents() {
       setLoading(true);
       setError("");
       const res = await api.get("/students/approved-students");
-      
+
       // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
@@ -65,14 +67,17 @@ export default function ApproveStudents() {
       } else {
         data = [];
       }
-      
+
       setStudents(data);
 
       // Calculate stats client-side (no API changes)
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load approved students. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load approved students. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -83,26 +88,26 @@ export default function ApproveStudents() {
     const byDepartment = {};
     const byCourse = {};
     const byYear = {};
-    
-    studentList.forEach(student => {
+
+    studentList.forEach((student) => {
       // Department stats
       const dept = student.department_id?.name || "Unknown";
       byDepartment[dept] = (byDepartment[dept] || 0) + 1;
-      
+
       // Course stats
       const course = student.course_id?.name || "Unknown";
       byCourse[course] = (byCourse[course] || 0) + 1;
-      
+
       // Year stats
       const year = student.admissionYear || "Unknown";
       byYear[year] = (byYear[year] || 0) + 1;
     });
-    
+
     setStats({
       total: studentList.length,
       byDepartment,
       byCourse,
-      byYear
+      byYear,
     });
   };
 
@@ -126,22 +131,25 @@ export default function ApproveStudents() {
 
     const handleVisibilityChange = () => {
       const now = Date.now();
-      if (document.visibilityState === 'visible' && now - lastRefreshTime > MIN_REFRESH_INTERVAL) {
+      if (
+        document.visibilityState === "visible" &&
+        now - lastRefreshTime > MIN_REFRESH_INTERVAL
+      ) {
         lastRefreshTime = now;
         fetchApprovedStudents();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchApprovedStudents();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
@@ -151,17 +159,53 @@ export default function ApproveStudents() {
   /* ================= SEARCH ================= */
   const filteredStudents = useMemo(() => {
     return students.filter((s) =>
-      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''} ${s.admissionYear || ''}`
+      `${s.fullName} ${s.email} ${s.department_id?.name || ""} ${s.course_id?.name || ""} ${s.admissionYear || ""}`
         .toLowerCase()
-        .includes(search.toLowerCase())
+        .includes(search.toLowerCase()),
     );
   }, [students, search]);
+
+  /* ================= DEACTIVATE / REACTIVATE ================= */
+  const handleToggleActive = async (student) => {
+    if (student.status === "DEACTIVATED") {
+      if (!window.confirm(`Reactivate "${student.fullName}"?`)) return;
+      try {
+        await api.put(`/users/${student.user_id}/reactivate`);
+        toast.success(`${student.fullName} reactivated`, {
+          position: "top-right",
+        });
+        fetchApprovedStudents();
+      } catch (e) {
+        toast.error(e.response?.data?.message || "Failed to reactivate", {
+          position: "top-right",
+        });
+      }
+    } else {
+      if (
+        !window.confirm(
+          `Deactivate "${student.fullName}"? They will lose access.`,
+        )
+      )
+        return;
+      try {
+        await api.put(`/users/${student.user_id}/deactivate`);
+        toast.success(`${student.fullName} deactivated`, {
+          position: "top-right",
+        });
+        fetchApprovedStudents();
+      } catch (e) {
+        toast.error(e.response?.data?.message || "Failed to deactivate", {
+          position: "top-right",
+        });
+      }
+    }
+  };
 
   /* ================= PAGINATION ================= */
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
+    page * PAGE_SIZE,
   );
 
   /* ================= ERROR STATE ================= */
@@ -174,15 +218,15 @@ export default function ApproveStudents() {
         <h3>Approved Students Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => navigate(-1)}
           >
             <FaChevronLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -206,7 +250,7 @@ export default function ApproveStudents() {
         items={[
           { label: "Dashboard", path: "/dashboard" },
           { label: "Students", path: "/students" },
-          { label: "Approved Students" }
+          { label: "Approved Students" },
         ]}
       />
 
@@ -228,7 +272,12 @@ export default function ApproveStudents() {
       {/* STATS CARDS */}
       <div className="stats-grid animate-fade-in">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #4CAF50 0%, #43A047 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+            }}
+          >
             <FaUserCheck />
           </div>
           <div className="stat-card-content">
@@ -237,21 +286,35 @@ export default function ApproveStudents() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
+            }}
+          >
             <FaBuilding />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Departments</div>
-            <div className="stat-card-value">{Object.keys(stats.byDepartment).length}</div>
+            <div className="stat-card-value">
+              {Object.keys(stats.byDepartment).length}
+            </div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)",
+            }}
+          >
             <FaBookOpen />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Courses</div>
-            <div className="stat-card-value">{Object.keys(stats.byCourse).length}</div>
+            <div className="stat-card-value">
+              {Object.keys(stats.byCourse).length}
+            </div>
           </div>
         </div>
       </div>
@@ -285,10 +348,11 @@ export default function ApproveStudents() {
             Approved Student Records
           </h3>
           <span className="record-count">
-            {filteredStudents.length} {filteredStudents.length === 1 ? "Student" : "Students"} Approved
+            {filteredStudents.length}{" "}
+            {filteredStudents.length === 1 ? "Student" : "Students"} Approved
           </span>
         </div>
-        
+
         <div className="erp-card-body">
           {paginatedStudents.length === 0 ? (
             <div className="empty-state">
@@ -297,7 +361,7 @@ export default function ApproveStudents() {
               </div>
               <h3>No Approved Students Found</h3>
               <p className="empty-description">
-                {search 
+                {search
                   ? "No approved students match your search criteria."
                   : "There are no approved students yet. Students will appear here after approval."}
               </p>
@@ -328,7 +392,9 @@ export default function ApproveStudents() {
                     <tr key={student._id} className="table-row">
                       <td className="cell-student">
                         <div className="student-info">
-                          <span className="student-name-cell">{student.fullName}</span>
+                          <span className="student-name-cell">
+                            {student.fullName}
+                          </span>
                           <span className="student-email">{student.email}</span>
                         </div>
                       </td>
@@ -358,12 +424,38 @@ export default function ApproveStudents() {
                         <div className="action-buttons">
                           <button
                             className="btn btn-action btn-view-student"
-                            onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                            onClick={() =>
+                              navigate(
+                                `/college/view-approved-student/${student._id}`,
+                              )
+                            }
                             title="View Student Details"
                           >
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
+                          {student.user_id && (
+                            <button
+                              className={`btn btn-action ${student.status === "DEACTIVATED" ? "btn-reactivate-student" : "btn-deactivate-student"}`}
+                              onClick={() => handleToggleActive(student)}
+                              title={
+                                student.status === "DEACTIVATED"
+                                  ? "Reactivate"
+                                  : "Deactivate"
+                              }
+                            >
+                              {student.status === "DEACTIVATED" ? (
+                                <FaUserCheck />
+                              ) : (
+                                <FaUserTimes />
+                              )}
+                              <span className="btn-text">
+                                {student.status === "DEACTIVATED"
+                                  ? "Reactivate"
+                                  : "Deactivate"}
+                              </span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -818,6 +910,28 @@ export default function ApproveStudents() {
         .btn-view-student:hover {
           background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
           box-shadow: 0 5px 15px rgba(61, 181, 230, 0.4);
+        }
+
+        .btn-deactivate-student {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-deactivate-student:hover {
+          background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+          box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-reactivate-student {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-reactivate-student:hover {
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
         }
 
         .btn-text {
