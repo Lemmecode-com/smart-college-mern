@@ -44,8 +44,8 @@ export default function FeeReceipt() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT")
-    return <Navigate to="/student/dashboard" replace />;
+  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= EARLY VALIDATION - PAYMENT ID ================= */
   if (!paymentId) {
@@ -62,9 +62,16 @@ export default function FeeReceipt() {
           <p>Payment ID is missing from the URL</p>
           <button
             className="btn-back"
-            onClick={() => navigate("/student/fees")}
+            onClick={() =>
+              user.role === "COLLEGE_ADMIN"
+                ? navigate("/college-admin/payment-history")
+                : navigate("/student/fees")
+            }
           >
-            <FaArrowLeft /> Back to Fees
+            <FaArrowLeft />{" "}
+            {user.role === "COLLEGE_ADMIN"
+              ? "Back to Payment History"
+              : "Back to Fees"}
           </button>
         </motion.div>
         <style>{`
@@ -152,7 +159,13 @@ export default function FeeReceipt() {
           throw new Error("Payment ID is required");
         }
 
-        const res = await api.get(`/student/payments/receipt/${paymentId}`);
+        // Use different endpoints based on user role
+        const endpoint =
+          user.role === "COLLEGE_ADMIN"
+            ? `/admin/payments/receipt/${paymentId}`
+            : `/student/payments/receipt/${paymentId}`;
+
+        const res = await api.get(endpoint);
 
         // Validate response structure
         if (!res.data) {
@@ -221,7 +234,7 @@ export default function FeeReceipt() {
     };
 
     fetchReceipt();
-  }, [paymentId, navigate]);
+  }, [paymentId, navigate, user]);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -236,7 +249,11 @@ export default function FeeReceipt() {
 
   // Handle go back action
   const handleGoBack = () => {
-    navigate("/student/fees");
+    if (user.role === "COLLEGE_ADMIN") {
+      navigate("/college-admin/payment-history");
+    } else {
+      navigate("/student/fees");
+    }
   };
 
   /* ================= PDF DOWNLOAD ================= */
@@ -397,9 +414,16 @@ export default function FeeReceipt() {
           </p>
           <button
             className="btn-back"
-            onClick={() => navigate("/student/fees")}
+            onClick={() =>
+              user.role === "COLLEGE_ADMIN"
+                ? navigate("/college-admin/payment-history")
+                : navigate("/student/fees")
+            }
           >
-            <FaArrowLeft /> Back to Fees
+            <FaArrowLeft />{" "}
+            {user.role === "COLLEGE_ADMIN"
+              ? "Back to Payment History"
+              : "Back to Fees"}
           </button>
         </motion.div>
         <style>{`
@@ -464,10 +488,17 @@ export default function FeeReceipt() {
       <div className="mb-3">
         <button
           className="btn-back-to-fees"
-          onClick={() => navigate("/student/fees")}
+          onClick={() =>
+            user.role === "COLLEGE_ADMIN"
+              ? navigate("/college-admin/payment-history")
+              : navigate("/student/fees")
+          }
           aria-label="Go back to fees page"
         >
-          <FaArrowLeft className="me-1" aria-hidden="true" /> Back to Fees
+          <FaArrowLeft className="me-1" aria-hidden="true" />{" "}
+          {user.role === "COLLEGE_ADMIN"
+            ? "Back to Payment History"
+            : "Back to Fees"}
         </button>
       </div>
 
@@ -562,11 +593,28 @@ export default function FeeReceipt() {
             />
             <Info
               label="Payment Method"
-              value={
-                receipt.paymentGateway === "RAZORPAY"
-                  ? "Razorpay"
-                  : "Stripe (Card)"
-              }
+              value={(() => {
+                const gateway = receipt.paymentGateway || "STRIPE";
+                const mode = receipt.paymentMode || "ONLINE";
+
+                if (gateway === "OFFLINE") {
+                  // Offline payments
+                  const modeLabels = {
+                    CASH: "💵 Cash",
+                    CHEQUE: "📝 Cheque",
+                    DD: "🏦 Demand Draft",
+                  };
+                  return modeLabels[mode] || "💵 Cash";
+                } else {
+                  // Online payments
+                  const gatewayLabels = {
+                    STRIPE: "💳 Card (Stripe)",
+                    RAZORPAY: "📱 UPI/Card (Razorpay)",
+                    MOCK: "🧪 Mock Payment",
+                  };
+                  return gatewayLabels[gateway] || "💳 Card";
+                }
+              })()}
             />
             <Info
               label="Paid On"
