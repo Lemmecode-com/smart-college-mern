@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { FaFilePdf, FaFileExcel, FaDownload, FaSpinner } from 'react-icons/fa';
-import { exportToPDF, exportToExcel } from '../utils/exportHelpers';
-import { toast } from 'react-toastify';
+import { useState } from "react";
+import { FaFilePdf, FaFileExcel, FaDownload, FaSpinner } from "react-icons/fa";
+import { exportToPDF, exportToExcel } from "../utils/exportHelpers";
+import { toast } from "react-toastify";
 
 /**
  * Reusable Export Buttons Component
@@ -13,12 +13,12 @@ import { toast } from 'react-toastify';
  * @param {boolean} showExcel - Show Excel button (default: true)
  */
 export default function ExportButtons({
-  title = 'Report',
+  title = "Report",
   columns = [],
   data = [],
-  filename = 'report',
+  filename = "report",
   showPDF = true,
-  showExcel = true
+  showExcel = true,
 }) {
   const [exporting, setExporting] = useState(null); // 'pdf', 'excel', or null
 
@@ -28,62 +28,62 @@ export default function ExportButtons({
     try {
       // Fetch fresh data if data is a function, otherwise use provided data
       let exportData = data;
-      if (typeof data === 'function') {
+      if (typeof data === "function") {
         exportData = data(); // Call the function (can be sync or async)
         // If it returns a promise, wait for it
-        if (exportData && typeof exportData.then === 'function') {
+        if (exportData && typeof exportData.then === "function") {
           exportData = await exportData;
         }
       }
 
       if (!exportData || exportData.length === 0) {
-        toast.warning('No data to export!', {
-          position: 'top-right',
-          autoClose: 3000
+        toast.warning("No data to export!", {
+          position: "top-right",
+          autoClose: 3000,
         });
         setExporting(null);
         return;
       }
 
       let result;
-      const timestamp = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString().split("T")[0];
 
       switch (format) {
-        case 'pdf':
+        case "pdf":
           result = await exportToPDF(
             title,
             columns,
             exportData,
-            `${filename}_${timestamp}.pdf`
+            `${filename}_${timestamp}.pdf`,
           );
           break;
-        case 'excel':
+        case "excel":
           result = await exportToExcel(
             title,
             columns,
             exportData,
-            `${filename}_${timestamp}.xlsx`
+            `${filename}_${timestamp}.xlsx`,
           );
           break;
         default:
-          result = { success: false, message: 'Unknown export format' };
+          result = { success: false, message: "Unknown export format" };
       }
 
       if (result.success) {
         toast.success(result.message, {
-          position: 'top-right',
-          autoClose: 3000
+          position: "top-right",
+          autoClose: 3000,
         });
       } else {
         toast.error(result.message, {
-          position: 'top-right',
-          autoClose: 3000
+          position: "top-right",
+          autoClose: 3000,
         });
       }
     } catch (error) {
-      toast.error('Export failed. Please try again.', {
-        position: 'top-right',
-        autoClose: 3000
+      toast.error("Export failed. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
       });
     } finally {
       setExporting(null);
@@ -91,16 +91,19 @@ export default function ExportButtons({
   };
 
   return (
-    <div className="export-buttons" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+    <div
+      className="export-buttons"
+      style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+    >
       {showPDF && (
         <button
-          className={`btn-export btn-export-pdf ${exporting === 'pdf' ? 'exporting' : ''}`}
-          onClick={() => handleExport('pdf')}
+          className={`btn-export btn-export-pdf ${exporting === "pdf" ? "exporting" : ""}`}
+          onClick={() => handleExport("pdf")}
           disabled={exporting !== null}
           title="Export to PDF"
           style={exportButtonStyle}
         >
-          {exporting === 'pdf' ? (
+          {exporting === "pdf" ? (
             <>
               <FaSpinner className="spin-icon" />
               <span>Exporting...</span>
@@ -116,13 +119,13 @@ export default function ExportButtons({
 
       {showExcel && (
         <button
-          className={`btn-export btn-export-excel ${exporting === 'excel' ? 'exporting' : ''}`}
-          onClick={() => handleExport('excel')}
+          className={`btn-export btn-export-excel ${exporting === "excel" ? "exporting" : ""}`}
+          onClick={() => handleExport("excel")}
           disabled={exporting !== null}
           title="Export to Excel"
           style={exportButtonStyle}
         >
-          {exporting === 'excel' ? (
+          {exporting === "excel" ? (
             <>
               <FaSpinner className="spin-icon" />
               <span>Exporting...</span>
@@ -141,22 +144,22 @@ export default function ExportButtons({
 
 // Button styling
 const exportButtonStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontWeight: '500',
-  fontSize: '0.875rem',
-  transition: 'all 0.2s ease',
-  backgroundColor: '#f8f9fa',
-  color: '#495057'
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  padding: "0.5rem 1rem",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "500",
+  fontSize: "0.875rem",
+  transition: "all 0.2s ease",
+  backgroundColor: "#f8f9fa",
+  color: "white",
 };
 
 // Add CSS styles for export buttons
-const style = document.createElement('style');
+const style = document.createElement("style");
 style.textContent = `
   .btn-export {
     display: flex;
@@ -170,7 +173,7 @@ style.textContent = `
     font-size: 0.875rem;
     transition: all 0.2s ease;
     background-color: #f8f9fa;
-    color: #495057;
+    color: white;
   }
 
   .btn-export:hover:not(:disabled) {
