@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
       const userInfo = res.data.user || {
         id: res.data.id,
         role: res.data.role,
-        college_id: res.data.college_id
+        college_id: res.data.college_id,
       };
 
       // Fetch complete user data immediately after login
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           role: profileRes.data.role,
           college_id: profileRes.data.college_id || null,
           email: profileRes.data.email || null,
-          name: profileRes.data.name || null
+          name: profileRes.data.name || null,
         });
       } catch (profileError) {
         // Fallback to basic info if profile fetch fails
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
           role: userInfo.role,
           college_id: userInfo.college_id || null,
           email: null,
-          name: null
+          name: null,
         });
       }
 
@@ -48,7 +48,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error?.response?.data?.message || error?.response?.data?.error?.message || "Login failed"
+        message:
+          error?.response?.data?.message ||
+          error?.response?.data?.error?.message ||
+          "Login failed",
+        code:
+          error?.response?.data?.code ||
+          error?.response?.data?.error?.code ||
+          null,
       };
     }
   };
@@ -72,20 +79,23 @@ export const AuthProvider = ({ children }) => {
     const checkAuthStatus = async () => {
       try {
         const res = await api.get("/auth/me");
-        
+
         // Store complete user data from backend
         setUser({
           id: res.data.id,
           role: res.data.role,
           college_id: res.data.college_id || null,
           email: res.data.email || null,
-          name: res.data.name || null
+          name: res.data.name || null,
         });
       } catch (error) {
         // 401 is expected for unauthenticated users - don't log it as error
         // Only log if it's a different error (network issue, server error, etc.)
         if (error.response?.status !== 401) {
-          logger.error("Auth check error:", error.response?.status || error.message);
+          logger.error(
+            "Auth check error:",
+            error.response?.status || error.message,
+          );
         }
         // User is not authenticated - this is normal, not an error
         setUser(null);

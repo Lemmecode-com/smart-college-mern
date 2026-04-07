@@ -53,6 +53,31 @@ const studentFeeSchema = new mongoose.Schema({
         default: "STRIPE",
       },
 
+      // 🏦 OFFLINE PAYMENT: Payment mode tracking
+      paymentMode: {
+        type: String,
+        enum: ["ONLINE", "CASH", "CHEQUE", "DD"],
+        default: "ONLINE",
+      },
+
+      // 🏦 OFFLINE PAYMENT: Reference number for Cheque/DD
+      referenceNumber: {
+        type: String,
+        trim: true,
+      },
+
+      // 🏦 OFFLINE PAYMENT: Admin remarks/notes
+      remarks: {
+        type: String,
+        trim: true,
+      },
+
+      // 🏦 OFFLINE PAYMENT: Audit trail - which admin marked as paid
+      markedByAdmin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+
       stripeSessionId: {
         type: String,
         trim: true,
