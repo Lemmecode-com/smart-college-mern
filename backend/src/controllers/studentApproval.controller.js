@@ -215,6 +215,211 @@ exports.approveStudent = async (req, res, next) => {
 };
 
 /**
+ * BULK APPROVE STUDENTS
+ * Accepts an array of student IDs and approves them one by one.
+ * If one fails (e.g. missing fee structure), it reports which ones
+ * failed WITHOUT stopping the rest.
+ */
+exports.bulkApproveStudents = async (req, res, next) => {
+  try {
+    const { studentIds } = req.body;
+
+    if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+      throw new AppError(
+        "Provide studentIds array in request body",
+        400,
+        "INVALID_INPUT",
+      );
+    }
+
+    const results = { approved: [], failed: [] };
+
+    for (const studentId of studentIds) {
+      try {
+        // ── 1. Find pending student ──
+        const student = await Student.findOne({
+          _id: studentId,
+          college_id: req.college_id,
+          status: "PENDING",
+        });
+
+        if (!student) {
+          results.failed.push({
+            studentId,
+            reason: "Student not found or already processed",
+          });
+          continue;
+        }
+
+        // ── 2. Ensure student has user_id ──
+        if (!student.user_id) {
+          const existingUser = await User.findOne({ email: student.email });
+
+          if (existingUser) {
+            student.user_id = existingUser._id;
+            await student.save();
+          } else {
+            const tempPassword =
+              "TempPass" + Math.random().toString(36).slice(-8);
+            const newUser = await User.create({
+              name: student.fullName,
+              email: student.email,
+              password: tempPassword,
+              role: "STUDENT",
+              college_id: student.college_id,
+            });
+            student.user_id = newUser._id;
+            await student.save();
+          }
+        }
+
+        // ── 3. Validate course ──
+        const course = await Course.findOne({
+          _id: student.course_id,
+          college_id: req.college_id,
+        });
+
+        if (!course) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: "Invalid course",
+          });
+          continue;
+        }
+
+        if (student.currentSemester > course.durationSemesters) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: `Semester exceeds course duration`,
+          });
+          continue;
+        }
+
+        if (student.currentSemester < 1) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: `Invalid semester`,
+          });
+          continue;
+        }
+
+        // ── 4. Admission capacity ──
+        const approvedCount = await Student.countDocuments({
+          course_id: student.course_id,
+          college_id: req.college_id,
+          status: "APPROVED",
+        });
+
+        if (approvedCount >= course.maxStudents) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: "Admission capacity reached",
+          });
+          continue;
+        }
+
+        // ── 5. Prevent duplicate fee record ──
+        const existingFee = await StudentFee.findOne({
+          student_id: student._id,
+        });
+
+        if (existingFee) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: "Fee record already exists",
+          });
+          continue;
+        }
+
+        // ── 6. Find fee structure ──
+        const feeStructure = await FeeStructure.findOne({
+          college_id: student.college_id,
+          course_id: student.course_id,
+          category: student.category,
+        });
+
+        if (!feeStructure) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: `No fee structure for ${course.name} (${student.category})`,
+          });
+          continue;
+        }
+
+        // ── 7. Create student fee ──
+        const installments = feeStructure.installments.map((inst) => ({
+          name: inst.name,
+          amount: inst.amount,
+          dueDate: inst.dueDate,
+          status: "PENDING",
+        }));
+
+        await StudentFee.create({
+          student_id: student._id,
+          college_id: student.college_id,
+          course_id: student.course_id,
+          totalFee: feeStructure.totalFee,
+          paidAmount: 0,
+          installments,
+        });
+
+        // ── 8. Approve student ──
+        student.status = "APPROVED";
+        student.approvedBy = req.user.id;
+        student.approvedAt = new Date();
+        await student.save();
+
+        // ── 9. Send email (non-blocking) ──
+        (async () => {
+          try {
+            const college = await College.findById(student.college_id).select(
+              "name email",
+            );
+            const crs = await Course.findById(student.course_id).select("name");
+            const loginUrl = buildFrontendUrl("/login");
+
+            await sendAdmissionApprovalEmail({
+              to: student.email,
+              studentName: student.fullName,
+              courseName: crs?.name || "N/A",
+              collegeName: college?.name || "Our College",
+              admissionYear: student.admissionYear,
+              enrollmentNumber: student.enrollmentNumber,
+              loginUrl,
+              email: student.email,
+            });
+          } catch (e) {
+            console.error("❌ Bulk email failed:", e.message);
+          }
+        })();
+
+        results.approved.push({
+          studentId: student._id,
+          fullName: student.fullName,
+          email: student.email,
+        });
+      } catch (err) {
+        results.failed.push({ studentId, reason: err.message || "Unknown" });
+      }
+    }
+
+    res.json({
+      message: `Bulk approval done: ${results.approved.length} approved, ${results.failed.length} failed`,
+      approved: results.approved,
+      failed: results.failed,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * REJECT STUDENT
  * Sends email notification to student with rejection reason
  * Creates in-app notification for student
