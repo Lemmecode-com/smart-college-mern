@@ -15,6 +15,7 @@ import {
   FaBook,
   FaLayerGroup,
   FaUserGraduate,
+  FaFileInvoiceDollar,
   FaClipboardList,
   FaCog,
   FaCalendarAlt,
@@ -35,7 +36,7 @@ import {
   FaClock,
   FaChartLine,
   FaCreditCard,
-  FaFileInvoiceDollar,
+  FaUserTimes,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -226,6 +227,12 @@ export const navigationConfig = {
             path: "/students/approve",
             icon: FaCheckCircle,
             label: "Approve Students",
+            exact: true,
+          },
+          {
+            path: "/students/deactivated",
+            icon: FaUserTimes,
+            label: "Deactivated Students",
             exact: true,
           },
           {

@@ -41,46 +41,69 @@ export default function PaymentSuccess() {
   if (user.role !== "STUDENT")
     return <Navigate to="/student/dashboard" replace />;
 
-  /* ================= CONFIRM PAYMENT (STRIPE) ================= */
+  /* ================= POLL FOR PAYMENT STATUS (STRIPE WEBHOOK FLOW) ================= */
   useEffect(() => {
-    if (!sessionId) return;
-
-    const confirmStripePayment = async () => {
-      try {
-        console.log(
-          "🔵 [PaymentSuccess] Confirming Stripe payment:",
-          sessionId,
-        );
-        const res = await api.post("/stripe/confirm-payment", {
-          sessionId,
-        });
-
-        console.log("🟢 [PaymentSuccess] Stripe payment confirmed:", res.data);
-        setPayment({
-          ...res.data,
-          paymentGateway: "STRIPE",
-        });
-        toast.success("Payment confirmed successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-        });
-      } catch (err) {
-        console.error("❌ [PaymentSuccess] Stripe confirmation failed:", err);
-        const errorMsg =
-          err.response?.data?.message || "Payment confirmation failed";
-        setError(errorMsg);
-        toast.error(errorMsg, {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaExclamationTriangle />,
-        });
-      } finally {
+    // Only run for Stripe payments (Razorpay has its own useEffect below)
+    if (!sessionId || paymentGateway === "razorpay") {
+      // Don't set error for Razorpay - it has its own flow
+      if (paymentGateway !== "razorpay") {
+        setError("No session ID provided");
         setLoading(false);
       }
+      return;
+    }
+
+    const pollPaymentStatus = async () => {
+      const maxAttempts = 15; // 30 seconds total (2s intervals)
+      let attempts = 0;
+
+      const interval = setInterval(async () => {
+        attempts++;
+
+        try {
+          const res = await api.get(
+            `/student/payments/status?sessionId=${sessionId}`,
+          );
+
+          if (res.data.status === "PAID") {
+            clearInterval(interval);
+            setPayment({
+              ...res.data,
+              paymentGateway: res.data.paymentGateway || "STRIPE",
+            });
+            toast.success("Payment confirmed successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+            });
+            setLoading(false);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setError(
+              "Payment is still processing. Please check back in a few moments.",
+            );
+            setLoading(false);
+          }
+        } catch (err) {
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            const errorMsg =
+              err.response?.data?.message || "Payment confirmation timeout";
+            setError(errorMsg);
+            toast.error(errorMsg, {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+            setLoading(false);
+          }
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => clearInterval(interval);
     };
 
-    confirmStripePayment();
+    pollPaymentStatus();
   }, [sessionId]);
 
   /* ================= VERIFY PAYMENT (RAZORPAY) ================= */
@@ -89,36 +112,11 @@ export default function PaymentSuccess() {
 
     const processRazorpayPayment = async () => {
       try {
-        console.log(
-          "🔵 [PaymentSuccess] Processing Razorpay payment:",
-          paymentId,
-        );
-
         // Payment was already verified in MakePayments.jsx
         // Check if we have payment data from navigation state
         const stateData = window.history.state?.usr;
 
         if (stateData?.paymentData) {
-          console.log(
-            "🟢 [PaymentSuccess] Using payment data from navigation state:",
-            stateData.paymentData,
-          );
-          console.log(
-            "🔍 [PaymentSuccess] Installment _id:",
-            stateData.paymentData.installment?._id,
-          );
-          console.log(
-            "🔍 [PaymentSuccess] totalFee:",
-            stateData.paymentData.totalFee,
-          );
-          console.log(
-            "🔍 [PaymentSuccess] paidAmount:",
-            stateData.paymentData.paidAmount,
-          );
-          console.log(
-            "🔍 [PaymentSuccess] remainingAmount:",
-            stateData.paymentData.remainingAmount,
-          );
           setPayment(stateData.paymentData);
           toast.success("Payment successful!", {
             position: "top-right",
@@ -130,7 +128,6 @@ export default function PaymentSuccess() {
         }
 
         // Fallback: If no state data, create display data from URL params
-        console.log("⚠️ [PaymentSuccess] No state data, using URL params");
         setPayment({
           paymentGateway: "RAZORPAY",
           paymentId: paymentId,
@@ -147,8 +144,6 @@ export default function PaymentSuccess() {
         });
         setLoading(false);
       } catch (err) {
-        console.error("❌ [PaymentSuccess] Razorpay processing failed:", err);
-
         // If payment was already verified (alreadyPaid), use the response data
         if (err.response?.data?.alreadyPaid) {
           console.log(

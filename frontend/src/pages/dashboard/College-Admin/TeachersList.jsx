@@ -4,6 +4,8 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
+import { toast } from "react-toastify";
 
 import {
   FaChalkboardTeacher,
@@ -31,7 +33,7 @@ import {
   FaArrowLeft,
   FaGraduationCap,
   FaMapMarkerAlt,
-  FaPhone
+  FaPhone,
 } from "react-icons/fa";
 
 export default function TeachersList() {
@@ -40,8 +42,7 @@ export default function TeachersList() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
   /* ================= STATE ================= */
   const [teachers, setTeachers] = useState([]);
@@ -50,12 +51,19 @@ export default function TeachersList() {
   const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "name",
+    direction: "asc",
+  });
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
-    inactive: 0
+    inactive: 0,
   });
+
+  /* ================= DEACTIVATION MODAL STATE ================= */
+  const [showDeactivationModal, setShowDeactivationModal] = useState(false);
+  const [deactivationTeacher, setDeactivationTeacher] = useState(null);
 
   /* ================= LOAD TEACHERS ================= */
   const fetchTeachers = async () => {
@@ -63,7 +71,7 @@ export default function TeachersList() {
     setError(null);
     try {
       const res = await api.get("/teachers");
-      
+
       // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
@@ -75,14 +83,14 @@ export default function TeachersList() {
       } else {
         data = [];
       }
-      
+
       setTeachers(data);
 
       // Calculate stats from fetched data (client-side only)
       setStats({
         total: data.length,
-        active: data.filter(t => t.status === "ACTIVE").length,
-        inactive: data.filter(t => t.status === "INACTIVE").length
+        active: data.filter((t) => t.status === "ACTIVE").length,
+        inactive: data.filter((t) => t.status === "INACTIVE").length,
       });
     } catch (err) {
       setError("Failed to load teachers. Please try again.");
@@ -100,7 +108,7 @@ export default function TeachersList() {
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
     if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       fetchTeachers();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
@@ -126,21 +134,28 @@ export default function TeachersList() {
   /* ================= FILTERING ================= */
   const getFilteredTeachers = () => {
     return teachers
-      .filter(teacher => 
-        teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (teacher.designation && teacher.designation.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (teacher.employeeId && teacher.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter(
+        (teacher) =>
+          teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (teacher.designation &&
+            teacher.designation
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())) ||
+          (teacher.employeeId &&
+            teacher.employeeId
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())),
       )
-      .filter(teacher => 
-        filterStatus === "ALL" || teacher.status === filterStatus
+      .filter(
+        (teacher) => filterStatus === "ALL" || teacher.status === filterStatus,
       );
   };
 
   /* ================= DELETE ================= */
   const deleteTeacher = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this teacher? This action cannot be undone."
+      "Are you sure you want to delete this teacher? This action cannot be undone.",
     );
     if (!confirmDelete) return;
 
@@ -149,6 +164,49 @@ export default function TeachersList() {
       fetchTeachers();
     } catch (err) {
       alert("Failed to delete teacher. Please try again.");
+    }
+  };
+
+  /* ================= DEACTIVATE / REACTIVATE ================= */
+  const openDeactivationModal = (teacher) => {
+    setDeactivationTeacher(teacher);
+    setShowDeactivationModal(true);
+  };
+
+  const handleDeactivationSuccess = () => {
+    fetchTeachers();
+    setShowDeactivationModal(false);
+    setDeactivationTeacher(null);
+  };
+
+  const handleToggleActive = async (teacher) => {
+    // If teacher is ACTIVE, open the reassignment modal
+    if (teacher.status === "ACTIVE") {
+      openDeactivationModal(teacher);
+      return;
+    }
+
+    // If teacher is INACTIVE, reactivate directly
+    const confirmReactivate = window.confirm(
+      `Are you sure you want to reactivate "${teacher.name}"? They will be able to log in again.`,
+    );
+    if (!confirmReactivate) return;
+
+    try {
+      // Find the user_id from teacher to deactivate the user
+      await api.put(`/users/${teacher.user_id}/reactivate`);
+      toast.success(`"${teacher.name}" has been reactivated`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      fetchTeachers();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          "Failed to reactivate teacher",
+        { position: "top-right", autoClose: 5000 },
+      );
     }
   };
 
@@ -166,7 +224,7 @@ export default function TeachersList() {
           </div>
         ))}
       </div>
-      
+
       <div className="skeleton-table">
         <div className="skeleton-table-header">
           {[...Array(6)].map((_, i) => (
@@ -201,15 +259,15 @@ export default function TeachersList() {
         <h3>Teachers Loading Error</h3>
         <p>{error}</p>
         <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
+          <button
+            className="erp-btn erp-btn-secondary"
             onClick={() => navigate(-1)}
           >
             <FaArrowLeft className="erp-btn-icon" />
             Go Back
           </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
+          <button
+            className="erp-btn erp-btn-primary"
             onClick={handleRetry}
             disabled={retryCount >= 3}
           >
@@ -236,7 +294,7 @@ export default function TeachersList() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Teachers Management" }
+          { label: "Teachers Management" },
         ]}
       />
 
@@ -268,7 +326,12 @@ export default function TeachersList() {
       {hasTeachers && (
         <div className="stats-grid animate-fade-in">
           <div className="stat-card">
-            <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              }}
+            >
               <FaChalkboardTeacher />
             </div>
             <div className="stat-card-content">
@@ -277,7 +340,12 @@ export default function TeachersList() {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+              }}
+            >
               <FaUserCheck />
             </div>
             <div className="stat-card-content">
@@ -286,7 +354,12 @@ export default function TeachersList() {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+              }}
+            >
               <FaUserTimes />
             </div>
             <div className="stat-card-content">
@@ -311,18 +384,20 @@ export default function TeachersList() {
                 aria-label="Search teachers"
               />
             </div>
-            
+
             <div className="filter-group">
               <button className="filter-btn" aria-label="Open status filter">
                 <FaFilter className="filter-icon" />
-                <span>Filter: {filterStatus === "ALL" ? "All" : filterStatus}</span>
+                <span>
+                  Filter: {filterStatus === "ALL" ? "All" : filterStatus}
+                </span>
                 <FaChevronDown className="filter-arrow" />
               </button>
               <div className="filter-dropdown">
                 <div className="filter-section">
                   <label>Status Filter</label>
                   <div className="filter-options">
-                    {["ALL", "ACTIVE", "INACTIVE"].map(status => (
+                    {["ALL", "ACTIVE", "INACTIVE"].map((status) => (
                       <label key={status} className="filter-option">
                         <input
                           type="radio"
@@ -339,8 +414,8 @@ export default function TeachersList() {
                 </div>
               </div>
             </div>
-            
-            <button 
+
+            <button
               className="reset-btn"
               onClick={() => {
                 setSearchTerm("");
@@ -362,10 +437,11 @@ export default function TeachersList() {
             Teachers List
           </h3>
           <span className="teacher-count">
-            {filteredTeachers.length} {filteredTeachers.length === 1 ? "Teacher" : "Teachers"}
+            {filteredTeachers.length}{" "}
+            {filteredTeachers.length === 1 ? "Teacher" : "Teachers"}
           </span>
         </div>
-        
+
         <div className="erp-card-body">
           {loading ? (
             renderSkeleton()
@@ -378,7 +454,7 @@ export default function TeachersList() {
               <p className="empty-description">
                 There are no teachers registered in your college yet.
               </p>
-              <button 
+              <button
                 className="erp-btn erp-btn-primary empty-action"
                 onClick={() => navigate("/teachers/add-teacher")}
                 aria-label="Add your first teacher"
@@ -394,9 +470,10 @@ export default function TeachersList() {
               </div>
               <h3>No Results Found</h3>
               <p className="empty-description">
-                No teachers match your search criteria. Try adjusting your filters.
+                No teachers match your search criteria. Try adjusting your
+                filters.
               </p>
-              <button 
+              <button
                 className="erp-btn erp-btn-secondary empty-action"
                 onClick={() => {
                   setSearchTerm("");
@@ -414,20 +491,62 @@ export default function TeachersList() {
                 <thead>
                   <tr>
                     <th className="th-avatar"></th>
-                    <th onClick={() => handleSort('name')} className="sortable">
-                      Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                    <th onClick={() => handleSort("name")} className="sortable">
+                      Name{" "}
+                      {sortConfig.key === "name" &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        ))}
                     </th>
-                    <th onClick={() => handleSort('employeeId')} className="sortable">
-                      Employee ID {sortConfig.key === 'employeeId' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                    <th
+                      onClick={() => handleSort("employeeId")}
+                      className="sortable"
+                    >
+                      Employee ID{" "}
+                      {sortConfig.key === "employeeId" &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        ))}
                     </th>
-                    <th onClick={() => handleSort('email')} className="sortable">
-                      Email {sortConfig.key === 'email' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                    <th
+                      onClick={() => handleSort("email")}
+                      className="sortable"
+                    >
+                      Email{" "}
+                      {sortConfig.key === "email" &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        ))}
                     </th>
-                    <th onClick={() => handleSort('designation')} className="sortable">
-                      Designation {sortConfig.key === 'designation' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                    <th
+                      onClick={() => handleSort("designation")}
+                      className="sortable"
+                    >
+                      Designation{" "}
+                      {sortConfig.key === "designation" &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        ))}
                     </th>
-                    <th onClick={() => handleSort('status')} className="sortable">
-                      Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+                    <th
+                      onClick={() => handleSort("status")}
+                      className="sortable"
+                    >
+                      Status{" "}
+                      {sortConfig.key === "status" &&
+                        (sortConfig.direction === "asc" ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        ))}
                     </th>
                     <th className="th-actions text-center">Actions</th>
                   </tr>
@@ -436,7 +555,10 @@ export default function TeachersList() {
                   {filteredTeachers.map((teacher, index) => (
                     <tr key={teacher._id} className="table-row">
                       <td className="td-avatar">
-                        <div className="teacher-avatar" aria-label={`Avatar for ${teacher.name}`}>
+                        <div
+                          className="teacher-avatar"
+                          aria-label={`Avatar for ${teacher.name}`}
+                        >
                           {teacher.name.charAt(0).toUpperCase()}
                         </div>
                       </td>
@@ -444,7 +566,9 @@ export default function TeachersList() {
                         <div className="teacher-name">
                           <div className="teacher-title">{teacher.name}</div>
                           <div className="teacher-meta">
-                            <span className="teacher-role">{teacher.designation || "Faculty"}</span>
+                            <span className="teacher-role">
+                              {teacher.designation || "Faculty"}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -467,7 +591,9 @@ export default function TeachersList() {
                         </div>
                       </td>
                       <td>
-                        <span className={`status-badge status-${teacher.status?.toLowerCase() || 'inactive'}`}>
+                        <span
+                          className={`status-badge status-${teacher.status?.toLowerCase() || "inactive"}`}
+                        >
                           {teacher.status || "INACTIVE"}
                         </span>
                       </td>
@@ -490,6 +616,22 @@ export default function TeachersList() {
                             <FaEdit />
                           </Link>
                           <button
+                            className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
+                            title={
+                              teacher.status === "ACTIVE"
+                                ? "Deactivate Teacher"
+                                : "Reactivate Teacher"
+                            }
+                            onClick={() => handleToggleActive(teacher)}
+                            aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
+                          >
+                            {teacher.status === "ACTIVE" ? (
+                              <FaUserTimes />
+                            ) : (
+                              <FaUserCheck />
+                            )}
+                          </button>
+                          <button
                             className="action-btn delete-btn"
                             title="Delete Teacher"
                             onClick={() => deleteTeacher(teacher._id)}
@@ -507,6 +649,19 @@ export default function TeachersList() {
           )}
         </div>
       </div>
+
+      {/* TEACHER DEACTIVATION MODAL */}
+      <TeacherDeactivationModal
+        isOpen={showDeactivationModal}
+        onClose={() => {
+          setShowDeactivationModal(false);
+          setDeactivationTeacher(null);
+        }}
+        teacherId={deactivationTeacher?._id}
+        teacherName={deactivationTeacher?.name}
+        collegeId={user.college_id}
+        onSuccess={handleDeactivationSuccess}
+      />
 
       {/* STYLES */}
       <style>{`
@@ -1041,7 +1196,15 @@ export default function TeachersList() {
         .delete-btn {
           background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
         }
-        
+
+        .action-btn-deactivate {
+          background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .action-btn-reactivate {
+          background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+        }
+
         .action-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 8px rgba(0,0,0,0.2);

@@ -130,9 +130,6 @@ export default function MakePayments() {
   const handleStripePayment = () => {
     // Prevent duplicate requests
     if (isRequestInProgressRef.current) {
-      console.warn(
-        "⚠️ Payment request already in progress, ignoring duplicate click",
-      );
       return;
     }
 
@@ -188,9 +185,6 @@ export default function MakePayments() {
   const handleRazorpayPayment = async () => {
     // Prevent duplicate requests
     if (isRequestInProgressRef.current) {
-      console.warn(
-        "⚠️ Payment request already in progress, ignoring duplicate click",
-      );
       return;
     }
 
@@ -248,42 +242,26 @@ export default function MakePayments() {
       }
 
       // Create Razorpay order
-      console.log(
-        "🔵 [Razorpay] Creating order for installment:",
-        installmentName,
-      );
       const res = await api.post("/razorpay/create-order", {
         installmentName,
       });
-
-      console.log("🟢 [Razorpay] Order response:", res.data);
 
       const { orderId, amount, currency, keyId } = res.data;
 
       // ✅ CRITICAL VALIDATION: Ensure all required fields are present
       if (!orderId) {
-        console.error("❌ [Razorpay] Order ID is missing in response!");
         throw new Error("Payment order creation failed. Please try again.");
       }
 
       if (!keyId) {
-        console.error("❌ [Razorpay] Key ID is missing in response!");
         throw new Error(
           "Razorpay is not configured properly. Please contact the college administrator.",
         );
       }
 
       if (!amount || amount <= 0) {
-        console.error("❌ [Razorpay] Invalid amount in response:", amount);
         throw new Error("Invalid payment amount. Please contact support.");
       }
-
-      console.log("🟢 [Razorpay] Order created successfully:", {
-        orderId,
-        amount,
-        currency,
-        keyId: keyId.substring(0, 8) + "...", // Log first 8 chars for security
-      });
 
       // Configure Razorpay options
       const options = {
@@ -294,8 +272,6 @@ export default function MakePayments() {
         description: `Fee Payment - ${installmentName}`,
         order_id: orderId,
         handler: async (response) => {
-          console.log("🟢 [Razorpay] Payment successful:", response);
-
           // ⚠️ CRITICAL: Show loading state with message IMMEDIATELY
           // Razorpay modal will close, but we need to keep user informed
           setLoadingMessage("Verifying your payment...");
@@ -304,18 +280,14 @@ export default function MakePayments() {
 
           try {
             // Verify payment signature
-            console.log("🔵 [Razorpay] Verifying payment signature...");
             const verifyRes = await api.post("/razorpay/verify-payment", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
 
-            console.log("✅ [Razorpay] Payment verified:", verifyRes.data);
-
             // Check if already paid
             if (verifyRes.data.alreadyPaid) {
-              console.log("🟡 [Razorpay] Installment was already paid");
               toast.info("This installment was already paid", {
                 position: "top-right",
                 autoClose: 5000,
@@ -332,39 +304,6 @@ export default function MakePayments() {
             // ⚠️ CRITICAL: Stop loading BEFORE navigation
             setLoading(false);
             isRequestInProgressRef.current = false;
-
-            // Debug: Log the BACKEND response structure (NOT Razorpay response!)
-            console.log(
-              " [Razorpay] BACKEND response object:",
-              JSON.stringify(verifyRes.data, null, 2),
-            );
-            console.log(" [Razorpay] verifyRes.data:", verifyRes.data);
-            console.log(
-              "🔍 [Razorpay] Installment from backend:",
-              verifyRes.data?.installment,
-            );
-            console.log(
-              "🔍 [Razorpay] Installment _id:",
-              verifyRes.data?.installment?._id,
-            );
-            console.log(
-              "🔍 [Razorpay] totalFee:",
-              verifyRes.data?.totalFee,
-              "Type:",
-              typeof verifyRes.data?.totalFee,
-            );
-            console.log(
-              "🔍 [Razorpay] paidAmount:",
-              verifyRes.data?.paidAmount,
-              "Type:",
-              typeof verifyRes.data?.paidAmount,
-            );
-            console.log(
-              "🔍 [Razorpay] remainingAmount:",
-              verifyRes.data?.remainingAmount,
-              "Type:",
-              typeof verifyRes.data?.remainingAmount,
-            );
 
             // Small delay to allow toast to show and user to see success message
             setTimeout(() => {
@@ -387,26 +326,6 @@ export default function MakePayments() {
                 remainingAmount: verifyRes.data?.remainingAmount || 0,
               };
 
-              console.log(
-                "💾 [Razorpay] Payment data being saved to state:",
-                paymentData,
-              );
-              console.log(
-                "💾 [Razorpay] totalFee:",
-                paymentData.totalFee,
-                typeof paymentData.totalFee,
-              );
-              console.log(
-                "💾 [Razorpay] paidAmount:",
-                paymentData.paidAmount,
-                typeof paymentData.paidAmount,
-              );
-              console.log(
-                "💾 [Razorpay] remainingAmount:",
-                paymentData.remainingAmount,
-                typeof paymentData.remainingAmount,
-              );
-
               // Redirect to success page with all Razorpay parameters in URL
               navigate(
                 `/student/payment-success?payment_id=${paymentData.paymentId}&order_id=${paymentData.orderId}&gateway=razorpay`,
@@ -421,15 +340,6 @@ export default function MakePayments() {
               );
             }, 800);
           } catch (verifyError) {
-            console.error(
-              "❌ [Razorpay] Payment verification failed:",
-              verifyError,
-            );
-            console.error(
-              "❌ [Razorpay] Verification error response:",
-              verifyError.response?.data,
-            );
-
             // ⚠️ CRITICAL: Stop loading on error too
             setLoading(false);
             isRequestInProgressRef.current = false;
@@ -456,19 +366,8 @@ export default function MakePayments() {
               icon: <FaExclamationTriangle />,
             });
 
-            // Log the error for support
-            console.error(
-              "❌ [Razorpay] Verification error code:",
-              verifyErrorCode,
-            );
-            console.error(
-              "❌ [Razorpay] Verification error message:",
-              verifyErrorMsg,
-            );
-
             // 🔁 AUTO-REDIRECT: After showing error for 3 seconds, redirect to fees page
             setTimeout(() => {
-              console.log("🔵 [Razorpay] Redirecting to fees page after error");
               navigate("/student/fees", { replace: true });
             }, 3000);
           }
@@ -483,7 +382,6 @@ export default function MakePayments() {
         },
         modal: {
           ondismiss: () => {
-            console.log("⚪ Razorpay modal closed");
             toast.info("Payment cancelled", {
               position: "top-right",
               autoClose: 3000,
@@ -495,7 +393,6 @@ export default function MakePayments() {
       };
 
       // Open Razorpay checkout
-      console.log("🔵 [Razorpay] Opening checkout modal");
       const rzp = new window.Razorpay(options);
 
       // Verify Razorpay instance was created properly
@@ -508,8 +405,6 @@ export default function MakePayments() {
       rzp.on("payment.failed", (response) => {
         const errorCode = response.error.code;
         const errorDescription = response.error.description;
-
-        console.error("🔴 [Razorpay] Payment failed:", response.error);
 
         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
@@ -530,14 +425,8 @@ export default function MakePayments() {
         isRequestInProgressRef.current = false;
       });
 
-      console.log("🟢 [Razorpay] Checkout modal opened successfully");
       rzp.open();
     } catch (err) {
-      console.error("❌ [Razorpay] Payment error:", err);
-      console.error("❌ [Razorpay] Full error response:", err.response?.data);
-      console.error("❌ [Razorpay] Error status:", err.response?.status);
-      console.error("❌ [Razorpay] Error stack:", err.stack);
-
       let errorMsg = "Payment initiation failed. Please try again.";
 
       // Extract error from standardized backend format
@@ -554,9 +443,6 @@ export default function MakePayments() {
         err.response?.data?.error?.code ||
         err.response?.data?.code ||
         err.response?.data?.error?.code;
-
-      console.error("❌ [Razorpay] Extracted error code:", errorCode);
-      console.error("❌ [Razorpay] Extracted error message:", errorMsg);
 
       // Handle specific error codes
       if (errorCode === "RAZORPAY_NOT_CONFIGURED") {
@@ -612,19 +498,9 @@ export default function MakePayments() {
       setLoading(true);
       setShowError(false);
 
-      console.log(
-        "🔵 Sending payment request with installmentName:",
-        installmentName,
-      );
-
       const res = await api.post("/stripe/create-checkout-session", {
         installmentName,
       });
-
-      // Debug: Log the actual response structure
-      console.log("🟢 Stripe API Response:", res);
-      console.log("🟢 res.data:", res.data);
-      console.log("🟢 res.status:", res.status);
 
       // The axios interceptor might wrap the response, so check multiple locations
       // Backend sends: { checkoutUrl, sessionId, expiresAt }
@@ -635,14 +511,7 @@ export default function MakePayments() {
         res?.checkoutUrl ||
         (typeof res.data === "string" ? res.data : null);
 
-      console.log("🟡 Extracted checkoutUrl:", checkoutUrl);
-
       if (!checkoutUrl) {
-        console.error(
-          "❌ Checkout URL not found in response. Full response:",
-          JSON.stringify(res.data, null, 2),
-        );
-
         // Check if response indicates an error (even with 200 status)
         if (res.data?.success === false) {
           throw new Error(
@@ -652,26 +521,13 @@ export default function MakePayments() {
           );
         }
 
-        throw new Error(
-          "Server response was invalid. Please check console or contact support.\n\n" +
-            "Response received: " +
-            JSON.stringify(res.data, null, 2),
-        );
+        throw new Error("Server response was invalid. Please contact support.");
       }
-
-      console.log(
-        "✅ Redirecting to Stripe checkout:",
-        checkoutUrl.substring(0, 50) + "...",
-      );
 
       // Redirect to Stripe checkout (hard redirect - state will be lost)
       // After payment, Stripe will redirect to /student/payment-success
       window.location.href = checkoutUrl;
     } catch (err) {
-      console.error("❌ Payment error details:", err);
-      console.error("❌ Full error response:", err.response?.data);
-      console.error("❌ Error status:", err.response?.status);
-
       // Extract error message from various possible locations
       let errorMsg =
         err.response?.data?.error?.message || // Standardized error format
@@ -721,8 +577,6 @@ export default function MakePayments() {
           icon: <FaTimesCircle />,
         });
       }
-
-      console.error("❌ Final error message shown to user:", errorMsg);
 
       setErrorMessage(errorMsg);
       setShowError(true);

@@ -7,15 +7,20 @@ const userSchema = new mongoose.Schema({
     ref: "College",
     required: function () {
       return this.role !== "SUPER_ADMIN";
-    }
+    },
   },
   name: String,
   email: { type: String, unique: true },
   password: String,
   role: {
     type: String,
-    enum: ["SUPER_ADMIN", "COLLEGE_ADMIN", "TEACHER", "STUDENT"]
-  }
+    enum: ["SUPER_ADMIN", "COLLEGE_ADMIN", "TEACHER", "STUDENT"],
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+    index: true,
+  },
 });
 
 /* ✅ FIXED PRE-SAVE HOOK */
