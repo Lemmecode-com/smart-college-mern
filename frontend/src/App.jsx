@@ -97,6 +97,7 @@ import NotificationDetails from "./components/NotificationDetails";
 /* ================= REPORTS ================= */
 import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
 import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
+import PaymentHistory from "./pages/dashboard/College-Admin/PaymentHistory";
 import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
 import SuperAdminReports from "./pages/dashboard/Super-Admin/SuperAdminReports";
 
@@ -549,6 +550,15 @@ function AppContent({
               }
             />
 
+            <Route
+              path="/college-admin/payment-history"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PaymentHistory />
+                </ProtectedRoute>
+              }
+            />
+
             {/* ================= TEACHER ================= */}
             <Route
               path="/teacher/dashboard"
@@ -653,7 +663,7 @@ function AppContent({
             <Route
               path="/student/fee-receipt/:paymentId"
               element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <ProtectedRoute allowedRoles={["STUDENT", "COLLEGE_ADMIN"]}>
                   <FeeReceipt />
                 </ProtectedRoute>
               }

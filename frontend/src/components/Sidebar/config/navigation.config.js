@@ -15,6 +15,7 @@ import {
   FaBook,
   FaLayerGroup,
   FaUserGraduate,
+  FaFileInvoiceDollar,
   FaClipboardList,
   FaCog,
   FaCalendarAlt,
@@ -291,6 +292,12 @@ export const navigationConfig = {
             icon: FaMoneyBillWave,
             label: "Payment Reports",
             exact: false,
+          },
+          {
+            path: "/college-admin/payment-history",
+            icon: FaFileInvoiceDollar,
+            label: "Payment History",
+            exact: true,
           },
           {
             path: "/college-admin/reports/attendance",
