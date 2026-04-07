@@ -25,7 +25,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ SUPER / COLLEGE ADMIN
+    // 1️⃣ SUPER / COLLEGE ADMIN — check isActive
     let user = await User.findOne({ email });
     if (user) {
       const isMatch = await bcrypt.compare(password, user.password);
@@ -36,6 +36,16 @@ exports.login = async (req, res, next) => {
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
+
+      // 🔒 Check if account is deactivated
+      if (user.isActive === false) {
+        throw new AppError(
+          "Your account has been deactivated. Please contact the administrator to reactivate your account.",
+          403,
+          "ACCOUNT_DEACTIVATED",
+        );
+      }
+
       // 🔒 SECURITY AUDIT: Log successful login
       securityAuditService
         .logLoginSuccess(user, req)
@@ -78,6 +88,15 @@ exports.login = async (req, res, next) => {
         `Your account has been rejected. Reason: ${student.rejectionReason || "Contact admin for details"}`,
         403,
         "ACCOUNT_REJECTED",
+      );
+    }
+
+    // 🔒 NEW: Check if account is deactivated
+    if (student && student.status === "DEACTIVATED") {
+      throw new AppError(
+        "Your account has been deactivated. Please contact the administrator to reactivate your account.",
+        403,
+        "ACCOUNT_DEACTIVATED",
       );
     }
 
