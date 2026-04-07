@@ -89,14 +89,10 @@ import CloseSession from "./pages/dashboard/Teacher/Attendance/CloseSession";
 import MyAttendance from "./pages/dashboard/Student/MyAttendance";
 
 // Notifications
-import CreateNotifications from "./pages/dashboard/Teacher/Notifications/CreateNotifications";
-import Notifications from "./pages/dashboard/Teacher/Notifications/Notifications";
-import EditNotifications from "./pages/dashboard/Teacher/Notifications/EditNotifications";
-import CreateNotification from "./pages/dashboard/College-Admin/Notification/CreateNotification";
-import NotificationList from "./pages/dashboard/College-Admin/Notification/NotificationList";
-import UpdateNotifications from "./pages/dashboard/College-Admin/Notification/UpdateNotifications";
-import StudentNotificationList from "./pages/dashboard/Student/StudentNotificationList";
-import NotificationDetails from "./pages/dashboard/Notifications/NotificationDetails";
+// Shared Notification Components (used directly)
+import NotificationListPage from "./components/NotificationListPage";
+import NotificationForm from "./components/NotificationForm";
+import NotificationDetails from "./components/NotificationDetails";
 
 /* ================= REPORTS ================= */
 import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
@@ -467,11 +463,12 @@ function AppContent({
               }
             />
 
+            {/* ================= COLLEGE ADMIN NOTIFICATIONS ================= */}
             <Route
               path="/notification/create"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <CreateNotification />
+                  <NotificationForm role="college-admin" mode="create" />
                 </ProtectedRoute>
               }
             />
@@ -480,7 +477,7 @@ function AppContent({
               path="/notification/list"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <NotificationList />
+                  <NotificationListPage role="college-admin" />
                 </ProtectedRoute>
               }
             />
@@ -503,7 +500,7 @@ function AppContent({
               path="/notification/edit/:id"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <UpdateNotifications />
+                  <NotificationForm role="college-admin" mode="edit" />
                 </ProtectedRoute>
               }
             />
@@ -511,7 +508,7 @@ function AppContent({
               path="/notification/student"
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <StudentNotificationList />
+                  <NotificationListPage role="student" />
                 </ProtectedRoute>
               }
             />
@@ -561,11 +558,12 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
+            {/* ================= TEACHER NOTIFICATIONS ================= */}
             <Route
               path="/teacher/notifications/create"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateNotifications />
+                  <NotificationForm role="teacher" mode="create" />
                 </ProtectedRoute>
               }
             />
@@ -573,7 +571,7 @@ function AppContent({
               path="/teacher/notifications/list"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <Notifications />
+                  <NotificationListPage role="teacher" />
                 </ProtectedRoute>
               }
             />
@@ -596,7 +594,7 @@ function AppContent({
               path="/notifications/edit/:id"
               element={
                 <ProtectedRoute allowedRoles={["TEACHER", "COLLEGE_ADMIN"]}>
-                  <EditNotifications />
+                  <NotificationForm role="teacher" mode="edit" />
                 </ProtectedRoute>
               }
             />
