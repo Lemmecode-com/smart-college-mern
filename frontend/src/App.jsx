@@ -75,7 +75,6 @@ import CourseList from "./pages/dashboard/College-Admin/CourseList";
 import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
 import ViewCourse from "./pages/dashboard/College-Admin/ViewCourse";
 /* ================= STUDENTS ================= */
-import StudentList from "./pages/dashboard/College-Admin/StudentList";
 import StudentPromotion from "./pages/dashboard/College-Admin/StudentPromotion";
 import AlumniList from "./pages/dashboard/College-Admin/AlumniList";
 
@@ -752,10 +751,19 @@ function AppContent({
 
             {/* ================= STUDENTS ================= */}
             <Route
-              path="/students"
+              path="/students/pending-approvals"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <StudentList />
+                  <PendingApprovals />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/approve"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <ApproveStudents />
                 </ProtectedRoute>
               }
             />
