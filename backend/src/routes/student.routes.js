@@ -4,12 +4,12 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
-const { 
-  validateStudentRegistration, 
+const {
+  validateStudentRegistration,
   validateStudentUpdateByAdmin,
   validateStudentProfileUpdate,
   validateStudentId,
-  validateCollegeCode
+  validateCollegeCode,
 } = require("../middlewares/validators/student.validator");
 
 const {
@@ -29,13 +29,19 @@ const {
 const {
   approveStudent,
   rejectStudent,
+  bulkApproveStudents,
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
 
-
 // 🌍 PUBLIC STUDENT REGISTRATION
-router.post("/register/:collegeCode", validateCollegeCode, uploadStudentDocuments, validateStudentRegistration, registerStudent);
+router.post(
+  "/register/:collegeCode",
+  validateCollegeCode,
+  uploadStudentDocuments,
+  validateStudentRegistration,
+  registerStudent,
+);
 
 // 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
 router.get(
@@ -43,7 +49,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getRegisteredStudents
+  getRegisteredStudents,
 );
 
 // 🔐 COLLEGE ADMIN → APPROVAL WORKFLOW
@@ -63,6 +69,15 @@ router.put(
   collegeMiddleware,
   validateStudentId,
   rejectStudent,
+);
+
+// 🔐 COLLEGE ADMIN → BULK APPROVE STUDENTS
+router.post(
+  "/bulk-approve",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  bulkApproveStudents,
 );
 
 // 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
@@ -149,7 +164,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getStudentsForTeacher
+  getStudentsForTeacher,
 );
 
 // 🎓 ADMIN: Move student to Alumni (for students who completed course)
@@ -158,7 +173,7 @@ router.post(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  moveToAlumni
+  moveToAlumni,
 );
 
 // 🎓 ADMIN: Get all Alumni
@@ -167,7 +182,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getAlumni
+  getAlumni,
 );
 
 module.exports = router;
