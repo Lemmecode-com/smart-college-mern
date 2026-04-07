@@ -35,6 +35,7 @@ import {
   FaClock,
   FaChartLine,
   FaCreditCard,
+  FaFileInvoiceDollar,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -284,6 +285,12 @@ export const navigationConfig = {
             icon: FaMoneyBillWave,
             label: "Payment Reports",
             exact: false,
+          },
+          {
+            path: "/college-admin/payment-history",
+            icon: FaFileInvoiceDollar,
+            label: "Payment History",
+            exact: true,
           },
           {
             path: "/college-admin/reports/attendance",
