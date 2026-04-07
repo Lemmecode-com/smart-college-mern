@@ -5,6 +5,11 @@ const User = require("../models/user.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const {
+  reassignTeacherResources,
+  getAvailableTeachersForReassignment: fetchAvailableTeachers,
+  getTeacherReassignmentData: fetchReassignmentData,
+} = require("../services/teacherReassignment.service");
 
 /* =========================================================
    CREATE TEACHER (College Admin)
@@ -39,11 +44,7 @@ exports.createTeacher = async (req, res, next) => {
 
     /* ================= Normalize courses ================= */
     const finalCourses =
-      courses.length > 0
-        ? courses
-        : course_id
-          ? [course_id]
-          : [];
+      courses.length > 0 ? courses : course_id ? [course_id] : [];
 
     /* ================= Validate Department ================= */
     const department = await Department.findOne({
@@ -64,7 +65,11 @@ exports.createTeacher = async (req, res, next) => {
       });
 
       if (validCourses !== finalCourses.length) {
-        throw new AppError("One or more courses do not belong to this department", 404, "COURSE_NOT_FOUND");
+        throw new AppError(
+          "One or more courses do not belong to this department",
+          404,
+          "COURSE_NOT_FOUND",
+        );
       }
     }
 
@@ -109,9 +114,13 @@ exports.createTeacher = async (req, res, next) => {
       joiningDate,
     });
 
-    ApiResponse.created(res, {
-      teacher
-    }, "Teacher created successfully");
+    ApiResponse.created(
+      res,
+      {
+        teacher,
+      },
+      "Teacher created successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -131,11 +140,11 @@ exports.getMyProfile = async (req, res) => {
     })
       .populate({
         path: "department_id",
-        select: "name code hod_id",  // ✅ Include hod_id
+        select: "name code hod_id", // ✅ Include hod_id
         populate: {
-          path: "hod_id",  // ✅ Populate HOD details
-          select: "name _id"
-        }
+          path: "hod_id", // ✅ Populate HOD details
+          select: "name _id",
+        },
       })
       .populate("courses", "name code")
       .populate("college_id", "name code")
@@ -158,9 +167,13 @@ exports.getMyProfile = async (req, res) => {
     const teacherObj = teacher.toObject();
     teacherObj.subjects = subjects;
 
-    ApiResponse.success(res, {
-      teacher: teacherObj
-    }, "Profile fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        teacher: teacherObj,
+      },
+      "Profile fetched successfully",
+    );
   } catch (error) {
     console.error("PROFILE ERROR:", error);
     next(error);
@@ -175,13 +188,8 @@ exports.getMyProfile = async (req, res) => {
 ========================================================= */
 exports.updateMyProfile = async (req, res, next) => {
   try {
-    const {
-      name,
-      email,
-      experienceYears,
-      mobileNumber,
-      joiningDate,
-    } = req.body;
+    const { name, email, experienceYears, mobileNumber, joiningDate } =
+      req.body;
 
     // Find teacher by user_id (logged-in user)
     const teacher = await Teacher.findOne({
@@ -209,7 +217,7 @@ exports.updateMyProfile = async (req, res, next) => {
         college_id: req.college_id,
       },
       updateFields,
-      { new: true }
+      { new: true },
     )
       .populate("department_id", "name")
       .populate("courses", "name code");
@@ -222,9 +230,13 @@ exports.updateMyProfile = async (req, res, next) => {
       });
     }
 
-    ApiResponse.success(res, {
-      teacher: updatedTeacher
-    }, "Profile updated successfully");
+    ApiResponse.success(
+      res,
+      {
+        teacher: updatedTeacher,
+      },
+      "Profile updated successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -253,7 +265,7 @@ exports.getTeachers = async (req, res) => {
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
-        { employeeId: { $regex: search } }
+        { employeeId: { $regex: search } },
       ];
     }
 
@@ -269,13 +281,18 @@ exports.getTeachers = async (req, res) => {
       .sort({ createdAt: -1 })
       .select("-__v");
 
-    ApiResponse.paginate(res, teachers, {
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit),
-      hasMore: page * limit < total
-    }, "Teachers fetched successfully");
+    ApiResponse.paginate(
+      res,
+      teachers,
+      {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+      "Teachers fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -287,8 +304,8 @@ exports.getTeachers = async (req, res) => {
 ========================================================= */
 exports.getTeacherById = async (req, res) => {
   try {
-    console.log('[getTeacherById] Request ID:', req.params.id);
-    console.log('[getTeacherById] College ID:', req.college_id);
+    console.log("[getTeacherById] Request ID:", req.params.id);
+    console.log("[getTeacherById] College ID:", req.college_id);
 
     const teacher = await Teacher.findOne({
       _id: req.params.id,
@@ -299,18 +316,25 @@ exports.getTeacherById = async (req, res) => {
       .populate("subjects", "name code semester")
       .select("-__v");
 
-    console.log('[getTeacherById] Found teacher:', teacher ? teacher.name : 'NULL');
-    console.log('[getTeacherById] Teacher data:', teacher);
+    console.log(
+      "[getTeacherById] Found teacher:",
+      teacher ? teacher.name : "NULL",
+    );
+    console.log("[getTeacherById] Teacher data:", teacher);
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    ApiResponse.success(res, {
-      teacher
-    }, "Teacher fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        teacher,
+      },
+      "Teacher fetched successfully",
+    );
   } catch (error) {
-    console.error('[getTeacherById] Error:', error);
+    console.error("[getTeacherById] Error:", error);
     next(error);
   }
 };
@@ -327,9 +351,13 @@ exports.getTeachersByDepartment = async (req, res) => {
       status: "ACTIVE",
     }).select("_id name designation");
 
-    ApiResponse.success(res, {
-      teachers
-    }, "Department teachers fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        teachers,
+      },
+      "Department teachers fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -355,9 +383,13 @@ exports.getTeachersByCourse = async (req, res) => {
       .populate("department_id", "name")
       .select("name email employeeId designation");
 
-    ApiResponse.success(res, {
-      teachers
-    }, "Course teachers fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        teachers,
+      },
+      "Course teachers fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -403,7 +435,7 @@ exports.updateTeacher = async (req, res, next) => {
         throw new AppError(
           `Cannot deactivate teacher: ${assignedSubjects} subject(s) still assigned. Please reassign subjects to another teacher before deactivation.`,
           400,
-          "SUBJECTS_STILL_ASSIGNED"
+          "SUBJECTS_STILL_ASSIGNED",
         );
       }
 
@@ -417,7 +449,7 @@ exports.updateTeacher = async (req, res, next) => {
         throw new AppError(
           "Cannot deactivate teacher: Teacher is currently HOD of department. Please assign a new HOD first.",
           400,
-          "TEACHER_IS_HOD"
+          "TEACHER_IS_HOD",
         );
       }
     }
@@ -425,7 +457,7 @@ exports.updateTeacher = async (req, res, next) => {
     const teacher = await Teacher.findOneAndUpdate(
       { _id: id, college_id: req.college_id },
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate("department_id", "name")
       .populate("courses", "name code");
@@ -434,9 +466,13 @@ exports.updateTeacher = async (req, res, next) => {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    ApiResponse.success(res, {
-      teacher
-    }, "Teacher updated successfully");
+    ApiResponse.success(
+      res,
+      {
+        teacher,
+      },
+      "Teacher updated successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -478,7 +514,11 @@ exports.assignHOD = async (req, res, next) => {
     const { department_id } = req.body;
 
     if (!department_id) {
-      throw new AppError("Department ID is required", 400, "DEPARTMENT_ID_REQUIRED");
+      throw new AppError(
+        "Department ID is required",
+        400,
+        "DEPARTMENT_ID_REQUIRED",
+      );
     }
 
     const teacher = await Teacher.findOne({
@@ -493,12 +533,154 @@ exports.assignHOD = async (req, res, next) => {
     // Update department's hod_id
     await Department.findOneAndUpdate(
       { _id: department_id, college_id: req.college_id },
-      { hod_id: teacher._id }
+      { hod_id: teacher._id },
     );
 
-    ApiResponse.success(res, {
-      teacher
-    }, "HOD assigned successfully");
+    ApiResponse.success(
+      res,
+      {
+        teacher,
+      },
+      "HOD assigned successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET TEACHER REASSIGNMENT DATA
+   GET /teachers/:id/reassignment-data
+   Returns all subjects, slots, and sessions that need reassignment
+========================================================= */
+exports.getTeacherReassignmentData = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const teacher = await Teacher.findOne({
+      _id: id,
+      college_id: req.college_id,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    const data = await fetchReassignmentData(id, req.college_id);
+
+    ApiResponse.success(res, data, "Reassignment data fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET AVAILABLE TEACHERS FOR REASSIGNMENT
+   GET /teachers/available-for-reassignment
+========================================================= */
+exports.getAvailableTeachersForReassignment = async (req, res, next) => {
+  try {
+    const { excludeTeacherId } = req.query;
+
+    if (!excludeTeacherId) {
+      throw new AppError(
+        "excludeTeacherId query parameter is required",
+        400,
+        "INVALID_REQUEST",
+      );
+    }
+
+    const teachers = await fetchAvailableTeachers(
+      req.college_id,
+      excludeTeacherId,
+    );
+
+    // DEBUG: Log teacher department info
+    console.log("[AVAILABLE TEACHERS] Total:", teachers.length);
+    console.log(
+      "[AVAILABLE TEACHERS]",
+      teachers.map((t) => ({
+        name: t.name,
+        deptId: t.department_id,
+        deptName: t.department_id?.name,
+        status: t.status,
+      })),
+    );
+
+    ApiResponse.success(
+      res,
+      { teachers },
+      "Available teachers fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT
+   PUT /teachers/:id/deactivate-with-reassignment
+   Body: { defaultTeacherId, subjectToTeacherMap: { subjectId: teacherId } }
+========================================================= */
+exports.deactivateTeacherWithReassignment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { defaultTeacherId, subjectToTeacherMap = {} } = req.body;
+
+    if (!defaultTeacherId) {
+      throw new AppError(
+        "defaultTeacherId is required for reassignment",
+        400,
+        "INVALID_REQUEST",
+      );
+    }
+
+    // Validate teacher exists
+    const teacher = await Teacher.findOne({
+      _id: id,
+      college_id: req.college_id,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    // Check if teacher is HOD
+    const isHod = await Department.findOne({ hod_id: teacher._id });
+    if (isHod) {
+      throw new AppError(
+        "Cannot deactivate teacher: Teacher is currently HOD of department. Please assign a new HOD first.",
+        400,
+        "TEACHER_IS_HOD",
+      );
+    }
+
+    // Convert subjectToTeacherMap from object to Map
+    const subjectMap = new Map(Object.entries(subjectToTeacherMap));
+
+    // Perform the reassignment
+    const reassignmentResult = await reassignTeacherResources(
+      id,
+      req.college_id,
+      subjectMap,
+      defaultTeacherId,
+    );
+
+    // Deactivate the teacher
+    teacher.status = "INACTIVE";
+    await teacher.save();
+
+    // Also deactivate the user
+    await User.findByIdAndUpdate(teacher.user_id, { isActive: false });
+
+    ApiResponse.success(
+      res,
+      {
+        teacher,
+        reassignment: reassignmentResult,
+      },
+      "Teacher deactivated and resources reassigned successfully",
+    );
   } catch (error) {
     next(error);
   }

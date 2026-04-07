@@ -129,6 +129,7 @@ import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
 /* ================= COLLEGE ADMIN ================= */
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
+import DeactivatedStudents from "./pages/dashboard/College-Admin/DeactivatedStudents";
 import PendingApprovals from "./pages/dashboard/College-Admin/PendingApprovals";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
 import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
@@ -401,6 +402,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <ApproveStudents />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/students/deactivated"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <DeactivatedStudents />
                 </ProtectedRoute>
               }
             />

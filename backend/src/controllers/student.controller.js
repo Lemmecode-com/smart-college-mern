@@ -1313,3 +1313,58 @@ exports.getAlumni = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * GET DEACTIVATED STUDENTS — For history and reactivation
+ * GET /students/deactivated
+ */
+exports.getDeactivatedStudents = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const { department_id, course_id, search } = req.query;
+
+    const filter = {
+      college_id: req.college_id,
+      status: "DEACTIVATED",
+    };
+
+    if (department_id) filter.department_id = department_id;
+    if (course_id) filter.course_id = course_id;
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const total = await Student.countDocuments(filter);
+
+    const students = await Student.find(filter)
+      .populate("department_id", "name code")
+      .populate("course_id", "name")
+      .select(
+        "fullName email mobileNumber admissionYear status user_id department_id course_id",
+      )
+      .limit(limit)
+      .skip(skip)
+      .sort({ updatedAt: -1 });
+
+    ApiResponse.paginate(
+      res,
+      students,
+      {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+      "Deactivated students fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
