@@ -724,7 +724,31 @@ export default function StudentFees() {
                                 </span>
                               </small>
                               <span className="payment-method">
-                                {installment.paymentMethod || "Card"}
+                                {(() => {
+                                  // Display payment method based on paymentMode and paymentGateway
+                                  const gateway =
+                                    installment.paymentGateway || "STRIPE";
+                                  const mode =
+                                    installment.paymentMode || "ONLINE";
+
+                                  if (gateway === "OFFLINE") {
+                                    // Offline payments
+                                    const modeLabels = {
+                                      CASH: "💵 Cash",
+                                      CHEQUE: "📝 Cheque",
+                                      DD: "🏦 Demand Draft",
+                                    };
+                                    return modeLabels[mode] || "💵 Cash";
+                                  } else {
+                                    // Online payments
+                                    const gatewayLabels = {
+                                      STRIPE: "💳 Card",
+                                      RAZORPAY: "📱 UPI/Card",
+                                      MOCK: "🧪 Mock Payment",
+                                    };
+                                    return gatewayLabels[gateway] || "💳 Card";
+                                  }
+                                })()}
                               </span>
                             </div>
                           ) : (

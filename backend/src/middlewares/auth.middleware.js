@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
+const User = require("../models/user.model");
 
 /**
  * Authentication Middleware
@@ -36,6 +37,32 @@ module.exports = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Fetch user from database to check isActive status
+    const user = await User.findById(decoded.id).select(
+      "isActive role college_id",
+    );
+
+    if (!user) {
+      return next(
+        new AppError(
+          "User not found. Please login again.",
+          401,
+          "USER_NOT_FOUND",
+        ),
+      );
+    }
+
+    // Check if user account is deactivated
+    if (!user.isActive) {
+      return next(
+        new AppError(
+          "Account deactivated. Please contact administrator.",
+          401,
+          "ACCOUNT_DEACTIVATED",
+        ),
+      );
+    }
 
     // Attach user info to request
     req.user = {

@@ -111,7 +111,12 @@ exports.getStudentReceipt = async (req, res, next) => {
       amount: installment.amount,
       paidAt: installment.paidAt,
       status: "SUCCESS",
-      paymentGateway: installment.paymentGateway || "STRIPE", // ← Add payment gateway
+      paymentGateway: installment.paymentGateway || "STRIPE",
+
+      // 🏦 OFFLINE PAYMENT: Additional details for offline payments
+      paymentMode: installment.paymentMode || "ONLINE",
+      referenceNumber: installment.referenceNumber || null,
+      remarks: installment.remarks || null,
 
       student: {
         name: studentFee.student_id.fullName,

@@ -15,6 +15,7 @@ import {
   FaBook,
   FaLayerGroup,
   FaUserGraduate,
+  FaFileInvoiceDollar,
   FaClipboardList,
   FaCog,
   FaCalendarAlt,
@@ -35,6 +36,7 @@ import {
   FaClock,
   FaChartLine,
   FaCreditCard,
+  FaUserTimes,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -228,6 +230,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/students/deactivated",
+            icon: FaUserTimes,
+            label: "Deactivated Students",
+            exact: true,
+          },
+          {
             path: "/students/promotion",
             icon: FaGraduationCap,
             label: "Student Promotion",
@@ -284,6 +292,12 @@ export const navigationConfig = {
             icon: FaMoneyBillWave,
             label: "Payment Reports",
             exact: false,
+          },
+          {
+            path: "/college-admin/payment-history",
+            icon: FaFileInvoiceDollar,
+            label: "Payment History",
+            exact: true,
           },
           {
             path: "/college-admin/reports/attendance",
