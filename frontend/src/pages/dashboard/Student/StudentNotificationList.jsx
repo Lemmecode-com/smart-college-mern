@@ -33,18 +33,6 @@ export default function StudentNotificationList() {
       const res = await api.get("/notifications/student/read");
       setAdminNotes(res.data.adminNotifications || []);
       setTeacherNotes(res.data.teacherNotifications || []);
-
-      // Show success toast if notifications exist
-      const totalNotes =
-        (res.data.adminNotifications?.length || 0) +
-        (res.data.teacherNotifications?.length || 0);
-      if (totalNotes > 0) {
-        toast.success(`Loaded ${totalNotes} notifications`, {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaBell />,
-        });
-      }
     } catch (err) {
       const statusCode = err.response?.status;
       const errorMsg =
