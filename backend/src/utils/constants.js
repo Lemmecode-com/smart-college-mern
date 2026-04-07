@@ -1,6 +1,6 @@
 /**
  * STATUS CONSTANTS
- * 
+ *
  * Purpose:
  * - Standardize status values across all models
  * - Make filtering and querying consistent
@@ -13,53 +13,54 @@
  * General entity status (for Department, Course, Subject, etc.)
  */
 exports.ENTITY_STATUS = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE'
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
 };
 
 /**
  * Student admission status
  */
 exports.STUDENT_STATUS = {
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  DELETED: 'DELETED',
-  ALUMNI: 'ALUMNI'
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  DELETED: "DELETED",
+  ALUMNI: "ALUMNI",
+  DEACTIVATED: "DEACTIVATED",
 };
 
 /**
  * Teacher employment status
  */
 exports.TEACHER_STATUS = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE'
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
 };
 
 /**
  * Timetable publication status
  */
 exports.TIMETABLE_STATUS = {
-  DRAFT: 'DRAFT',
-  PUBLISHED: 'PUBLISHED'
+  DRAFT: "DRAFT",
+  PUBLISHED: "PUBLISHED",
 };
 
 /**
  * Attendance session status
  */
 exports.ATTENDANCE_SESSION_STATUS = {
-  OPEN: 'OPEN',
-  CLOSED: 'CLOSED'
+  OPEN: "OPEN",
+  CLOSED: "CLOSED",
 };
 
 /**
  * Payment installment status
  */
 exports.PAYMENT_STATUS = {
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED'
+  PENDING: "PENDING",
+  PAID: "PAID",
+  FAILED: "FAILED",
+  CANCELLED: "CANCELLED",
 };
 
 // ==================== CATEGORY ====================
@@ -68,20 +69,20 @@ exports.PAYMENT_STATUS = {
  * Student category
  */
 exports.CATEGORY = {
-  GEN: 'GEN',
-  OBC: 'OBC',
-  SC: 'SC',
-  ST: 'ST',
-  OTHER: 'OTHER'
+  GEN: "GEN",
+  OBC: "OBC",
+  SC: "SC",
+  ST: "ST",
+  OTHER: "OTHER",
 };
 
 /**
  * Gender options
  */
 exports.GENDER = {
-  MALE: 'Male',
-  FEMALE: 'Female',
-  OTHER: 'Other'
+  MALE: "Male",
+  FEMALE: "Female",
+  OTHER: "Other",
 };
 
 // ==================== ACADEMIC ====================
@@ -90,27 +91,27 @@ exports.GENDER = {
  * Program levels
  */
 exports.PROGRAM_LEVEL = {
-  UG: 'UG',         // Undergraduate
-  PG: 'PG',         // Postgraduate
-  DIPLOMA: 'DIPLOMA',
-  PHD: 'PHD'
+  UG: "UG", // Undergraduate
+  PG: "PG", // Postgraduate
+  DIPLOMA: "DIPLOMA",
+  PHD: "PHD",
 };
 
 /**
  * Course types
  */
 exports.COURSE_TYPE = {
-  THEORY: 'THEORY',
-  PRACTICAL: 'PRACTICAL',
-  BOTH: 'BOTH'
+  THEORY: "THEORY",
+  PRACTICAL: "PRACTICAL",
+  BOTH: "BOTH",
 };
 
 /**
  * Department types
  */
 exports.DEPARTMENT_TYPE = {
-  ACADEMIC: 'ACADEMIC',
-  ADMINISTRATIVE: 'ADMINISTRATIVE'
+  ACADEMIC: "ACADEMIC",
+  ADMINISTRATIVE: "ADMINISTRATIVE",
 };
 
 // ==================== NOTIFICATION ====================
@@ -119,24 +120,24 @@ exports.DEPARTMENT_TYPE = {
  * Notification target audience
  */
 exports.NOTIFICATION_TARGET = {
-  ALL: 'ALL',
-  STUDENTS: 'STUDENTS',
-  TEACHERS: 'TEACHERS',
-  CUSTOM: 'CUSTOM'
+  ALL: "ALL",
+  STUDENTS: "STUDENTS",
+  TEACHERS: "TEACHERS",
+  CUSTOM: "CUSTOM",
 };
 
 /**
  * Notification types
  */
 exports.NOTIFICATION_TYPE = {
-  GENERAL: 'GENERAL',
-  ACADEMIC: 'ACADEMIC',
-  EXAM: 'EXAM',
-  FEE: 'FEE',
-  ATTENDANCE: 'ATTENDANCE',
-  EVENT: 'EVENT',
-  ASSIGNMENT: 'ASSIGNMENT',
-  URGENT: 'URGENT'
+  GENERAL: "GENERAL",
+  ACADEMIC: "ACADEMIC",
+  EXAM: "EXAM",
+  FEE: "FEE",
+  ATTENDANCE: "ATTENDANCE",
+  EVENT: "EVENT",
+  ASSIGNMENT: "ASSIGNMENT",
+  URGENT: "URGENT",
 };
 
 // ==================== ROLE ====================
@@ -145,12 +146,12 @@ exports.NOTIFICATION_TYPE = {
  * User roles
  */
 exports.ROLE = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  COLLEGE_ADMIN: 'COLLEGE_ADMIN',
-  TEACHER: 'TEACHER',
-  STUDENT: 'STUDENT',
-  HOD: 'HOD',
-  PRINCIPAL: 'PRINCIPAL'
+  SUPER_ADMIN: "SUPER_ADMIN",
+  COLLEGE_ADMIN: "COLLEGE_ADMIN",
+  TEACHER: "TEACHER",
+  STUDENT: "STUDENT",
+  HOD: "HOD",
+  PRINCIPAL: "PRINCIPAL",
 };
 
 // ==================== HELPER FUNCTIONS ====================
