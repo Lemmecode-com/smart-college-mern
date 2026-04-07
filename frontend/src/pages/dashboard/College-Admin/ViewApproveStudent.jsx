@@ -369,7 +369,7 @@ FeeCard.defaultProps = {
 };
 
 /* ---- InstallmentTable Component ---- */
-function InstallmentTable({ installments }) {
+function InstallmentTable({ installments, studentId, onMarkPaid }) {
   if (!installments || installments.length === 0) {
     return (
       <EmptyState
@@ -394,6 +394,7 @@ function InstallmentTable({ installments }) {
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
             <th scope="col">Status</th>
+            <th scope="col">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -408,6 +409,21 @@ function InstallmentTable({ installments }) {
                   status={inst.status}
                   type={inst.status.toLowerCase()}
                 />
+              </td>
+              <td>
+                {inst.status === "PENDING" ? (
+                  <button
+                    className="mark-paid-btn"
+                    onClick={() => onMarkPaid(inst)}
+                    aria-label={`Mark ${inst.name} as paid`}
+                    title="Mark as Paid (Offline)"
+                  >
+                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                    Mark Paid
+                  </button>
+                ) : (
+                  <span className="no-action-text">-</span>
+                )}
               </td>
             </tr>
           ))}
@@ -427,6 +443,8 @@ InstallmentTable.propTypes = {
       status: PropTypes.string.isRequired,
     }),
   ).isRequired,
+  studentId: PropTypes.string.isRequired,
+  onMarkPaid: PropTypes.func.isRequired,
 };
 
 /* ---- Skeleton Components ---- */
@@ -571,6 +589,492 @@ ErrorDisplay.propTypes = {
   retryCount: PropTypes.number.isRequired,
 };
 
+/* ---- Mark Paid Modal Component ---- */
+function MarkPaidModal({
+  installment,
+  studentName,
+  studentId,
+  onClose,
+  onSuccess,
+}) {
+  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // Reference number required for CHEQUE and DD
+  const isReferenceRequired = paymentMode === "CHEQUE" || paymentMode === "DD";
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (isReferenceRequired && !referenceNumber.trim()) {
+      setError(`Reference number is required for ${paymentMode}`);
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await onSuccess({
+        studentId,
+        installmentId: installment._id,
+        paymentMode,
+        referenceNumber: isReferenceRequired ? referenceNumber.trim() : null,
+        remarks: remarks.trim() || null,
+      });
+    } catch (err) {
+      setError(err.message || "Failed to mark installment as paid");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mark-paid-title"
+    >
+      <div className="mark-paid-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="modal-header">
+          <div className="modal-header-content">
+            <FaCheckCircle className="modal-icon" aria-hidden="true" />
+            <div className="modal-title-section">
+              <h3 id="mark-paid-title">Mark Installment as Paid</h3>
+              <p className="modal-subtitle">
+                Offline Payment (Cash / Cheque / DD)
+              </p>
+            </div>
+          </div>
+          <button
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close modal"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit}>
+          {/* Student & Installment Info */}
+          <div className="modal-info-box">
+            <div className="info-row">
+              <span className="info-label">Student:</span>
+              <span className="info-value">{studentName}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Installment:</span>
+              <span className="info-value">{installment.name}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">Amount:</span>
+              <span className="info-value amount">
+                {formatCurrency(installment.amount)}
+              </span>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="error-message-box" role="alert">
+              <FaExclamationTriangle
+                className="error-icon"
+                aria-hidden="true"
+              />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Payment Mode Selection */}
+          <div className="form-group">
+            <label htmlFor="paymentMode" className="form-label">
+              Payment Mode <span className="required">*</span>
+            </label>
+            <div className="payment-mode-options">
+              {[
+                { value: "CASH", label: "Cash", icon: "💵" },
+                { value: "CHEQUE", label: "Cheque", icon: "📝" },
+                { value: "DD", label: "Demand Draft", icon: "🏦" },
+              ].map((mode) => (
+                <button
+                  key={mode.value}
+                  type="button"
+                  className={`payment-mode-btn ${paymentMode === mode.value ? "selected" : ""}`}
+                  onClick={() => setPaymentMode(mode.value)}
+                  aria-pressed={paymentMode === mode.value}
+                >
+                  <span className="mode-icon" aria-hidden="true">
+                    {mode.icon}
+                  </span>
+                  <span className="mode-label">{mode.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reference Number (Conditional) */}
+          {isReferenceRequired && (
+            <div className="form-group">
+              <label htmlFor="referenceNumber" className="form-label">
+                Reference Number <span className="required">*</span>
+              </label>
+              <input
+                id="referenceNumber"
+                type="text"
+                className="form-input"
+                value={referenceNumber}
+                onChange={(e) => setReferenceNumber(e.target.value)}
+                placeholder={`Enter ${paymentMode === "CHEQUE" ? "cheque" : "DD"} number`}
+                required={isReferenceRequired}
+                aria-required="true"
+              />
+            </div>
+          )}
+
+          {/* Remarks */}
+          <div className="form-group">
+            <label htmlFor="remarks" className="form-label">
+              Remarks / Notes <span className="optional">(Optional)</span>
+            </label>
+            <textarea
+              id="remarks"
+              className="form-textarea"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add any notes about this payment (e.g., paid at counter 3, received by Mr. Sharma)"
+              rows={3}
+            />
+          </div>
+
+          {/* Modal Actions */}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="erp-btn erp-btn-outline"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="erp-btn erp-btn-success"
+              disabled={submitting}
+              aria-busy={submitting}
+            >
+              {submitting ? (
+                <>
+                  <FaSyncAlt className="spin-icon" aria-hidden="true" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                  Mark as Paid
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Modal Styles */}
+      <style>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 1rem;
+          animation: fadeIn 0.2s ease;
+        }
+
+        .mark-paid-modal {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .modal-header {
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          color: white;
+          padding: 1.5rem;
+          border-radius: 12px 12px 0 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .modal-header-content {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .modal-icon {
+          font-size: 2rem;
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+
+        .modal-title-section h3 {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+
+        .modal-subtitle {
+          margin: 0.25rem 0 0;
+          font-size: 0.85rem;
+          opacity: 0.9;
+        }
+
+        .modal-close-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          font-size: 2rem;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
+        }
+
+        .modal-close-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+
+        .mark-paid-modal form {
+          padding: 1.5rem;
+        }
+
+        .modal-info-box {
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-row:last-child {
+          border-bottom: none;
+        }
+
+        .info-label {
+          color: #6c757d;
+          font-weight: 500;
+        }
+
+        .info-value {
+          font-weight: 600;
+          color: #2c3e50;
+        }
+
+        .info-value.amount {
+          color: #28a745;
+          font-size: 1.1rem;
+        }
+
+        .error-message-box {
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-left: 4px solid #dc3545;
+          color: #856404;
+          padding: 0.75rem 1rem;
+          border-radius: 6px;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .error-icon {
+          color: #dc3545;
+        }
+
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+          display: block;
+          font-weight: 600;
+          color: #2c3e50;
+          margin-bottom: 0.5rem;
+        }
+
+        .required {
+          color: #dc3545;
+        }
+
+        .optional {
+          color: #6c757d;
+          font-weight: normal;
+        }
+
+        .payment-mode-options {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.75rem;
+        }
+
+        .payment-mode-btn {
+          border: 2px solid #e9ecef;
+          background: white;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          transition: all 0.2s;
+        }
+
+        .payment-mode-btn:hover {
+          border-color: #28a745;
+          background: #f8fff9;
+        }
+
+        .payment-mode-btn.selected {
+          border-color: #28a745;
+          background: #d4edda;
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+
+        .mode-icon {
+          font-size: 1.5rem;
+        }
+
+        .mode-label {
+          font-weight: 600;
+          color: #2c3e50;
+        }
+
+        .form-input,
+        .form-textarea {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #ced4da;
+          border-radius: 6px;
+          font-size: 1rem;
+          transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+          outline: none;
+          border-color: #28a745;
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+
+        .form-textarea {
+          resize: vertical;
+          font-family: inherit;
+        }
+
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 1.5rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid #e9ecef;
+        }
+
+        .spin-icon {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .payment-mode-options {
+            grid-template-columns: 1fr;
+          }
+
+          .mark-paid-modal {
+            margin: 1rem;
+          }
+
+          .modal-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+          }
+
+          .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+MarkPaidModal.propTypes = {
+  installment: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    amount: PropTypes.number.isRequired,
+  }).isRequired,
+  studentName: PropTypes.string.isRequired,
+  studentId: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSuccess: PropTypes.func.isRequired,
+};
+
 /* ---- Loading Display Component ---- */
 function LoadingDisplay() {
   return (
@@ -606,6 +1110,10 @@ export default function ViewApproveStudent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+
+  // 🏦 OFFLINE PAYMENT: Mark as Paid modal state
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] = useState(null);
 
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
@@ -643,6 +1151,50 @@ export default function ViewApproveStudent() {
       fetchStudent();
     }
   }, [fetchStudent, user]);
+
+  /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
+  // Open Mark Paid modal
+  const handleMarkPaid = useCallback((installment) => {
+    setSelectedInstallment(installment);
+    setShowMarkPaidModal(true);
+  }, []);
+
+  // Submit offline payment
+  const handleMarkPaidSubmit = useCallback(
+    async (paymentData) => {
+      try {
+        const response = await api.post(
+          "/admin/payments/mark-paid",
+          paymentData,
+        );
+
+        if (response.data.success) {
+          toast.success(response.data.message, {
+            position: "top-right",
+            autoClose: 4000,
+          });
+
+          // Close modal
+          setShowMarkPaidModal(false);
+          setSelectedInstallment(null);
+
+          // Refresh student data to show updated payment status
+          await fetchStudent();
+        }
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to mark installment as paid";
+        throw new Error(errorMessage);
+      }
+    },
+    [fetchStudent],
+  );
+
+  // Close modal
+  const handleMarkPaidClose = useCallback(() => {
+    setShowMarkPaidModal(false);
+    setSelectedInstallment(null);
+  }, []);
 
   /* ================= SECURITY CHECK ================= */
   if (!user) return <Navigate to="/login" replace />;
@@ -1226,7 +1778,11 @@ export default function ViewApproveStudent() {
                 : "Installments"}
             </span>
             <div className="erp-card-body">
-              <InstallmentTable installments={feeData?.installments || []} />
+              <InstallmentTable
+                installments={feeData?.installments || []}
+                studentId={student._id}
+                onMarkPaid={handleMarkPaid}
+              />
             </div>
           </InfoCard>
 
@@ -1741,10 +2297,64 @@ export default function ViewApproveStudent() {
           padding: 1rem 1.75rem;
           text-align: left;
           font-weight: 700;
-          color: var(--erp-primary-light);
-          font-size: 0.95rem;
+          color: var(--erp-primary);
+          font-size: 0.85rem;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+        }
+
+        .erp-installments-table tbody tr {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          transition: all 0.2s ease;
+        }
+
+        .erp-installments-table tbody tr:last-child {
+          border-bottom: none;
+        }
+
+        .erp-installments-table tbody tr:hover {
+          background: rgba(61, 181, 230, 0.05);
+        }
+
+        .erp-installments-table td {
+          padding: 1rem 1.75rem;
+          color: var(--erp-text);
+        }
+
+        /* 🏦 Mark Paid Button */
+        .mark-paid-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+        }
+
+        .mark-paid-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .mark-paid-btn:active {
+          transform: translateY(0);
+        }
+
+        .mark-paid-btn .btn-icon {
+          font-size: 1rem;
+        }
+
+        .no-action-text {
+          color: #6c757d;
+          font-size: 0.9rem;
+          font-style: italic;
         }
 
         .erp-installments-table tbody tr {
@@ -2210,6 +2820,17 @@ export default function ViewApproveStudent() {
           }
         }
       `}</style>
+
+      {/* 🏦 OFFLINE PAYMENT: Mark as Paid Modal */}
+      {showMarkPaidModal && selectedInstallment && (
+        <MarkPaidModal
+          installment={selectedInstallment}
+          studentName={student.fullName}
+          studentId={student._id}
+          onClose={handleMarkPaidClose}
+          onSuccess={handleMarkPaidSubmit}
+        />
+      )}
     </div>
   );
 }

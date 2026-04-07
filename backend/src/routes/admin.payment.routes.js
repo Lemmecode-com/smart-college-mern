@@ -9,6 +9,7 @@ const {
   getCollegePaymentReport,
   getPaymentOverdueStats,
   triggerPaymentReminders,
+  markInstallmentAsPaid,
 } = require("../controllers/admin.payment.controller");
 
 const {
@@ -90,6 +91,15 @@ router.get(
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   getAdminReceipt,
+);
+
+// 🏦 ADMIN: Mark installment as PAID for offline payments (Cash/Cheque/DD)
+router.post(
+  "/mark-paid",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  markInstallmentAsPaid,
 );
 
 module.exports = router;
