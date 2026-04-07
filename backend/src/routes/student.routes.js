@@ -25,6 +25,7 @@ const {
   getStudentsForTeacher,
   moveToAlumni,
   getAlumni,
+  getDeactivatedStudents,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -183,6 +184,15 @@ router.get(
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
   getAlumni,
+);
+
+// 🚫 ADMIN: Get deactivated students (for reactivation)
+router.get(
+  "/deactivated",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getDeactivatedStudents,
 );
 
 module.exports = router;
