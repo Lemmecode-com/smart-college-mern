@@ -1,106 +1,91 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "react-toastify";
-import api from "../../../../api/axios";
-import Loading from "../../../../components/Loading";
-import ApiError from "../../../../components/ApiError";
-import ConfirmModal from "../../../../components/ConfirmModal";
-import Pagination from "../../../../components/Pagination";
-import Breadcrumb from "../../../../components/Breadcrumb";
-import NotificationCard from "../../../../components/NotificationCard";
+import api from "../api/axios";
+import Loading from "../components/Loading";
+import ApiError from "../components/ApiError";
+import ConfirmModal from "../components/ConfirmModal";
+import Pagination from "../components/Pagination";
+import Breadcrumb from "../components/Breadcrumb";
+import NotificationCard from "../components/NotificationCard";
 import {
   FaBell,
   FaUserTie,
   FaChalkboardTeacher,
+  FaUserGraduate,
   FaClock,
   FaTrash,
   FaEdit,
   FaSyncAlt,
-  FaCheckCircle,
-  FaTimesCircle,
+  FaExclamationTriangle,
   FaArrowLeft,
   FaInfoCircle,
-  FaExclamationTriangle,
+  FaSearch,
+  FaFilter,
   FaGraduationCap,
   FaCalendarAlt,
   FaMoneyBillWave,
   FaUserCheck,
   FaBullhorn,
   FaClipboardList,
-  FaStar,
   FaEye,
-  FaSearch,
-  FaFilter,
+  FaStar,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ================= CONFIGURATION ================= */
-const CONFIG = {
-  ITEMS_PER_PAGE: 9,
-  AUTO_REFRESH_INTERVAL: 30000, // 30 seconds
-  DATE_OPTIONS: {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+/* ================= ROLE-BASED CONFIGURATION ================= */
+const ROLE_CONFIG = {
+  "college-admin": {
+    apiEndpoint: "/notifications/admin/read",
+    deleteEndpoint: "/notifications/delete-note/",
+    primaryNotesKey: "myNotifications",
+    secondaryNotesKey: "staffNotifications",
+    primaryLabel: "My Notifications",
+    secondaryLabel: "Staff Notifications",
+    primaryIcon: FaUserTie,
+    secondaryIcon: FaUserGraduate,
+    createRoute: "/notification/create",
+    editRoute: "/notification/edit/",
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/dashboard",
+    canCreate: true,
+    showStats: false,
   },
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
+  teacher: {
+    apiEndpoint: "/notifications/teacher/read",
+    deleteEndpoint: "/notifications/delete-note/",
+    primaryNotesKey: "myNotifications",
+    secondaryNotesKey: "adminNotifications",
+    primaryLabel: "My Notifications",
+    secondaryLabel: "Admin Notifications",
+    primaryIcon: FaChalkboardTeacher,
+    secondaryIcon: FaUserTie,
+    createRoute: "/teacher/notifications/create",
+    editRoute: "/teacher/notifications/edit/",
+    viewRoute: "/teacher/notifications/view/",
+    dashboardRoute: "/teacher/dashboard",
+    canCreate: true,
+    showStats: true,
   },
-};
-
-// Brand Color Palette
-const BRAND_COLORS = {
-  primary: {
-    main: "#1a4b6d",
-    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
-  },
-  success: {
-    main: "#28a745",
-    gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)",
-  },
-  info: {
-    main: "#17a2b8",
-    gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)",
-  },
-  warning: {
-    main: "#ffc107",
-    gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
-  },
-  danger: {
-    main: "#dc3545",
-    gradient: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
-  },
-  secondary: {
-    main: "#6c757d",
-    gradient: "linear-gradient(135deg, #6c757d 0%, #545b62 100%)",
-  },
-  notificationTypes: {
-    GENERAL: { icon: FaInfoCircle, color: "#3b82f6", bg: "#dbeafe" },
-    ACADEMIC: { icon: FaGraduationCap, color: "#8b5cf6", bg: "#ede9fe" },
-    EXAM: { icon: FaCalendarAlt, color: "#ec4899", bg: "#fce7f3" },
-    FEE: { icon: FaMoneyBillWave, color: "#f59e0b", bg: "#ffedd5" },
-    ATTENDANCE: { icon: FaUserCheck, color: "#10b981", bg: "#dcfce7" },
-    EVENT: { icon: FaBullhorn, color: "#ef4444", bg: "#fee2e2" },
-    ASSIGNMENT: { icon: FaClipboardList, color: "#6366f1", bg: "#eef2ff" },
-    URGENT: { icon: FaExclamationTriangle, color: "#dc2626", bg: "#fee2e2" },
-  },
-  priorities: {
-    LOW: { color: "#64748b", bg: "#f1f5f9", icon: FaStar },
-    NORMAL: { color: "#1e40af", bg: "#dbeafe", icon: FaInfoCircle },
-    HIGH: { color: "#b91c1c", bg: "#fee2e2", icon: FaClock },
-    URGENT: { color: "#dc2626", bg: "#fecaca", icon: FaExclamationTriangle },
+  student: {
+    apiEndpoint: "/notifications/student/read",
+    deleteEndpoint: null, // Students can't delete
+    primaryNotesKey: "adminNotifications",
+    secondaryNotesKey: "teacherNotifications",
+    primaryLabel: "From College Admin",
+    secondaryLabel: "From Teachers",
+    primaryIcon: FaUserTie,
+    secondaryIcon: FaChalkboardTeacher,
+    createRoute: null,
+    editRoute: null,
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/student/dashboard",
+    canCreate: false,
+    showStats: false,
   },
 };
 
-// Animation Variants
+/* ================= ANIMATION VARIANTS ================= */
 const fadeInVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({
@@ -127,27 +112,66 @@ const pulseVariants = {
   },
 };
 
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" },
+/* ================= BRAND COLORS ================= */
+const BRAND_COLORS = {
+  primary: {
+    main: "#1a4b6d",
+    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+  },
+  success: { main: "#28a745" },
+  info: { main: "#17a2b8" },
+  warning: { main: "#ffc107" },
+  danger: { main: "#dc3545" },
+  notificationTypes: {
+    GENERAL: { icon: FaInfoCircle, color: "#3b82f6", bg: "#dbeafe" },
+    ACADEMIC: { icon: FaGraduationCap, color: "#8b5cf6", bg: "#ede9fe" },
+    EXAM: { icon: FaCalendarAlt, color: "#ec4899", bg: "#fce7f3" },
+    FEE: { icon: FaMoneyBillWave, color: "#f59e0b", bg: "#ffedd5" },
+    ATTENDANCE: { icon: FaUserCheck, color: "#10b981", bg: "#dcfce7" },
+    EVENT: { icon: FaBullhorn, color: "#ef4444", bg: "#fee2e2" },
+    ASSIGNMENT: { icon: FaClipboardList, color: "#6366f1", bg: "#eef2ff" },
+    URGENT: { icon: FaExclamationTriangle, color: "#dc2626", bg: "#fee2e2" },
+  },
+  priorities: {
+    LOW: { color: "#64748b", bg: "#f1f5f9", icon: FaStar },
+    NORMAL: { color: "#1e40af", bg: "#dbeafe", icon: FaInfoCircle },
+    HIGH: { color: "#b91c1c", bg: "#fee2e2", icon: FaClock },
+    URGENT: { color: "#dc2626", bg: "#fecaca", icon: FaExclamationTriangle },
   },
 };
 
-export default function Notifications() {
-  const [myNotes, setMyNotes] = useState([]);
-  const [adminNotes, setAdminNotes] = useState([]);
+/* ================= CONFIGURATION ================= */
+const CONFIG = {
+  ITEMS_PER_PAGE: 9,
+  AUTO_REFRESH_INTERVAL: 30000,
+  TOAST: {
+    position: "top-right",
+    autoClose: 3000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "colored",
+  },
+};
+
+/* ================= MAIN COMPONENT ================= */
+export default function NotificationListPage({ role = "college-admin" }) {
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG["college-admin"];
+  const navigate = useNavigate();
+
+  const [primaryNotes, setPrimaryNotes] = useState([]);
+  const [secondaryNotes, setSecondaryNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const navigate = useNavigate();
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [activeTab, setActiveTab] = useState("all"); // 'all', 'my', 'admin'
+  const [activeTab, setActiveTab] = useState("all");
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -160,47 +184,50 @@ export default function Notifications() {
   });
 
   /* ================= FETCH NOTIFICATIONS ================= */
-  const fetchNotes = useCallback(async (showRefreshToast = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get("/notifications/teacher/read");
+  const fetchNotes = useCallback(
+    async (showRefreshToast = false) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await api.get(config.apiEndpoint);
 
-      // Mark myNotifications with isOwner = true
-      const myNotesData = (res.data.myNotifications || res.data || []).map(
-        (note) => ({
+        const primaryData = (
+          res.data[config.primaryNotesKey] ||
+          res.data ||
+          []
+        ).map((note) => ({
           ...note,
-          isOwner: true,
-        }),
-      );
+          isOwner: config.primaryNotesKey === "myNotifications",
+        }));
 
-      // Mark adminNotifications with isOwner = false
-      const adminNotesData = (res.data.adminNotifications || []).map(
-        (note) => ({
-          ...note,
-          isOwner: false,
-        }),
-      );
+        const secondaryData = (res.data[config.secondaryNotesKey] || []).map(
+          (note) => ({
+            ...note,
+            isOwner: false,
+          }),
+        );
 
-      setMyNotes(myNotesData);
-      setAdminNotes(adminNotesData);
+        setPrimaryNotes(primaryData);
+        setSecondaryNotes(secondaryData);
 
-      if (showRefreshToast) {
-        toast.success("Notifications refreshed!", CONFIG.TOAST);
+        if (showRefreshToast) {
+          toast.success("Notifications refreshed!", CONFIG.TOAST);
+        }
+        setRetryCount(0);
+      } catch (err) {
+        const errorMsg =
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to load notifications";
+        const statusCode = err.response?.status;
+        setError({ message: errorMsg, statusCode });
+        toast.error("Failed to load notifications", CONFIG.TOAST);
+      } finally {
+        setLoading(false);
       }
-      setRetryCount(0);
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to load notifications";
-      const statusCode = err.response?.status;
-      setError({ message: errorMsg, statusCode });
-      toast.error("Failed to load notifications", CONFIG.TOAST);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [config],
+  );
 
   // Handle retry action
   const handleRetry = async () => {
@@ -229,6 +256,7 @@ export default function Notifications() {
 
   /* ================= DELETE HANDLER ================= */
   const handleDeleteClick = (id, title) => {
+    if (!config.deleteEndpoint) return;
     setConfirmModal({
       isOpen: true,
       noteId: id,
@@ -237,17 +265,16 @@ export default function Notifications() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!confirmModal.noteId) return;
+    if (!confirmModal.noteId || !config.deleteEndpoint) return;
 
     try {
       setDeletingId(confirmModal.noteId);
-      await api.delete(`/notifications/delete-note/${confirmModal.noteId}`);
+      await api.delete(`${config.deleteEndpoint}${confirmModal.noteId}`);
 
-      // Update state optimistically
-      setMyNotes((prev) =>
+      setPrimaryNotes((prev) =>
         prev.filter((note) => note._id !== confirmModal.noteId),
       );
-      setAdminNotes((prev) =>
+      setSecondaryNotes((prev) =>
         prev.filter((note) => note._id !== confirmModal.noteId),
       );
 
@@ -272,8 +299,8 @@ export default function Notifications() {
     (notes) => {
       return notes.filter((note) => {
         // Tab filter
-        if (activeTab === "my" && !note.isOwner) return false;
-        if (activeTab === "admin" && note.isOwner) return false;
+        if (activeTab === "primary" && !note.isOwner) return false;
+        if (activeTab === "secondary" && note.isOwner) return false;
 
         // Search filter
         const searchLower = searchQuery.toLowerCase();
@@ -293,27 +320,26 @@ export default function Notifications() {
     [activeTab, searchQuery, typeFilter],
   );
 
-  const filteredMyNotes = useMemo(
-    () => filterNotifications(myNotes),
-    [myNotes, filterNotifications],
+  const filteredPrimaryNotes = useMemo(
+    () => filterNotifications(primaryNotes),
+    [primaryNotes, filterNotifications],
   );
 
-  const filteredAdminNotes = useMemo(
-    () => filterNotifications(adminNotes),
-    [adminNotes, filterNotifications],
+  const filteredSecondaryNotes = useMemo(
+    () => filterNotifications(secondaryNotes),
+    [secondaryNotes, filterNotifications],
   );
 
   /* ================= PAGINATION ================= */
   const getUniqueNotes = useMemo(() => {
-    // Combine and deduplicate notes for pagination
-    const allNotes = [...filteredMyNotes, ...filteredAdminNotes];
+    const allNotes = [...filteredPrimaryNotes, ...filteredSecondaryNotes];
     const uniqueIds = new Set();
     return allNotes.filter((note) => {
       if (uniqueIds.has(note._id)) return false;
       uniqueIds.add(note._id);
       return true;
     });
-  }, [filteredMyNotes, filteredAdminNotes]);
+  }, [filteredPrimaryNotes, filteredSecondaryNotes]);
 
   const paginatedNotes = useMemo(() => {
     const startIndex = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
@@ -330,23 +356,27 @@ export default function Notifications() {
 
   /* ================= GET UNIQUE TYPES FOR FILTER ================= */
   const notificationTypes = useMemo(() => {
-    const allNotes = [...myNotes, ...adminNotes];
+    const allNotes = [...primaryNotes, ...secondaryNotes];
     const types = new Set(allNotes.map((note) => note.type).filter(Boolean));
     return Array.from(types);
-  }, [myNotes, adminNotes]);
+  }, [primaryNotes, secondaryNotes]);
 
   /* ================= CALCULATE STATS ================= */
-  const totalMyNotes = myNotes.length;
-  const totalAdminNotes = adminNotes.length;
-  const unreadMyNotes = myNotes.filter((n) => !n.read).length;
-  const unreadAdminNotes = adminNotes.filter((n) => !n.read).length;
-  const urgentNotes = [...myNotes, ...adminNotes].filter(
-    (n) => n.priority === "URGENT",
-  ).length;
+  const stats = useMemo(() => {
+    const allNotes = [...primaryNotes, ...secondaryNotes];
+    return {
+      totalPrimary: primaryNotes.length,
+      totalSecondary: secondaryNotes.length,
+      unreadPrimary: primaryNotes.filter((n) => !n.read).length,
+      unreadSecondary: secondaryNotes.filter((n) => !n.read).length,
+      urgent: allNotes.filter((n) => n.priority === "URGENT").length,
+      total: allNotes.length,
+    };
+  }, [primaryNotes, secondaryNotes]);
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Notifications..." />;
+  if (loading && retryCount === 0) {
+    return <Loading fullScreen size="lg" text="Loading notifications..." />;
   }
 
   /* ================= ERROR STATE ================= */
@@ -367,6 +397,10 @@ export default function Notifications() {
     );
   }
 
+  /* ================= MAIN RENDER ================= */
+  const PrimaryIcon = config.primaryIcon;
+  const SecondaryIcon = config.secondaryIcon;
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -383,11 +417,11 @@ export default function Notifications() {
           paddingRight: "1rem",
         }}
       >
-        <div style={{ maxWidth: "100%", margin: "0 auto" }}>
+        <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
-              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Dashboard", path: config.dashboardRoute },
               { label: "Notifications" },
             ]}
           />
@@ -404,9 +438,6 @@ export default function Notifications() {
               borderRadius: "1.5rem",
               overflow: "hidden",
               boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.5rem",
             }}
           >
             <div
@@ -461,36 +492,42 @@ export default function Notifications() {
                       fontSize: "1.1rem",
                     }}
                   >
-                    Your announcements and college updates
+                    {role === "student"
+                      ? "Important updates from college & teachers"
+                      : role === "teacher"
+                        ? "Your announcements and college updates"
+                        : "Manage and view all announcements"}
                   </p>
                 </div>
               </div>
               <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                {config.canCreate && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => navigate(config.createRoute)}
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.2)",
+                      color: "white",
+                      border: "2px solid rgba(255, 255, 255, 0.4)",
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "12px",
+                      fontSize: "0.95rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    <FaBell /> Create New
+                  </motion.button>
+                )}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/teacher/notifications/create")}
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
-                    color: "white",
-                    border: "2px solid rgba(255, 255, 255, 0.4)",
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "12px",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  <FaBell /> Create New
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={fetchNotes}
+                  onClick={() => fetchNotes(true)}
                   disabled={loading}
                   style={{
                     backgroundColor: loading
@@ -515,65 +552,67 @@ export default function Notifications() {
               </div>
             </div>
 
-            {/* Stats Bar */}
-            <div
-              style={{
-                padding: "1rem 2rem",
-                backgroundColor: "#f8fafc",
-                borderTop: "1px solid #e2e8f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "1.5rem",
-              }}
-            >
+            {/* Stats Bar (conditionally rendered) */}
+            {config.showStats && (
               <div
                 style={{
+                  padding: "1rem 2rem",
+                  backgroundColor: "#f8fafc",
+                  borderTop: "1px solid #e2e8f0",
                   display: "flex",
                   alignItems: "center",
-                  gap: "2rem",
+                  justifyContent: "space-between",
                   flexWrap: "wrap",
+                  gap: "1.5rem",
                 }}
               >
-                <StatItem
-                  icon={<FaChalkboardTeacher />}
-                  label="My Notifications"
-                  value={totalMyNotes}
-                  unread={unreadMyNotes}
-                  color={BRAND_COLORS.primary.main}
-                />
-                <StatItem
-                  icon={<FaUserTie />}
-                  label="Admin Notifications"
-                  value={totalAdminNotes}
-                  unread={unreadAdminNotes}
-                  color={BRAND_COLORS.info.main}
-                />
-                <StatItem
-                  icon={<FaExclamationTriangle />}
-                  label="Urgent Alerts"
-                  value={urgentNotes}
-                  color={BRAND_COLORS.danger.main}
-                />
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "2rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <StatItem
+                    icon={<PrimaryIcon />}
+                    label={config.primaryLabel}
+                    value={stats.totalPrimary}
+                    unread={stats.unreadPrimary}
+                    color={BRAND_COLORS.primary.main}
+                  />
+                  <StatItem
+                    icon={<SecondaryIcon />}
+                    label={config.secondaryLabel}
+                    value={stats.totalSecondary}
+                    unread={stats.unreadSecondary}
+                    color={BRAND_COLORS.info.main}
+                  />
+                  <StatItem
+                    icon={<FaExclamationTriangle />}
+                    label="Urgent Alerts"
+                    value={stats.urgent}
+                    color={BRAND_COLORS.danger.main}
+                  />
+                </div>
+                <div
+                  style={{
+                    padding: "0.5rem 1.25rem",
+                    borderRadius: "20px",
+                    backgroundColor: "#dbeafe",
+                    color: BRAND_COLORS.primary.main,
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <FaInfoCircle size={14} />
+                  Total: {stats.total} notifications
+                </div>
               </div>
-              <div
-                style={{
-                  padding: "0.5rem 1.25rem",
-                  borderRadius: "20px",
-                  backgroundColor: "#dbeafe",
-                  color: BRAND_COLORS.primary.main,
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <FaInfoCircle size={14} />
-                Total: {totalMyNotes + totalAdminNotes} notifications
-              </div>
-            </div>
+            )}
           </motion.div>
 
           {/* ================= SEARCH & FILTER BAR ================= */}
@@ -687,15 +726,17 @@ export default function Notifications() {
                 All
               </button>
               <button
-                className={`tab-btn ${activeTab === "my" ? "active" : ""}`}
-                onClick={() => setActiveTab("my")}
+                className={`tab-btn ${activeTab === "primary" ? "active" : ""}`}
+                onClick={() => setActiveTab("primary")}
                 style={{
                   padding: "0.625rem 1.25rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   backgroundColor:
-                    activeTab === "my" ? BRAND_COLORS.primary.main : "white",
-                  color: activeTab === "my" ? "white" : "#64748b",
+                    activeTab === "primary"
+                      ? BRAND_COLORS.primary.main
+                      : "white",
+                  color: activeTab === "primary" ? "white" : "#64748b",
                   fontWeight: 600,
                   fontSize: "0.9rem",
                   cursor: "pointer",
@@ -705,18 +746,20 @@ export default function Notifications() {
                   gap: "0.375rem",
                 }}
               >
-                <FaChalkboardTeacher className="me-1" /> My Notifications
+                <PrimaryIcon className="me-1" /> {config.primaryLabel}
               </button>
               <button
-                className={`tab-btn ${activeTab === "admin" ? "active" : ""}`}
-                onClick={() => setActiveTab("admin")}
+                className={`tab-btn ${activeTab === "secondary" ? "active" : ""}`}
+                onClick={() => setActiveTab("secondary")}
                 style={{
                   padding: "0.625rem 1.25rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   backgroundColor:
-                    activeTab === "admin" ? BRAND_COLORS.primary.main : "white",
-                  color: activeTab === "admin" ? "white" : "#64748b",
+                    activeTab === "secondary"
+                      ? BRAND_COLORS.primary.main
+                      : "white",
+                  color: activeTab === "secondary" ? "white" : "#64748b",
                   fontWeight: 600,
                   fontSize: "0.9rem",
                   cursor: "pointer",
@@ -726,7 +769,7 @@ export default function Notifications() {
                   gap: "0.375rem",
                 }}
               >
-                <FaUserTie className="me-1" /> Admin Notifications
+                <SecondaryIcon className="me-1" /> {config.secondaryLabel}
               </button>
             </div>
           </div>
@@ -815,15 +858,27 @@ export default function Notifications() {
                 )}
               </div>
             ) : (
-              paginatedNotes.map((note) => (
-                <NotificationCard
+              paginatedNotes.map((note, index) => (
+                <motion.div
                   key={note._id}
-                  note={note}
-                  isOwner={note.isOwner}
-                  onEdit={(id) => navigate(`/notifications/edit/${id}`)}
-                  onDelete={(id, title) => handleDeleteClick(id, title)}
-                  deletingId={deletingId}
-                />
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  variants={fadeInVariants}
+                >
+                  <NotificationCard
+                    note={note}
+                    isOwner={note.isOwner}
+                    onEdit={
+                      config.editRoute
+                        ? (id) => navigate(`${config.editRoute}${id}`)
+                        : null
+                    }
+                    onDelete={config.deleteEndpoint ? handleDeleteClick : null}
+                    deletingId={deletingId}
+                    showViewButton={true}
+                  />
+                </motion.div>
               ))
             )}
           </div>
@@ -848,23 +903,25 @@ export default function Notifications() {
         </div>
 
         {/* ================= CONFIRM MODAL ================= */}
-        <ConfirmModal
-          isOpen={confirmModal.isOpen}
-          onClose={handleDeleteCancel}
-          onConfirm={handleDeleteConfirm}
-          title="Delete Notification"
-          message={`Are you sure you want to delete "${confirmModal.noteTitle}"? This action cannot be undone.`}
-          type="danger"
-          confirmText="Delete"
-          cancelText="Cancel"
-          isLoading={!!deletingId}
-        />
+        {config.deleteEndpoint && (
+          <ConfirmModal
+            isOpen={confirmModal.isOpen}
+            onClose={handleDeleteCancel}
+            onConfirm={handleDeleteConfirm}
+            title="Delete Notification"
+            message={`Are you sure you want to delete "${confirmModal.noteTitle}"? This action cannot be undone.`}
+            type="danger"
+            confirmText="Delete"
+            cancelText="Cancel"
+            isLoading={!!deletingId}
+          />
+        )}
       </motion.div>
     </AnimatePresence>
   );
 }
 
-/* ================= STAT ITEM ================= */
+/* ================= STAT ITEM COMPONENT ================= */
 function StatItem({ icon, label, value, unread = 0, color }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
