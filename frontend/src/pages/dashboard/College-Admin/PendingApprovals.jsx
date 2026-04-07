@@ -5,6 +5,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ConfirmModal from "../../../components/ConfirmModal";
+import { toast } from "react-toastify";
 
 import {
   FaSearch,
@@ -18,7 +20,11 @@ import {
   FaCheck,
   FaTimes,
   FaEye,
-  FaUsers
+  FaUsers,
+  FaCheckDouble,
+  FaSpinner,
+  FaTimesCircle,
+  FaCheckCircle,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 5;
@@ -36,11 +42,16 @@ export default function PendingApprovals() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [bulkApproving, setBulkApproving] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showBulkApproveModal, setShowBulkApproveModal] = useState(false);
+  const [pendingApproveId, setPendingApproveId] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
     byCourse: {},
-    byYear: {}
+    byYear: {},
   });
 
   /* ================= SECURITY ================= */
@@ -64,12 +75,14 @@ export default function PendingApprovals() {
       }
 
       // Filter only PENDING status students
-      const pendingStudents = data.filter(s => s.status === "PENDING");
+      const pendingStudents = data.filter((s) => s.status === "PENDING");
       setStudents(pendingStudents);
       calculateStats(pendingStudents);
     } catch (err) {
       console.error("Pending students fetch error:", err);
-      setError(err.response?.data?.message || "Failed to load pending students.");
+      setError(
+        err.response?.data?.message || "Failed to load pending students.",
+      );
     } finally {
       setLoading(false);
     }
@@ -81,7 +94,7 @@ export default function PendingApprovals() {
     const byCourse = {};
     const byYear = {};
 
-    studentList.forEach(student => {
+    studentList.forEach((student) => {
       const dept = student.department_id?.name || "Unknown";
       byDepartment[dept] = (byDepartment[dept] || 0) + 1;
 
@@ -96,8 +109,56 @@ export default function PendingApprovals() {
       total: studentList.length,
       byDepartment,
       byCourse,
-      byYear
+      byYear,
     });
+  };
+
+  /* ================= SELECTION HANDLERS ================= */
+  const toggleStudent = (id) => {
+    const next = new Set(selectedStudents);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedStudents(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.size === paginatedStudents.length) {
+      setSelectedStudents(new Set());
+    } else {
+      setSelectedStudents(new Set(paginatedStudents.map((s) => s._id)));
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedStudents.size === 0) {
+      toast.warning("No students selected");
+      return;
+    }
+    setShowBulkApproveModal(true);
+  };
+
+  const executeBulkApprove = async () => {
+    setBulkApproving(true);
+    try {
+      const { data } = await api.post("/students/bulk-approve", {
+        studentIds: [...selectedStudents],
+      });
+      toast.success(`${data.approved.length} approved`);
+      if (data.failed.length > 0) {
+        toast.warning(
+          `${data.failed.length} failed: ` +
+            data.failed
+              .map((f) => `${f.fullName || f.studentId} — ${f.reason}`)
+              .join("; "),
+          { autoClose: 12000 },
+        );
+      }
+      setSelectedStudents(new Set());
+      fetchPendingStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Bulk approve failed");
+    } finally {
+      setBulkApproving(false);
+    }
   };
 
   useEffect(() => {
@@ -105,20 +166,33 @@ export default function PendingApprovals() {
   }, []);
 
   /* ================= APPROVE HANDLER ================= */
-  const handleApprove = async (studentId) => {
-    if (!confirm("Are you sure you want to approve this student? An approval email will be sent to them.")) {
-      return;
-    }
+  const handleApprove = (studentId) => {
+    setPendingApproveId(studentId);
+    setShowApproveModal(true);
+  };
 
-    setProcessingId(studentId);
+  const executeApprove = async () => {
+    if (!pendingApproveId) return;
+
+    setProcessingId(pendingApproveId);
     try {
-      await api.put(`/students/${studentId}/approve`);
-      alert("✅ Student approved successfully! Approval email sent to student.");
-      fetchPendingStudents(); // Refresh list
+      await api.put(`/students/${pendingApproveId}/approve`);
+      toast.success(
+        "✅ Student approved successfully! Approval email sent to student.",
+        {
+          position: "top-right",
+          autoClose: 3000,
+        },
+      );
+      fetchPendingStudents();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to approve student");
+      toast.error(err.response?.data?.message || "Failed to approve student", {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setProcessingId(null);
+      setPendingApproveId(null);
     }
   };
 
@@ -131,7 +205,7 @@ export default function PendingApprovals() {
 
   const handleRejectSubmit = async () => {
     if (!rejectReason.trim()) {
-      alert("Please provide a rejection reason");
+      toast.warning("Please provide a rejection reason");
       return;
     }
 
@@ -139,13 +213,19 @@ export default function PendingApprovals() {
     try {
       await api.put(`/students/${selectedStudentId}/reject`, {
         reason: rejectReason,
-        allowReapply: true
+        allowReapply: true,
       });
-      alert("Student rejected. Notification email sent to student.");
+      toast.success("Student rejected. Notification email sent to student.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       setShowRejectModal(false);
       fetchPendingStudents();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to reject student");
+      toast.error(err.response?.data?.message || "Failed to reject student", {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setProcessingId(null);
       setSelectedStudentId(null);
@@ -155,9 +235,9 @@ export default function PendingApprovals() {
   /* ================= SEARCH ================= */
   const filteredStudents = useMemo(() => {
     return students.filter((s) =>
-      `${s.fullName} ${s.email} ${s.department_id?.name || ''} ${s.course_id?.name || ''} ${s.admissionYear || ''}`
+      `${s.fullName} ${s.email} ${s.department_id?.name || ""} ${s.course_id?.name || ""} ${s.admissionYear || ""}`
         .toLowerCase()
-        .includes(search.toLowerCase())
+        .includes(search.toLowerCase()),
     );
   }, [students, search]);
 
@@ -165,7 +245,7 @@ export default function PendingApprovals() {
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
+    page * PAGE_SIZE,
   );
 
   /* ================= LOADING STATE ================= */
@@ -180,7 +260,7 @@ export default function PendingApprovals() {
         items={[
           { label: "Dashboard", path: "/dashboard" },
           { label: "Students", path: "/students" },
-          { label: "Pending Approvals" }
+          { label: "Pending Approvals" },
         ]}
       />
 
@@ -202,7 +282,12 @@ export default function PendingApprovals() {
       {/* STATS CARDS */}
       <div className="stats-grid animate-fade-in">
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%)",
+            }}
+          >
             <FaClock />
           </div>
           <div className="stat-card-content">
@@ -211,21 +296,35 @@ export default function PendingApprovals() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            }}
+          >
             <FaBuilding />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Departments</div>
-            <div className="stat-card-value">{Object.keys(stats.byDepartment).length}</div>
+            <div className="stat-card-value">
+              {Object.keys(stats.byDepartment).length}
+            </div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon" style={{background: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)'}}>
+          <div
+            className="stat-card-icon"
+            style={{
+              background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+            }}
+          >
             <FaBookOpen />
           </div>
           <div className="stat-card-content">
             <div className="stat-card-label">Courses</div>
-            <div className="stat-card-value">{Object.keys(stats.byCourse).length}</div>
+            <div className="stat-card-value">
+              {Object.keys(stats.byCourse).length}
+            </div>
           </div>
         </div>
       </div>
@@ -251,6 +350,43 @@ export default function PendingApprovals() {
         </div>
       </div>
 
+      {/* BULK ACTION BAR */}
+      {filteredStudents.length > 0 && (
+        <div className="bulk-action-bar">
+          <div className="bulk-action-content">
+            <label className="select-all-label">
+              <input
+                type="checkbox"
+                checked={
+                  paginatedStudents.length > 0 &&
+                  selectedStudents.size === paginatedStudents.length
+                }
+                onChange={toggleSelectAll}
+                className="select-all-checkbox"
+              />
+              Select All ({paginatedStudents.length})
+            </label>
+            {selectedStudents.size > 0 && (
+              <button
+                className="btn btn-bulk-approve"
+                onClick={handleBulkApprove}
+                disabled={bulkApproving}
+              >
+                {bulkApproving ? (
+                  <>
+                    <FaSpinner className="spin" /> Approving…
+                  </>
+                ) : (
+                  <>
+                    <FaCheckDouble /> Approve Selected ({selectedStudents.size})
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* STUDENTS TABLE */}
       <div className="erp-card animate-fade-in">
         <div className="erp-card-header">
@@ -259,7 +395,8 @@ export default function PendingApprovals() {
             Awaiting Your Review
           </h3>
           <span className="record-count">
-            {filteredStudents.length} {filteredStudents.length === 1 ? "Student" : "Students"} Pending
+            {filteredStudents.length}{" "}
+            {filteredStudents.length === 1 ? "Student" : "Students"} Pending
           </span>
         </div>
 
@@ -281,6 +418,17 @@ export default function PendingApprovals() {
               <table className="erp-table">
                 <thead>
                   <tr>
+                    <th className="th-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedStudents.length > 0 &&
+                          selectedStudents.size === paginatedStudents.length
+                        }
+                        onChange={toggleSelectAll}
+                        className="row-checkbox"
+                      />
+                    </th>
                     <th className="th-student">
                       <FaGraduationCap className="header-icon" /> Student Name
                     </th>
@@ -298,11 +446,21 @@ export default function PendingApprovals() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedStudents.map((student, index) => (
+                  {paginatedStudents.map((student) => (
                     <tr key={student._id} className="table-row">
+                      <td className="cell-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.has(student._id)}
+                          onChange={() => toggleStudent(student._id)}
+                          className="row-checkbox"
+                        />
+                      </td>
                       <td className="cell-student">
                         <div className="student-info">
-                          <span className="student-name-cell">{student.fullName}</span>
+                          <span className="student-name-cell">
+                            {student.fullName}
+                          </span>
                           <span className="student-email">{student.email}</span>
                         </div>
                       </td>
@@ -331,9 +489,11 @@ export default function PendingApprovals() {
                       <td className="cell-actions">
                         <div className="action-buttons">
                           <button
-                            className="btn btn-action btn-view"
-                            onClick={() => navigate(`/college/registered/${student._id}`)}
-                            title="View Details"
+                            className="btn btn-action btn-view-student"
+                            onClick={() =>
+                              navigate(`/college/view-student/${student._id}`)
+                            }
+                            title="View Student Details"
                           >
                             <FaEye />
                             <span className="btn-text">View</span>
@@ -346,7 +506,9 @@ export default function PendingApprovals() {
                           >
                             <FaCheck />
                             <span className="btn-text">
-                              {processingId === student._id ? "Processing..." : "Approve"}
+                              {processingId === student._id
+                                ? "Processing..."
+                                : "Approve"}
                             </span>
                           </button>
                           <button
@@ -357,7 +519,9 @@ export default function PendingApprovals() {
                           >
                             <FaTimes />
                             <span className="btn-text">
-                              {processingId === student._id ? "Processing..." : "Reject"}
+                              {processingId === student._id
+                                ? "Processing..."
+                                : "Reject"}
                             </span>
                           </button>
                         </div>
@@ -382,9 +546,41 @@ export default function PendingApprovals() {
         </div>
       </div>
 
+      {/* CONFIRM APPROVE MODAL */}
+      <ConfirmModal
+        isOpen={showApproveModal}
+        onClose={() => {
+          setShowApproveModal(false);
+          setPendingApproveId(null);
+        }}
+        onConfirm={executeApprove}
+        title="Approve Student"
+        message="Are you sure you want to approve this student? An approval email will be sent to them."
+        type="success"
+        confirmText="Approve"
+        cancelText="Cancel"
+        isLoading={processingId === pendingApproveId}
+      />
+
+      {/* CONFIRM BULK APPROVE MODAL */}
+      <ConfirmModal
+        isOpen={showBulkApproveModal}
+        onClose={() => setShowBulkApproveModal(false)}
+        onConfirm={executeBulkApprove}
+        title="Bulk Approve Students"
+        message={`Are you sure you want to approve ${selectedStudents.size} student(s)? Approval emails will be sent to all selected students.`}
+        type="success"
+        confirmText={`Approve ${selectedStudents.size} Students`}
+        cancelText="Cancel"
+        isLoading={bulkApproving}
+      />
+
       {/* REJECT MODAL */}
       {showRejectModal && (
-        <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowRejectModal(false)}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
@@ -398,7 +594,8 @@ export default function PendingApprovals() {
             </div>
             <div className="modal-body">
               <p className="mb-3">
-                Please provide a reason for rejection. The student will receive this information via email.
+                Please provide a reason for rejection. The student will receive
+                this information via email.
               </p>
               <div className="form-group">
                 <label className="form-label">Rejection Reason *</label>
@@ -454,11 +651,11 @@ export default function PendingApprovals() {
         }
 
         .erp-page-header {
-          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 2rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
-          box-shadow: 0 8px 24px rgba(255, 152, 0, 0.3);
+          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.3);
           color: white;
           display: flex;
           justify-content: space-between;
@@ -510,7 +707,7 @@ export default function PendingApprovals() {
           display: flex;
           align-items: center;
           gap: 1.25rem;
-          border-left: 4px solid #FF9800;
+          border-left: 4px solid #1a4b6d;
         }
 
         .stat-card-icon {
@@ -567,11 +764,11 @@ export default function PendingApprovals() {
         }
 
         .erp-card-icon {
-          color: #FF9800;
+          color: #1a4b6d;
         }
 
         .record-count {
-          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           color: white;
           padding: 0.375rem 1rem;
           border-radius: 20px;
@@ -607,9 +804,9 @@ export default function PendingApprovals() {
         }
 
         .search-box input:focus {
-          border-color: #FF9800;
+          border-color: #1a4b6d;
           outline: none;
-          box-shadow: 0 0 0 0.25rem rgba(255, 152, 0, 0.1);
+          box-shadow: 0 0 0 0.25rem rgba(26, 75, 109, 0.1);
         }
 
         .table-container {
@@ -636,11 +833,11 @@ export default function PendingApprovals() {
 
         .header-icon {
           margin-right: 0.5rem;
-          color: #FF9800;
+          color: #3db5e6;
         }
 
         .erp-table tbody tr:hover {
-          background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         }
 
         .erp-table td {
@@ -685,12 +882,12 @@ export default function PendingApprovals() {
         }
 
         .badge-graduation-year {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
         }
 
         .badge-pending {
-          background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: white;
         }
 
@@ -733,23 +930,112 @@ export default function PendingApprovals() {
         }
 
         .btn-view {
-          background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
         }
 
         .btn-approve {
-          background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%);
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
           color: white;
         }
 
         .btn-reject {
-          background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
           color: white;
         }
 
         .btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Bulk Action Bar */
+        .bulk-action-bar {
+          background: white;
+          border-radius: 12px;
+          padding: 1rem 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+          border: 2px solid #e2e8f0;
+        }
+
+        .bulk-action-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .select-all-label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 600;
+          color: #0f3a4a;
+          cursor: pointer;
+          font-size: 0.95rem;
+        }
+
+        .select-all-checkbox {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #3db5e6;
+        }
+
+        .btn-bulk-approve {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: white;
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+          font-weight: 700;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+          transition: all 0.3s ease;
+        }
+
+        .btn-bulk-approve:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+        }
+
+        .btn-bulk-approve:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .th-checkbox,
+        .cell-checkbox {
+          width: 50px;
+          text-align: center;
+        }
+
+        .row-checkbox {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: #059669;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 768px) {
+          .bulk-action-content {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .btn-bulk-approve { justify-content: center; }
         }
 
         .erp-pagination {
@@ -845,8 +1131,8 @@ export default function PendingApprovals() {
         }
 
         .form-control:focus {
-          border-color: #FF9800;
-          box-shadow: 0 0 0 0.25rem rgba(255, 152, 0, 0.1);
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.1);
         }
       `}</style>
     </div>

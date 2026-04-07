@@ -216,9 +216,9 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
-            path: "/students",
-            icon: FaListOl,
-            label: "Pending Student List",
+            path: "/students/pending-approvals",
+            icon: FaClock,
+            label: "Pending Approvals",
             exact: true,
           },
           {
