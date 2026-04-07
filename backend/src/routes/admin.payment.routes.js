@@ -17,6 +17,8 @@ const {
   reconcilePayment,
 } = require("../cron/paymentReconciliation.cron");
 
+const { getAdminReceipt } = require("../controllers/admin.receipt.controller");
+
 // 🏛️ ADMIN: Payment report
 router.get(
   "/report",
@@ -80,6 +82,15 @@ router.post(
       next(error);
     }
   },
+);
+
+// 🧾 ADMIN: Get student payment receipt
+router.get(
+  "/receipt/:installmentId",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getAdminReceipt,
 );
 
 // 🏦 ADMIN: Mark installment as PAID for offline payments (Cash/Cheque/DD)
