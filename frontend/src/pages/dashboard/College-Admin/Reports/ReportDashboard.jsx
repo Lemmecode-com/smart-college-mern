@@ -84,11 +84,6 @@ const CONFIG = {
       INFO: "linear-gradient(135deg, #17a2b8 0%, #00838f 100%)",
     },
   },
-  COURSES: [
-    "Computer Science",
-    "Information Technology",
-    "Mechanical Engineering",
-  ],
   PAYMENT_STATUS: ["PAID", "PARTIAL", "DUE"],
   TOAST: {
     position: "top-right",
@@ -115,6 +110,8 @@ export default function ReportDashboard() {
   const [attendanceData, setAttendanceData] = useState(null);
   const [studentPayments, setStudentPayments] = useState([]);
   const [lowAttendanceStudents, setLowAttendanceStudents] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   // Filter States
   const [courseFilter, setCourseFilter] = useState("");
@@ -240,6 +237,19 @@ export default function ReportDashboard() {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch courses for filter dropdown
+      try {
+        setCoursesLoading(true);
+        const coursesRes = await api.get("/courses");
+        const courseNames = coursesRes.data.map((course) => course.name);
+        setAvailableCourses(courseNames);
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+        setAvailableCourses([]);
+      } finally {
+        setCoursesLoading(false);
+      }
 
       // Fetch all reports in parallel from API endpoints
       const [
@@ -874,9 +884,10 @@ export default function ReportDashboard() {
                 value={courseFilter}
                 onChange={(e) => setCourseFilter(e.target.value)}
                 className="filter-select"
+                disabled={coursesLoading}
               >
                 <option value="">All Courses</option>
-                {CONFIG.COURSES.map((course, index) => (
+                {availableCourses.map((course, index) => (
                   <option key={`${course}-${index}`} value={course}>
                     {course}
                   </option>
@@ -1066,10 +1077,11 @@ export default function ReportDashboard() {
                 value={attendanceCourseFilter}
                 onChange={(e) => setAttendanceCourseFilter(e.target.value)}
                 className="filter-select-small"
+                disabled={coursesLoading}
                 style={{ marginLeft: "0.5rem" }}
               >
                 <option value="">All Courses</option>
-                {CONFIG.COURSES.map((course, index) => (
+                {availableCourses.map((course, index) => (
                   <option key={`${course}-${index}-attendance`} value={course}>
                     {course}
                   </option>
