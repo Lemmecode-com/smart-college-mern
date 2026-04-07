@@ -68,6 +68,13 @@ export default function Login() {
         setError(
           "❌ Your account has been rejected. Please contact the admin for more information.",
         );
+      } else if (
+        errorMsg.includes("deactivated") ||
+        result.code === "ACCOUNT_DEACTIVATED"
+      ) {
+        setError(
+          "🚫 Your account has been deactivated. Please contact your administrator to request reactivation.",
+        );
       } else {
         setError(errorMsg);
       }
