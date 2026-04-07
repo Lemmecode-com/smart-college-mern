@@ -562,11 +562,28 @@ export default function FeeReceipt() {
             />
             <Info
               label="Payment Method"
-              value={
-                receipt.paymentGateway === "RAZORPAY"
-                  ? "Razorpay"
-                  : "Stripe (Card)"
-              }
+              value={(() => {
+                const gateway = receipt.paymentGateway || "STRIPE";
+                const mode = receipt.paymentMode || "ONLINE";
+
+                if (gateway === "OFFLINE") {
+                  // Offline payments
+                  const modeLabels = {
+                    CASH: "💵 Cash",
+                    CHEQUE: "📝 Cheque",
+                    DD: "🏦 Demand Draft",
+                  };
+                  return modeLabels[mode] || "💵 Cash";
+                } else {
+                  // Online payments
+                  const gatewayLabels = {
+                    STRIPE: "💳 Card (Stripe)",
+                    RAZORPAY: "📱 UPI/Card (Razorpay)",
+                    MOCK: "🧪 Mock Payment",
+                  };
+                  return gatewayLabels[gateway] || "💳 Card";
+                }
+              })()}
             />
             <Info
               label="Paid On"

@@ -8,12 +8,13 @@ const collegeMiddleware = require("../middlewares/college.middleware");
 const {
   getCollegePaymentReport,
   getPaymentOverdueStats,
-  triggerPaymentReminders
+  triggerPaymentReminders,
+  markInstallmentAsPaid,
 } = require("../controllers/admin.payment.controller");
 
 const {
   getReconciliationReport,
-  reconcilePayment
+  reconcilePayment,
 } = require("../cron/paymentReconciliation.cron");
 
 // 🏛️ ADMIN: Payment report
@@ -22,7 +23,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getCollegePaymentReport
+  getCollegePaymentReport,
 );
 
 // 🏛️ ADMIN: Get payment overdue stats with escalation levels (FIX: Issue #10)
@@ -31,7 +32,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getPaymentOverdueStats
+  getPaymentOverdueStats,
 );
 
 // 🏛️ ADMIN: Manually trigger payment reminders (FIX: Issue #10)
@@ -40,7 +41,7 @@ router.post(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  triggerPaymentReminders
+  triggerPaymentReminders,
 );
 
 // 🏛️ ADMIN: Get payment reconciliation report (FIX: Edge Case 4)
@@ -56,7 +57,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // 🏛️ ADMIN: Reconcile stuck payment (FIX: Edge Case 4)
@@ -68,12 +69,26 @@ router.post(
   async (req, res, next) => {
     try {
       const { feeId, installmentIndex, action, notes } = req.body;
-      const result = await reconcilePayment(feeId, installmentIndex, action, notes);
+      const result = await reconcilePayment(
+        feeId,
+        installmentIndex,
+        action,
+        notes,
+      );
       res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }
-  }
+  },
+);
+
+// 🏦 ADMIN: Mark installment as PAID for offline payments (Cash/Cheque/DD)
+router.post(
+  "/mark-paid",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  markInstallmentAsPaid,
 );
 
 module.exports = router;
