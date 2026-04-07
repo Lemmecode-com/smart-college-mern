@@ -49,10 +49,10 @@ import {
 const CONFIG = {
   ITEMS_PER_PAGE: 5,
   CHART: {
-    PIE: { innerRadius: 70, outerRadius: 110, height: 280 },
-    BAR: { height: 280 },
-    AREA: { height: 280, domain: [0, 100] },
-    LINE: { height: 280 },
+    PIE: { innerRadius: 70, outerRadius: 110, height: "auto" },
+    BAR: { height: "auto" },
+    AREA: { height: "auto", domain: [0, 100] },
+    LINE: { height: "auto" },
   },
   // Sidebar-matched theme colors
   THEME: {
@@ -1428,7 +1428,7 @@ export default function ReportDashboard() {
         /* ================= REPORTS GRID ================= */
         .reports-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
           gap: 1.5rem;
         }
 
@@ -1689,6 +1689,8 @@ export default function ReportDashboard() {
         /* ================= CHART CONTAINER ================= */
         .chart-container {
           margin-top: 1.5rem;
+          aspect-ratio: 16 / 9;
+          min-height: 250px;
         }
 
         /* ================= ATTENDANCE STATS ================= */
@@ -1735,7 +1737,7 @@ export default function ReportDashboard() {
 
         .filter-group {
           flex: 1;
-          min-width: 200px;
+          min-width: min(100%, 280px);
           position: relative;
         }
 
