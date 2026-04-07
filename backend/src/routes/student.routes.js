@@ -4,12 +4,12 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
-const { 
-  validateStudentRegistration, 
+const {
+  validateStudentRegistration,
   validateStudentUpdateByAdmin,
   validateStudentProfileUpdate,
   validateStudentId,
-  validateCollegeCode
+  validateCollegeCode,
 } = require("../middlewares/validators/student.validator");
 
 const {
@@ -25,6 +25,7 @@ const {
   getStudentsForTeacher,
   moveToAlumni,
   getAlumni,
+  getDeactivatedStudents,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -33,9 +34,14 @@ const {
 const studentMiddleware = require("../middlewares/student.middleware");
 const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
 
-
 // 🌍 PUBLIC STUDENT REGISTRATION
-router.post("/register/:collegeCode", validateCollegeCode, uploadStudentDocuments, validateStudentRegistration, registerStudent);
+router.post(
+  "/register/:collegeCode",
+  validateCollegeCode,
+  uploadStudentDocuments,
+  validateStudentRegistration,
+  registerStudent,
+);
 
 // 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
 router.get(
@@ -43,7 +49,7 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getRegisteredStudents
+  getRegisteredStudents,
 );
 
 // 🔐 COLLEGE ADMIN → APPROVAL WORKFLOW
@@ -149,7 +155,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  getStudentsForTeacher
+  getStudentsForTeacher,
 );
 
 // 🎓 ADMIN: Move student to Alumni (for students who completed course)
@@ -158,7 +164,7 @@ router.post(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  moveToAlumni
+  moveToAlumni,
 );
 
 // 🎓 ADMIN: Get all Alumni
@@ -167,7 +173,16 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  getAlumni
+  getAlumni,
+);
+
+// 🚫 ADMIN: Get deactivated students (for reactivation)
+router.get(
+  "/deactivated",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getDeactivatedStudents,
 );
 
 module.exports = router;
