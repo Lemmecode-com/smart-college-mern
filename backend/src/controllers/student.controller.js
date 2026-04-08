@@ -15,6 +15,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
 const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
+const auditLogService = require("../services/auditLog.service");
 
 exports.registerStudent = async (req, res, next) => {
   try {
@@ -792,10 +793,23 @@ exports.updateStudentByAdmin = async (req, res, next) => {
       });
     }
 
+    // Store old values before update
+    const oldStudent = student.toObject();
+
+    // Track which fields are being updated
+    const updatedFields = Object.keys(req.body).filter(
+      (key) => student[key] !== req.body[key],
+    );
+
     // Update remaining fields safely
     Object.assign(student, req.body);
 
     await student.save();
+
+    // 📝 Audit log - Student update by admin
+    auditLogService
+      .logStudentUpdate(oldStudent, student, req.user, req, updatedFields)
+      .catch((err) => console.error("Audit log failed:", err));
 
     ApiResponse.success(
       res,

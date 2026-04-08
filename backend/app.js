@@ -113,6 +113,9 @@ app.use("/api/notifications", require("./src/routes/notification.routes"));
 /* ================= SECURITY AUDIT ================= */
 app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
 
+/* ================= AUDIT LOGS (Admin Actions) ================= */
+app.use("/api/audit-logs", require("./src/routes/auditLog.routes"));
+
 /* ================= STRIPE ================= */
 app.use("/api/stripe", require("./src/routes/stripe.routes"));
 app.use(
