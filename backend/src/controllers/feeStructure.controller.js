@@ -3,6 +3,7 @@ const Course = require("../../src/models/course.model");
 const StudentFee = require("../../src/models/studentFee.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const auditLogService = require("../services/auditLog.service");
 
 /**
  * CREATE Fee Structure
@@ -62,6 +63,11 @@ exports.createFeeStructure = async (req, res, next) => {
       installments,
     });
 
+    // 📝 Audit log - Fee structure creation
+    auditLogService
+      .logFeeStructureCreate(feeStructure, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
+
     ApiResponse.created(
       res,
       { feeStructure },
@@ -108,6 +114,9 @@ exports.updateFeeStructure = async (req, res, next) => {
       );
     }
 
+    // Store old values before update
+    const oldFeeStructure = feeStructure.toObject();
+
     const installmentTotal = installments.reduce((sum, i) => sum + i.amount, 0);
 
     if (installmentTotal !== totalFee) {
@@ -122,6 +131,11 @@ exports.updateFeeStructure = async (req, res, next) => {
     feeStructure.installments = installments;
 
     await feeStructure.save();
+
+    // 📝 Audit log - Fee structure update
+    auditLogService
+      .logFeeStructureUpdate(oldFeeStructure, feeStructure, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
 
     ApiResponse.success(
       res,
@@ -163,9 +177,14 @@ exports.deleteFeeStructure = async (req, res, next) => {
       throw new AppError(
         "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
         400,
-        "FEE_STRUCTURE_IN_USE",   
+        "FEE_STRUCTURE_IN_USE",
       );
     }
+
+    // 📝 Audit log - Fee structure deletion
+    auditLogService
+      .logFeeStructureDelete(feeStructure, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
 
     await feeStructure.deleteOne();
 
