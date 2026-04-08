@@ -6,6 +6,7 @@ const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const StudentFee = require("../models/studentFee.model");
 const College = require("../models/college.model");
+const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
@@ -115,10 +116,20 @@ exports.studentDashboard = async (req, res, next) => {
       .toLocaleDateString("en-US", { weekday: "short" })
       .toUpperCase(); // MON, TUE etc
 
+    // Step 1: Find all published timetables for student's current semester
+    const timetables = await Timetable.find({
+      college_id: collegeId,
+      semester: student.currentSemester,
+      status: "PUBLISHED",
+    }).select("_id");
+
+    const timetableIds = timetables.map((t) => t._id);
+
+    // Step 2: Find slots belonging to those timetables for today
     const todaySlots = await TimetableSlot.find({
       college_id: collegeId,
       day: todayName,
-      semester: student.currentSemester,
+      timetable_id: { $in: timetableIds },
     })
       .populate("subject_id", "name code")
       .populate("teacher_id", "name")
