@@ -5,6 +5,7 @@ const User = require("../models/user.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const auditLogService = require("../services/auditLog.service");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
@@ -672,6 +673,17 @@ exports.deactivateTeacherWithReassignment = async (req, res, next) => {
 
     // Also deactivate the user
     await User.findByIdAndUpdate(teacher.user_id, { isActive: false });
+
+    // 📝 Audit log - Teacher deactivation with reassignment
+    auditLogService
+      .logTeacherDeactivate(
+        req.college_id,
+        req.user,
+        req,
+        teacher,
+        reassignmentResult,
+      )
+      .catch((err) => console.error("Audit log failed:", err));
 
     ApiResponse.success(
       res,
