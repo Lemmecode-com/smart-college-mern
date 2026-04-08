@@ -272,105 +272,29 @@ export default function MakePayments() {
         description: `Fee Payment - ${installmentName}`,
         order_id: orderId,
         handler: async (response) => {
-          // ⚠️ CRITICAL: Show loading state with message IMMEDIATELY
-          // Razorpay modal will close, but we need to keep user informed
-          setLoadingMessage("Verifying your payment...");
+          // ✅ WEBHOOK-DRIVEN: Don't call verify API. Just redirect to success page.
+          // The webhook will mark the installment as PAID.
+          // PaymentSuccess.jsx will poll for status until webhook processes it.
+          setLoadingMessage("Payment successful! Confirming...");
           setLoading(true);
-          isRequestInProgressRef.current = true;
 
-          try {
-            // Verify payment signature
-            const verifyRes = await api.post("/razorpay/verify-payment", {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            // Check if already paid
-            if (verifyRes.data.alreadyPaid) {
-              toast.info("This installment was already paid", {
-                position: "top-right",
-                autoClose: 5000,
-                icon: <FaInfoCircle />,
-              });
-            } else {
-              toast.success("🎉 Payment successful!", {
-                position: "top-right",
-                autoClose: 3000,
-                icon: <FaCheckCircle />,
-              });
-            }
-
-            // ⚠️ CRITICAL: Stop loading BEFORE navigation
+          // Small delay for UX, then redirect
+          setTimeout(() => {
             setLoading(false);
             isRequestInProgressRef.current = false;
 
-            // Small delay to allow toast to show and user to see success message
-            setTimeout(() => {
-              setLoadingMessage("Redirecting to receipt...");
-
-              // Prepare payment data from BACKEND response (verifyRes)
-              const paymentData = {
-                paymentGateway: "RAZORPAY",
-                paymentId: response.razorpay_payment_id,
-                orderId: response.razorpay_order_id,
-                installment: verifyRes.data?.installment || {
-                  _id: installmentDetails.id,
-                  name: installmentName,
-                  amount: installmentDetails.amount,
-                  paidAt: new Date(),
-                  transactionId: response.razorpay_payment_id,
+            // Redirect to success page — PaymentSuccess.jsx will poll for status
+            navigate(
+              `/student/payment-success?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&gateway=razorpay`,
+              {
+                state: {
+                  paymentGateway: "RAZORPAY",
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
                 },
-                totalFee: verifyRes.data?.totalFee || 0,
-                paidAmount: verifyRes.data?.paidAmount || 0,
-                remainingAmount: verifyRes.data?.remainingAmount || 0,
-              };
-
-              // Redirect to success page with all Razorpay parameters in URL
-              navigate(
-                `/student/payment-success?payment_id=${paymentData.paymentId}&order_id=${paymentData.orderId}&gateway=razorpay`,
-                {
-                  state: {
-                    paymentGateway: "RAZORPAY",
-                    orderId: paymentData.orderId,
-                    paymentId: paymentData.paymentId,
-                    paymentData: paymentData,
-                  },
-                },
-              );
-            }, 800);
-          } catch (verifyError) {
-            // ⚠️ CRITICAL: Stop loading on error too
-            setLoading(false);
-            isRequestInProgressRef.current = false;
-
-            const verifyErrorCode =
-              verifyError.response?.data?.error?.code ||
-              verifyError.response?.data?.code;
-            let verifyErrorMsg =
-              "Payment verification failed. Please contact support.";
-
-            if (verifyErrorCode === "INSTALLMENT_NOT_FOUND") {
-              verifyErrorMsg =
-                "Payment record not found. This may happen if the order expired. Please try creating a new payment.";
-            } else if (verifyErrorCode === "INVALID_SIGNATURE") {
-              verifyErrorMsg =
-                "Payment verification failed. Please contact support immediately with payment ID.";
-            } else if (verifyErrorCode === "FEE_RECORD_NOT_FOUND") {
-              verifyErrorMsg = "Fee record not found. Please contact support.";
-            }
-
-            toast.error(verifyErrorMsg, {
-              position: "top-right",
-              autoClose: 8000,
-              icon: <FaExclamationTriangle />,
-            });
-
-            // 🔁 AUTO-REDIRECT: After showing error for 3 seconds, redirect to fees page
-            setTimeout(() => {
-              navigate("/student/fees", { replace: true });
-            }, 3000);
-          }
+              },
+            );
+          }, 1000);
         },
         prefill: {
           name: user.name || "",
