@@ -106,76 +106,70 @@ export default function PaymentSuccess() {
     pollPaymentStatus();
   }, [sessionId]);
 
-  /* ================= VERIFY PAYMENT (RAZORPAY) ================= */
+  /* ================= POLL FOR PAYMENT STATUS (RAZORPAY WEBHOOK FLOW) ================= */
   useEffect(() => {
-    if (!paymentId) return;
+    if (paymentGateway !== "razorpay") return;
 
-    const processRazorpayPayment = async () => {
-      try {
-        // Payment was already verified in MakePayments.jsx
-        // Check if we have payment data from navigation state
-        const stateData = window.history.state?.usr;
+    // orderId is saved on the installment at createRazorpayOrder time
+    const orderId = searchParams.get("order_id");
+    if (!orderId) {
+      setError("No order ID provided");
+      setLoading(false);
+      return;
+    }
 
-        if (stateData?.paymentData) {
-          setPayment(stateData.paymentData);
-          toast.success("Payment successful!", {
-            position: "top-right",
-            autoClose: 3000,
-            icon: <FaCheckCircle />,
-          });
-          setLoading(false);
-          return;
-        }
+    const pollRazorpayPaymentStatus = async () => {
+      const maxAttempts = 30; // 60 seconds total (2s intervals)
+      let attempts = 0;
 
-        // Fallback: If no state data, create display data from URL params
-        setPayment({
-          paymentGateway: "RAZORPAY",
-          paymentId: paymentId,
-          orderId: searchParams.get("order_id"),
-          installment: {
-            name: "Payment",
-            amount: 0,
-            paidAt: new Date(),
-            transactionId: paymentId,
-          },
-          totalFee: 0,
-          paidAmount: 0,
-          remainingAmount: 0,
-        });
-        setLoading(false);
-      } catch (err) {
-        // If payment was already verified (alreadyPaid), use the response data
-        if (err.response?.data?.alreadyPaid) {
-          console.log(
-            "� [PaymentSuccess] Payment was already paid:",
-            err.response.data,
+      const interval = setInterval(async () => {
+        attempts++;
+
+        try {
+          const res = await api.get(
+            `/student/payments/status?orderId=${orderId}&gateway=razorpay`,
           );
-          setPayment({
-            ...err.response.data,
-            paymentGateway: "RAZORPAY",
-          });
-          toast.info("This installment was already paid", {
-            position: "top-right",
-            autoClose: 3000,
-            icon: <FaInfoCircle />,
-          });
-          setLoading(false);
-        } else {
-          const errorMsg =
-            err.response?.data?.message || "Payment verification failed";
-          setError(errorMsg);
-          toast.error(errorMsg, {
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />,
-          });
-          setLoading(false);
+
+          if (res.data.status === "PAID") {
+            clearInterval(interval);
+            setPayment({
+              ...res.data,
+              paymentGateway: "RAZORPAY",
+            });
+            toast.success("Payment confirmed successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+            });
+            setLoading(false);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setError(
+              "Payment is still processing. Please check back in a few moments.",
+            );
+            setLoading(false);
+          }
+        } catch (err) {
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            const errorMsg =
+              err.response?.data?.message || "Payment confirmation timeout";
+            setError(errorMsg);
+            toast.error(errorMsg, {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+            setLoading(false);
+          }
         }
-      }
+      }, 2000);
+
+      return () => clearInterval(interval);
     };
 
-    processRazorpayPayment();
-  }, [paymentId, searchParams]);
+    pollRazorpayPaymentStatus();
+  }, [paymentGateway, searchParams]);
 
   /* ================= LOADING UI ================= */
   if (loading) {
