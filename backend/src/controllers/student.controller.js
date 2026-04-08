@@ -7,6 +7,7 @@ const User = require("../models/user.model");
 const College = require("../models/college.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
+const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
@@ -540,7 +541,7 @@ exports.getMyFullProfile = async (req, res, next) => {
       attendanceSummary = [];
     }
 
-    // 5️⃣ Today's Timetable (separate query, limited data)
+    // 5️⃣ Today's Timetable (filtered by student's semester via timetable relationship)
     const today = new Date();
     const dayName = today
       .toLocaleDateString("en-US", { weekday: "short" })
@@ -548,11 +549,20 @@ exports.getMyFullProfile = async (req, res, next) => {
 
     let todaysTimetable = [];
     try {
+      // Step 1: Find published timetables for student's current semester
+      const timetables = await Timetable.find({
+        college_id: student.college_id,
+        semester: student.currentSemester,
+        status: "PUBLISHED",
+      }).select("_id");
+
+      const timetableIds = timetables.map((t) => t._id);
+
+      // Step 2: Find slots for today belonging to those timetables
       todaysTimetable = await TimetableSlot.find({
-        course_id: student.course_id,
-        department_id: student.department_id,
         college_id: student.college_id,
         day: dayName,
+        timetable_id: { $in: timetableIds },
       })
         .populate("subject_id", "name code")
         .populate("teacher_id", "name")
