@@ -146,16 +146,20 @@ exports.getStudentReceipt = async (req, res, next) => {
 };
 
 /**
- * Get payment status by Stripe session ID (for webhook polling)
- * @route GET /api/student/payments/status?sessionId=xxx
+ * Get payment status by Stripe session ID or Razorpay payment ID (for webhook polling)
+ * @route GET /api/student/payments/status?sessionId=xxx&paymentId=xxx&gateway=stripe|razorpay
  * @access Private (Student)
  */
 exports.getPaymentStatus = async (req, res, next) => {
   try {
-    const { sessionId } = req.query;
+    const { sessionId, orderId, gateway } = req.query;
 
-    if (!sessionId) {
-      throw new AppError("Session ID is required", 400, "SESSION_ID_REQUIRED");
+    if (!sessionId && !orderId) {
+      throw new AppError(
+        "Session ID or Order ID is required",
+        400,
+        "MISSING_PAYMENT_PARAMS",
+      );
     }
 
     const userId = req.user.id;
@@ -171,23 +175,39 @@ exports.getPaymentStatus = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // Find student fee with matching session ID
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
-      "installments.stripeSessionId": sessionId,
-    });
+    let studentFee = null;
+    let installment = null;
 
-    if (!studentFee) {
-      throw new AppError("Payment not found", 404, "PAYMENT_NOT_FOUND");
+    /* ================= STRIPE: Lookup by sessionId ================= */
+    if (sessionId) {
+      studentFee = await StudentFee.findOne({
+        student_id: student._id,
+        "installments.stripeSessionId": sessionId,
+      });
+
+      if (studentFee) {
+        installment = studentFee.installments.find(
+          (i) => i.stripeSessionId === sessionId,
+        );
+      }
     }
 
-    // Find the specific installment
-    const installment = studentFee.installments.find(
-      (i) => i.stripeSessionId === sessionId,
-    );
+    /* ================= RAZORPAY: Lookup by orderId ================= */
+    if (!installment && orderId) {
+      studentFee = await StudentFee.findOne({
+        student_id: student._id,
+        "installments.razorpayOrderId": orderId,
+      });
 
-    if (!installment) {
-      throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
+      if (studentFee) {
+        installment = studentFee.installments.find(
+          (i) => i.razorpayOrderId === orderId,
+        );
+      }
+    }
+
+    if (!studentFee || !installment) {
+      throw new AppError("Payment not found", 404, "PAYMENT_NOT_FOUND");
     }
 
     res.json({
