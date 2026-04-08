@@ -305,6 +305,12 @@ export const navigationConfig = {
             label: "Attendance Reports",
             exact: true,
           },
+          {
+            path: "/college-admin/audit-logs",
+            icon: FaCheckCircle,
+            label: "Audit Logs",
+            exact: true,
+          },
         ],
       },
       {
