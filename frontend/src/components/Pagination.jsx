@@ -59,9 +59,9 @@ export default function Pagination({ page, totalPages, setPage }) {
         onClick={() => handlePageChange(1)}
         title="First page"
         aria-label="First page"
-        style={{ minWidth: "38px", height: "38px" }}
+        style={{ minWidth: "44px", minHeight: "44px" }}
       >
-        <FaAngleDoubleLeft size={12} />
+        <FaAngleDoubleLeft size={14} />
       </button>
 
       {/* Previous page button */}
@@ -71,9 +71,9 @@ export default function Pagination({ page, totalPages, setPage }) {
         onClick={() => handlePageChange(page - 1)}
         title="Previous page"
         aria-label="Previous page"
-        style={{ minWidth: "38px", height: "38px" }}
+        style={{ minWidth: "44px", minHeight: "44px" }}
       >
-        <FaChevronLeft size={12} />
+        <FaChevronLeft size={14} />
       </button>
 
       {/* Page numbers */}
@@ -85,8 +85,8 @@ export default function Pagination({ page, totalPages, setPage }) {
               className="btn btn-sm btn-light d-flex align-items-center justify-content-center"
               style={{
                 cursor: "default",
-                minWidth: "38px",
-                height: "38px",
+                minWidth: "44px",
+                minHeight: "44px",
                 border: "1px solid transparent",
               }}
             >
@@ -103,14 +103,14 @@ export default function Pagination({ page, totalPages, setPage }) {
               onClick={() => handlePageChange(pageNum)}
               aria-current={pageNum === page ? "page" : undefined}
               style={{
-                minWidth: "38px",
-                height: "38px",
+                minWidth: "44px",
+                minHeight: "44px",
                 fontWeight: pageNum === page ? "600" : "400",
               }}
             >
               {pageNum}
             </button>
-          )
+          ),
         )}
       </div>
 
@@ -121,9 +121,9 @@ export default function Pagination({ page, totalPages, setPage }) {
         onClick={() => handlePageChange(page + 1)}
         title="Next page"
         aria-label="Next page"
-        style={{ minWidth: "38px", height: "38px" }}
+        style={{ minWidth: "44px", minHeight: "44px" }}
       >
-        <FaChevronRight size={12} />
+        <FaChevronRight size={14} />
       </button>
 
       {/* Last page button */}
@@ -133,9 +133,9 @@ export default function Pagination({ page, totalPages, setPage }) {
         onClick={() => handlePageChange(totalPages)}
         title="Last page"
         aria-label="Last page"
-        style={{ minWidth: "38px", height: "38px" }}
+        style={{ minWidth: "44px", minHeight: "44px" }}
       >
-        <FaAngleDoubleRight size={12} />
+        <FaAngleDoubleRight size={14} />
       </button>
 
       {/* Page info badge */}

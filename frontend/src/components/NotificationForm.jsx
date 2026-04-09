@@ -66,20 +66,63 @@ const ROLE_CONFIG = {
 
 /* ================= BRAND COLORS ================= */
 const BRAND_COLORS = {
-  primary: { main: "#1a4b6d", gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)" },
+  primary: {
+    main: "#1a4b6d",
+    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+  },
   success: { main: "#28a745" },
   info: { main: "#17a2b8" },
   warning: { main: "#ffc107" },
   danger: { main: "#dc3545" },
   notificationTypes: {
-    GENERAL: { icon: FaInfoCircle, color: "#3b82f6", bg: "#dbeafe", label: "General" },
-    ACADEMIC: { icon: FaGraduationCap, color: "#8b5cf6", bg: "#ede9fe", label: "Academic" },
-    EXAM: { icon: FaCalendarAlt, color: "#ec4899", bg: "#fce7f3", label: "Exam" },
-    FEE: { icon: FaMoneyBillWave, color: "#f59e0b", bg: "#ffedd5", label: "Fee" },
-    ATTENDANCE: { icon: FaUserCheck, color: "#10b981", bg: "#dcfce7", label: "Attendance" },
-    EVENT: { icon: FaBullhorn, color: "#ef4444", bg: "#fee2e2", label: "Event" },
-    ASSIGNMENT: { icon: FaClipboardList, color: "#6366f1", bg: "#eef2ff", label: "Assignment" },
-    URGENT: { icon: FaExclamationTriangle, color: "#dc2626", bg: "#fee2e2", label: "Urgent" },
+    GENERAL: {
+      icon: FaInfoCircle,
+      color: "#3b82f6",
+      bg: "#dbeafe",
+      label: "General",
+    },
+    ACADEMIC: {
+      icon: FaGraduationCap,
+      color: "#8b5cf6",
+      bg: "#ede9fe",
+      label: "Academic",
+    },
+    EXAM: {
+      icon: FaCalendarAlt,
+      color: "#ec4899",
+      bg: "#fce7f3",
+      label: "Exam",
+    },
+    FEE: {
+      icon: FaMoneyBillWave,
+      color: "#f59e0b",
+      bg: "#ffedd5",
+      label: "Fee",
+    },
+    ATTENDANCE: {
+      icon: FaUserCheck,
+      color: "#10b981",
+      bg: "#dcfce7",
+      label: "Attendance",
+    },
+    EVENT: {
+      icon: FaBullhorn,
+      color: "#ef4444",
+      bg: "#fee2e2",
+      label: "Event",
+    },
+    ASSIGNMENT: {
+      icon: FaClipboardList,
+      color: "#6366f1",
+      bg: "#eef2ff",
+      label: "Assignment",
+    },
+    URGENT: {
+      icon: FaExclamationTriangle,
+      color: "#dc2626",
+      bg: "#fee2e2",
+      label: "Urgent",
+    },
   },
   priorities: {
     LOW: { color: "#64748b", bg: "#f1f5f9", label: "Low Priority" },
@@ -103,7 +146,10 @@ const slideDownVariants = {
 
 const pulseVariants = {
   initial: { scale: 1 },
-  pulse: { scale: [1, 1.05, 1], transition: { duration: 2, repeat: Infinity, ease: "easeInOut" } },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+  },
 };
 
 /* ================= NOTIFICATION DESCRIPTION ================= */
@@ -119,7 +165,10 @@ const NOTIFICATION_DESCRIPTION = {
 };
 
 /* ================= MAIN COMPONENT ================= */
-export default function NotificationForm({ role = "college-admin", mode = "create" }) {
+export default function NotificationForm({
+  role = "college-admin",
+  mode = "create",
+}) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG["college-admin"];
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -198,7 +247,10 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
       const found = all.find((n) => n._id === id);
 
       if (!found) {
-        setError({ message: "Notification not found. It may have been deleted.", statusCode: 404 });
+        setError({
+          message: "Notification not found. It may have been deleted.",
+          statusCode: 404,
+        });
         setLoading(false);
         return;
       }
@@ -208,7 +260,9 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
         message: found.message || "",
         type: found.type || "GENERAL",
         priority: found.priority || "NORMAL",
-        expiresAt: found.expiresAt ? new Date(found.expiresAt).toISOString().slice(0, 16) : "",
+        expiresAt: found.expiresAt
+          ? new Date(found.expiresAt).toISOString().slice(0, 16)
+          : "",
         target: found.target || "ALL",
         target_department: found.target_department || "",
         target_course: found.target_course || "",
@@ -219,7 +273,8 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
       setOriginalForm(formData);
       setRetryCount(0);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to load notification";
+      const errorMsg =
+        err.response?.data?.message || "Failed to load notification";
       const statusCode = err.response?.status;
       setError({ message: errorMsg, statusCode });
       toast.error("Failed to load notification");
@@ -280,14 +335,16 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
         target: form.target,
         target_department: form.target_department || undefined,
         target_course: form.target_course || undefined,
-        target_semester: form.target_semester ? parseInt(form.target_semester) : undefined,
+        target_semester: form.target_semester
+          ? parseInt(form.target_semester)
+          : undefined,
         expiresAt: form.expiresAt || null,
       };
 
       if (mode === "create") {
         await api.post(config.createEndpoint, payload);
         toast.success(config.successMessage);
-        
+
         setTimeout(() => {
           setForm({
             title: "",
@@ -305,13 +362,14 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
         await api.put(`${config.editEndpoint}${id}`, payload);
         toast.success(config.editSuccessMessage);
         setOriginalForm({ ...form });
-        
+
         setTimeout(() => {
           navigate(config.listRoute);
         }, 1500);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.message || `Failed to ${mode} notification`;
+      const errorMsg =
+        err.response?.data?.message || `Failed to ${mode} notification`;
       toast.error(errorMsg);
     } finally {
       setSaving(false);
@@ -320,29 +378,36 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
 
   /* ================= LOAD SAMPLE ================= */
   const loadSample = () => {
-    const sample = role === "teacher"
-      ? {
-          title: "Important Exam Schedule Update",
-          message: "Dear Students,\n\nPlease note that the exam schedule for Semester 5 has been updated. The new timetable is available on the student portal.\n\nKey changes:\n- Data Structures exam moved to Feb 25\n- Database Systems exam moved to Feb 28\n\nPlease check your portals for the complete schedule.\n\nRegards,\nExamination Cell",
-          type: "EXAM",
-          priority: "HIGH",
-          expiresAt: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().slice(0, 16),
-          target: "ALL",
-          target_department: "",
-          target_course: "",
-          target_semester: "",
-        }
-      : {
-          title: "Fee Payment Deadline Extended",
-          message: "Dear Students,\n\nThe deadline for semester fee payment has been extended to February 28, 2026.\n\nPlease complete your payment before the deadline to avoid late fees.\n\nContact accounts@college.edu for queries.",
-          type: "FEE",
-          priority: "MEDIUM",
-          expiresAt: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().slice(0, 16),
-          target: "STUDENTS",
-          target_department: "",
-          target_course: "",
-          target_semester: "",
-        };
+    const sample =
+      role === "teacher"
+        ? {
+            title: "Important Exam Schedule Update",
+            message:
+              "Dear Students,\n\nPlease note that the exam schedule for Semester 5 has been updated. The new timetable is available on the student portal.\n\nKey changes:\n- Data Structures exam moved to Feb 25\n- Database Systems exam moved to Feb 28\n\nPlease check your portals for the complete schedule.\n\nRegards,\nExamination Cell",
+            type: "EXAM",
+            priority: "HIGH",
+            expiresAt: new Date(new Date().setDate(new Date().getDate() + 7))
+              .toISOString()
+              .slice(0, 16),
+            target: "ALL",
+            target_department: "",
+            target_course: "",
+            target_semester: "",
+          }
+        : {
+            title: "Fee Payment Deadline Extended",
+            message:
+              "Dear Students,\n\nThe deadline for semester fee payment has been extended to February 28, 2026.\n\nPlease complete your payment before the deadline to avoid late fees.\n\nContact accounts@college.edu for queries.",
+            type: "FEE",
+            priority: "MEDIUM",
+            expiresAt: new Date(new Date().setDate(new Date().getDate() + 7))
+              .toISOString()
+              .slice(0, 16),
+            target: "STUDENTS",
+            target_department: "",
+            target_course: "",
+            target_semester: "",
+          };
 
     setForm(sample);
     setTitleCount(sample.title.length);
@@ -391,13 +456,22 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
   const handleGoBack = () => navigate(-1);
 
   /* ================= GET TYPE CONFIG ================= */
-  const typeConfig = BRAND_COLORS.notificationTypes[form.type] || BRAND_COLORS.notificationTypes.GENERAL;
-  const priorityConfig = BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
+  const typeConfig =
+    BRAND_COLORS.notificationTypes[form.type] ||
+    BRAND_COLORS.notificationTypes.GENERAL;
+  const priorityConfig =
+    BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
   const TypeIcon = typeConfig.icon;
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text={mode === "edit" ? "Loading notification..." : "Preparing form..."} />;
+    return (
+      <Loading
+        fullScreen
+        size="lg"
+        text={mode === "edit" ? "Loading notification..." : "Preparing form..."}
+      />
+    );
   }
 
   /* ================= ERROR STATE ================= */
@@ -438,7 +512,12 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
             items={[
               { label: "Dashboard", path: config.dashboardRoute },
               { label: "Notifications", path: config.listRoute },
-              { label: mode === "create" ? "Create Notification" : "Edit Notification" },
+              {
+                label:
+                  mode === "create"
+                    ? "Create Notification"
+                    : "Edit Notification",
+              },
             ]}
           />
 
@@ -467,7 +546,9 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                 gap: "1.5rem",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
+              >
                 <motion.div
                   variants={pulseVariants}
                   initial="initial"
@@ -488,10 +569,25 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                   <FaBell />
                 </motion.div>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: "2.25rem", fontWeight: 700, lineHeight: 1.1 }}>
-                    {mode === "create" ? "Create Notification" : "Edit Notification"}
+                  <h1
+                    style={{
+                      margin: 0,
+                      fontSize: "2.25rem",
+                      fontWeight: 700,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {mode === "create"
+                      ? "Create Notification"
+                      : "Edit Notification"}
                   </h1>
-                  <p style={{ margin: "0.75rem 0 0 0", opacity: 0.9, fontSize: "1.25rem" }}>
+                  <p
+                    style={{
+                      margin: "0.75rem 0 0 0",
+                      opacity: 0.9,
+                      fontSize: "1.25rem",
+                    }}
+                  >
                     {mode === "create"
                       ? `Send important announcements to your ${config.placeholder}`
                       : "Update your announcement details"}
@@ -577,17 +673,23 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                 gap: "1rem",
               }}
             >
-              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, fontSize: "1.5rem", flexShrink: 0 }} />
+              <FaInfoCircle
+                style={{
+                  color: BRAND_COLORS.primary.main,
+                  fontSize: "1.5rem",
+                  flexShrink: 0,
+                }}
+              />
               <div style={{ color: "#1e293b", fontWeight: 500 }}>
                 {mode === "create" ? (
                   <>
                     Notifications will be sent to all {config.placeholder}.
-                    <strong style={{ marginLeft: "0.5rem" }}>Recipients will receive email and in-app alerts.</strong>
+                    <strong style={{ marginLeft: "0.5rem" }}>
+                      Recipients will receive email and in-app alerts.
+                    </strong>
                   </>
                 ) : (
-                  <>
-                    Changes will be reflected immediately for all recipients.
-                  </>
+                  <>Changes will be reflected immediately for all recipients.</>
                 )}
               </div>
             </div>
@@ -617,7 +719,8 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                 <div
                   style={{
                     padding: "1.75rem",
-                    background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                    background:
+                      "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
                     borderBottom: "1px solid #e2e8f0",
                     display: "flex",
                     alignItems: "center",
@@ -640,8 +743,17 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                   >
                     <FaBell />
                   </div>
-                  <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#1e293b" }}>
-                    {mode === "create" ? "Compose Notification" : "Edit Notification Content"}
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: "1.5rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                  >
+                    {mode === "create"
+                      ? "Compose Notification"
+                      : "Edit Notification Content"}
                   </h2>
                 </div>
 
@@ -662,12 +774,27 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         }}
                       >
                         <span>
-                          <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, marginRight: "0.5rem" }} />
-                          Notification Title <span style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                          <FaInfoCircle
+                            style={{
+                              color: BRAND_COLORS.primary.main,
+                              marginRight: "0.5rem",
+                            }}
+                          />
+                          Notification Title{" "}
+                          <span style={{ color: BRAND_COLORS.danger.main }}>
+                            *
+                          </span>
                         </span>
-                        <small style={{
-                          color: titleCount > 80 ? BRAND_COLORS.danger.main : titleCount > 60 ? BRAND_COLORS.warning.main : "#64748b",
-                        }}>
+                        <small
+                          style={{
+                            color:
+                              titleCount > 80
+                                ? BRAND_COLORS.danger.main
+                                : titleCount > 60
+                                  ? BRAND_COLORS.warning.main
+                                  : "#64748b",
+                          }}
+                        >
                           {titleCount}/100 characters
                         </small>
                       </label>
@@ -688,8 +815,20 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         maxLength="100"
                         required
                       />
-                      <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      <div
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginTop: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <FaInfoCircle
+                          size={12}
+                          style={{ color: BRAND_COLORS.primary.main }}
+                        />
                         Keep it concise and action-oriented.
                       </div>
                     </div>
@@ -708,12 +847,27 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         }}
                       >
                         <span>
-                          <FaClipboardList style={{ color: BRAND_COLORS.info.main, marginRight: "0.5rem" }} />
-                          Message Content <span style={{ color: BRAND_COLORS.danger.main }}>*</span>
+                          <FaClipboardList
+                            style={{
+                              color: BRAND_COLORS.info.main,
+                              marginRight: "0.5rem",
+                            }}
+                          />
+                          Message Content{" "}
+                          <span style={{ color: BRAND_COLORS.danger.main }}>
+                            *
+                          </span>
                         </span>
-                        <small style={{
-                          color: messageCount > 800 ? BRAND_COLORS.danger.main : messageCount > 600 ? BRAND_COLORS.warning.main : "#64748b",
-                        }}>
+                        <small
+                          style={{
+                            color:
+                              messageCount > 800
+                                ? BRAND_COLORS.danger.main
+                                : messageCount > 600
+                                  ? BRAND_COLORS.warning.main
+                                  : "#64748b",
+                          }}
+                        >
                           {messageCount}/1000 characters
                         </small>
                       </label>
@@ -736,17 +890,48 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         maxLength="1000"
                         required
                       />
-                      <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      <div
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginTop: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <FaInfoCircle
+                          size={12}
+                          style={{ color: BRAND_COLORS.primary.main }}
+                        />
                         Include deadlines, contact info, or next steps.
                       </div>
                     </div>
 
                     {/* Type & Priority Row */}
-                    <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        marginBottom: "1.5rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <div style={{ flex: 1, minWidth: "200px" }}>
-                        <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600, color: "#1e293b" }}>
-                          <FaLayerGroup style={{ color: BRAND_COLORS.primary.main, marginRight: "0.5rem" }} />
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.75rem",
+                            fontWeight: 600,
+                            color: "#1e293b",
+                          }}
+                        >
+                          <FaLayerGroup
+                            style={{
+                              color: BRAND_COLORS.primary.main,
+                              marginRight: "0.5rem",
+                            }}
+                          />
                           Notification Type
                         </label>
                         <select
@@ -761,20 +946,35 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                             fontSize: "1.05rem",
                           }}
                         >
-                          {Object.entries(BRAND_COLORS.notificationTypes).map(([key, config]) => {
-                            const Icon = config.icon;
-                            return (
-                              <option key={key} value={key}>
-                                {config.label} - {NOTIFICATION_DESCRIPTION[key]}
-                              </option>
-                            );
-                          })}
+                          {Object.entries(BRAND_COLORS.notificationTypes).map(
+                            ([key, config]) => {
+                              const Icon = config.icon;
+                              return (
+                                <option key={key} value={key}>
+                                  {config.label} -{" "}
+                                  {NOTIFICATION_DESCRIPTION[key]}
+                                </option>
+                              );
+                            },
+                          )}
                         </select>
                       </div>
 
                       <div style={{ flex: 1, minWidth: "200px" }}>
-                        <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600, color: "#1e293b" }}>
-                          <FaExclamationTriangle style={{ color: BRAND_COLORS.warning.main, marginRight: "0.5rem" }} />
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.75rem",
+                            fontWeight: 600,
+                            color: "#1e293b",
+                          }}
+                        >
+                          <FaExclamationTriangle
+                            style={{
+                              color: BRAND_COLORS.warning.main,
+                              marginRight: "0.5rem",
+                            }}
+                          />
                           Priority Level
                         </label>
                         <select
@@ -789,17 +989,33 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                             fontSize: "1.05rem",
                           }}
                         >
-                          {Object.entries(BRAND_COLORS.priorities).map(([key, config]) => (
-                            <option key={key} value={key}>{config.label}</option>
-                          ))}
+                          {Object.entries(BRAND_COLORS.priorities).map(
+                            ([key, config]) => (
+                              <option key={key} value={key}>
+                                {config.label}
+                              </option>
+                            ),
+                          )}
                         </select>
                       </div>
                     </div>
 
                     {/* Expiry Date */}
                     <div style={{ marginBottom: "1.5rem" }}>
-                      <label style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600, color: "#1e293b" }}>
-                        <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main, marginRight: "0.5rem" }} />
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.75rem",
+                          fontWeight: 600,
+                          color: "#1e293b",
+                        }}
+                      >
+                        <FaCalendarAlt
+                          style={{
+                            color: BRAND_COLORS.primary.main,
+                            marginRight: "0.5rem",
+                          }}
+                        />
                         Expiry Date (Optional)
                       </label>
                       <input
@@ -816,8 +1032,20 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                           fontSize: "1.05rem",
                         }}
                       />
-                      <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <FaInfoCircle size={12} style={{ color: BRAND_COLORS.primary.main }} />
+                      <div
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "#64748b",
+                          marginTop: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                        }}
+                      >
+                        <FaInfoCircle
+                          size={12}
+                          style={{ color: BRAND_COLORS.primary.main }}
+                        />
                         Notification will auto-archive after this date.
                       </div>
                     </div>
@@ -832,13 +1060,31 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                           marginBottom: "1.5rem",
                         }}
                       >
-                        <h5 style={{ fontWeight: 700, marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <FaUsers style={{ color: BRAND_COLORS.primary.main }} />
+                        <h5
+                          style={{
+                            fontWeight: 700,
+                            marginBottom: "1rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <FaUsers
+                            style={{ color: BRAND_COLORS.primary.main }}
+                          />
                           Target Audience
                         </h5>
 
                         <div style={{ marginBottom: "0.75rem" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                              cursor: "pointer",
+                            }}
+                          >
                             <input
                               type="radio"
                               name="target"
@@ -851,7 +1097,15 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         </div>
 
                         <div style={{ marginBottom: "0.75rem" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                              cursor: "pointer",
+                            }}
+                          >
                             <input
                               type="radio"
                               name="target"
@@ -864,7 +1118,15 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         </div>
 
                         <div style={{ marginBottom: "0.75rem" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.5rem",
+                              cursor: "pointer",
+                            }}
+                          >
                             <input
                               type="radio"
                               name="target"
@@ -877,7 +1139,12 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         </div>
 
                         {form.target === "DEPARTMENT" && (
-                          <div style={{ marginLeft: "1.5rem", marginBottom: "1rem" }}>
+                          <div
+                            style={{
+                              marginLeft: "1.5rem",
+                              marginBottom: "1rem",
+                            }}
+                          >
                             <select
                               name="target_department"
                               value={form.target_department}
@@ -903,7 +1170,14 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                     )}
 
                     {/* Submit Buttons */}
-                    <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        justifyContent: "flex-end",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <button
                         type="button"
                         onClick={handleBackClick}
@@ -930,7 +1204,9 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                           padding: "0.875rem 1.5rem",
                           borderRadius: "12px",
                           border: "none",
-                          backgroundColor: saving ? "#94a3b8" : BRAND_COLORS.primary.main,
+                          backgroundColor: saving
+                            ? "#94a3b8"
+                            : BRAND_COLORS.primary.main,
                           color: "white",
                           fontWeight: 600,
                           cursor: saving ? "not-allowed" : "pointer",
@@ -942,12 +1218,15 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                       >
                         {saving ? (
                           <>
-                            <FaSyncAlt className="spinning" /> {mode === "create" ? "Creating..." : "Saving..."}
+                            <FaSyncAlt className="spinning" />{" "}
+                            {mode === "create" ? "Creating..." : "Saving..."}
                           </>
                         ) : (
                           <>
                             {mode === "create" ? <FaPaperPlane /> : <FaSave />}
-                            {mode === "create" ? "Send Notification" : "Update Notification"}
+                            {mode === "create"
+                              ? "Send Notification"
+                              : "Update Notification"}
                           </>
                         )}
                       </button>
@@ -982,7 +1261,8 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                   <div
                     style={{
                       padding: "1.5rem",
-                      background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                      background:
+                        "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
                       borderBottom: "1px solid #e2e8f0",
                       display: "flex",
                       alignItems: "center",
@@ -1004,7 +1284,14 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                     >
                       <FaEye />
                     </div>
-                    <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#1e293b" }}>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                      }}
+                    >
                       Live Preview
                     </h2>
                   </div>
@@ -1012,7 +1299,14 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                   {/* Preview Content */}
                   <div style={{ padding: "1.5rem" }}>
                     {/* Type & Priority Badges */}
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                        flexWrap: "wrap",
+                      }}
+                    >
                       <div
                         style={{
                           display: "inline-flex",
@@ -1042,13 +1336,22 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                           fontWeight: 600,
                         }}
                       >
-                        {form.priority === "URGENT" && <FaExclamationTriangle size={12} />}
+                        {form.priority === "URGENT" && (
+                          <FaExclamationTriangle size={12} />
+                        )}
                         {priorityConfig.label}
                       </div>
                     </div>
 
                     {/* Title Preview */}
-                    <h3 style={{ margin: "0 0 0.75rem", fontSize: "1.25rem", fontWeight: 700, color: "#1e293b" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 0.75rem",
+                        fontSize: "1.25rem",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                      }}
+                    >
                       {form.title || "Notification Title"}
                     </h3>
 
@@ -1063,7 +1366,8 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         minHeight: "100px",
                       }}
                     >
-                      {form.message || "Your notification message will appear here..."}
+                      {form.message ||
+                        "Your notification message will appear here..."}
                     </div>
 
                     {/* Expiry Preview */}
@@ -1081,7 +1385,8 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
                         }}
                       >
                         <FaCalendarAlt size={14} />
-                        Expires: {new Date(form.expiresAt).toLocaleDateString("en-US", {
+                        Expires:{" "}
+                        {new Date(form.expiresAt).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -1115,6 +1420,51 @@ export default function NotificationForm({ role = "college-admin", mode = "creat
           }
           .spinning {
             animation: spin 1s linear infinite;
+          }
+
+          /* ================= RESPONSIVE STYLES ================= */
+          @media (max-width: 1023.98px) {
+            /* Collapse two-column layout to single column */
+            div[style*="flex: 0 0 calc(58.333%"] {
+              flex: 0 0 100% !important;
+              max-width: 100% !important;
+            }
+
+            div[style*="flex: 0 0 calc(41.667%"] {
+              flex: 0 0 100% !important;
+              max-width: 100% !important;
+              position: static !important;
+            }
+          }
+
+          @media (max-width: 767.98px) {
+            /* Reduce padding on mobile */
+            div[style*="padding: 1.75rem"] {
+              padding: 1rem !important;
+            }
+
+            div[style*="padding: 2rem"] {
+              padding: 1.25rem !important;
+            }
+
+            /* Reduce icon size */
+            div[style*="width: 48px"][style*="height: 48px"] {
+              width: 40px !important;
+              height: 40px !important;
+              font-size: 1.25rem !important;
+            }
+
+            /* Reduce heading size */
+            h2[style*="fontSize: 1.5rem"] {
+              font-size: 1.25rem !important;
+            }
+          }
+
+          @media (max-width: 479.98px) {
+            /* Further reduce padding for small screens */
+            div[style*="padding: 1.25rem"] {
+              padding: 1rem !important;
+            }
           }
         `}</style>
       </motion.div>
