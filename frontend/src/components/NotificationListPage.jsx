@@ -7,6 +7,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
 import NotificationCard from "../components/NotificationCard";
+import CustomSelect from "../components/CustomSelect";
 import {
   FaBell,
   FaUserTie,
@@ -624,23 +625,37 @@ export default function NotificationListPage({ role = "college-admin" }) {
               borderRadius: "12px",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               display: "flex",
-              flexWrap: "wrap",
+              flexDirection: "column",
               gap: "1rem",
-              alignItems: "center",
               marginBottom: "1.5rem",
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              overflow: "visible",
             }}
           >
+            {/* Search Input with Icon Inside */}
             <div
-              className="filter-group"
+              className="search-wrapper"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                flex: 1,
-                minWidth: "200px",
+                width: "100%",
+                position: "relative",
+                overflow: "visible",
               }}
             >
-              <FaSearch className="filter-icon" style={{ color: "#64748b" }} />
+              <FaSearch
+                className="filter-icon search-icon"
+                style={{
+                  position: "absolute",
+                  left: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#64748b",
+                  zIndex: 2,
+                  pointerEvents: "none",
+                  fontSize: "0.95rem",
+                }}
+              />
               <input
                 type="text"
                 placeholder="Search notifications..."
@@ -648,51 +663,45 @@ export default function NotificationListPage({ role = "college-admin" }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
                 style={{
-                  flex: 1,
-                  padding: "0.75rem 1rem",
+                  width: "100%",
+                  padding: "0.75rem 1rem 0.75rem 2.75rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   fontSize: "0.95rem",
                   transition: "all 0.3s ease",
+                  boxSizing: "border-box",
+                  display: "block",
                 }}
                 aria-label="Search notifications"
               />
             </div>
 
+            {/* Filter Dropdown with Icon Inside */}
             <div
-              className="filter-group"
+              className="filter-wrapper"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                flex: 1,
-                minWidth: "200px",
+                width: "100%",
+                position: "relative",
+                overflow: "visible",
               }}
             >
-              <FaFilter className="filter-icon" style={{ color: "#64748b" }} />
-              <select
+              <CustomSelect
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="filter-select"
+                options={[
+                  { value: "", label: "All Types" },
+                  ...notificationTypes.map((type) => ({
+                    value: type,
+                    label: type,
+                  })),
+                ]}
+                placeholder="All Types"
                 style={{
-                  flex: 1,
-                  padding: "0.75rem 1rem",
-                  border: "2px solid #e2e8f0",
-                  borderRadius: "10px",
-                  fontSize: "0.95rem",
-                  backgroundColor: "white",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
+                  width: "100%",
+                  maxWidth: "100%",
                 }}
                 aria-label="Filter by type"
-              >
-                <option value="">All Types</option>
-                {notificationTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {/* TABS */}
@@ -702,13 +711,16 @@ export default function NotificationListPage({ role = "college-admin" }) {
                 display: "flex",
                 gap: "0.5rem",
                 flexWrap: "wrap",
+                width: "100%",
               }}
             >
               <button
                 className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
                 onClick={() => setActiveTab("all")}
                 style={{
-                  padding: "0.625rem 1.25rem",
+                  flex: "1 1 auto",
+                  minWidth: "80px",
+                  padding: "0.625rem 1rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   backgroundColor:
@@ -720,6 +732,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   transition: "all 0.3s ease",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: "0.375rem",
                 }}
               >
@@ -729,7 +742,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
                 className={`tab-btn ${activeTab === "primary" ? "active" : ""}`}
                 onClick={() => setActiveTab("primary")}
                 style={{
-                  padding: "0.625rem 1.25rem",
+                  flex: "1 1 auto",
+                  minWidth: "120px",
+                  padding: "0.625rem 1rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   backgroundColor:
@@ -743,6 +758,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   transition: "all 0.3s ease",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: "0.375rem",
                 }}
               >
@@ -752,7 +768,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
                 className={`tab-btn ${activeTab === "secondary" ? "active" : ""}`}
                 onClick={() => setActiveTab("secondary")}
                 style={{
-                  padding: "0.625rem 1.25rem",
+                  flex: "1 1 auto",
+                  minWidth: "120px",
+                  padding: "0.625rem 1rem",
                   border: "2px solid #e2e8f0",
                   borderRadius: "10px",
                   backgroundColor:
@@ -766,6 +784,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   transition: "all 0.3s ease",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: "0.375rem",
                 }}
               >
@@ -779,8 +798,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
             className="notifications-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
-              gap: "1.5rem",
+              gridTemplateColumns:
+                "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+              gap: "1rem",
               marginBottom: "1.5rem",
             }}
           >
@@ -916,6 +936,97 @@ export default function NotificationListPage({ role = "college-admin" }) {
             isLoading={!!deletingId}
           />
         )}
+
+        {/* ================= RESPONSIVE STYLES ================= */}
+        <style>{`
+          /* Mobile: Use flexbox to keep icons inside inputs */
+          @media (max-width: 767.98px) {
+            .filter-bar {
+              padding: 1rem !important;
+              width: 100% !important;
+              max-width: 100vw !important;
+              box-sizing: border-box !important;
+            }
+
+            /* Use flexbox layout on mobile to contain icons */
+            .search-wrapper,
+            .filter-wrapper {
+              width: 100% !important;
+              max-width: 100% !important;
+              display: flex !important;
+              align-items: center !important;
+              position: relative !important;
+              overflow: hidden !important;
+              background: white !important;
+              border: 2px solid #e2e8f0 !important;
+              border-radius: 10px !important;
+            }
+
+            .search-icon,
+            .filter-select-icon {
+              position: relative !important;
+              left: auto !important;
+              top: auto !important;
+              transform: none !important;
+              flex-shrink: 0 !important;
+              margin-left: 1rem !important;
+              margin-right: 0.5rem !important;
+              z-index: 2 !important;
+            }
+
+            .search-input,
+            .filter-select {
+              flex: 1 !important;
+              width: auto !important;
+              max-width: 100% !important;
+              border: none !important;
+              border-radius: 0 !important;
+              padding: 0.75rem 1rem 0.75rem 0 !important;
+              box-sizing: border-box !important;
+              background: transparent !important;
+            }
+
+            .search-input:focus,
+            .filter-select:focus {
+              outline: none !important;
+              box-shadow: none !important;
+            }
+
+            .tab-group {
+              flex-direction: column !important;
+              width: 100% !important;
+            }
+
+            .tab-btn {
+              width: 100% !important;
+              justify-content: center !important;
+            }
+          }
+
+          /* Small mobile: Further reduce sizes */
+          @media (max-width: 479.98px) {
+            .filter-bar {
+              padding: 0.75rem !important;
+            }
+
+            .search-icon,
+            .filter-select-icon {
+              margin-left: 0.75rem !important;
+              font-size: 0.85rem !important;
+            }
+
+            .search-input,
+            .filter-select {
+              font-size: 0.9rem !important;
+              padding: 0.625rem 0.75rem 0.625rem 0 !important;
+            }
+
+            .tab-btn {
+              font-size: 0.85rem !important;
+              padding: 0.5rem 0.75rem !important;
+            }
+          }
+        `}</style>
       </motion.div>
     </AnimatePresence>
   );
