@@ -884,7 +884,6 @@ export default function AuditLogs() {
             </h3>
             <p
               style={{
-                margin: 0,
                 fontSize: "0.9375rem",
                 color: THEME.text.muted,
                 maxWidth: "400px",

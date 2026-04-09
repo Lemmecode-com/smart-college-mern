@@ -757,7 +757,6 @@ function FormField({ icon, label, children, required = false, error = false }) {
   return (
     <div style={{ marginBottom: '1.5rem' }}>
       <label style={{
-        display: 'block',
         marginBottom: '0.5rem',
         fontWeight: 600,
         color: '#1e293b',

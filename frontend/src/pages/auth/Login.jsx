@@ -88,8 +88,13 @@ export default function Login() {
     setError("");
     setLoading(false);
 
-    // Redirect to dashboard decider route
-    navigate("/home");
+    // Navigate directly based on role to avoid race condition with user state
+    const role = result.user?.role;
+    if (role === "SUPER_ADMIN") navigate("/super-admin/dashboard");
+    else if (role === "COLLEGE_ADMIN") navigate("/dashboard");
+    else if (role === "TEACHER") navigate("/teacher/dashboard");
+    else if (role === "STUDENT") navigate("/student/dashboard");
+    else navigate("/home");
   };
 
   return (

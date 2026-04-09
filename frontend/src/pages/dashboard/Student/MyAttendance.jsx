@@ -811,7 +811,6 @@ export default function StudentAttendanceReport() {
                     </h3>
                     <p style={{ 
                       color: '#64748b', 
-                      margin: 0,
                       maxWidth: '600px',
                       margin: '0 auto'
                     }}>

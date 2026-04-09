@@ -994,7 +994,6 @@ function EmptySection({ icon, title, message }) {
         {title}
       </h4>
       <p style={{ 
-        margin: 0, 
         fontSize: '1rem',
         maxWidth: '600px',
         margin: '0 auto',

@@ -11,40 +11,29 @@ export const AuthProvider = ({ children }) => {
   /* ========== LOGIN ========== */
   const login = async (credentials) => {
     try {
-      // Note: With httpOnly cookies, the token will be stored in the cookie automatically
       const res = await api.post("/auth/login", credentials);
 
-      // Get user info from the response (interceptor unwraps it)
       const userInfo = res.data.user || {
         id: res.data.id,
         role: res.data.role,
         college_id: res.data.college_id,
       };
 
-      // Fetch complete user data immediately after login
+      let resolvedUser = { id: userInfo.id, role: userInfo.role, college_id: userInfo.college_id || null, email: null, name: null };
       try {
         const profileRes = await api.get("/auth/me");
-        // Store complete user data from backend
-        setUser({
+        resolvedUser = {
           id: profileRes.data.id,
           role: profileRes.data.role,
           college_id: profileRes.data.college_id || null,
           email: profileRes.data.email || null,
           name: profileRes.data.name || null,
-        });
+        };
       } catch (profileError) {
-        // Fallback to basic info if profile fetch fails
         logger.warn("Profile fetch after login failed, using basic info");
-        setUser({
-          id: userInfo.id,
-          role: userInfo.role,
-          college_id: userInfo.college_id || null,
-          email: null,
-          name: null,
-        });
       }
-
-      return { success: true };
+      setUser(resolvedUser);
+      return { success: true, user: { id: resolvedUser.id, role: resolvedUser.role } };
     } catch (error) {
       return {
         success: false,

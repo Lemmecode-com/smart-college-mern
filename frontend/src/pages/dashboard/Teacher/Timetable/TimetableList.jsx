@@ -774,7 +774,6 @@ function EmptyState({ icon, title, message, actionText, onAction }) {
         {title}
       </h3>
       <p style={{ 
-        margin: '0 0 2rem 0', 
         fontSize: '1.1rem',
         maxWidth: '600px',
         margin: '0 auto 2rem'
