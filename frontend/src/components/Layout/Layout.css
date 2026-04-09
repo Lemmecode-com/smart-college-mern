@@ -30,7 +30,8 @@
   height: 100vh;
   width: var(--sidebar-width-expanded);
   z-index: 1030;
-  transition: width var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+  transition: width var(--sidebar-transition-duration)
+    var(--sidebar-transition-timing);
   /* No border that could create ghost gap */
   border-right: none;
 }
@@ -57,7 +58,8 @@
   flex-direction: column;
   min-width: 0; /* Critical: prevents flex overflow */
   margin-left: var(--sidebar-width-expanded);
-  transition: margin-left var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+  transition: margin-left var(--sidebar-transition-duration)
+    var(--sidebar-transition-timing);
   width: calc(100% - var(--sidebar-width-expanded));
 }
 
@@ -108,9 +110,10 @@
 /* Prevent stutter during collapse animation */
 body.layout-transitioning .sidebar-container,
 body.layout-transitioning .layout-main {
-  transition: 
+  transition:
     width var(--sidebar-transition-duration) var(--sidebar-transition-timing),
-    margin-left var(--sidebar-transition-duration) var(--sidebar-transition-timing);
+    margin-left var(--sidebar-transition-duration)
+      var(--sidebar-transition-timing);
 }
 
 body.layout-transitioning .layout-content {
@@ -323,12 +326,12 @@ body.layout-transitioning .layout-content {
   .stat-card {
     gap: 0.75rem;
   }
-  
+
   .stat-card-icon {
     width: 48px;
     height: 48px;
   }
-  
+
   .stat-card-value {
     font-size: 1.75rem;
   }
@@ -349,4 +352,23 @@ body.layout-mobile {
 
 body.layout-transitioning {
   /* During collapse animation */
+}
+
+/* ================= MOBILE DROPDOWN FIX ================= */
+/* Prevent select dropdowns from overflowing on mobile */
+@media (max-width: 767.98px) {
+  select {
+    max-width: 100vw !important;
+  }
+
+  /* Ensure select elements don't overflow their containers */
+  .filter-wrapper,
+  .filter-bar {
+    overflow: visible !important;
+  }
+
+  /* Fix native select dropdown width on mobile */
+  select.filter-select {
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
 }
