@@ -1117,37 +1117,50 @@ export default function StudentDashboard() {
         /* ================= HEADER ================= */
         .dashboard-header {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding: 1.5rem;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          padding: 1.25rem;
           background: white;
           border-radius: 12px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
+        @media (min-width: 768px) {
+          .dashboard-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+          }
+        }
+
         .header-left {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1rem;
         }
 
         .header-icon-wrapper {
-          width: 70px;
-          height: 70px;
+          width: clamp(56px, 10vw, 70px);
+          height: clamp(56px, 10vw, 70px);
+          min-width: 56px;
+          min-height: 56px;
           background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 2.5rem;
+          font-size: clamp(1.75rem, 4vw, 2.5rem);
           box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
+          flex-shrink: 0;
         }
 
         .dashboard-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: clamp(1.25rem, 3vw, 1.75rem);
           color: #1a4b6d;
           font-weight: 700;
         }
@@ -1202,21 +1215,36 @@ export default function StudentDashboard() {
         /* ================= INFO CARDS ================= */
         .info-cards-row {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2rem;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+          .info-cards-row {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+          }
         }
 
         .info-card {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          padding: 1.5rem;
+          gap: 0.75rem;
+          padding: 1.25rem;
           background: white;
           border-radius: 12px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
           transition: all 0.3s ease;
           position: relative;
+        }
+
+        @media (min-width: 768px) {
+          .info-card {
+            gap: 1rem;
+            padding: 1.5rem;
+          }
         }
 
         .info-card:hover {
@@ -1225,13 +1253,15 @@ export default function StudentDashboard() {
         }
 
         .card-icon-wrapper {
-          width: 60px;
-          height: 60px;
+          width: clamp(48px, 8vw, 60px);
+          height: clamp(48px, 8vw, 60px);
+          min-width: 48px;
+          min-height: 48px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
+          font-size: clamp(1.25rem, 3vw, 1.75rem);
           color: white;
           flex-shrink: 0;
         }
@@ -1313,8 +1343,21 @@ export default function StudentDashboard() {
         /* ================= DASHBOARD GRID ================= */
         .dashboard-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+          gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+          .dashboard-grid {
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .dashboard-grid {
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+          }
         }
 
         /* ================= CARD STYLES ================= */
@@ -1440,7 +1483,8 @@ export default function StudentDashboard() {
 
         .attendance-chart {
           margin: 1.5rem 0;
-          height: 300px;
+          height: clamp(220px, 30vw, 300px);
+          min-height: 220px;
         }
 
         .attendance-percentage {
@@ -1569,7 +1613,8 @@ export default function StudentDashboard() {
         /* ================= SUBJECT ATTENDANCE ================= */
         .subject-chart {
           margin-bottom: 1.5rem;
-          height: 380px;
+          height: clamp(280px, 40vw, 380px);
+          min-height: 280px;
         }
 
         .subject-list {
