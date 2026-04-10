@@ -11,6 +11,7 @@ const {
   teacherDashboard,
   collegeAdminDashboard,
   superAdminDashboard,
+  publicStats,
 } = require("../controllers/dashboard.controller");
 
 // 👨‍🎓 Student Dashboard
@@ -20,7 +21,7 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   // studentMiddleware,
-  studentDashboard
+  studentDashboard,
 );
 
 // 👩‍🏫 Teacher Dashboard
@@ -29,7 +30,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  teacherDashboard
+  teacherDashboard,
 );
 
 // 🏫 College Admin Dashboard
@@ -38,15 +39,13 @@ router.get(
   auth,
   role("COLLEGE_ADMIN"),
   collegeMiddleware,
-  collegeAdminDashboard
+  collegeAdminDashboard,
 );
 
 // 🧑‍💼 Super Admin Dashboard
-router.get(
-  "/super-admin",
-  auth,
-  role("SUPER_ADMIN"),
-  superAdminDashboard
-);
+router.get("/super-admin", auth, role("SUPER_ADMIN"), superAdminDashboard);
+
+// 🌍 Public Stats (Landing Page — No Auth)
+router.get("/public-stats", publicStats);
 
 module.exports = router;
