@@ -413,3 +413,29 @@ exports.superAdminDashboard = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * 🌍 PUBLIC STATS (for landing page — no auth required)
+ */
+exports.publicStats = async (req, res, next) => {
+  try {
+    const [totalColleges, totalStudents, totalTeachers] = await Promise.all([
+      College.countDocuments(),
+      Student.countDocuments(),
+      Teacher.countDocuments(),
+    ]);
+
+    ApiResponse.success(
+      res,
+      {
+        totalColleges,
+        totalStudents,
+        totalTeachers,
+        systemUptime: "99.9%",
+      },
+      "Public stats fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
