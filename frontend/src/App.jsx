@@ -142,6 +142,7 @@ import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessions
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
 import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
+import AuditLogs from "./pages/dashboard/College-Admin/AuditLogs";
 
 /* ================= SUPER ADMIN ================= */
 import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
@@ -557,6 +558,16 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <PaymentHistory />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Audit Logs */}
+            <Route
+              path="/college-admin/audit-logs"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <AuditLogs />
                 </ProtectedRoute>
               }
             />

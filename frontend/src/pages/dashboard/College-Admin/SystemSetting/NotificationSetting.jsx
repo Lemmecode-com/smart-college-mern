@@ -880,6 +880,56 @@ const NotificationSetting = () => {
           }
         }
 
+        @media (max-width: 480px) {
+          .notification-settings-page {
+            padding: 0.5rem;
+          }
+
+          .settings-title {
+            font-size: 1.25rem;
+          }
+
+          .settings-subtitle {
+            font-size: 0.875rem;
+          }
+
+          .header-icon-wrapper {
+            width: 56px;
+            height: 56px;
+          }
+
+          .header-icon {
+            font-size: 1.5rem;
+          }
+
+          .stat-value {
+            font-size: 1.5rem;
+          }
+
+          .stat-label {
+            font-size: 0.75rem;
+          }
+
+          .channel-card {
+            padding: 1rem;
+          }
+
+          .channel-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+          }
+
+          .channel-name {
+            font-size: 1rem;
+          }
+
+          .test-preview-btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           *,
           *::before,
