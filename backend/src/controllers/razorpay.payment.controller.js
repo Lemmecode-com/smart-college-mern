@@ -27,7 +27,7 @@ async function processPaymentVerification(
   next,
 ) {
   try {
-    // 🔥 If already paid → just return existing data
+    // 🔥 If already paid → just return existing data (Layer 1)
     if (installment.status === "PAID") {
       console.log("🟡 Installment already paid");
       return res.json({
@@ -44,6 +44,26 @@ async function processPaymentVerification(
       });
     }
 
+    // 🔥 Additional duplicate protection: check if this exact payment was already processed (Layer 2)
+    if (
+      installment.razorpayPaymentId === razorpay_payment_id ||
+      installment.transactionId === razorpay_payment_id
+    ) {
+      console.log("🟡 Payment already processed (duplicate payment ID)");
+      return res.json({
+        valid: true,
+        alreadyPaid: true,
+        installment: {
+          _id: installment._id,
+          name: installment.name,
+          amount: installment.amount,
+          paidAt: installment.paidAt,
+          transactionId: installment.transactionId,
+          status: "PAID",
+        },
+      });
+    }
+
     /* =========================
        UPDATE PAYMENT STATUS
     ========================== */
@@ -53,6 +73,7 @@ async function processPaymentVerification(
     installment.transactionId = razorpay_payment_id;
     installment.paymentGateway = "RAZORPAY";
     installment.razorpayOrderId = razorpay_order_id;
+    installment.razorpayPaymentId = razorpay_payment_id;
 
     /* =========================
        Recalculate paid amount

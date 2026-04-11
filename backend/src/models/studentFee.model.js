@@ -100,6 +100,11 @@ const studentFeeSchema = new mongoose.Schema({
         trim: true,
       },
 
+      razorpayPaymentId: {
+        type: String,
+        trim: true,
+      },
+
       // Reminder tracking (original field)
       reminderSent: {
         type: Boolean,
@@ -165,5 +170,8 @@ studentFeeSchema.index({ "installments.status": 1 }); // Payment status filterin
 studentFeeSchema.index({ "installments.escalationLevel": 1 }); // Escalation filtering
 studentFeeSchema.index({ "installments.finalNoticeSent": 1 }); // Final notice filtering
 studentFeeSchema.index({ "installments.razorpayOrderId": 1 }); // Razorpay order lookup
+studentFeeSchema.index({ "installments.razorpayPaymentId": 1 }); // Razorpay payment lookup (polling)
+studentFeeSchema.index({ "installments.transactionId": 1 }); // Transaction ID lookup (fallback)
+studentFeeSchema.index({ "installments.stripeSessionId": 1 }); // Stripe session lookup
 
 module.exports = mongoose.model("StudentFee", studentFeeSchema);
