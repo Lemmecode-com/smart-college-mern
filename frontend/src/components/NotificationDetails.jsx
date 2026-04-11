@@ -824,10 +824,53 @@ export default function NotificationDetails() {
         .spin {
           animation: spin 1s linear infinite;
         }
-        
-        @media (max-width: 768px) {
+
+        /* Responsive layout - collapse grid on mobile */
+        @media (max-width: 1023.98px) {
           div[style*="grid-template-columns"] {
             grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 767.98px) {
+          /* Reduce padding on mobile */
+          div[style*="padding: 2rem"] {
+            padding: 1.25rem !important;
+          }
+
+          div[style*="padding: 1.5rem"] {
+            padding: 1rem !important;
+          }
+
+          /* Reduce icon and button sizes */
+          div[style*="width: 80px"][style*="height: 80px"] {
+            width: 60px !important;
+            height: 60px !important;
+          }
+
+          /* Reduce title font size */
+          h1[style*="fontSize: 1.75rem"] {
+            font-size: 1.5rem !important;
+          }
+
+          /* Stack action buttons vertically */
+          div[style*="justify-content: flex-end"] {
+            flex-direction: column !important;
+          }
+
+          div[style*="justify-content: flex-end"] button {
+            width: 100% !important;
+          }
+        }
+
+        @media (max-width: 479.98px) {
+          /* Further reduce sizes for small screens */
+          div[style*="padding: 1.25rem"] {
+            padding: 1rem !important;
+          }
+
+          h1[style*="fontSize: 1.5rem"] {
+            font-size: 1.25rem !important;
           }
         }
       `}</style>
