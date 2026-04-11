@@ -36,6 +36,21 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
+ * This avoids off-by-one-day issues for timezones ahead of UTC (like IST).
+ */
+const toLocalDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * Parse a YYYY-MM-DD string to a local Date object without timezone shift.
+ */
+const parseLocalDate = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d); // month is 0-indexed
+};
+
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: {
@@ -111,6 +126,15 @@ const scaleVariants = {
 };
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAY_MAP = {
+  0: "SUN",
+  1: "MON",
+  2: "TUE",
+  3: "WED",
+  4: "THU",
+  5: "FRI",
+  6: "SAT",
+};
 const DAY_NAMES = [
   "Monday",
   "Tuesday",
@@ -197,6 +221,25 @@ export default function WeeklyTimetable() {
       "Are you sure you want to delete this timetable slot? This action cannot be undone.",
     type: "danger",
   });
+
+  // Date range state for week navigation
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    return {
+      startDate: toLocalDateStr(monday),
+      endDate: toLocalDateStr(sunday),
+    };
+  });
+  const [timetableIdForSchedule, setTimetableIdForSchedule] = useState(null);
+  const [isNavigating, setIsNavigating] = useState(false); // Subtle loading for week nav
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
@@ -315,6 +358,162 @@ export default function WeeklyTimetable() {
     navigate(-1);
   };
 
+  /* ================= REFRESH WEEKLY ================= */
+  const refreshWeekly = async () => {
+    try {
+      if (!timetableId) {
+        const res = await api.get("/timetable/weekly");
+        setTimetable(res.data.timetable || null);
+        setWeekly(res.data.weekly || {});
+        if (res.data.timetable) {
+          setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+        }
+      } else {
+        const res = await api.get(`/timetable/${timetableId}/weekly`);
+        setTimetable(res.data.timetable);
+        setWeekly(res.data.weekly || {});
+        setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+
+        const [subRes, teachRes] = await Promise.all([
+          api.get(`/subjects/course/${res.data.timetable.course_id}`),
+          api.get(`/teachers/department/${res.data.timetable.department_id}`),
+        ]);
+        setSubjects(subRes.data.subjects || subRes.data || []);
+        setTeachers(teachRes.data.teachers || teachRes.data || []);
+      }
+    } catch (err) {
+      console.error("Failed to refresh weekly timetable:", err);
+    }
+  };
+
+  /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
+  const fetchScheduleForDateRange = async (startDate, endDate) => {
+    if (!timetableId && !timetableIdForSchedule) {
+      // No timetable ID available — fall back to static weekly
+      await refreshWeekly();
+      return;
+    }
+
+    const effectiveTimetableId = timetableId || timetableIdForSchedule;
+
+    try {
+      setIsNavigating(true);
+      setLoading(true);
+      setError(null);
+
+      const res = await api.get(`/timetable/${effectiveTimetableId}/schedule`, {
+        params: { startDate, endDate },
+      });
+
+      const scheduleObj = res.data?.data || {};
+      const schedule = scheduleObj.schedule || [];
+      const timetableData = scheduleObj.timetable || null;
+
+      if (timetableData) {
+        setTimetable(timetableData);
+        // Update form timetable_id if not already set
+        if (!form.timetable_id) {
+          setForm((f) => ({ ...f, timetable_id: timetableData._id }));
+        }
+      }
+
+      if (schedule && schedule.length > 0) {
+        // Convert schedule format to weekly format (MON-SAT grid)
+        const weeklyData = {
+          MON: [],
+          TUE: [],
+          WED: [],
+          THU: [],
+          FRI: [],
+          SAT: [],
+        };
+
+        schedule.forEach((daySchedule) => {
+          if (daySchedule.slots && daySchedule.slots.length > 0) {
+            const date = parseLocalDate(daySchedule.date);
+            const dayName = DAY_MAP[date.getDay()];
+
+            if (weeklyData[dayName]) {
+              const slotsWithContext = daySchedule.slots.map((slot) => ({
+                ...slot,
+                exceptionDate: daySchedule.date,
+                isHolidayOnly: daySchedule.isHoliday || false,
+              }));
+              weeklyData[dayName].push(...slotsWithContext);
+            }
+          }
+        });
+
+        setWeekly(weeklyData);
+      } else {
+        // No schedule for this date range — show empty grid
+        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+      }
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        "Failed to load schedule. Please try again.";
+      console.error("Schedule fetch error:", err);
+      // On error, fall back to static weekly
+      await refreshWeekly();
+    } finally {
+      setLoading(false);
+      setIsNavigating(false);
+    }
+  };
+
+  /* ================= WEEK NAVIGATION ================= */
+  const goToPreviousWeek = async () => {
+    const start = new Date(dateRange.startDate.replace(/-/g, "/"));
+    start.setDate(start.getDate() - 7);
+    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
+    end.setDate(end.getDate() - 7);
+    const newStartStr = toLocalDateStr(start);
+    const newEndStr = toLocalDateStr(end);
+    setDateRange({ startDate: newStartStr, endDate: newEndStr });
+    await fetchScheduleForDateRange(newStartStr, newEndStr);
+  };
+
+  const goToNextWeek = async () => {
+    const start = new Date(dateRange.startDate.replace(/-/g, "/"));
+    start.setDate(start.getDate() + 7);
+    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
+    end.setDate(end.getDate() + 7);
+    const newStartStr = toLocalDateStr(start);
+    const newEndStr = toLocalDateStr(end);
+    setDateRange({ startDate: newStartStr, endDate: newEndStr });
+    await fetchScheduleForDateRange(newStartStr, newEndStr);
+  };
+
+  const goToCurrentWeek = async () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const newStartStr = toLocalDateStr(monday);
+    const newEndStr = toLocalDateStr(sunday);
+    setDateRange({ startDate: newStartStr, endDate: newEndStr });
+    await fetchScheduleForDateRange(newStartStr, newEndStr);
+  };
+
+  const formatDateRange = () => {
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    const startMonth = start.toLocaleDateString("en-US", { month: "short" });
+    const endMonth = end.toLocaleDateString("en-US", { month: "short" });
+    const endYear = end.toLocaleDateString("en-US", { year: "numeric" });
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${start.getDate()} - ${end.getDate()}, ${endYear}`;
+    }
+    return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${endYear}`;
+  };
+
   /* ================= AUTO SET TEACHER ================= */
   useEffect(() => {
     if (!form.subject_id) return;
@@ -323,23 +522,6 @@ export default function WeeklyTimetable() {
       setForm((prev) => ({ ...prev, teacher_id: subject.teacher_id._id }));
     }
   }, [form.subject_id, subjects]);
-
-  /* ================= REFRESH WEEKLY ================= */
-  const refreshWeekly = async () => {
-    try {
-      if (!timetableId) {
-        const res = await api.get("/timetable/weekly");
-        setTimetable(res.data.timetable || null);
-        setWeekly(res.data.weekly || {});
-      } else {
-        const res = await api.get(`/timetable/${timetableId}/weekly`);
-        setTimetable(res.data.timetable);
-        setWeekly(res.data.weekly || {});
-      }
-    } catch (err) {
-      console.error("Failed to refresh weekly timetable:", err);
-    }
-  };
 
   /* ================= ACTIONS ================= */
   const openCreate = (day, time) => {
@@ -791,8 +973,16 @@ export default function WeeklyTimetable() {
               borderRadius: "1.5rem",
               boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
               overflow: "hidden",
+              position: "relative",
             }}
           >
+            {/* Subtle loading overlay during week navigation */}
+            {isNavigating && (
+              <div className="wt-navigating-overlay">
+                <FaSyncAlt className="wt-navigating-spinner" />
+                <span>Loading timetable...</span>
+              </div>
+            )}
             <div
               style={{
                 padding: "1.5rem",
@@ -818,6 +1008,38 @@ export default function WeeklyTimetable() {
                 <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} />{" "}
                 Weekly Schedule
               </h2>
+              <div className="d-flex align-items-center gap-2">
+                {/* Week Navigation */}
+                <button
+                  onClick={goToPreviousWeek}
+                  className="btn btn-sm btn-outline-secondary"
+                  title="Previous Week"
+                >
+                  <FaArrowLeft size={12} />
+                </button>
+                <button
+                  onClick={goToCurrentWeek}
+                  className="btn btn-sm btn-primary"
+                >
+                  <FaCalendarAlt size={12} /> Current Week
+                </button>
+                <button
+                  onClick={goToNextWeek}
+                  className="btn btn-sm btn-outline-secondary"
+                  title="Next Week"
+                >
+                  <FaArrowLeft
+                    size={12}
+                    style={{ transform: "rotate(180deg)" }}
+                  />
+                </button>
+                <span
+                  className="text-muted fw-medium small ms-2"
+                  style={{ fontSize: "0.85rem" }}
+                >
+                  {formatDateRange()}
+                </span>
+              </div>
               <div
                 style={{
                   display: "flex",
@@ -1634,6 +1856,33 @@ export default function WeeklyTimetable() {
         confirmText="Delete"
         isLoading={submitting}
       />
+
+      {/* ================= NAVIGATION LOADING OVERLAY CSS ================= */}
+      <style>{`
+        .wt-navigating-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(2px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          z-index: 10;
+          border-radius: 1.5rem;
+          color: #1a4b6d;
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+        .wt-navigating-spinner {
+          animation: wt-spin 1s linear infinite;
+          font-size: 1.25rem;
+        }
+        @keyframes wt-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </AnimatePresence>
   );
 }
@@ -1672,6 +1921,43 @@ function TimetableSlot({
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
 
+  // Check for exception status
+  const exception = slot.exception;
+  const isCancelled =
+    slot.status === "CANCELLED" || exception?.type === "CANCELLED";
+  const isExtra = slot.status === "EXTRA" || exception?.type === "EXTRA";
+  const isRescheduled =
+    slot.status === "RESCHEDULED" || exception?.type === "RESCHEDULED";
+  const isHoliday = slot.status === "HOLIDAY" || exception?.type === "HOLIDAY";
+
+  // Adjust colors based on exception
+  let adjustedBg = slotType.bg;
+  let adjustedText = slotType.text;
+  let adjustedBorder = slotType.border;
+  let borderColor = slotType.border;
+
+  if (isCancelled) {
+    adjustedBg = "#fee2e2";
+    adjustedText = "#dc2626";
+    adjustedBorder = "#fecaca";
+    borderColor = "#dc2626";
+  } else if (isExtra) {
+    adjustedBg = "#dcfce7";
+    adjustedText = "#16a34a";
+    adjustedBorder = "#bbf7d0";
+    borderColor = "#16a34a";
+  } else if (isRescheduled) {
+    adjustedBg = "#dbeafe";
+    adjustedText = "#2563eb";
+    adjustedBorder = "#bfdbfe";
+    borderColor = "#2563eb";
+  } else if (isHoliday) {
+    adjustedBg = "#fef2f2";
+    adjustedText = "#dc2626";
+    adjustedBorder = "#fecaca";
+    borderColor = "#dc2626";
+  }
+
   return (
     <motion.div
       whileHover={{
@@ -1680,36 +1966,69 @@ function TimetableSlot({
         scale: 1.02,
       }}
       style={{
-        backgroundColor: "white",
-        border: `1px solid ${slotType.border}`,
+        backgroundColor: adjustedBg,
+        border: `1px solid ${adjustedBorder}`,
+        borderLeft: `3px solid ${borderColor}`,
         borderRadius: "12px",
         padding: "0.875rem",
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem",
+        gap: "0.5rem",
         transition: "all 0.3s ease",
         position: "relative",
         overflow: "hidden",
+        opacity: isCancelled || isHoliday ? 0.7 : 1,
+        textDecoration: isCancelled ? "line-through" : "none",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "3px",
-          background: slotType.text,
-          zIndex: 1,
-        }}
-      />
+      {/* Exception Badges */}
+      {(isCancelled || isExtra || isRescheduled || isHoliday) && (
+        <div className="mb-1">
+          {isCancelled && (
+            <span
+              className="badge bg-danger me-1 mb-1"
+              style={{ fontSize: "0.65rem" }}
+            >
+              <FaExclamationTriangle size={8} className="me-1" />
+              CANCELLED
+            </span>
+          )}
+          {isExtra && (
+            <span
+              className="badge bg-success me-1 mb-1"
+              style={{ fontSize: "0.65rem" }}
+            >
+              <FaCheckCircle size={8} className="me-1" />
+              EXTRA
+            </span>
+          )}
+          {isRescheduled && (
+            <span
+              className="badge bg-primary me-1 mb-1"
+              style={{ fontSize: "0.65rem" }}
+            >
+              <FaCalendarAlt size={8} className="me-1" />
+              RESCHEDULED
+            </span>
+          )}
+          {isHoliday && (
+            <span
+              className="badge bg-danger me-1 mb-1"
+              style={{ fontSize: "0.65rem" }}
+            >
+              <FaCalendarAlt size={8} className="me-1" />
+              HOLIDAY
+            </span>
+          )}
+        </div>
+      )}
 
       <div
         style={{
           fontWeight: 700,
-          color: slotType.text,
-          fontSize: "1rem",
+          color: adjustedText,
+          fontSize: "0.9rem",
           display: "flex",
           alignItems: "center",
           gap: "0.375rem",
@@ -1725,8 +2044,8 @@ function TimetableSlot({
           alignItems: "center",
           gap: "0.5rem",
           flexWrap: "wrap",
-          fontSize: "0.85rem",
-          color: "#4a5568",
+          fontSize: "0.8rem",
+          color: "#64748b",
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
@@ -1792,17 +2111,50 @@ function TimetableSlot({
             gap: "0.25rem",
             padding: "0.25rem 0.625rem",
             borderRadius: "6px",
-            backgroundColor: slotType.bg,
-            color: slotType.text,
+            backgroundColor: adjustedBg,
+            color: adjustedText,
             fontSize: "0.75rem",
             fontWeight: 600,
-            border: `1px solid ${slotType.border}`,
+            border: `1px solid ${adjustedBorder}`,
           }}
         >
           <FaLayerGroup size={10} />
           {slot.slotType}
         </span>
       </div>
+
+      {/* Exception Reason */}
+      {exception?.reason && (
+        <div
+          style={{
+            padding: "0.375rem 0.5rem",
+            borderRadius: "6px",
+            backgroundColor: isCancelled
+              ? "#fee2e2"
+              : isExtra
+                ? "#dcfce7"
+                : isRescheduled
+                  ? "#dbeafe"
+                  : "#fef2f2",
+            border: `1px solid ${isCancelled ? "#fecaca" : isExtra ? "#bbf7d0" : isRescheduled ? "#bfdbfe" : "#fecaca"}`,
+            fontSize: "0.7rem",
+            color: adjustedText,
+            marginTop: "0.25rem",
+          }}
+        >
+          <FaInfoCircle size={8} className="me-1" />
+          {exception.reason}
+          {exception.rescheduledTo && (
+            <span className="ms-1 fw-bold">
+              →{" "}
+              {new Date(exception.rescheduledTo).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          )}
+        </div>
+      )}
 
       {isHOD && (
         <div
