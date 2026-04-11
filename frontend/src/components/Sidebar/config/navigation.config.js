@@ -37,6 +37,7 @@ import {
   FaChartLine,
   FaCreditCard,
   FaUserTimes,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -433,6 +434,27 @@ export const navigationConfig = {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
             label: "My Schedule",
+            exact: true,
+          },
+        ],
+      },
+
+      {
+        id: "manage-exceptions",
+        title: "Manage Exceptions",
+        icon: FaExclamationTriangle,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/timetable/create/exceptions",
+            icon: FaPlus,
+            label: "Add Exception",
+            exact: true,
+          },
+          {
+            path: "/timetable/exceptions",
+            icon: FaListOl,
+            label: "Exceptions",
             exact: true,
           },
         ],
