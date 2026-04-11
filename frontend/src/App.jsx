@@ -167,9 +167,11 @@ import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacher
 
 /* ================= TEACHER ================= */
 import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
+import ExceptionManagement from "./pages/dashboard/Teacher/Timetable/ExceptionManagement";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
 import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
+import CreateException from "./pages/dashboard/Teacher/Timetable/CreateException";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -1041,6 +1043,22 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <MyTimetable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable/create/exceptions"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <CreateException/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/timetable/exceptions"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <ExceptionManagement />
                 </ProtectedRoute>
               }
             />
