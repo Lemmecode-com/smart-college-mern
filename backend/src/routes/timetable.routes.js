@@ -17,6 +17,9 @@ const {
   getWeeklyTimetableForTeacher,
   getStudentTimetable,
   getStudentTodayTimetable,
+  getSchedule,
+  getTodaySchedule,
+  getWeeklySchedule,
 } = require("../controllers/timetable.controller");
 
 const {
@@ -25,10 +28,22 @@ const {
   deleteTimetableSlot,
 } = require("../controllers/timetableSlot.controller");
 
+const {
+  createException,
+  createBulkExceptions,
+  getExceptions,
+  updateException,
+  deleteException,
+  approveException,
+  rejectException,
+  getPendingApprovals,
+} = require("../controllers/timetableException.controller");
+
 /* ================= CREATE ================= */
 router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
+// NOTE: Static routes like /weekly, /student must come BEFORE dynamic routes like /:id
 router.get(
   "/weekly",
   auth,
@@ -108,6 +123,109 @@ router.delete(
   collegeMiddleware,
   hod, // ✅ FIXED: Added role + HOD check
   deleteTimetableSlot,
+);
+
+/* ================= DATE-WISE SCHEDULE ================= */
+
+// Get date-wise schedule (TEACHER and STUDENT only)
+router.get(
+  "/:id/schedule",
+  auth,
+  role("TEACHER", "STUDENT"),
+  collegeMiddleware,
+  getSchedule,
+);
+
+// Get today's schedule (TEACHER and STUDENT only)
+router.get(
+  "/:id/schedule/today",
+  auth,
+  role("TEACHER", "STUDENT"),
+  collegeMiddleware,
+  getTodaySchedule,
+);
+
+// Get weekly schedule (TEACHER and STUDENT only)
+router.get(
+  "/:id/schedule/week",
+  auth,
+  role("TEACHER", "STUDENT"),
+  collegeMiddleware,
+  getWeeklySchedule,
+);
+
+/* ================= EXCEPTIONS ================= */
+
+// Get pending approvals (HOD only) - MUST BE BEFORE /:id/exceptions to avoid route conflict
+router.get(
+  "/exceptions/pending",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getPendingApprovals,
+);
+
+// Create single exception
+router.post(
+  "/:id/exceptions",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  createException,
+);
+
+// Create bulk exceptions
+router.post(
+  "/:id/exceptions/bulk",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  createBulkExceptions,
+);
+
+// Get exceptions for timetable
+router.get(
+  "/:id/exceptions",
+  auth,
+  role("TEACHER", "STUDENT"),
+  collegeMiddleware,
+  getExceptions,
+);
+
+// Update exception
+router.put(
+  "/exceptions/:exceptionId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  updateException,
+);
+
+// Delete exception
+router.delete(
+  "/exceptions/:exceptionId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  deleteException,
+);
+
+// Approve exception
+router.put(
+  "/exceptions/:exceptionId/approve",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  approveException,
+);
+
+// Reject exception
+router.put(
+  "/exceptions/:exceptionId/reject",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  rejectException,
 );
 
 module.exports = router;
