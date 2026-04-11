@@ -1,6 +1,6 @@
-@import './assets/styles/global.css';
-@import './assets/styles/responsive.css';
-@import './assets/styles/animations.css';
+@import "./assets/styles/global.css";
+@import "./assets/styles/responsive.css";
+@import "./assets/styles/animations.css";
 
 /* =====================================================
    BASE STYLES - Mobile First
@@ -41,7 +41,7 @@ body {
     margin-left: var(--sidebar-width);
     width: calc(100% - var(--sidebar-width));
   }
-  
+
   /* Collapsed sidebar state */
   .main-content.with-sidebar.sidebar-collapsed {
     margin-left: 80px;
@@ -55,7 +55,7 @@ body {
     margin-left: 0 !important;
     width: 100% !important;
   }
-  
+
   .main-content.with-sidebar.sidebar-collapsed {
     margin-left: 0 !important;
     width: 100% !important;
@@ -64,12 +64,16 @@ body {
 
 /* Fix: Prevent content jump when sidebar toggles */
 .main-content.sidebar-transitioning {
-  transition: margin-left 0.3s ease, width 0.3s ease;
+  transition:
+    margin-left 0.3s ease,
+    width 0.3s ease;
 }
 
 /* Smooth transition for collapsed state */
 .main-content.with-sidebar {
-  transition: margin-left 0.3s ease, width 0.3s ease;
+  transition:
+    margin-left 0.3s ease,
+    width 0.3s ease;
 }
 
 /* =====================================================
@@ -244,7 +248,9 @@ body {
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity var(--transition-base), visibility var(--transition-base);
+  transition:
+    opacity var(--transition-base),
+    visibility var(--transition-base);
 }
 
 .scroll-to-top--visible {
@@ -406,4 +412,55 @@ body {
 
 .skip-link:focus {
   top: 0;
+}
+
+/* =====================================================
+   MOBILE SELECT DROPDOWN FIX
+   Prevent select dropdowns from overflowing viewport
+   ===================================================== */
+@media (max-width: 767.98px) {
+  /* Fix native select dropdown overflow */
+  select {
+    max-width: 100vw !important;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Ensure wrapper containers don't cause overflow */
+  .filter-wrapper,
+  .search-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure filter bar allows dropdown to show */
+  .filter-bar {
+    overflow: visible !important;
+  }
+
+  /* Custom select mobile fix */
+  .custom-select-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* Global fix for all select elements */
+select {
+  box-sizing: border-box;
+}
+
+/* Custom select dropdown fixes */
+.custom-select-wrapper {
+  position: relative;
+}
+
+/* Ensure dropdown menus appear on mobile */
+@media (max-width: 767.98px) {
+  .custom-select-menu {
+    position: fixed !important;
+    z-index: 99999 !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
 }

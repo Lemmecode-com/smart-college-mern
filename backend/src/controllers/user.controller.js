@@ -3,6 +3,7 @@ const Teacher = require("../models/teacher.model");
 const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const auditLogService = require("../services/auditLog.service");
 
 /**
  * Deactivate a user (COLLEGE_ADMIN only)
@@ -23,7 +24,7 @@ exports.deactivateUser = async (req, res, next) => {
       throw new AppError(
         "You cannot deactivate your own account",
         400,
-        "CANNOT_DEACTIVATE_SELF"
+        "CANNOT_DEACTIVATE_SELF",
       );
     }
 
@@ -39,7 +40,11 @@ exports.deactivateUser = async (req, res, next) => {
 
     // Already deactivated
     if (!user.isActive) {
-      throw new AppError("User is already deactivated", 400, "USER_ALREADY_DEACTIVATED");
+      throw new AppError(
+        "User is already deactivated",
+        400,
+        "USER_ALREADY_DEACTIVATED",
+      );
     }
 
     // Deactivate the user
@@ -47,26 +52,49 @@ exports.deactivateUser = async (req, res, next) => {
     await user.save();
 
     // If the user is a TEACHER, also update the Teacher model
+    let teacherData = null;
     if (user.role === "TEACHER") {
-      await Teacher.findOneAndUpdate(
+      teacherData = await Teacher.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "INACTIVE" }
+        { status: "INACTIVE" },
+        { new: true },
       );
     }
 
     // If the user is a STUDENT, also update the Student model
+    let studentData = null;
     if (user.role === "STUDENT") {
-      await Student.findOneAndUpdate(
+      studentData = await Student.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "DEACTIVATED" }
+        { status: "DEACTIVATED" },
+        { new: true },
       );
     }
 
-    ApiResponse.success(res, {
-      userId: user._id,
-      role: user.role,
-      isActive: false
-    }, "User deactivated successfully");
+    // 📝 Audit log - User deactivation
+    const resourceType =
+      user.role === "STUDENT"
+        ? "Student"
+        : user.role === "TEACHER"
+          ? "Teacher"
+          : "User";
+    const entityData = studentData || teacherData || user;
+    auditLogService
+      .logUserDeactivate(req.user, user, req, {
+        resourceType,
+        name: studentData?.fullName || teacherData?.name || user.email,
+      })
+      .catch((err) => console.error("Audit log failed:", err));
+
+    ApiResponse.success(
+      res,
+      {
+        userId: user._id,
+        role: user.role,
+        isActive: false,
+      },
+      "User deactivated successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -104,26 +132,49 @@ exports.reactivateUser = async (req, res, next) => {
     await user.save();
 
     // If the user is a TEACHER, also update the Teacher model
+    let teacherData = null;
     if (user.role === "TEACHER") {
-      await Teacher.findOneAndUpdate(
+      teacherData = await Teacher.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "ACTIVE" }
+        { status: "ACTIVE" },
+        { new: true },
       );
     }
 
     // If the user is a STUDENT, also update the Student model
+    let studentData = null;
     if (user.role === "STUDENT") {
-      await Student.findOneAndUpdate(
+      studentData = await Student.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "APPROVED" }
+        { status: "APPROVED" },
+        { new: true },
       );
     }
 
-    ApiResponse.success(res, {
-      userId: user._id,
-      role: user.role,
-      isActive: true
-    }, "User reactivated successfully");
+    // 📝 Audit log - User reactivation
+    const resourceType =
+      user.role === "STUDENT"
+        ? "Student"
+        : user.role === "TEACHER"
+          ? "Teacher"
+          : "User";
+    const entityData = studentData || teacherData || user;
+    auditLogService
+      .logUserReactivate(req.user, user, req, {
+        resourceType,
+        name: studentData?.fullName || teacherData?.name || user.email,
+      })
+      .catch((err) => console.error("Audit log failed:", err));
+
+    ApiResponse.success(
+      res,
+      {
+        userId: user._id,
+        role: user.role,
+        isActive: true,
+      },
+      "User reactivated successfully",
+    );
   } catch (error) {
     next(error);
   }

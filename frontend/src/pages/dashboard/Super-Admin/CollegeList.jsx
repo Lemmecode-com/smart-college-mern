@@ -35,6 +35,7 @@ import {
   FaListOl,
   FaFileExcel,
   FaFilePdf,
+  FaChevronLeft,
 } from "react-icons/fa";
 
 const ITEMS_PER_PAGE = 10;

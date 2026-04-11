@@ -10,6 +10,7 @@ const {
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
+const auditLogService = require("../services/auditLog.service");
 
 exports.approveStudent = async (req, res, next) => {
   try {
@@ -158,6 +159,11 @@ exports.approveStudent = async (req, res, next) => {
     student.approvedBy = req.user.id;
     student.approvedAt = new Date();
     await student.save();
+
+    // 📝 Audit log - Student approval
+    auditLogService
+      .logStudentApproval(student, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
 
     // 📧 Send admission approval email (non-blocking)
     (async () => {
@@ -409,6 +415,17 @@ exports.bulkApproveStudents = async (req, res, next) => {
       }
     }
 
+    // 📝 Audit log - Bulk student approval
+    auditLogService
+      .logBulkStudentApproval(
+        req.college_id,
+        req.user,
+        req,
+        results.approved.length,
+        results.failed.length,
+      )
+      .catch((err) => console.error("Audit log failed:", err));
+
     res.json({
       message: `Bulk approval done: ${results.approved.length} approved, ${results.failed.length} failed`,
       approved: results.approved,
@@ -454,6 +471,11 @@ exports.rejectStudent = async (req, res, next) => {
     student.canReapply = allowReapply !== false; // Default to true
 
     await student.save();
+
+    // 📝 Audit log - Student rejection
+    auditLogService
+      .logStudentRejection(student, req.user, req, reason)
+      .catch((err) => console.error("Audit log failed:", err));
 
     // 📧 Send rejection email (non-blocking)
     (async () => {
