@@ -276,9 +276,11 @@ export default function NotificationCard({
               }}
               disabled={isDeleting}
               style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
+                minWidth: "44px",
+                minHeight: "44px",
+                width: "44px",
+                height: "44px",
+                borderRadius: "10px",
                 border: "none",
                 backgroundColor: "#3b82f6",
                 color: "white",
@@ -290,7 +292,7 @@ export default function NotificationCard({
               }}
               title="Edit notification"
             >
-              <FaEdit size={12} />
+              <FaEdit size={14} />
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -301,9 +303,11 @@ export default function NotificationCard({
               }}
               disabled={isDeleting}
               style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
+                minWidth: "44px",
+                minHeight: "44px",
+                width: "44px",
+                height: "44px",
+                borderRadius: "10px",
                 border: "none",
                 backgroundColor: "#dc2626",
                 color: "white",
@@ -341,7 +345,9 @@ export default function NotificationCard({
             lineHeight: 1.4,
             overflow: "hidden",
             textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
           }}
         >
           {note.title}
