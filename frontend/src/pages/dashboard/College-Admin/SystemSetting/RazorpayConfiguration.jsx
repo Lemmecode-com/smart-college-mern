@@ -99,10 +99,10 @@ const RazorpayConfiguration = () => {
   };
 
   const validateKeys = () => {
-    const { keyId, keySecret, testMode } = formData;
+    const { keyId, keySecret, webhookSecret, testMode } = formData;
 
-    if (!keyId || !keySecret) {
-      toast.error("Key ID and Secret Key are required");
+    if (!keyId || !keySecret || !webhookSecret) {
+      toast.error("Key ID, Secret Key, and Webhook Secret are required");
       return false;
     }
 
@@ -387,7 +387,10 @@ const RazorpayConfiguration = () => {
 
           {/* Webhook Secret */}
           <div className="mb-3">
-            <label className="form-label fw-semibold">Webhook Secret</label>
+            <label className="form-label fw-semibold">
+              Webhook Secret
+              <span className="text-danger ms-1">*</span>
+            </label>
             <div className="input-group">
               <input
                 type={showWebhookSecret ? "text" : "password"}
@@ -395,8 +398,9 @@ const RazorpayConfiguration = () => {
                 name="webhookSecret"
                 value={formData.webhookSecret}
                 onChange={handleInputChange}
-                placeholder="Enter webhook secret (optional)"
+                placeholder="Enter webhook secret (required)"
                 disabled={saving}
+                required
               />
               <button
                 className="btn btn-outline-secondary"
