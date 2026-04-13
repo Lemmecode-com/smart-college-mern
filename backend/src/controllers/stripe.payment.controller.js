@@ -132,6 +132,15 @@ exports.createCheckoutSession = async (req, res, next) => {
     // ✅ Step 4: Get college-specific Stripe instance
     const stripe = await getStripeInstance(collegeId);
 
+    // ✅ Step 4.5: Validate FRONTEND_URL for payment redirects
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      throw new Error(
+        "FRONTEND_URL is required for Stripe payment redirects. " +
+          "Set it in your .env file before processing payments.",
+      );
+    }
+
     // ✅ Step 5: Create Stripe checkout session with college's Stripe account
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -148,8 +157,8 @@ exports.createCheckoutSession = async (req, res, next) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/student/payment-cancel`,
+      success_url: `${frontendUrl}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/student/payment-cancel`,
       metadata: {
         studentId: student._id.toString(),
         collegeId: collegeId.toString(),
