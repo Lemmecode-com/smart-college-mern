@@ -228,21 +228,80 @@ async function handlePaymentCaptured(payload, collegeId) {
     return;
   }
 
-  // 🔒 DUPLICATE PROTECTION - Layer 1: Check if already marked PAID
+  // 🔒 IDEMPOTENCY: Layer 1 - Check if already marked PAID
   if (installment.status === "PAID") {
-    logger.logWarning("Installment already paid - skipping duplicate webhook", {
-      installmentId: installment._id,
-      orderId: order.entity.id,
-      paymentId: payment.entity.id,
-    });
+    logger.logWarning(
+      "⚠️ Installment already paid - checking if receipt email was sent",
+      {
+        installmentId: installment._id,
+        orderId: order.entity.id,
+        paymentId: payment.entity.id,
+      },
+    );
+
+    // 📧 WEBHOOK PRIMARY: Ensure receipt email is sent (even if already paid)
+    if (!installment.receiptEmailSentAt) {
+      try {
+        const student = await Student.findById(studentFee.student_id).select(
+          "email fullName",
+        );
+
+        if (student) {
+          await sendPaymentReceiptEmail({
+            to: student.email,
+            studentName: student.fullName,
+            installment: {
+              name: installment.name,
+              amount: installment.amount,
+              paidAt: installment.paidAt,
+              transactionId: installment.transactionId,
+            },
+            totalFee: studentFee.totalFee,
+            paidAmount: studentFee.paidAmount,
+            remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+          });
+
+          // Mark email as sent
+          await StudentFee.updateOne(
+            {
+              _id: studentFee._id,
+              "installments._id": installment._id,
+            },
+            {
+              $set: {
+                "installments.$.receiptEmailSentAt": new Date(),
+              },
+            },
+          );
+
+          logger.logInfo("✅ Receipt email sent (already paid case)", {
+            to: student.email,
+            installmentId: installment._id,
+          });
+        }
+      } catch (emailError) {
+        logger.logWarning(
+          "⚠️ Failed to send receipt email (already paid case)",
+          {
+            error: emailError.message,
+            installmentId: installment._id,
+          },
+        );
+      }
+    } else {
+      logger.logInfo("ℹ️ Receipt email already sent - skipping", {
+        installmentId: installment._id,
+        emailSentAt: installment.receiptEmailSentAt,
+      });
+    }
+
     return;
   }
 
-  // 🔒 DUPLICATE PROTECTION - Layer 2: Check if this exact Razorpay payment was already processed
-  // This is the explicit duplicate check (same pattern as Stripe's stripeSessionId check)
+  // 🔒 IDEMPOTENCY: Layer 2 - Check if this exact Razorpay payment was already processed
   if (installment.razorpayPaymentId === payment.entity.id) {
     logger.logWarning(
-      "Webhook already processed (duplicate razorpayPaymentId) - skipping",
+      "⚠️ Webhook already processed (duplicate razorpayPaymentId) - skipping",
       {
         installmentId: installment._id,
         razorpayPaymentId: payment.entity.id,
@@ -251,10 +310,10 @@ async function handlePaymentCaptured(payload, collegeId) {
     return;
   }
 
-  // 🔒 DUPLICATE PROTECTION - Layer 3: Legacy fallback - check transactionId
+  // 🔒 IDEMPOTENCY: Layer 3 - Legacy fallback - check transactionId
   if (installment.transactionId === payment.entity.id) {
     logger.logWarning(
-      "Webhook already processed (duplicate transactionId) - skipping",
+      "⚠️ Webhook already processed (duplicate transactionId) - skipping",
       {
         installmentId: installment._id,
         transactionId: payment.entity.id,
@@ -263,57 +322,97 @@ async function handlePaymentCaptured(payload, collegeId) {
     return;
   }
 
-  // ✅ Update installment status
-  installment.status = "PAID";
-  installment.paidAt = new Date();
-  installment.transactionId = payment.entity.id;
-  installment.paymentGateway = "RAZORPAY";
-  installment.razorpayOrderId = order.entity.id;
-  installment.razorpayPaymentId = payment.entity.id;
+  // 🔒 IDEMPOTENCY: Atomic update to prevent race conditions
+  // Only update if status is still PENDING (handles concurrent webhook calls)
+  const updateResult = await StudentFee.updateOne(
+    {
+      _id: studentFee._id,
+      "installments._id": installment._id,
+      "installments.status": "PENDING", // ← Atomic condition
+      "installments.razorpayPaymentId": { $ne: payment.entity.id }, // ← Prevent duplicate payment ID
+    },
+    {
+      $set: {
+        "installments.$.status": "PAID",
+        "installments.$.paidAt": new Date(),
+        "installments.$.transactionId": payment.entity.id,
+        "installments.$.paymentGateway": "RAZORPAY",
+        "installments.$.razorpayOrderId": order.entity.id,
+        "installments.$.razorpayPaymentId": payment.entity.id,
+      },
+    },
+  );
 
-  // 🔒 Recalculate paidAmount from all PAID installments (source of truth)
-  // This ensures consistency even if previous calculations were incorrect
-  studentFee.paidAmount = studentFee.installments
-    .filter((i) => i.status === "PAID")
-    .reduce((sum, i) => sum + i.amount, 0);
-
-  await studentFee.save();
-
-  logger.logInfo("Payment recorded successfully", {
+  logger.logInfo("🔒 Atomic webhook update completed", {
     installmentId: installment._id,
     orderId: order.entity.id,
     paymentId: payment.entity.id,
-    paidAmount: studentFee.paidAmount,
-    remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    matchedCount: updateResult.matchedCount,
+    modifiedCount: updateResult.modifiedCount,
   });
 
-  // 📧 Send receipt email
+  // If no documents matched, another webhook already processed this
+  if (updateResult.matchedCount === 0) {
+    logger.logWarning("⚠️ Webhook race condition prevented", {
+      installmentId: installment._id,
+      orderId: order.entity.id,
+      paymentId: payment.entity.id,
+    });
+    return; // Exit silently - already processed
+  }
+
+  logger.logInfo("✅ Payment recorded atomically via webhook", {
+    installmentId: installment._id,
+    orderId: order.entity.id,
+    paymentId: payment.entity.id,
+  });
+
+  // 📧 WEBHOOK PRIMARY: Send receipt email (source of truth)
   try {
     const student = await Student.findById(studentFee.student_id).select(
       "email fullName",
     );
 
-    if (student) {
+    if (student && !installment.receiptEmailSentAt) {
       await sendPaymentReceiptEmail({
         to: student.email,
         studentName: student.fullName,
         installment: {
           name: installment.name,
           amount: installment.amount,
-          paidAt: installment.paidAt,
-          transactionId: installment.transactionId,
+          paidAt: new Date(),
+          transactionId: payment.entity.id,
         },
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       });
-      logger.logInfo("Receipt email sent successfully", {
+
+      // Mark email as sent in database
+      await StudentFee.updateOne(
+        {
+          _id: studentFee._id,
+          "installments._id": installment._id,
+        },
+        {
+          $set: {
+            "installments.$.receiptEmailSentAt": new Date(),
+          },
+        },
+      );
+
+      logger.logInfo("✅ Receipt email sent by webhook (primary)", {
         to: student.email,
         installmentId: installment._id,
       });
+    } else if (installment.receiptEmailSentAt) {
+      logger.logInfo("ℹ️ Receipt email already sent - skipping", {
+        installmentId: installment._id,
+        emailSentAt: installment.receiptEmailSentAt,
+      });
     }
   } catch (emailError) {
-    logger.logError("Failed to send receipt email", {
+    logger.logError("⚠️ Failed to send receipt email", {
       error: emailError.message,
       installmentId: installment._id,
     });
