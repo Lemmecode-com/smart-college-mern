@@ -11,6 +11,7 @@ const {
   sendPaymentFailureEmail,
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
+const logger = require("../utils/logger");
 
 /**
  * Create Stripe checkout session using college-specific Stripe configuration
@@ -23,24 +24,25 @@ exports.createCheckoutSession = async (req, res, next) => {
     const collegeId = req.college_id;
     const { installmentName } = req.body;
 
-    console.log("🔵 [Stripe Payment] Creating checkout session");
-    console.log("   - userId from JWT:", userId);
-    console.log("   - collegeId:", collegeId);
-    console.log("   - installmentName:", installmentName);
+    logger.logInfo("🔵 [Stripe Payment] Creating checkout session", {
+      userId,
+      collegeId,
+      installmentName,
+    });
 
     // ✅ Step 1: Find student by user_id
     const student = await Student.findOne({
       user_id: userId,
     });
 
-    console.log("🟢 Student lookup result:", student ? "FOUND" : "NOT FOUND");
-    if (student) {
-      console.log("   - student._id:", student._id);
-      console.log("   - student.fullName:", student.fullName);
-    }
+    logger.logInfo("🟢 Student lookup result", {
+      found: !!student,
+      studentId: student?._id,
+      fullName: student?.fullName,
+    });
 
     if (!student) {
-      console.error("❌ Student not found for user_id:", userId);
+      logger.logError("❌ Student not found", { userId });
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
@@ -49,17 +51,14 @@ exports.createCheckoutSession = async (req, res, next) => {
       student_id: student._id,
     });
 
-    console.log(
-      "🟢 StudentFee lookup result:",
-      studentFee ? "FOUND" : "NOT FOUND",
-    );
-    if (studentFee) {
-      console.log("   - totalFee:", studentFee.totalFee);
-      console.log("   - installments count:", studentFee.installments.length);
-    }
+    logger.logInfo("🟢 StudentFee lookup result", {
+      found: !!studentFee,
+      totalFee: studentFee?.totalFee,
+      installmentsCount: studentFee?.installments?.length,
+    });
 
     if (!studentFee) {
-      console.error("❌ StudentFee not found for student._id:", student._id);
+      logger.logError("❌ StudentFee not found", { studentId: student._id });
       throw new AppError(
         "Student fee record not found",
         404,
@@ -72,23 +71,20 @@ exports.createCheckoutSession = async (req, res, next) => {
       (i) => i.name === installmentName && i.status === "PENDING",
     );
 
-    console.log(
-      "🟢 Installment lookup result:",
-      installment ? "FOUND" : "NOT FOUND",
-    );
-    if (installment) {
-      console.log("   - name:", installment.name);
-      console.log("   - amount:", installment.amount);
-      console.log("   - status:", installment.status);
-    } else {
-      console.error("❌ Installment not found. Name:", installmentName);
-      console.error(
-        "   - Available installments:",
-        studentFee.installments.map((i) => ({
+    logger.logInfo("🟢 Installment lookup result", {
+      found: !!installment,
+      name: installment?.name,
+      amount: installment?.amount,
+      status: installment?.status,
+    });
+    if (!installment) {
+      logger.logError("❌ Installment not found", {
+        installmentName,
+        availableInstallments: studentFee.installments.map((i) => ({
           name: i.name,
           status: i.status,
         })),
-      );
+      });
     }
 
     if (!installment) {
@@ -112,19 +108,24 @@ exports.createCheckoutSession = async (req, res, next) => {
 
         if (existingSession.status === "open") {
           // Session still active but we can't get the URL, so we'll create a new one
-          console.log(
+          logger.logInfo(
             "🟡 Found existing session (status: open) but creating new one (URL not available on retrieve)",
+            { sessionId: installment.stripeSessionId },
           );
         } else if (existingSession.status === "complete") {
           // Session was completed - this shouldn't happen for PENDING installments
-          console.log(
+          logger.logInfo(
             "🟡 Session already completed, but installment still shows PENDING - will create new session",
+            { sessionId: installment.stripeSessionId },
           );
         }
       } catch (error) {
         // Session not found or expired, continue with new session
-        console.log(
+        logger.logInfo(
           "🟡 Creating new session - previous one expired or invalid",
+          {
+            previousSessionId: installment.stripeSessionId,
+          },
         );
       }
     }
@@ -141,32 +142,56 @@ exports.createCheckoutSession = async (req, res, next) => {
       );
     }
 
+    // 🔒 IDEMPOTENCY: Generate unique key to prevent duplicate sessions
+    // Format: stripe_checkout_{studentId}_{installmentId}_{hourTimestamp}
+    // Hour-based timestamp ensures new session each hour while preventing duplicates within same hour
+    const hourTimestamp = Math.floor(Date.now() / (60 * 60 * 1000));
+    const idempotencyKey = `stripe_checkout_${student._id}_${installment._id}_${hourTimestamp}`;
+
+    logger.logInfo("🔒 Generated idempotency key for Stripe session", {
+      studentId: student._id,
+      installmentId: installment._id,
+      idempotencyKey,
+    });
+
     // ✅ Step 5: Create Stripe checkout session with college's Stripe account
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "inr",
-            product_data: {
-              name: `College Fee - ${installment.name}`,
+    // IDEMPOTENCY: Pass idempotency key as second parameter to prevent duplicate charges
+    const session = await stripe.checkout.sessions.create(
+      {
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "inr",
+              product_data: {
+                name: `College Fee - ${installment.name}`,
+              },
+              unit_amount: installment.amount * 100, // Amount in paise
             },
-            unit_amount: installment.amount * 100, // Amount in paise
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        success_url: `${frontendUrl}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${frontendUrl}/student/payment-cancel`,
+        metadata: {
+          studentId: student._id.toString(),
+          collegeId: collegeId.toString(),
+          installmentName,
+          studentFeeId: studentFee._id.toString(),
+          installmentId: installment._id.toString(),
         },
-      ],
-      success_url: `${frontendUrl}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/student/payment-cancel`,
-      metadata: {
-        studentId: student._id.toString(),
-        collegeId: collegeId.toString(),
-        installmentName,
-        studentFeeId: studentFee._id.toString(),
-        installmentId: installment._id.toString(),
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 60, // Session expires in 1 hour
       },
-      expires_at: Math.floor(Date.now() / 1000) + 60 * 60, // Session expires in 1 hour
+      {
+        idempotencyKey: idempotencyKey, // ← Prevents duplicate session creation
+      },
+    );
+
+    logger.logInfo("✅ Stripe checkout session created", {
+      sessionId: session.id,
+      idempotencyKey,
+      studentId: student._id,
     });
 
     // 🔒 RECOVERY: Store session ID for tracking
@@ -219,7 +244,7 @@ exports.createCheckoutSession = async (req, res, next) => {
  */
 exports.confirmStripePayment = async (req, res, next) => {
   try {
-    const userId = req.user.id; // This is User._id
+    const userId = req.user.id;
     const collegeId = req.college_id;
     const { sessionId } = req.body;
 
@@ -227,31 +252,62 @@ exports.confirmStripePayment = async (req, res, next) => {
       throw new AppError("Session ID is required", 400, "SESSION_ID_REQUIRED");
     }
 
+    logger.logInfo("🔵 Confirming Stripe payment", {
+      userId,
+      collegeId,
+      sessionId,
+    });
+
     // Get college-specific Stripe instance
     const stripe = await getStripeInstance(collegeId);
 
-    // Retrieve Stripe session
+    // ✅ Step 1: Retrieve and verify Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
+      logger.logWarning("⚠️ Payment not completed", {
+        sessionId,
+        paymentStatus: session.payment_status,
+      });
       throw new AppError("Payment not completed", 400, "PAYMENT_NOT_COMPLETED");
     }
 
-    const { installmentName, studentFeeId } = session.metadata;
+    // 🆕 Step 2: Verify PaymentIntent actually succeeded (additional security layer)
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      session.payment_intent,
+    );
+    if (paymentIntent.status !== "succeeded") {
+      logger.logWarning("⚠️ PaymentIntent not succeeded", {
+        sessionId,
+        paymentIntentId: session.payment_intent,
+        paymentIntentStatus: paymentIntent.status,
+      });
+      throw new AppError("Payment intent not succeeded", 400, "PAYMENT_FAILED");
+    }
 
-    // ✅ Find student by user_id (don't filter by college_id)
-    const student = await Student.findOne({
-      user_id: userId,
-    });
+    const { installmentName, studentId: metadataStudentId } = session.metadata;
+
+    // 🆕 Step 3: Verify metadata matches authenticated student (prevent unauthorized access)
+    const student = await Student.findOne({ user_id: userId });
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // Find student fee record using student._id
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
-    });
+    if (metadataStudentId !== student._id.toString()) {
+      logger.logWarning(
+        "⚠️ Session metadata mismatch - possible unauthorized access",
+        {
+          userId,
+          metadataStudentId,
+          actualStudentId: student._id,
+        },
+      );
+      throw new AppError("Unauthorized", 403, "UNAUTHORIZED");
+    }
+
+    // Find student fee record
+    const studentFee = await StudentFee.findOne({ student_id: student._id });
 
     if (!studentFee) {
       throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
@@ -265,15 +321,28 @@ exports.confirmStripePayment = async (req, res, next) => {
       throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
     }
 
-    // 🔥 If already paid → just return existing data
+    // 🆕 Step 4: Check if already paid (webhook or another request processed it)
     if (installment.status === "PAID") {
+      logger.logInfo(
+        "✅ Installment already paid (processed by webhook or retry)",
+        {
+          studentId: student._id,
+          sessionId,
+          paidAt: installment.paidAt,
+        },
+      );
+
       return res.json({
+        success: true,
+        alreadyProcessed: true,
+        processedBy: installment.receiptEmailSentAt ? "webhook" : "unknown",
         installment: {
           _id: installment._id,
           name: installment.name,
           amount: installment.amount,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
+          paymentGateway: installment.paymentGateway,
           status: installment.status,
         },
         totalFee: studentFee.totalFee,
@@ -282,70 +351,103 @@ exports.confirmStripePayment = async (req, res, next) => {
       });
     }
 
-    /* =========================
-       STRIPE TRANSACTION DATA
-    ========================== */
+    // 🆕 Step 5: ATOMIC UPDATE (prevent race conditions with webhook)
+    // Only update if status is still PENDING
+    const updateResult = await StudentFee.updateOne(
+      {
+        _id: studentFee._id,
+        "installments._id": installment._id,
+        "installments.status": "PENDING",
+        "installments.stripeSessionId": { $ne: sessionId },
+      },
+      {
+        $set: {
+          "installments.$.status": "PAID",
+          "installments.$.paidAt": new Date(),
+          "installments.$.transactionId": paymentIntent.id,
+          "installments.$.paymentGateway": "STRIPE",
+          "installments.$.stripeSessionId": sessionId,
+        },
+      },
+    );
 
-    const paymentIntentId = session.payment_intent; // ✅ main transaction id
+    logger.logInfo("🔒 Atomic confirm-payment update completed", {
+      studentId: student._id,
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      sessionId,
+    });
 
-    installment.status = "PAID";
-    installment.paidAt = new Date();
-    installment.transactionId = paymentIntentId; // ✅ Store Stripe PaymentIntent
-    installment.paymentGateway = "STRIPE";
-    installment.stripeSessionId = sessionId; // optional but good practice
+    // If no documents matched, webhook already processed this
+    if (updateResult.matchedCount === 0) {
+      logger.logInfo(
+        "⚠️ Payment already processed by webhook (race condition prevented)",
+        {
+          studentId: student._id,
+          sessionId,
+        },
+      );
 
-    /* =========================
-       Recalculate paid amount
-    ========================== */
+      const latestFee = await StudentFee.findById(studentFee._id);
+      const latestInstallment = latestFee.installments.id(installment._id);
 
-    studentFee.paidAmount = studentFee.installments
-      .filter((i) => i.status === "PAID")
-      .reduce((sum, i) => sum + i.amount, 0);
+      return res.json({
+        success: true,
+        alreadyProcessed: true,
+        processedBy: "webhook",
+        installment: {
+          _id: latestInstallment._id,
+          name: latestInstallment.name,
+          amount: latestInstallment.amount,
+          paidAt: latestInstallment.paidAt,
+          transactionId: latestInstallment.transactionId,
+          paymentGateway: latestInstallment.paymentGateway,
+          status: latestInstallment.status,
+        },
+        totalFee: latestFee.totalFee,
+        paidAmount: latestFee.paidAmount,
+        remainingAmount: latestFee.totalFee - latestFee.paidAmount,
+      });
+    }
 
-    await studentFee.save();
+    // 🆕 Step 6: Payment marked as PAID by confirm-endpoint (fallback)
+    logger.logInfo(
+      "✅ Payment confirmed via endpoint (webhook not yet arrived)",
+      {
+        studentId: student._id,
+        sessionId,
+        paymentIntentId: paymentIntent.id,
+      },
+    );
 
-    // 📧 Send payment confirmation email (non-blocking)
-    (async () => {
-      try {
-        const college = await College.findById(student.college_id).select(
-          "name email",
-        );
-        const course = await Course.findById(student.course_id).select("name");
+    // 🆕 NOTE: Don't send receipt email here - webhook will send it (primary source)
+    // If webhook fails, the email won't be sent. This is acceptable because:
+    // 1. Webhook retries 3 times over 3 days
+    // 2. Admin can manually resend email from dashboard
+    // 3. Student can download receipt from payment history
+    logger.logInfo("📧 Receipt email will be sent by webhook (primary)", {
+      studentId: student._id,
+    });
 
-        await sendPaymentReceiptEmail({
-          to: student.email,
-          studentName: student.fullName,
-          installment: {
-            name: installment.name,
-            amount: installment.amount,
-            paidAt: installment.paidAt,
-            transactionId: installment.transactionId,
-          },
-          totalFee: studentFee.totalFee,
-          paidAmount: studentFee.paidAmount,
-          remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-        });
-        console.log(`✅ Payment receipt email sent to ${student.email}`);
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send payment receipt email:",
-          emailError.message,
-        );
-      }
-    })();
+    // Fetch updated data for response
+    const updatedFee = await StudentFee.findById(studentFee._id);
+    const updatedInstallment = updatedFee.installments.id(installment._id);
 
     return res.json({
+      success: true,
+      processedBy: "confirm-endpoint",
       installment: {
-        _id: installment._id,
-        name: installment.name,
-        amount: installment.amount,
-        paidAt: installment.paidAt,
-        transactionId: installment.transactionId, // ✅ RETURN IT
-        status: installment.status,
+        _id: updatedInstallment._id,
+        name: updatedInstallment.name,
+        amount: updatedInstallment.amount,
+        paidAt: updatedInstallment.paidAt,
+        transactionId: updatedInstallment.transactionId,
+        paymentGateway: updatedInstallment.paymentGateway,
+        status: updatedInstallment.status,
       },
-      totalFee: studentFee.totalFee,
-      paidAmount: studentFee.paidAmount,
-      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+      totalFee: updatedFee.totalFee,
+      paidAmount: updatedFee.paidAmount,
+      remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
     });
   } catch (error) {
     // Handle Stripe-specific errors
