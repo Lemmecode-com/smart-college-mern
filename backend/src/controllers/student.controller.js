@@ -1382,3 +1382,107 @@ exports.getDeactivatedStudents = async (req, res) => {
     next(error);
   }
 };
+
+/**
+ * GET STUDENT DOCUMENT (SECURE - prevents cross-student access)
+ * Only the document owner or college admin can access
+ */
+exports.getStudentDocument = async (req, res, next) => {
+  try {
+    const { filename } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return next(new AppError("Authentication required", 401, "UNAUTHORIZED"));
+    }
+
+    // 🔒 Path traversal protection: only allow safe filenames
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "");
+    if (cleanFilename !== filename) {
+      return next(new AppError("Invalid filename", 400, "INVALID_FILENAME"));
+    }
+
+    // Find the student who owns this document
+    const ownerStudent = await Student.findOne({
+      $or: [
+        { sscMarksheetPath: { $regex: cleanFilename } },
+        { hscMarksheetPath: { $regex: cleanFilename } },
+        { passportPhotoPath: { $regex: cleanFilename } },
+        { aadharCardPath: { $regex: cleanFilename } },
+        { categoryCertificatePath: { $regex: cleanFilename } },
+        { incomeCertificatePath: { $regex: cleanFilename } },
+        { characterCertificatePath: { $regex: cleanFilename } },
+        { transferCertificatePath: { $regex: cleanFilename } },
+        { entranceExamScorePath: { $regex: cleanFilename } },
+        { migrationCertificatePath: { $regex: cleanFilename } },
+        { domicileCertificatePath: { $regex: cleanFilename } },
+        { casteCertificatePath: { $regex: cleanFilename } },
+        { nonCreamyLayerCertificatePath: { $regex: cleanFilename } },
+        { physicallyChallengedCertificatePath: { $regex: cleanFilename } },
+        { sportsQuotaCertificatePath: { $regex: cleanFilename } },
+        { nriSponsorCertificatePath: { $regex: cleanFilename } },
+        { gapCertificatePath: { $regex: cleanFilename } },
+        { affidavitPath: { $regex: cleanFilename } },
+      ],
+    }).select("_id user_id college_id documents");
+
+    if (!ownerStudent) {
+      return next(
+        new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"),
+      );
+    }
+
+    // Also check dynamic documents Map field (safe type conversion)
+    const dynamicDocs = ownerStudent.documents
+      ? ownerStudent.documents.toObject()
+      : {};
+    const foundInDynamic = Object.values(dynamicDocs).some((docPath) => {
+      if (!docPath) return false;
+      return String(docPath).includes(cleanFilename);
+    });
+
+    // Authorization check:
+    // 1. Document owner: compare User ID (not Student ID — they're different collections)
+    const isOwner =
+      ownerStudent.user_id &&
+      ownerStudent.user_id.toString() === user.id.toString();
+    // 2. College admin from same college
+    const isCollegeAdmin =
+      user.role === "COLLEGE_ADMIN" &&
+      user.college_id &&
+      ownerStudent.college_id &&
+      user.college_id.toString() === ownerStudent.college_id.toString();
+
+    if (!isOwner && !isCollegeAdmin) {
+      return next(
+        new AppError(
+          "Not authorized to access this document",
+          403,
+          "UNAUTHORIZED",
+        ),
+      );
+    }
+
+    // Serve the file
+    const path = require("path");
+    const filePath = path.join(
+      __dirname,
+      "../../uploads/students",
+      cleanFilename,
+    );
+
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        next(
+          new AppError(
+            "Document file not found on server",
+            404,
+            "FILE_NOT_FOUND",
+          ),
+        );
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
