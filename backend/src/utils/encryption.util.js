@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const logger = require("./logger");
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16; // 16 bytes for AES
@@ -33,7 +34,7 @@ function validateMasterKey(masterKey) {
 
   // Warn if key is weak (for development only)
   if (masterKey.length < 32 && process.env.NODE_ENV === "development") {
-    console.warn(
+    logger.logWarning(
       "⚠️  [Security Warning] Encryption master key is shorter than 32 characters. " +
         "For production, use a strong random key generated with:\n" +
         "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
@@ -104,17 +105,15 @@ function encrypt(plainText, masterKey) {
     ]);
 
     const result = combined.toString("base64");
-    console.log("✅ Encryption successful");
+    logger.logInfo("✅ Encryption successful");
     return result;
   } catch (error) {
-    console.error("❌ Encryption error:", error.message);
-    console.error("   - Algorithm:", ALGORITHM);
-    console.error("   - Key length:", masterKey?.length || 0, "characters");
-    console.error(
-      "   - Plain text length:",
-      plainText?.length || 0,
-      "characters",
-    );
+    logger.logError("❌ Encryption error:", {
+      message: error.message,
+      algorithm: ALGORITHM,
+      keyLength: masterKey?.length || 0,
+      plainTextLength: plainText?.length || 0,
+    });
     throw new Error(`Encryption failed: ${error.message}`);
   }
 }
@@ -164,10 +163,13 @@ function decrypt(encryptedData, masterKey) {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
 
     const result = decrypted.toString("utf8");
-    console.log("✅ Decryption successful");
+    logger.logInfo("✅ Decryption successful");
     return result;
   } catch (error) {
-    console.error("❌ Decryption error:", error.message);
+    logger.logError("❌ Decryption error:", {
+      message: error.message,
+      algorithm: ALGORITHM,
+    });
     if (error.message.includes("authTag") || error.message.includes("state")) {
       throw new Error(
         "Decryption failed: Data may be corrupted, tampered, or encrypted with a different key.",
@@ -227,7 +229,7 @@ function encryptWebhookSecret(webhookSecret) {
   }
 
   if (!webhookSecret.startsWith("whsec_")) {
-    console.warn(
+    logger.logWarning(
       "⚠️  Webhook secret doesn't start with 'whsec_'. Ensure this is a valid Stripe webhook secret.",
     );
   }
@@ -278,16 +280,18 @@ function testEncryptionRoundTrip(testValue = "test-encryption-value") {
     const decrypted = decrypt(encrypted, masterKey);
 
     if (decrypted === testValue) {
-      console.log("✅ Encryption round-trip test PASSED");
+      logger.logInfo("✅ Encryption round-trip test PASSED");
       return true;
     } else {
-      console.error(
+      logger.logError(
         "❌ Encryption round-trip test FAILED: Decrypted value doesn't match",
       );
       return false;
     }
   } catch (error) {
-    console.error("❌ Encryption round-trip test FAILED:", error.message);
+    logger.logError("❌ Encryption round-trip test FAILED:", {
+      message: error.message,
+    });
     return false;
   }
 }
