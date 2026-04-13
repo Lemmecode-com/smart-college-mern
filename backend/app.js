@@ -143,8 +143,11 @@ app.use("/api/public", require("./src/routes/public.department.course.routes"));
 /* ================= DOCUMENT CONFIGURATION ================= */
 app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 
-/* ================= STATIC FILES ================= */
-app.use("/uploads", express.static("uploads"));
+/* ================= STATIC FILES (PROTECTED) ================= */
+// Only serve college QR codes publicly (safe — just college code)
+// Student documents are served via secure API endpoint /api/students/documents/:filename
+app.use("/uploads/college-qrs", express.static("uploads/college-qrs"));
+// NOTE: /uploads/students/ is NOT served statically — it's protected by the secure API endpoint
 
 /* ================= HEALTH CHECK ROUTE ================= */
 // Health check endpoint (must be before 404 handler)
