@@ -1,6 +1,6 @@
 /**
  * DATE-DAY MAPPING UTILITIES
- * 
+ *
  * Purpose:
  * - Calculate all dates for a specific day (MON, TUE, etc.) in a date range
  * - Validate if a date matches a day (e.g., is Feb 17 a Monday?)
@@ -14,7 +14,7 @@
  * @returns {string} Day name (MON, TUE, WED, THU, FRI, SAT, SUN)
  */
 exports.getDayName = (date) => {
-  const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const d = new Date(date);
   return days[d.getDay()];
 };
@@ -26,7 +26,7 @@ exports.getDayName = (date) => {
  * @returns {boolean} True if date matches day
  */
 exports.isDateMatchesDay = (date, dayName) => {
-  const actualDay = this.getDayName(date);
+  const actualDay = exports.getDayName(date);
   return actualDay === dayName;
 };
 
@@ -43,7 +43,7 @@ exports.getAllDatesForDay = (dayName, startDate, endDate) => {
   const end = new Date(endDate);
 
   while (current <= end) {
-    if (this.getDayName(current) === dayName) {
+    if (exports.getDayName(current) === dayName) {
       dates.push(new Date(current));
     }
     current.setDate(current.getDate() + 1);
@@ -59,12 +59,12 @@ exports.getAllDatesForDay = (dayName, startDate, endDate) => {
  * @returns {{start: Date, end: Date}} Date range
  */
 exports.getSemesterDateRange = (academicYear, semester) => {
-  const [startYear] = academicYear.split('-').map(Number);
-  
+  const [startYear] = academicYear.split("-").map(Number);
+
   // Assuming semester starts:
   // Odd semesters (1, 3, 5, 7): August
   // Even semesters (2, 4, 6, 8): January
-  
+
   let startMonth;
   if (semester % 2 === 1) {
     // Odd semester - August
@@ -75,7 +75,7 @@ exports.getSemesterDateRange = (academicYear, semester) => {
   }
 
   const startDate = new Date(startYear, startMonth, 1);
-  
+
   // End date: 6 months later
   const endDate = new Date(startYear, startMonth + 6, 30);
 
@@ -106,10 +106,10 @@ exports.isFutureDate = (date, daysAhead = 7) => {
   today.setHours(0, 0, 0, 0);
   const checkDate = new Date(date);
   checkDate.setHours(0, 0, 0, 0);
-  
+
   const maxDate = new Date(today);
   maxDate.setDate(maxDate.getDate() + daysAhead);
-  
+
   return checkDate > maxDate;
 };
 
@@ -134,8 +134,8 @@ exports.isToday = (date) => {
  * @returns {Date[]} Array of valid dates
  */
 exports.getValidDatesForSlot = (dayName, academicYear, semester) => {
-  const { start, end } = this.getSemesterDateRange(academicYear, semester);
-  return this.getAllDatesForDay(dayName, start, end);
+  const { start, end } = exports.getSemesterDateRange(academicYear, semester);
+  return exports.getAllDatesForDay(dayName, start, end);
 };
 
 /**
@@ -144,7 +144,7 @@ exports.getValidDatesForSlot = (dayName, academicYear, semester) => {
  * @returns {string} ISO date string
  */
 exports.formatDate = (date) => {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
 /**
