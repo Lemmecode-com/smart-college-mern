@@ -3,7 +3,12 @@ const path = require("path");
 const fs = require("fs");
 
 exports.generateCollegeQR = async (collegeCode) => {
-  const baseUrl = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
+  const baseUrl = process.env.FRONTEND_URL;
+  if (!baseUrl) {
+    throw new Error(
+      "FRONTEND_URL environment variable is required for QR code generation",
+    );
+  }
   const registrationUrl = `${baseUrl}/register/${collegeCode}`;
 
   const qrDir = path.join(__dirname, "../../uploads/college-qrs");
@@ -18,6 +23,6 @@ exports.generateCollegeQR = async (collegeCode) => {
 
   return {
     registrationUrl,
-    registrationQr: `uploads/college-qrs/${collegeCode}.png`
+    registrationQr: `uploads/college-qrs/${collegeCode}.png`,
   };
 };
