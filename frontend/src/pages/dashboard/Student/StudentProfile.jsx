@@ -38,12 +38,12 @@ import {
   FaDownload,
   FaPrint,
   FaExclamationTriangle,
-  FaFileAlt, // ✅ VALID: Generic file
-  FaFilePdf, // ✅ VALID: PDF document (REPLACES FaFileCertificate)
-  FaFileInvoice, // ✅ VALID
-  FaFileMedical, // ✅ VALID
-  FaFileSignature, // ✅ VALID
-  FaCertificate, // ✅ VALID: Standalone certificate icon
+  FaFileAlt, // VALID: Generic file
+  FaFilePdf, // VALID: PDF document (REPLACES FaFileCertificate)
+  FaFileInvoice, // VALID
+  FaFileMedical, // VALID
+  FaFileSignature, // VALID
+  FaCertificate, // VALID: Standalone certificate icon
 } from "react-icons/fa";
 
 export default function StudentProfile() {
@@ -1886,23 +1886,17 @@ function DocumentCard({
   };
 
   // Get base URL from environment variable
-  const baseUrl =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error("VITE_API_BASE_URL environment variable is required");
+  }
 
-  // Construct document URL properly
-  // Backend serves static files at /uploads (NOT /api/uploads)
-  // Backend returns: "uploads/filename.pdf"
-  // We need: "http://localhost:5000/uploads/filename.pdf"
+  // Construct SECURE document URL via API endpoint (authorization enforced)
+  // Returns: "http://localhost:5000/api/students/documents/filename.pdf"
   const documentUrl = filePath
     ? (() => {
-        // Get server root URL (remove /api if present)
-        let serverUrl = baseUrl.replace(/\/api\/?$/, "");
-        // Ensure filePath starts with /uploads/
-        let cleanPath = filePath.startsWith("/") ? filePath : "/" + filePath;
-        if (!cleanPath.startsWith("/uploads")) {
-          cleanPath = "/uploads/" + cleanPath;
-        }
-        return serverUrl + cleanPath;
+        const fileName = filePath.split("/").pop(); // Extract just the filename
+        return `${baseUrl}/students/documents/${fileName}`;
       })()
     : null;
 
@@ -1925,16 +1919,22 @@ function DocumentCard({
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
       if (documentUrl && hasFile) {
+        // Fetch the file as a blob to trigger download
+        const response = await fetch(documentUrl, { credentials: "include" });
+        if (!response.ok) throw new Error("Failed to fetch document");
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+
         const link = document.createElement("a");
-        link.href = url;
+        link.href = blobUrl;
         link.setAttribute("download", file);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(blobUrl);
 
         toast.success("Document downloaded successfully!", {
           position: "top-right",

@@ -12,6 +12,7 @@ const {
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
+const logger = require("../utils/logger");
 
 /**
  * Process payment verification after installment is found
@@ -29,7 +30,10 @@ async function processPaymentVerification(
   try {
     // 🔥 If already paid → just return existing data (Layer 1)
     if (installment.status === "PAID") {
-      console.log("🟡 Installment already paid");
+      logger.logWarning("🟡 Installment already paid", {
+        studentFeeId: studentFee._id,
+        installmentId: installment._id,
+      });
       return res.json({
         valid: true,
         alreadyPaid: true,
@@ -49,7 +53,10 @@ async function processPaymentVerification(
       installment.razorpayPaymentId === razorpay_payment_id ||
       installment.transactionId === razorpay_payment_id
     ) {
-      console.log("🟡 Payment already processed (duplicate payment ID)");
+      logger.logWarning("🟡 Payment already processed (duplicate payment ID)", {
+        installmentId: installment._id,
+        razorpayPaymentId: razorpay_payment_id,
+      });
       return res.json({
         valid: true,
         alreadyPaid: true,
@@ -65,48 +72,93 @@ async function processPaymentVerification(
     }
 
     /* =========================
-       UPDATE PAYMENT STATUS
+       ATOMIC UPDATE PAYMENT STATUS (IDEMPOTENT)
+       Uses updateOne with condition to prevent race conditions
     ========================== */
 
-    installment.status = "PAID";
-    installment.paidAt = new Date();
-    installment.transactionId = razorpay_payment_id;
-    installment.paymentGateway = "RAZORPAY";
-    installment.razorpayOrderId = razorpay_order_id;
-    installment.razorpayPaymentId = razorpay_payment_id;
+    logger.logInfo("🔒 Performing atomic payment status update", {
+      studentFeeId: studentFee._id,
+      installmentId: installment._id,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+    });
+
+    // ATOMIC UPDATE: Only update if status is still PENDING (prevents race conditions)
+    const updateResult = await StudentFee.updateOne(
+      {
+        _id: studentFee._id,
+        "installments._id": installment._id,
+        "installments.status": "PENDING", // ← Only update if still PENDING
+      },
+      {
+        $set: {
+          "installments.$.status": "PAID",
+          "installments.$.paidAt": new Date(),
+          "installments.$.transactionId": razorpay_payment_id,
+          "installments.$.paymentGateway": "RAZORPAY",
+          "installments.$.razorpayOrderId": razorpay_order_id,
+          "installments.$.razorpayPaymentId": razorpay_payment_id,
+        },
+      },
+    );
+
+    logger.logInfo("✅ Atomic payment update completed", {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+    });
+
+    // Check if update was successful
+    if (updateResult.matchedCount === 0) {
+      // Installment was already paid or not found (race condition prevented)
+      logger.logWarning(
+        "⚠️ Payment update skipped - installment already paid or not found",
+        {
+          studentFeeId: studentFee._id,
+          installmentId: installment._id,
+          matchedCount: updateResult.matchedCount,
+        },
+      );
+
+      // Fetch latest data to return
+      const latestStudentFee = await StudentFee.findById(studentFee._id);
+      const latestInstallment = latestStudentFee.installments.id(
+        installment._id,
+      );
+
+      return res.json({
+        valid: true,
+        alreadyPaid: true,
+        installment: {
+          _id: latestInstallment._id,
+          name: latestInstallment.name,
+          amount: latestInstallment.amount,
+          paidAt: latestInstallment.paidAt,
+          transactionId: latestInstallment.transactionId,
+          status: latestInstallment.status,
+        },
+        totalFee: latestStudentFee.totalFee,
+        paidAmount: latestStudentFee.paidAmount,
+        remainingAmount:
+          latestStudentFee.totalFee - latestStudentFee.paidAmount,
+      });
+    }
 
     /* =========================
-       Recalculate paid amount
+       Recalculate paid amount (only after successful update)
     ========================== */
 
-    studentFee.paidAmount = studentFee.installments
+    // Fetch updated data for accurate calculation
+    const updatedStudentFee = await StudentFee.findById(studentFee._id);
+    const paidAmount = updatedStudentFee.installments
       .filter((i) => i.status === "PAID")
       .reduce((sum, i) => sum + i.amount, 0);
 
-    await studentFee.save();
-
-    console.log(`✅ Payment verified and recorded for ${student.email}`);
-    console.log("🔵 [processPaymentVerification] StudentFee values:", {
-      totalFee: studentFee.totalFee,
-      paidAmount: studentFee.paidAmount,
-      remaining: studentFee.totalFee - studentFee.paidAmount,
-      installmentsCount: studentFee.installments.length,
-      paidInstallments: studentFee.installments
-        .filter((i) => i.status === "PAID")
-        .map((i) => i.name),
-    });
-    console.log("🔵 [processPaymentVerification] Sending response:", {
-      valid: true,
-      paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      installment: {
-        _id: installment._id,
-        name: installment.name,
-        amount: installment.amount,
-      },
-      totalFee: studentFee.totalFee,
-      paidAmount: studentFee.paidAmount,
-      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    logger.logInfo("✅ Payment verified and recorded atomically", {
+      studentId: student._id,
+      studentFeeId: studentFee._id,
+      totalFee: updatedStudentFee.totalFee,
+      paidAmount: paidAmount,
+      remaining: updatedStudentFee.totalFee - paidAmount,
     });
 
     // 📧 Send payment confirmation email (non-blocking)
@@ -123,19 +175,22 @@ async function processPaymentVerification(
           installment: {
             name: installment.name,
             amount: installment.amount,
-            paidAt: installment.paidAt,
-            transactionId: installment.transactionId,
+            paidAt: new Date(),
+            transactionId: razorpay_payment_id,
           },
-          totalFee: studentFee.totalFee,
-          paidAmount: studentFee.paidAmount,
-          remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+          totalFee: updatedStudentFee.totalFee,
+          paidAmount: paidAmount,
+          remainingAmount: updatedStudentFee.totalFee - paidAmount,
         });
-        console.log(`✅ Payment receipt email sent to ${student.email}`);
+        logger.logInfo("✅ Payment receipt email sent", {
+          studentId: student._id,
+          installmentId: installment._id,
+        });
       } catch (emailError) {
-        console.error(
-          "❌ Failed to send payment receipt email:",
-          emailError.message,
-        );
+        logger.logError("❌ Failed to send payment receipt email", {
+          error: emailError.message,
+          studentId: student._id,
+        });
       }
     })();
 
@@ -147,16 +202,19 @@ async function processPaymentVerification(
         _id: installment._id,
         name: installment.name,
         amount: installment.amount,
-        paidAt: installment.paidAt,
-        transactionId: installment.transactionId,
-        status: installment.status,
+        paidAt: new Date(),
+        transactionId: razorpay_payment_id,
+        status: "PAID",
       },
-      totalFee: studentFee.totalFee,
-      paidAmount: studentFee.paidAmount,
-      remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+      totalFee: updatedStudentFee.totalFee,
+      paidAmount: paidAmount,
+      remainingAmount: updatedStudentFee.totalFee - paidAmount,
     });
   } catch (error) {
-    console.error("❌ [processPaymentVerification] Error:", error);
+    logger.logError("❌ [processPaymentVerification] Error", {
+      error: error.message,
+      errorCode: error.code,
+    });
     return next(error);
   }
 }
@@ -172,18 +230,21 @@ exports.createRazorpayOrder = async (req, res, next) => {
     const collegeId = req.college_id;
     const { installmentName } = req.body;
 
-    console.log("🔵 [Razorpay Payment] Creating order");
-    console.log("   - userId from JWT:", userId);
-    console.log("   - collegeId:", collegeId);
-    console.log("   - installmentName:", installmentName);
+    logger.logInfo("🔵 [Razorpay Payment] Creating order", {
+      userId,
+      collegeId,
+      installmentName,
+    });
 
     // ✅ VALIDATION: Ensure collegeId is present
     if (!collegeId) {
-      console.error(
-        "❌ [createRazorpayOrder] collegeId is missing from request!",
+      logger.logError(
+        "❌ [createRazorpayOrder] collegeId is missing from request",
+        {
+          userId,
+          hasReqCollege: !!req.college,
+        },
       );
-      console.error("   - req.user:", req.user);
-      console.error("   - req.college:", req.college);
       throw new AppError(
         "College information missing. Please login again or contact support.",
         400,
@@ -196,14 +257,14 @@ exports.createRazorpayOrder = async (req, res, next) => {
       user_id: userId,
     });
 
-    console.log("🟢 Student lookup result:", student ? "FOUND" : "NOT FOUND");
-    if (student) {
-      console.log("   - student._id:", student._id);
-      console.log("   - student.fullName:", student.fullName);
-    }
+    logger.logInfo("🟢 Student lookup result", {
+      found: !!student,
+      studentId: student?._id,
+      studentName: student?.fullName,
+    });
 
     if (!student) {
-      console.error("❌ Student not found for user_id:", userId);
+      logger.logError("❌ Student not found for user_id", { userId });
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
@@ -212,17 +273,14 @@ exports.createRazorpayOrder = async (req, res, next) => {
       student_id: student._id,
     });
 
-    console.log(
-      "🟢 StudentFee lookup result:",
-      studentFee ? "FOUND" : "NOT FOUND",
-    );
-    if (studentFee) {
-      console.log("   - totalFee:", studentFee.totalFee);
-      console.log("   - installments count:", studentFee.installments.length);
-    }
+    logger.logInfo("🟢 StudentFee lookup result", {
+      found: !!studentFee,
+      totalFee: studentFee?.totalFee,
+      installmentsCount: studentFee?.installments.length,
+    });
 
     if (!studentFee) {
-      console.error("❌ StudentFee not found for student._id:", student._id);
+      logger.logError("❌ StudentFee not found", { studentId: student._id });
       throw new AppError(
         "Student fee record not found",
         404,
@@ -235,23 +293,20 @@ exports.createRazorpayOrder = async (req, res, next) => {
       (i) => i.name === installmentName && i.status === "PENDING",
     );
 
-    console.log(
-      "🟢 Installment lookup result:",
-      installment ? "FOUND" : "NOT FOUND",
-    );
-    if (installment) {
-      console.log("   - name:", installment.name);
-      console.log("   - amount:", installment.amount);
-      console.log("   - status:", installment.status);
-    } else {
-      console.error("❌ Installment not found. Name:", installmentName);
-      console.error(
-        "   - Available installments:",
-        studentFee.installments.map((i) => ({
+    logger.logInfo("🟢 Installment lookup result", {
+      found: !!installment,
+      name: installment?.name,
+      amount: installment?.amount,
+      status: installment?.status,
+    });
+    if (!installment) {
+      logger.logError("❌ Installment not found", {
+        installmentName,
+        availableInstallments: studentFee.installments.map((i) => ({
           name: i.name,
           status: i.status,
         })),
-      );
+      });
     }
 
     if (!installment) {
@@ -268,14 +323,16 @@ exports.createRazorpayOrder = async (req, res, next) => {
     try {
       const razorpayConfig = await getCollegeRazorpayConfig(collegeId);
       keyId = razorpayConfig.config.credentials.keyId;
-      console.log(
-        "✅ [createRazorpayOrder] Razorpay config obtained, keyId:",
+      logger.logInfo("✅ [createRazorpayOrder] Razorpay config obtained", {
         keyId,
-      );
+      });
     } catch (configError) {
-      console.error(
-        "❌ [createRazorpayOrder] Failed to get Razorpay configuration:",
-        configError,
+      logger.logError(
+        "❌ [createRazorpayOrder] Failed to get Razorpay configuration",
+        {
+          error: configError.message,
+          errorCode: configError.code,
+        },
       );
       if (configError.code === "RAZORPAY_NOT_CONFIGURED") {
         throw new AppError(
@@ -297,8 +354,11 @@ exports.createRazorpayOrder = async (req, res, next) => {
 
         if (existingOrder.status === "created") {
           // Order still active, return existing order WITH keyId
-          console.log(
+          logger.logWarning(
             "🟡 Found existing Razorpay order (status: created), reusing",
+            {
+              orderId: existingOrder.id,
+            },
           );
           return res.json({
             orderId: existingOrder.id,
@@ -309,8 +369,12 @@ exports.createRazorpayOrder = async (req, res, next) => {
           });
         } else if (existingOrder.status === "paid") {
           // Order was completed but installment still shows PENDING
-          console.log(
+          logger.logWarning(
             "🟡 Order already completed, but installment still shows PENDING",
+            {
+              orderId: existingOrder.id,
+              installmentId: installment._id,
+            },
           );
           installment.status = "PAID";
           installment.transactionId = existingOrder.receipt;
@@ -327,26 +391,32 @@ exports.createRazorpayOrder = async (req, res, next) => {
         }
       } catch (error) {
         // Order not found or expired, continue with new order
-        console.log("🟡 Creating new order - previous one expired or invalid");
+        logger.logWarning(
+          "🟡 Creating new order - previous one expired or invalid",
+          {
+            previousOrderId: installment.razorpayOrderId,
+          },
+        );
       }
     }
 
     // ✅ Step 5: Get Razorpay instance using the config
     // (keyId already obtained above)
-    console.log("🔵 [createRazorpayOrder] About to get Razorpay instance");
+    logger.logInfo("🔵 [createRazorpayOrder] Getting Razorpay instance");
     let razorpay;
     try {
       razorpay = await getRazorpayInstance(collegeId);
-      console.log("✅ [createRazorpayOrder] Razorpay instance obtained");
+      logger.logInfo("✅ [createRazorpayOrder] Razorpay instance obtained");
     } catch (razorpayInitError) {
-      console.error(
-        "❌ [createRazorpayOrder] Failed to get Razorpay instance:",
-        razorpayInitError,
+      logger.logError(
+        "❌ [createRazorpayOrder] Failed to get Razorpay instance",
+        {
+          errorName: razorpayInitError.name,
+          error: razorpayInitError.message,
+          errorCode: razorpayInitError.code,
+          statusCode: razorpayInitError.statusCode,
+        },
       );
-      console.error("   - error.name:", razorpayInitError.name);
-      console.error("   - error.message:", razorpayInitError.message);
-      console.error("   - error.code:", razorpayInitError.code);
-      console.error("   - error.statusCode:", razorpayInitError.statusCode);
 
       if (razorpayInitError.code === "RAZORPAY_INIT_FAILED") {
         throw new AppError(
@@ -367,41 +437,42 @@ exports.createRazorpayOrder = async (req, res, next) => {
     }
 
     // ✅ Step 5: Create Razorpay order
-    console.log(
-      "🔵 [createRazorpayOrder] Creating Razorpay order with amount:",
-      installment.amount * 100,
-    );
-    console.log("   - installment._id:", installment._id);
-    console.log("   - installment.name:", installment.name);
-    console.log("   - installment.amount:", installment.amount);
-    console.log("   - collegeId:", collegeId.toString());
-    console.log("   - studentId:", student._id.toString());
+    logger.logInfo("🔵 [createRazorpayOrder] Creating Razorpay order", {
+      amountInPaise: installment.amount * 100,
+      installmentId: installment._id,
+      installmentName: installment.name,
+      amount: installment.amount,
+      collegeId: collegeId.toString(),
+      studentId: student._id.toString(),
+    });
 
     // Validate amount before creating order
     if (!installment.amount || installment.amount <= 0) {
-      console.error(
-        "❌ [createRazorpayOrder] Invalid installment amount:",
-        installment.amount,
-      );
+      logger.logError("❌ [createRazorpayOrder] Invalid installment amount", {
+        amount: installment.amount,
+      });
       throw new AppError("Invalid payment amount", 400, "INVALID_AMOUNT");
     }
 
     let order;
     try {
-      // Generate short receipt ID (max 40 chars for Razorpay limit)
-      // Format: fee_<timestamp>_<shortId> = ~35 chars
-      const shortReceipt = `fee_${Date.now()}_${installment._id.toString().slice(-8)}`;
+      // 🔒 IDEMPOTENCY: Generate unique receipt ID to prevent duplicate orders
+      // Format: fee_{studentId}_{installmentId}_{hourTimestamp}
+      // Hour-based timestamp ensures new order each hour while preventing duplicates within same hour
+      const hourTimestamp = Math.floor(Date.now() / (60 * 60 * 1000));
+      const uniqueReceiptId = `fee_${student._id.toString().slice(-6)}_${installment._id.toString().slice(-6)}_${hourTimestamp}`;
 
-      console.log(
-        "🔵 [createRazorpayOrder] Receipt ID:",
-        shortReceipt,
-        `(length: ${shortReceipt.length})`,
-      );
+      logger.logInfo("🔒 Generated idempotency key for Razorpay order", {
+        receiptId: uniqueReceiptId,
+        studentId: student._id,
+        installmentId: installment._id,
+        length: uniqueReceiptId.length,
+      });
 
       order = await razorpay.orders.create({
         amount: installment.amount * 100, // Amount in paise
         currency: "INR",
-        receipt: shortReceipt,
+        receipt: uniqueReceiptId, // ← Acts as idempotency key (Razorpay uses receipt for deduplication)
         notes: {
           studentId: student._id.toString(),
           collegeId: collegeId.toString(),
@@ -410,20 +481,21 @@ exports.createRazorpayOrder = async (req, res, next) => {
           installmentId: installment._id.toString(),
         },
       });
-      console.log("✅ [createRazorpayOrder] Razorpay order created:", order.id);
+      logger.logInfo("✅ Razorpay order created with idempotency", {
+        orderId: order.id,
+        receiptId: uniqueReceiptId,
+      });
     } catch (orderCreateError) {
-      console.error(
-        "❌ [createRazorpayOrder] Failed to create Razorpay order:",
-        orderCreateError,
-      );
-      console.error("   - error.name:", orderCreateError.name);
-      console.error("   - error.message:", orderCreateError.message);
-      console.error("   - error.code:", orderCreateError.code);
-      console.error("   - error.statusCode:", orderCreateError.statusCode);
-      console.error("   - error.response:", orderCreateError.response?.data);
-      console.error(
-        "   - Full error:",
-        JSON.stringify(orderCreateError, null, 2),
+      logger.logError(
+        "❌ [createRazorpayOrder] Failed to create Razorpay order",
+        {
+          errorName: orderCreateError.name,
+          error: orderCreateError.message,
+          errorCode: orderCreateError.code,
+          statusCode: orderCreateError.statusCode,
+          responseData: orderCreateError.response?.data,
+          fullError: JSON.stringify(orderCreateError, null, 2),
+        },
       );
 
       const wrappedError = new Error(
@@ -440,15 +512,13 @@ exports.createRazorpayOrder = async (req, res, next) => {
 
     // 🔒 RECOVERY: Store order ID for tracking
     // CRITICAL FIX: Use findByIdAndUpdate with arrayFilters to ensure nested update persists
-    console.log(
-      "🔵 [createRazorpayOrder] Saving razorpayOrderId to database:",
-      order.id,
-    );
-    console.log(
-      "   - studentFee._id:",
-      studentFee._id.toString(),
-      "installment._id:",
-      installment._id.toString(),
+    logger.logInfo(
+      "🔵 [createRazorpayOrder] Saving razorpayOrderId to database",
+      {
+        orderId: order.id,
+        studentFeeId: studentFee._id.toString(),
+        installmentId: installment._id.toString(),
+      },
     );
 
     try {
@@ -459,9 +529,11 @@ exports.createRazorpayOrder = async (req, res, next) => {
         installmentToUpdate.paymentAttemptAt = new Date();
 
         await studentFee.save();
-        console.log(
-          "✅ [createRazorpayOrder] razorpayOrderId saved via save():",
-          order.id,
+        logger.logInfo(
+          "✅ [createRazorpayOrder] razorpayOrderId saved via save()",
+          {
+            orderId: order.id,
+          },
         );
 
         // Verify the save worked
@@ -469,14 +541,20 @@ exports.createRazorpayOrder = async (req, res, next) => {
         const verifiedInstallment = verification.installments.id(
           installment._id,
         );
-        console.log(
-          "🔍 [createRazorpayOrder] Verification - razorpayOrderId in DB:",
-          verifiedInstallment?.razorpayOrderId || "NOT FOUND",
+        logger.logInfo(
+          "🔍 [createRazorpayOrder] Verification - razorpayOrderId in DB",
+          {
+            savedOrderId: verifiedInstallment?.razorpayOrderId || "NOT FOUND",
+          },
         );
 
         if (verifiedInstallment?.razorpayOrderId !== order.id) {
-          console.error(
+          logger.logError(
             "❌ [createRazorpayOrder] VERIFICATION FAILED! Order ID not saved!",
+            {
+              expectedOrderId: order.id,
+              actualOrderId: verifiedInstallment?.razorpayOrderId,
+            },
           );
           throw new AppError(
             "Failed to save payment order. Please try again.",
@@ -485,8 +563,11 @@ exports.createRazorpayOrder = async (req, res, next) => {
           );
         }
       } else {
-        console.error(
+        logger.logError(
           "❌ [createRazorpayOrder] Installment not found in array!",
+          {
+            installmentId: installment._id.toString(),
+          },
         );
         throw new AppError(
           "Installment not found in fee record",
@@ -495,9 +576,11 @@ exports.createRazorpayOrder = async (req, res, next) => {
         );
       }
     } catch (saveError) {
-      console.error(
-        "❌ [createRazorpayOrder] Failed to save razorpayOrderId:",
-        saveError.message,
+      logger.logError(
+        "❌ [createRazorpayOrder] Failed to save razorpayOrderId",
+        {
+          error: saveError.message,
+        },
       );
       throw new AppError(
         "Failed to save payment order. Please try again.",
@@ -506,11 +589,13 @@ exports.createRazorpayOrder = async (req, res, next) => {
       );
     }
 
-    console.log(`✅ Razorpay order ID saved and verified: ${order.id}`);
+    logger.logInfo("✅ Razorpay order ID saved and verified", {
+      orderId: order.id,
+    });
 
     // ✅ Validate keyId before sending response
     if (!keyId) {
-      console.error(
+      logger.logError(
         "❌ [createRazorpayOrder] keyId is undefined after config fetch!",
       );
       throw new AppError(
@@ -527,11 +612,12 @@ exports.createRazorpayOrder = async (req, res, next) => {
       keyId: keyId,
     });
   } catch (error) {
-    console.error("❌ [createRazorpayOrder] Error caught:", error);
-    console.error("   - error.name:", error.name);
-    console.error("   - error.message:", error.message);
-    console.error("   - error.code:", error.code);
-    console.error("   - error.statusCode:", error.statusCode);
+    logger.logError("❌ [createRazorpayOrder] Error caught", {
+      errorName: error.name,
+      error: error.message,
+      errorCode: error.code,
+      statusCode: error.statusCode,
+    });
 
     // Ensure we always have a proper error object
     const safeError =
@@ -651,9 +737,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
 
-    console.log("🔵 [Razorpay Payment] Verifying payment");
-    console.log("   - order_id:", razorpay_order_id);
-    console.log("   - payment_id:", razorpay_payment_id);
+    logger.logInfo("🔵 [Razorpay Payment] Verifying payment", {
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+    });
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       throw new AppError(
@@ -674,7 +761,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       .digest("hex");
 
     if (razorpay_signature !== expectedSign) {
-      console.error("❌ Payment signature verification failed");
+      logger.logError("❌ Payment signature verification failed", {
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+      });
       throw new AppError(
         "Payment verification failed. Invalid signature.",
         400,
@@ -682,7 +772,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       );
     }
 
-    console.log("✅ Payment signature verified successfully");
+    logger.logInfo("✅ Payment signature verified successfully", {
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+    });
 
     // Find student by user_id
     const student = await Student.findOne({
@@ -695,9 +788,12 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
 
     // ✅ OPTIMIZED: Directly query for installment with razorpayOrderId
     // This is more efficient than loading all installments and filtering in JS
-    console.log(
-      "🔍 [verifyRazorpayPayment] Querying for installment with razorpayOrderId:",
-      razorpay_order_id,
+    logger.logInfo(
+      "🔍 [verifyRazorpayPayment] Querying for installment with razorpayOrderId",
+      {
+        orderId: razorpay_order_id,
+        studentId: student._id,
+      },
     );
 
     const studentFee = await StudentFee.findOne({
@@ -706,15 +802,16 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
     });
 
     if (!studentFee) {
-      console.error(
-        "❌ [verifyRazorpayPayment] No fee record found with razorpayOrderId:",
-        razorpay_order_id,
+      logger.logError(
+        "❌ [verifyRazorpayPayment] No fee record found with razorpayOrderId",
+        {
+          orderId: razorpay_order_id,
+          studentId: student._id.toString(),
+        },
       );
-      console.error("   - student._id:", student._id.toString());
-      console.error("   - Searched razorpayOrderId:", razorpay_order_id);
 
-      // 🔵 FALLBACK: Try to find by installment name using Razorpay notes
-      console.log(
+      // FALLBACK: Try to find by installment name using Razorpay notes
+      logger.logInfo(
         "🔵 [verifyRazorpayPayment] FALLBACK: Fetching order from Razorpay to get notes...",
       );
 
@@ -722,17 +819,21 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
         const razorpay = await getRazorpayInstance(collegeId);
         const orderDetails = await razorpay.orders.fetch(razorpay_order_id);
 
-        console.log(
-          "🟢 [verifyRazorpayPayment] Order fetched from Razorpay:",
-          orderDetails.id,
+        logger.logInfo(
+          "🟢 [verifyRazorpayPayment] Order fetched from Razorpay",
+          {
+            orderId: orderDetails.id,
+            notes: orderDetails.notes,
+          },
         );
-        console.log("   - notes:", orderDetails.notes);
 
         if (orderDetails.notes && orderDetails.notes.installmentName) {
           const installmentName = orderDetails.notes.installmentName;
-          console.log(
-            "🔵 [verifyRazorpayPayment] FALLBACK: Looking for installment by name:",
-            installmentName,
+          logger.logInfo(
+            "🔵 [verifyRazorpayPayment] FALLBACK: Looking for installment by name",
+            {
+              installmentName,
+            },
           );
 
           // Try to find fee record with matching installment name
@@ -742,7 +843,7 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
           });
 
           if (fallbackFee) {
-            console.log(
+            logger.logInfo(
               "🟢 [verifyRazorpayPayment] FALLBACK SUCCESS: Found fee record",
             );
 
@@ -752,7 +853,7 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
             );
 
             if (fallbackInstallment) {
-              console.log(
+              logger.logInfo(
                 "🟢 [verifyRazorpayPayment] FALLBACK: Found installment, updating razorpayOrderId...",
               );
 
@@ -764,13 +865,13 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
                 installmentToUpdate.razorpayOrderId = razorpay_order_id;
                 installmentToUpdate.paymentAttemptAt = new Date();
                 await fallbackFee.save();
-                console.log(
+                logger.logInfo(
                   "✅ [verifyRazorpayPayment] FALLBACK: razorpayOrderId saved for future",
                 );
               }
 
               // Continue with this installment
-              console.log(
+              logger.logInfo(
                 "🟢 [verifyRazorpayPayment] FALLBACK: Proceeding with payment verification",
               );
               return processPaymentVerification(
@@ -783,48 +884,55 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
                 next,
               );
             } else {
-              console.error(
+              logger.logError(
                 "❌ [verifyRazorpayPayment] FALLBACK: Installment not found or not PENDING",
+                {
+                  installmentName,
+                },
               );
             }
           } else {
-            console.error(
+            logger.logError(
               "❌ [verifyRazorpayPayment] FALLBACK: No fee record found with installment name",
+              {
+                installmentName,
+              },
             );
           }
         } else {
-          console.error(
+          logger.logError(
             "❌ [verifyRazorpayPayment] FALLBACK: No installmentName in order notes",
           );
         }
       } catch (fallbackError) {
-        console.error(
-          "❌ [verifyRazorpayPayment] FALLBACK failed:",
-          fallbackError.message,
-        );
-        console.error("   - Stack:", fallbackError.stack);
+        logger.logError("❌ [verifyRazorpayPayment] FALLBACK failed", {
+          error: fallbackError.message,
+          stack: fallbackError.stack,
+        });
         // Continue to error handling below
       }
 
       // Debug: Check if student has any fee record
       const anyFee = await StudentFee.findOne({ student_id: student._id });
       if (!anyFee) {
-        console.error(
+        logger.logError(
           "❌ [verifyRazorpayPayment] Student has NO fee record at all!",
+          {
+            studentId: student._id,
+          },
         );
         throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
       }
 
       // Debug: Show all installments for this student
-      console.log(
-        "📋 [verifyRazorpayPayment] Student has",
-        anyFee.installments.length,
-        "installments:",
-      );
-      anyFee.installments.forEach((inst, idx) => {
-        console.log(
-          `   [${idx}] "${inst.name}": status=${inst.status}, razorpayOrderId=${inst.razorpayOrderId || "NOT SET"}`,
-        );
+      logger.logInfo("📋 [verifyRazorpayPayment] Student installments", {
+        installmentsCount: anyFee.installments.length,
+        installments: anyFee.installments.map((inst, idx) => ({
+          index: idx,
+          name: inst.name,
+          status: inst.status,
+          razorpayOrderId: inst.razorpayOrderId || "NOT SET",
+        })),
       });
 
       throw new AppError(
@@ -841,8 +949,11 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
 
     if (!installment) {
       // This should never happen since we queried with razorpayOrderId
-      console.error(
+      logger.logError(
         "❌ [verifyRazorpayPayment] CRITICAL: Query found fee but installment not in array!",
+        {
+          orderId: razorpay_order_id,
+        },
       );
       throw new AppError(
         "Installment not found",
@@ -851,12 +962,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       );
     }
 
-    console.log(
-      "✅ [verifyRazorpayPayment] Installment found:",
-      installment.name,
-      "- status:",
-      installment.status,
-    );
+    logger.logInfo("✅ [verifyRazorpayPayment] Installment found", {
+      installmentName: installment.name,
+      status: installment.status,
+    });
 
     // Use helper function to process verification
     return processPaymentVerification(
@@ -902,10 +1011,10 @@ exports.handleRazorpayPaymentFailure = async (req, res, next) => {
     const userId = req.user.id;
     const { razorpay_order_id, error_code, error_description } = req.body;
 
-    console.log("🔴 [Razorpay Payment] Payment failure");
-    console.log("   - order_id:", razorpay_order_id);
-    console.log("   - error_code:", error_code);
-    console.log("   - error_description:", error_description);
+    logger.logInfo("🔴 [Razorpay Payment] Payment failure", {
+      orderId: razorpay_order_id,
+      errorCode: error_code,
+    });
 
     // Find student
     const student = await Student.findOne({
@@ -954,12 +1063,15 @@ exports.handleRazorpayPaymentFailure = async (req, res, next) => {
           errorCode: error_code,
           errorDescription: error_description,
         });
-        console.log(`✅ Payment failure email sent to ${student.email}`);
+        logger.logInfo("✅ Payment failure email sent", {
+          studentId: student._id,
+          installmentId: installment._id,
+        });
       } catch (emailError) {
-        console.error(
-          "❌ Failed to send payment failure email:",
-          emailError.message,
-        );
+        logger.logError("❌ Failed to send payment failure email", {
+          error: emailError.message,
+          studentId: student._id,
+        });
       }
     })();
 

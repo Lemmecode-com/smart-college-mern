@@ -1,8 +1,16 @@
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+if (!baseURL) {
+  throw new Error(
+    "VITE_API_BASE_URL is not defined. Please set it in your .env file.",
+  );
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
-  withCredentials: true  // Enable sending cookies with requests
+  baseURL,
+  withCredentials: true, // Enable sending cookies with requests
 });
 
 // Request interceptor - ensure credentials are always sent
@@ -14,7 +22,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // 🔒 RESPONSE INTERCEPTOR - Standardize API Response Format
@@ -29,10 +37,10 @@ api.interceptors.response.use(
 
       // Case 1: Response has array data - return array directly for backward compatibility
       if (Array.isArray(data)) {
-        response.data = data;  // Return: [...]
+        response.data = data; // Return: [...]
       }
       // Case 2: Response has nested 'data' object
-      else if (data && typeof data === 'object') {
+      else if (data && typeof data === "object") {
         // Check if data object contains a single key with array data
         const keys = Object.keys(data);
         if (keys.length === 1 && Array.isArray(data[keys[0]])) {
@@ -45,7 +53,7 @@ api.interceptors.response.use(
             success,
             message,
             pagination,
-            error
+            error,
           };
         }
       }
@@ -55,7 +63,7 @@ api.interceptors.response.use(
           ...response.data,
           message: message || response.data.message,
           pagination: pagination || response.data.pagination,
-          error: error || response.data.error
+          error: error || response.data.error,
         };
       }
     }
@@ -71,15 +79,15 @@ api.interceptors.response.use(
       error.response.data.code = errorObj.code;
       error.response.data.details = errorObj.details;
     }
-    
+
     // Handle 401 errors globally
     if (error.response?.status === 401) {
       // Optionally: Clear any local storage if you store anything there
       // localStorage.removeItem('someKey');
     }
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
