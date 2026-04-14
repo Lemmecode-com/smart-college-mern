@@ -2,6 +2,7 @@ const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const AppError = require("../utils/AppError");
 const { getValidDatesForSlot, getDayName } = require("../utils/date.utils");
 const teacherService = require("../services/teacher.service");
 const ApiResponse = require("../utils/ApiResponse");
@@ -12,22 +13,25 @@ const ApiResponse = require("../utils/ApiResponse");
 exports.createTimetable = async (req, res) => {
   try {
     if (req.user.role !== "TEACHER") {
-      return res.status(403).json({ message: "Only teachers can create timetable" });
+      return res
+        .status(403)
+        .json({ message: "Only teachers can create timetable" });
     }
 
     // 🔧 Use teacher service (centralized logic)
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
       req.college_id,
-      true // check active status
+      true, // check active status
     );
 
     const { department_id, course_id, semester, academicYear } = req.body;
 
     // 🔒 SECURITY: Ensure teacher can only create timetable for their own department
     if (teacher.department_id.toString() !== department_id) {
-      return res.status(403).json({ 
-        message: "Access denied: You can only create timetables for your own department" 
+      return res.status(403).json({
+        message:
+          "Access denied: You can only create timetables for your own department",
       });
     }
 
@@ -68,9 +72,13 @@ exports.createTimetable = async (req, res) => {
       createdBy: teacher._id,
     });
 
-    ApiResponse.created(res, {
-      timetable,
-    }, "Timetable created successfully");
+    ApiResponse.created(
+      res,
+      {
+        timetable,
+      },
+      "Timetable created successfully",
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to create timetable" });
@@ -78,24 +86,47 @@ exports.createTimetable = async (req, res) => {
 };
 
 /* =========================================================
-   PUBLISH TIMETABLE (HOD)
+   PUBLISH TIMETABLE (HOD/COLLEGE_ADMIN)
 ========================================================= */
-exports.publishTimetable = async (req, res) => {
-  const timetable = await Timetable.findByIdAndUpdate(
-    req.params.id,
-    { status: "PUBLISHED" },
-    { new: true }
-  );
+exports.publishTimetable = async (req, res, next) => {
+  try {
+    // Add college isolation - ensure timetable belongs to user's college
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
 
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+    if (!timetable) {
+      return next(
+        new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND"),
+      );
+    }
+
+    // Add role check (only COLLEGE_ADMIN or TEACHER/HOD can publish)
+    if (!["COLLEGE_ADMIN", "TEACHER"].includes(req.user.role)) {
+      return next(
+        new AppError(
+          "Not authorized to publish timetable",
+          403,
+          "UNAUTHORIZED",
+        ),
+      );
+    }
+
+    timetable.status = "PUBLISHED";
+    await timetable.save();
+
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+      },
+      "Timetable published successfully",
+    );
+  } catch (error) {
+    next(error);
   }
-
-  ApiResponse.success(res, {
-    timetable,
-  }, "Timetable published successfully");
 };
-
 
 /* =========================================================
    GET TIMETABLE BY ID
@@ -122,26 +153,30 @@ exports.getTimetableById = async (req, res) => {
       .populate("teacher_id", "name email");
 
     // Add valid dates for each slot
-    const slotsWithDates = slots.map(slot => {
+    const slotsWithDates = slots.map((slot) => {
       const validDates = getValidDatesForSlot(
         slot.day,
         timetable.academicYear,
-        timetable.semester
+        timetable.semester,
       );
 
       return {
         ...slot.toObject(),
-        validDates: validDates.map(d => ({
-          date: d.toISOString().split('T')[0],
-          dayName: getDayName(d)
-        }))
+        validDates: validDates.map((d) => ({
+          date: d.toISOString().split("T")[0],
+          dayName: getDayName(d),
+        })),
       };
     });
 
-    ApiResponse.success(res, {
-      timetable,
-      slots: slotsWithDates,
-    }, "Timetable with valid dates retrieved successfully");
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+        slots: slotsWithDates,
+      },
+      "Timetable with valid dates retrieved successfully",
+    );
   } catch (error) {
     console.error("Get Timetable Error:", error);
     res.status(500).json({ message: error.message });
@@ -154,11 +189,14 @@ exports.getTimetableById = async (req, res) => {
 exports.getTimetables = async (req, res) => {
   try {
     const filter = { college_id: req.college_id };
-    
+
     // If teacher, restrict to their department OR courses they teach
     if (req.user.role === "TEACHER") {
-      const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
-      
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+      );
+
       // Check if teacher is HOD
       const { isHOD } = await teacherService.getHODStatus(teacher);
 
@@ -169,25 +207,34 @@ exports.getTimetables = async (req, res) => {
         // Regular teacher: Get courses they teach
         const teacherCourses = teacher.courses || [];
         if (teacherCourses.length === 0) {
-          return ApiResponse.success(res, {
-            timetables: [],
-            count: 0,
-          }, "No courses assigned to teacher");
+          return ApiResponse.success(
+            res,
+            {
+              timetables: [],
+              count: 0,
+            },
+            "No courses assigned to teacher",
+          );
         }
         filter.course_id = { $in: teacherCourses };
       }
     }
-    
+
     // Allow department filter override for HOD/Admin
     if (req.query.department_id) {
       // Only allow if user is HOD of that department or admin
       if (req.user.role === "TEACHER") {
-        const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
-        const { isHOD, department: hodDepartment } = await teacherService.getHODStatus(teacher);
+        const teacher = await teacherService.getTeacherWithValidation(
+          req.user.id,
+          req.college_id,
+        );
+        const { isHOD, department: hodDepartment } =
+          await teacherService.getHODStatus(teacher);
 
         if (!isHOD) {
           return res.status(403).json({
-            message: "Access denied: You can only view timetables for your department"
+            message:
+              "Access denied: You can only view timetables for your department",
           });
         }
       }
@@ -195,10 +242,14 @@ exports.getTimetables = async (req, res) => {
     }
 
     const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
-    ApiResponse.success(res, {
-      timetables,
-      count: timetables.length,
-    }, "Timetables fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        timetables,
+        count: timetables.length,
+      },
+      "Timetables fetched successfully",
+    );
   } catch (error) {
     console.error("Get Timetables Error:", error);
     res.status(500).json({ message: "Failed to fetch timetables" });
@@ -216,7 +267,10 @@ exports.getTimetables = async (req, res) => {
  */
 exports.getWeeklyTimetableForTeacher = async (req, res) => {
   try {
-    const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
 
     const slots = await TimetableSlot.find({
       teacher_id: teacher._id,
@@ -238,14 +292,18 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       SAT: [],
     };
 
-    slots.forEach(slot => {
+    slots.forEach((slot) => {
       if (!slot.timetable_id) return; // draft filtered here
       weekly[slot.day].push(slot);
     });
 
-    ApiResponse.success(res, {
-      weekly,
-    }, "Weekly timetable fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        weekly,
+      },
+      "Weekly timetable fetched successfully",
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to load schedule" });
@@ -278,12 +336,16 @@ exports.getStudentTimetable = async (req, res) => {
       })
       .sort({ day: 1, startTime: 1 });
 
-    const filteredSlots = slots.filter(slot => slot.timetable_id);
+    const filteredSlots = slots.filter((slot) => slot.timetable_id);
 
-    ApiResponse.success(res, {
-      slots: filteredSlots,
-      count: filteredSlots.length,
-    }, "Student timetable fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        slots: filteredSlots,
+        count: filteredSlots.length,
+      },
+      "Student timetable fetched successfully",
+    );
   } catch (error) {
     console.error("Student timetable error:", error);
     res.status(500).json({ message: error.message });
@@ -304,7 +366,7 @@ exports.getStudentTodayTimetable = async (req, res) => {
     // Get today's day name
     const today = new Date();
     const todayDayName = getDayName(today);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split("T")[0];
 
     console.log(`📅 Today: ${todayStr} (${todayDayName})`);
 
@@ -326,14 +388,18 @@ exports.getStudentTodayTimetable = async (req, res) => {
       .sort({ startTime: 1 });
 
     // Filter only slots from PUBLISHED timetables
-    const publishedSlots = slots.filter(slot => slot.timetable_id);
+    const publishedSlots = slots.filter((slot) => slot.timetable_id);
 
-    ApiResponse.success(res, {
-      today: todayStr,
-      dayName: todayDayName,
-      totalSlots: publishedSlots.length,
-      slots: publishedSlots
-    }, "Today's timetable fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        today: todayStr,
+        dayName: todayDayName,
+        totalSlots: publishedSlots.length,
+        slots: publishedSlots,
+      },
+      "Today's timetable fetched successfully",
+    );
   } catch (error) {
     console.error("Student today timetable error:", error);
     res.status(500).json({ message: "Failed to fetch today's timetable" });
@@ -346,9 +412,9 @@ exports.getStudentTodayTimetable = async (req, res) => {
 exports.getWeeklyTimetableById = async (req, res) => {
   try {
     // ✅ Validate timetableId parameter
-    if (!req.params.timetableId || req.params.timetableId === 'undefined') {
-      return res.status(400).json({ 
-        message: "Invalid timetable ID. Please select a valid timetable." 
+    if (!req.params.timetableId || req.params.timetableId === "undefined") {
+      return res.status(400).json({
+        message: "Invalid timetable ID. Please select a valid timetable.",
       });
     }
 
@@ -363,14 +429,19 @@ exports.getWeeklyTimetableById = async (req, res) => {
 
     // 🔒 SECURITY: Check if user has access to this department's timetable
     if (req.user.role === "TEACHER") {
-      const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
-      
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+      );
+
       const { isHOD } = await teacherService.getHODStatus(teacher);
-      const isSameDepartment = teacher.department_id.toString() === timetable.department_id.toString();
+      const isSameDepartment =
+        teacher.department_id.toString() === timetable.department_id.toString();
 
       if (!isSameDepartment && !isHOD) {
         return res.status(403).json({
-          message: "Access denied: You can only view timetables for your department"
+          message:
+            "Access denied: You can only view timetables for your department",
         });
       }
     }
@@ -382,17 +453,21 @@ exports.getWeeklyTimetableById = async (req, res) => {
       .populate("teacher_id", "name");
 
     const weekly = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] };
-    slots.forEach(s => weekly[s.day].push(s));
+    slots.forEach((s) => weekly[s.day].push(s));
 
-    ApiResponse.success(res, {
-      timetable,
-      weekly,
-    }, "Weekly timetable fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+        weekly,
+      },
+      "Weekly timetable fetched successfully",
+    );
   } catch (error) {
     // ✅ Handle MongoDB ObjectId cast errors gracefully
-    if (error.name === 'CastError') {
+    if (error.name === "CastError") {
       return res.status(400).json({
-        message: "Invalid timetable ID format. Please provide a valid ID."
+        message: "Invalid timetable ID format. Please provide a valid ID.",
       });
     }
     console.error("Get Weekly Timetable Error:", error);
@@ -414,7 +489,10 @@ exports.deleteTimetable = async (req, res) => {
     }
 
     // 2️⃣ Find teacher profile and check HOD status
-    const teacher = await teacherService.getTeacherWithValidation(req.user.id, req.college_id);
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
     const { isHOD } = await teacherService.getHODStatus(teacher);
 
     if (!isHOD) {
