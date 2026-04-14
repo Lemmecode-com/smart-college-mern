@@ -1562,21 +1562,28 @@ export default function MySchedule() {
           {/* Confirm Modal */}
           <ConfirmModal
             isOpen={confirmModal.isOpen}
-            onClose={() => setConfirmModal({ isOpen: false, slot: null, timeSlot: null })}
+            onClose={() =>
+              setConfirmModal({ isOpen: false, slot: null, timeSlot: null })
+            }
             onConfirm={createAttendanceSession}
             title="Start Attendance"
             message={
               confirmModal.slot ? (
                 <>
-                  Start attendance for <strong>{confirmModal.slot.subject_id?.name}</strong>?
-                  <br /><br />
+                  Start attendance for{" "}
+                  <strong>{confirmModal.slot.subject_id?.name}</strong>?
+                  <br />
+                  <br />
                   <strong>Time:</strong> {confirmModal.timeSlot}
                   <br />
                   <strong>Room:</strong> {confirmModal.slot.room || "N/A"}
-                  <br /><br />
+                  <br />
+                  <br />
                   This will create a new attendance session for today's lecture.
                 </>
-              ) : ""
+              ) : (
+                ""
+              )
             }
             type="info"
             confirmText="Start Attendance"
@@ -1679,13 +1686,24 @@ function ScheduleRow({
     slotStatus = "active";
   }
 
+  // ✅ Check if slot has an exception that blocks attendance
+  const exception = slot.exception;
+  const isCancelled =
+    slot.status === "CANCELLED" || exception?.type === "CANCELLED";
+  const isHoliday = slot.status === "HOLIDAY" || exception?.type === "HOLIDAY";
+  const isRescheduled =
+    slot.status === "RESCHEDULED" || exception?.type === "RESCHEDULED";
+  const isExceptionBlocked = isCancelled || isHoliday || isRescheduled;
+
   // ✅ Button is enabled ONLY if ALL conditions are met:
   // 1. Timetable is published
   // 2. Currently within class time (not before, not after)
   // 3. No existing open session
   // 4. No existing closed session
+  // 5. Slot is not cancelled, holiday, or rescheduled
   const canStartAttendance =
     isPublished &&
+    !isExceptionBlocked &&
     slotStatus === "active" && // ✅ STRICT: Must be within time window
     !hasOpenSession &&
     !hasClosedSession;
@@ -1694,6 +1712,12 @@ function ScheduleRow({
   let buttonState = "start";
   if (creating === slot._id) {
     buttonState = "creating";
+  } else if (isCancelled) {
+    buttonState = "cancelled";
+  } else if (isHoliday) {
+    buttonState = "holiday";
+  } else if (isRescheduled) {
+    buttonState = "rescheduled";
   } else if (hasOpenSession) {
     buttonState = "active"; // ✅ Backend says session is open
   } else if (hasClosedSession) {
@@ -1879,6 +1903,55 @@ function ScheduleRow({
               <FaTimesCircle size={isMobile ? 18 : 20} />
               <span>Session Closed</span>
             </motion.div>
+          ) : buttonState === "cancelled" ? (
+            <div
+              className="btn-action btn-cancelled"
+              style={{
+                cursor: "not-allowed",
+                opacity: 0.7,
+                background: "linear-gradient(135deg, #dc3545, #c82333)",
+                color: "white",
+              }}
+            >
+              <FaTimesCircle size={16} />
+              <span>
+                Class Cancelled
+                {exception?.reason && ` — ${exception.reason}`}
+              </span>
+            </div>
+          ) : buttonState === "holiday" ? (
+            <div
+              className="btn-action btn-holiday"
+              style={{
+                cursor: "not-allowed",
+                opacity: 0.7,
+                background: "linear-gradient(135deg, #ffc107, #e0a800)",
+                color: "#212529",
+              }}
+            >
+              <FaCalendarAlt size={16} />
+              <span>
+                Holiday
+                {exception?.reason && ` — ${exception.reason}`}
+              </span>
+            </div>
+          ) : buttonState === "rescheduled" ? (
+            <div
+              className="btn-action btn-rescheduled"
+              style={{
+                cursor: "not-allowed",
+                opacity: 0.7,
+                background: "linear-gradient(135deg, #17a2b8, #138496)",
+                color: "white",
+              }}
+            >
+              <FaCalendarAlt size={16} />
+              <span>
+                Rescheduled
+                {exception?.rescheduledTo &&
+                  ` → ${new Date(exception.rescheduledTo).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+              </span>
+            </div>
           ) : buttonState === "unpublished" ? (
             <div
               className="btn-action btn-unpublished"
