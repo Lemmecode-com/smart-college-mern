@@ -13,6 +13,7 @@ const {
 } = require("../utils/encryption.util");
 const AppError = require("../utils/AppError");
 const Razorpay = require("razorpay");
+const logger = require("../utils/logger");
 
 /**
  * Get Razorpay configuration for the current college
@@ -73,11 +74,11 @@ exports.saveRazorpayConfig = async (req, res, next) => {
     const { keyId, keySecret, webhookSecret, testMode } = req.body;
 
     // Validate required fields
-    if (!keyId || !keySecret) {
+    if (!keyId || !keySecret || !webhookSecret) {
       throw new AppError(
-        "Key ID and secret key are required",
+        "Key ID, Secret Key, and Webhook Secret are required",
         400,
-        "VALIDATION_ERROR"
+        "VALIDATION_ERROR",
       );
     }
 
@@ -89,7 +90,7 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       throw new AppError(
         "Invalid Razorpay key ID format. Must start with rzp_test_ or rzp_live_",
         400,
-        "INVALID_KEY_FORMAT"
+        "INVALID_KEY_FORMAT",
       );
     }
 
@@ -98,7 +99,7 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       throw new AppError(
         "Test mode is enabled but live key was provided",
         400,
-        "KEY_MODE_MISMATCH"
+        "KEY_MODE_MISMATCH",
       );
     }
 
@@ -106,7 +107,7 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       throw new AppError(
         "Live mode is enabled but test key was provided",
         400,
-        "KEY_MODE_MISMATCH"
+        "KEY_MODE_MISMATCH",
       );
     }
 
@@ -117,7 +118,7 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       throw new AppError(
         "Encryption not configured. Please contact administrator.",
         500,
-        "ENCRYPTION_NOT_CONFIGURED"
+        "ENCRYPTION_NOT_CONFIGURED",
       );
     }
 
@@ -126,11 +127,14 @@ exports.saveRazorpayConfig = async (req, res, next) => {
     try {
       encryptedSecret = encryptRazorpayKey(keySecret);
     } catch (encryptError) {
-      console.error("Encryption failed for secret key:", encryptError.message);
+      logger.logError("Encryption failed for Razorpay secret key", {
+        collegeId,
+        error: encryptError.message,
+      });
       throw new AppError(
         "Failed to encrypt secret key",
         500,
-        "ENCRYPTION_FAILED"
+        "ENCRYPTION_FAILED",
       );
     }
 
@@ -140,14 +144,14 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       try {
         encryptedWebhookSecret = encryptWebhookSecret(webhookSecret);
       } catch (encryptError) {
-        console.error(
-          "Encryption failed for webhook secret:",
-          encryptError.message
-        );
+        logger.logError("Encryption failed for webhook secret", {
+          collegeId,
+          error: encryptError.message,
+        });
         throw new AppError(
           "Failed to encrypt webhook secret",
           500,
-          "ENCRYPTION_FAILED"
+          "ENCRYPTION_FAILED",
         );
       }
     }
@@ -175,7 +179,9 @@ exports.saveRazorpayConfig = async (req, res, next) => {
       await existingConfig.save();
       config = existingConfig;
 
-      console.log(`✅ Razorpay configuration updated for college ${collegeId}`);
+      logger.logInfo("✅ Razorpay configuration updated for college", {
+        collegeId,
+      });
     } else {
       // Create new config
       config = await CollegePaymentConfig.create({
@@ -194,7 +200,9 @@ exports.saveRazorpayConfig = async (req, res, next) => {
         isActive: true,
       });
 
-      console.log(`✅ Razorpay configuration created for college ${collegeId}`);
+      logger.logInfo("✅ Razorpay configuration created for college", {
+        collegeId,
+      });
     }
 
     // Invalidate cache to force re-initialization
@@ -269,14 +277,16 @@ exports.deleteRazorpayConfig = async (req, res, next) => {
       throw new AppError(
         "Razorpay configuration not found",
         404,
-        "CONFIG_NOT_FOUND"
+        "CONFIG_NOT_FOUND",
       );
     }
 
     // Invalidate cache
     invalidateRazorpayInstanceCache(collegeId.toString());
 
-    console.log(`✅ Razorpay configuration deleted for college ${collegeId}`);
+    logger.logInfo("✅ Razorpay configuration deleted for college", {
+      collegeId,
+    });
 
     res.status(200).json({
       success: true,
@@ -321,7 +331,7 @@ exports.testRazorpayConnection = async (req, res, next) => {
       throw new AppError(
         "Razorpay is not configured for your college",
         400,
-        "RAZORPAY_NOT_CONFIGURED"
+        "RAZORPAY_NOT_CONFIGURED",
       );
     }
     next(error);
@@ -340,7 +350,7 @@ exports.getAllCollegesWithRazorpay = async (req, res, next) => {
       throw new AppError(
         "Access denied. Super admin role required.",
         403,
-        "FORBIDDEN"
+        "FORBIDDEN",
       );
     }
 
