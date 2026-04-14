@@ -378,6 +378,21 @@ exports.generateSchedule = async (
       .populate("teacher_id", "name email")
       .sort({ day: 1, startTime: 1 });
 
+    // IMPORTANT: If timetable has slots for days NOT in workingDays, add them
+    // This ensures all configured slots are shown even if workingDays is incomplete
+    const daysWithSlots = [...new Set(allSlots.map((slot) => slot.day))];
+    const missingWorkingDays = daysWithSlots.filter(
+      (day) => !timetable.workingDays.includes(day),
+    );
+
+    if (missingWorkingDays.length > 0) {
+      // Merge workingDays to include all days that have slots
+      timetable.workingDays = [
+        ...new Set([...timetable.workingDays, ...daysWithSlots]),
+      ];
+      console.log(`✅ Updated workingDays:`, timetable.workingDays);
+    }
+
     // 3️⃣ Load all exceptions for the ORIGINAL requested date range
     // Convert local dates to UTC date range for MongoDB query
     const queryStart = new Date(

@@ -206,8 +206,20 @@ export default function StudentTimetable() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 60000); // Update every minute
     return () => clearInterval(timer);
+  }, []);
+
+  // Auto-refresh timetable every 2 minutes to catch exception changes
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      // Only auto-refresh if the page is visible (not in background tab)
+      if (!document.hidden && hasLoadedRef.current) {
+        loadTimetable(true); // Silent refresh
+      }
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Cleanup timeout on unmount
@@ -253,19 +265,6 @@ export default function StudentTimetable() {
     // for comparison. This ensures today's slots match regardless of timezone.
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // Debug: Log exception data from schedule
-    const slotsWithExceptions = [];
-    schedule.forEach((daySchedule) => {
-      if (daySchedule.slots && daySchedule.slots.length > 0) {
-        const slotsWithEx = daySchedule.slots.filter(
-          (s) => s.exception || s.status !== "SCHEDULED",
-        );
-        if (slotsWithEx.length > 0) {
-          slotsWithExceptions.push(...slotsWithEx);
-        }
-      }
-    });
-
     schedule.forEach((daySchedule) => {
       if (daySchedule.slots && daySchedule.slots.length > 0) {
         // Use parseLocalDate to get correct day-of-week for local timezone
@@ -273,9 +272,10 @@ export default function StudentTimetable() {
         const dayName = DAY_MAP[date.getDay()];
 
         if (weeklyData[dayName]) {
-          // Add the date context to each slot so it knows which specific date it's for
+          // Add the date context AND day property to each slot
           const slotsWithDate = daySchedule.slots.map((slot) => ({
             ...slot,
+            day: dayName, // CRITICAL: Set the day property for validation
             exceptionDate: daySchedule.date,
             isHolidayOnly: daySchedule.isHoliday || false,
           }));
@@ -286,6 +286,7 @@ export default function StudentTimetable() {
         if (daySchedule.date === todayStr) {
           todaySlotsList = daySchedule.slots.map((slot) => ({
             ...slot,
+            day: dayName, // CRITICAL: Set the day property for today's slots too
             exceptionDate: daySchedule.date,
             isHolidayOnly: daySchedule.isHoliday || false,
           }));
@@ -561,6 +562,7 @@ export default function StudentTimetable() {
 
   // Use a ref to track if timetable has been loaded
   const hasLoadedRef = useRef(false);
+  const isFirstRenderRef = useRef(true);
 
   useEffect(() => {
     // Prevent double-loading in React 18 Strict Mode
@@ -573,6 +575,12 @@ export default function StudentTimetable() {
 
   // Separate effect for date range changes - re-fetches when user navigates weeks
   useEffect(() => {
+    // Skip on first render (initial load is handled by the effect above)
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
     if (!hasLoadedRef.current) return; // Don't load if initial hasn't happened
 
     // Reset toast state when navigating to new week so success toast shows again
@@ -604,6 +612,28 @@ export default function StudentTimetable() {
     const yyyy = date.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
   };
+
+  // Generate dynamic time rows based on actual slot data
+  const generateTimeRows = () => {
+    const timeSet = new Set();
+
+    Object.values(weekly).forEach((daySlots) => {
+      daySlots.forEach((slot) => {
+        if (slot.startTime && slot.endTime) {
+          timeSet.add(`${slot.startTime}-${slot.endTime}`);
+        }
+      });
+    });
+
+    return Array.from(timeSet)
+      .map((timeRange) => {
+        const [start, end] = timeRange.split("-");
+        return { start, end, key: timeRange };
+      })
+      .sort((a, b) => a.start.localeCompare(b.start));
+  };
+
+  const dynamicTimeRows = generateTimeRows();
 
   // Get course info - Updated to use timetableId and scheduleData
   const renderFirstSlot =
@@ -1047,38 +1077,51 @@ export default function StudentTimetable() {
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((timeSlot, idx) => {
-                const timeStr = `${formatTime12Hour(timeSlot.start)} - ${formatTime12Hour(timeSlot.end)}`;
-                return (
-                  <tr key={timeSlot.start}>
-                    <td className="st-time-cell" scope="row">
-                      {timeStr}
-                    </td>
-                    {DAYS.map((day) => {
-                      const slot = (weekly[day] || []).find(
-                        (s) => s.startTime === timeSlot.start,
-                      );
-                      return (
-                        <td
-                          key={`${day}-${timeSlot.start}`}
-                          className="st-slot-cell"
-                        >
-                          {slot ? (
-                            <WeeklySlotCard slot={slot} />
-                          ) : (
-                            <div
-                              className="st-empty-cell"
-                              aria-label="No class"
-                            >
-                              —
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
+              {dynamicTimeRows.length === 0 ? (
+                <tr>
+                  <td className="st-time-cell" colSpan={DAYS.length + 1}>
+                    <div className="st-no-slots">
+                      <FaCalendarAlt className="st-no-slots-icon" />
+                      <span>No classes scheduled for this week</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                dynamicTimeRows.map((timeRow) => {
+                  const timeStr = `${formatTime12Hour(timeRow.start)} - ${formatTime12Hour(timeRow.end)}`;
+                  return (
+                    <tr key={timeRow.key}>
+                      <td className="st-time-cell" scope="row">
+                        {timeStr}
+                      </td>
+                      {DAYS.map((day) => {
+                        const slot = (weekly[day] || []).find(
+                          (s) =>
+                            s.startTime === timeRow.start &&
+                            s.endTime === timeRow.end,
+                        );
+                        return (
+                          <td
+                            key={`${day}-${timeRow.key}`}
+                            className="st-slot-cell"
+                          >
+                            {slot ? (
+                              <WeeklySlotCard slot={slot} />
+                            ) : (
+                              <div
+                                className="st-empty-cell"
+                                aria-label="No class"
+                              >
+                                —
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -2209,6 +2252,22 @@ const componentStyles = `
     justify-content: center;
     color: #e2e8f0;
     font-size: 1.5rem;
+  }
+
+  .st-no-slots {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 2rem;
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+
+  .st-no-slots-icon {
+    font-size: 2.5rem;
+    opacity: 0.5;
   }
 
   /* ================= WEEKLY SLOT ================= */

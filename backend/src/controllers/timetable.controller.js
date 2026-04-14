@@ -551,8 +551,6 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    console.log(`📅 Today: ${todayStr} (${todayDayName})`);
-
     // Find all PUBLISHED timetables for student's course
     const slots = await TimetableSlot.find({
       college_id: req.college_id,
