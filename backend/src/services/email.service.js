@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const logger = require("../utils/logger");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -7,20 +8,22 @@ const transporter = nodemailer.createTransport({
   secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false // Allow self-signed certificates
-  }
+    rejectUnauthorized: false, // Allow self-signed certificates
+  },
 });
 
 // ✅ Test email connection on startup
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ Email transporter verification failed:', error.message);
-    console.error('❌ Check EMAIL_USER and EMAIL_PASS in .env file');
+    logger.logError("❌ Email transporter verification failed", {
+      error: error.message,
+    });
+    logger.logError("❌ Check EMAIL_USER and EMAIL_PASS in .env file");
   } else {
-    console.log('✅ Email transporter ready and connected');
+    logger.logInfo("✅ Email transporter ready and connected");
   }
 });
 
@@ -37,7 +40,7 @@ exports.sendPaymentReminderEmail = async ({ to, studentName, installment }) => {
       <p>Please log in to the portal and complete the payment.</p>
       <br/>
       <p>Regards,<br/>College ERP Team</p>
-    `
+    `,
   };
 
   await transporter.sendMail(mailOptions);
@@ -46,13 +49,13 @@ exports.sendPaymentReminderEmail = async ({ to, studentName, installment }) => {
 /**
  * Send Payment Receipt Email after successful payment
  */
-exports.sendPaymentReceiptEmail = async ({ 
-  to, 
-  studentName, 
+exports.sendPaymentReceiptEmail = async ({
+  to,
+  studentName,
   installment,
   totalFee,
   paidAmount,
-  remainingAmount
+  remainingAmount,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -74,11 +77,11 @@ exports.sendPaymentReceiptEmail = async ({
             </tr>
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Amount Paid:</b></td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${installment.amount.toLocaleString('en-IN')}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${installment.amount.toLocaleString("en-IN")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Payment Date:</b></td>
-              <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${new Date(installment.paidAt).toLocaleDateString('en-IN')}</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${new Date(installment.paidAt).toLocaleDateString("en-IN")}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Transaction ID:</b></td>
@@ -92,15 +95,15 @@ exports.sendPaymentReceiptEmail = async ({
           <table style="width: 100%;">
             <tr>
               <td>Total Fee:</td>
-              <td style="text-align: right;"><b>₹${totalFee.toLocaleString('en-IN')}</b></td>
+              <td style="text-align: right;"><b>₹${totalFee.toLocaleString("en-IN")}</b></td>
             </tr>
             <tr>
               <td>Paid Amount:</td>
-              <td style="text-align: right; color: #28a745;"><b>₹${paidAmount.toLocaleString('en-IN')}</b></td>
+              <td style="text-align: right; color: #28a745;"><b>₹${paidAmount.toLocaleString("en-IN")}</b></td>
             </tr>
             <tr>
               <td>Remaining Amount:</td>
-              <td style="text-align: right; color: #dc3545;"><b>₹${remainingAmount.toLocaleString('en-IN')}</b></td>
+              <td style="text-align: right; color: #dc3545;"><b>₹${remainingAmount.toLocaleString("en-IN")}</b></td>
             </tr>
           </table>
         </div>
@@ -112,7 +115,7 @@ exports.sendPaymentReceiptEmail = async ({
         <br/>
         <p>Regards,<br/><b>College ERP Team</b></p>
       </div>
-    `
+    `,
   };
 
   await transporter.sendMail(mailOptions);
@@ -126,7 +129,7 @@ exports.sendRegistrationSuccessEmail = async ({
   studentName,
   collegeName,
   courseName,
-  admissionYear
+  admissionYear,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -149,7 +152,7 @@ exports.sendRegistrationSuccessEmail = async ({
             </tr>
             <tr>
               <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Course:</b></td>
-              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName || 'To be allocated'}</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName || "To be allocated"}</td>
             </tr>
             <tr>
               <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><b>Academic Year:</b></td>
@@ -187,14 +190,18 @@ exports.sendRegistrationSuccessEmail = async ({
         <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;"/>
         <p style="color: #6c757d; font-size: 12px; text-align: center;">This is an automated message. Please do not reply.</p>
       </div>
-    `
+    `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Registration success email sent to ${to}`);
+    logger.logInfo("✅ Registration success email sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
   } catch (error) {
-    console.error(`❌ Failed to send registration email to ${to}:`, error.message);
+    logger.logError("❌ Failed to send registration email", {
+      error: error.message,
+    });
   }
 };
 
@@ -209,7 +216,7 @@ exports.sendAdmissionApprovalEmail = async ({
   admissionYear,
   enrollmentNumber,
   loginUrl,
-  email
+  email,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -246,7 +253,7 @@ exports.sendAdmissionApprovalEmail = async ({
               </tr>
               <tr>
                 <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Enrollment Number:</strong></td>
-                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${enrollmentNumber || 'Will be assigned shortly'}</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${enrollmentNumber || "Will be assigned shortly"}</td>
               </tr>
               <tr>
                 <td style="padding: 10px 0;"><strong>Academic Year:</strong></td>
@@ -304,8 +311,8 @@ exports.sendAdmissionApprovalEmail = async ({
           <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800;">
             <p style="margin: 0; color: #e65100; font-size: 14px;">
               <strong>💡 Need Help?</strong> If you face any issues, contact the admission office at 
-              <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@college.edu'}" style="color: #e65100;">
-                ${process.env.SUPPORT_EMAIL || 'support@college.edu'}
+              <a href="mailto:${process.env.SUPPORT_EMAIL || "support@college.edu"}" style="color: #e65100;">
+                ${process.env.SUPPORT_EMAIL || "support@college.edu"}
               </a>
             </p>
           </div>
@@ -329,15 +336,19 @@ exports.sendAdmissionApprovalEmail = async ({
           </p>
         </div>
       </div>
-    `
+    `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Admission approval email sent to ${to}`);
+    logger.logInfo("✅ Admission approval email sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
     return true;
   } catch (error) {
-    console.error(`❌ Failed to send admission approval email to ${to}:`, error.message);
+    logger.logError("❌ Failed to send admission approval email", {
+      error: error.message,
+    });
     throw error;
   }
 };
@@ -349,16 +360,16 @@ exports.sendAdmissionRejectionEmail = async ({
   to,
   studentName,
   collegeName,
-  reason
+  reason,
 }) => {
-  console.log('📧 [EMAIL SERVICE] sendAdmissionRejectionEmail called');
-  console.log('📧 [EMAIL SERVICE] Email config:', {
-    EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'NOT SET',
-    EMAIL_PASS: process.env.EMAIL_PASS ? 'SET' : 'NOT SET',
-    to,
+  logger.logInfo("📧 [EMAIL SERVICE] sendAdmissionRejectionEmail called", {
+    recipient: to.split("@")[0] + "@***",
+  });
+  logger.logInfo("📧 [EMAIL SERVICE] Email config", {
+    EMAIL_USER: process.env.EMAIL_USER ? "SET" : "NOT SET",
+    EMAIL_PASS: process.env.EMAIL_PASS ? "SET" : "NOT SET",
     studentName,
     collegeName,
-    reason
   });
 
   const mailOptions = {
@@ -373,12 +384,16 @@ exports.sendAdmissionRejectionEmail = async ({
         <p>Thank you for applying to ${collegeName}.</p>
         <p>After careful review, we regret to inform you that your admission application has been <b style="color: #dc3545;">not approved</b> at this time.</p>
 
-        ${reason ? `
+        ${
+          reason
+            ? `
         <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
           <h4 style="margin-top: 0; color: #856404;">Reason for Rejection</h4>
           <p style="color: #856404; margin-bottom: 0;">${reason}</p>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <h4 style="margin-top: 0; color: #1a4b6d;">📝 What's Next?</h4>
@@ -394,17 +409,23 @@ exports.sendAdmissionRejectionEmail = async ({
         <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;"/>
         <p style="color: #6c757d; font-size: 12px; text-align: center;">This is an automated message. Please do not reply.</p>
       </div>
-    `
+    `,
   };
 
   try {
-    console.log('📧 [EMAIL SERVICE] Sending email via transporter...');
+    logger.logInfo("📧 [EMAIL SERVICE] Sending email via transporter...");
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 [EMAIL SERVICE] Email sent successfully! Message ID:', info.messageId);
-    console.log(`✅ Admission rejection email sent to ${to}`);
+    logger.logInfo("📧 [EMAIL SERVICE] Email sent successfully", {
+      messageId: info.messageId,
+    });
+    logger.logInfo("✅ Admission rejection email sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
   } catch (error) {
-    console.error('❌ [EMAIL SERVICE] Failed to send email:', error.message);
-    console.error('❌ [EMAIL SERVICE] Error stack:', error.stack);
+    logger.logError("❌ [EMAIL SERVICE] Failed to send email", {
+      error: error.message,
+    });
+    logger.logError("❌ [EMAIL SERVICE] Error stack", { error: error.stack });
     throw error; // Re-throw so the caller knows it failed
   }
 };
@@ -418,7 +439,7 @@ exports.sendLowAttendanceAlertEmail = async ({
   attendancePercentage,
   courseName,
   collegeName,
-  minimumRequired = 75
+  minimumRequired = 75,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -477,14 +498,18 @@ exports.sendLowAttendanceAlertEmail = async ({
         <br/>
         <p>Regards,<br/><b>Academic Office</b><br/>${collegeName}</p>
       </div>
-    `
+    `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Low attendance alert sent to ${to}`);
+    logger.logInfo("✅ Low attendance alert sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
   } catch (error) {
-    console.error(`❌ Failed to send low attendance alert to ${to}:`, error.message);
+    logger.logError("❌ Failed to send low attendance alert", {
+      error: error.message,
+    });
   }
 };
 
@@ -498,7 +523,7 @@ exports.sendLowAttendanceAlertToParents = async ({
   attendancePercentage,
   courseName,
   collegeName,
-  minimumRequired = 75
+  minimumRequired = 75,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -508,7 +533,7 @@ exports.sendLowAttendanceAlertToParents = async ({
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #dc3545;">⚠️ Low Attendance Alert</h2>
 
-        <p>Dear <b>${parentName || 'Parent/Guardian'}</b>,</p>
+        <p>Dear <b>${parentName || "Parent/Guardian"}</b>,</p>
         <p>This is to bring to your kind attention that your ward's attendance is currently <b style="color: #dc3545;">below the minimum required threshold</b> at ${collegeName}.</p>
 
         <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
@@ -551,14 +576,18 @@ exports.sendLowAttendanceAlertToParents = async ({
         <br/>
         <p>Regards,<br/><b>Academic Office</b><br/>${collegeName}</p>
       </div>
-    `
+    `,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Low attendance alert sent to parent ${to}`);
+    logger.logInfo("✅ Low attendance alert sent to parent", {
+      recipient: to.split("@")[0] + "@***",
+    });
   } catch (error) {
-    console.error(`❌ Failed to send low attendance alert to parent ${to}:`, error.message);
+    logger.logError("❌ Failed to send low attendance alert to parent", {
+      error: error.message,
+    });
   }
 };
 
@@ -618,7 +647,7 @@ exports.sendEmailToCollegeAdmin = async ({
   to,
   collegeName,
   subject,
-  message
+  message,
 }) => {
   const mailOptions = {
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -658,8 +687,8 @@ exports.sendEmailToCollegeAdmin = async ({
           <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800;">
             <p style="margin: 0; color: #e65100; font-size: 14px;">
               <strong>💡 Need Help?</strong> Contact support at 
-              <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@smartcollege.com'}" style="color: #e65100;">
-                ${process.env.SUPPORT_EMAIL || 'support@smartcollege.com'}
+              <a href="mailto:${process.env.SUPPORT_EMAIL || "support@smartcollege.com"}" style="color: #e65100;">
+                ${process.env.SUPPORT_EMAIL || "support@smartcollege.com"}
               </a>
             </p>
           </div>
@@ -679,15 +708,20 @@ exports.sendEmailToCollegeAdmin = async ({
           </p>
         </div>
       </div>
-    `
+    `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent to college admin at ${to}: ${info.messageId}`);
+    logger.logInfo("✅ Email sent to college admin", {
+      recipient: to.split("@")[0] + "@***",
+      messageId: info.messageId,
+    });
     return true;
   } catch (error) {
-    console.error(`❌ Failed to send email to college admin at ${to}:`, error.message);
+    logger.logError("❌ Failed to send email to college admin", {
+      error: error.message,
+    });
     throw error;
   }
 };
