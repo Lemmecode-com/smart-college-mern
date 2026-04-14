@@ -1,21 +1,24 @@
 =============== Smart College MERN - Complete Dependencies ==================
 # Based on actual package.json files (Version 2.1.0)
+# Last Updated: April 13, 2026
 
 =============== Frontend Dependencies ==================
-# Core React (v19.2.3)
+# Core React (v19)
 npm install react@^19.2.3
 npm install react-dom@^19.1.0
 npm install react-router-dom@^7.13.0
 npm install react-icons@^5.5.0
 npm install prop-types@^15.8.1
 
-# UI Frameworks
+# UI Frameworks & Styling
 npm install bootstrap@^5.3.8
 npm install react-bootstrap@^2.10.10
+npm install animate.css@^4.1.1
 
 # Animation
 npm install framer-motion@^12.34.0
 npm install motion@^12.34.0
+npm install swiper@^11.2.0
 
 # HTTP & API
 npm install axios@^1.13.4
@@ -129,3 +132,6 @@ npm list --depth=0
 - React 19 is being used (latest version)
 - Express 5 is being used (latest version)
 - Mongoose 9 is being used (latest version)
+- Payment gateways (Stripe + Razorpay) fully integrated
+- Winston logger used for structured logging
+- Multi-tenant payment architecture implemented
