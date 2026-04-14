@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
@@ -14,15 +15,15 @@ exports.admissionSummary = async (college_id) => {
   const total = await Student.countDocuments({ college_id });
   const approved = await Student.countDocuments({
     college_id,
-    status: "APPROVED"
+    status: "APPROVED",
   });
   const pending = await Student.countDocuments({
     college_id,
-    status: "PENDING"
+    status: "PENDING",
   });
   const rejected = await Student.countDocuments({
     college_id,
-    status: "REJECTED"
+    status: "REJECTED",
   });
 
   return {
@@ -31,7 +32,7 @@ exports.admissionSummary = async (college_id) => {
     pending,
     rejected,
     approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
-    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0
+    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0,
   };
 };
 
@@ -43,31 +44,31 @@ exports.courseWiseAdmissions = async (college_id) => {
     {
       $match: {
         college_id,
-        status: "APPROVED"
-      }
+        status: "APPROVED",
+      },
     },
     {
       $group: {
         _id: "$course_id",
-        totalStudents: { $sum: 1 }
-      }
+        totalStudents: { $sum: 1 },
+      },
     },
     {
       $lookup: {
         from: "courses",
         localField: "_id",
         foreignField: "_id",
-        as: "course"
-      }
+        as: "course",
+      },
     },
     { $unwind: "$course" },
     {
       $project: {
         _id: 0,
         courseName: "$course.name",
-        totalStudents: 1
-      }
-    }
+        totalStudents: 1,
+      },
+    },
   ]);
 };
 
@@ -76,14 +77,18 @@ exports.courseWiseAdmissions = async (college_id) => {
  */
 exports.paymentSummary = async (college_id) => {
   const result = await StudentFee.aggregate([
-    { $match: { college_id } },
+    {
+      $match: {
+        college_id: new mongoose.Types.ObjectId(college_id),
+      },
+    },
     {
       $group: {
         _id: null,
-        totalExpected: { $sum: "$totalFee" },
-        totalPaid: { $sum: "$paidAmount" }
-      }
-    }
+        totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
+        totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
+      },
+    },
   ]);
 
   const data = result[0] || { totalExpected: 0, totalPaid: 0 };
@@ -93,10 +98,10 @@ exports.paymentSummary = async (college_id) => {
   const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
 
   return {
-    total,
-    collected,
-    pending,
-    collectionRate
+    totalExpectedFee: total,
+    totalCollected: collected,
+    totalPending: pending,
+    collectionRate,
   };
 };
 
@@ -113,14 +118,14 @@ exports.studentPaymentStatus = async (college_id, status) => {
     .select("totalFee paidAmount paymentStatus installments");
 
   // Transform to expected format
-  return fees.map(fee => ({
-    name: fee.student_id?.fullName || 'N/A',
-    email: fee.student_id?.email || '',
-    course: fee.course_id?.name || 'N/A',
+  return fees.map((fee) => ({
+    name: fee.student_id?.fullName || "N/A",
+    email: fee.student_id?.email || "",
+    course: fee.course_id?.name || "N/A",
     totalFee: fee.totalFee || 0,
     paid: fee.paidAmount || 0,
     pending: (fee.totalFee || 0) - (fee.paidAmount || 0),
-    status: fee.paymentStatus || 'DUE'
+    status: fee.paymentStatus || "DUE",
   }));
 };
 
@@ -129,25 +134,29 @@ exports.studentPaymentStatus = async (college_id, status) => {
  */
 exports.attendanceSummary = async (college_id) => {
   const result = await AttendanceRecord.aggregate([
-    { $match: { college_id } },
+    {
+      $match: {
+        college_id: new mongoose.Types.ObjectId(college_id),
+      },
+    },
     {
       $group: {
         _id: null,
         total: { $sum: 1 },
         present: {
           $sum: {
-            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0]
-          }
-        }
-      }
-    }
+            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0],
+          },
+        },
+      },
+    },
   ]);
 
   const data = result[0] || { total: 0, present: 0 };
 
   return {
     totalRecords: data.total,
-    averageAttendance: data.present
+    averageAttendance: data.present,
   };
 };
 
@@ -156,17 +165,21 @@ exports.attendanceSummary = async (college_id) => {
  */
 exports.studentAttendanceReport = async (college_id, minPercentage) => {
   const records = await AttendanceRecord.aggregate([
-    { $match: { college_id } },
+    {
+      $match: {
+        college_id: new mongoose.Types.ObjectId(college_id),
+      },
+    },
     {
       $group: {
         _id: "$student_id",
         total: { $sum: 1 },
         present: {
           $sum: {
-            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0]
-          }
-        }
-      }
+            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0],
+          },
+        },
+      },
     },
     {
       $project: {
@@ -174,11 +187,11 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
         total: 1,
         present: 1,
         percentage: {
-          $multiply: [{ $divide: ["$present", "$total"] }, 100]
-        }
-      }
+          $multiply: [{ $divide: ["$present", "$total"] }, 100],
+        },
+      },
     },
-    { $match: { percentage: { $lt: minPercentage } } }
+    { $match: { percentage: { $lt: minPercentage } } },
   ]);
 
   // Enrich with student details
@@ -188,14 +201,14 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
       const student = await Student.findById(record.student_id)
         .populate("course_id", "name")
         .select("fullName");
-      
+
       return {
-        name: student?.fullName || 'Unknown',
-        course: student?.course_id?.name || 'N/A',
+        name: student?.fullName || "Unknown",
+        course: student?.course_id?.name || "N/A",
         attendance: Math.round(record.percentage),
-        status: record.percentage < 50 ? 'CRITICAL' : 'WARNING'
+        status: record.percentage < 50 ? "CRITICAL" : "WARNING",
       };
-    })
+    }),
   );
 
   return enriched;
@@ -213,30 +226,36 @@ exports.admissionSummaryAll = async () => {
   const approved = await Student.countDocuments({ status: "APPROVED" });
   const pending = await Student.countDocuments({ status: "PENDING" });
   const rejected = await Student.countDocuments({ status: "REJECTED" });
-  
+
   const totalColleges = await College.countDocuments();
   const activeColleges = await College.countDocuments({ isActive: true });
-  
+
   // Calculate monthly admissions (current month)
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  
+
   const monthlyAdmissions = await Student.countDocuments({
-    createdAt: { $gte: startOfMonth }
+    createdAt: { $gte: startOfMonth },
   });
-  
+
   // Calculate previous month admissions for growth calculation
   const prevMonthStart = new Date(startOfMonth);
   prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
-  
+
   const prevMonthAdmissions = await Student.countDocuments({
-    createdAt: { $gte: prevMonthStart, $lt: startOfMonth }
+    createdAt: { $gte: prevMonthStart, $lt: startOfMonth },
   });
-  
-  const monthlyGrowth = prevMonthAdmissions > 0 
-    ? Math.round(((monthlyAdmissions - prevMonthAdmissions) / prevMonthAdmissions) * 100)
-    : monthlyAdmissions > 0 ? 100 : 0;
+
+  const monthlyGrowth =
+    prevMonthAdmissions > 0
+      ? Math.round(
+          ((monthlyAdmissions - prevMonthAdmissions) / prevMonthAdmissions) *
+            100,
+        )
+      : monthlyAdmissions > 0
+        ? 100
+        : 0;
 
   return {
     totalStudents: total,
@@ -246,31 +265,22 @@ exports.admissionSummaryAll = async () => {
     totalColleges,
     activeColleges,
     monthlyAdmissions,
-    monthlyGrowth
+    monthlyGrowth,
   };
 };
-
-
-
 
 /**
  * PAYMENT SUMMARY (ALL COLLEGES)
  */
-
-exports.paymentSummary = async (college_id) => {
+exports.paymentSummaryAll = async () => {
   const result = await StudentFee.aggregate([
-    {
-      $match: {
-        college_id: new mongoose.Types.ObjectId(college_id)
-      }
-    },
     {
       $group: {
         _id: null,
         totalExpected: { $sum: "$totalFee" },
-        totalPaid: { $sum: "$paidAmount" }
-      }
-    }
+        totalPaid: { $sum: "$paidAmount" },
+      },
+    },
   ]);
 
   const data = result[0] || { totalExpected: 0, totalPaid: 0 };
@@ -278,10 +288,9 @@ exports.paymentSummary = async (college_id) => {
   return {
     totalExpectedFee: data.totalExpected,
     totalCollected: data.totalPaid,
-    totalPending: data.totalExpected - data.totalPaid
+    totalPending: data.totalExpected - data.totalPaid,
   };
 };
-
 
 /**
  * STUDENT PAYMENT STATUS (ALL COLLEGES)
@@ -298,15 +307,8 @@ exports.studentPaymentStatusAll = async (status) => {
 /**
  * ATTENDANCE SUMMARY (ALL COLLEGES)
  */
-const mongoose = require("mongoose");
-
-exports.attendanceSummary = async (college_id) => {
+exports.attendanceSummaryAll = async () => {
   const result = await AttendanceRecord.aggregate([
-    {
-      $match: {
-        college_id: new mongoose.Types.ObjectId(college_id)
-      }
-    },
     {
       $group: {
         _id: null,
@@ -316,11 +318,11 @@ exports.attendanceSummary = async (college_id) => {
             $cond: [
               { $in: ["$status", ["PRESENT", "Present", "present"]] },
               1,
-              0
-            ]
-          }
-        }
-      }
+              0,
+            ],
+          },
+        },
+      },
     },
     {
       $project: {
@@ -330,14 +332,18 @@ exports.attendanceSummary = async (college_id) => {
           $cond: [
             { $eq: ["$total", 0] },
             0,
-            { $round: [{ $multiply: [{ $divide: ["$present", "$total"] }, 100] }, 0] }
-          ]
-        }
-      }
-    }
+            {
+              $round: [
+                { $multiply: [{ $divide: ["$present", "$total"] }, 100] },
+                0,
+              ],
+            },
+          ],
+        },
+      },
+    },
   ]);
 
   // Return first object or default values
   return result[0] || { totalRecords: 0, averageAttendance: 0 };
 };
-

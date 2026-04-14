@@ -91,6 +91,10 @@ router.get(
   getMyFullProfile,
 );
 
+// 🔒 SECURE DOCUMENT ACCESS (prevents cross-student access)
+const { getStudentDocument } = require("../controllers/student.controller");
+router.get("/documents/:filename", auth, getStudentDocument);
+
 // 🎓 STUDENT: Update own profile
 router.put(
   "/update-my-profile",

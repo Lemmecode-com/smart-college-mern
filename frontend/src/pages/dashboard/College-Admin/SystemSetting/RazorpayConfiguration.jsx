@@ -26,8 +26,12 @@ import {
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+if (!API_BASE_URL) {
+  throw new Error(
+    "VITE_API_BASE_URL is required for payment gateway configuration",
+  );
+}
 
 const RazorpayConfiguration = () => {
   const navigate = useNavigate();
@@ -95,10 +99,10 @@ const RazorpayConfiguration = () => {
   };
 
   const validateKeys = () => {
-    const { keyId, keySecret, testMode } = formData;
+    const { keyId, keySecret, webhookSecret, testMode } = formData;
 
-    if (!keyId || !keySecret) {
-      toast.error("Key ID and Secret Key are required");
+    if (!keyId || !keySecret || !webhookSecret) {
+      toast.error("Key ID, Secret Key, and Webhook Secret are required");
       return false;
     }
 
@@ -107,7 +111,7 @@ const RazorpayConfiguration = () => {
 
     if (!isTestKey && !isLiveKey) {
       toast.error(
-        "Invalid Key ID format. Must start with rzp_test_ or rzp_live_"
+        "Invalid Key ID format. Must start with rzp_test_ or rzp_live_",
       );
       return false;
     }
@@ -141,7 +145,7 @@ const RazorpayConfiguration = () => {
     } catch (error) {
       console.error("Save error:", error);
       toast.error(
-        error.response?.data?.message || "Failed to save configuration"
+        error.response?.data?.message || "Failed to save configuration",
       );
     } finally {
       setSaving(false);
@@ -170,9 +174,7 @@ const RazorpayConfiguration = () => {
       }
     } catch (error) {
       console.error("Verify error:", error);
-      toast.error(
-        error.response?.data?.message || "Verification failed"
-      );
+      toast.error(error.response?.data?.message || "Verification failed");
     } finally {
       setVerifying(false);
     }
@@ -192,9 +194,7 @@ const RazorpayConfiguration = () => {
       }
     } catch (error) {
       console.error("Test error:", error);
-      toast.error(
-        error.response?.data?.message || "Connection test failed"
-      );
+      toast.error(error.response?.data?.message || "Connection test failed");
     } finally {
       setTesting(false);
     }
@@ -203,7 +203,7 @@ const RazorpayConfiguration = () => {
   const handleDelete = async () => {
     if (
       !window.confirm(
-        "Are you sure you want to delete Razorpay configuration? This will stop all Razorpay payments."
+        "Are you sure you want to delete Razorpay configuration? This will stop all Razorpay payments.",
       )
     ) {
       return;
@@ -227,7 +227,7 @@ const RazorpayConfiguration = () => {
     } catch (error) {
       console.error("Delete error:", error);
       toast.error(
-        error.response?.data?.message || "Failed to delete configuration"
+        error.response?.data?.message || "Failed to delete configuration",
       );
     } finally {
       setSaving(false);
@@ -236,7 +236,10 @@ const RazorpayConfiguration = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+      <div
+        className="d-flex justify-content-center align-items-center"
+        style={{ height: "100vh" }}
+      >
         <div className="text-center">
           <FaSpinner className="spin fa-3x text-primary mb-3" />
           <p className="text-muted">Loading Razorpay configuration...</p>
@@ -246,7 +249,10 @@ const RazorpayConfiguration = () => {
   }
 
   return (
-    <div className="razorpay-config-page" style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
+    <div
+      className="razorpay-config-page"
+      style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}
+    >
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-3">
@@ -299,7 +305,7 @@ const RazorpayConfiguration = () => {
               <button
                 className={`btn ${formData.testMode ? "btn-warning" : "btn-outline-secondary"}`}
                 onClick={() => {
-                  setFormData(prev => ({ ...prev, testMode: true }));
+                  setFormData((prev) => ({ ...prev, testMode: true }));
                   setIsModified(true);
                 }}
               >
@@ -309,7 +315,7 @@ const RazorpayConfiguration = () => {
               <button
                 className={`btn ${!formData.testMode ? "btn-success" : "btn-outline-secondary"}`}
                 onClick={() => {
-                  setFormData(prev => ({ ...prev, testMode: false }));
+                  setFormData((prev) => ({ ...prev, testMode: false }));
                   setIsModified(true);
                 }}
               >
@@ -337,7 +343,9 @@ const RazorpayConfiguration = () => {
               name="keyId"
               value={formData.keyId}
               onChange={handleInputChange}
-              placeholder={formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"}
+              placeholder={
+                formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"
+              }
               disabled={saving}
             />
             <small className="text-muted">
@@ -381,6 +389,7 @@ const RazorpayConfiguration = () => {
           <div className="mb-3">
             <label className="form-label fw-semibold">
               Webhook Secret
+              <span className="text-danger ms-1">*</span>
             </label>
             <div className="input-group">
               <input
@@ -389,8 +398,9 @@ const RazorpayConfiguration = () => {
                 name="webhookSecret"
                 value={formData.webhookSecret}
                 onChange={handleInputChange}
-                placeholder="Enter webhook secret (optional)"
+                placeholder="Enter webhook secret (required)"
                 disabled={saving}
+                required
               />
               <button
                 className="btn btn-outline-secondary"
@@ -545,10 +555,11 @@ const RazorpayConfiguration = () => {
             Configure this webhook URL in your Razorpay dashboard:
           </p>
           <div className="bg-light p-3 rounded font-monospace">
-            {API_BASE_URL}/api/razorpay/webhook
+            {API_BASE_URL}/razorpay/webhook
           </div>
           <p className="text-muted small mt-2 mb-0">
-            This allows Razorpay to send payment notifications to your application.
+            This allows Razorpay to send payment notifications to your
+            application.
           </p>
         </div>
       </div>
