@@ -257,9 +257,15 @@ DetailRow.defaultProps = {
 
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
-  const baseUrl =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    throw new Error("VITE_API_BASE_URL environment variable is required");
+  }
   const fileName = getFileName(path);
+  // Use secure API endpoint for document access (authorization enforced)
+  const secureDocUrl = path
+    ? `${baseUrl}/students/documents/${getFileName(path)}`
+    : null;
 
   return (
     <tr className="detail-row">
@@ -272,7 +278,7 @@ function DocumentRow({ label, path, icon }) {
       <td className="detail-value">
         {path ? (
           <a
-            href={`${baseUrl}/${path}`}
+            href={secureDocUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="document-link"

@@ -85,61 +85,48 @@ exports.handleStripeWebhook = async (req, res) => {
       }
     }
 
-    // ✅ Step 1: Verify webhook signature
-    if (collegeId) {
-      // Get college-specific Stripe config
-      const { stripe, webhookSecret } =
-        await getCollegeStripeWebhookConfig(collegeId);
-
-      if (webhookSecret) {
-        try {
-          event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-          logger.logInfo("Webhook signature verified (college-specific)", {
-            collegeId,
-          });
-        } catch (err) {
-          logger.logError("Webhook signature verification failed", {
-            error: err.message,
-            collegeId,
-          });
-          return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-      } else {
-        logger.logError("No webhook secret configured for college", {
-          collegeId,
-        });
-        return res
-          .status(400)
-          .send("Webhook secret not configured for this college");
-      }
-    } else {
-      // Fallback: Try to verify with global webhook secret (for backward compatibility)
-      const globalWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-      if (globalWebhookSecret && sig) {
-        const globalStripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-          apiVersion: "2023-10-16",
-        });
-
-        try {
-          event = globalStripe.webhooks.constructEvent(
-            rawBody,
-            sig,
-            globalWebhookSecret,
-          );
-          logger.logInfo("Webhook signature verified (global fallback)");
-        } catch (err) {
-          logger.logError("Global webhook signature verification failed", {
-            error: err.message,
-          });
-          return res.status(400).send(`Webhook Error: ${err.message}`);
-        }
-      } else {
-        logger.logError(
-          "No webhook secret configured — cannot verify signature",
+    // ✅ Step 1: Validate college ID is present (multi-tenant requirement)
+    if (!collegeId) {
+      logger.logError("Webhook rejected - cannot determine college ID", {
+        eventType: req.body?.type,
+        ip: req.ip,
+      });
+      return res
+        .status(400)
+        .send(
+          "Missing college ID in webhook payload. Each college must configure their own Stripe webhook.",
         );
-        return res.status(400).send("Webhook secret not configured");
-      }
+    }
+
+    // ✅ Step 2: Get college-specific Stripe config
+    const { stripe, webhookSecret } =
+      await getCollegeStripeWebhookConfig(collegeId);
+
+    // ✅ Step 3: Validate webhook secret is configured
+    if (!webhookSecret) {
+      logger.logError("Webhook secret not configured for college", {
+        collegeId,
+      });
+      return res
+        .status(400)
+        .send(
+          "Webhook secret not configured for this college. Please configure webhook secret in college admin dashboard.",
+        );
+    }
+
+    // ✅ Step 4: Verify webhook signature using college-specific secret
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+      logger.logInfo("Webhook signature verified (college-specific)", {
+        collegeId,
+        eventType: event.type,
+      });
+    } catch (err) {
+      logger.logError("Webhook signature verification failed", {
+        error: err.message,
+        collegeId,
+      });
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     // ✅ Step 2: Handle the event
@@ -187,19 +174,81 @@ exports.handleStripeWebhook = async (req, res) => {
           return res.status(404).send("Installment not found");
         }
 
-        // Check if already paid (DUPLICATE EVENT PROTECTION)
+        // 🔒 IDEMPOTENCY: Check if already paid (DUPLICATE EVENT PROTECTION - Layer 1)
         if (installment.status === "PAID") {
-          logger.logWarning("Installment already paid (duplicate webhook)", {
-            studentId,
-            installmentName,
-          });
-          return res.send("Already paid");
+          logger.logWarning(
+            "⚠️ Installment already paid - checking if receipt email was sent",
+            {
+              studentId,
+              installmentName,
+              sessionId: session.id,
+            },
+          );
+
+          // 📧 WEBHOOK PRIMARY: Always ensure receipt email is sent (even if already paid)
+          // This handles case where confirm-payment endpoint processed first but didn't send email
+          try {
+            const student = await Student.findById(studentId).populate(
+              "college_id",
+              "name email",
+            );
+
+            if (student && !installment.receiptEmailSentAt) {
+              await sendPaymentReceiptEmail({
+                to: student.email,
+                studentName: student.fullName,
+                installment: {
+                  name: installment.name,
+                  amount: installment.amount,
+                  paidAt: installment.paidAt,
+                  transactionId: installment.transactionId,
+                },
+                totalFee: studentFee.totalFee,
+                paidAmount: studentFee.paidAmount,
+                remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+              });
+
+              // Mark email as sent
+              await StudentFee.updateOne(
+                {
+                  _id: studentFee._id,
+                  "installments._id": installment._id,
+                },
+                {
+                  $set: {
+                    "installments.$.receiptEmailSentAt": new Date(),
+                  },
+                },
+              );
+
+              logger.logInfo("✅ Receipt email sent (already paid case)", {
+                studentId,
+                to: student.email,
+              });
+            } else if (installment.receiptEmailSentAt) {
+              logger.logInfo("ℹ️ Receipt email already sent - skipping", {
+                studentId,
+                emailSentAt: installment.receiptEmailSentAt,
+              });
+            }
+          } catch (emailErr) {
+            logger.logWarning(
+              "⚠️ Failed to send receipt email (already paid case)",
+              {
+                error: emailErr.message,
+                studentId,
+              },
+            );
+            // Don't fail the webhook if email fails
+          }
+
+          return res.send("Already paid (email checked)");
         }
 
-        // Additional duplicate protection: check if stripeSessionId already matches
+        // 🔒 IDEMPOTENCY: Check if stripeSessionId already matches (Layer 2)
         if (installment.stripeSessionId === session.id) {
           logger.logWarning(
-            "Webhook already processed (duplicate session ID)",
+            "⚠️ Webhook already processed (duplicate session ID)",
             {
               studentId,
               stripeSessionId: session.id,
@@ -208,27 +257,50 @@ exports.handleStripeWebhook = async (req, res) => {
           return res.send("Already processed");
         }
 
-        // ✅ Mark installment as PAID
-        installment.status = "PAID";
-        installment.paidAt = new Date();
-        installment.transactionId = session.payment_intent;
-        installment.paymentGateway = "STRIPE";
-        installment.stripeSessionId = session.id;
+        // 🔒 IDEMPOTENCY: Atomic update to prevent race conditions
+        // Only update if status is still PENDING (handles concurrent webhook calls)
+        const updateResult = await StudentFee.updateOne(
+          {
+            _id: studentFee._id,
+            "installments._id": installment._id,
+            "installments.status": "PENDING", // ← Atomic condition
+            "installments.stripeSessionId": { $ne: session.id }, // ← Prevent duplicate session processing
+          },
+          {
+            $set: {
+              "installments.$.status": "PAID",
+              "installments.$.paidAt": new Date(),
+              "installments.$.transactionId": session.payment_intent,
+              "installments.$.paymentGateway": "STRIPE",
+              "installments.$.stripeSessionId": session.id,
+            },
+          },
+        );
 
-        // Recalculate total paid amount
-        studentFee.paidAmount = studentFee.installments
-          .filter((i) => i.status === "PAID")
-          .reduce((sum, i) => sum + i.amount, 0);
-
-        await studentFee.save();
-
-        logger.logInfo("Payment recorded in database", {
+        logger.logInfo("🔒 Atomic webhook update completed", {
           studentId,
-          paidAmount: studentFee.paidAmount,
-          remaining: studentFee.totalFee - studentFee.paidAmount,
+          matchedCount: updateResult.matchedCount,
+          modifiedCount: updateResult.modifiedCount,
+          sessionId: session.id,
         });
 
-        // ✅ Send receipt email to student
+        // If no documents matched, another webhook already processed this
+        if (updateResult.matchedCount === 0) {
+          logger.logWarning("⚠️ Webhook race condition prevented", {
+            studentId,
+            installmentName,
+            sessionId: session.id,
+          });
+          return res.send("Already processed (race condition prevented)");
+        }
+
+        logger.logInfo("✅ Payment recorded atomically via webhook", {
+          studentId,
+          sessionId: session.id,
+          paymentIntent: session.payment_intent,
+        });
+
+        // 📧 WEBHOOK PRIMARY: Send receipt email (source of truth)
         try {
           const student = await Student.findById(studentId).populate(
             "college_id",
@@ -238,15 +310,37 @@ exports.handleStripeWebhook = async (req, res) => {
             await sendPaymentReceiptEmail({
               to: student.email,
               studentName: student.fullName,
-              installment,
+              installment: {
+                name: installment.name,
+                amount: installment.amount,
+                paidAt: new Date(),
+                transactionId: session.payment_intent,
+              },
               totalFee: studentFee.totalFee,
               paidAmount: studentFee.paidAmount,
               remainingAmount: studentFee.totalFee - studentFee.paidAmount,
             });
-            logger.logInfo("Receipt email sent", { to: student.email });
+
+            // Mark email as sent in database (tracks that webhook sent it)
+            await StudentFee.updateOne(
+              {
+                _id: studentFee._id,
+                "installments._id": installment._id,
+              },
+              {
+                $set: {
+                  "installments.$.receiptEmailSentAt": new Date(),
+                },
+              },
+            );
+
+            logger.logInfo("✅ Receipt email sent by webhook (primary)", {
+              studentId,
+              to: student.email,
+            });
           }
         } catch (emailErr) {
-          logger.logWarning("Failed to send receipt email", {
+          logger.logWarning("⚠️ Failed to send receipt email", {
             error: emailErr.message,
             studentId,
           });
