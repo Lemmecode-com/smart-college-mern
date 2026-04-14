@@ -9,13 +9,24 @@
  */
 
 /**
- * Get day name from date
+ * Get day name from date (timezone-safe)
  * @param {Date|string} date - Date object or ISO string
  * @returns {string} Day name (MON, TUE, WED, THU, FRI, SAT, SUN)
  */
 exports.getDayName = (date) => {
   const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const d = new Date(date);
+
+  // Parse as local date to avoid UTC shift
+  let d;
+  if (date instanceof Date) {
+    d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  } else if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [year, month, day] = date.split("-").map(Number);
+    d = new Date(year, month - 1, day);
+  } else {
+    d = new Date(date);
+  }
+
   return days[d.getDay()];
 };
 
@@ -39,8 +50,18 @@ exports.isDateMatchesDay = (date, dayName) => {
  */
 exports.getAllDatesForDay = (dayName, startDate, endDate) => {
   const dates = [];
-  const current = new Date(startDate);
-  const end = new Date(endDate);
+
+  // Parse as local dates
+  const current = new Date(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate(),
+  );
+  const end = new Date(
+    endDate.getFullYear(),
+    endDate.getMonth(),
+    endDate.getDate(),
+  );
 
   while (current <= end) {
     if (exports.getDayName(current) === dayName) {
@@ -139,19 +160,41 @@ exports.getValidDatesForSlot = (dayName, academicYear, semester) => {
 };
 
 /**
- * Format date to ISO string (YYYY-MM-DD)
+ * Format date to local date string (YYYY-MM-DD)
  * @param {Date} date - Date object
- * @returns {string} ISO date string
+ * @returns {string} Local date string (YYYY-MM-DD)
  */
 exports.formatDate = (date) => {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 /**
- * Parse date string to Date object
+ * Parse date string to local Date object at midnight (avoids UTC shift)
+ * @param {string|Date} dateValue - ISO date string (YYYY-MM-DD) or Date
+ * @returns {Date} Date object at local midnight
+ */
+exports.parseLocalDateSafe = (dateValue) => {
+  if (dateValue instanceof Date) {
+    return new Date(
+      dateValue.getFullYear(),
+      dateValue.getMonth(),
+      dateValue.getDate(),
+    );
+  }
+
+  // Parse YYYY-MM-DD as local date
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * Parse date string to Date object (uses local date parsing)
  * @param {string} dateString - YYYY-MM-DD
  * @returns {Date} Date object
  */
 exports.parseDate = (dateString) => {
-  return new Date(dateString);
+  return exports.parseLocalDateSafe(dateString);
 };

@@ -148,7 +148,10 @@ export default function SessionDetails() {
       studentList.forEach((student) => {
         defaultAttendance[student._id] = "PRESENT";
       });
-      setAttendance(defaultAttendance);
+      setAttendance((prev) => ({
+        ...defaultAttendance,
+        ...prev, // Preserve any manually changed values
+      }));
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -1198,7 +1201,7 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
       </td>
       <td style={cellStyle}>
         <select
-          value={attendance || ""}
+          value={attendance || "PRESENT"}
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: "100%",
@@ -1217,12 +1220,11 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
             backgroundSize: "16px",
           }}
         >
-          <option value="">Select status</option>
           <option value="PRESENT" style={{ color: BRAND_COLORS.success.main }}>
-            Present
+            ✓ Present
           </option>
           <option value="ABSENT" style={{ color: BRAND_COLORS.danger.main }}>
-            Absent
+            ✗ Absent
           </option>
         </select>
       </td>
