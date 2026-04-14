@@ -1,6 +1,7 @@
 const Razorpay = require("razorpay");
 const CollegePaymentConfig = require("../models/collegePaymentConfig.model");
 const { decryptRazorpayKey } = require("../utils/encryption.util");
+const logger = require("../utils/logger");
 
 /**
  * Cache for Razorpay instances to avoid recreating them frequently
@@ -38,9 +39,7 @@ async function getCollegeRazorpayConfig(collegeId) {
     throw error;
   }
 
-  console.log(
-    `🔵 [getCollegeRazorpayConfig] Looking for config for college: ${collegeId}`,
-  );
+  logger.logInfo("🔵 Fetching Razorpay config", { collegeId });
 
   const config = await CollegePaymentConfig.getActiveConfig(
     collegeId,
@@ -48,9 +47,7 @@ async function getCollegeRazorpayConfig(collegeId) {
   );
 
   if (!config) {
-    console.error(
-      `❌ [getCollegeRazorpayConfig] No config found for college: ${collegeId}`,
-    );
+    logger.logError("❌ Razorpay config not found", { collegeId });
     const error = new Error(
       "Razorpay payment gateway is not configured for this college. Please contact the college administrator.",
     );
@@ -59,20 +56,20 @@ async function getCollegeRazorpayConfig(collegeId) {
     throw error;
   }
 
-  console.log(
-    `✅ [getCollegeRazorpayConfig] Config found, decrypting keySecret`,
-  );
+  logger.logInfo("✅ Razorpay config found, decrypting keySecret", {
+    collegeId,
+  });
 
   // Decrypt the secret key
   let keySecret;
   try {
     keySecret = decryptRazorpayKey(config.credentials.keySecret);
-    console.log(`✅ [getCollegeRazorpayConfig] Key decrypted successfully`);
+    logger.logInfo("✅ Razorpay key decrypted successfully", { collegeId });
   } catch (decryptError) {
-    console.error(
-      `❌ [getCollegeRazorpayConfig] Failed to decrypt Razorpay key for college ${collegeId}:`,
-      decryptError.message,
-    );
+    logger.logError("❌ Failed to decrypt Razorpay key", {
+      collegeId,
+      error: decryptError.message,
+    });
     const error = new Error(
       "Unable to process payment configuration. Please contact support.",
     );
@@ -108,28 +105,29 @@ async function getRazorpayInstance(collegeId) {
     return cached.razorpay;
   }
 
-  console.log(
-    `🔵 [getRazorpayInstance] Fetching config for college: ${collegeId}`,
-  );
+  logger.logInfo("🔵 Fetching Razorpay config for instance creation", {
+    collegeId,
+  });
 
   let config, keySecret;
   try {
     const configResult = await getCollegeRazorpayConfig(collegeId);
     config = configResult.config;
     keySecret = configResult.keySecret;
-    console.log(`✅ [getRazorpayInstance] Config fetched successfully`);
+    logger.logInfo("✅ Razorpay config fetched successfully", { collegeId });
   } catch (configError) {
-    console.error(
-      `❌ [getRazorpayInstance] Failed to get config:`,
-      configError.message,
-    );
+    logger.logError("❌ Failed to get Razorpay config", {
+      collegeId,
+      error: configError.message,
+    });
     throw configError;
   }
 
   try {
-    console.log(
-      `🔵 [getRazorpayInstance] Creating Razorpay instance with keyId: ${config.credentials.keyId}`,
-    );
+    logger.logInfo("🔵 Creating Razorpay instance", {
+      collegeId,
+      keyId: config.credentials.keyId,
+    });
     const razorpay = new Razorpay({
       key_id: config.credentials.keyId,
       key_secret: keySecret,
@@ -142,15 +140,14 @@ async function getRazorpayInstance(collegeId) {
       timestamp: Date.now(),
     });
 
-    console.log(
-      `✅ [getRazorpayInstance] Razorpay instance created and cached`,
-    );
+    logger.logInfo("✅ Razorpay instance created and cached", { collegeId });
     return razorpay;
   } catch (error) {
-    console.error(
-      `❌ [getRazorpayInstance] Failed to initialize Razorpay for college ${collegeId}:`,
-      error,
-    );
+    logger.logError("❌ Failed to initialize Razorpay instance", {
+      collegeId,
+      error: error.message,
+      errorCode: error.code,
+    });
     const razorpayError = new Error(
       "Failed to initialize payment gateway. Please try again later.",
     );
@@ -187,10 +184,12 @@ async function verifyCollegeRazorpayCredentials(collegeId) {
       message: "Razorpay credentials verified successfully",
     };
   } catch (error) {
-    console.error(
-      `Razorpay credential verification failed for college ${collegeId}:`,
-      error,
-    );
+    logger.logError("❌ Razorpay credential verification failed", {
+      collegeId,
+      error: error.message,
+      errorCode: error.code,
+      statusCode: error.statusCode,
+    });
 
     let message = "Razorpay credentials verification failed";
 
@@ -219,7 +218,7 @@ async function verifyCollegeRazorpayCredentials(collegeId) {
  */
 function invalidateRazorpayInstanceCache(collegeId) {
   razorpayInstanceCache.delete(collegeId);
-  console.log(`Invalidated Razorpay cache for college ${collegeId}`);
+  logger.logInfo("✅ Invalidated Razorpay cache", { collegeId });
 }
 
 /**

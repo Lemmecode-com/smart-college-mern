@@ -155,8 +155,8 @@ exports.isToday = (date) => {
  * @returns {Date[]} Array of valid dates
  */
 exports.getValidDatesForSlot = (dayName, academicYear, semester) => {
-  const { start, end } = this.getSemesterDateRange(academicYear, semester);
-  return this.getAllDatesForDay(dayName, start, end);
+  const { start, end } = exports.getSemesterDateRange(academicYear, semester);
+  return exports.getAllDatesForDay(dayName, start, end);
 };
 
 /**
