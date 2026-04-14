@@ -10,8 +10,10 @@ exports.getAdminReceipt = async (req, res, next) => {
     const { installmentId } = req.params;
 
     // Find the StudentFee containing this installment
+    // Add college_id filter to ensure multi-tenant data isolation
     const studentFee = await StudentFee.findOne({
       "installments._id": installmentId,
+      college_id: req.college_id,
     })
       .populate("student_id")
       .populate({
