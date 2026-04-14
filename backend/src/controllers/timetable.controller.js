@@ -2,6 +2,7 @@ const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const AppError = require("../utils/AppError");
 const {
   getValidDatesForSlot,
   getDayName,
@@ -90,26 +91,37 @@ exports.createTimetable = async (req, res) => {
 };
 
 /* =========================================================
-   PUBLISH TIMETABLE (HOD)
+   PUBLISH TIMETABLE (HOD/COLLEGE_ADMIN)
 ========================================================= */
 exports.publishTimetable = async (req, res) => {
-  const timetable = await Timetable.findByIdAndUpdate(
-    req.params.id,
-    { status: "PUBLISHED" },
-    { new: true },
-  );
+  try {
+    const timetable = await Timetable.findById(req.params.id);
 
-  if (!timetable) {
-    return res.status(404).json({ message: "Timetable not found" });
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Add role check (only COLLEGE_ADMIN or TEACHER/HOD can publish)
+    if (!["COLLEGE_ADMIN", "TEACHER"].includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Not authorized to publish timetable",
+      });
+    }
+
+    timetable.status = "PUBLISHED";
+    await timetable.save();
+
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+      },
+      "Timetable published successfully",
+    );
+  } catch (error) {
+    console.error("Publish Timetable Error:", error);
+    res.status(500).json({ message: "Failed to publish timetable" });
   }
-
-  ApiResponse.success(
-    res,
-    {
-      timetable,
-    },
-    "Timetable published successfully",
-  );
 };
 
 /* =========================================================
