@@ -24,12 +24,18 @@ app.set("trust proxy", 1);
 /* ================= CORS CONFIGURATION ================= */
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
-  : ["http://localhost:5173", "http://localhost:3000"];
+  : [];
+
+if (corsOrigins.length === 0) {
+  logger.warn(
+    "CORS_ORIGINS environment variable is not set. No origins will be allowed.",
+  );
+}
 
 app.use(
   cors({
     credentials: true,
-    origin: corsOrigins,
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
   }),
 );
 app.use(cookieParser());
