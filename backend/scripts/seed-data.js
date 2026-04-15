@@ -45,7 +45,7 @@ const config = {
   mode: process.argv.includes("--minimal") ? "minimal" : 
         process.argv.includes("--users") ? "users" : "full",
   
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  frontendUrl: process.env.FRONTEND_URL,
   
   // Default passwords for seeded users
   defaultPassword: "User@123",
@@ -572,7 +572,7 @@ async function runSeed() {
   try {
     // Connect to MongoDB
     log("Connecting to database...", "info");
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/smart-college-mern";
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
     log(`Using: ${mongoUri.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@")}`, "info");
     
     conn = await mongoose.connect(mongoUri);
