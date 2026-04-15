@@ -1,34 +1,182 @@
 const express = require("express");
-const dotenv = require("dotenv");
 const cors = require("cors");
+const crypto = require("crypto");
+const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 
-dotenv.config();
-
-const connectDB = require("./src/config/db");
+const { securityMiddleware } = require("./src/middlewares/security.middleware");
+const {
+  globalLimiter,
+  healthCheckLimiter,
+  publicLimiter,
+  paymentLimiter,
+  paymentStatusLimiter,
+  webhookLimiter,
+} = require("./src/middlewares/rateLimit.middleware");
+const logger = require("./src/utils/logger");
 
 const app = express();
 
-// Database connection
-connectDB();
+/* ================= TRUST PROXY (nginx) ================= */
+// Required for express-rate-limit to get real client IP behind nginx
+app.set("trust proxy", 1);
 
-// Middlewares
-app.use(cors());
+/* ================= CORS CONFIGURATION ================= */
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+  : [];
+
+if (corsOrigins.length === 0) {
+  logger.warn(
+    "CORS_ORIGINS environment variable is not set. No origins will be allowed.",
+  );
+}
+
+app.use(
+  cors({
+    credentials: true,
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
+  }),
+);
+app.use(cookieParser());
+
+/* ================= REQUEST LOGGING (MORGAN) ================= */
+// Log all HTTP requests with Morgan
+app.use(
+  morgan("combined", {
+    stream: {
+      write: (message) => {
+        logger.http(message.trim());
+      },
+    },
+  }),
+);
+
+/* ================= WEBHOOK ROUTE (NEEDS RAW BODY) ================= */
+// Stripe webhook needs raw body, so we handle it separately
+// Rate limiting applied to prevent webhook abuse
+app.use(
+  "/api/stripe/webhook",
+  webhookLimiter,
+  require("./src/webhooks/stripe.webhook").handleStripeWebhook,
+);
+
+/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
 app.use(express.json());
-app.use(morgan("dev"));
 
-// Routes
+/* ================= SECURITY MIDDLEWARE ================= */
+app.use(securityMiddleware);
+
+/* ================= RATE LIMITING ================= */
+// Specific limiters applied BEFORE globalLimiter to avoid double-counting
+app.use("/health-check", healthCheckLimiter);
+app.use("/api/public", publicLimiter);
+app.use("/api/stripe", paymentLimiter);
+app.use("/api/admin/payments", paymentLimiter);
+app.use("/api/fees/structure", paymentLimiter);
+// Note: /api/student/payments limiter is applied per-route in student.payment.routes.js
+
+// Global limiter applied to remaining /api/* routes
+app.use("/api/", globalLimiter);
+
+/* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
+app.use("/api/college", require("./src/routes/college.routes"));
+app.use("/api/master", require("./src/routes/master.routes"));
+
+/* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));
 app.use("/api/courses", require("./src/routes/course.routes"));
+app.use("/api/teachers", require("./src/routes/teacher.routes"));
+app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
-app.use("/api/attendance", require("./src/routes/attendance.routes"));
 app.use("/api/users", require("./src/routes/user.routes"));
+app.use("/api/timetable", require("./src/routes/timetable.routes"));
 
-// ❗ Global Error Handler (MUST be last)
-app.use(require("./src/middleware/error.middleware"));
+/* ================= ATTENDANCE ================= */
+app.use("/api/attendance", require("./src/routes/attendance.routes"));
 
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-  console.log(`Server running on port http//:localhost/${PORT}`);
+/* ================= PAYMENTS & FEES ================= */
+app.use(
+  "/api/student/payments",
+  require("./src/routes/student.payment.routes"),
+);
+app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
+
+/* ================= STUDENT PROMOTION ================= */
+app.use("/api/promotion", require("./src/routes/promotion.routes"));
+
+/* ================= REPORTS & DASHBOARD ================= */
+app.use(
+  "/api/reports/dashboard",
+  require("./src/routes/reportDashboard.routes"),
+);
+app.use("/api/reports", require("./src/routes/reports.routes"));
+app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
+app.use("/api/notifications", require("./src/routes/notification.routes"));
+
+/* ================= SECURITY AUDIT ================= */
+app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
+
+/* ================= AUDIT LOGS (Admin Actions) ================= */
+app.use("/api/audit-logs", require("./src/routes/auditLog.routes"));
+
+/* ================= STRIPE ================= */
+app.use("/api/stripe", require("./src/routes/stripe.routes"));
+app.use(
+  "/api/admin/stripe",
+  require("./src/routes/collegeStripeConfig.routes"),
+);
+
+/* ================= RAZORPAY ================= */
+app.use("/api/razorpay", require("./src/routes/razorpay.routes"));
+app.use(
+  "/api/admin/razorpay",
+  require("./src/routes/collegeRazorpayConfig.routes"),
+);
+
+/* ================= RAZORPAY WEBHOOK (NEEDS RAW BODY) ================= */
+app.use(
+  "/api/razorpay/webhook",
+  webhookLimiter,
+  require("./src/webhooks/razorpay.webhook").handleRazorpayWebhook,
+);
+
+/* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
+app.use("/api/public", require("./src/routes/public.department.course.routes"));
+
+/* ================= DOCUMENT CONFIGURATION ================= */
+app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
+
+/* ================= STATIC FILES (PROTECTED) ================= */
+// Only serve college QR codes publicly (safe — just college code)
+// Student documents are served via secure API endpoint /api/students/documents/:filename
+app.use("/uploads/college-qrs", express.static("uploads/college-qrs"));
+// NOTE: /uploads/students/ is NOT served statically — it's protected by the secure API endpoint
+
+/* ================= HEALTH CHECK ROUTE ================= */
+// Health check endpoint (must be before 404 handler)
+app.get("/health-check", (req, res) => {
+  res.json({
+    success: true,
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
 });
+
+/* ================= 404 HANDLER ================= */
+// Handle routes that don't exist
+app.use((req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  error.statusCode = 404;
+  error.code = "NOT_FOUND";
+  next(error);
+});
+
+/* ================= GLOBAL ERROR HANDLER ================= */
+// Must be last - handles all errors from above routes
+app.use(require("./src/middlewares/error.middleware"));
+
+module.exports = app;
