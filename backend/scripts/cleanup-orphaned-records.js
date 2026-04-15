@@ -68,7 +68,7 @@ async function cleanupOrphanedRecords(options = { dryRun: true, archive: true })
 
   try {
     // Connect to database
-    await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/smart-college-mern");
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB");
 
     // Get all valid college IDs and codes
