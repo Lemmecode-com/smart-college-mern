@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const TimetableSchema = new mongoose.Schema(
   {
     college_id: {
