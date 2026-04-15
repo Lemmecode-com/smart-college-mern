@@ -1,9 +1,0 @@
-{
-  "name": "smart-college-mern",
-  "version": "2.1.0",
-  "description": "NOVAA - Modern Education Management Platform",
-  "private": true,
-  "dependencies": {
-    "framer-motion": "^12.35.0"
-  }
-}
