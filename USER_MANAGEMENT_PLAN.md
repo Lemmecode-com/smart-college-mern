@@ -164,15 +164,15 @@ We should integrate existing Student and Teacher workflows into a centralized Us
 
 ### 2.5 Decision Matrix
 
-| Criteria | Integrate (Weight: 8) | Don't Integrate (Weight: 2) |
-|----------|----------------------|----------------------------|
-| Security | ✅✅✅ Centralized auth | ❌ Inconsistent storage |
-| Scalability | ✅✅✅ Easy to add roles | ❌ Schema proliferation |
-| Cost | ⚠️ Medium upfront, low long-term | ✅ Zero upfront, high long-term |
-| Risk | ⚠️ Manageable with planning | ✅ No migration risk |
-| Compliance | ✅✅ DPDPA ready | ❌ Audit findings remain |
-| User Experience | ✅✅ Unified dashboard | ❌ Fragmented workflow |
-| **Total Score** | **27/40** | **7/40** |
+| Criteria        | Integrate (Weight: 8)            | Don't Integrate (Weight: 2)      |
+|-----------------|----------------------------------|----------------------------------|
+| Security        | ✅✅✅ Centralized auth         | ❌ Inconsistent storage         |
+| Scalability     | ✅✅✅ Easy to add roles        | ❌ Schema proliferation         |
+| Cost            | ⚠️ Medium upfront, low long-term | ✅ Zero upfront, high long-term |
+| Risk            | ⚠️ Manageable with planning      | ✅ No migration risk            |
+| Compliance      | ✅✅ DPDPA ready                | ❌ Audit findings remain         |
+| User Experience | ✅✅ Unified dashboard          | ❌ Fragmented workflow           |
+| **Total Score** | **27/40**                        | **7/40**                         |
 
 **✅ RECOMMENDATION: Proceed with integration using hybrid approach**
 
@@ -184,7 +184,7 @@ We should integrate existing Student and Teacher workflows into a centralized Us
 
 ```
 ┌─────────────────────────────────────────┐
-│          SUPER_ADMIN                     │
+│          SUPER_ADMIN                    │
 │   (System-wide platform management)     │
 └─────────────────┬───────────────────────┘
                   │
