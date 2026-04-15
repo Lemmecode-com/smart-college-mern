@@ -121,13 +121,16 @@ export default function ViewCollegeDetails() {
     };
   }, []);
 
-  // Fix registration URL to use frontend port instead of backend port
+  // Fix registration URL to use frontend URL from env instead of backend URL
   const getFrontendRegistrationUrl = (url) => {
     if (!url) return "";
-    // Replace backend URL with frontend URL
+    const frontendUrl =
+      import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    // Replace backend URL with frontend URL from environment
     return url
-      .replace(/localhost:\d+/, "localhost:5173")
-      .replace(/127\.0\.0\.1:\d+/, "127.0.0.1:5173");
+      .replace(/https?:\/\/localhost:\d+/, frontendUrl)
+      .replace(/https?:\/\/127\.0\.0\.1:\d+/, frontendUrl)
+      .replace(/https?:\/\/[a-zA-Z0-9.-]+:\d+/, frontendUrl);
   };
 
   const frontendRegistrationUrl = getFrontendRegistrationUrl(
