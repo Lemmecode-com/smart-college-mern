@@ -613,27 +613,47 @@ export default function StudentTimetable() {
     return `${dd}/${mm}/${yyyy}`;
   };
 
-  // Generate dynamic time rows based on actual slot data
-  const generateTimeRows = () => {
+  const { timeRows: dynamicTimeRows, fullDayHolidays } = (() => {
     const timeSet = new Set();
+    const fullDayHolidays = {}; // Track days with full-day holidays
 
+    // First pass: Identify full-day holidays for each day
+    DAYS.forEach((day) => {
+      const daySlots = weekly[day] || [];
+      const holidaySlot = daySlots.find(
+        (s) =>
+          s.status === "HOLIDAY" &&
+          s.startTime === "00:00" &&
+          s.endTime === "23:59",
+      );
+      if (holidaySlot) {
+        fullDayHolidays[day] = holidaySlot;
+      }
+    });
+
+    // Second pass: Collect all unique time ranges (excluding full-day holidays)
     Object.values(weekly).forEach((daySlots) => {
       daySlots.forEach((slot) => {
         if (slot.startTime && slot.endTime) {
-          timeSet.add(`${slot.startTime}-${slot.endTime}`);
+          const timeKey = `${slot.startTime}-${slot.endTime}`;
+          // Only add if it's not a full-day holiday time range
+          if (timeKey !== "00:00-23:59") {
+            timeSet.add(timeKey);
+          }
         }
       });
     });
 
-    return Array.from(timeSet)
+    // Generate sorted time rows
+    const filteredTimeRows = Array.from(timeSet)
       .map((timeRange) => {
         const [start, end] = timeRange.split("-");
         return { start, end, key: timeRange };
       })
       .sort((a, b) => a.start.localeCompare(b.start));
-  };
 
-  const dynamicTimeRows = generateTimeRows();
+    return { timeRows: filteredTimeRows, fullDayHolidays };
+  })();
 
   // Get course info - Updated to use timetableId and scheduleData
   const renderFirstSlot =
@@ -995,8 +1015,14 @@ export default function StudentTimetable() {
             >
               <FaInfoCircle aria-hidden="true" />
               <span>
-                {todaySlots.length}{" "}
-                {todaySlots.length === 1 ? "class" : "classes"}
+                {todaySlots.length === 1 &&
+                todaySlots[0].status === "HOLIDAY" &&
+                todaySlots[0].startTime === "00:00" &&
+                todaySlots[0].endTime === "23:59"
+                  ? "Full Day Holiday"
+                  : `${todaySlots.length} ${
+                      todaySlots.length === 1 ? "class" : "classes"
+                    }`}
               </span>
             </div>
           </div>
@@ -1004,9 +1030,24 @@ export default function StudentTimetable() {
             className="st-today-grid"
             aria-labelledby="todays-classes-heading"
           >
-            {todaySlots.map((slot, idx) => (
-              <TodaySlotCard key={slot._id} slot={slot} index={idx} />
-            ))}
+            {(() => {
+              // Check if today is a full-day holiday
+              const isFullDayHoliday =
+                todaySlots.length === 1 &&
+                todaySlots[0].status === "HOLIDAY" &&
+                todaySlots[0].startTime === "00:00" &&
+                todaySlots[0].endTime === "23:59";
+
+              if (isFullDayHoliday) {
+                // Render special full-day holiday card
+                return <TodayHolidayCard slot={todaySlots[0]} index={0} />;
+              }
+
+              // Otherwise, render regular slot cards
+              return todaySlots.map((slot, idx) => (
+                <TodaySlotCard key={slot._id} slot={slot} index={idx} />
+              ));
+            })()}
           </div>
         </motion.div>
       )}
@@ -1087,7 +1128,7 @@ export default function StudentTimetable() {
                   </td>
                 </tr>
               ) : (
-                dynamicTimeRows.map((timeRow) => {
+                dynamicTimeRows.map((timeRow, rowIndex) => {
                   const timeStr = `${formatTime12Hour(timeRow.start)} - ${formatTime12Hour(timeRow.end)}`;
                   return (
                     <tr key={timeRow.key}>
@@ -1095,6 +1136,29 @@ export default function StudentTimetable() {
                         {timeStr}
                       </td>
                       {DAYS.map((day) => {
+                        // Check if this day has a full-day holiday
+                        const holidaySlot = fullDayHolidays[day];
+
+                        if (holidaySlot) {
+                          // Only render holiday card in the first row
+                          if (rowIndex === 0) {
+                            return (
+                              <td
+                                key={`${day}-${timeRow.key}`}
+                                className="st-slot-cell"
+                                rowSpan={dynamicTimeRows.length}
+                                style={{ verticalAlign: "top" }}
+                              >
+                                <WeeklySlotCard slot={holidaySlot} />
+                              </td>
+                            );
+                          } else {
+                            // Skip this cell in subsequent rows (it's covered by rowSpan)
+                            return null;
+                          }
+                        }
+
+                        // Regular slot logic for non-holiday days
                         const slot = (weekly[day] || []).find(
                           (s) =>
                             s.startTime === timeRow.start &&
@@ -1260,6 +1324,82 @@ function TodaySlotCard({ slot, index }) {
             )}
           </div>
         )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= TODAY HOLIDAY CARD ================= */
+function TodayHolidayCard({ slot, index }) {
+  const exception = slot.exception;
+  const holidayReason = exception?.reason || slot.subject_id?.name || "Holiday";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="st-today-holiday-card"
+    >
+      {/* Holiday Banner */}
+      <div className="st-holiday-banner">
+        <div className="st-holiday-icon-wrapper">
+          <FaSun className="st-holiday-main-icon" />
+        </div>
+        <div className="st-holiday-content">
+          <h3 className="st-holiday-title">
+            <FaCalendarAlt className="st-holiday-title-icon" />
+            Full Day Holiday
+          </h3>
+          <p className="st-holiday-reason">
+            <FaInfoCircle className="st-holiday-reason-icon" />
+            {holidayReason}
+          </p>
+        </div>
+      </div>
+
+      {/* Holiday Details */}
+      <div className="st-holiday-details">
+        <div className="st-holiday-detail-item">
+          <FaClock className="st-holiday-detail-icon" />
+          <div>
+            <span className="st-holiday-detail-label">Duration</span>
+            <span className="st-holiday-detail-value">
+              12:00 AM - 11:59 PM (Full Day)
+            </span>
+          </div>
+        </div>
+        {slot.teacher_id && (
+          <div className="st-holiday-detail-item">
+            <FaChalkboardTeacher className="st-holiday-detail-icon" />
+            <div>
+              <span className="st-holiday-detail-label">Contact</span>
+              <span className="st-holiday-detail-value">
+                {slot.teacher_id.name}
+              </span>
+            </div>
+          </div>
+        )}
+        {exception?.approvedBy && (
+          <div className="st-holiday-detail-item">
+            <FaCheckCircle className="st-holiday-detail-icon" />
+            <div>
+              <span className="st-holiday-detail-label">Approved By</span>
+              <span className="st-holiday-detail-value">
+                {exception.approvedBy.name || "HOD"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Holiday Message */}
+      <div className="st-holiday-message">
+        <FaInfoCircle className="st-holiday-message-icon" />
+        <span>
+          Enjoy your holiday! No classes are scheduled for today. Use this time
+          to rest and prepare for upcoming sessions.
+        </span>
       </div>
     </motion.div>
   );
@@ -2404,6 +2544,166 @@ const componentStyles = `
       flex-direction: column;
       align-items: flex-start;
       gap: 1rem;
+    }
+  }
+
+  /* ================= TODAY HOLIDAY CARD ================= */
+  .st-today-holiday-card {
+    background: linear-gradient(135deg, #fef9e7 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .st-today-holiday-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.2);
+  }
+
+  .st-holiday-banner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px dashed #fcd34d;
+  }
+
+  .st-holiday-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  .st-holiday-main-icon {
+    font-size: 2rem;
+    color: white;
+  }
+
+  .st-holiday-content {
+    flex: 1;
+  }
+
+  .st-holiday-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  .st-holiday-title-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+  }
+
+  .st-holiday-reason {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1.1rem;
+    color: #b45309;
+    font-weight: 500;
+  }
+
+  .st-holiday-reason-icon {
+    color: #f59e0b;
+    font-size: 1rem;
+  }
+
+  .st-holiday-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .st-holiday-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+  }
+
+  .st-holiday-detail-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+  }
+
+  .st-holiday-detail-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .st-holiday-detail-label {
+    font-size: 0.75rem;
+    color: #92400e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .st-holiday-detail-value {
+    font-size: 0.95rem;
+    color: #78350f;
+    font-weight: 500;
+  }
+
+  .st-holiday-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+  }
+
+  .st-holiday-message-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .st-holiday-message span {
+    font-size: 0.95rem;
+    color: #78350f;
+    line-height: 1.5;
+  }
+
+  /* Mobile responsive for holiday card */
+  @media (max-width: 768px) {
+    .st-holiday-banner {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .st-holiday-title {
+      justify-content: center;
+    }
+
+    .st-holiday-reason {
+      justify-content: center;
+    }
+
+    .st-holiday-details {
+      grid-template-columns: 1fr;
     }
   }
 `;
