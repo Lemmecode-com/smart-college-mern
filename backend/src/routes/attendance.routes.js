@@ -1,28 +1,178 @@
 const express = require("express");
 const router = express.Router();
 
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const collegeMiddleware = require("../middlewares/college.middleware");
+const teacherMiddleware = require("../middlewares/teacher.middleware");
+const studentMiddleware = require("../middlewares/student.middleware");
+
 const {
+  editAttendance,
   markAttendance,
-  getAttendance,
+  getStudentsForAttendance,
+  closeAttendanceSession,
+  deleteAttendanceSession,
+  updateAttendanceSession,
+  getAttendanceSessionById,
+  getAttendanceSessions,
+  createAttendanceSession,
+  getAttendanceRecordsBySession,
+  getAttendanceReport,
+  getTeacherCourses,
+  getTeacherSubjectsByCourse,
+  getStudentAttendanceReport,
+  getStudentAttendanceReportPDF,
+  getTodaySlotsForTeacher,
 } = require("../controllers/attendance.controller");
 
-const authMiddleware = require("../middleware/auth.middleware");
-const roleMiddleware = require("../middleware/role.middleware");
+/* =========================================================
+   ATTENDANCE SESSION APIs (Teacher)
+========================================================= */
 
-// TEACHER → Mark attendance
-router.post(
-  "/",
-  authMiddleware,
-  roleMiddleware("teacher"),
-  markAttendance
+// ➕ NEW: Get today's slots for teacher (for easy attendance start)
+router.get(
+  "/today-slots",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTodaySlotsForTeacher,
 );
 
-// ADMIN / TEACHER / STUDENT → View attendance
+// ➕ Create attendance session
+router.post(
+  "/sessions",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  createAttendanceSession,
+);
+
+// 📋 Get all sessions (teacher-wise also HOD can get all teacher's sessions)
 router.get(
-  "/",
-  authMiddleware,
-  roleMiddleware("admin", "teacher", "student"),
-  getAttendance
+  "/sessions",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceSessions,
+);
+
+router.get(
+  "/report",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  teacherMiddleware,
+  getAttendanceReport,
+);
+
+router.get(
+  "/student",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentAttendanceReport,
+);
+
+router.get(
+  "/student/report",
+  auth,
+  role("STUDENT"),
+  collegeMiddleware,
+  studentMiddleware,
+  getStudentAttendanceReportPDF,
+);
+
+router.get(
+  "/report/courses",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherCourses,
+);
+
+// 📄 Get single session using its ID
+router.get(
+  "/sessions/:sessionId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceSessionById,
+);
+
+// ✏️ Update session (OPEN only)
+router.put(
+  "/sessions/:sessionId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  updateAttendanceSession,
+);
+
+// ❌ Delete session (OPEN only)
+router.delete(
+  "/sessions/:sessionId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  deleteAttendanceSession,
+);
+
+// 🔒 Close attendance session
+router.put(
+  "/sessions/:sessionId/close",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  closeAttendanceSession,
+);
+
+/* =========================================================
+   ATTENDANCE MARKING APIs
+========================================================= */
+
+// 👨‍🎓 Get students for attendance (course-wise)
+router.get(
+  "/sessions/:sessionId/students",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getStudentsForAttendance,
+);
+
+// ✅ Mark attendance (initial)
+router.post(
+  "/sessions/:sessionId/mark",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  markAttendance,
+);
+
+// ✏️ Edit attendance (OPEN only)
+router.put(
+  "/sessions/:sessionId/edit",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  editAttendance,
+);
+
+router.get(
+  "/sessions/:sessionId/records",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getAttendanceRecordsBySession,
+);
+
+router.get(
+  "/report/subjects/:courseId",
+  auth,
+  role("TEACHER"),
+  collegeMiddleware,
+  getTeacherSubjectsByCourse,
 );
 
 module.exports = router;

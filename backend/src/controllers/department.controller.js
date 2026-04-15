@@ -1,66 +1,136 @@
-
 const Department = require("../models/department.model");
+const Teacher = require("../models/teacher.model");
+const ApiResponse = require("../utils/ApiResponse");
 
-exports.createDepartment = async (req, res, next) => {
+/**
+ * CREATE Department
+ */
+exports.createDepartment = async (req, res) => {
   try {
-    const department = await Department.create(req.body);
-    res.status(201).json(department);
-  } catch (err) {
-    next(err);
+    const {
+      name,
+      code,
+      type,
+      status,
+      programsOffered,
+      startYear,
+      sanctionedFacultyCount,
+      sanctionedStudentIntake
+    } = req.body;
+
+    const department = await Department.create({
+      college_id: req.college_id,
+      name,
+      code,
+      type,
+      status,
+      programsOffered,
+      startYear,
+      sanctionedFacultyCount,
+      sanctionedStudentIntake,
+      createdBy: req.user.id
+    });
+
+    ApiResponse.created(res, { department }, "Department created successfully");
+  } catch (error) {
+    throw error;
   }
 };
 
-exports.getDepartments = async (req, res, next) => {
-  try {
-    const departments = await Department.find();
-    res.json(departments);
-  } catch (err) {
-    next(err);
+/* get department by ID */
+exports.getDepartmentById = async (req, res) => {
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!department) {
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
   }
+
+  ApiResponse.success(res, { department }, "Department fetched successfully");
 };
 
-exports.getDepartmentById = async (req, res, next) => {
+/**
+ * READ Departments
+ */
+exports.getDepartments = async (req, res) => {
+  const departments = await Department.find({
+    college_id: req.college_id
+  });
+
+  ApiResponse.success(res, { departments }, "Departments fetched successfully");
+};
+
+/**
+ * UPDATE Department
+ */
+exports.updateDepartment = async (req, res) => {
+  const department = await Department.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      college_id: req.college_id
+    },
+    req.body,
+    { new: true }
+  );
+
+  if (!department) {
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+  }
+
+  ApiResponse.success(res, { department }, "Department updated successfully");
+};
+
+/**
+ * DELETE Department
+ */
+exports.deleteDepartment = async (req, res) => {
+  const department = await Department.findOneAndDelete({
+    _id: req.params.id,
+    college_id: req.college_id
+  });
+
+  if (!department) {
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+  }
+
+  ApiResponse.success(res, null, "Department deleted successfully");
+};
+
+/**
+ * ASSIGN HOD TO DEPARTMENT
+ */
+exports.assignHOD = async (req, res) => {
   try {
-    const department = await Department.findById(req.params.id);
+    const { teacher_id } = req.body;
+
+    // Check department
+    const department = await Department.findOne({
+      _id: req.params.id,
+      college_id: req.college_id
+    });
 
     if (!department) {
-      return res.status(404).json({ message: "Department not found" });
+      return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
     }
 
-    res.json(department);
-  } catch (err) {
-    next(err);
-  }
-};
+    // Check teacher
+    const teacher = await Teacher.findOne({
+      _id: teacher_id,
+      college_id: req.college_id,
+      department_id: department._id
+    });
 
-exports.updateDepartment = async (req, res, next) => {
-  try {
-    const department = await Department.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
+    if (!teacher) {
+      return ApiResponse.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
     }
 
-    res.json(department);
-  } catch (err) {
-    next(err);
-  }
-};
+    department.hod_id = teacher._id;
+    await department.save();
 
-exports.deleteDepartment = async (req, res, next) => {
-  try {
-    const department = await Department.findByIdAndDelete(req.params.id);
-
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
-
-    res.json({ message: "Department deleted successfully" });
-  } catch (err) {
-    next(err);
+    ApiResponse.success(res, { department }, "HOD assigned successfully");
+  } catch (error) {
+    throw error;
   }
 };

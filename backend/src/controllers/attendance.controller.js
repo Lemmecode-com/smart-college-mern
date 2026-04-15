@@ -1,87 +1,1750 @@
-const Attendance = require("../models/attendance.model");
+const mongoose = require("mongoose");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
+
+const AttendanceSession = require("../models/attendanceSession.model");
+const AttendanceRecord = require("../models/attendanceRecord.model");
+const TimetableSlot = require("../models/timetableSlot.model");
+const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
 const Course = require("../models/course.model");
+const Subject = require("../models/subject.model");
+const Department = require("../models/department.model");
+const College = require("../models/college.model");
+const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
+const {
+  getDayName,
+  isDateMatchesDay,
+  isPastDate,
+  isFutureDate,
+  isToday,
+} = require("../utils/date.utils");
 
-/**
- * ==========================
- * TEACHER → MARK ATTENDANCE
- * ==========================
- */
-exports.markAttendance = async (req, res) => {
+/* =========================================================
+   CREATE ATTENDANCE SESSION (Teacher)
+   MUST: Only for TODAY, and date must match slot's day
+   
+   FIX: Edge Case 2 - Concurrent Session Creation
+   - Use MongoDB session for atomic operations
+   - Check duplicate within transaction
+========================================================= */
+exports.createAttendanceSession = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const { courseId, date, records } = req.body;
+    const { slot_id, lectureDate, lectureNumber } = req.body;
 
-    if (!courseId || !date || !records?.length) {
-      return res.status(400).json({ message: "Invalid data" });
-    }
-
-    // ✅ Ensure teacher owns the course
-    const course = await Course.findOne({
-      _id: courseId,
-      teacherId: req.user.id,
+    console.log("🟢 [CREATE SESSION] Request received:", {
+      slot_id,
+      lectureDate,
+      lectureNumber,
+      collegeId: req.college_id,
+      userId: req.user.id,
     });
 
-    if (!course) {
-      return res.status(403).json({ message: "Not allowed" });
+    if (!lectureNumber) {
+      throw new AppError("lectureNumber is required", 400, "MISSING_FIELD");
     }
 
-    const docs = records.map((r) => ({
-      studentId: r.studentId,
-      courseId,
-      markedBy: req.user.id,
-      date,
-      status: r.status,
-    }));
+    const collegeId = req.college_id;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
 
-    await Attendance.insertMany(docs, { ordered: false });
+    // Resolve teacher
+    let teacher = await Teacher.findOne({ user_id: userId }).session(session);
+    if (!teacher && userEmail) {
+      teacher = await Teacher.findOne({ email: userEmail }).session(session);
+    }
 
-    res.status(201).json({
-      success: true,
-      message: "Attendance marked successfully",
+    console.log(
+      "🔵 [CREATE SESSION] Teacher found:",
+      teacher?._id,
+      teacher?.name,
+    );
+
+    if (!teacher) {
+      throw new AppError(
+        "Teacher profile not linked with user",
+        403,
+        "TEACHER_NOT_FOUND",
+      );
+    }
+
+    // ✅ Validate slot AND teacher ownership
+    const slot = await TimetableSlot.findOne({
+      _id: slot_id,
+      college_id: collegeId,
+    })
+      .populate("subject_id", "teacher_id name code")
+      .session(session);
+
+    console.log(
+      "🔵 [CREATE SESSION] Slot found:",
+      slot?._id,
+      "Subject:",
+      slot?.subject_id?.name,
+    );
+
+    if (!slot) {
+      throw new AppError(
+        "Invalid timetable slot for this teacher",
+        404,
+        "SLOT_NOT_FOUND",
+      );
+    }
+
+    if (!slot.department_id || !slot.course_id) {
+      throw new AppError(
+        "Slot data incomplete. Please recreate slot.",
+        500,
+        "INVALID_SLOT_DATA",
+      );
+    }
+
+    // ✅ STRICT VALIDATION: Teacher MUST be the subject's assigned teacher
+    if (slot.subject_id.teacher_id.toString() !== teacher._id.toString()) {
+      console.log("🔴 [CREATE SESSION] Teacher mismatch:", {
+        slotTeacherId: slot.subject_id.teacher_id.toString(),
+        currentTeacherId: teacher._id.toString(),
+      });
+      throw new AppError(
+        `Access denied: You are not the assigned teacher for "${slot.subject_id.name}". Only the subject's assigned teacher can start attendance sessions.`,
+        403,
+        "NOT_SUBJECT_TEACHER",
+      );
+    }
+
+    console.log(
+      `✅ [CREATE SESSION] Teacher validation passed: ${teacher.name} is assigned to ${slot.subject_id.name}`,
+    );
+
+    // ✅ DATE VALIDATION 1: Check if date is provided
+    if (!lectureDate) {
+      throw new AppError("Lecture date is required", 400, "MISSING_DATE");
+    }
+
+    // ✅ DATE VALIDATION 2: Check if date matches slot's day
+    const slotDay = slot.day; // e.g., "MON"
+    const lectureDay = getDayName(lectureDate); // e.g., "MON"
+
+    if (!isDateMatchesDay(lectureDate, slotDay)) {
+      throw new AppError(
+        `Invalid date: Slot is for ${slotDay} but provided date is ${lectureDay} (${lectureDate})`,
+        400,
+        "DATE_DAY_MISMATCH",
+      );
+    }
+
+    // ✅ DATE VALIDATION 3: Cannot create session for past dates
+    if (isPastDate(lectureDate)) {
+      throw new AppError(
+        "Cannot create attendance session for past dates",
+        400,
+        "PAST_DATE_NOT_ALLOWED",
+      );
+    }
+
+    // ✅ DATE VALIDATION 4: Cannot create session for future dates (more than 7 days)
+    if (isFutureDate(lectureDate, 7)) {
+      throw new AppError(
+        "Cannot create attendance session for future dates (max 7 days ahead)",
+        400,
+        "FUTURE_DATE_NOT_ALLOWED",
+      );
+    }
+
+    // ✅ DATE VALIDATION 5: ENFORCED - Only allow today's sessions
+    if (!isToday(lectureDate)) {
+      throw new AppError(
+        "Attendance sessions can only be created for today",
+        400,
+        "ONLY_TODAY_ALLOWED",
+      );
+    }
+
+    // Prevent duplicate (within transaction for atomicity)
+    const existing = await AttendanceSession.findOne({
+      slot_id,
+      lectureDate: new Date(lectureDate),
+      lectureNumber,
+    }).session(session);
+
+    if (existing) {
+      throw new AppError(
+        "Attendance already created for this lecture",
+        409,
+        "DUPLICATE_SESSION",
+      );
+    }
+
+    // ✅ CAPTURE SLOT SNAPSHOT (Preserve history)
+    const slotWithDetails = await TimetableSlot.findById(slot_id)
+      .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
+      .session(session);
+
+    const slotSnapshot = {
+      subject_id: slotWithDetails.subject_id._id,
+      subject_name: slotWithDetails.subject_id.name,
+      subject_code: slotWithDetails.subject_id.code,
+      teacher_id: slotWithDetails.teacher_id._id,
+      teacher_name: slotWithDetails.teacher_id.name,
+      day: slotWithDetails.day,
+      startTime: slotWithDetails.startTime,
+      endTime: slotWithDetails.endTime,
+      room: slotWithDetails.room || "",
+      slotType: slotWithDetails.slotType || "LECTURE",
+    };
+
+    // Count students
+    const totalStudents = await Student.countDocuments({
+      college_id: collegeId,
+      course_id: slot.course_id,
+      status: "APPROVED",
+    }).session(session);
+
+    // ✅ FIX: Edge Case 1 - Prevent session creation if no students enrolled
+    if (totalStudents === 0) {
+      throw new AppError(
+        "Cannot create attendance session: No students enrolled in this course",
+        400,
+        "NO_STUDENTS_ENROLLED",
+      );
+    }
+
+    // Create session with snapshot (within transaction)
+    const [attendanceSession] = await AttendanceSession.create(
+      [
+        {
+          college_id: collegeId,
+          department_id: slot.department_id,
+          course_id: slot.course_id,
+          subject_id: slot.subject_id,
+          teacher_id: slot.teacher_id,
+          slot_id: slot._id,
+          lectureDate: new Date(lectureDate),
+          lectureNumber,
+          totalStudents,
+          status: "OPEN",
+          slotSnapshot: slotSnapshot, // ✅ Preserve slot data
+        },
+      ],
+      { session },
+    );
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    ApiResponse.created(
+      res,
+      {
+        session: attendanceSession,
+      },
+      "Attendance session created successfully",
+    );
+  } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+
+    // Handle duplicate key error gracefully (race condition)
+    if (error.code === 11000) {
+      return next(
+        new AppError(
+          "Attendance session already exists for this slot and lecture number. Another teacher may have created it simultaneously.",
+          409,
+          "DUPLICATE_SESSION",
+        ),
+      );
+    }
+    next(error);
+  } finally {
+    // End session
+    await session.endSession();
+  }
+};
+
+/* =========================================================
+   GET ALL ATTENDANCE SESSIONS (Logged-in Teacher)
+   GET /attendance/sessions
+   Returns: Sessions with snapshot data
+
+   Access Control:
+   - TEACHER: Only their own sessions
+   - HOD: All sessions in their department
+========================================================= */
+exports.getAttendanceSessions = async (req, res, next) => {
+  try {
+    // 📄 Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // 1️⃣ Resolve teacher from logged-in user
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
     });
-  } catch (err) {
-    if (err.code === 11000) {
-      return res.status(409).json({
-        message: "Attendance already marked for this date",
+
+    if (!teacher) {
+      throw new AppError(
+        "Teacher profile not found for this user",
+        404,
+        "TEACHER_NOT_FOUND",
+      );
+    }
+
+    // 2️⃣ Check if teacher is HOD of their department
+    const isHod = await Department.findOne({
+      _id: teacher.department_id,
+      hod_id: teacher._id,
+    });
+
+    // 3️⃣ Build filter based on role
+    const filter = {
+      college_id: req.college_id,
+    };
+
+    if (isHod) {
+      // HOD can see all sessions in their department
+      filter.department_id = teacher.department_id;
+    } else {
+      // Regular teacher sees only their own sessions
+      filter.teacher_id = teacher._id;
+    }
+
+    // 4️⃣ Get total count
+    const total = await AttendanceSession.countDocuments(filter);
+
+    // 5️⃣ Fetch paginated sessions
+    const sessions = await AttendanceSession.find(filter)
+      .populate("subject_id", "name code")
+      .populate("course_id", "name")
+      .limit(limit)
+      .skip(skip)
+      .sort({ lectureDate: -1, lectureNumber: -1 });
+
+    // 6️⃣ Return sessions with snapshot info
+    const sessionsWithSnapshot = sessions.map((session) => {
+      const sessionObj = session.toObject();
+
+      // Use snapshot data if available (for historical accuracy)
+      if (sessionObj.slotSnapshot) {
+        return {
+          ...sessionObj,
+          // Snapshot takes precedence for historical data
+          subject: {
+            _id: sessionObj.slotSnapshot.subject_id,
+            name: sessionObj.slotSnapshot.subject_name,
+            code: sessionObj.slotSnapshot.subject_code,
+          },
+          slotDetails: {
+            day: sessionObj.slotSnapshot.day,
+            startTime: sessionObj.slotSnapshot.startTime,
+            endTime: sessionObj.slotSnapshot.endTime,
+            room: sessionObj.slotSnapshot.room,
+            slotType: sessionObj.slotSnapshot.slotType,
+            teacher: {
+              _id: sessionObj.slotSnapshot.teacher_id,
+              name: sessionObj.slotSnapshot.teacher_name,
+            },
+          },
+          hasSnapshot: true,
+        };
+      }
+
+      return sessionObj;
+    });
+
+    ApiResponse.paginate(
+      res,
+      sessionsWithSnapshot,
+      {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+      "Attendance sessions fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET SINGLE ATTENDANCE SESSION
+   GET /attendance/sessions/:sessionId
+========================================================= */
+exports.getAttendanceSessionById = async (req, res) => {
+  try {
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: req.college_id,
+    })
+      .populate("subject_id", "name code")
+      .populate("course_id", "name");
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Attendance session not found",
       });
     }
-    res.status(500).json({ message: err.message });
+
+    res.json(session);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
-/**
- * ==================================
- * VIEW ATTENDANCE (ROLE BASED)
- * ==================================
- */
-exports.getAttendance = async (req, res) => {
+/* =========================================================
+   UPDATE ATTENDANCE SESSION (Only OPEN, Owner Teacher)
+   PUT /attendance/sessions/:sessionId
+========================================================= */
+exports.updateAttendanceSession = async (req, res, next) => {
   try {
-    const { date, courseId } = req.query;
+    const { lectureDate, lectureNumber } = req.body;
+    const collegeId = req.college_id;
 
-    const filter = {};
+    /* ================= Resolve Teacher ================= */
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
 
-    if (date) filter.date = date;
-    if (courseId) filter.courseId = courseId;
-
-    // 🔒 ROLE-BASED FILTERING (CRITICAL FIX)
-    if (req.user.role === "teacher") {
-      filter.markedBy = req.user.id;
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
-    if (req.user.role === "student") {
-      filter.studentId = req.user.id;
+    /* ================= Find Session ================= */
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      throw new AppError(
+        "Session not found or already closed",
+        404,
+        "SESSION_NOT_FOUND",
+      );
     }
 
-    const records = await Attendance.find(filter)
-      .populate("studentId", "name rollNo")
-      .populate("courseId", "name")
-      .populate("markedBy", "name role")
-      .sort({ date: -1 });
+    /* ================= Update ================= */
+    if (lectureDate) {
+      session.lectureDate = new Date(lectureDate);
+    }
+
+    if (lectureNumber) {
+      session.lectureNumber = lectureNumber;
+    }
+
+    await session.save();
+
+    res.status(200).json({
+      message: "Attendance session updated successfully",
+      session,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET STUDENTS FOR ATTENDANCE (AUTO – Course Wise)
+   GET /attendance/sessions/:sessionId/students
+========================================================= */
+exports.getStudentsForAttendance = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Validate session ownership
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Attendance session not found or access denied",
+      });
+    }
+
+    // Fetch students
+    const students = await Student.find({
+      college_id: collegeId,
+      course_id: session.course_id,
+      status: "APPROVED",
+    }).select("_id fullName email");
+
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   MARK ATTENDANCE (Initial)
+   POST /attendance/sessions/:sessionId/mark
+   
+   FIX: Issue #9 - Duplicate Attendance Record Prevention
+   - Use MongoDB transaction for atomic operations
+   - Handle duplicate key errors gracefully
+   - Add audit trail with timestamps
+========================================================= */
+exports.markAttendance = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { attendance } = req.body;
+    const collegeId = req.college_id;
+
+    if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
+      throw new AppError(
+        "Attendance data is required",
+        400,
+        "MISSING_ATTENDANCE",
+      );
+    }
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    }).session(session);
+
+    if (!teacher) {
+      await session.abortTransaction();
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
+    }
+
+    const attendanceSession = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    }).session(session);
+
+    if (!attendanceSession) {
+      await session.abortTransaction();
+      throw new AppError(
+        "Session not found or closed",
+        404,
+        "SESSION_NOT_FOUND",
+      );
+    }
+
+    const operations = [];
+    const timestamp = new Date();
+
+    for (let item of attendance) {
+      if (!item.student_id || !item.status) {
+        await session.abortTransaction();
+        throw new AppError(
+          `Invalid attendance data for student: ${item.student_id}`,
+          400,
+          "INVALID_ATTENDANCE_DATA",
+        );
+      }
+
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        await session.abortTransaction();
+        throw new AppError(
+          `Invalid status "${item.status}" for student: ${item.student_id}`,
+          400,
+          "INVALID_STATUS",
+        );
+      }
+
+      operations.push({
+        updateOne: {
+          filter: {
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+          },
+          update: {
+            college_id: collegeId,
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+            status: item.status,
+            markedBy: teacher._id,
+            lastModified: timestamp,
+            lastModifiedBy: teacher._id,
+          },
+          upsert: true,
+        },
+      });
+    }
+
+    // Execute all operations in a single bulkWrite for atomicity
+    const result = await AttendanceRecord.bulkWrite(operations, { session });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    res.status(200).json({
+      message: "Attendance marked successfully",
+      markedCount: result.modifiedCount + result.upsertedCount,
+      timestamp,
+    });
+  } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+
+    // Handle duplicate key error gracefully (race condition)
+    if (error.code === 11000) {
+      return next(
+        new AppError(
+          "Duplicate attendance record detected. Please refresh and try again.",
+          409,
+          "DUPLICATE_ATTENDANCE_RECORD",
+        ),
+      );
+    }
+    next(error);
+  } finally {
+    session.endSession();
+  }
+};
+
+/* =========================================================
+   EDIT ATTENDANCE (While OPEN)
+   PUT /attendance/sessions/:sessionId/edit
+   
+   FIX: Issue #9 - Duplicate Attendance Record Prevention
+   - Use MongoDB transaction for atomic operations
+   - Handle duplicate key errors gracefully
+   - Add audit trail with timestamps
+========================================================= */
+exports.editAttendance = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { attendance } = req.body;
+    const collegeId = req.college_id;
+
+    if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
+      await session.abortTransaction();
+      throw new AppError(
+        "Attendance data is required",
+        400,
+        "MISSING_ATTENDANCE",
+      );
+    }
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    }).session(session);
+
+    if (!teacher) {
+      await session.abortTransaction();
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
+    }
+
+    // Validate session
+    const attendanceSession = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    }).session(session);
+
+    if (!attendanceSession) {
+      await session.abortTransaction();
+      throw new AppError(
+        "Session not found or already closed",
+        404,
+        "SESSION_NOT_FOUND",
+      );
+    }
+
+    const operations = [];
+    const timestamp = new Date();
+
+    for (const item of attendance) {
+      if (!item.student_id || !item.status) {
+        await session.abortTransaction();
+        throw new AppError(
+          `Invalid attendance data for student: ${item.student_id}`,
+          400,
+          "INVALID_ATTENDANCE_DATA",
+        );
+      }
+
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        await session.abortTransaction();
+        throw new AppError(
+          `Invalid status "${item.status}" for student: ${item.student_id}`,
+          400,
+          "INVALID_STATUS",
+        );
+      }
+
+      operations.push({
+        updateOne: {
+          filter: {
+            session_id: attendanceSession._id,
+            student_id: item.student_id,
+            college_id: collegeId,
+          },
+          update: {
+            status: item.status,
+            markedBy: teacher._id,
+            lastModified: timestamp,
+            lastModifiedBy: teacher._id,
+          },
+        },
+      });
+    }
+
+    // Execute all operations in a single bulkWrite for atomicity
+    const result = await AttendanceRecord.bulkWrite(operations, { session });
+
+    // Commit transaction
+    await session.commitTransaction();
+
+    res.status(200).json({
+      message: "Attendance updated successfully",
+      updatedCount: result.modifiedCount,
+      timestamp,
+    });
+  } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+
+    // Handle duplicate key error gracefully (race condition)
+    if (error.code === 11000) {
+      return next(
+        new AppError(
+          "Duplicate attendance record detected. Please refresh and try again.",
+          409,
+          "DUPLICATE_ATTENDANCE_RECORD",
+        ),
+      );
+    }
+    next(error);
+  } finally {
+    session.endSession();
+  }
+};
+
+/* =========================================================
+   DELETE ATTENDANCE SESSION (Teacher only, OPEN only)
+   DELETE /attendance/sessions/:sessionId
+========================================================= */
+exports.deleteAttendanceSession = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
+    }
+
+    // Delete only own OPEN session
+    const session = await AttendanceSession.findOneAndDelete({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      status: "OPEN",
+    });
+
+    if (!session) {
+      throw new AppError(
+        "Cannot delete closed or invalid session",
+        404,
+        "SESSION_NOT_FOUND",
+      );
+    }
+
+    // Remove related attendance records
+    await AttendanceRecord.deleteMany({
+      session_id: session._id,
+    });
+
+    res.status(200).json({
+      message: "Attendance session deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   CLOSE ATTENDANCE SESSION (Teacher only, OPEN only)
+   PUT /attendance/sessions/:sessionId/close
+========================================================= */
+exports.closeAttendanceSession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      return res.status(403).json({
+        message: "Teacher profile not found",
+      });
+    }
+
+    // Find OPEN session owned by teacher
+    const session = await AttendanceSession.findOne({
+      _id: req.params.sessionId,
+      college_id: collegeId,
+      teacher_id: teacher._id, // ✅ FIX
+      status: "OPEN",
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        message: "Session not found or already closed",
+      });
+    }
+
+    // Fetch all students for the course
+    const students = await Student.find({
+      college_id: collegeId,
+      course_id: session.course_id,
+      status: "APPROVED",
+    }).select("_id");
+
+    // Find present students
+    const presentRecords = await AttendanceRecord.find({
+      session_id: session._id,
+    });
+
+    const presentIds = presentRecords.map((r) => r.student_id.toString());
+
+    // Auto-mark ABSENT
+    const absentees = students
+      .filter((s) => !presentIds.includes(s._id.toString()))
+      .map((s) => ({
+        college_id: collegeId,
+        session_id: session._id,
+        student_id: s._id,
+        status: "ABSENT",
+        markedBy: teacher._id,
+      }));
+
+    if (absentees.length > 0) {
+      await AttendanceRecord.insertMany(absentees);
+    }
+
+    session.totalStudents = students.length;
+    session.status = "CLOSED";
+    await session.save();
+
+    res.status(200).json({
+      message: "Attendance session closed successfully",
+      totalStudents: students.length,
+      present: presentIds.length,
+      absent: absentees.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET ATTENDANCE RECORDS OF A SESSION
+   GET /attendance/sessions/:sessionId/records
+========================================================= */
+exports.getAttendanceRecordsBySession = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const records = await AttendanceRecord.find({
+      session_id: req.params.sessionId,
+      college_id: collegeId,
+    })
+      .populate("student_id", "fullName email")
+      .populate({
+        path: "markedBy",
+        select: "name",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(records);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET TEACHER ATTENDANCE REPORT (PRODUCTION GRADE)
+   GET /attendance/report
+========================================================= */
+exports.getAttendanceReport = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+    const teacherId = req.teacher_id;
+
+    const { courseId, subjectId, startDate, endDate } = req.query;
+
+    /* ================= FETCH COLLEGE INFO ================= */
+    const college = await College.findById(collegeId).select("name code");
+
+    /* ================= MATCH CONDITIONS ================= */
+    const match = {
+      college_id: new mongoose.Types.ObjectId(collegeId),
+      teacher_id: new mongoose.Types.ObjectId(teacherId),
+    };
+
+    if (courseId) {
+      match.course_id = new mongoose.Types.ObjectId(courseId);
+    }
+
+    if (subjectId) {
+      match.subject_id = new mongoose.Types.ObjectId(subjectId);
+    }
+
+    if (startDate && endDate) {
+      match.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    /* ================= FETCH SESSIONS ================= */
+    const sessions = await AttendanceSession.find(match)
+      .populate("subject_id", "name")
+      .populate("course_id", "name code")
+      .sort({ lectureDate: -1 });
+
+    const sessionIds = sessions.map((s) => s._id);
+
+    /* ================= FETCH RECORDS ================= */
+    const records = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+    });
+
+    /* ================= BUILD SESSION-WISE DATA ================= */
+    const sessionReport = sessions.map((session) => {
+      const sessionRecords = records.filter(
+        (r) => r.session_id.toString() === session._id.toString(),
+      );
+
+      const total = sessionRecords.length;
+      const present = sessionRecords.filter(
+        (r) => r.status === "PRESENT",
+      ).length;
+      const absent = sessionRecords.filter((r) => r.status === "ABSENT").length;
+
+      const percentage = total > 0 ? (present / total) * 100 : 0;
+
+      return {
+        _id: session._id,
+        date: session.lectureDate,
+        subject: session.subject_id?.name || "N/A",
+        course: session.course_id?.name || "N/A",
+        lectureNumber: session.lectureNumber,
+        totalStudents: total,
+        present,
+        absent,
+        percentage,
+      };
+    });
+
+    /* ================= SUMMARY ================= */
+    const totalLectures = sessions.length;
+    const totalStudents = records.length;
+    const totalPresent = records.filter((r) => r.status === "PRESENT").length;
+    const totalAbsent = records.filter((r) => r.status === "ABSENT").length;
 
     res.json({
-      success: true,
-      data: records,
+      college: {
+        name: college?.name || "N/A",
+        code: college?.code || "N/A",
+      },
+      summary: {
+        totalLectures,
+        totalStudents,
+        totalPresent,
+        totalAbsent,
+      },
+      sessions: sessionReport,
     });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    console.error("Attendance report error:", error);
+    res.status(500).json({
+      message: "Failed to load attendance report",
+    });
   }
 };
+
+/* =========================================================
+   GET STUDENT ATTENDANCE REPORT (PRODUCTION GRADE)
+   GET /attendance/student
+========================================================= */
+exports.getStudentAttendanceReport = async (req, res) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const sessions = await AttendanceSession.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+    }).populate("subject_id", "name code");
+
+    let total = 0;
+    let present = 0;
+    let absent = 0;
+
+    const sessionReport = [];
+    const subjectMap = {}; // 🔥 For subject-wise breakdown
+
+    for (const session of sessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      if (!record) continue;
+
+      total++;
+
+      if (record.status === "PRESENT") present++;
+      if (record.status === "ABSENT") absent++;
+
+      // Session-wise
+      sessionReport.push({
+        date: session.lectureDate,
+        subject: session.subject_id.name,
+        subjectCode: session.subject_id.code,
+        lectureNumber: session.lectureNumber,
+        startTime: session.slotSnapshot?.startTime || "N/A",
+        endTime: session.slotSnapshot?.endTime || "N/A",
+        room: session.slotSnapshot?.room || "N/A",
+        teacher: session.slotSnapshot?.teacher_name || "N/A",
+        status: record.status,
+      });
+
+      // 🔥 Subject-wise aggregation
+      const subjectId = session.subject_id._id.toString();
+
+      if (!subjectMap[subjectId]) {
+        subjectMap[subjectId] = {
+          subject: session.subject_id.name,
+          code: session.subject_id.code,
+          total: 0,
+          present: 0,
+          absent: 0, // ✅ Initialize absent count
+        };
+      }
+
+      subjectMap[subjectId].total++;
+
+      if (record.status === "PRESENT") {
+        subjectMap[subjectId].present++;
+      } else if (record.status === "ABSENT") {
+        subjectMap[subjectId].absent++; // ✅ Increment absent count
+      }
+    }
+
+    // 🔥 Convert subjectMap to array
+    const subjectBreakdown = Object.values(subjectMap).map((sub) => {
+      const percentage =
+        sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
+
+      return {
+        ...sub,
+        percentage,
+        warning: percentage < 75, // ⚠ below 75%
+      };
+    });
+
+    // 🔥 Get today's sessions
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const tomorrowDate = new Date(todayDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+    const todaySessions = await AttendanceSession.find({
+      college_id: req.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+      lectureDate: {
+        $gte: todayDate,
+        $lt: tomorrowDate,
+      },
+    }).populate("subject_id", "name code");
+
+    const todayReport = [];
+    for (const session of todaySessions) {
+      const record = await AttendanceRecord.findOne({
+        session_id: session._id,
+        student_id: student._id,
+      });
+
+      if (record) {
+        todayReport.push({
+          date: session.lectureDate,
+          subject: session.subject_id.name,
+          subjectCode: session.subject_id.code,
+          lectureNumber: session.lectureNumber,
+          startTime: session.slotSnapshot?.startTime || "N/A",
+          endTime: session.slotSnapshot?.endTime || "N/A",
+          room: session.slotSnapshot?.room || "Room not assigned",
+          teacher: session.slotSnapshot?.teacher_name || "N/A",
+          status: record.status,
+        });
+      }
+    }
+
+    res.json({
+      summary: {
+        totalLectures: total,
+        present,
+        absent,
+        percentage: total > 0 ? ((present / total) * 100).toFixed(2) : 0,
+      },
+      sessions: sessionReport,
+      subjectWise: subjectBreakdown,
+      today: todayReport,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to load attendance report",
+    });
+  }
+};
+
+/* =========================================================
+  GET TEACHER'S COURSES FOR ATTENDANCE REPORT (PRODUCTION GRADE)
+========================================================= */
+exports.getTeacherCourses = async (req, res) => {
+  try {
+    const collegeId = req.college_id;
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id, // ✅ FIXED
+      college_id: collegeId, // ✅ VERY IMPORTANT
+    });
+
+    if (!teacher) {
+      console.log(
+        "[getTeacherCourses] Teacher not found for user:",
+        req.user.id,
+      );
+      return res.status(404).json({
+        message: "Teacher not found",
+      });
+    }
+
+    console.log("[getTeacherCourses] Teacher found:", teacher.name);
+    console.log("[getTeacherCourses] Teacher courses array:", teacher.courses);
+    console.log(
+      "[getTeacherCourses] Teacher courses length:",
+      teacher.courses?.length,
+    );
+
+    if (!teacher.courses || teacher.courses.length === 0) {
+      console.log("[getTeacherCourses] No courses assigned to teacher");
+      return res.json([]);
+    }
+
+    const courses = await Course.find({
+      _id: { $in: teacher.courses },
+      college_id: collegeId,
+    }).select("name code");
+
+    console.log("[getTeacherCourses] Courses from DB:", courses);
+    console.log("[getTeacherCourses] Courses found:", courses.length);
+
+    // Return courses array directly (frontend expects array)
+    res.json(courses);
+  } catch (error) {
+    console.error("Fetch courses error:", error);
+    res.status(500).json({
+      message: "Failed to fetch courses",
+    });
+  }
+};
+
+/* =========================================================
+  GET TEACHER'S SUBJECTS FOR ATTENDANCE REPORT (PRODUCTION GRADE)
+========================================================= */
+exports.getTeacherSubjectsByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const collegeId = req.college_id;
+
+    console.log("[getTeacherSubjectsByCourse] courseId:", courseId);
+    console.log("[getTeacherSubjectsByCourse] collegeId:", collegeId);
+
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      console.log("[getTeacherSubjectsByCourse] Teacher not found");
+      return res.status(403).json({ message: "Teacher not found" });
+    }
+
+    console.log(
+      "[getTeacherSubjectsByCourse] Teacher found:",
+      teacher.name,
+      "ID:",
+      teacher._id,
+    );
+    console.log("[getTeacherSubjectsByCourse] Querying subjects with:", {
+      college_id: collegeId,
+      course_id: courseId,
+      teacher_id: teacher._id,
+    });
+
+    // Fetch subjects from Subject collection
+    // Option 1: Try with teacher_id filter first (most specific)
+    let subjects = await Subject.find({
+      college_id: collegeId,
+      course_id: courseId,
+      teacher_id: teacher._id,
+      status: "ACTIVE",
+    }).select("_id name code");
+
+    console.log(
+      "[getTeacherSubjectsByCourse] Subjects with teacher_id filter:",
+      subjects.length,
+    );
+
+    // Option 2: If no subjects found, try without teacher_id filter
+    // This handles cases where subjects are linked to course but not directly to teacher
+    if (subjects.length === 0) {
+      console.log(
+        "[getTeacherSubjectsByCourse] No subjects found with teacher_id, trying without teacher filter...",
+      );
+      subjects = await Subject.find({
+        college_id: collegeId,
+        course_id: courseId,
+        status: "ACTIVE",
+      }).select("_id name code");
+      console.log(
+        "[getTeacherSubjectsByCourse] Subjects without teacher_id filter:",
+        subjects.length,
+      );
+    }
+
+    console.log("[getTeacherSubjectsByCourse] Raw subjects from DB:", subjects);
+    console.log(
+      "[getTeacherSubjectsByCourse] Subjects found:",
+      subjects.length,
+    );
+
+    // Return subjects array directly (frontend expects array)
+    res.json(subjects);
+  } catch (error) {
+    console.error("[getTeacherSubjectsByCourse] Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* =========================================================
+   GET TODAY'S SLOTS FOR TEACHER (FOR ATTENDANCE)
+   GET /attendance/today-slots
+   Purpose: Show slots for today where teacher can start attendance
+========================================================= */
+exports.getTodaySlotsForTeacher = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+    const userId = req.user.id;
+
+    // Resolve teacher
+    const teacher = await Teacher.findOne({
+      user_id: userId,
+      college_id: collegeId,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    // Get today's day name
+    const today = new Date();
+    const todayDayName = getDayName(today);
+    const todayStr = today.toISOString().split("T")[0];
+
+    console.log(`📅 Today: ${todayStr} (${todayDayName})`);
+
+    // Find all PUBLISHED timetables for teacher's department
+    const slots = await TimetableSlot.find({
+      college_id: collegeId,
+      teacher_id: teacher._id,
+      day: todayDayName,
+    })
+      .populate("subject_id", "name code")
+      .populate("timetable_id", "name status semester academicYear")
+      .populate("course_id", "name")
+      .sort({ startTime: 1 });
+
+    // Filter only slots from PUBLISHED timetables
+    const publishedSlots = slots.filter(
+      (slot) => slot.timetable_id?.status === "PUBLISHED",
+    );
+
+    // Check if attendance session already exists for each slot
+    const slotsWithSessionStatus = await Promise.all(
+      publishedSlots.map(async (slot) => {
+        // Check for existing sessions today for this slot
+        const existingSessions = await AttendanceSession.find({
+          slot_id: slot._id,
+          lectureDate: {
+            $gte: new Date(todayStr),
+            $lt: new Date(new Date(todayStr).getTime() + 24 * 60 * 60 * 1000),
+          },
+        });
+
+        const hasOpenSession = existingSessions.some(
+          (s) => s.status === "OPEN",
+        );
+        const hasClosedSession = existingSessions.some(
+          (s) => s.status === "CLOSED",
+        );
+        const sessionCount = existingSessions.length;
+
+        return {
+          ...slot.toObject(),
+          canStartAttendance: !hasOpenSession && !hasClosedSession,
+          hasOpenSession,
+          hasClosedSession,
+          sessionCount,
+          message: hasOpenSession
+            ? "Attendance session already open"
+            : hasClosedSession
+              ? `Attendance already closed (${sessionCount} sessions)`
+              : "Can start attendance",
+        };
+      }),
+    );
+
+    res.json({
+      today: todayStr,
+      dayName: todayDayName,
+      totalSlots: slotsWithSessionStatus.length,
+      availableForAttendance: slotsWithSessionStatus.filter(
+        (s) => s.canStartAttendance,
+      ).length,
+      slots: slotsWithSessionStatus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET STUDENT ATTENDANCE REPORT AS PDF
+   GET /attendance/student/report
+   Purpose: Generate and download attendance report as PDF
+========================================================= */
+exports.getStudentAttendanceReportPDF = async (req, res, next) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const { startDate, endDate, subjectId } = req.query;
+
+    // Fetch college info
+    const college = await College.findById(student.college_id).select(
+      "name code address",
+    );
+
+    // Fetch student info
+    const studentInfo = await Student.findById(student._id)
+      .populate("department_id", "name code")
+      .populate("course_id", "name code");
+
+    // Build query for sessions
+    const sessionQuery = {
+      college_id: student.college_id,
+      department_id: student.department_id?._id || student.department_id,
+      course_id: student.course_id?._id || student.course_id,
+    };
+
+    // Add date filter if provided
+    if (startDate && endDate) {
+      sessionQuery.lectureDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    // Add subject filter if provided
+    if (subjectId) {
+      sessionQuery.subject_id = new mongoose.Types.ObjectId(subjectId);
+    }
+
+    const sessions = await AttendanceSession.find(sessionQuery)
+      .populate("subject_id", "name code")
+      .sort({ lectureDate: 1 });
+
+    const sessionIds = sessions.map((s) => s._id);
+
+    // Fetch attendance records for this student
+    const records = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+      student_id: student._id,
+    });
+
+    // Build session-wise data
+    const sessionReport = sessions.map((session) => {
+      const record = records.find(
+        (r) => r.session_id.toString() === session._id.toString(),
+      );
+      return {
+        date: session.lectureDate,
+        subject: session.subject_id?.name || "N/A",
+        subjectCode: session.subject_id?.code || "N/A",
+        lectureNumber: session.lectureNumber,
+        startTime: session.slotSnapshot?.startTime || "N/A",
+        endTime: session.slotSnapshot?.endTime || "N/A",
+        room: session.slotSnapshot?.room || "N/A",
+        teacher: session.slotSnapshot?.teacher_name || "N/A",
+        status: record?.status || "N/A",
+      };
+    });
+
+    // Calculate summary
+    let total = records.length;
+    let present = records.filter((r) => r.status === "PRESENT").length;
+    let absent = records.filter((r) => r.status === "ABSENT").length;
+    const percentage = total > 0 ? ((present / total) * 100).toFixed(2) : 0;
+
+    // Subject-wise breakdown
+    const subjectMap = {};
+    sessions.forEach((session) => {
+      const record = records.find(
+        (r) => r.session_id.toString() === session._id.toString(),
+      );
+      if (!record) return;
+
+      const subjectId = session.subject_id?._id?.toString();
+      if (!subjectId) return;
+
+      if (!subjectMap[subjectId]) {
+        subjectMap[subjectId] = {
+          subject: session.subject_id?.name || "N/A",
+          code: session.subject_id?.code || "N/A",
+          total: 0,
+          present: 0,
+          absent: 0,
+        };
+      }
+
+      subjectMap[subjectId].total++;
+      if (record.status === "PRESENT") {
+        subjectMap[subjectId].present++;
+      } else if (record.status === "ABSENT") {
+        subjectMap[subjectId].absent++;
+      }
+    });
+
+    const subjectBreakdown = Object.values(subjectMap).map((sub) => {
+      const percentage =
+        sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
+      return {
+        ...sub,
+        percentage,
+        warning: parseFloat(percentage) < 75,
+      };
+    });
+
+    // Create PDF document
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 50, bottom: 50, left: 40, right: 40 },
+    });
+
+    // Set response headers
+    const fileName = `attendance-report-${student._id}-${new Date().toISOString().split("T")[0]}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    // Pipe PDF to response
+    doc.pipe(res);
+
+    // ==================== PDF CONTENT ====================
+
+    // Header - College Name
+    doc
+      .fontSize(18)
+      .font("Helvetica-Bold")
+      .text(college?.name || "College", { align: "center" })
+      .moveDown(0.5);
+
+    if (college?.address) {
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .text(college.address, { align: "center" })
+        .moveDown(0.5);
+    }
+
+    // Title
+    doc
+      .moveDown(1)
+      .fontSize(16)
+      .font("Helvetica-Bold")
+      .text("Student Attendance Report", { align: "center" })
+      .moveDown(1);
+
+    // Student Information
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .text("Student Information:", { underline: true })
+      .moveDown(0.3);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
+      .text(`Roll Number: ${studentInfo?.rollNumber || "N/A"}`)
+      .text(`Email: ${studentInfo?.email || "N/A"}`)
+      .text(
+        `Department: ${studentInfo?.department_id?.name || "N/A"} (${studentInfo?.department_id?.code || "N/A"})`,
+      )
+      .text(
+        `Course: ${studentInfo?.course_id?.name || "N/A"} (${studentInfo?.course_id?.code || "N/A"})`,
+      )
+      .moveDown(0.5);
+
+    // Report Period
+    if (startDate && endDate) {
+      doc.text(
+        `Report Period: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}`,
+      );
+    } else {
+      doc.text(`Report Period: All Time`);
+    }
+    doc.text(`Generated On: ${new Date().toLocaleString()}`);
+    doc.moveDown(1);
+
+    // Summary Section
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Attendance Summary:", { underline: true })
+      .moveDown(0.5);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(`Total Lectures: ${total}`)
+      .text(`Present: ${present}`)
+      .text(`Absent: ${absent}`)
+      .text(`Attendance Percentage: ${percentage}%`)
+      .moveDown(0.5);
+
+    // Attendance Status
+    const statusColor = parseFloat(percentage) >= 75 ? "✓" : "⚠";
+    const statusText =
+      parseFloat(percentage) >= 75 ? "ELIGIBLE" : "NOT ELIGIBLE";
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        `${statusColor} Exam Eligibility: ${statusText} (Minimum 75% required)`,
+      );
+    doc.moveDown(1);
+
+    // Subject-wise Breakdown
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Subject-wise Breakdown:", { underline: true })
+      .moveDown(0.5);
+
+    subjectBreakdown.forEach((sub, index) => {
+      const warningSymbol = sub.warning ? " ⚠" : " ✓";
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(10)
+        .text(`${index + 1}. ${sub.subject} (${sub.code})`, {
+          continued: true,
+        });
+      doc
+        .font("Helvetica")
+        .text(
+          ` - Total: ${sub.total}, Present: ${sub.present}, Absent: ${sub.absent}, Percentage: ${sub.percentage}%${warningSymbol}`,
+        );
+    });
+    doc.moveDown(1);
+
+    // Session-wise Details (Table)
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .text("Session-wise Details:", { underline: true })
+      .moveDown(0.5);
+
+    // Table headers
+    const tableTop = doc.y;
+    const tableLeft = 40;
+    const colWidths = [60, 120, 50, 50, 60]; // Date, Subject, Lecture, Time, Status
+
+    // Header row background
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(9)
+      .text("Date", tableLeft, tableTop, {
+        width: colWidths[0],
+        align: "center",
+      })
+      .text("Subject", tableLeft + colWidths[0], tableTop, {
+        width: colWidths[1],
+        align: "center",
+      })
+      .text("Lec #", tableLeft + colWidths[0] + colWidths[1], tableTop, {
+        width: colWidths[2],
+        align: "center",
+      })
+      .text(
+        "Time",
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
+        tableTop,
+        {
+          width: colWidths[3],
+          align: "center",
+        },
+      )
+      .text(
+        "Status",
+        tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+        tableTop,
+        {
+          width: colWidths[4],
+          align: "center",
+        },
+      );
+
+    doc.moveDown(0.5);
+
+    // Table rows
+    let rowY = doc.y;
+    sessionReport.slice(0, 100).forEach((session, index) => {
+      // Limit to 100 rows to prevent extremely long PDFs
+      const yPos = rowY + index * 15;
+
+      // Alternate row colors
+      if (index % 2 === 0) {
+        doc
+          .rect(
+            tableLeft,
+            yPos,
+            colWidths.reduce((a, b) => a + b, 0),
+            14,
+          )
+          .fill("#f5f5f5");
+      }
+
+      const dateStr = new Date(session.date).toLocaleDateString();
+      const timeStr = `${session.startTime} - ${session.endTime}`;
+      const statusSymbol =
+        session.status === "PRESENT"
+          ? "✓"
+          : session.status === "ABSENT"
+            ? "✗"
+            : "-";
+
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .text(dateStr, tableLeft, yPos + 3, {
+          width: colWidths[0],
+          align: "center",
+        })
+        .text(session.subject, tableLeft + colWidths[0], yPos + 3, {
+          width: colWidths[1],
+          align: "left",
+        })
+        .text(
+          session.lectureNumber.toString(),
+          tableLeft + colWidths[0] + colWidths[1],
+          yPos + 3,
+          {
+            width: colWidths[2],
+            align: "center",
+          },
+        )
+        .text(
+          timeStr,
+          tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
+          yPos + 3,
+          {
+            width: colWidths[3],
+            align: "center",
+          },
+        )
+        .text(
+          `${statusSymbol} ${session.status}`,
+          tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+          yPos + 3,
+          {
+            width: colWidths[4],
+            align: "center",
+          },
+        );
+    });
+
+    // Footer
+    const pageCount = doc.bufferedPageRange();
+    for (let i = 0; i < pageCount.count; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .font("Helvetica")
+        .text(`Page ${i + 1} of ${pageCount.count}`, 0, doc.page.height - 30, {
+          width: doc.page.width,
+          align: "center",
+        });
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Student attendance PDF report error:", error);
+    res.status(500).json({
+      message: "Failed to generate attendance report PDF",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = exports;
