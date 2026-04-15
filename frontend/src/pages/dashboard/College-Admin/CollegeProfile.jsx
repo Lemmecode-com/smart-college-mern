@@ -185,7 +185,7 @@ export default function CollegeProfile() {
 
   useEffect(() => {
     fetchCollegeProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Handle retry action
