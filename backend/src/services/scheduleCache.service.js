@@ -34,14 +34,14 @@ class ScheduleCache {
 
   /**
    * Generate cache key from timetable ID and date range
-   * @param {string} timetableId - Timetable ID
+   * @param {string|ObjectId} timetableId - Timetable ID
    * @param {string} startDate - Start date
    * @param {string} endDate - End date
    * @param {string} type - Cache type (schedule, today, week)
    * @returns {string} Cache key
    */
   generateKey(timetableId, startDate, endDate, type = "schedule") {
-    return `${type}:${timetableId}:${startDate}:${endDate}`;
+    return `${type}:${timetableId.toString()}:${startDate}:${endDate}`;
   }
 
   /**
@@ -114,17 +114,19 @@ class ScheduleCache {
 
   /**
    * Invalidate all caches for a specific timetable
-   * @param {string} timetableId - Timetable ID
+   * @param {string|ObjectId} timetableId - Timetable ID
    */
   invalidateTimetable(timetableId) {
     try {
+      // Convert to string to handle both ObjectId and string types
+      const timetableIdStr = timetableId.toString();
       const keysToDelete = [];
 
       for (const key of this.cache.keys()) {
         // Use exact matching with colon delimiter to avoid partial matches
         // Key format: type:timetableId:startDate:endDate
         const parts = key.split(":");
-        if (parts[1] === timetableId) {
+        if (parts[1] === timetableIdStr) {
           keysToDelete.push(key);
         }
       }
