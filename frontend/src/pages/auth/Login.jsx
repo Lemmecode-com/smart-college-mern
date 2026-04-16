@@ -343,7 +343,7 @@ export default function Login() {
                 transition={{ delay: 0.8 }}
               >
                 <p className="footer-text">
-                  <FaLock className="footer-icon" /> Protected by NOVAA Security · Staging v{new Date().getFullYear()}
+                  <FaLock className="footer-icon" /> Protected by NOVAA Security
                 </p>
                 <motion.p
                   className="footer-links"
