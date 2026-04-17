@@ -15,7 +15,8 @@ const {
 } = require("../controllers/department.controller");
 
 // Apply middlewares to ALL department routes
-router.use(auth, role("COLLEGE_ADMIN"), collegeMiddleware);
+// FIX: Allow COLLEGE_ADMIN and TEACHER to access departments
+router.use(auth, role("COLLEGE_ADMIN", "TEACHER"), collegeMiddleware);
 
 // Create Department
 router.post("/", createDepartment);
