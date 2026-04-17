@@ -34,13 +34,27 @@ const getReadNotificationIds = async (userId) => {
  */
 exports.createAdminNotification = async (req, res, next) => {
   try {
-    const { title, message, type, target, actionUrl, expiresAt, 
+    const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_course, target_semester, target_users } = req.body;
 
     // Validate target field
     const validTargets = ["ALL", "STUDENTS", "TEACHERS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
     if (target && !validTargets.includes(target)) {
       throw new AppError(`Invalid target. Must be one of: ${validTargets.join(", ")}`, 400, "INVALID_TARGET");
+    }
+
+    // Validate priority field
+    const validPriorities = ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"];
+    if (priority && !validPriorities.includes(priority)) {
+      throw new AppError(`Invalid priority. Must be one of: ${validPriorities.join(", ")}`, 400, "INVALID_PRIORITY");
+    }
+
+    // Validate expiresAt date format
+    if (expiresAt) {
+      const expiresDate = new Date(expiresAt);
+      if (isNaN(expiresDate.getTime())) {
+        throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
     }
 
     // Validate granular targeting fields based on target type
@@ -68,6 +82,7 @@ exports.createAdminNotification = async (req, res, next) => {
       title,
       message,
       type: type || "GENERAL",
+      priority: priority || "NORMAL",
       actionUrl,
       expiresAt,
       target_department,
@@ -92,7 +107,7 @@ exports.createAdminNotification = async (req, res, next) => {
  */
 exports.createTeacherNotification = async (req, res, next) => {
   try {
-    const { title, message, type, target, actionUrl, expiresAt,
+    const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_course, target_semester, target_users } = req.body;
 
     // Teachers can only target STUDENTS, DEPARTMENT, COURSE, or SEMESTER
@@ -101,6 +116,20 @@ exports.createTeacherNotification = async (req, res, next) => {
     
     if (!validTeacherTargets.includes(effectiveTarget)) {
       throw new AppError(`Teachers can only target: ${validTeacherTargets.join(", ")}`, 400, "INVALID_TEACHER_TARGET");
+    }
+
+    // Validate priority field
+    const validPriorities = ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"];
+    if (priority && !validPriorities.includes(priority)) {
+      throw new AppError(`Invalid priority. Must be one of: ${validPriorities.join(", ")}`, 400, "INVALID_PRIORITY");
+    }
+
+    // Validate expiresAt date format
+    if (expiresAt) {
+      const expiresDate = new Date(expiresAt);
+      if (isNaN(expiresDate.getTime())) {
+        throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
     }
 
     // Validate granular targeting fields
@@ -124,6 +153,7 @@ exports.createTeacherNotification = async (req, res, next) => {
       title,
       message,
       type: type || "GENERAL",
+      priority: priority || "NORMAL",
       actionUrl,
       expiresAt,
       target_department,
@@ -165,37 +195,45 @@ exports.getStudentNotifications = async (req, res, next) => {
     }
 
     // Build query for targeted notifications
+    // FIX: Use $and to combine two $or conditions properly (MongoDB doesn't support multiple $or at same level)
     const targetQuery = {
       college_id: req.college_id,
       isActive: true,
       createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
-      $or: [
-        { expiresAt: null },
-        { expiresAt: { $gte: new Date() } }
-      ],
-      // Target audience filtering
-      $or: [
-        { target: "ALL" },
-        { target: "STUDENTS" },
-        // Department-specific notifications
-        { 
-          target: "DEPARTMENT", 
-          target_department: student.department_id 
-        },
-        // Course-specific notifications
-        { 
-          target: "COURSE", 
-          target_course: student.course_id 
-        },
-        // Semester-specific notifications
-        { 
-          target: "SEMESTER", 
-          target_semester: student.currentSemester 
-        },
-        // Individual notifications (if student is in target_users)
+      $and: [
+        // Expiry condition
         {
-          target: "INDIVIDUAL",
-          target_users: req.user.id
+          $or: [
+            { expiresAt: null },
+            { expiresAt: { $gte: new Date() } }
+          ]
+        },
+        // Target audience filtering
+        {
+          $or: [
+            { target: "ALL" },
+            { target: "STUDENTS" },
+            // Department-specific notifications
+            { 
+              target: "DEPARTMENT", 
+              target_department: student.department_id 
+            },
+            // Course-specific notifications
+            { 
+              target: "COURSE", 
+              target_course: student.course_id 
+            },
+            // Semester-specific notifications
+            { 
+              target: "SEMESTER", 
+              target_semester: student.currentSemester 
+            },
+            // Individual notifications (if student is in target_users)
+            {
+              target: "INDIVIDUAL",
+              target_users: req.user.id
+            }
+          ]
         }
       ]
     };
@@ -515,19 +553,19 @@ exports.getUnreadForBell = async (req, res, next) => {
       _id: { $nin: readIds }
     };
 
-    // Role-based filtering
+    // Role-based filtering - FIX: Include college_id in each $or condition
     if (req.user.role === "STUDENT") {
       query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
     } else if (req.user.role === "TEACHER") {
       query.$or = [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdBy: req.user.id }
+        { createdByRole: "COLLEGE_ADMIN", college_id: req.college_id },
+        { createdBy: req.user.id, college_id: req.college_id }
       ];
     } else if (req.user.role === "COLLEGE_ADMIN") {
       // Admin sees: Admin-created notifications + Teacher-created notifications
       query.$or = [
-        { createdByRole: "COLLEGE_ADMIN", createdBy: req.user.id },
-        { createdByRole: "TEACHER" }
+        { createdByRole: "COLLEGE_ADMIN", createdBy: req.user.id, college_id: req.college_id },
+        { createdByRole: "TEACHER", college_id: req.college_id }
       ];
     }
 
