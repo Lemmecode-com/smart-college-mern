@@ -10,14 +10,9 @@ const getValidExpiryCondition = () => ({
   ]
 });
 
-const unreadFilter = async (userId) => {
-  const reads = await NotificationRead.find({ user_id: userId })
-    .select("notification_id");
-  return reads.map(r => r.notification_id);
-};
-
 /**
  * Get all notification IDs already read by this user
+ * ⚡ PERFORMANCE OPTIMIZED: Only loads IDs, not full documents
  */
 const getReadNotificationIds = async (userId) => {
   const reads = await NotificationRead.find({ user_id: userId })
@@ -423,26 +418,27 @@ exports.deleteNotification = async (req, res, next) => {
 exports.getStudentNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    
+
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
-    
+
     const readIds = await getReadNotificationIds(userId);
 
-    const notifications = await Notification.find({
+    // ⚡ PERFORMANCE FIX: Use countDocuments instead of find + manual counting
+    // This avoids loading full documents into memory and uses MongoDB's native counting
+    const adminCount = await Notification.countDocuments({
       college_id: req.college_id,
       isActive: true,
       _id: { $nin: readIds },
-      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] }
+      createdByRole: "COLLEGE_ADMIN"
     });
 
-    let adminCount = 0;
-    let teacherCount = 0;
-
-    notifications.forEach(n => {
-      if (n.createdByRole === "COLLEGE_ADMIN") adminCount++;
-      if (n.createdByRole === "TEACHER") teacherCount++;
+    const teacherCount = await Notification.countDocuments({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      createdByRole: "TEACHER"
     });
 
     ApiResponse.success(res, {
@@ -458,35 +454,28 @@ exports.getStudentNotificationCount = async (req, res, next) => {
 exports.getTeacherNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    
+
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
-    
+
     const readIds = await getReadNotificationIds(userId);
 
-    const notifications = await Notification.find({
+    // ⚡ PERFORMANCE FIX: Use countDocuments instead of find + manual counting
+    // Separate queries for better performance and clarity
+    const adminCount = await Notification.countDocuments({
       college_id: req.college_id,
       isActive: true,
       _id: { $nin: readIds },
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdBy: userId }
-      ]
+      createdByRole: "COLLEGE_ADMIN"
     });
 
-    let myCount = 0;
-    let adminCount = 0;
-
-    notifications.forEach(n => {
-      if (n.createdByRole === "COLLEGE_ADMIN") {
-        adminCount++;
-      } else if (
-        n.createdByRole === "TEACHER" &&
-        n.createdBy.toString() === userId
-      ) {
-        myCount++;
-      }
+    const myCount = await Notification.countDocuments({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      createdByRole: "TEACHER",
+      createdBy: userId
     });
 
     ApiResponse.success(res, {
@@ -502,31 +491,28 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
 exports.getAdminNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    
+
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
-    
+
     const readIds = await getReadNotificationIds(userId);
 
-    const notifications = await Notification.find({
+    // ⚡ PERFORMANCE FIX: Use countDocuments instead of find + manual counting
+    // Separate queries for better performance and clarity
+    const myCount = await Notification.countDocuments({
       college_id: req.college_id,
       isActive: true,
-      _id: { $nin: readIds }
+      _id: { $nin: readIds },
+      createdByRole: "COLLEGE_ADMIN",
+      createdBy: userId
     });
 
-    let myCount = 0;
-    let staffCount = 0;
-
-    notifications.forEach(n => {
-      if (
-        n.createdByRole === "COLLEGE_ADMIN" &&
-        n.createdBy.toString() === userId
-      ) {
-        myCount++;
-      } else if (n.createdByRole === "TEACHER") {
-        staffCount++;
-      }
+    const staffCount = await Notification.countDocuments({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      createdByRole: "TEACHER"
     });
 
     ApiResponse.success(res, {
