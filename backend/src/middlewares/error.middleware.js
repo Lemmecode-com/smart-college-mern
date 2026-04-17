@@ -8,19 +8,28 @@ const logger = require("../utils/logger");
  * In Express 5, error handlers should NOT call next() after sending response
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error details
-  console.error("=".repeat(60));
-  console.error("❌ [Error Handler]");
-  console.error("   - Message:", err.message);
-  console.error("   - Code:", err.code || "UNKNOWN");
-  console.error("   - StatusCode:", err.statusCode);
-  console.error("   - Name:", err.name);
-  console.error("   - Stack:", err.stack);
-  console.error("   - URL:", req.originalUrl);
-  console.error("   - Method:", req.method);
-  console.error("   - Error object keys:", Object.keys(err));
-  console.error("   - Full error:", err);
-  console.error("=".repeat(60));
+  const isOperational = err instanceof AppError || (err.statusCode && err.statusCode < 500);
+  const statusCode = err.statusCode || 500;
+
+  // Only log full stack for unexpected errors (5xx)
+  // For operational errors (4xx), log a single line to avoid log spam
+  if (!isOperational || statusCode >= 500) {
+    console.error("=".repeat(60));
+    console.error("❌ [Error Handler]");
+    console.error("   - Message:", err.message);
+    console.error("   - Code:", err.code || "UNKNOWN");
+    console.error("   - StatusCode:", statusCode);
+    console.error("   - Name:", err.name);
+    console.error("   - Stack:", err.stack);
+    console.error("   - URL:", req.originalUrl);
+    console.error("   - Method:", req.method);
+    console.error("   - Error object keys:", Object.keys(err));
+    console.error("   - Full error:", err);
+    console.error("=".repeat(60));
+  } else {
+    // Single line for operational errors (401, 403, 400, etc.)
+    console.warn(`[Operational Error] ${err.code || "ERROR"} ${statusCode} - ${err.message} - ${req.method} ${req.originalUrl}`);
+  }
 
   // Log to file
   logger.logError(`[Error Handler] ${err.name || "Error"}: ${err.message}`, {
@@ -131,8 +140,7 @@ const errorHandler = (err, req, res, next) => {
     };
   }
 
-  // Default values
-  const statusCode = error.statusCode || 500;
+  // Default values (reuse statusCode from line 12)
   const message = error.message || "Internal server error";
   const code = error.code || "INTERNAL_ERROR";
 
