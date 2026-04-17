@@ -46,6 +46,13 @@ const notificationSchema = new mongoose.Schema(
       default: "GENERAL",
     },
 
+    // Priority level for notifications
+    priority: {
+      type: String,
+      enum: ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"],
+      default: "NORMAL",
+    },
+
     // 🎯 Target audience (enhanced for granular targeting - FIX: Issue #7)
     target: {
       type: String,
