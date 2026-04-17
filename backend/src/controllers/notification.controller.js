@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
@@ -15,7 +16,7 @@ const getValidExpiryCondition = () => ({
  * ⚡ PERFORMANCE OPTIMIZED: Only loads IDs, not full documents
  */
 const getReadNotificationIds = async (userId) => {
-  const reads = await NotificationRead.find({ user_id: userId })
+  const reads = await NotificationRead.find({ user_id: new mongoose.Types.ObjectId(userId) })
     .select("notification_id");
 
   return reads.map(r => r.notification_id);
@@ -272,7 +273,7 @@ exports.getTeacherNotifications = async (req, res, next) => {
       isActive: true,
       $or: [
         { createdByRole: "COLLEGE_ADMIN" },
-        { createdBy: req.user.id }
+        { createdBy: new mongoose.Types.ObjectId(req.user.id) }
       ]
     }).sort({ createdAt: -1 });
 
@@ -310,6 +311,10 @@ exports.getAdminNotifications = async (req, res, next) => {
     const notifications = await Notification.find({
       college_id: req.college_id,
       isActive: true,
+      $or: [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: new mongoose.Types.ObjectId(req.user.id) }
+      ]
     }).sort({ createdAt: -1 });
 
     const myNotifications = [];
@@ -474,8 +479,10 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
       college_id: req.college_id,
       isActive: true,
       _id: { $nin: readIds },
-      createdByRole: "TEACHER",
-      createdBy: userId
+      $or: [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: new mongoose.Types.ObjectId(userId) }
+      ]
     });
 
     ApiResponse.success(res, {
@@ -505,7 +512,7 @@ exports.getAdminNotificationCount = async (req, res, next) => {
       isActive: true,
       _id: { $nin: readIds },
       createdByRole: "COLLEGE_ADMIN",
-      createdBy: userId
+      createdBy: new mongoose.Types.ObjectId(userId)
     });
 
     const staffCount = await Notification.countDocuments({
@@ -543,14 +550,14 @@ exports.getUnreadForBell = async (req, res, next) => {
     if (req.user.role === "STUDENT") {
       query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
     } else if (req.user.role === "TEACHER") {
-      query.$or = [
+    query.$or = [
         { createdByRole: "COLLEGE_ADMIN", college_id: req.college_id },
-        { createdBy: req.user.id, college_id: req.college_id }
+        { createdBy: new mongoose.Types.ObjectId(req.user.id), college_id: req.college_id }
       ];
     } else if (req.user.role === "COLLEGE_ADMIN") {
       // Admin sees: Admin-created notifications + Teacher-created notifications
       query.$or = [
-        { createdByRole: "COLLEGE_ADMIN", createdBy: req.user.id, college_id: req.college_id },
+        { createdByRole: "COLLEGE_ADMIN", createdBy: new mongoose.Types.ObjectId(req.user.id), college_id: req.college_id },
         { createdByRole: "TEACHER", college_id: req.college_id }
       ];
     }
@@ -603,7 +610,7 @@ exports.sendPromotionNotification = async (req, res, next) => {
 
     await Notification.create({
       college_id: req.college_id,
-      createdBy: req.user.id,
+      createdBy: new mongoose.Types.ObjectId(req.user.id),
       createdByRole: "COLLEGE_ADMIN",
       target: "STUDENTS",
       title: "🎓 Promotion Approved",
@@ -616,4 +623,11 @@ exports.sendPromotionNotification = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+}; 
+
+
+
+
+
+
+
