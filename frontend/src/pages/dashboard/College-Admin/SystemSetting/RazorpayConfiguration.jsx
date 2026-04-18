@@ -39,10 +39,12 @@ const RazorpayConfiguration = () => {
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [config, setConfig] = useState(null);
   const [showSecret, setShowSecret] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [isGatewayActive, setIsGatewayActive] = useState(false);
 
   const [formData, setFormData] = useState({
     keyId: "",
@@ -60,13 +62,16 @@ const RazorpayConfiguration = () => {
       setLoading(true);
       const response = await api.get("/admin/razorpay/config");
 
-      if (response.data.configured) {
+      const isActive = response.data.isActive || false;
+      setIsGatewayActive(isActive);
+
+      if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
         setFormData({
-          keyId: response.data.config.credentials.keyId || "",
+          keyId: response.data.config.credentials?.keyId || "",
           keySecret: "",
           webhookSecret: "",
-          testMode: response.data.config.isTestMode,
+          testMode: response.data.config.isTestMode ?? true,
         });
       } else {
         setConfig(null);
@@ -86,6 +91,24 @@ const RazorpayConfiguration = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleGateway = async () => {
+    try {
+      setToggling(true);
+      const newStatus = !isGatewayActive;
+      const response = await api.patch("/admin/razorpay/config/status", {
+        isActive: newStatus,
+      });
+
+      setIsGatewayActive(newStatus);
+      toast.success(response.data.message);
+    } catch (error) {
+      console.error("Error toggling gateway:", error);
+      toast.error(error.response?.data?.message || "Failed to toggle gateway");
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -274,13 +297,31 @@ const RazorpayConfiguration = () => {
           </div>
         </div>
 
-        {config && (
+        <button
+          className={`btn ${isGatewayActive ? "btn-danger" : "btn-success"}`}
+          onClick={handleToggleGateway}
+          disabled={toggling}
+        >
+          {toggling ? (
+            <FaSpinner className="spin me-1" />
+          ) : isGatewayActive ? (
+            <>
+              <FaToggleOff className="me-1" /> Disable
+            </>
+          ) : (
+            <>
+              <FaToggleOn className="me-1" /> Enable
+            </>
+          )}
+        </button>
+
+        {isGatewayActive && (
           <div className="d-flex align-items-center gap-2">
             <span className="badge bg-success">
               <FaCheckCircle className="me-1" />
               Active
             </span>
-            {config.isTestMode && (
+            {formData.testMode && (
               <span className="badge bg-warning text-dark">
                 <FaFlask className="me-1" />
                 Test Mode
@@ -290,281 +331,286 @@ const RazorpayConfiguration = () => {
         )}
       </div>
 
-      {/* Configuration Form */}
-      <div className="card shadow-sm mb-4">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-4">
-            <FaKey className="me-2 text-primary" />
-            API Credentials
-          </h5>
+      {isGatewayActive ? (
+        <>
+          {/* Configuration Form */}
+          <div className="card shadow-sm mb-4">
+            <div className="card-body p-4">
+              <h5 className="fw-bold mb-4">
+                <FaKey className="me-2 text-primary" />
+                API Credentials
+              </h5>
 
-          {/* Mode Toggle */}
-          <div className="mb-4">
-            <label className="form-label fw-semibold">Mode</label>
-            <div className="d-flex align-items-center gap-3">
-              <button
-                className={`btn ${formData.testMode ? "btn-warning" : "btn-outline-secondary"}`}
-                onClick={() => {
-                  setFormData((prev) => ({ ...prev, testMode: true }));
-                  setIsModified(true);
-                }}
-              >
-                <FaFlask className="me-2" />
-                Test Mode
-              </button>
-              <button
-                className={`btn ${!formData.testMode ? "btn-success" : "btn-outline-secondary"}`}
-                onClick={() => {
-                  setFormData((prev) => ({ ...prev, testMode: false }));
-                  setIsModified(true);
-                }}
-              >
-                <FaRocket className="me-2" />
-                Live Mode
-              </button>
-              <FaInfoCircle className="text-muted" />
-              <span className="text-muted small">
-                {formData.testMode
-                  ? "Using test keys - no real transactions"
-                  : "Using live keys - real transactions"}
-              </span>
-            </div>
-          </div>
-
-          {/* Key ID */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">
-              Key ID
-              <span className="text-danger ms-1">*</span>
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              name="keyId"
-              value={formData.keyId}
-              onChange={handleInputChange}
-              placeholder={
-                formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"
-              }
-              disabled={saving}
-            />
-            <small className="text-muted">
-              {formData.testMode
-                ? "Starts with rzp_test_"
-                : "Starts with rzp_live_"}
-            </small>
-          </div>
-
-          {/* Key Secret */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">
-              Key Secret
-              <span className="text-danger ms-1">*</span>
-            </label>
-            <div className="input-group">
-              <input
-                type={showSecret ? "text" : "password"}
-                className="form-control"
-                name="keySecret"
-                value={formData.keySecret}
-                onChange={handleInputChange}
-                placeholder="Enter secret key"
-                disabled={saving}
-              />
-              <button
-                className="btn btn-outline-secondary"
-                type="button"
-                onClick={() => setShowSecret(!showSecret)}
-              >
-                {showSecret ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-            <small className="text-muted">
-              <FaLock className="me-1" />
-              Encrypted before storage
-            </small>
-          </div>
-
-          {/* Webhook Secret */}
-          <div className="mb-3">
-            <label className="form-label fw-semibold">
-              Webhook Secret
-              <span className="text-danger ms-1">*</span>
-            </label>
-            <div className="input-group">
-              <input
-                type={showWebhookSecret ? "text" : "password"}
-                className="form-control"
-                name="webhookSecret"
-                value={formData.webhookSecret}
-                onChange={handleInputChange}
-                placeholder="Enter webhook secret (required)"
-                disabled={saving}
-                required
-              />
-              <button
-                className="btn btn-outline-secondary"
-                type="button"
-                onClick={() => setShowWebhookSecret(!showWebhookSecret)}
-              >
-                {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-            <small className="text-muted">
-              Used to verify webhook signatures
-            </small>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="d-flex gap-2 mt-4">
-            <button
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={saving || !isModified}
-            >
-              {saving ? (
-                <>
-                  <FaSpinner className="spin me-2" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <FaSave className="me-2" />
-                  Save Configuration
-                </>
-              )}
-            </button>
-
-            {config && (
-              <>
-                <button
-                  className="btn btn-outline-primary"
-                  onClick={handleVerify}
-                  disabled={verifying}
-                >
-                  {verifying ? (
-                    <>
-                      <FaSpinner className="spin me-2" />
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      <FaCheckCircle className="me-2" />
-                      Verify
-                    </>
-                  )}
-                </button>
-
-                <button
-                  className="btn btn-outline-info"
-                  onClick={handleTestConnection}
-                  disabled={testing}
-                >
-                  {testing ? (
-                    <>
-                      <FaSpinner className="spin me-2" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <FaPlug className="me-2" />
-                      Test Connection
-                    </>
-                  )}
-                </button>
-
-                <button
-                  className="btn btn-outline-danger ms-auto"
-                  onClick={handleDelete}
-                  disabled={saving}
-                >
-                  <FaTrash className="me-2" />
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Configuration Info */}
-      {config && (
-        <div className="card shadow-sm">
-          <div className="card-body p-4">
-            <h5 className="fw-bold mb-3">
-              <FaServer className="me-2 text-primary" />
-              Configuration Details
-            </h5>
-
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <div className="text-muted small">Key ID</div>
-                <div className="fw-semibold">{config.credentials.keyId}</div>
-              </div>
-              <div className="col-md-6 mb-3">
-                <div className="text-muted small">Status</div>
-                <div>
-                  <span className="badge bg-success">
-                    <FaCheckCircle className="me-1" />
-                    Active
+              {/* Mode Toggle */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold">Mode</label>
+                <div className="d-flex align-items-center gap-3">
+                  <button
+                    className={`btn ${formData.testMode ? "btn-warning" : "btn-outline-secondary"}`}
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, testMode: true }));
+                      setIsModified(true);
+                    }}
+                  >
+                    <FaFlask className="me-2" />
+                    Test Mode
+                  </button>
+                  <button
+                    className={`btn ${!formData.testMode ? "btn-success" : "btn-outline-secondary"}`}
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, testMode: false }));
+                      setIsModified(true);
+                    }}
+                  >
+                    <FaRocket className="me-2" />
+                    Live Mode
+                  </button>
+                  <FaInfoCircle className="text-muted" />
+                  <span className="text-muted small">
+                    {formData.testMode
+                      ? "Using test keys - no real transactions"
+                      : "Using live keys - real transactions"}
                   </span>
                 </div>
               </div>
-              <div className="col-md-6 mb-3">
-                <div className="text-muted small">Mode</div>
-                <div>
-                  {config.isTestMode ? (
-                    <span className="badge bg-warning text-dark">
-                      <FaFlask className="me-1" />
-                      Test
-                    </span>
-                  ) : (
-                    <span className="badge bg-success">
-                      <FaRocket className="me-1" />
-                      Live
-                    </span>
-                  )}
-                </div>
+
+              {/* Key ID */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">
+                  Key ID
+                  <span className="text-danger ms-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="keyId"
+                  value={formData.keyId}
+                  onChange={handleInputChange}
+                  placeholder={
+                    formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"
+                  }
+                  disabled={saving}
+                />
+                <small className="text-muted">
+                  {formData.testMode
+                    ? "Starts with rzp_test_"
+                    : "Starts with rzp_live_"}
+                </small>
               </div>
-              <div className="col-md-6 mb-3">
-                <div className="text-muted small">Last Verified</div>
-                <div className="fw-semibold">
-                  {config.lastVerifiedAt ? (
+
+              {/* Key Secret */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">
+                  Key Secret
+                  <span className="text-danger ms-1">*</span>
+                </label>
+                <div className="input-group">
+                  <input
+                    type={showSecret ? "text" : "password"}
+                    className="form-control"
+                    name="keySecret"
+                    value={formData.keySecret}
+                    onChange={handleInputChange}
+                    placeholder="Enter secret key"
+                    disabled={saving}
+                  />
+                  <button
+                    className="btn btn-outline-secondary"
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                  >
+                    {showSecret ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                <small className="text-muted">
+                  <FaLock className="me-1" />
+                  Encrypted before storage
+                </small>
+              </div>
+
+              {/* Webhook Secret */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">
+                  Webhook Secret
+                  <span className="text-danger ms-1">*</span>
+                </label>
+                <div className="input-group">
+                  <input
+                    type={showWebhookSecret ? "text" : "password"}
+                    className="form-control"
+                    name="webhookSecret"
+                    value={formData.webhookSecret}
+                    onChange={handleInputChange}
+                    placeholder="Enter webhook secret (required)"
+                    disabled={saving}
+                    required
+                  />
+                  <button
+                    className="btn btn-outline-secondary"
+                    type="button"
+                    onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                  >
+                    {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                <small className="text-muted">
+                  Used to verify webhook signatures
+                </small>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="d-flex gap-2 mt-4">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  disabled={saving || !isModified}
+                >
+                  {saving ? (
                     <>
-                      <FaCalendarAlt className="me-2 text-muted" />
-                      {new Date(config.lastVerifiedAt).toLocaleString()}
+                      <FaSpinner className="spin me-2" />
+                      Saving...
                     </>
                   ) : (
-                    <span className="text-muted">Not verified</span>
+                    <>
+                      <FaSave className="me-2" />
+                      Save Configuration
+                    </>
                   )}
-                </div>
+                </button>
+
+                {config && (
+                  <>
+                    <button
+                      className="btn btn-outline-primary"
+                      onClick={handleVerify}
+                      disabled={verifying}
+                    >
+                      {verifying ? (
+                        <>
+                          <FaSpinner className="spin me-2" />
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle className="me-2" />
+                          Verify
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      className="btn btn-outline-info"
+                      onClick={handleTestConnection}
+                      disabled={testing}
+                    >
+                      {testing ? (
+                        <>
+                          <FaSpinner className="spin me-2" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <FaPlug className="me-2" />
+                          Test Connection
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      className="btn btn-outline-danger ms-auto"
+                      onClick={handleDelete}
+                      disabled={saving}
+                    >
+                      <FaTrash className="me-2" />
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Webhook URL Info */}
-      <div className="card shadow-sm mt-4 border-info">
-        <div className="card-body p-4">
-          <h5 className="fw-bold mb-3 text-info">
-            <FaInfoCircle className="me-2" />
-            Webhook Configuration
-          </h5>
-          <p className="mb-2">
-            Configure this webhook URL in your Razorpay dashboard:
-          </p>
-          <div className="bg-light p-3 rounded font-monospace">
-            {API_BASE_URL}/razorpay/webhook
-          </div>
-          <p className="text-muted small mt-2 mb-0">
-            This allows Razorpay to send payment notifications to your
-            application.
-          </p>
-        </div>
-      </div>
+          {config && (
+            <>
+              <div className="card shadow-sm">
+                <div className="card-body p-4">
+                  <h5 className="fw-bold mb-3">
+                    <FaServer className="me-2 text-primary" />
+                    Configuration Details
+                  </h5>
 
-      <style>{`
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <div className="text-muted small">Key ID</div>
+                      <div className="fw-semibold">
+                        {config.credentials.keyId}
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <div className="text-muted small">Status</div>
+                      <div>
+                        <span className="badge bg-success">
+                          <FaCheckCircle className="me-1" />
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <div className="text-muted small">Mode</div>
+                      <div>
+                        {formData.testMode ? (
+                          <span className="badge bg-warning text-dark">
+                            <FaFlask className="me-1" />
+                            Test
+                          </span>
+                        ) : (
+                          <span className="badge bg-success">
+                            <FaRocket className="me-1" />
+                            Live
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-3">
+                      <div className="text-muted small">Last Verified</div>
+                      <div className="fw-semibold">
+                        {config.lastVerifiedAt ? (
+                          <>
+                            <FaCalendarAlt className="me-2 text-muted" />
+                            {new Date(config.lastVerifiedAt).toLocaleString()}
+                          </>
+                        ) : (
+                          <span className="text-muted">Not verified</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Webhook URL Info */}
+              <div className="card shadow-sm mt-4 border-info">
+                <div className="card-body p-4">
+                  <h5 className="fw-bold mb-3 text-info">
+                    <FaInfoCircle className="me-2" />
+                    Webhook Configuration
+                  </h5>
+                  <p className="mb-2">
+                    Configure this webhook URL in your Razorpay dashboard:
+                  </p>
+                  <div className="bg-light p-3 rounded font-monospace">
+                    {API_BASE_URL}/razorpay/webhook
+                  </div>
+                  <p className="text-muted small mt-2 mb-0">
+                    This allows Razorpay to send payment notifications to your
+                    application.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          <style>{`
         .spin {
           animation: spin 1s linear infinite;
         }
@@ -572,6 +618,29 @@ const RazorpayConfiguration = () => {
           to { transform: rotate(360deg); }
         }
       `}</style>
+        </>
+      ) : (
+        <div className="text-center py-5">
+          <FaToggleOff className="text-muted" style={{ fontSize: "4rem" }} />
+          <h3 className="mt-3 text-muted">Razorpay Gateway is Disabled</h3>
+          <p className="text-muted mb-4">
+            Enable the Razorpay gateway to configure payment settings
+          </p>
+          <button
+            className="btn btn-success"
+            onClick={handleToggleGateway}
+            disabled={toggling}
+          >
+            {toggling ? (
+              <FaSpinner className="spin me-1" />
+            ) : (
+              <>
+                <FaToggleOn className="me-2" /> Enable Razorpay Gateway
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
