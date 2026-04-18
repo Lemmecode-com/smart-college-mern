@@ -214,7 +214,7 @@ export default function MakePayments() {
         autoClose: 3000,
         icon: <FaExclamationTriangle />,
       });
-      return;
+      return; 
     }
 
     // Check network status
