@@ -61,6 +61,12 @@ export default function MakePayments() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState(null);
+  
+  // Gateway configuration from college admin
+  const [availableGateways, setAvailableGateways] = useState([]);
+  const [defaultGateway, setDefaultGateway] = useState(null);
+  const [allowChoice, setAllowChoice] = useState(false);
+  const [gatewaysLoading, setGatewaysLoading] = useState(true);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -123,6 +129,53 @@ export default function MakePayments() {
       }
     };
   }, [location, navigate]);
+
+  /* ================= FETCH AVAILABLE GATEWAYS ================= */
+  useEffect(() => {
+    const fetchGateways = async () => {
+      try {
+        setGatewaysLoading(true);
+        const response = await api.get("/admin/payment/gateways");
+        
+        if (response.data.success) {
+          const gateways = response.data.gateways || [];
+          setAvailableGateways(gateways.map(g => g.code));
+          setDefaultGateway(response.data.defaultGateway);
+          setAllowChoice(response.data.allowChoice || false);
+        }
+      } catch (error) {
+        console.error("Error fetching gateways:", error);
+        // Default to allow both if fetch fails
+        setAvailableGateways(["stripe", "razorpay"]);
+        setAllowChoice(true);
+      } finally {
+        setGatewaysLoading(false);
+      }
+    };
+
+    fetchGateways();
+  }, []);
+
+  /* ================= AUTO-TRIGGER PAYMENT WHEN SINGLE GATEWAY ================= */
+  const autoTriggeredRef = useRef(false);
+  
+  useEffect(() => {
+    // Skip if still loading gateways, payment already in progress, or already triggered
+    if (gatewaysLoading || loading || result || showError || autoTriggeredRef.current) {
+      return;
+    }
+    
+    // If only one gateway is active, auto-trigger payment
+    if (!allowChoice && defaultGateway && availableGateways.length > 0) {
+      autoTriggeredRef.current = true;
+      
+      if (defaultGateway === "stripe") {
+        handleStripePayment();
+      } else if (defaultGateway === "razorpay") {
+        handleRazorpayPayment();
+      }
+    }
+  }, [gatewaysLoading, allowChoice, defaultGateway, loading, result, showError, availableGateways]);
 
   /* ======================================================
      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
@@ -763,63 +816,91 @@ export default function MakePayments() {
             <div className="payment-methods-divider"></div>
           </div>
 
-          {/* ====== PAYMENT GATEWAYS GRID ====== */}
-          <div className="row w-100 g-3 mb-3">
-            {/* ====== STRIPE ====== */}
-            <div className="col-12 col-md-6">
-              <button
-                className="payment-gateway-btn stripe-gateway w-100"
-                onClick={handleStripePayment}
-                disabled={loading}
-                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
-                aria-busy={loading}
-              >
-                <div className="gateway-icon-wrapper">
-                  <FaCreditCard className="gateway-icon" aria-hidden="true" />
-                </div>
-                <div className="gateway-content">
-                  <span className="gateway-name">Stripe</span>
-                  <span className="gateway-desc">Card / UPI / Net Banking</span>
-                </div>
-                <div className="gateway-action">
-                  {loading ? (
-                    <FaSpinner className="spin" aria-hidden="true" />
-                  ) : (
-                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
-                  )}
-                </div>
-              </button>
+          {/* ====== GATEWAYS LOADING OR AUTO-REDIRECT ====== */}
+          {gatewaysLoading ? (
+            <div className="text-center py-4">
+              <FaSpinner className="spin fa-2x text-primary" />
+              <p className="text-muted mt-2">Loading payment options...</p>
             </div>
+          ) : !allowChoice && defaultGateway && autoTriggeredRef.current ? (
+            // Show only loading when auto-redirect triggered (no buttons)
+            <div className="text-center py-4">
+              <FaSpinner className="spin fa-2x text-primary" />
+              <p className="text-muted mt-2">
+                Redirecting to {defaultGateway === "stripe" ? "Stripe" : "Razorpay"} payment...
+              </p>
+            </div>
+          ) : allowChoice ? (
+            // Show both buttons only when student has choice (both gateways active)
+            <>
+              <div className="row w-100 g-3 mb-3">
+                {/* ====== STRIPE ====== */}
+                {availableGateways.includes("stripe") && (
+                  <div className="col-12 col-md-6">
+                    <button
+                      className="payment-gateway-btn stripe-gateway w-100"
+                      onClick={handleStripePayment}
+                      disabled={loading}
+                      aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
+                      aria-busy={loading}
+                    >
+                      <div className="gateway-icon-wrapper">
+                        <FaCreditCard className="gateway-icon" aria-hidden="true" />
+                      </div>
+                      <div className="gateway-content">
+                        <span className="gateway-name">Stripe</span>
+                        <span className="gateway-desc">Card / UPI / Net Banking</span>
+                      </div>
+                      <div className="gateway-action">
+                        {loading ? (
+                          <FaSpinner className="spin" aria-hidden="true" />
+                        ) : (
+                          <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
 
-            {/* ====== RAZORPAY ====== */}
-            <div className="col-12 col-md-6">
-              <button
-                className="payment-gateway-btn razorpay-gateway w-100"
-                onClick={handleRazorpayPayment}
-                disabled={loading}
-                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Razorpay`}
-                aria-busy={loading}
-              >
-                <div className="gateway-icon-wrapper razorpay">
-                  <FaMoneyBillWave
-                    className="gateway-icon"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="gateway-content">
-                  <span className="gateway-name">Razorpay</span>
-                  <span className="gateway-desc">UPI / Cards / Wallets</span>
-                </div>
-                <div className="gateway-action">
-                  {loading ? (
-                    <FaSpinner className="spin" aria-hidden="true" />
-                  ) : (
-                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
-                  )}
-                </div>
-              </button>
+                {/* ====== RAZORPAY ====== */}
+                {availableGateways.includes("razorpay") && (
+                  <div className="col-12 col-md-6">
+                    <button
+                      className="payment-gateway-btn razorpay-gateway w-100"
+                      onClick={handleRazorpayPayment}
+                      disabled={loading}
+                      aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Razorpay`}
+                      aria-busy={loading}
+                    >
+                      <div className="gateway-icon-wrapper razorpay">
+                        <FaMoneyBillWave
+                          className="gateway-icon"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="gateway-content">
+                        <span className="gateway-name">Razorpay</span>
+                        <span className="gateway-desc">UPI / Cards / Wallets</span>
+                      </div>
+                      <div className="gateway-action">
+                        {loading ? (
+                          <FaSpinner className="spin" aria-hidden="true" />
+                        ) : (
+                          <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            // No gateways configured
+            <div className="alert alert-warning text-center mb-4">
+              <FaExclamationTriangle className="me-2" />
+              No payment gateway configured by your college. Please contact administrator.
             </div>
-          </div>
+          )}
 
           {/* ====== SECURITY BADGES ====== */}
           <div className="security-badges-container mt-3">
