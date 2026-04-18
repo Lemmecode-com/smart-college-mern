@@ -9,18 +9,16 @@ exports.getDocumentConfig = async (req, res) => {
   try {
     const { collegeCode } = req.params;
 
-    console.log("📄 Document Config Request - College Code:", collegeCode);
+    // Sanitize collegeCode to prevent ReDoS via user-controlled regex input
+    const sanitizedCode = collegeCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     // Case-insensitive search for college code
     const config = await DocumentConfig.findOne({
-      collegeCode: { $regex: new RegExp(`^${collegeCode}$`, 'i') },
+      collegeCode: { $regex: new RegExp(`^${sanitizedCode}$`, 'i') },
       isActive: true
     }).select("documents collegeCode");
 
-    console.log("📄 Database Response:", config ? "Config Found" : "Config Not Found");
-
     if (!config) {
-      console.log("⚠️ No config found - returning EMPTY documents array (admin must configure first)");
       // If no config exists, return empty array - admin must configure documents first
       return res.json({
         collegeCode,
@@ -33,15 +31,12 @@ exports.getDocumentConfig = async (req, res) => {
     // Return only enabled documents from config
     const enabledDocuments = config.documents.filter(doc => doc.enabled);
 
-    console.log("✅ Returning", enabledDocuments.length, "enabled documents out of", config.documents.length, "total");
-
     res.json({
       collegeCode,
       documents: enabledDocuments,
       isDefault: false
     });
   } catch (error) {
-    console.error("❌ Error in getDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -90,9 +85,6 @@ exports.upsertDocumentConfig = async (req, res) => {
     const { documents } = req.body;
     const userId = req.user.id;
 
-    console.log("💾 Saving Document Config - College ID:", college_id, "Code:", collegeCode);
-    console.log("📋 Documents count:", documents?.length);
-
     // Validate documents array
     if (!documents || !Array.isArray(documents)) {
       return res.status(400).json({
@@ -119,8 +111,7 @@ exports.upsertDocumentConfig = async (req, res) => {
       "sports_quota_certificate",
       "nri_sponsor_certificate",
       "gap_certificate",
-      "affidavit",
-      "custom_document"
+      "affidavit"
     ];
 
     for (const doc of documents) {
@@ -129,8 +120,10 @@ exports.upsertDocumentConfig = async (req, res) => {
           message: "Each document must have a type and label"
         });
       }
-      
-      if (doc.type !== "custom_document" && !allowedDocumentTypes.includes(doc.type)) {
+
+      // Allow any type starting with "custom_" (covers both "custom_document"
+      // and dynamically generated types like "custom_1776491446976")
+      if (!doc.type.startsWith("custom_") && !allowedDocumentTypes.includes(doc.type)) {
         return res.status(400).json({
           message: `Invalid document type: ${doc.type}`
         });
@@ -154,7 +147,6 @@ exports.upsertDocumentConfig = async (req, res) => {
 
     if (config) {
       // Update existing config
-      console.log("✏️ Updating existing config");
       config.documents = documents;
       config.updatedBy = userId;
       config.updatedAt = new Date();
@@ -165,7 +157,6 @@ exports.upsertDocumentConfig = async (req, res) => {
       
       if (inactiveConfig) {
         // Reactivate and update the inactive config
-        console.log("♻️ Reactivating inactive config");
         inactiveConfig.documents = documents;
         inactiveConfig.updatedBy = userId;
         inactiveConfig.isActive = true;
@@ -174,7 +165,6 @@ exports.upsertDocumentConfig = async (req, res) => {
         config = inactiveConfig;
       } else {
         // Create new config
-        console.log("✨ Creating new config");
         config = await DocumentConfig.create({
           college_id,
           collegeCode,
@@ -185,14 +175,11 @@ exports.upsertDocumentConfig = async (req, res) => {
       }
     }
 
-    console.log("✅ Config saved successfully");
-
     res.json({
       message: "Document configuration saved successfully",
       config
     });
   } catch (error) {
-    console.error("❌ Error in upsertDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -207,17 +194,19 @@ exports.resetToEmpty = async (req, res) => {
     const collegeCode = req.collegeCode;
     const userId = req.user.id;
 
-    // Delete existing config
+    // Soft-delete existing active config
     await DocumentConfig.findOneAndUpdate(
-      { college_id },
+      { college_id, isActive: true },
       { isActive: false, updatedAt: new Date() }
     );
 
-    // Create EMPTY config (no documents)
-    const config = await DocumentConfig.createEmptyConfig(
+    // Create a brand new EMPTY config (no documents)
+    const config = await DocumentConfig.create({
       college_id,
-      collegeCode
-    );
+      collegeCode,
+      documents: [],
+      isActive: true
+    });
 
     res.json({
       message: "Configuration reset to empty successfully. No documents are required.",
