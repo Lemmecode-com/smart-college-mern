@@ -102,6 +102,7 @@ app.use(
   require("./src/routes/student.payment.routes"),
 );
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/admin/payment", require("./src/routes/paymentConfig.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 
 /* ================= STUDENT PROMOTION ================= */

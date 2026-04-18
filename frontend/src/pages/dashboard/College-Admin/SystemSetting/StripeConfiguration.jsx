@@ -39,10 +39,12 @@ const StripeConfiguration = () => {
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [config, setConfig] = useState(null);
   const [showSecret, setShowSecret] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [isGatewayActive, setIsGatewayActive] = useState(false);
 
   const [formData, setFormData] = useState({
     publishableKey: "",
@@ -60,13 +62,16 @@ const StripeConfiguration = () => {
       setLoading(true);
       const response = await api.get("/admin/stripe/config");
 
-      if (response.data.configured) {
+      const isActive = response.data.isActive || false;
+      setIsGatewayActive(isActive);
+
+      if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
         setFormData({
-          publishableKey: response.data.config.credentials.keyId || "",
+          publishableKey: response.data.config.credentials?.keyId || "",
           secretKey: "",
           webhookSecret: "",
-          testMode: response.data.config.isTestMode,
+          testMode: response.data.config.isTestMode ?? true,
         });
       } else {
         setConfig(null);
@@ -86,6 +91,24 @@ const StripeConfiguration = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleGateway = async () => {
+    try {
+      setToggling(true);
+      const newStatus = !isGatewayActive;
+      const response = await api.patch("/admin/stripe/config/status", {
+        isActive: newStatus,
+      });
+
+      setIsGatewayActive(newStatus);
+      toast.success(response.data.message);
+    } catch (error) {
+      console.error("Error toggling gateway:", error);
+      toast.error(error.response?.data?.message || "Failed to toggle gateway");
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -983,22 +1006,36 @@ const StripeConfiguration = () => {
               Configure Stripe payment gateway for your college
             </p>
           </div>
-          {config && (
-            <div className="header-badges">
-              <span
-                className={`status-badge ${config.isTestMode ? "test" : "live"}`}
-              >
-                {config.isTestMode ? <FaFlask /> : <FaRocket />}
-                {config.isTestMode ? "Test Mode" : "Live Mode"}
-              </span>
-              <span
-                className={`status-badge ${config.isActive ? "active" : "inactive"}`}
-              >
-                {config.isActive ? <FaCheckCircle /> : <FaBan />}
-                {config.isActive ? "Active" : "Inactive"}
-              </span>
-            </div>
-          )}
+          <div className="header-badges">
+            <button
+              className={`status-badge ${isGatewayActive ? "active" : "inactive"}`}
+              onClick={handleToggleGateway}
+              disabled={toggling}
+              style={{ cursor: "pointer", border: "none" }}
+            >
+              {toggling ? (
+                <FaSpinner className="spin" />
+              ) : isGatewayActive ? (
+                <>
+                  <FaToggleOn /> Active
+                </>
+              ) : (
+                <>
+                  <FaToggleOff /> Inactive
+                </>
+              )}
+            </button>
+            {isGatewayActive && (
+              <>
+                <span
+                  className={`status-badge ${formData.testMode ? "test" : "live"}`}
+                >
+                  {formData.testMode ? <FaFlask /> : <FaRocket />}
+                  {formData.testMode ? "Test Mode" : "Live Mode"}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ================= INFO CARD ================= */}
@@ -1025,341 +1062,210 @@ const StripeConfiguration = () => {
           </div>
         </div>
 
-        {/* ================= MAIN CONTENT ================= */}
-        <div className="settings-grid">
-          {/* LEFT - Configuration Form */}
-          <div className="settings-card">
-            <div className="card-header-custom">
-              <FaKey className="card-icon" />
-              <h5>Stripe Credentials</h5>
-            </div>
-            <div className="card-body-custom">
-              {/* Mode Toggle */}
-              <div className="mode-toggle-card">
-                <div className="mode-toggle-content">
-                  <span className="mode-icon">
-                    {formData.testMode ? <FaFlask /> : <FaRocket />}
-                  </span>
-                  <div className="mode-text">
-                    <h6>{formData.testMode ? "Test Mode" : "Live Mode"}</h6>
-                    <p>
-                      {formData.testMode
-                        ? "Using test keys - no real charges will occur"
-                        : "Using live keys - real payments will be processed"}
-                    </p>
+        {/* ================= MAIN FORM ================= */}
+        {isGatewayActive ? (
+          <>
+            {/* Configuration Form */}
+            <div className="settings-grid">
+              <div className="settings-card">
+                <div className="card-header-custom">
+                  <FaKey className="card-icon" />
+                  <h5>Stripe Credentials</h5>
+                </div>
+                <div className="card-body-custom">
+                  {/* Publishable Key */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <FaKey className="text-muted" />
+                      Publishable Key
+                      <span className="required-mark">*</span>
+                    </label>
+                    <div className="input-wrapper">
+                      <input
+                        type={showSecret ? "text" : "password"}
+                        name="publishableKey"
+                        className="form-input"
+                        placeholder="pk_test_... or pk_live_..."
+                        value={formData.publishableKey}
+                        onChange={handleInputChange}
+                      />
+                      <button
+                        type="button"
+                        className="input-toggle-btn"
+                        onClick={() => setShowSecret(!showSecret)}
+                      >
+                        {showSecret ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Secret Key */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <FaLock className="text-muted" />
+                      Secret Key
+                      <span className="required-mark">*</span>
+                    </label>
+                    <div className="input-wrapper">
+                      <input
+                        type={showSecret ? "text" : "password"}
+                        name="secretKey"
+                        className="form-input"
+                        placeholder="sk_test_... or sk_live_..."
+                        value={formData.secretKey}
+                        onChange={handleInputChange}
+                      />
+                      <button
+                        type="button"
+                        className="input-toggle-btn"
+                        onClick={() => setShowSecret(!showSecret)}
+                      >
+                        {showSecret ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Webhook Secret */}
+                  <div className="form-group">
+                    <label className="form-label">
+                      <FaShieldAlt className="text-muted" />
+                      Webhook Secret
+                      <span className="optional-mark">(optional)</span>
+                    </label>
+                    <div className="input-wrapper">
+                      <input
+                        type={showWebhookSecret ? "text" : "password"}
+                        name="webhookSecret"
+                        className="form-input"
+                        placeholder="whsec_..."
+                        value={formData.webhookSecret}
+                        onChange={handleInputChange}
+                      />
+                      <button
+                        type="button"
+                        className="input-toggle-btn"
+                        onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                      >
+                        {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="action-buttons">
+                    <button
+                      className="btn-action btn-primary"
+                      onClick={handleSave}
+                      disabled={saving || !isModified}
+                    >
+                      {saving ? <FaSpinner className="spin" /> : <FaSave />}
+                      {saving ? "Saving..." : "Save Configuration"}
+                    </button>
+                    <button
+                      className="btn-action btn-success"
+                      onClick={handleVerify}
+                      disabled={verifying}
+                    >
+                      {verifying ? (
+                        <FaSpinner className="spin" />
+                      ) : (
+                        <FaCheckCircle />
+                      )}
+                      {verifying ? "Verifying..." : "Verify Credentials"}
+                    </button>
+                    {config && (
+                      <button
+                        className="btn-action btn-info"
+                        onClick={handleTestConnection}
+                        disabled={testing}
+                      >
+                        {testing ? (
+                          <FaSpinner className="spin" />
+                        ) : (
+                          <FaRocket />
+                        )}
+                        {testing ? "Testing..." : "Test Connection"}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <button
-                  className={`mode-toggle-btn ${formData.testMode ? "test" : "live"}`}
-                  onClick={() => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      testMode: !prev.testMode,
-                    }));
-                    setIsModified(true);
-                  }}
-                  disabled={
-                    config !== null &&
-                    formData.publishableKey.startsWith("pk_live_")
-                  }
-                >
-                  {formData.testMode ? (
-                    <>
-                      <FaToggleOn />
-                      <span>Switch to Live</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaToggleOff />
-                      <span>Switch to Test</span>
-                    </>
-                  )}
-                </button>
               </div>
 
-              {/* Publishable Key */}
-              <div className="form-group">
-                <label className="form-label">
-                  <FaKey className="text-muted" />
-                  Publishable Key
-                  <span className="required-mark">*</span>
-                </label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    className="form-input"
-                    name="publishableKey"
-                    value={formData.publishableKey}
-                    onChange={handleInputChange}
-                    placeholder={
-                      formData.testMode ? "pk_test_..." : "pk_live_..."
-                    }
-                    disabled={saving}
-                  />
-                </div>
-                <div className="form-hint">
-                  <FaInfoCircle />
-                  Starts with{" "}
-                  <span className="code-badge">
-                    {formData.testMode ? "pk_test_" : "pk_live_"}
-                  </span>
-                  <span className="ms-2">
-                    This key is safe to use in frontend code
-                  </span>
-                </div>
-              </div>
-
-              {/* Secret Key */}
-              <div className="form-group">
-                <label className="form-label">
-                  <FaLock className="text-muted" />
-                  Secret Key
-                  <span className="required-mark">*</span>
-                </label>
-                <div className="input-wrapper">
-                  <input
-                    type={showSecret ? "text" : "password"}
-                    className="form-input"
-                    name="secretKey"
-                    value={formData.secretKey}
-                    onChange={handleInputChange}
-                    placeholder={
-                      formData.testMode ? "sk_test_..." : "sk_live_..."
-                    }
-                    disabled={saving}
-                  />
-                  <button
-                    className="input-toggle-btn"
-                    type="button"
-                    onClick={() => setShowSecret(!showSecret)}
-                    title={showSecret ? "Hide" : "Show"}
-                  >
-                    {showSecret ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                <div className="form-hint">
-                  <FaShieldAlt />
-                  Starts with{" "}
-                  <span className="code-badge">
-                    {formData.testMode ? "sk_test_" : "sk_live_"}
-                  </span>
-                  <span className="ms-2">
-                    Encrypted before storage - never share this key
-                  </span>
-                </div>
-              </div>
-
-              {/* Webhook Secret */}
-              <div className="form-group">
-                <label className="form-label">
-                  <FaServer className="text-muted" />
-                  Webhook Secret
-                  <span className="optional-mark">
-                    (Optional but recommended)
-                  </span>
-                </label>
-                <div className="input-wrapper">
-                  <input
-                    type={showWebhookSecret ? "text" : "password"}
-                    className="form-input"
-                    name="webhookSecret"
-                    value={formData.webhookSecret}
-                    onChange={handleInputChange}
-                    placeholder="whsec_..."
-                    disabled={saving}
-                  />
-                  <button
-                    className="input-toggle-btn"
-                    type="button"
-                    onClick={() => setShowWebhookSecret(!showWebhookSecret)}
-                    title={showWebhookSecret ? "Hide" : "Show"}
-                  >
-                    {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                <div className="form-hint">
-                  <FaInfoCircle />
-                  Starts with <span className="code-badge">whsec_</span>
-                  <span className="ms-2">
-                    Enables secure webhook signature verification
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                <button
-                  className="btn-action btn-primary"
-                  onClick={handleSave}
-                  disabled={saving || !isModified}
-                >
-                  {saving ? (
-                    <>
-                      <span className="btn-spinner" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaSave />
-                      <span>
-                        {config ? "Update Configuration" : "Save Configuration"}
-                      </span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  className="btn-action btn-outline"
-                  onClick={handleVerify}
-                  disabled={verifying || !config}
-                  title={
-                    !config ? "Save configuration first" : "Verify credentials"
-                  }
-                >
-                  {verifying ? (
-                    <>
-                      <span className="btn-spinner" />
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaCheckCircle />
-                      <span>Verify</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  className="btn-action btn-info"
-                  onClick={handleTestConnection}
-                  disabled={testing || !config}
-                  title={
-                    !config
-                      ? "Save configuration first"
-                      : "Test Stripe connection"
-                  }
-                >
-                  {testing ? (
-                    <>
-                      <span className="btn-spinner" />
-                      <span>Testing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaPlug />
-                      <span>Test Connection</span>
-                    </>
-                  )}
-                </button>
-
-                {config && (
-                  <button
-                    className="btn-action btn-danger"
-                    onClick={handleDelete}
-                    title="Delete Stripe configuration"
-                  >
-                    <FaTrash />
-                    <span>Delete</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT - Sidebar */}
-          <div>
-            {/* Configuration Status */}
-            {config && (
-              <div className="sidebar-card">
-                <div className="sidebar-header">
-                  <h6>
-                    <FaInfoCircle />
-                    Configuration Status
-                  </h6>
-                </div>
-                <div className="sidebar-body">
-                  <div className="status-list">
-                    <div className="status-item">
-                      <span className="status-item-label">Status</span>
-                      <div className="status-item-value">
-                        <span
-                          className={`status-dot ${config.isActive ? "active" : "inactive"}`}
-                        />
-                        {config.isActive ? "Active" : "Inactive"}
-                      </div>
-                    </div>
-                    <div className="status-item">
-                      <span className="status-item-label">Mode</span>
-                      <div className="status-item-value">
-                        <span
-                          className={`status-dot ${config.isTestMode ? "test" : "live"}`}
-                        />
-                        {config.isTestMode ? "Test" : "Live"}
-                      </div>
-                    </div>
-                    {config.lastVerifiedAt && (
+              {/* Sidebar */}
+              <div className="sidebar">
+                <div className="sidebar-card">
+                  <div className="sidebar-header">
+                    <h6>
+                      <FaServer /> Status
+                    </h6>
+                  </div>
+                  <div className="sidebar-body">
+                    <div className="status-list">
                       <div className="status-item">
-                        <span className="status-item-label">Last Verified</span>
+                        <span className="status-item-label">Status</span>
                         <div className="status-item-value">
-                          <FaCalendarAlt
-                            style={{
-                              fontSize: "0.875rem",
-                              color: "var(--sc-text-muted)",
-                            }}
-                          />
-                          {new Date(config.lastVerifiedAt).toLocaleString()}
+                          <span className="status-dot active" />
+                          Active
                         </div>
                       </div>
-                    )}
-                    <div className="status-item">
-                      <span className="status-item-label">Created On</span>
-                      <div className="status-item-value">
-                        <FaCalendarAlt
-                          style={{
-                            fontSize: "0.875rem",
-                            color: "var(--sc-text-muted)",
-                          }}
-                        />
-                        {new Date(config.createdAt).toLocaleDateString()}
-                      </div>
+                      {config && (
+                        <>
+                          <div className="status-item">
+                            <span className="status-item-label">
+                              Last Verified
+                            </span>
+                            <div className="status-item-value">
+                              {config.lastVerifiedAt
+                                ? new Date(
+                                    config.lastVerifiedAt,
+                                  ).toLocaleString()
+                                : "Not verified"}
+                            </div>
+                          </div>
+                          <div className="status-item">
+                            <span className="status-item-label">
+                              Created On
+                            </span>
+                            <div className="status-item-value">
+                              {config.createdAt
+                                ? new Date(
+                                    config.createdAt,
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Quick Tips */}
-            <div className="sidebar-card tips-card">
-              <div className="tips-header">
-                <FaExclamationTriangle style={{ color: "var(--sc-success)" }} />
-                <h6>Quick Tips</h6>
-              </div>
-              <ul className="tips-list">
-                <li>Always test with test keys before going live</li>
-                <li>Use webhook secret for payment confirmation</li>
-                <li>Keep your secret keys secure and never commit to git</li>
-                <li>
-                  Test card: 4242 4242 4242 4242 (any future date, any CVC)
-                </li>
-              </ul>
             </div>
-          </div>
-        </div>
-
-        {/* ================= MODIFIED INDICATOR ================= */}
-        {isModified && (
-          <div className="modified-indicator">
-            <div className="indicator-content">
-              <FaInfoCircle className="indicator-icon" />
-              <span>You have unsaved changes</span>
-            </div>
-            <button className="btn-save-small" onClick={handleSave}>
-              <FaSave className="btn-icon-small" />
-              <span>Save Now</span>
-            </button>
+          </>
+        ) : (
+          <div className="text-center py-5">
+            <FaToggleOff className="text-muted" style={{ fontSize: "4rem" }} />
+            <h3 className="mt-3 text-muted">Stripe Gateway is Disabled</h3>
+            <p className="text-muted mb-4">
+              Enable the Stripe gateway to configure payment settings
+            </p>
           </div>
         )}
       </div>
+
+      {/* ================= MODIFIED INDICATOR ================= */}
+      {isModified && isGatewayActive && (
+        <div className="modified-indicator">
+          <div className="indicator-content">
+            <FaInfoCircle className="indicator-icon" />
+            <span>You have unsaved changes</span>
+          </div>
+          <button className="btn-save-small" onClick={handleSave}>
+            <FaSave className="btn-icon-small" />
+            <span>Save Now</span>
+          </button>
+        </div>
+      )}
     </>
   );
 };
