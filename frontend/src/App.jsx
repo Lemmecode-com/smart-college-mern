@@ -172,6 +172,7 @@ import ExceptionManagement from "./pages/dashboard/Teacher/Timetable/ExceptionMa
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
 import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
+import EmailConfiguration from "./pages/dashboard/College-Admin/SystemSetting/EmailConfiguration";
 import CreateException from "./pages/dashboard/Teacher/Timetable/CreateException";
 
 export default function App() {
@@ -964,6 +965,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <RazorpayConfiguration />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/system-settings/email-configuration"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <EmailConfiguration />
                 </ProtectedRoute>
               }
             />
