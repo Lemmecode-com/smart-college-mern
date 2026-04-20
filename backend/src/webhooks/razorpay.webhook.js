@@ -259,6 +259,7 @@ async function handlePaymentCaptured(payload, collegeId) {
             totalFee: studentFee.totalFee,
             paidAmount: studentFee.paidAmount,
             remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+            collegeId,
           });
 
           // Mark email as sent
@@ -386,6 +387,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeId,
       });
 
       // Mark email as sent in database
@@ -554,6 +556,7 @@ async function handleOrderPaid(payload, collegeId) {
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeId,
       });
       logger.logInfo("Receipt email sent successfully (order.paid)", {
         to: student.email,
@@ -642,6 +645,7 @@ async function handlePaymentFailed(payload, collegeId) {
           errorCode: payment.entity.error_code,
           errorDescription: payment.entity.error_description,
         },
+        collegeId,
       });
       logger.logInfo("Payment failure notification sent", {
         to: student.email,

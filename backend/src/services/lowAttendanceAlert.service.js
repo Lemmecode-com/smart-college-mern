@@ -112,7 +112,8 @@ exports.sendLowAttendanceAlerts = async () => {
                 attendancePercentage,
                 courseName,
                 collegeName,
-                minimumRequired: MINIMUM_ATTENDANCE
+                minimumRequired: MINIMUM_ATTENDANCE,
+                collegeId: student.college_id?._id || student.college_id,
               });
               alertCount++;
             } catch (error) {
