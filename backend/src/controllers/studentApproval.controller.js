@@ -184,6 +184,7 @@ exports.approveStudent = async (req, res, next) => {
           enrollmentNumber: student.enrollmentNumber,
           loginUrl: loginUrl,
           email: student.email,
+          collegeId: student.college_id,
         });
         console.log(`✅ Admission approval email sent to ${student.email}`);
       } catch (emailError) {
@@ -399,6 +400,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
               enrollmentNumber: student.enrollmentNumber,
               loginUrl,
               email: student.email,
+              collegeId: student.college_id,
             });
           } catch (e) {
             console.error("❌ Bulk email failed:", e.message);
@@ -493,6 +495,7 @@ exports.rejectStudent = async (req, res, next) => {
               ? student.rejectionReason
               : null,
           canReapply: student.canReapply,
+          collegeId: student.college_id,
         });
         console.log(`✅ Admission rejection email sent to ${student.email}`);
       } catch (emailError) {
