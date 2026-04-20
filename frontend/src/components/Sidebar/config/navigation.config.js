@@ -365,6 +365,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/system-settings/email-configuration",
+            icon: FaEnvelope,
+            label: "Email Configuration",
+            exact: true,
+          },
+          {
             path: "/college/document-settings",
             icon: FaFileAlt,
             label: "Document Settings",
