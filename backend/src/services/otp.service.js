@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const PasswordReset = require("../models/passwordReset.model");
+const User = require("../models/user.model");
 const { sendOTPEmail } = require("./email.service");
 
 /**
@@ -30,6 +31,9 @@ exports.generateOTP = () => {
  */
 exports.createAndSendOTP = async (email, userType = "User") => {
   try {
+    // Lookup user to get collegeId
+    const user = await User.findOne({ email }).select("college_id role").lean();
+    
     // Generate OTP
     const otp = this.generateOTP();
     
@@ -54,6 +58,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
         otp,
         userType,
         expiresIn: 10,
+        collegeId: user?.college_id,
       });
       // console.log(`✅ Email sent to: ${email}`);
     } catch (emailError) {
