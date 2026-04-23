@@ -143,6 +143,12 @@ export default function NavbarComponent({
         setBackoffUntil(null);
       }
     } catch (err) {
+      // Handle auth errors (401/403) - stop polling, token is invalid/missing
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        // Don't poll again if token is missing/expired
+        logger.warn("Notification auth failed - stopping polling");
+        return;
+      }
       // Handle rate limit (429) - stop polling temporarily
       if (err.response?.status === 429) {
         const backoffMs = 30000; // 30 second backoff for notification polling
