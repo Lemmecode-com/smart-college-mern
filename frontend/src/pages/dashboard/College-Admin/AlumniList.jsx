@@ -30,147 +30,87 @@ import {
 } from "react-icons/fa";
 
 /* ================= CERTIFICATE COMPONENT ================= */
-function Certificate({ alumnus, college }) {
-  if (!alumnus || !college) return null;
 
+function Certificate({ alumnus, college }) {
   const issueDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  const alumniDate = alumnus.alumniDate
-    ? new Date(alumnus.alumniDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "N/A";
-
-  // Generate unique certificate number
-  const certificateNumber = `CERT-${alumnus.graduationYear || "2026"}-${String(alumnus._id).slice(-6).toUpperCase()}`;
+  const certificateNumber = `CERT-${alumnus.graduationYear}-${String(alumnus._id).slice(-6).toUpperCase()}`;
 
   return (
-    <div className="certificate-container" id="certificate-content">
-      {/* Outer Decorative Border */}
-      <div className="certificate-outer-border">
-        {/* Inner Border */}
-        <div className="certificate-inner-border">
-          {/* Corner Ornaments */}
-          <div className="corner-ornament top-left">
-            <FaAward />
-          </div>
-          <div className="corner-ornament top-right">
-            <FaAward />
-          </div>
-          <div className="corner-ornament bottom-left">
-            <FaAward />
-          </div>
-          <div className="corner-ornament bottom-right">
-            <FaAward />
-          </div>
-
-          {/* Certificate Header - College Information */}
-          <div className="certificate-header">
-            <div className="college-header-section">
-              <div className="logo-section">
-                {college.logo ? (
-                  <img src={college.logo} alt="College Logo" className="college-logo" />
-                ) : (
-                  <div className="logo-placeholder">
-                    <FaUniversity />
-                  </div>
-                )}
-              </div>
-              <div className="college-info">
-                <h1 className="college-name">{college.name || "College"}</h1>
-                <p className="established-text">
-                  Established {college.establishedYear || "2020"}
-                </p>
-                <p className="college-code">
-                  Code: {college.code || "COLLEGE"}
-                </p>
-              </div>
-            </div>
-            <FaStar className="star-divider" />
-            <h2 className="certificate-title">Certificate of Achievement</h2>
-            <p className="certificate-subtitle">This is to certify that</p>
-          </div>
-
-          {/* Student Name */}
-          <div className="student-name-section">
-            <h2 className="student-name">{alumnus.fullName}</h2>
-          </div>
-
-          {/* Achievement Text */}
-          <div className="achievement-text">
-            <p className="achievement-intro">
-              has successfully completed the program of study in
-            </p>
-            <h3 className="course-name">
-              {alumnus.course_id?.name || "Course"}
-            </h3>
-            <p className="department-text">
-              from the <strong>{alumnus.department_id?.name || "Department"}</strong>
-            </p>
-          </div>
-
-          {/* Details Grid */}
-          <div className="details-grid">
-            <div className="detail-item">
-              <FaCalendarAlt className="detail-icon" />
-              <span className="cert-detail-label">Graduation Year</span>
-              <span className="detail-value">{alumnus.graduationYear || "N/A"}</span>
-            </div>
-            <div className="detail-item">
-              <FaGraduationCap className="detail-icon" />
-              <span className="cert-detail-label">Alumni Since</span>
-              <span className="detail-value">{alumniDate}</span>
-            </div>
-            <div className="detail-item">
-              <FaCertificate className="detail-icon" />
-              <span className="cert-detail-label">Certificate No.</span>
-              <span className="detail-value cert-number">{certificateNumber}</span>
+    <div id="certificate-content" className="cert-a4">
+      <div className="cert-border">
+        <div className="cert-inner">
+          {/* Top Logo */}
+          <div className="cert-logo">
+            <div className="logo-circle">
+              <FaUniversity />
             </div>
           </div>
 
-          {/* Signature Section */}
-          <div className="signature-section">
-            <div className="signature-block">
-              <div className="signature-line"></div>
-              <span className="signature-label">Principal / Director</span>
-              <span className="signature-sublabel">{college.name}</span>
+          {/* College Name */}
+          <h1 className="cert-college">{college?.name}</h1>
+          <p className="cert-sub">
+            Established {college?.establishedYear} • Code: {college?.code}
+          </p>
+
+          <div className="divider"></div>
+
+          {/* Title */}
+          <h2 className="cert-title">CERTIFICATE OF ACHIEVEMENT</h2>
+
+          <p className="cert-subtitle">This is to certify that</p>
+
+          {/* Name */}
+          <h2 className="cert-name">{alumnus.fullName}</h2>
+
+          {/* Content */}
+          <p className="cert-text">
+            has successfully completed the program of study in
+          </p>
+
+          <h3 className="cert-course">{alumnus.course_id?.name}</h3>
+
+          <p className="cert-text">from the {alumnus.department_id?.name}</p>
+
+          {/* Info Row */}
+          <div className="cert-info-row">
+            <div>
+              <span>Graduation Year</span>
+              <strong>{alumnus.graduationYear}</strong>
             </div>
-            <div className="signature-block">
-              <div className="signature-line"></div>
-              <span className="signature-label">Head of Department</span>
-              <span className="signature-sublabel">{alumnus.department_id?.name || "Department"}</span>
+            <div>
+              <span>Alumni Since</span>
+              <strong>{issueDate}</strong>
             </div>
-            <div className="signature-block">
-              <div className="signature-line"></div>
-              <span className="signature-label">Date Issued</span>
-              <span className="signature-date">{issueDate}</span>
+            <div>
+              <span>Certificate No</span>
+              <strong>{certificateNumber}</strong>
             </div>
           </div>
 
-          {/* Certificate Footer */}
-          <div className="certificate-footer-final">
-            <p className="verification-text">
-              <FaQrcode className="qr-icon" />
-              Verify Certificate No: <strong>{certificateNumber}</strong>
-            </p>
-            <p className="footer-disclaimer">
-              <FaInfoCircle className="info-icon" />
-              This is a digitally generated certificate. Any tampering or alteration will render this certificate invalid.
-            </p>
-            <p className="footer-note">
-              © {new Date().getFullYear()} {college.name}. All rights reserved.
-            </p>
+          {/* Signature */}
+          <div className="cert-sign">
+            <div>
+              <div className="line"></div>
+              <span>Principal / Director</span>
+            </div>
+            <div>
+              <div className="line"></div>
+              <span>Head of Department</span>
+            </div>
+            <div>
+              <div className="line"></div>
+              <span>Date Issued</span>
+            </div>
           </div>
 
-          {/* Watermark */}
-          <div className="certificate-watermark">
-            <FaUniversity />
+          {/* Footer */}
+          <div className="cert-footer">
+            Verify Certificate No: {certificateNumber}
           </div>
         </div>
       </div>
@@ -179,7 +119,14 @@ function Certificate({ alumnus, college }) {
 }
 
 /* ================= CERTIFICATE MODAL ================= */
-function CertificateModal({ alumnus, college, isOpen, onClose, onDownload, isDownloading }) {
+function CertificateModal({
+  alumnus,
+  college,
+  isOpen,
+  onClose,
+  onDownload,
+  isDownloading,
+}) {
   const handleDownload = async () => {
     await onDownload(alumnus, college);
   };
@@ -187,58 +134,48 @@ function CertificateModal({ alumnus, college, isOpen, onClose, onDownload, isDow
   if (!isOpen || !alumnus || !college) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container certificate-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Modal Header */}
-        <div className="modal-header">
-          <div className="modal-title">
-            <FaGraduationCap className="title-icon" />
+    <div className="cert-modal-overlay" onClick={onClose}>
+      <div
+        className="cert-modal-container"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="cert-modal-header">
+          <div className="header-left">
+            <FaCertificate className="header-icon" />
             <span>Certificate Preview</span>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
+
+          <button className="close-btn" onClick={onClose}>
             <FaTimes />
           </button>
         </div>
 
-        {/* Modal Body - Scrollable Certificate Container */}
-        <div className="modal-body modal-body-scroll">
-          <div className="certificate-wrapper">
+        {/* Body */}
+        <div className="cert-modal-body">
+          <div className="cert-preview-wrapper">
             <Certificate alumnus={alumnus} college={college} />
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="modal-footer">
-          <div className="footer-info-text">
-            <FaInfoCircle className="info-icon" />
-            <span>Preview mode. Download PDF for best quality or print on A4 landscape paper.</span>
-          </div>
-          <div className="footer-buttons">
-            <button
-              className="btn btn-download-pdf"
-              onClick={handleDownload}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <>
-                  <FaSpinner className="spinner" /> Generating PDF...
-                </>
-              ) : (
-                <>
-                  <FaFilePdf /> Download PDF
-                </>
-              )}
-            </button>
-            <button
-              className="btn btn-print"
-              onClick={() => window.print()}
-            >
-              <FaPrint /> Print
-            </button>
-            <button className="btn btn-secondary" onClick={onClose}>
-              Close Preview
-            </button>
-          </div>
+        {/* Floating Footer */}
+        <div className="cert-modal-footer">
+          <button
+            className="cert-btn cert-btn-download"
+            onClick={handleDownload}
+            disabled={isDownloading}
+          >
+            {isDownloading ? <FaSpinner className="spin" /> : <FaFilePdf />}
+            Download PDF
+          </button>
+
+          <button className="cert-btn cert-btn-print" onClick={() => window.print()}>
+            <FaPrint /> Print
+          </button>
+
+          <button className="cert-btn cert-btn-close" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -251,7 +188,7 @@ function AlumniTableRow({ alumnus, onGenerateCertificate, onViewDetails }) {
     ? new Date(alumnus.alumniDate).toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
-        year: "numeric"
+        year: "numeric",
       })
     : "N/A";
 
@@ -307,7 +244,10 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container details-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-container details-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div className="modal-title">
             <FaUsers className="title-icon" />
@@ -336,7 +276,9 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
                 {alumnus.mobileNumber && (
                   <div className="detail-row">
                     <span className="detail-label">Phone:</span>
-                    <span className="detail-value-text">{alumnus.mobileNumber}</span>
+                    <span className="detail-value-text">
+                      {alumnus.mobileNumber}
+                    </span>
                   </div>
                 )}
               </div>
@@ -349,20 +291,28 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
               <div className="details-grid-2">
                 <div className="detail-row">
                   <span className="detail-label">Course:</span>
-                  <span className="detail-value-text">{alumnus.course_id?.name || "N/A"}</span>
+                  <span className="detail-value-text">
+                    {alumnus.course_id?.name || "N/A"}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Department:</span>
-                  <span className="detail-value-text">{alumnus.department_id?.name || "N/A"}</span>
+                  <span className="detail-value-text">
+                    {alumnus.department_id?.name || "N/A"}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Graduation Year:</span>
-                  <span className="detail-value-text">{alumnus.graduationYear || "N/A"}</span>
+                  <span className="detail-value-text">
+                    {alumnus.graduationYear || "N/A"}
+                  </span>
                 </div>
                 {alumnus.admissionYear && (
                   <div className="detail-row">
                     <span className="detail-label">Admission Year:</span>
-                    <span className="detail-value-text">{alumnus.admissionYear}</span>
+                    <span className="detail-value-text">
+                      {alumnus.admissionYear}
+                    </span>
                   </div>
                 )}
               </div>
@@ -376,11 +326,16 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
                 <div className="detail-row">
                   <span className="detail-label">Alumni Since:</span>
                   <span className="detail-value-text">
-                    {alumnus.alumniDate ? new Date(alumnus.alumniDate).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric"
-                    }) : "N/A"}
+                    {alumnus.alumniDate
+                      ? new Date(alumnus.alumniDate).toLocaleDateString(
+                          "en-GB",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )
+                      : "N/A"}
                   </span>
                 </div>
                 <div className="detail-row">
@@ -406,7 +361,9 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
 function StatCard({ icon, label, value, accent }) {
   return (
     <div className="stat-card stat-card-themed">
-      <div className={`stat-icon stat-icon-${accent ? "accent" : "default"}`}>{icon}</div>
+      <div className={`stat-icon stat-icon-${accent ? "accent" : "default"}`}>
+        {icon}
+      </div>
       <div className="stat-content">
         <span className="stat-value">{value}</span>
         <span className="stat-label">{label}</span>
@@ -472,12 +429,14 @@ export default function AlumniList() {
   const filteredAlumni = alumni.filter((alumnus) => {
     const courseName = alumnus.course_id?.name || "";
     const departmentName = alumnus.department_id?.name || "";
-    const searchText = `${alumnus.fullName} ${alumnus.email} ${courseName} ${departmentName}`.toLowerCase();
+    const searchText =
+      `${alumnus.fullName} ${alumnus.email} ${courseName} ${departmentName}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
     const matchesYear =
       yearFilter === "ALL" || alumnus.graduationYear?.toString() === yearFilter;
     const matchesDepartment =
-      departmentFilter === "ALL" || alumnus.department_id?.name === departmentFilter;
+      departmentFilter === "ALL" ||
+      alumnus.department_id?.name === departmentFilter;
     return matchesSearch && matchesYear && matchesDepartment;
   });
 
@@ -515,7 +474,7 @@ export default function AlumniList() {
               <td>${a.graduationYear || "N/A"}</td>
               <td>${a.alumniDate ? new Date(a.alumniDate).toLocaleDateString() : "N/A"}</td>
             </tr>
-          `
+          `,
             )
             .join("")}
         </tbody>
@@ -568,68 +527,48 @@ export default function AlumniList() {
 
         await Promise.all([
           loadScript(
-            "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+            "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
           ),
           loadScript(
-            "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-          )
+            "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+          ),
         ]);
       }
 
       // Get the certificate element - try multiple selectors
-      const element = document.getElementById("certificate-content") || 
-                      document.querySelector(".certificate-container");
-      
+      const element =
+        document.getElementById("certificate-content") ||
+        document.querySelector(".certificate-container");
+
       if (!element) {
-        throw new Error("Certificate element not found. Please make sure the certificate preview is open.");
+        throw new Error(
+          "Certificate element not found. Please make sure the certificate preview is open.",
+        );
       }
 
       // Wait for fonts and images to load
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 500)); // Extra delay for rendering
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Extra delay for rendering
 
       // Capture certificate with high quality - A4 landscape ratio
       const canvas = await window.html2canvas(element, {
-        scale: 3, // Good balance of quality and performance
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        imageTimeout: 0,
-        removeContainer: false,
-        // Force A4 landscape dimensions (297mm x 210mm = 1123px x 794px at 96 DPI)
-        width: 1123,
-        height: 794,
-        windowWidth: 1200,
-        windowHeight: 900,
+        scale: 3,
       });
 
-      const imgData = canvas.toDataURL("image/png", 1.0);
+      const imgData = canvas.toDataURL("image/png");
 
-      // Create PDF with A4 landscape format
       const { jsPDF } = window.jspdf;
+
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "mm",
         format: "a4",
-        compress: true,
       });
 
-      // Get page dimensions (A4 landscape = 297mm x 210mm)
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 297mm
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 210mm
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      // Add image to PDF - fill entire page (no margins for full-bleed certificate)
-      pdf.addImage(
-        imgData,
-        "PNG",
-        0, // left margin (0 for full certificate)
-        0, // top margin
-        pdfWidth,
-        pdfHeight,
-        undefined,
-        "BEST" // Best quality compression
-      );
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
 
       // Add PDF metadata for professional document
       pdf.setProperties({
@@ -641,26 +580,24 @@ export default function AlumniList() {
       });
 
       // Generate filename
-      const safeName = alumnusData.fullName.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+      const safeName = alumnusData.fullName
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_]/g, "");
       const filename = `Certificate_${safeName}_${alumnusData.graduationYear}.pdf`;
 
       // Save PDF
       pdf.save(filename);
 
       // Show success feedback with toast notification
-      showSuccess(
-        `✅ Certificate downloaded! File: ${filename}`,
-        {
-          autoClose: 5000,
-        }
-      );
-
+      showSuccess(`✅ Certificate downloaded! File: ${filename}`, {
+        autoClose: 5000,
+      });
     } catch (error) {
       showError(
-        `❌ PDF generation failed. ${error.message || 'Please try the Print option instead.'}`,
+        `❌ PDF generation failed. ${error.message || "Please try the Print option instead."}`,
         {
           autoClose: 6000,
-        }
+        },
       );
     } finally {
       setIsDownloadingPDF(false);
