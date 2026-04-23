@@ -28,6 +28,17 @@ router.get(
 );
 
 /**
+ * @route   PATCH /api/admin/razorpay/config/status
+ * @desc    Toggle Razorpay active status
+ * @access  Private (College Admin)
+ */
+router.patch(
+  "/config/status",
+  checkCollegeAccess,
+  asyncHandler(controller.toggleRazorpayActive),
+);
+
+/**
  * @route   POST /api/admin/razorpay/config
  * @desc    Save/Update Razorpay configuration
  * @access  Private (College Admin)
