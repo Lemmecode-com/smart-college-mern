@@ -330,6 +330,7 @@ exports.registerStudent = async (req, res, next) => {
           collegeName: college?.name || "Our College",
           courseName: course?.name,
           admissionYear: registeredStud.admissionYear,
+          collegeId: registeredStud.college_id,
         });
       } catch (emailError) {
         // Non-critical - continue
