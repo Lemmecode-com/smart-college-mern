@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
@@ -44,6 +45,17 @@ exports.login = async (req, res, next) => {
           403,
           "ACCOUNT_DEACTIVATED",
         );
+      }
+
+      // 🔒 Force password change on first login
+      if (user.mustChangePassword === true) {
+        // Don't issue tokens — require password change first
+        return res.status(403).json({
+          success: false,
+          code: "MUST_CHANGE_PASSWORD",
+          message: "You must change your temporary password on first login",
+          user: { id: user._id },
+        });
       }
 
       // 🔒 SECURITY AUDIT: Log successful login
@@ -417,6 +429,123 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
       success: true,
       message:
         "Password reset successfully. Please login with your new password.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * CHANGE PASSWORD (First Login or Any Time)
+ * Authenticated user OR first-login user (with userId) can change password
+ * Body: { userId?, currentPassword, newPassword }
+ */
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword, userId } = req.body;
+
+    // Validate inputs
+    if (!currentPassword || !newPassword) {
+      return next(
+        new AppError("Current password and new password are required", 400, "MISSING_FIELDS")
+      );
+    }
+
+    // Determine userId: from JWT (authenticated) OR from body (first-login)
+    const effectiveUserId = req.user?.id || userId;
+
+    if (!effectiveUserId) {
+      return next(new AppError("User ID is required", 400, "MISSING_USER_ID"));
+    }
+
+    // Validate user ID format (must be a valid MongoDB ObjectId)
+    if (!mongoose.Types.ObjectId.isValid(effectiveUserId)) {
+      return next(new AppError("Invalid user ID format", 400, "INVALID_ID"));
+    }
+
+    // Validate new password strength
+    if (newPassword.length < 8) {
+      return next(
+        new AppError("Password must be at least 8 characters long", 400, "WEAK_PASSWORD")
+      );
+    }
+
+    // Find user in User collection first (for staff/college admin/super admin)
+    let user = await User.findById(effectiveUserId);
+
+    if (!user) {
+      // Check Teacher collection (unlikely for first-login but allow)
+      const Teacher = require("../models/teacher.model");
+      user = await Teacher.findOne({ user_id: effectiveUserId });
+
+      if (user) {
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          // 🔒 SECURITY AUDIT: Log failed password change attempt
+          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+        }
+
+        // Update password
+        user.password = newPassword;
+        await user.save();
+
+        // 🔒 SECURITY AUDIT: Log successful password change
+        await securityAuditService.logPasswordChangeSuccess(user, req);
+
+        return res.json({
+          success: true,
+          message: "Password changed successfully. Please login with your new password.",
+        });
+      }
+
+      // Check Student collection
+      const Student = require("../models/student.model");
+      user = await Student.findOne({ user_id: effectiveUserId });
+
+      if (user) {
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+        }
+
+        user.password = newPassword;
+        await user.save();
+        await securityAuditService.logPasswordChangeSuccess(user, req);
+
+        return res.json({
+          success: true,
+          message: "Password changed successfully. Please login with your new password.",
+        });
+      }
+
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+
+    // User is from User collection
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+      throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.mustChangePassword = false; // ✅ Clear flag on successful change
+    await user.save();
+
+    // 🔒 SECURITY AUDIT: Log successful password change
+    await securityAuditService.logPasswordChangeSuccess(user, req);
+
+    // Clear all existing tokens to force re-login with new password
+    await RefreshToken.updateMany({ user_id: effectiveUserId }, { isRevoked: true });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully. Please login with your new password.",
     });
   } catch (error) {
     next(error);
