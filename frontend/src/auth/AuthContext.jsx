@@ -8,57 +8,66 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ========== LOGIN ========== */
-  const login = async (credentials) => {
-    try {
-      // Note: With httpOnly cookies, the token will be stored in the cookie automatically
-      const res = await api.post("/auth/login", credentials);
+   /* ========== LOGIN ========== */
+   const login = async (credentials) => {
+     try {
+       // Note: With httpOnly cookies, the token will be stored in the cookie automatically
+       const res = await api.post("/auth/login", credentials);
 
-      // Get user info from the response (interceptor unwraps it)
-      const userInfo = res.data.user || {
-        id: res.data.id,
-        role: res.data.role,
-        college_id: res.data.college_id,
-      };
+       // Get user info from the response (interceptor unwraps it)
+       const userInfo = res.data.user || {
+         id: res.data.id,
+         role: res.data.role,
+         college_id: res.data.college_id,
+       };
 
-      // Fetch complete user data immediately after login
-      try {
-        const profileRes = await api.get("/auth/me");
-        // Store complete user data from backend
-        setUser({
-          id: profileRes.data.id,
-          role: profileRes.data.role,
-          college_id: profileRes.data.college_id || null,
-          email: profileRes.data.email || null,
-          name: profileRes.data.name || null,
-        });
-      } catch (profileError) {
-        // Fallback to basic info if profile fetch fails
-        logger.warn("Profile fetch after login failed, using basic info");
-        setUser({
-          id: userInfo.id,
-          role: userInfo.role,
-          college_id: userInfo.college_id || null,
-          email: null,
-          name: null,
-        });
-      }
+       // Fetch complete user data immediately after login
+       try {
+         const profileRes = await api.get("/auth/me");
+         // Store complete user data from backend
+         setUser({
+           id: profileRes.data.id,
+           role: profileRes.data.role,
+           college_id: profileRes.data.college_id || null,
+           email: profileRes.data.email || null,
+           name: profileRes.data.name || null,
+         });
+       } catch (profileError) {
+         // Fallback to basic info if profile fetch fails
+         logger.warn("Profile fetch after login failed, using basic info");
+         setUser({
+           id: userInfo.id,
+           role: userInfo.role,
+           college_id: userInfo.college_id || null,
+           email: null,
+           name: null,
+         });
+       }
 
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message:
-          error?.response?.data?.message ||
-          error?.response?.data?.error?.message ||
-          "Login failed",
-        code:
-          error?.response?.data?.code ||
-          error?.response?.data?.error?.code ||
-          null,
-      };
-    }
-  };
+       // Return success and user data for first-login handling
+       return { 
+         success: true, 
+         user: userInfo 
+       };
+      } catch (error) {
+    const errorData = error?.response?.data || {};
+    const userId = errorData?.user?.id;
+    const user = userId ? { id: userId } : undefined;
+
+    return {
+      success: false,
+      message:
+        errorData.message ||
+        errorData.error?.message ||
+        "Login failed",
+      code:
+        errorData.code ||
+        errorData.error?.code ||
+        null,
+      user,
+    };
+  }
+   };
 
   /* ========== LOGOUT ========== */
   const logout = async () => {
