@@ -56,6 +56,18 @@ export default function Login() {
 
     if (!result.success) {
       const errorMsg = result.message || "Invalid credentials";
+
+      // 🔒 FIRST LOGIN: Must change temporary password
+      if (result.code === "MUST_CHANGE_PASSWORD") {
+        // Store userId in sessionStorage for change-password page
+        if (result.user?.id && typeof result.user.id === 'string' && result.user.id.trim() !== '' && result.user.id !== 'undefined') {
+          sessionStorage.setItem("userId", result.user.id);
+        }
+        navigate("/change-password");
+        setLoading(false);
+        return;
+      }
+
       if (errorMsg.includes("awaiting admin approval")) {
         setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
       } else if (errorMsg.includes("rejected")) {
