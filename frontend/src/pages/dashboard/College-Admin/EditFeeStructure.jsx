@@ -37,9 +37,9 @@ export default function EditFeeStructure() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+   /* ================= SECURITY ================= */
+   if (!user) return <Navigate to="/login" />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
 
   /* ================= LOAD ================= */
   useEffect(() => {

@@ -18,7 +18,17 @@ router.get(
 router.get(
   "/my-college",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
+  role(
+    ROLE.COLLEGE_ADMIN,
+    ROLE.PRINCIPAL,
+    ROLE.HOD,
+    ROLE.ACCOUNTANT,
+    ROLE.ADMISSION_OFFICER,
+    ROLE.EXAM_COORDINATOR,
+    ROLE.PARENT_GUARDIAN,
+    ROLE.PLATFORM_SUPPORT,
+    ROLE.TEACHER
+  ),
   collegeMiddleware,
   getMyCollege
 );

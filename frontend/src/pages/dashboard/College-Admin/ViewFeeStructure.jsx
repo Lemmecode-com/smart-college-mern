@@ -421,9 +421,9 @@ export default function ViewFeeStructure() {
   const [exporting, setExporting] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
 
-  /* ================= SECURITY & VALIDATION ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN) return <Navigate to="/dashboard" replace />;
+   /* ================= SECURITY & VALIDATION ================= */
+   if (!user) return <Navigate to="/login" replace />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" replace />;
 
   const isIdValid = useMemo(() => {
     if (!id) return false;
