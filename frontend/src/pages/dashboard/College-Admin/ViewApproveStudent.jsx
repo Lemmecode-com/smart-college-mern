@@ -1202,10 +1202,10 @@ export default function ViewApproveStudent() {
     setSelectedInstallment(null);
   }, []);
 
-  /* ================= SECURITY CHECK ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" replace />;
+   /* ================= SECURITY CHECK ================= */
+   if (!user) return <Navigate to="/login" replace />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT")
+     return <Navigate to="/dashboard" replace />;
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks

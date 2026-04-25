@@ -55,9 +55,9 @@ export default function FeeStructureList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+   /* ================= SECURITY ================= */
+   if (!user) return <Navigate to="/login" />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
 
   /* ================= FETCH ================= */
   const loadStructures = async () => {
