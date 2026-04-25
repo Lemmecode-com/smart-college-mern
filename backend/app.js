@@ -83,6 +83,7 @@ app.use("/api/", globalLimiter);
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/college", require("./src/routes/college.routes"));
 app.use("/api/college", require("./src/routes/staff.routes")); // Staff account management
+app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff extended profiles
 app.use("/api/master", require("./src/routes/master.routes"));
 
 /* ================= ACADEMICS ================= */
