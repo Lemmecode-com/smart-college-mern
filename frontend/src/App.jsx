@@ -453,58 +453,49 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/college/view-approved-student/:id"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <ViewApproveStudent />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/fees/create"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <CreateFeeStructure />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/college/view-approved-student/:id"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                   <ViewApproveStudent />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/fees/create"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "ACCOUNTANT"]}>
+                   <CreateFeeStructure />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/fees/view/:id"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <ViewFeeStructure />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/fees/view/:id"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                   <ViewFeeStructure />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/fees/list"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <FeeStructureList />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/fees/list"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                   <FeeStructureList />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/fees/edit/:id"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <EditFeeStructure />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/fees/list"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <FeeStructureList />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/fees/edit/:id"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "ACCOUNTANT"]}>
+                   <EditFeeStructure />
+                 </ProtectedRoute>
+               }
+             />
 
             {/* ================= COLLEGE ADMIN NOTIFICATIONS ================= */}
             <Route
@@ -593,14 +584,14 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/college-admin/payment-history"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <PaymentHistory />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/college-admin/payment-history"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                   <PaymentHistory />
+                 </ProtectedRoute>
+               }
+             />
 
             {/* Audit Logs */}
             <Route
@@ -612,39 +603,31 @@ function AppContent({
               }
             />
 
-            {/* ================= ACCOUNTANT ================= */}
-            <Route
-              path="/dashboard/accountant"
-              element={
-                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
-                  <AccountantDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accountant/fee-collection"
-              element={
-                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
-                  <FeeCollection />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accountant/payment-history"
-              element={
-                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
-                  <PaymentHistory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accountant/receipts"
-              element={
-                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
-                  <ReceiptManagement />
-                </ProtectedRoute>
-              }
-            />
+             {/* ACCOUNTANT ROUTES */}
+             <Route
+               path="/dashboard/accountant"
+               element={
+                 <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                   <AccountantDashboard />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/accountant/payment-history"
+               element={
+                 <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                   <PaymentHistory />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/accountant/receipts"
+               element={
+                 <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                   <ReceiptManagement />
+                 </ProtectedRoute>
+               }
+             />
 
             {/* ================= ADMISSION OFFICER ================= */}
             <Route
