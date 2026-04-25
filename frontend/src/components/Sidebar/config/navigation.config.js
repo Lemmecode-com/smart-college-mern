@@ -802,27 +802,21 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
-            path: "/accountant/fee-collection",
-            icon: FaPlus,
-            label: "Fee Collection",
-            exact: true,
-          },
-          {
             path: "/accountant/payment-history",
             icon: FaListOl,
             label: "Payment History",
             exact: true,
           },
           {
-            path: "/accountant/receipts",
-            icon: FaFileAlt,
-            label: "Receipt Management",
-            exact: true,
-          },
-          {
             path: "/fees/list",
             icon: FaListOl,
             label: "Fee Structures",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-summary",
+            icon: FaListOl,
+            label: "Payment Reports",
             exact: true,
           },
         ],
