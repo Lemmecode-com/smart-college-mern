@@ -1152,11 +1152,11 @@ export default function ViewApproveStudent() {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (user?.role === "COLLEGE_ADMIN") {
-      fetchStudent();
-    }
-  }, [fetchStudent, user]);
+   useEffect(() => {
+     if (user?.role === "COLLEGE_ADMIN" || user?.role === "ACCOUNTANT") {
+       fetchStudent();
+     }
+   }, [fetchStudent, user]);
 
   /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
   // Open Mark Paid modal

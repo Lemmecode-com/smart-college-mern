@@ -104,7 +104,7 @@ exports.paymentSummary = async (req, res) => {
       return res.json(await reportsService.paymentSummaryAll());
     }
 
-    if (role === "COLLEGE_ADMIN") {
+    if (role === "COLLEGE_ADMIN" || role === "ACCOUNTANT" || role === "PRINCIPAL") {
       return res.json(await reportsService.paymentSummary(college_id));
     }
 
@@ -128,7 +128,7 @@ exports.studentPaymentStatus = async (req, res) => {
       return res.json(await reportsService.studentPaymentStatusAll(status));
     }
 
-    if (role === "COLLEGE_ADMIN") {
+    if (role === "COLLEGE_ADMIN" || role === "ACCOUNTANT" || role === "PRINCIPAL") {
       return res.json(await reportsService.studentPaymentStatus(college_id, status));
     }
 

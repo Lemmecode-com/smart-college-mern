@@ -60,7 +60,9 @@ export default function AccountantDashboard() {
           api.get("/admin/payments/report"),
         ]);
 
-        const summaryData = summaryRes.data?.data || summaryRes.data || {};
+        // Axios interceptor unwraps { success, data } → data becomes response.data
+        // So summaryRes.data is already the inner data object { totalFees, totalCollected, ... }
+        const summaryData = summaryRes.data || {};
         const reportData = reportRes.data?.report || [];
 
         // Extract summary stats
@@ -174,10 +176,8 @@ export default function AccountantDashboard() {
           {[
             { id: 1, icon: FaPlus, label: "Create Fee Structure", path: "/fees/create", gradient: BRAND_COLORS.primary.gradient },
             { id: 2, icon: FaMoneyBillWave, label: "View Fee Structures", path: "/fees/list", gradient: BRAND_COLORS.info.gradient },
-            { id: 3, icon: FaHistory, label: "Payment History", path: "/college-admin/payment-history", gradient: BRAND_COLORS.warning.gradient },
-            { id: 4, icon: FaFileAlt, label: "Payment Reports", path: "/admin/payments/report", gradient: BRAND_COLORS.success.gradient },
-            { id: 5, icon: FaBell, label: "Send Reminders", path: "/admin/payments/trigger-reminders", gradient: BRAND_COLORS.danger.gradient },
-            { id: 6, icon: FaDownload, label: "Reconciliation", path: "/admin/payments/reconciliation-report", gradient: "linear-gradient(135deg, #718096 0%, #4a5568 100%)" },
+            { id: 3, icon: FaHistory, label: "Payment History", path: "/accountant/payment-history", gradient: BRAND_COLORS.warning.gradient },
+            { id: 4, icon: FaFileAlt, label: "Receipt Management", path: "/accountant/receipts", gradient: BRAND_COLORS.success.gradient },
           ].map((action, i) => (
             <Col key={action.id} md={4} lg={3}>
               <motion.div custom={i + 4} initial="hidden" animate="visible" variants={fadeInVariants}>
