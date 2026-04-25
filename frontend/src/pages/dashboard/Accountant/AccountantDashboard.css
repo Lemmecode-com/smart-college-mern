@@ -1,0 +1,78 @@
+/* =====================================================
+   ACCOUNTANT DASHBOARD - ENTERPRISE SaaS UI
+   ===================================================== */
+
+/* ================= DASHBOARD WRAPPER ================= */
+.dashboard-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
+  padding: 1.5rem;
+}
+
+.dashboard-container-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ================= HEADER ================= */
+.dashboard-header {
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-header-hero {
+  padding: 1.75rem;
+  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+  color: white;
+}
+
+.header-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+/* ================= STATS CARD ICON ================= */
+.stat-icon-wrapper {
+  flex-shrink: 0;
+}
+
+/* ================= QUICK ACTION CARD ================= */
+.quick-action-card {
+  display: block;
+  text-decoration: none;
+  color: white;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+  color: white;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+  .dashboard-wrapper {
+    padding: 1rem;
+  }
+  
+  .dashboard-header-hero {
+    padding: 1.25rem;
+  }
+  
+  .quick-action-card {
+    padding: 1rem;
+  }
+}

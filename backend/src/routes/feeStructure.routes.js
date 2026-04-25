@@ -15,11 +15,11 @@ const collegeMiddleware = require("../middlewares/college.middleware");
 
 const { ROLE } = require("../utils/constants");
 
-// CREATE — COLLEGE_ADMIN only
+// CREATE — COLLEGE_ADMIN, ACCOUNTANT
 router.post(
   "/",
   auth,
-  role(ROLE.COLLEGE_ADMIN),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT),
   collegeMiddleware,
   createFeeStructure
 );
@@ -42,20 +42,20 @@ router.get(
   getFeeStructureById
 );
 
-// UPDATE — COLLEGE_ADMIN only
+// UPDATE — COLLEGE_ADMIN, ACCOUNTANT
 router.put(
   "/:feeStructureId",
   auth,
-  role(ROLE.COLLEGE_ADMIN),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT),
   collegeMiddleware,
   updateFeeStructure
 );
 
-// DELETE — COLLEGE_ADMIN only
+// DELETE — COLLEGE_ADMIN, ACCOUNTANT
 router.delete(
   "/:feeStructureId",
   auth,
-  role(ROLE.COLLEGE_ADMIN),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT),
   collegeMiddleware,
   deleteFeeStructure
 );
