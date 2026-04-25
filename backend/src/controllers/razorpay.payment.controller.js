@@ -181,6 +181,7 @@ async function processPaymentVerification(
           totalFee: updatedStudentFee.totalFee,
           paidAmount: paidAmount,
           remainingAmount: updatedStudentFee.totalFee - paidAmount,
+          collegeId: student.college_id,
         });
         logger.logInfo("✅ Payment receipt email sent", {
           studentId: student._id,

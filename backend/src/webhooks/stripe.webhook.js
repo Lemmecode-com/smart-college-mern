@@ -206,6 +206,7 @@ exports.handleStripeWebhook = async (req, res) => {
                 totalFee: studentFee.totalFee,
                 paidAmount: studentFee.paidAmount,
                 remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+                collegeId: student.college_id?._id || student.college_id,
               });
 
               // Mark email as sent
@@ -319,6 +320,7 @@ exports.handleStripeWebhook = async (req, res) => {
               totalFee: studentFee.totalFee,
               paidAmount: studentFee.paidAmount,
               remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+              collegeId: student.college_id?._id || student.college_id,
             });
 
             // Mark email as sent in database (tracks that webhook sent it)
