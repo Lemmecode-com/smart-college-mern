@@ -69,42 +69,54 @@ export default function NavbarComponent({
     }
   }, [rateLimitBackoff, backoffUntil]);
 
-  // Fetch college information when user is available
-  useEffect(() => {
-    const fetchCollegeInfo = async () => {
-      setLoading(true);
-      try {
-        let response;
+   // Fetch college information when user is available
+   useEffect(() => {
+     const fetchCollegeInfo = async () => {
+       setLoading(true);
+       try {
+         let response;
 
-        if (user.role === "COLLEGE_ADMIN") {
-          response = await api.get("/college/my-college");
-          setCollege(response.data);
-        } else if (user.role === "TEACHER") {
-          response = await api.get("/teachers/my-profile");
-          if (
-            response.data &&
-            response.data.teacher &&
-            response.data.teacher.college_id
-          ) {
-            setCollege(response.data.teacher.college_id);
-          }
-        } else if (user.role === "STUDENT") {
-          response = await api.get("/students/my-profile");
-          if (response.data && response.data.college) {
-            setCollege(response.data.college);
-          }
-        }
-      } catch (error) {
-        if (error.response?.status !== 403 && error.response?.status !== 401) {
-          logger.error("Error fetching college info:", error);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+         // If user has no college_id (e.g., SUPER_ADMIN), skip fetch
+         if (!user.college_id) {
+           setCollege(null);
+           return;
+         }
 
-    fetchCollegeInfo();
-  }, [user.college_id, user.role]);
+         // Teachers: use rich endpoint (includes dept, courses, subjects)
+         if (user.role === "TEACHER") {
+           response = await api.get("/teachers/my-profile");
+           if (response.data?.teacher?.college_id) {
+             setCollege(response.data.teacher.college_id);
+           }
+           return;
+         }
+
+         // Students: use rich endpoint (includes dept, course, fees, attendance)
+         if (user.role === "STUDENT") {
+           response = await api.get("/students/my-profile");
+           if (response.data?.college) {
+             setCollege(response.data.college);
+           }
+           return;
+         }
+
+         // All other staff with college_id (COLLEGE_ADMIN, PRINCIPAL, HOD, ACCOUNTANT,
+         // ADMISSION_OFFICER, EXAM_COORDINATOR, PARENT_GUARDIAN, PLATFORM_SUPPORT)
+         // Use simple college endpoint
+         response = await api.get("/college/my-college");
+         setCollege(response.data);
+
+       } catch (error) {
+         if (error.response?.status !== 403 && error.response?.status !== 401) {
+           logger.error("Error fetching college info:", error);
+         }
+       } finally {
+         setLoading(false);
+       }
+     };
+
+     fetchCollegeInfo();
+   }, [user.college_id, user.role]);
 
   /* ================= FETCH COUNT (UNREAD ONLY) ================= */
   const fetchCount = async (silent = false) => {
