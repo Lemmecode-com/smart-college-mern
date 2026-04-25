@@ -170,6 +170,8 @@ import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
 import CreateStaff from "./pages/dashboard/College-Admin/CreateStaff";
 import StaffList from "./pages/dashboard/College-Admin/StaffList";
+import ViewStaffProfile from "./pages/dashboard/College-Admin/ViewStaffProfile";
+import EditStaffProfile from "./pages/dashboard/College-Admin/EditStaffProfile";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
 import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboard";
 import FeeCollection from "./pages/dashboard/Accountant/FeeCollection";
@@ -578,7 +580,7 @@ function AppContent({
             <Route
               path="/college-admin/reports/payment-summary"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
                   <PaymentReports />
                 </ProtectedRoute>
               }
@@ -1167,24 +1169,64 @@ function AppContent({
             />
 
             {/* ================= STAFF MANAGEMENT ================= */}
-            <Route
-              path="/college/staff/create"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <CreateStaff />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/college/staff"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <StaffList />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/college/staff/create"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                   <CreateStaff />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/college/staff"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                   <StaffList />
+                 </ProtectedRoute>
+               }
+             />
 
-            {/* ================= TEACHERS ================= */}
+             {/* ================= STAFF PROFILES ================= */}
+             <Route
+               path="/staff/profile/:userId"
+               element={
+                 <ProtectedRoute
+                   allowedRoles={[
+                     "COLLEGE_ADMIN",
+                     "ACCOUNTANT",
+                     "PRINCIPAL",
+                     "HOD",
+                     "ADMISSION_OFFICER",
+                     "EXAM_COORDINATOR",
+                     "PARENT_GUARDIAN",
+                     "PLATFORM_SUPPORT",
+                   ]}
+                 >
+                   <ViewStaffProfile />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/staff/profile/edit/:userId"
+               element={
+                 <ProtectedRoute
+                   allowedRoles={[
+                     "COLLEGE_ADMIN",
+                     "ACCOUNTANT",
+                     "PRINCIPAL",
+                     "HOD",
+                     "ADMISSION_OFFICER",
+                     "EXAM_COORDINATOR",
+                     "PARENT_GUARDIAN",
+                     "PLATFORM_SUPPORT",
+                   ]}
+                 >
+                   <EditStaffProfile />
+                 </ProtectedRoute>
+               }
+             />
+
+             {/* ================= TEACHERS ================= */}
 
              {/* TIMETABLE */}
 
