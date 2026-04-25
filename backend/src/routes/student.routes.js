@@ -128,20 +128,20 @@ router.delete(
   deleteStudent,
 );
 
-//ADMIN / PRINCIPAL / EXAM_COORDINATOR: GETS approved students
+//ADMIN / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GETS approved students
 router.get(
   "/approved-students",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getApprovedStudents,
 );
 
-//ADMIN / PRINCIPAL / EXAM_COORDINATOR: GET individual approved student
+//ADMIN / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GET individual approved student
 router.get(
   "/approved-stud/:id",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getStudentById,
 );

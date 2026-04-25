@@ -15,8 +15,8 @@ const {
   assignHOD,
 } = require("../controllers/department.controller");
 
-// Apply middlewares to ALL department routes — PRINCIPAL, EXAM_COORDINATOR read-only, COLLEGE_ADMIN write
-router.use(auth, role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR), collegeMiddleware);
+// Apply middlewares to ALL department routes — PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT read-only, COLLEGE_ADMIN write
+router.use(auth, role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT), collegeMiddleware);
 
 // Create Department — COLLEGE_ADMIN only
 router.post("/", role(ROLE.COLLEGE_ADMIN), createDepartment);
