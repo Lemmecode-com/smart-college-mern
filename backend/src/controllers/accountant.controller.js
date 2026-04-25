@@ -1,4 +1,5 @@
 const StudentFee = require("../models/studentFee.model");
+const User = require("../models/user.model");
 const AppError = require("../utils/AppError");
 
 /**
@@ -7,7 +8,16 @@ const AppError = require("../utils/AppError");
  */
 exports.getDashboard = async (req, res, next) => {
   try {
-    const collegeId = req.user.college_id;
+    let collegeId = req.user.college_id;
+
+    // Fallback: if college_id missing in JWT, fetch from User collection
+    if (!collegeId) {
+      const user = await User.findById(req.user.id).select("college_id");
+      if (!user || !user.college_id) {
+        return next(new AppError("College not assigned to accountant. Please contact admin.", 403, "COLLEGE_ID_MISSING"));
+      }
+      collegeId = user.college_id;
+    }
 
     if (!collegeId) {
       return next(new AppError("College ID not found in user profile", 403, "COLLEGE_ID_MISSING"));

@@ -1,0 +1,32 @@
+/* =====================================================
+   VIEW STAFF PROFILE — Enterprise SaaS Design
+   ===================================================== */
+
+.dashboard-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
+  padding-bottom: 2rem;
+}
+
+/* Card hover */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.1) !important;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-wrapper {
+    padding: 1rem;
+  }
+}
