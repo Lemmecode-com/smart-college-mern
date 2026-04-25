@@ -7,8 +7,8 @@ const AppError = require("../utils/AppError");
 module.exports = async (req, res, next) => {
   try {
     /* ================= STEP 1: Role check ================= */
-    if (!req.user || req.user.role !== "TEACHER") {
-      throw new AppError("Access denied: Only teachers allowed", 403, "TEACHER_ROLE_REQUIRED");
+    if (!req.user || req.user.role !== "HOD") {
+      throw new AppError("Access denied: Only HOD allowed", 403, "HOD_ROLE_REQUIRED");
     }
 
     /* ================= STEP 2: Find teacher ================= */

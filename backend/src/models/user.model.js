@@ -14,12 +14,29 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: {
     type: String,
-    enum: ["SUPER_ADMIN", "COLLEGE_ADMIN", "TEACHER", "STUDENT"],
+    enum: [
+      "SUPER_ADMIN",
+      "COLLEGE_ADMIN",
+      "PRINCIPAL",
+      "HOD",
+      "ACCOUNTANT",
+      "ADMISSION_OFFICER",
+      "EXAM_COORDINATOR",
+      "PARENT_GUARDIAN",
+      "PLATFORM_SUPPORT",
+      "TEACHER",
+      "STUDENT",
+    ],
+    required: true,
   },
   isActive: {
     type: Boolean,
     default: true,
     index: true,
+  },
+  mustChangePassword: {
+    type: Boolean,
+    default: false,
   },
 });
 
