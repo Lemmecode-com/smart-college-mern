@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
-const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword } = require("../controllers/auth.controller");
+const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword, changePassword } = require("../controllers/auth.controller");
 const { authLimiter, passwordResetLimiter } = require("../middlewares/rateLimit.middleware");
 
 // Login - strict rate limit to prevent brute force
@@ -85,5 +85,10 @@ router.get("/me", auth, async (req, res) => {
 // 🔐 Password Reset (Public) - very strict to prevent email spam
 router.post("/forgot-password", passwordResetLimiter, requestPasswordReset);
 router.post("/verify-otp-reset", authLimiter, verifyOTPAndResetPassword);
+
+// 🔐 Change Password (Works for both authenticated and first-login users)
+// For first-login: pass { userId, currentPassword, newPassword }
+// For logged-in: auth middleware provides userId, body { currentPassword, newPassword }
+router.post("/change-password", changePassword);
 
 module.exports = router;

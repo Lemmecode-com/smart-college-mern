@@ -204,26 +204,81 @@ class SecurityAuditService {
     }
   }
 
-  /**
-   * Log brute force detection
-   */
-  async logBruteForceDetected(ip, email, attempts) {
-    return await this.logEvent({
-      eventType: 'BRUTE_FORCE_DETECTED',
-      category: 'SYSTEM',
-      severity: 'CRITICAL',
-      userEmail: email,
-      ipAddress: ip,
-      endpoint: '/api/auth/login',
-      method: 'POST',
-      statusCode: 429,
-      metadata: {
-        attempts: attempts,
-        detectedAt: new Date(),
-        action: 'IP_BLOCKED'
-      }
-    });
-  }
+   /**
+    * Log brute force detection
+    */
+   async logBruteForceDetected(ip, email, attempts) {
+     return await this.logEvent({
+       eventType: 'BRUTE_FORCE_DETECTED',
+       category: 'SYSTEM',
+       severity: 'CRITICAL',
+       userEmail: email,
+       ipAddress: ip,
+       endpoint: '/api/auth/login',
+       method: 'POST',
+       statusCode: 429,
+       metadata: {
+         attempts: attempts,
+         detectedAt: new Date(),
+         action: 'IP_BLOCKED'
+       }
+     });
+   }
+
+   /**
+    * Log password change success
+    */
+   async logPasswordChangeSuccess(user, req) {
+     try {
+       return await this.logEvent({
+         eventType: 'PASSWORD_CHANGE_SUCCESS',
+         category: 'AUTHENTICATION',
+         severity: 'MEDIUM',
+         userId: user._id,
+         userEmail: user.email,
+         userRole: user.role,
+         collegeId: user.college_id || null,
+         ipAddress: this.getClientIP(req),
+         userAgent: req.get('user-agent'),
+         endpoint: '/api/auth/change-password',
+         method: 'POST',
+         statusCode: 200,
+         metadata: {
+           changedAt: new Date()
+         }
+       });
+     } catch (error) {
+       logger.logError('Failed to log password change success', { error: error.message, email: user.email });
+     }
+   }
+
+   /**
+    * Log password change failure
+    */
+   async logPasswordChangeFailed(user, req, reason = 'INVALID_CURRENT_PASSWORD') {
+     try {
+       return await this.logEvent({
+         eventType: 'PASSWORD_CHANGE_FAILED',
+         category: 'AUTHENTICATION',
+         severity: 'HIGH',
+         userId: user._id,
+         userEmail: user.email,
+         userRole: user.role,
+         collegeId: user.college_id || null,
+         ipAddress: this.getClientIP(req),
+         userAgent: req.get('user-agent'),
+         endpoint: '/api/auth/change-password',
+         method: 'POST',
+         statusCode: 401,
+         metadata: {
+           reason: reason,
+           failedAt: new Date()
+         }
+       });
+     } catch (error) {
+       logger.logError('Failed to log password change failed', { error: error.message, email: user.email });
+     }
+   }
 
   /**
    * Log unauthorized access (token issues)
