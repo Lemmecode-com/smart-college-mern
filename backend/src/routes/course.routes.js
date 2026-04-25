@@ -18,29 +18,29 @@ const {
 // Create Course — COLLEGE_ADMIN only
 router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createCourse);
 
-// Get All Courses (College-wise) — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR
+// Get All Courses (College-wise) — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT
 router.get(
   "/",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getAllCourses,
 );
 
-// Get Courses by Department — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR
+// Get Courses by Department — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT
 router.get(
   "/department/:departmentId",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getCoursesByDepartment,
 );
 
-// Get Single Course — COLLEGE_ADMIN, PRINCIPAL, EXAM_COORDINATOR (read-only)
+// Get Single Course — COLLEGE_ADMIN, PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT (read-only)
 router.get(
   "/:id",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getCourseById,
 );
