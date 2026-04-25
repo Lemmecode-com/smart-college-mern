@@ -54,6 +54,7 @@ import Login from "./pages/auth/Login";
 import StudentRegister from "./pages/auth/StudentRegister";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyOTP from "./pages/auth/VerifyOTP";
+import ChangePassword from "./pages/auth/ChangePassword";
 
 /* ================= DASHBOARDS ================= */
 import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
@@ -107,6 +108,9 @@ import AddTimetableSlot from "./pages/dashboard/Teacher/Timetable/AddTimetableSl
 import TimetableList from "./pages/dashboard/Teacher/Timetable/TimetableList";
 import WeeklyTimetable from "./pages/dashboard/Teacher/Timetable/WeeklyTimetable";
 import MySchedule from "./pages/dashboard/Teacher/Timetable/MySchedule";
+import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
+import CreateException from "./pages/dashboard/Teacher/Timetable/CreateException";
+import ExceptionManagement from "./pages/dashboard/Teacher/Timetable/ExceptionManagement";
 import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
 
 /* ================= PROFILES ================= */
@@ -138,6 +142,7 @@ import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting
 import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
+import EmailConfigurations from "./pages/dashboard/College-Admin/SystemSetting/EmailConfigurations";
 import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessionsList";
 import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
 import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
@@ -162,18 +167,27 @@ import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
 import AddTeacher from "./pages/dashboard/College-Admin/AddTeacher";
 import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
 import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
-import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
-import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
 import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
-
-/* ================= TEACHER ================= */
-import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
-import ExceptionManagement from "./pages/dashboard/Teacher/Timetable/ExceptionManagement";
+import CreateStaff from "./pages/dashboard/College-Admin/CreateStaff";
+import StaffList from "./pages/dashboard/College-Admin/StaffList";
 import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
+import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboard";
+import FeeCollection from "./pages/dashboard/Accountant/FeeCollection";
+import ReceiptManagement from "./pages/dashboard/Accountant/ReceiptManagement";
+import AdmissionDashboard from "./pages/dashboard/Admission/AdmissionDashboard";
+import PendingApplications from "./pages/dashboard/Admission/PendingApplications";
+import ApplicationDetail from "./pages/dashboard/Admission/ApplicationDetail";
+import ParentDashboard from "./pages/dashboard/Parent/ParentDashboard";
+import ChildProfile from "./pages/dashboard/Parent/ChildProfile";
+import ChildAttendance from "./pages/dashboard/Parent/ChildAttendance";
+import ChildFees from "./pages/dashboard/Parent/ChildFees";
+import PrincipalDashboard from "./pages/dashboard/Principal/PrincipalDashboard";
+import PlatformSupportDashboard from "./pages/dashboard/PlatformSupport/PlatformSupportDashboard";
+import ExamDashboard from "./pages/dashboard/ExamCoordinator/ExamDashboard";
+import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
+import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
 import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
 import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
-import EmailConfiguration from "./pages/dashboard/College-Admin/SystemSetting/EmailConfiguration";
-import CreateException from "./pages/dashboard/Teacher/Timetable/CreateException";
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -254,6 +268,20 @@ function AppContent({
                 <Navigate to="/super-admin/dashboard" />
               ) : user.role === "COLLEGE_ADMIN" ? (
                 <Navigate to="/dashboard" />
+               ) : user.role === "PRINCIPAL" ? (
+                 <Navigate to="/dashboard/principal" />
+               ) : user.role === "HOD" ? (
+                 <Navigate to="/teacher/dashboard" />
+               ) : user.role === "ACCOUNTANT" ? (
+                <Navigate to="/dashboard/accountant" />
+              ) : user.role === "ADMISSION_OFFICER" ? (
+                <Navigate to="/dashboard/admission" />
+              ) : user.role === "EXAM_COORDINATOR" ? (
+                <Navigate to="/dashboard/exam" />
+              ) : user.role === "PARENT_GUARDIAN" ? (
+                <Navigate to="/dashboard/parent" />
+              ) : user.role === "PLATFORM_SUPPORT" ? (
+                <Navigate to="/dashboard/support" />
               ) : user.role === "TEACHER" ? (
                 <Navigate to="/teacher/dashboard" />
               ) : user.role === "STUDENT" ? (
@@ -268,6 +296,7 @@ function AppContent({
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/register/:collegeCode" element={<StudentRegister />} />
 
           {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
@@ -373,7 +402,7 @@ function AppContent({
             <Route
               path="/college/profile"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <CollegeProfile />
                 </ProtectedRoute>
               }
@@ -391,7 +420,7 @@ function AppContent({
             <Route
               path="/college/view-student/:studentId"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewStudent />
                 </ProtectedRoute>
               }
@@ -427,7 +456,7 @@ function AppContent({
             <Route
               path="/college/view-approved-student/:id"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewApproveStudent />
                 </ProtectedRoute>
               }
@@ -444,8 +473,17 @@ function AppContent({
             <Route
               path="/fees/view/:id"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewFeeStructure />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/fees/list"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
+                  <FeeStructureList />
                 </ProtectedRoute>
               }
             />
@@ -495,6 +533,7 @@ function AppContent({
                     "TEACHER",
                     "STUDENT",
                     "SUPER_ADMIN",
+                    "PRINCIPAL",
                   ]}
                 >
                   <NotificationDetails />
@@ -521,7 +560,7 @@ function AppContent({
             <Route
               path="/college-admin/reports-dashboard"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ReportDashboard />
                 </ProtectedRoute>
               }
@@ -530,7 +569,7 @@ function AppContent({
             <Route
               path="/college-admin/reports"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <AdminReports />
                 </ProtectedRoute>
               }
@@ -539,7 +578,7 @@ function AppContent({
             <Route
               path="/college-admin/reports/attendance"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <AttendanceSummary />
                 </ProtectedRoute>
               }
@@ -548,7 +587,7 @@ function AppContent({
             <Route
               path="/college-admin/reports/payment-summary"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <PaymentReports />
                 </ProtectedRoute>
               }
@@ -557,7 +596,7 @@ function AppContent({
             <Route
               path="/college-admin/payment-history"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <PaymentHistory />
                 </ProtectedRoute>
               }
@@ -567,8 +606,132 @@ function AppContent({
             <Route
               path="/college-admin/audit-logs"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <AuditLogs />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= ACCOUNTANT ================= */}
+            <Route
+              path="/dashboard/accountant"
+              element={
+                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                  <AccountantDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accountant/fee-collection"
+              element={
+                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                  <FeeCollection />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accountant/payment-history"
+              element={
+                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                  <PaymentHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accountant/receipts"
+              element={
+                <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                  <ReceiptManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= ADMISSION OFFICER ================= */}
+            <Route
+              path="/dashboard/admission"
+              element={
+                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                  <AdmissionDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admission/applications"
+              element={
+                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                  <PendingApplications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admission/application/:id"
+              element={
+                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                  <ApplicationDetail />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= PARENT GUARDIAN ================= */}
+            <Route
+              path="/dashboard/parent"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ParentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent/student/:studentId/profile"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent/student/:studentId/attendance"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildAttendance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent/student/:studentId/fees"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildFees />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= PRINCIPAL ================= */}
+            <Route
+              path="/dashboard/principal"
+              element={
+                <ProtectedRoute allowedRoles={["PRINCIPAL"]}>
+                  <PrincipalDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= PLATFORM SUPPORT ================= */}
+            <Route
+              path="/dashboard/support"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <PlatformSupportDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ================= EXAM COORDINATOR ================= */}
+            <Route
+              path="/dashboard/exam"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamDashboard />
                 </ProtectedRoute>
               }
             />
@@ -705,7 +868,7 @@ function AppContent({
             <Route
               path="/departments"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <DepartmentList />
                 </ProtectedRoute>
               }
@@ -739,7 +902,7 @@ function AppContent({
             <Route
               path="/courses"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <CourseList />
                 </ProtectedRoute>
               }
@@ -765,21 +928,21 @@ function AppContent({
             <Route
               path="/courses/view/:id"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewCourse />
                 </ProtectedRoute>
               }
             />
 
-            {/* ================= STUDENTS ================= */}
-            <Route
-              path="/students/pending-approvals"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <PendingApprovals />
-                </ProtectedRoute>
-              }
-            />
+             {/* ================= STUDENTS ================= */}
+             <Route
+               path="/students/pending-approvals"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
+                   <PendingApprovals />
+                 </ProtectedRoute>
+               }
+             />
 
             <Route
               path="/students/approve"
@@ -799,14 +962,14 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/students/alumni"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <AlumniList />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/students/alumni"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
+                   <AlumniList />
+                 </ProtectedRoute>
+               }
+             />
 
             {/* ================= ATTENDANCE ================= */}
             <Route
@@ -848,7 +1011,7 @@ function AppContent({
             <Route
               path="/attendance/report"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "TEACHER", "PRINCIPAL"]}>
                   <AttendanceReport />
                 </ProtectedRoute>
               }
@@ -868,7 +1031,7 @@ function AppContent({
             <Route
               path="/subjects"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <SubjectList />
                 </ProtectedRoute>
               }
@@ -876,7 +1039,7 @@ function AppContent({
             <Route
               path="/subjects/course/:courseId"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <SubjectList />
                 </ProtectedRoute>
               }
@@ -892,7 +1055,7 @@ function AppContent({
             <Route
               path="/subjects/view/:id"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewSubject />
                 </ProtectedRoute>
               }
@@ -973,7 +1136,7 @@ function AppContent({
               path="/system-settings/email-configuration"
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <EmailConfiguration />
+                  <EmailConfigurations />
                 </ProtectedRoute>
               }
             />
@@ -981,7 +1144,7 @@ function AppContent({
             <Route
               path="/teachers"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <TeachersList />
                 </ProtectedRoute>
               }
@@ -989,7 +1152,7 @@ function AppContent({
             <Route
               path="/teachers/view/:id"
               element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
                   <ViewTeacher />
                 </ProtectedRoute>
               }
@@ -1020,53 +1183,71 @@ function AppContent({
               }
             />
 
+            {/* ================= STAFF MANAGEMENT ================= */}
+            <Route
+              path="/college/staff/create"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CreateStaff />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/college/staff"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <StaffList />
+                </ProtectedRoute>
+              }
+            />
+
             {/* ================= TEACHERS ================= */}
 
-            {/* TIMETABLE */}
+             {/* TIMETABLE */}
 
-            <Route
-              path="/timetable/list"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <TimetableList />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/timetable/list"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
+                   <TimetableList />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/timetable/add-slot"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <AddTimetableSlot />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timetable/weekly-timetable"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <MySchedule />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/timetable/add-slot"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER"]}>
+                   <AddTimetableSlot />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/timetable/weekly-timetable"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
+                   <MySchedule />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/timetable/:timetableId/weekly"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <WeeklyTimetable />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/timetable/:timetableId/weekly"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
+                   <WeeklyTimetable />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/timetable/my-timetable"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <MyTimetable />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/timetable/my-timetable"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER"]}>
+                   <MyTimetable />
+                 </ProtectedRoute>
+               }
+             />
             <Route
               path="/timetable/create/exceptions"
               element={

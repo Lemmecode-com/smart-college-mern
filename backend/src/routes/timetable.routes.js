@@ -6,6 +6,7 @@ const role = require("../middlewares/role.middleware");
 const hod = require("../middlewares/hod.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   createTimetable,
@@ -40,23 +41,23 @@ const {
 } = require("../controllers/timetableException.controller");
 
 /* ================= CREATE ================= */
-router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
+router.post("/", auth, role(ROLE.TEACHER), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
 // NOTE: Static routes like /weekly, /student must come BEFORE dynamic routes like /:id
 router.get(
   "/weekly",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getWeeklyTimetableForTeacher,
 );
 
 /* ================= LIST ================= */
-router.get("/", auth, role("TEACHER"), collegeMiddleware, getTimetables);
+router.get("/", auth, role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR), collegeMiddleware, getTimetables);
 
 /* ================= SLOTS ================= */
-router.post("/slot", auth, role("TEACHER"), collegeMiddleware, hod, addSlot);
+router.post("/slot", auth, role(ROLE.TEACHER), collegeMiddleware, hod, addSlot);
 
 router.get(
   "/student",
@@ -79,7 +80,7 @@ router.get(
 router.get(
   "/:timetableId/weekly",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getWeeklyTimetableById,
 );
@@ -95,7 +96,7 @@ router.put(
 );
 
 /* ================= GET BY ID (LAST) ================= */
-router.get("/:id", auth, role("TEACHER"), collegeMiddleware, getTimetableById);
+router.get("/:id", auth, role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR), collegeMiddleware, getTimetableById);
 
 /* ================= DELETE ================= */
 router.delete(
@@ -127,29 +128,29 @@ router.delete(
 
 /* ================= DATE-WISE SCHEDULE ================= */
 
-// Get date-wise schedule (TEACHER and STUDENT only)
+// Get date-wise schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR)
 router.get(
   "/:id/schedule",
   auth,
-  role("TEACHER", "STUDENT"),
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getSchedule,
 );
 
-// Get today's schedule (TEACHER and STUDENT only)
+// Get today's schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR)
 router.get(
   "/:id/schedule/today",
   auth,
-  role("TEACHER", "STUDENT"),
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTodaySchedule,
 );
 
-// Get weekly schedule (TEACHER and STUDENT only)
+// Get weekly schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR)
 router.get(
   "/:id/schedule/week",
   auth,
-  role("TEACHER", "STUDENT"),
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getWeeklySchedule,
 );
@@ -187,7 +188,7 @@ router.post(
 router.get(
   "/:id/exceptions",
   auth,
-  role("TEACHER", "STUDENT"),
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getExceptions,
 );

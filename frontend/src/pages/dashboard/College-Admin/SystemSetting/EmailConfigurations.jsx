@@ -26,7 +26,7 @@ if (!API_BASE_URL) {
   throw new Error("VITE_API_BASE_URL is required for email configuration");
 }
 
-const EmailConfiguration = () => {
+const EmailConfigurations = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -864,4 +864,4 @@ const EmailConfiguration = () => {
   );
 };
 
-export default EmailConfiguration;
+export default EmailConfigurations;

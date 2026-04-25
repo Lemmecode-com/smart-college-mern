@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   createTeacher,
@@ -43,12 +44,12 @@ router.put(
 /* =========================================================
    CRUD
 ========================================================= */
-router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createTeacher);
+router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createTeacher);
 
 router.get(
   "/",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachers,
 );
@@ -61,7 +62,7 @@ router.get(
 router.get(
   "/department/:departmentId",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByDepartment,
 );
@@ -70,7 +71,7 @@ router.get(
 router.get(
   "/course/:courseId",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByCourse,
 );
@@ -79,7 +80,7 @@ router.get(
 router.get(
   "/available-for-reassignment",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   getAvailableTeachersForReassignment,
 );
@@ -88,11 +89,11 @@ router.get(
    /:id ROUTES (must be AFTER specific routes above)
 ========================================================= */
 
-/* GET TEACHER BY ID */
+/* GET TEACHER BY ID — COLLEGE_ADMIN, PRINCIPAL, EXAM_COORDINATOR (read-only) */
 router.get(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeacherById,
 );
@@ -101,34 +102,34 @@ router.get(
 router.get(
   "/:id/reassignment-data",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   getTeacherReassignmentData,
 );
 
-/* UPDATE TEACHER */
+/* UPDATE TEACHER — COLLEGE_ADMIN only */
 router.put(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   updateTeacher,
 );
 
-/* DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT */
+/* DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT — COLLEGE_ADMIN only */
 router.put(
   "/:id/deactivate-with-reassignment",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deactivateTeacherWithReassignment,
 );
 
-/* DELETE TEACHER */
+/* DELETE TEACHER — COLLEGE_ADMIN only */
 router.delete(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deleteTeacher,
 );
