@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   createCourse,
@@ -14,50 +15,50 @@ const {
   getAllCourses,
 } = require("../controllers/course.controller");
 
-// Create Course
-router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createCourse);
+// Create Course — COLLEGE_ADMIN only
+router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createCourse);
 
-// Get All Courses (College-wise)
+// Get All Courses (College-wise) — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR
 router.get(
   "/",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getAllCourses,
 );
 
-// Get Courses by Department
+// Get Courses by Department — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR
 router.get(
   "/department/:departmentId",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getCoursesByDepartment,
 );
 
-// Get Single Course
+// Get Single Course — COLLEGE_ADMIN, PRINCIPAL, EXAM_COORDINATOR (read-only)
 router.get(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getCourseById,
 );
 
-// Update Course
+// Update Course — COLLEGE_ADMIN only
 router.put(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   updateCourse,
 );
 
-// Delete Course
+// Delete Course — COLLEGE_ADMIN only
 router.delete(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deleteCourse,
 );

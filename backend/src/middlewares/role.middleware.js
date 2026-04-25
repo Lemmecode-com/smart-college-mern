@@ -11,9 +11,13 @@ module.exports = (...allowedRoles) => {
     }
 
     // Normalize role comparison
-    const userRole = req.user.role.toUpperCase();
+    const userRole = String(req.user.role).toUpperCase();
 
-    if (!allowedRoles.map(r => r.toUpperCase()).includes(userRole)) {
+    const normalizedAllowed = allowedRoles
+      .filter(r => r != null)
+      .map(r => String(r).toUpperCase());
+
+    if (!normalizedAllowed.includes(userRole)) {
       throw new AppError(
         `Access denied: role ${req.user.role} not allowed`,
         403,
