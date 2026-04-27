@@ -41,7 +41,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 // Predefined colors for modules
 const MODULE_COLORS = {

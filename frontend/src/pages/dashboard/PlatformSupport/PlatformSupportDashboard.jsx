@@ -29,9 +29,11 @@ import {
   FaArrowRight,
   FaSync,
   FaClock,
+  FaServer,
+  FaClipboardList,
 } from "react-icons/fa";
-import { GiServer, GiMicroscope } from "react-icons/gi";
-import { MdSecurity, MdAuditTrail } from "react-icons/md";
+import { GiMicroscope } from "react-icons/gi";
+import { MdSecurity } from "react-icons/md";
 import { TiTicket } from "react-icons/ti";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -45,7 +47,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import "./styles/PlatformSupportDashboard.css";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 // Helper to get status icon
 const StatusIcon = ({ status }) => {
@@ -384,7 +386,7 @@ export default function PlatformSupportDashboard() {
           <Card className="shadow-sm h-100">
             <Card.Header className="bg-white">
               <h5 className="mb-0 d-flex align-items-center gap-2">
-                <GiServer className="text-primary" />
+                <FaServer className="text-primary" />
                 Response Time (Last 24h)
               </h5>
             </Card.Header>
@@ -663,7 +665,7 @@ export default function PlatformSupportDashboard() {
                 onClick={() => navigate("/platform-support/audit-logs")}
               >
                 <Card.Body className="text-center">
-                  <MdAuditTrail size={32} className="text-info mb-2" />
+                  <FaClipboardList size={32} className="text-info mb-2" />
                   <h6>Audit Logs</h6>
                   <small className="text-muted">
                     Security & user activity tracking

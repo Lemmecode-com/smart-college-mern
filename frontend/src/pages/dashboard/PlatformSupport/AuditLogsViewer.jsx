@@ -33,8 +33,8 @@ import {
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../../api/axios";
-import ExportButtons from "../../components/ExportButtons";
+import api from "../../../api/axios";
+import ExportButtons from "../../../components/ExportButtons";
 
 export default function AuditLogsViewer() {
   const navigate = useNavigate();
