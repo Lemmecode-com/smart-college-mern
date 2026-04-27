@@ -110,10 +110,10 @@ export const rolePermissions = {
     canManageSystemSettings: false
   },
 
-  /**
-   * STUDENT
-   * View-only access to personal information
-   */
+   /**
+    * STUDENT
+    * View-only access to personal information
+    */
   STUDENT: {
     displayName: 'Student',
     canAccess: [
@@ -127,6 +127,23 @@ export const rolePermissions = {
     canEdit: [
       'profile-student'
     ],
+    canDelete: [],
+    canManageUsers: false,
+    canManageColleges: false,
+    canViewSystemReports: false,
+    canManageSystemSettings: false
+  },
+
+  /**
+   * ADMISSION_OFFICER
+   * Manages student admissions lifecycle (view, approve, reject, bulk actions)
+   * Access mirrors College Admin for student admission-related sections only
+   */
+  ADMISSION_OFFICER: {
+    displayName: 'Admission Officer',
+    canAccess: ['admission'],
+    canCreate: [],
+    canEdit: [],
     canDelete: [],
     canManageUsers: false,
     canManageColleges: false,

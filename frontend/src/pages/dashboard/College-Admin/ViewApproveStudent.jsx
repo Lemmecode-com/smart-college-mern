@@ -400,7 +400,7 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
             <th scope="col">Status</th>
-            <th scope="col">Action</th>
+            {onMarkPaid && <th scope="col">Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -415,23 +415,25 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
                   status={inst.status}
                   type={inst.status.toLowerCase()}
                 />
-              </td>
-              <td>
-                {inst.status === "PENDING" ? (
-                  <button
-                    className="mark-paid-btn"
-                    onClick={() => onMarkPaid(inst)}
-                    aria-label={`Mark ${inst.name} as paid`}
-                    title="Mark as Paid (Offline)"
-                  >
-                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
-                    Mark Paid
-                  </button>
-                ) : (
-                  <span className="no-action-text">-</span>
-                )}
-              </td>
-            </tr>
+               </td>
+               {onMarkPaid && (
+                 <td>
+                   {inst.status === "PENDING" ? (
+                     <button
+                       className="mark-paid-btn"
+                       onClick={() => onMarkPaid(inst)}
+                       aria-label={`Mark ${inst.name} as paid`}
+                       title="Mark as Paid (Offline)"
+                     >
+                       <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                       Mark Paid
+                     </button>
+                   ) : (
+                     <span className="no-action-text">-</span>
+                   )}
+                 </td>
+               )}
+             </tr>
           ))}
         </tbody>
       </table>
@@ -1204,8 +1206,11 @@ export default function ViewApproveStudent() {
 
    /* ================= SECURITY CHECK ================= */
    if (!user) return <Navigate to="/login" replace />;
-   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT")
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "ADMISSION_OFFICER")
      return <Navigate to="/dashboard" replace />;
+
+   // Admission Officers can view but cannot mark payments as paid
+   const canMarkPaid = user?.role !== "ADMISSION_OFFICER";
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1784,11 +1789,11 @@ export default function ViewApproveStudent() {
                 : "Installments"}
             </span>
             <div className="erp-card-body">
-              <InstallmentTable
-                installments={feeData?.installments || []}
-                studentId={student._id}
-                onMarkPaid={handleMarkPaid}
-              />
+               <InstallmentTable
+                 installments={feeData?.installments || []}
+                 studentId={student._id}
+                 {...(canMarkPaid ? { onMarkPaid: handleMarkPaid } : {})}
+               />
             </div>
           </InfoCard>
 

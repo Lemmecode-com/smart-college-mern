@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   getPromotionEligibleStudents,
@@ -13,9 +14,9 @@ const {
   getCollegePromotionHistory,
 } = require("../controllers/promotion.controller");
 
-// All routes require authentication and COLLEGE_ADMIN role
+// All routes require authentication and COLLEGE_ADMIN / ADMISSION_OFFICER role
 router.use(auth);
-router.use(role("COLLEGE_ADMIN"));
+router.use(role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER));
 router.use(collegeMiddleware);
 
 // 📋 GET all promotion eligible students with fee status
