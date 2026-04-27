@@ -41,6 +41,7 @@ import {
   FaChalkboardTeacher,
   FaShieldAlt,
   FaUserPlus,
+  FaArrowUp,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -826,7 +827,7 @@ export const navigationConfig = {
 
   /**
    * ADMISSION_OFFICER Navigation
-   * Pending applications only
+   * Full admission lifecycle management (mirrors College Admin's student access)
    */
   ADMISSION_OFFICER: {
     dashboard: {
@@ -843,8 +844,32 @@ export const navigationConfig = {
         items: [
           {
             path: "/admission/applications",
-            icon: FaListOl,
+            icon: FaClock,
             label: "Pending Applications",
+            exact: true,
+          },
+          {
+            path: "/admission/approved",
+            icon: FaCheckCircle,
+            label: "Approved Students",
+            exact: true,
+          },
+          {
+            path: "/admission/promotion",
+            icon: FaArrowUp,
+            label: "Student Promotion",
+            exact: true,
+          },
+          {
+            path: "/admission/alumni",
+            icon: FaGraduationCap,
+            label: "Alumni",
+            exact: true,
+          },
+          {
+            path: "/admission/deactivated",
+            icon: FaUserTimes,
+            label: "Deactivated Students",
             exact: true,
           },
         ],
