@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaMoneyBillWave,
@@ -37,6 +38,7 @@ import {
 export default function FeeStructureList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function FeeStructureList() {
 
    /* ================= SECURITY ================= */
    if (!user) return <Navigate to="/login" />;
-   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH ================= */
   const loadStructures = async () => {
@@ -267,13 +269,15 @@ export default function FeeStructureList() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/fees/create")}
-          >
-            <FaPlus className="erp-btn-icon pulse" />
-            <span>Create New Structure</span>
-          </button>
+          {canCreate('fee-structure') && (
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/fees/create")}
+            >
+              <FaPlus className="erp-btn-icon pulse" />
+              <span>Create New Structure</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,15 +374,15 @@ export default function FeeStructureList() {
                   ? "No fee structures match your search criteria. Try adjusting your filters."
                   : "There are no fee structures configured yet. Create your first structure to get started."}
               </p>
-              {!searchTerm && (
-                <button 
-                  className="erp-btn erp-btn-primary empty-action"
-                  onClick={() => navigate("/fees/create")}
-                >
-                  <FaPlus className="erp-btn-icon" />
-                  Create First Fee Structure
-                </button>
-              )}
+               {!searchTerm && canCreate('fee-structure') && (
+                 <button 
+                   className="erp-btn erp-btn-primary empty-action"
+                   onClick={() => navigate("/fees/create")}
+                 >
+                   <FaPlus className="erp-btn-icon" />
+                   Create First Fee Structure
+                 </button>
+               )}
             </div>
           ) : (
             <div className="table-container">
@@ -431,34 +435,38 @@ export default function FeeStructureList() {
                           <span className="installment-label">installments</span>
                         </div>
                       </td>
-                      <td className="action-cell">
-                        <div className="action-buttons">
-                          <button
-                            className="action-btn view-btn"
-                            title="View Fee Structure Details"
-                            onClick={() => navigate(`/fees/view/${structure._id}`)}
-                            aria-label={`View details for ${structure.course_id?.name}`}
-                          >
-                            <FaEye className="action-icon pulse" />
-                          </button>
-                          <button
-                            className="action-btn edit-btn"
-                            title="Edit Fee Structure"
-                            onClick={() => navigate(`/fees/edit/${structure._id}`)}
-                            aria-label={`Edit ${structure.course_id?.name} fee structure`}
-                          >
-                            <FaEdit className="action-icon pulse" />
-                          </button>
-                          <button
-                            className="action-btn delete-btn"
-                            title="Delete Fee Structure"
-                            onClick={() => handleDelete(structure._id)}
-                            aria-label={`Delete ${structure.course_id?.name} fee structure`}
-                          >
-                            <FaTrash className="action-icon shake" />
-                          </button>
-                        </div>
-                      </td>
+                       <td className="action-cell">
+                         <div className="action-buttons">
+                           <button
+                             className="action-btn view-btn"
+                             title="View Fee Structure Details"
+                             onClick={() => navigate(`/fees/view/${structure._id}`)}
+                             aria-label={`View details for ${structure.course_id?.name}`}
+                           >
+                             <FaEye className="action-icon pulse" />
+                           </button>
+                           {canEdit('fee-structure') && (
+                             <button
+                               className="action-btn edit-btn"
+                               title="Edit Fee Structure"
+                               onClick={() => navigate(`/fees/edit/${structure._id}`)}
+                               aria-label={`Edit ${structure.course_id?.name} fee structure`}
+                             >
+                               <FaEdit className="action-icon pulse" />
+                             </button>
+                           )}
+                           {canDelete('fee-structure') && (
+                             <button
+                               className="action-btn delete-btn"
+                               title="Delete Fee Structure"
+                               onClick={() => handleDelete(structure._id)}
+                               aria-label={`Delete ${structure.course_id?.name} fee structure`}
+                             >
+                               <FaTrash className="action-icon shake" />
+                             </button>
+                           )}
+                         </div>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
