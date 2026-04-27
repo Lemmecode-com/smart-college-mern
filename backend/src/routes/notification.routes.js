@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { ROLE } = require("../utils/constants");
 const {
   createAdminNotification,
   createTeacherNotification,
@@ -39,7 +40,7 @@ router.post(
 router.get(
   "/admin/read",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotifications,
 );
@@ -64,7 +65,7 @@ router.get(
 router.get(
   "/count/admin",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotificationCount,
 );
