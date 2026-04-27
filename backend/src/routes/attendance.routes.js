@@ -6,6 +6,7 @@ const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   editAttendance,
@@ -48,11 +49,11 @@ router.post(
   createAttendanceSession,
 );
 
-// 📋 Get all sessions (teacher-wise also HOD can get all teacher's sessions)
+// 📋 Get all sessions — TEACHER and PRINCIPAL (read-only)
 router.get(
   "/sessions",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceSessions,
 );
@@ -60,7 +61,7 @@ router.get(
 router.get(
   "/report",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   teacherMiddleware,
   getAttendanceReport,
@@ -87,16 +88,16 @@ router.get(
 router.get(
   "/report/courses",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getTeacherCourses,
 );
 
-// 📄 Get single session using its ID
+// 📄 Get single session — TEACHER and PRINCIPAL (read-only)
 router.get(
   "/sessions/:sessionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceSessionById,
 );
@@ -162,7 +163,7 @@ router.put(
 router.get(
   "/sessions/:sessionId/records",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceRecordsBySession,
 );
@@ -170,9 +171,17 @@ router.get(
 router.get(
   "/report/subjects/:courseId",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getTeacherSubjectsByCourse,
+);
+
+router.get(
+  "/report/courses",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getTeacherCourses,
 );
 
 module.exports = router;
