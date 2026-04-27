@@ -26,7 +26,7 @@ import {
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 export default function CollegeHealthOverview() {
   const navigate = useNavigate();
@@ -199,7 +199,7 @@ export default function CollegeHealthOverview() {
                   <option value="">All Statuses</option>
                   <option value="healthy">Healthy (≥80)</option>
                   <option value="degraded">Degraded (60-79)</option>
-                  <option value="critical">Critical (<60)</option>
+                  <option value="critical">Critical (&lt;60)</option>
                 </Form.Select>
               </Form.Group>
             </Col>
