@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import { Badge } from "react-bootstrap";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBookOpen,
@@ -27,6 +28,7 @@ export default function ViewCourse() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,8 +37,8 @@ export default function ViewCourse() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH COURSE ================= */
   useEffect(() => {
@@ -157,14 +159,16 @@ export default function ViewCourse() {
           </div>
 
           {/* RIGHT SECTION - Edit Course Button */}
-          <div className="page-header__right">
-            <button
-              className="btn btn--primary"
-              onClick={() => navigate(`/courses/edit/${course._id}`)}
-            >
-              <FaEdit /> Edit Course
-            </button>
-          </div>
+          {canEdit('courses') && (
+            <div className="page-header__right">
+              <button
+                className="btn btn--primary"
+                onClick={() => navigate(`/courses/edit/${course._id}`)}
+              >
+                <FaEdit /> Edit Course
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
