@@ -19,7 +19,7 @@ const {
 router.put(
   "/:id/deactivate",
   auth,
-  role("COLLEGE_ADMIN"),
+  role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
   collegeMiddleware,
   deactivateUser
 );
@@ -27,13 +27,13 @@ router.put(
 /* =========================================================
    REACTIVATE USER
    PUT /api/users/:id/reactivate
-   COLLEGE_ADMIN only
+   COLLEGE_ADMIN / ADMISSION_OFFICER only
    Sets user.isActive = true + updates Teacher/Student model
 ========================================================= */
 router.put(
   "/:id/reactivate",
   auth,
-  role("COLLEGE_ADMIN"),
+  role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
   collegeMiddleware,
   reactivateUser
 );
