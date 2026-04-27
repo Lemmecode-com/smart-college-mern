@@ -17,7 +17,8 @@ export default function ApplicationDetail() {
     const fetchStudent = async () => {
       try {
         const res = await api.get(`/students/registered/${id}`);
-        setStudent(res.data.data);
+        // Axios interceptor flattens response: data at top-level
+        setStudent(res.data);
       } catch (err) {
         setError(err.response?.data?.message || "Application not found");
       } finally {
@@ -37,7 +38,7 @@ export default function ApplicationDetail() {
         text: `Application ${newStatus === "APPROVED" ? "approved" : "rejected"} successfully`,
       });
       const res = await api.get(`/students/registered/${id}`);
-      setStudent(res.data.data);
+      setStudent(res.data);
     } catch (err) {
       setStatusMsg({
         type: "danger",
@@ -51,19 +52,18 @@ export default function ApplicationDetail() {
   if (loading) return <Spinner animation="border" className="m-4" />;
   if (error) return <Alert variant="danger">{error}</Alert>;
 
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    dateOfBirth,
-    gender,
-    address,
-    department_id,
-    course_id,
-    documents,
-    fullName,
-  } = student;
+   const {
+     email,
+     phone,
+     dateOfBirth,
+     gender,
+     address,
+     department_id,
+     course_id,
+     documents,
+     fullName,
+     status,
+   } = student;
 
   return (
     <Container className="p-4">
@@ -86,7 +86,7 @@ export default function ApplicationDetail() {
 
             <Card.Body>
               <Card.Title>
-                <FaUser /> {firstName} {lastName}
+                <FaUser /> {fullName}
               </Card.Title>
               <Card.Text>
                 <strong>Email:</strong> {email}
