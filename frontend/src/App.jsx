@@ -124,6 +124,15 @@ import PrincipalDashboard from "./pages/dashboard/Principal/PrincipalDashboard";
 
 // ================= PLATFORM SUPPORT =================
 import PlatformSupportDashboard from "./pages/dashboard/PlatformSupport/PlatformSupportDashboard";
+import SystemHealth from "./pages/dashboard/PlatformSupport/SystemHealth";
+import AuditLogsViewer from "./pages/dashboard/PlatformSupport/AuditLogsViewer";
+import SystemLogs from "./pages/dashboard/PlatformSupport/SystemLogs";
+import IntegrationMonitoring from "./pages/dashboard/PlatformSupport/IntegrationMonitoring";
+import SupportTickets from "./pages/dashboard/PlatformSupport/SupportTickets";
+import ErrorAnalytics from "./pages/dashboard/PlatformSupport/ErrorAnalytics";
+import CollegeHealthOverview from "./pages/dashboard/PlatformSupport/CollegeHealthOverview";
+import DatabaseDiagnostics from "./pages/dashboard/PlatformSupport/DatabaseDiagnostics";
+import ConfigurationViewer from "./pages/dashboard/PlatformSupport/ConfigurationViewer";
 
 // ================= EXAM COORDINATOR =================
 import ExamDashboard from "./pages/dashboard/ExamCoordinator/ExamDashboard";
@@ -716,6 +725,86 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
                   <PlatformSupportDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/health"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <SystemHealth />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/audit-logs"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <AuditLogsViewer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/system-logs"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <SystemLogs />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/integrations"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <IntegrationMonitoring />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/tickets"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <SupportTickets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/errors"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <ErrorAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/colleges"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <CollegeHealthOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/colleges/:id/diagnostics"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <CollegeHealthOverview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/database"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <DatabaseDiagnostics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/platform-support/config"
+              element={
+                <ProtectedRoute allowedRoles={["PLATFORM_SUPPORT"]}>
+                  <ConfigurationViewer />
                 </ProtectedRoute>
               }
             />

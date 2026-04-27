@@ -139,30 +139,60 @@ export const rolePermissions = {
     canManageSystemSettings: false
   },
 
-  /**
-   * STUDENT
-   * View-only access to personal information
-   */
-  STUDENT: {
-    displayName: 'Student',
-    canAccess: [
-      'profile-student',
-      'timetable-student',
-      'fees-student',
-      'attendance-student',
-      'notifications-student'
-    ],
-    canCreate: [],
-    canEdit: [
-      'profile-student'
-    ],
-    canDelete: [],
-    canManageUsers: false,
-    canManageColleges: false,
-    canViewSystemReports: false,
-    canManageSystemSettings: false
-  }
-};
+   /**
+    * STUDENT
+    * View-only access to personal information
+    */
+   STUDENT: {
+     displayName: 'Student',
+     canAccess: [
+       'profile-student',
+       'timetable-student',
+       'fees-student',
+       'attendance-student',
+       'notifications-student'
+     ],
+     canCreate: [],
+     canEdit: [
+       'profile-student'
+     ],
+     canDelete: [],
+     canManageUsers: false,
+     canManageColleges: false,
+     canViewSystemReports: false,
+     canManageSystemSettings: false
+   },
+
+   /**
+    * PLATFORM_SUPPORT
+    * System health monitoring, audit logs, support tickets
+    */
+   PLATFORM_SUPPORT: {
+     displayName: 'Platform Support',
+     canAccess: [
+       'platform-support',
+       'platform-support-health',
+       'platform-support-audit-logs',
+       'platform-support-system-logs',
+       'platform-support-integrations',
+       'platform-support-tickets',
+       'platform-support-errors',
+       'platform-support-colleges',
+       'platform-support-database',
+       'platform-support-config',
+     ],
+     canCreate: [
+       'platform-support-tickets',
+       'platform-support-broadcast',
+     ],
+     canEdit: [],
+     canDelete: [],
+     canManageUsers: false,
+     canManageColleges: false,
+     canViewSystemReports: true,
+     canManageSystemSettings: false
+   }
+ };
 
 /**
  * Check if a role has access to a specific section

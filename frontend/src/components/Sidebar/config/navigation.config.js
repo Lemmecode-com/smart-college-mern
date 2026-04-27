@@ -41,6 +41,11 @@ import {
   FaChalkboardTeacher,
   FaShieldAlt,
   FaUserPlus,
+  FaHeartbeat,
+  FaDatabase,
+  FaTicketAlt,
+  FaPlug,
+  FaBug,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -932,45 +937,127 @@ export const navigationConfig = {
     ],
   },
 
-  /**
-   * PLATFORM_SUPPORT Navigation
-   * System health, audit logs, college list
-   */
-  PLATFORM_SUPPORT: {
-    dashboard: {
-      path: "/dashboard/support",
-      icon: FaTachometerAlt,
-      label: "Dashboard",
-    },
-    sections: [
-      {
-        id: "support-system",
-        title: "System Overview",
-        icon: FaShieldAlt,
-        defaultOpen: true,
-        items: [
-          {
-            path: "/dashboard/support",
-            icon: FaTachometerAlt,
-            label: "Support Dashboard",
-            exact: true,
-          },
-          {
-            path: "/college/list",
-            icon: FaUniversity,
-            label: "Colleges List",
-            exact: true,
-          },
-          {
-            path: "/audit-logs",
-            icon: FaClipboardList,
-            label: "Audit Logs",
-            exact: true,
-          },
-        ],
-      },
-    ],
-  },
+   /**
+    * PLATFORM_SUPPORT Navigation
+    * System health, monitoring, support tickets, diagnostics
+    */
+   PLATFORM_SUPPORT: {
+     dashboard: {
+       path: "/dashboard/support",
+       icon: FaTachometerAlt,
+       label: "Dashboard",
+     },
+     sections: [
+       {
+         id: "support-overview",
+         title: "Overview",
+         icon: FaTachometerAlt,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/dashboard/support",
+             icon: FaTachometerAlt,
+             label: "Support Dashboard",
+             exact: true,
+           },
+           {
+             path: "/platform-support/colleges",
+             icon: FaUniversity,
+             label: "Colleges Health",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-health",
+         title: "System Health",
+         icon: FaHeartbeat,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/health",
+             icon: FaChartLine,
+             label: "Health Monitor",
+             exact: true,
+           },
+           {
+             path: "/platform-support/database",
+             icon: FaDatabase,
+             label: "Database Diagnostics",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-logs",
+         title: "Logs & Audit",
+         icon: FaClipboardList,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/audit-logs",
+             icon: FaClipboardList,
+             label: "Audit Logs",
+             exact: true,
+           },
+           {
+             path: "/platform-support/system-logs",
+             icon: FaBug,
+             label: "System Logs",
+             exact: true,
+           },
+           {
+             path: "/platform-support/errors",
+             icon: FaExclamationTriangle,
+             label: "Error Analytics",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-integrations",
+         title: "Integrations",
+         icon: FaPlug,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/integrations",
+             icon: FaPlug,
+             label: "Service Health",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-tickets",
+         title: "Support Tickets",
+         icon: FaTicketAlt,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/tickets",
+             icon: FaTicketAlt,
+             label: "All Tickets",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-config",
+         title: "Configuration",
+         icon: FaCog,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/config",
+             icon: FaCog,
+             label: "System Config",
+             exact: true,
+           },
+         ],
+       },
+     ],
+   },
 
   /**
    * Get dashboard path for a given role
