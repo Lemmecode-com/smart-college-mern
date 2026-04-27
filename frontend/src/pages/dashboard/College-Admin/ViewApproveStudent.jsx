@@ -8,6 +8,7 @@ import PropTypes from "prop-types";
 import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import useRole from "../../../hooks/useRole";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -375,7 +376,7 @@ FeeCard.defaultProps = {
 };
 
 /* ---- InstallmentTable Component ---- */
-function InstallmentTable({ installments, studentId, onMarkPaid }) {
+function InstallmentTable({ installments, studentId, onMarkPaid, canMarkPaid }) {
   if (!installments || installments.length === 0) {
     return (
       <EmptyState
@@ -416,21 +417,21 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
                   type={inst.status.toLowerCase()}
                 />
               </td>
-              <td>
-                {inst.status === "PENDING" ? (
-                  <button
-                    className="mark-paid-btn"
-                    onClick={() => onMarkPaid(inst)}
-                    aria-label={`Mark ${inst.name} as paid`}
-                    title="Mark as Paid (Offline)"
-                  >
-                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
-                    Mark Paid
-                  </button>
-                ) : (
-                  <span className="no-action-text">-</span>
-                )}
-              </td>
+               <td>
+                 {inst.status === "PENDING" && canMarkPaid ? (
+                   <button
+                     className="mark-paid-btn"
+                     onClick={() => onMarkPaid(inst)}
+                     aria-label={`Mark ${inst.name} as paid`}
+                     title="Mark as Paid (Offline)"
+                   >
+                     <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                     Mark Paid
+                   </button>
+                 ) : (
+                   <span className="no-action-text">-</span>
+                 )}
+               </td>
             </tr>
           ))}
         </tbody>
@@ -451,6 +452,7 @@ InstallmentTable.propTypes = {
   ).isRequired,
   studentId: PropTypes.string.isRequired,
   onMarkPaid: PropTypes.func.isRequired,
+  canMarkPaid: PropTypes.bool,
 };
 
 /* ---- Skeleton Components ---- */
@@ -1109,8 +1111,9 @@ function LoadingDisplay() {
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
   const { user } = useContext(AuthContext);
-  const { id } = useParams();
+  const { studentId } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1204,8 +1207,8 @@ export default function ViewApproveStudent() {
 
    /* ================= SECURITY CHECK ================= */
    if (!user) return <Navigate to="/login" replace />;
-   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT")
-     return <Navigate to="/dashboard" replace />;
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL")
+      return <Navigate to="/dashboard" replace />;
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1788,6 +1791,7 @@ export default function ViewApproveStudent() {
                 installments={feeData?.installments || []}
                 studentId={student._id}
                 onMarkPaid={handleMarkPaid}
+                canMarkPaid={canEdit('fee-structure')}
               />
             </div>
           </InfoCard>
