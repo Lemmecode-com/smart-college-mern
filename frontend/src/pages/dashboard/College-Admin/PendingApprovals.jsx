@@ -29,7 +29,7 @@ import {
 
 const PAGE_SIZE = 5;
 
-export default function PendingApprovals() {
+export default function PendingApprovals({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -56,7 +56,10 @@ export default function PendingApprovals() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   /* ================= FETCH PENDING STUDENTS ================= */
   const fetchPendingStudents = async () => {
@@ -255,14 +258,21 @@ export default function PendingApprovals() {
 
   return (
     <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Students", path: "/students" },
-          { label: "Pending Approvals" },
-        ]}
-      />
+       {/* BREADCRUMBS */}
+       <Breadcrumb
+         items={admissionOfficerMode
+           ? [
+               { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Admissions", path: "/admission/applications" },
+               { label: "Pending Applications" },
+             ]
+           : [
+               { label: "Dashboard", path: "/dashboard" },
+               { label: "Students", path: "/students" },
+               { label: "Pending Approvals" },
+             ]
+         }
+       />
 
       {/* HEADER */}
       <div className="erp-page-header">

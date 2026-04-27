@@ -21,7 +21,7 @@ import {
 
 const PAGE_SIZE = 5;
 
-export default function DeactivatedStudents() {
+export default function DeactivatedStudents({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -34,7 +34,10 @@ export default function DeactivatedStudents() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   /* ================= FETCH DEACTIVATED STUDENTS ================= */
   const fetchDeactivatedStudents = async () => {
@@ -128,12 +131,19 @@ export default function DeactivatedStudents() {
     return <Loading fullScreen size="lg" text="Loading deactivated students..." />;
   }
 
-  return (
-    <div className="erp-container">
-      <Breadcrumb items={[
-        { label: "Dashboard", path: "/dashboard" },
-        { label: "Deactivated Students" },
-      ]} />
+   return (
+     <div className="erp-container">
+       <Breadcrumb items={admissionOfficerMode
+         ? [
+             { label: "Dashboard", path: "/dashboard/admission" },
+             { label: "Admissions", path: "/admission/applications" },
+             { label: "Deactivated Students" },
+           ]
+         : [
+             { label: "Dashboard", path: "/dashboard" },
+             { label: "Deactivated Students" },
+           ]
+       } />
 
       <div className="erp-page-header">
         <div className="erp-header-content">

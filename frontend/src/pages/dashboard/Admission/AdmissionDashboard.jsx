@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Card, Col, Row, Table, Badge } from "react-bootstrap";
-import { FaFileAlt, FaClock, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Card, Col, Row, Table, Badge, Button } from "react-bootstrap";
+import { FaFileAlt, FaClock, FaCheckCircle, FaTimesCircle, FaListOl, FaGraduationCap, FaUserTimes, FaExternalLinkAlt, FaArrowUp } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 
 export default function AdmissionDashboard() {
-  const [stats, setStats] = useState({ pendingCount: 0 });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ pendingCount: 0, approvalsThisWeek: 0, rejectionsThisWeek: 0 });
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,8 +16,8 @@ export default function AdmissionDashboard() {
     const fetchData = async () => {
       try {
         const res = await api.get("/admission/dashboard");
-        setStats(res.data.data);
-        setRecent(res.data.data.recentApplications || []);
+        setStats(res.data);
+        setRecent(res.data.recentApplications || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard");
       } finally {
@@ -29,7 +30,7 @@ export default function AdmissionDashboard() {
   if (loading) return <Loading />;
   if (error) return <div className="text-center text-danger mt-4">{error}</div>;
 
-  const { pendingCount } = stats;
+  const { pendingCount, approvalsThisWeek, rejectionsThisWeek } = stats;
 
   return (
     <div className="p-4">
@@ -47,7 +48,7 @@ export default function AdmissionDashboard() {
           <Card className="bg-success text-white">
             <Card.Body>
               <Card.Title><FaCheckCircle /> Approvals This Week</Card.Title>
-              <Card.Text className="display-4">--</Card.Text>
+              <Card.Text className="display-4">{approvalsThisWeek}</Card.Text>
             </Card.Body>
           </Card>
         </Col>
@@ -55,7 +56,7 @@ export default function AdmissionDashboard() {
           <Card className="bg-danger text-white">
             <Card.Body>
               <Card.Title><FaTimesCircle /> Rejections This Week</Card.Title>
-              <Card.Text className="display-4">--</Card.Text>
+              <Card.Text className="display-4">{rejectionsThisWeek}</Card.Text>
             </Card.Body>
           </Card>
         </Col>
@@ -77,14 +78,14 @@ export default function AdmissionDashboard() {
             <tbody>
               {recent.map((app) => (
                 <tr key={app._id}>
-                  <td>{app.applicationNo || app._id.slice(-6)}</td>
-                  <td>{app.firstName} {app.lastName}</td>
+                  <td>{app._id.slice(-6).toUpperCase()}</td>
+                  <td>{app.fullName}</td>
                   <td>{app.email}</td>
                   <td>{new Date(app.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <Link to={`/admission/application/${app._id}`} className="btn btn-sm btn-primary">
+                    <Button variant="primary" size="sm" onClick={() => navigate(`/college/view-student/${app._id}`)}>
                       Review
-                    </Link>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -93,6 +94,40 @@ export default function AdmissionDashboard() {
               )}
             </tbody>
           </Table>
+        </Card.Body>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card className="shadow-sm mt-4">
+        <Card.Header>Quick Actions</Card.Header>
+        <Card.Body>
+          <Row xs={1} sm={2} lg={4} className="g-3">
+            <Col>
+              <Link to="/admission/applications" className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                <FaClock /> Pending Applications
+              </Link>
+            </Col>
+            <Col>
+              <Link to="/admission/approved" className="btn btn-outline-success w-100 d-flex align-items-center justify-content-center gap-2">
+                <FaCheckCircle /> Approved Students
+              </Link>
+            </Col>
+            <Col>
+              <Link to="/admission/promotion" className="btn btn-outline-info w-100 d-flex align-items-center justify-content-center gap-2">
+                <FaArrowUp /> Student Promotion
+              </Link>
+            </Col>
+            <Col>
+              <Link to="/admission/alumni" className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                <FaGraduationCap /> View Alumni
+              </Link>
+            </Col>
+            <Col>
+              <Link to="/admission/deactivated" className="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2">
+                <FaUserTimes /> Deactivated Students
+              </Link>
+            </Col>
+          </Row>
         </Card.Body>
       </Card>
     </div>
