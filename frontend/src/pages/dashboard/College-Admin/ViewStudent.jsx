@@ -71,7 +71,8 @@ const USER_ROLES = {
   COLLEGE_ADMIN: 'COLLEGE_ADMIN',
   SUPER_ADMIN: 'SUPER_ADMIN',
   TEACHER: 'TEACHER',
-  STUDENT: 'STUDENT'
+  STUDENT: 'STUDENT',
+  ADMISSION_OFFICER: 'ADMISSION_OFFICER',
 };
 
 const STUDENT_STATUS = {
@@ -304,7 +305,8 @@ export default function ViewStudent() {
 
   /* ================= SECURITY & VALIDATION ================= */
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN) return <Navigate to="/dashboard" replace />;
+  if (user.role !== USER_ROLES.COLLEGE_ADMIN && user.role !== USER_ROLES.ADMISSION_OFFICER)
+    return <Navigate to="/dashboard" replace />;
 
   const isIdValid = useMemo(() => {
     if (!studentId) return false;

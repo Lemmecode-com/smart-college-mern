@@ -128,20 +128,20 @@ router.delete(
   deleteStudent,
 );
 
-//ADMIN / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GETS approved students
+//ADMIN / ADMISSION_OFFICER / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GETS approved students
 router.get(
   "/approved-students",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getApprovedStudents,
 );
 
-//ADMIN / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GET individual approved student
+//ADMIN / ADMISSION_OFFICER / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GET individual approved student
 router.get(
   "/approved-stud/:id",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getStudentById,
 );
@@ -173,38 +173,29 @@ router.get(
   getStudentsForTeacher,
 );
 
-// 🎓 ADMIN: Move student to Alumni
+// 🎓 ADMIN/ADMISSION_OFFICER: Move student to Alumni
 router.post(
   "/:studentId/to-alumni",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   moveToAlumni,
 );
 
-// 🎓 ADMIN/PRINCIPAL: Get all Alumni
+// 🎓 ADMIN/ADMISSION_OFFICER/PRINCIPAL: Get all Alumni
 router.get(
   "/alumni",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAlumni,
 );
 
-// 🚫 ADMIN/PRINCIPAL: Get deactivated students (for reactivation)
+// 🚫 ADMIN/ADMISSION_OFFICER/PRINCIPAL: Get deactivated students (for reactivation)
 router.get(
   "/deactivated",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
-  collegeMiddleware,
-  getDeactivatedStudents,
-);
-
-// 🚫 ADMIN: Get deactivated students
-router.get(
-  "/deactivated",
-  auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getDeactivatedStudents,
 );
