@@ -373,7 +373,7 @@ function StatCard({ icon, label, value, accent }) {
 }
 
 /* ================= MAIN COMPONENT ================= */
-export default function AlumniList() {
+export default function AlumniList({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
 
   const [alumni, setAlumni] = useState([]);
@@ -389,7 +389,10 @@ export default function AlumniList() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   const fetchAlumni = async () => {
     try {

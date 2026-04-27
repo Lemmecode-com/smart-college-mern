@@ -177,7 +177,6 @@ import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboar
 import FeeCollection from "./pages/dashboard/Accountant/FeeCollection";
 import ReceiptManagement from "./pages/dashboard/Accountant/ReceiptManagement";
 import AdmissionDashboard from "./pages/dashboard/Admission/AdmissionDashboard";
-import PendingApplications from "./pages/dashboard/Admission/PendingApplications";
 import ApplicationDetail from "./pages/dashboard/Admission/ApplicationDetail";
 import ParentDashboard from "./pages/dashboard/Parent/ParentDashboard";
 import ChildProfile from "./pages/dashboard/Parent/ChildProfile";
@@ -419,14 +418,14 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/college/view-student/:studentId"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <ViewStudent />
-                </ProtectedRoute>
-              }
-            />
+             <Route
+               path="/college/view-student/:studentId"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL"]}>
+                   <ViewStudent />
+                 </ProtectedRoute>
+               }
+             />
 
             <Route
               path="/students/approve"
@@ -458,7 +457,7 @@ function AppContent({
              <Route
                path="/college/view-approved-student/:id"
                element={
-                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "ACCOUNTANT"]}>
                    <ViewApproveStudent />
                  </ProtectedRoute>
                }
@@ -631,33 +630,69 @@ function AppContent({
                }
              />
 
-            {/* ================= ADMISSION OFFICER ================= */}
-            <Route
-              path="/dashboard/admission"
-              element={
-                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
-                  <AdmissionDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admission/applications"
-              element={
-                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
-                  <PendingApplications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admission/application/:id"
-              element={
-                <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
-                  <ApplicationDetail />
-                </ProtectedRoute>
-              }
-            />
+             {/* ================= ADMISSION OFFICER ================= */}
+             <Route
+               path="/dashboard/admission"
+               element={
+                 <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                   <AdmissionDashboard />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/admission/applications"
+               element={
+                 <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                   <PendingApprovals admissionOfficerMode={true} />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/admission/application/:id"
+               element={
+                 <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                   <ApplicationDetail />
+                 </ProtectedRoute>
+               }
+             />
+             {/* NEW: Approved Students list for Admission Officer */}
+             <Route
+               path="/admission/approved"
+               element={
+                 <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                   <ApproveStudents admissionOfficerMode={true} />
+                 </ProtectedRoute>
+               }
+              />
+              {/* NEW: Promotion page for Admission Officer */}
+              <Route
+                path="/admission/promotion"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                    <StudentPromotion admissionOfficerMode={true} />
+                  </ProtectedRoute>
+                }
+              />
+              {/* NEW: Alumni list for Admission Officer */}
+              <Route
+                path="/admission/alumni"
+                element={
+                  <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                    <AlumniList admissionOfficerMode={true} />
+                  </ProtectedRoute>
+                }
+              />
+             {/* NEW: Deactivated students list for Admission Officer */}
+             <Route
+               path="/admission/deactivated"
+               element={
+                 <ProtectedRoute allowedRoles={["ADMISSION_OFFICER"]}>
+                   <DeactivatedStudents admissionOfficerMode={true} />
+                 </ProtectedRoute>
+               }
+             />
 
-            {/* ================= PARENT GUARDIAN ================= */}
+             {/* ================= PARENT GUARDIAN ================= */}
             <Route
               path="/dashboard/parent"
               element={
