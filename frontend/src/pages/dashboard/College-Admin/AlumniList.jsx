@@ -389,7 +389,8 @@ export default function AlumniList() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   const fetchAlumni = async () => {
     try {
