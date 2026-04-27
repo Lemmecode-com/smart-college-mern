@@ -25,7 +25,7 @@ import {
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 export default function DatabaseDiagnostics() {
   const navigate = useNavigate();
@@ -232,7 +232,7 @@ export default function DatabaseDiagnostics() {
         <Card.Header className="bg-white">
           <h5 className="mb-0 d-flex align-items-center gap-2">
             <FaClock className="text-warning" />
-            Slow Queries (>100ms)
+            Slow Queries (&gt;100ms)
             {slowCount > 0 && <Badge bg="warning" className="ms-auto">{slowCount}</Badge>}
           </h5>
         </Card.Header>
