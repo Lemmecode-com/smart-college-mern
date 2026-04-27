@@ -39,46 +39,75 @@ export const rolePermissions = {
    * COLLEGE_ADMIN
    * Full access within their own college
    */
-  COLLEGE_ADMIN: {
-    displayName: 'College Administrator',
+   COLLEGE_ADMIN: {
+     displayName: 'College Administrator',
+     canAccess: [
+       'college',
+       'departments',
+       'courses',
+       'subjects',
+       'teachers',
+       'students',
+       'fee-structure',
+       'reports',
+       'notifications',
+       'system-settings'
+     ],
+     canCreate: [
+       'departments',
+       'courses',
+       'subjects',
+       'teachers',
+       'students',
+       'fee-structure',
+       'notifications'
+     ],
+     canEdit: [
+       'college',
+       'departments',
+       'courses',
+       'subjects',
+       'teachers',
+       'students',
+       'fee-structure',
+       'system-settings'
+     ],
+     canDelete: [
+       'departments',
+       'courses',
+       'subjects',
+       'teachers',
+       'students',
+       'notifications'
+     ],
+     canManageUsers: false,
+     canManageColleges: false,
+     canViewSystemReports: false,
+     canManageSystemSettings: false
+   },
+
+  /**
+   * PRINCIPAL
+   * Read-only access to all college data
+   */
+  PRINCIPAL: {
+    displayName: 'Principal',
     canAccess: [
-      'college',
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'reports',
-      'notifications',
-      'system-settings'
+      'college-view',
+      'departments-view',
+      'courses-view',
+      'subjects-view',
+      'teachers-view',
+      'students-view',
+      'fees-view',
+      'reports-view',
     ],
-    canCreate: [
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'notifications'
-    ],
-    canEdit: [
-      'college',
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'system-settings'
-    ],
-    canDelete: [
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'notifications'
-    ],
+    canCreate: [],
+    canEdit: [],
+    canDelete: [],
     canManageUsers: false,
     canManageColleges: false,
-    canViewSystemReports: false,
+    canViewSystemReports: true,
     canManageSystemSettings: false
   },
 
