@@ -24,7 +24,8 @@ import {
   FaArrowLeft,
   FaSync,
 } from "react-icons/fa";
-import { GiServer, GiMicrochip } from "react-icons/gi";
+import { FaServer } from "react-icons/fa";
+import { GiMicrochip } from "react-icons/gi";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AreaChart,
@@ -38,7 +39,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import api from "../../api/axios";
+import "./styles/PlatformSupportDashboard.css";
+import api from "../../../api/axios";
 
 export default function SystemHealth() {
   const navigate = useNavigate();
@@ -244,7 +246,7 @@ export default function SystemHealth() {
               <Card className="shadow-sm">
                 <Card.Header className="bg-white">
                   <h5 className="mb-0 d-flex align-items-center gap-2">
-                    <GiServer className="text-info" />
+                    <FaServer className="text-info" />
                     Response Time & Error Rate
                   </h5>
                 </Card.Header>

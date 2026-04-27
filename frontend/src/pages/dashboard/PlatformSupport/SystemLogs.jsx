@@ -29,7 +29,7 @@ import {
 import { GiMicroscope } from "react-icons/gi";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 export default function SystemLogs() {
   const navigate = useNavigate();

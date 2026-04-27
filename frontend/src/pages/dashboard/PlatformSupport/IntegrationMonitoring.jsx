@@ -28,7 +28,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../../api/axios";
+import api from "../../../api/axios";
 
 export default function IntegrationMonitoring() {
   const navigate = useNavigate();
