@@ -5,24 +5,32 @@ import { FaArrowLeft, FaMoneyBillWave, FaCheckCircle, FaClock } from "react-icon
 import api from "../../../api/axios";
 
 export default function ChildFees() {
-  const { studentId } = useParams();
+  const { childId } = useParams();
   const [feeData, setFeeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!childId) {
+      setError("Invalid child ID");
+      setLoading(false);
+      return;
+    }
+
     const fetchFees = async () => {
       try {
-        const res = await api.get(`/parent/student/${studentId}/fees`);
-        setFeeData(res.data.data);
+        const res = await api.get(`/parent/student/${childId}/fees`);
+        // The axios interceptor unwraps the response, so res.data is the feeRecord directly
+        setFeeData(res.data);
       } catch (err) {
+        console.error("❌ ChildFees: Error:", err);
         setError(err.response?.data?.message || "Failed to load fee details");
       } finally {
         setLoading(false);
       }
     };
     fetchFees();
-  }, [studentId]);
+  }, [childId]);
 
   if (loading) return <Spinner animation="border" className="m-4" />;
   if (error) return <Alert variant="danger">{error}</Alert>;
@@ -94,7 +102,7 @@ export default function ChildFees() {
                     </Badge>
                   </td>
                   <td>{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString() : "-"}</td>
-                  <td>{inst.paymentMode || "-"}</td>
+                  <td>{inst.status === 'PAID' ? (inst.paymentMode || "ONLINE") : "-"}</td>
                 </tr>
               ))}
             </tbody>

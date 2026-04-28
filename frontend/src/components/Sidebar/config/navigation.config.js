@@ -941,10 +941,47 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
-            path: "/dashboard/parent",
-            icon: FaTachometerAlt,
-            label: "Parent Dashboard",
+            path: "/dashboard/parent/children",
+            icon: FaListOl,
+            label: "Children List",
             exact: true,
+          },
+          {
+            path: "/dashboard/parent/child/:childId",
+            icon: FaUser,
+            label: "Child Profile",
+            exact: false,
+            dynamic: true,
+          },
+        ],
+      },
+      {
+        id: "parent-academic",
+        title: "Academic Info",
+        icon: FaBook,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/child/:childId/attendance",
+            icon: FaClipboardList,
+            label: "Child Attendance",
+            exact: false,
+            dynamic: true,
+          },
+        ],
+      },
+      {
+        id: "parent-finance",
+        title: "Finance",
+        icon: FaMoneyBillWave,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/child/:childId/fees",
+            icon: FaFileInvoiceDollar,
+            label: "Child Fees",
+            exact: false,
+            dynamic: true,
           },
         ],
       },

@@ -268,6 +268,8 @@ export default function NavbarComponent({
       navigate("/profile/my-profile");
     } else if (user.role === "STUDENT") {
       navigate("/student/profile");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent/profile"); // Will implement later
     }
   };
 
@@ -281,6 +283,8 @@ export default function NavbarComponent({
       navigate("/teacher/dashboard");
     } else if (user.role === "STUDENT") {
       navigate("/student/dashboard");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent");
     }
   };
 

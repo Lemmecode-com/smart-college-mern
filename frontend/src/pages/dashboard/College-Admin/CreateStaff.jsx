@@ -469,8 +469,8 @@ export default function CreateStaff() {
     "PRINCIPAL",
     "HOD",
     "EXAM_COORDINATOR",
-    "PARENT_GUARDIAN",
     "PLATFORM_SUPPORT",
+    // Note: PARENT_GUARDIAN removed - parents are created automatically during student approval
   ];
 
   const handleChange = (e) => {

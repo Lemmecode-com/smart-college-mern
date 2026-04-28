@@ -59,8 +59,8 @@ exports.createStaff = async (req, res, next) => {
       ROLE.PRINCIPAL,
       ROLE.HOD,
       ROLE.EXAM_COORDINATOR,
-      ROLE.PARENT_GUARDIAN,
       ROLE.PLATFORM_SUPPORT,
+      // Note: ROLE.PARENT_GUARDIAN removed - parents are created automatically during student approval
     ];
 
     if (!allowedRoles.includes(role)) {
