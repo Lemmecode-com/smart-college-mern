@@ -173,6 +173,11 @@ export const DEFAULT_OPEN_SECTIONS = {
     'fees-student': false,
     'attendance-student': false,
     'notifications-student': false
+  },
+  PARENT_GUARDIAN: {
+    'parent-children': true,
+    'parent-academic': true,
+    'parent-finance': true
   }
 };
 

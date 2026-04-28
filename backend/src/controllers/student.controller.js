@@ -175,17 +175,19 @@ exports.registerStudent = async (req, res, next) => {
       admissionYear,
       currentSemester,
       previousQualification,
-      previousInstitute,
-      // category is extracted earlier for validation
-      nationality,
-      bloodGroup,
-      alternateMobile,
-      // Parent/Guardian Details
-      fatherName,
-      fatherMobile,
-      motherName,
-      motherMobile,
-      // 10th (SSC) Academic Details
+       previousInstitute,
+       // category is extracted earlier for validation
+       nationality,
+       bloodGroup,
+       alternateMobile,
+       // Parent/Guardian Details
+       fatherName,
+       fatherMobile,
+       fatherEmail,
+       motherName,
+       motherMobile,
+       motherEmail,
+       // 10th (SSC) Academic Details
       sscSchoolName,
       sscBoard,
       sscPassingYear,
@@ -268,13 +270,15 @@ exports.registerStudent = async (req, res, next) => {
       category,
       nationality,
       bloodGroup,
-      alternateMobile,
-      // Parent/Guardian Details
-      fatherName,
-      fatherMobile,
-      motherName,
-      motherMobile,
-      // 10th (SSC) Academic Details
+       alternateMobile,
+       // Parent/Guardian Details
+       fatherName,
+       fatherMobile,
+       fatherEmail,
+       motherName,
+       motherMobile,
+       motherEmail,
+       // 10th (SSC) Academic Details
       sscSchoolName,
       sscBoard,
       sscPassingYear,
