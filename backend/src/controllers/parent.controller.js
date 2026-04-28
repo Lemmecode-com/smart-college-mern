@@ -14,20 +14,20 @@ exports.getChildren = async (req, res, next) => {
     if (!studentIds || studentIds.length === 0) {
       return res.json({
         success: true,
-        data: [],
+        children: [], // Changed from data to children to match frontend expectation
         message: "No students linked to this parent",
       });
     }
 
     const students = await Student.find({ _id: { $in: studentIds } })
-      .select("firstName lastName email phone enrollmentNo status department_id course_id")
+      .select("fullName email phone enrollmentNo status department_id course_id currentSemester")
       .populate("department_id", "name code")
       .populate("course_id", "name")
-      .sort({ firstName: 1 });
+      .sort({ fullName: 1 });
 
     res.json({
       success: true,
-      data: students,
+      children: students, // Changed from data to children
     });
   } catch (error) {
     next(error);
