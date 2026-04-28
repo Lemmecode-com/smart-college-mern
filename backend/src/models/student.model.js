@@ -160,8 +160,10 @@ const studentSchema = new mongoose.Schema(
     // 👨‍👩‍👧 Parent/Guardian Details
     fatherName: String,
     fatherMobile: String,
+    fatherEmail: String,
     motherName: String,
     motherMobile: String,
+    motherEmail: String,
 
     // 📚 10th (SSC) Academic Details
     sscSchoolName: String,

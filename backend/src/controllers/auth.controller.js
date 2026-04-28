@@ -47,8 +47,8 @@ exports.login = async (req, res, next) => {
         );
       }
 
-      // 🔒 Force password change on first login
-      if (user.mustChangePassword === true) {
+      // 🔒 Force password change on first login (skip for students)
+      if (user.role !== "STUDENT" && user.mustChangePassword === true) {
         // Don't issue tokens — require password change first
         return res.status(403).json({
           success: false,
