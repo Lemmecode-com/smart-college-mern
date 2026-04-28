@@ -25,6 +25,10 @@ import {
   FaSpinner,
   FaTimesCircle,
   FaCheckCircle,
+  FaUserCheck,
+  FaUser,
+  FaInfoCircle,
+  FaCopy,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 5;
@@ -47,6 +51,8 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showBulkApproveModal, setShowBulkApproveModal] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState(null);
+  const [parentAccountDetails, setParentAccountDetails] = useState(null);
+  const [showParentDetailsModal, setShowParentDetailsModal] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
@@ -145,7 +151,41 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       const { data } = await api.post("/students/bulk-approve", {
         studentIds: [...selectedStudents],
       });
-      toast.success(`${data.approved.length} approved`);
+
+      toast.success(`${data.approved.length} students approved`);
+
+      // Show parent account creation info for bulk approvals
+      const studentsWithParents = data.approved.filter(student => student.parentAccounts?.created > 0);
+      if (studentsWithParents.length > 0) {
+        // Collect all parent accounts from bulk approval
+        const allParentAccounts = [];
+        studentsWithParents.forEach(student => {
+          student.parentAccounts.parents.forEach(parent => {
+            allParentAccounts.push({
+              ...parent,
+              studentName: student.fullName
+            });
+          });
+        });
+
+        // Show modal with all parent account details
+        setParentAccountDetails({
+          created: allParentAccounts.length,
+          parents: allParentAccounts,
+          isBulk: true
+        });
+        setShowParentDetailsModal(true);
+
+        // Also show summary toast
+        toast.success(
+          `👨‍👩‍👧 ${allParentAccounts.length} parent account(s) created for ${studentsWithParents.length} student(s)!`,
+          {
+            position: "top-center",
+            autoClose: 5000,
+          }
+        );
+      }
+
       if (data.failed.length > 0) {
         toast.warning(
           `${data.failed.length} failed: ` +
@@ -179,7 +219,9 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
     setProcessingId(pendingApproveId);
     try {
-      await api.put(`/students/${pendingApproveId}/approve`);
+      const response = await api.put(`/students/${pendingApproveId}/approve`);
+
+      // Show success message
       toast.success(
         "✅ Student approved successfully! Approval email sent to student.",
         {
@@ -187,6 +229,23 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           autoClose: 3000,
         },
       );
+
+      // Show parent account creation info if any parents were created
+      if (response.data.parentAccounts && response.data.parentAccounts.created > 0) {
+        // Show modal with parent account details
+        setParentAccountDetails(response.data.parentAccounts);
+        setShowParentDetailsModal(true);
+
+        // Also show toast notification
+        toast.success(
+          `👨‍👩‍👧 ${response.data.parentAccounts.created} parent account(s) created successfully!`,
+          {
+            position: "top-center",
+            autoClose: 5000,
+          }
+        );
+      }
+
       fetchPendingStudents();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to approve student", {
@@ -1145,6 +1204,101 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.1);
         }
       `}</style>
+
+      {/* Parent Account Details Modal */}
+      {showParentDetailsModal && parentAccountDetails && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header bg-success text-white">
+                <h5 className="modal-title">
+                  <FaUserCheck className="me-2" />
+                  Parent Accounts Created Successfully
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => {
+                    setShowParentDetailsModal(false);
+                    setParentAccountDetails(null);
+                  }}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="alert alert-info">
+                  <FaInfoCircle className="me-2" />
+                  <strong>Important:</strong> Parent accounts have been created with temporary passwords.
+                  Parents will receive email notifications and must change their passwords on first login.
+                </div>
+
+                <div className="row">
+                  {parentAccountDetails.parents.map((parent, index) => (
+                    <div key={index} className="col-md-6 mb-3">
+                      <div className="card border-primary">
+                        <div className="card-header bg-primary text-dark">
+                          <FaUser className="me-2" />
+                          {parent.relation.charAt(0).toUpperCase() + parent.relation.slice(1)} Account
+                          {parent.studentName && (
+                            <small className="ms-2">({parent.studentName})</small>
+                          )}
+                        </div>
+                        <div className="card-body">
+                          <p className="mb-2">
+                            <strong>Email:</strong> {parent.email}
+                          </p>
+                          <p className="mb-2">
+                            <strong>Temporary Password:</strong>
+                            <code className="bg-light px-2 py-1 rounded ms-2">
+                              {parent.tempPassword}
+                            </code>
+                          </p>
+                          <p className="mb-0 text-muted small">
+                            <FaExclamationTriangle className="me-1" />
+                            Password must be changed on first login
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="alert alert-warning mt-3">
+                  <FaExclamationTriangle className="me-2" />
+                  <strong>Security Note:</strong> Please securely communicate these temporary passwords to the respective parents.
+                  The passwords are also sent via email to the parent accounts.
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowParentDetailsModal(false);
+                    setParentAccountDetails(null);
+                  }}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    // Copy all parent details to clipboard
+                    const details = parentAccountDetails.parents
+                      .map(p => `${p.relation.toUpperCase()}: ${p.email} - Password: ${p.tempPassword}`)
+                      .join('\n');
+                    navigator.clipboard.writeText(details);
+                    toast.success("Parent account details copied to clipboard!");
+                  }}
+                >
+                  <FaCopy className="me-2" />
+                  Copy All Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

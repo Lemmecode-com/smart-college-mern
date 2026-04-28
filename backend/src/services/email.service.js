@@ -831,3 +831,78 @@ exports.sendAccountStatusEmail = async ({
     logger.logError("❌ Failed to send account status email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
   }
 };
+
+/**
+ * Send Parent Account Creation Email
+ */
+exports.sendParentAccountCreatedEmail = async ({
+  to,
+  parentName,
+  studentName,
+  loginUrl,
+  tempPassword,
+  collegeId,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: "Parent Portal Account Created - Action Required",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #286079; text-align: center;">Welcome to Parent Portal</h2>
+
+        <p>Dear ${parentName},</p>
+
+        <p>A parent account has been created for you in our College Management System to help you stay connected with your child's academic progress.</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #286079;">Your Account Details:</h3>
+          <p><strong>Student:</strong> ${studentName}</p>
+          <p><strong>Email:</strong> ${to}</p>
+          <p><strong>Role:</strong> Parent/Guardian</p>
+          <p><strong>Temporary Password:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: monospace;">${tempPassword}</code></p>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #856404;">⚠️ Important: Change Your Password</h4>
+          <p>For security reasons, you must change your temporary password on first login.</p>
+          <p><strong>Please click the link below to login and set a new password:</strong></p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${loginUrl}" style="background: #286079; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Login to Parent Portal</a>
+          </p>
+        </div>
+
+        <h3>What you can do in the Parent Portal:</h3>
+        <ul>
+          <li>View your child's academic profile and progress</li>
+          <li>Monitor attendance records</li>
+          <li>Check fee payment status and history</li>
+          <li>Receive important notifications and announcements</li>
+          <li>Stay updated with college events and activities</li>
+        </ul>
+
+        <p>If you have any questions or need assistance, please contact the college administration.</p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="text-align: center; color: #666; font-size: 14px;">
+          This is an automated message from ${fromName}. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  };
+
+  logger.logInfo("📧 Attempting to send parent account creation email", { to, from: mailOptions.from, host: transporter.options.host });
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Parent account creation email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+  } catch (error) {
+    logger.logError("❌ Failed to send parent account creation email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
+  }
+};
