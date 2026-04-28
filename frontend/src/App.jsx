@@ -179,6 +179,8 @@ import ReceiptManagement from "./pages/dashboard/Accountant/ReceiptManagement";
 import AdmissionDashboard from "./pages/dashboard/Admission/AdmissionDashboard";
 import ApplicationDetail from "./pages/dashboard/Admission/ApplicationDetail";
 import ParentDashboard from "./pages/dashboard/Parent/ParentDashboard";
+import ChildrenList from "./pages/dashboard/Parent/ChildrenList";
+import ChildDetail from "./pages/dashboard/Parent/ChildDetail";
 import ChildProfile from "./pages/dashboard/Parent/ChildProfile";
 import ChildAttendance from "./pages/dashboard/Parent/ChildAttendance";
 import ChildFees from "./pages/dashboard/Parent/ChildFees";
@@ -692,12 +694,44 @@ function AppContent({
                }
              />
 
-             {/* ================= PARENT GUARDIAN ================= */}
+              {/* ================= PARENT GUARDIAN ================= */}
             <Route
               path="/dashboard/parent"
               element={
                 <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
                   <ParentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/parent/children"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildrenList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/parent/child/:childId"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/parent/child/:childId/attendance"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildAttendance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/parent/child/:childId/fees"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ChildFees />
                 </ProtectedRoute>
               }
             />

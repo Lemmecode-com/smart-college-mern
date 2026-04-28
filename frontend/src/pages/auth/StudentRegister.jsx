@@ -1682,8 +1682,10 @@ export default function StudentRegister() {
     category: "GEN",
     fatherName: "",
     fatherMobile: "",
+    fatherEmail: "",
     motherName: "",
     motherMobile: "",
+    motherEmail: "",
     addressLine: "",
     city: "",
     state: "",
@@ -1878,6 +1880,16 @@ export default function StudentRegister() {
         alert("Please enter a valid 10-digit mother's mobile number");
         return false;
       }
+      // Validate email format if provided
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (form.fatherEmail && !emailRegex.test(form.fatherEmail)) {
+        alert("Please enter a valid father's email address");
+        return false;
+      }
+      if (form.motherEmail && !emailRegex.test(form.motherEmail)) {
+        alert("Please enter a valid mother's email address");
+        return false;
+      }
       return true;
     }
     if (step === steps.address) {
@@ -2001,8 +2013,10 @@ export default function StudentRegister() {
       formData.append("pincode", form.pincode);
       formData.append("fatherName", form.fatherName);
       formData.append("fatherMobile", form.fatherMobile);
+      formData.append("fatherEmail", form.fatherEmail);
       formData.append("motherName", form.motherName);
       formData.append("motherMobile", form.motherMobile);
+      formData.append("motherEmail", form.motherEmail);
 
       if (steps.ssc) {
         formData.append("sscSchoolName", form.sscSchoolName);
@@ -2077,8 +2091,10 @@ export default function StudentRegister() {
           category: "GEN",
           fatherName: "",
           fatherMobile: "",
+          fatherEmail: "",
           motherName: "",
           motherMobile: "",
+          motherEmail: "",
           addressLine: "",
           city: "",
           state: "",
@@ -2296,6 +2312,19 @@ export default function StudentRegister() {
         </div>
         <div className="sr-field">
           <label className="sr-label">
+            Father's Email
+          </label>
+          <input
+            type="email"
+            className="sr-input"
+            name="fatherEmail"
+            placeholder="father.email@example.com"
+            value={form.fatherEmail}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">
             Mother's Name <span className="sr-req">*</span>
           </label>
           <input
@@ -2319,6 +2348,19 @@ export default function StudentRegister() {
             onChange={handleChange}
             maxLength="10"
             required
+          />
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">
+            Mother's Email
+          </label>
+          <input
+            type="email"
+            className="sr-input"
+            name="motherEmail"
+            placeholder="mother.email@example.com"
+            value={form.motherEmail}
+            onChange={handleChange}
           />
         </div>
       </div>
