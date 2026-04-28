@@ -5,16 +5,22 @@ import { FaArrowLeft, FaCalendarCheck } from "react-icons/fa";
 import api from "../../../api/axios";
 
 export default function ChildAttendance() {
-  const { studentId } = useParams();
+  const { childId } = useParams();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!childId) {
+      setError("Invalid child ID");
+      setLoading(false);
+      return;
+    }
+
     const fetchAttendance = async () => {
       try {
-        const res = await api.get(`/parent/student/${studentId}/attendance`);
-        setRecords(res.data.data);
+        const res = await api.get(`/parent/student/${childId}/attendance`);
+        setRecords(res.data.data || []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load attendance");
       } finally {
@@ -22,7 +28,7 @@ export default function ChildAttendance() {
       }
     };
     fetchAttendance();
-  }, [studentId]);
+  }, [childId]);
 
   if (loading) return <Spinner animation="border" className="m-4" />;
   if (error) return <Alert variant="danger">{error}</Alert>;

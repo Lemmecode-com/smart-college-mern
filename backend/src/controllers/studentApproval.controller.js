@@ -11,6 +11,7 @@ const {
 const AppError = require("../utils/AppError");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
 const auditLogService = require("../services/auditLog.service");
+const parentCreationService = require("../services/parentCreation.service");
 
 exports.approveStudent = async (req, res, next) => {
   try {
@@ -165,35 +166,20 @@ exports.approveStudent = async (req, res, next) => {
       .logStudentApproval(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 📧 Send admission approval email (non-blocking)
-    (async () => {
-      try {
-        const college = await College.findById(student.college_id).select(
-          "name email",
-        );
-        const course = await Course.findById(student.course_id).select("name");
-        // Build dynamic login URL using utility function
-        const loginUrl = buildFrontendUrl("/login");
-
-        await sendAdmissionApprovalEmail({
-          to: student.email,
-          studentName: student.fullName,
-          courseName: course?.name || "N/A",
-          collegeName: college?.name || "Our College",
-          admissionYear: student.admissionYear,
-          enrollmentNumber: student.enrollmentNumber,
-          loginUrl: loginUrl,
-          email: student.email,
-          collegeId: student.college_id,
-        });
-        console.log(`✅ Admission approval email sent to ${student.email}`);
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send admission approval email:",
-          emailError.message,
-        );
+    // 👨‍👩‍👧 Auto-create parent accounts
+    let parentCreationResult = null;
+    try {
+      parentCreationResult = await parentCreationService.createParentUsers(student);
+      if (parentCreationResult.count > 0) {
+        console.log(`✅ Created ${parentCreationResult.count} parent accounts for ${student.fullName}`);
       }
-    })();
+    } catch (error) {
+      console.error(
+        "❌ Failed to create parent accounts:",
+        error.message,
+      );
+      parentCreationResult = { count: 0, parents: [], error: error.message };
+    }
 
     res.json({
       message: "Student approved and fee allocated successfully",
@@ -215,6 +201,12 @@ exports.approveStudent = async (req, res, next) => {
         paidAmount: studentFee.paidAmount,
         installments: studentFee.installments,
       },
+
+      parentAccounts: parentCreationResult ? {
+        created: parentCreationResult.count,
+        parents: parentCreationResult.parents,
+        error: parentCreationResult.error
+      } : null,
     });
   } catch (error) {
     next(error);
@@ -382,7 +374,21 @@ exports.bulkApproveStudents = async (req, res, next) => {
         student.approvedAt = new Date();
         await student.save();
 
-        // ── 9. Send email (non-blocking) ──
+        // ── 9. Auto-create parent accounts (non-blocking) ──
+        let bulkParentResult = null;
+        (async () => {
+          try {
+            bulkParentResult = await parentCreationService.createParentUsers(student);
+            if (bulkParentResult.count > 0) {
+              console.log(`✅ Bulk: Created ${bulkParentResult.count} parent accounts for ${student.fullName}`);
+            }
+          } catch (error) {
+            console.error(`❌ Bulk: Failed to create parent accounts for ${student.fullName}:`, error.message);
+            bulkParentResult = { count: 0, parents: [], error: error.message };
+          }
+        })();
+
+        // ── 10. Send email (non-blocking) ──
         (async () => {
           try {
             const college = await College.findById(student.college_id).select(
@@ -411,6 +417,10 @@ exports.bulkApproveStudents = async (req, res, next) => {
           studentId: student._id,
           fullName: student.fullName,
           email: student.email,
+          parentAccounts: bulkParentResult ? {
+            created: bulkParentResult.count,
+            parents: bulkParentResult.parents
+          } : null,
         });
       } catch (err) {
         results.failed.push({ studentId, reason: err.message || "Unknown" });
