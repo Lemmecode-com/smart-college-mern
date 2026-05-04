@@ -12,6 +12,9 @@ const {
   courseWiseAdmissions,
   allDashboardReports,
   lowAttendanceStudents,
+  getPaymentSummaryWithFilters,
+  getStudentPaymentHistory,
+  getPaymentTrends,
 } = require("../controllers/reports.controller");
 
 const { ROLE } = require("../utils/constants");
@@ -20,16 +23,40 @@ const { ROLE } = require("../utils/constants");
    COMBINED DASHBOARD REPORTS
 ================================ */
 router.get(
-  "/dashboard/all",
+  "/payments/students",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
   collegeMiddleware,
-  allDashboardReports,
+  studentPaymentStatus
 );
 
-/* ===============================
-   ADMISSIONS
-================================ */
+router.get(
+  "/payments/filtered",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getPaymentSummaryWithFilters
+);
+
+router.get(
+  "/payments/student/:studentId",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getStudentPaymentHistory
+);
+
+router.get(
+  "/payments/trends",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getPaymentTrends
+);
+
+// /* ===============================
+/*    ATTENDANCE
+   ================================ */
 router.get(
   "/admissions/super-summary",
   auth,
