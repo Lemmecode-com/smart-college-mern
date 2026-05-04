@@ -3,6 +3,7 @@ import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaUserTie,
@@ -36,6 +37,7 @@ export default function ViewTeacher() {
   const { user } = useContext(AuthContext);
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,8 +46,8 @@ export default function ViewTeacher() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (!["COLLEGE_ADMIN", "SUPER_ADMIN"].includes(user.role))
-    return <Navigate to="/" />;
+  if (!["COLLEGE_ADMIN", "SUPER_ADMIN", "PRINCIPAL"].includes(user.role))
+    return <Navigate to="/" replace />;
 
   /* ================= FETCH TEACHER ================= */
   const fetchTeacher = async () => {
