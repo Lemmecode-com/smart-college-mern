@@ -20,4 +20,16 @@ router.post("/staff", staffController.createStaff);
  */
 router.get("/staff", staffController.listStaff);
 
+/**
+ * GET /api/staff/profile/:id
+ * Get individual staff profile details
+ */
+router.get("/staff/profile/:id", staffController.getStaffProfile);
+
+/**
+ * PUT /api/staff/profile/:id
+ * Update staff profile details
+ */
+router.put("/staff/profile/:id", staffController.updateStaffProfile);
+
 module.exports = router;
