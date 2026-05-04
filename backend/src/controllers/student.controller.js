@@ -948,9 +948,17 @@ exports.getStudentById = async (req, res) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    const fee = await StudentFee.findOne({
+    // 🔧 OPTIMIZATION: Use Promise.race to prevent hanging on fee query
+    const feePromise = StudentFee.findOne({
       student_id: student._id,
     }).select("totalFee paidAmount installments");
+
+    // Timeout after 5 seconds to prevent hanging
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve(null), 5000);
+    });
+
+    const fee = await Promise.race([feePromise, timeoutPromise]);
 
     ApiResponse.success(
       res,
@@ -962,7 +970,7 @@ exports.getStudentById = async (req, res) => {
           installments: [],
         },
       },
-      "Student fetched successfully",
+      "Student details fetched successfully"
     );
   } catch (error) {
     next(error);
@@ -1499,5 +1507,56 @@ exports.getStudentDocument = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * SEARCH STUDENTS (ACCOUNTANT/COLLEGE_ADMIN/PRINCIPAL)
+ * GET /api/students/search?q=searchTerm
+ */
+exports.searchStudents = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const { q: searchQuery } = req.query;
+
+    if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only admin, accountant, or principal can search students."
+      });
+    }
+
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be at least 2 characters long"
+      });
+    }
+
+    // Search for students by name or email in the college
+    const students = await Student.find({
+      college_id,
+      $or: [
+        { fullName: { $regex: searchQuery.trim(), $options: 'i' } },
+        { email: { $regex: searchQuery.trim(), $options: 'i' } }
+      ]
+    })
+    .populate('course_id', 'name')
+    .select('fullName email course_id admissionYear status')
+    .limit(20) // Limit results to prevent overwhelming the UI
+    .sort({ fullName: 1 });
+
+    res.json({
+      success: true,
+      students,
+      count: students.length
+    });
+
+  } catch (error) {
+    console.error("Student search error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search students"
+    });
   }
 };

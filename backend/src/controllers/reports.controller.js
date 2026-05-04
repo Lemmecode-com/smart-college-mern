@@ -7,7 +7,7 @@ exports.allDashboardReports = async (req, res) => {
   try {
     const { role, college_id } = req.user;
 
-    if (role !== "COLLEGE_ADMIN") {
+    if (role !== "COLLEGE_ADMIN" && role !== "PRINCIPAL") {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -54,7 +54,7 @@ exports.admissionSummary = async (req, res) => {
     if (role === "SUPER_ADMIN") {
       data = await reportsService.admissionSummaryAll();
     } 
-    else if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
+    else if (role === "COLLEGE_ADMIN" || role === "PRINCIPAL" || role === "TEACHER") {
       data = await reportsService.admissionSummary(college_id);
     } 
     else {
@@ -80,7 +80,7 @@ exports.courseWiseAdmissions = async (req, res) => {
       return res.json(await reportsService.courseWiseAdmissionsAll());
     }
 
-    if (role === "COLLEGE_ADMIN") {
+    if (role === "COLLEGE_ADMIN" || role === "PRINCIPAL") {
       return res.json(await reportsService.courseWiseAdmissions(college_id));
     }
 
@@ -104,7 +104,7 @@ exports.paymentSummary = async (req, res) => {
       return res.json(await reportsService.paymentSummaryAll());
     }
 
-    if (role === "COLLEGE_ADMIN" || role === "ACCOUNTANT" || role === "PRINCIPAL") {
+    if (role === "COLLEGE_ADMIN" || role === "PRINCIPAL" || role === "ACCOUNTANT") {
       return res.json(await reportsService.paymentSummary(college_id));
     }
 
@@ -128,7 +128,7 @@ exports.studentPaymentStatus = async (req, res) => {
       return res.json(await reportsService.studentPaymentStatusAll(status));
     }
 
-    if (role === "COLLEGE_ADMIN" || role === "ACCOUNTANT" || role === "PRINCIPAL") {
+    if (role === "COLLEGE_ADMIN" || role === "PRINCIPAL" || role === "ACCOUNTANT") {
       return res.json(await reportsService.studentPaymentStatus(college_id, status));
     }
 
@@ -151,7 +151,7 @@ exports.attendanceSummary = async (req, res) => {
       return res.json(await reportsService.attendanceSummaryAll());
     }
 
-    if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
+    if (role === "COLLEGE_ADMIN" || role === "TEACHER" || role === "PRINCIPAL") {
       return res.json(await reportsService.attendanceSummary(college_id));
     }
 
@@ -177,7 +177,7 @@ exports.studentAttendanceReport = async (req, res) => {
       );
     }
 
-    if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
+    if (role === "COLLEGE_ADMIN" || role === "TEACHER" || role === "PRINCIPAL") {
       return res.json(
         await reportsService.studentAttendanceReport(college_id, minPercentage)
       );
@@ -198,7 +198,7 @@ exports.lowAttendanceStudents = async (req, res) => {
     const { role, college_id } = req.user;
     const minPercentage = Number(req.query.minPercentage || 75);
 
-    if (role === "COLLEGE_ADMIN" || role === "TEACHER") {
+    if (role === "COLLEGE_ADMIN" || role === "TEACHER" || role === "PRINCIPAL") {
       return res.json(
         await reportsService.studentAttendanceReport(college_id, minPercentage)
       );
@@ -208,5 +208,83 @@ exports.lowAttendanceStudents = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch low attendance students" });
+  }
+};
+
+/* ===============================
+   ADVANCED PAYMENT REPORTING (ACCOUNTANT FEATURES)
+   ============================== */
+
+/**
+ * PAYMENT SUMMARY WITH DATE RANGE FILTERING
+ */
+exports.getPaymentSummaryWithFilters = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const { startDate, endDate } = req.query;
+
+    if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const data = await reportsService.paymentSummaryWithDateRange(college_id, startDate, endDate);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Payment summary with filters error:", error);
+    res.status(500).json({ message: "Failed to fetch filtered payment summary" });
+  }
+};
+
+/**
+ * STUDENT SPECIFIC PAYMENT HISTORY
+ */
+exports.getStudentPaymentHistory = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const { studentId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const data = await reportsService.studentSpecificPaymentHistory(college_id, studentId, startDate, endDate);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Student payment history error:", error);
+    res.status(500).json({ message: "Failed to fetch student payment history" });
+  }
+};
+
+/**
+ * PAYMENT TRENDS ANALYSIS
+ */
+exports.getPaymentTrends = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const { year } = req.query;
+
+    if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const yearNum = year ? parseInt(year) : new Date().getFullYear();
+    const data = await reportsService.paymentTrendsByMonth(college_id, yearNum);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Payment trends error:", error);
+    res.status(500).json({ message: "Failed to fetch payment trends" });
   }
 };

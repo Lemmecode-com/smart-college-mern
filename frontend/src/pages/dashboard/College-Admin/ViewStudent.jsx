@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import useRole from "../../../hooks/useRole";
 import {
   FaUniversity,
   FaBook,
@@ -76,6 +77,7 @@ const USER_ROLES = {
   TEACHER: 'TEACHER',
   STUDENT: 'STUDENT',
   ADMISSION_OFFICER: 'ADMISSION_OFFICER',
+  PRINCIPAL: 'PRINCIPAL'
 };
 
 const STUDENT_STATUS = {
@@ -296,6 +298,7 @@ export default function ViewStudent() {
   const { user } = useContext(AuthContext);
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -310,7 +313,7 @@ export default function ViewStudent() {
 
   /* ================= SECURITY & VALIDATION ================= */
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN && user.role !== USER_ROLES.ADMISSION_OFFICER)
+  if (user.role !== USER_ROLES.COLLEGE_ADMIN && user.role !== USER_ROLES.ADMISSION_OFFICER && user.role !== USER_ROLES.PRINCIPAL)
     return <Navigate to="/dashboard" replace />;
 
   const isIdValid = useMemo(() => {
@@ -783,38 +786,38 @@ export default function ViewStudent() {
         </div>
       </div>
 
-      {/* ================= STATUS ACTION CARD ================= */}
-      {student.status === STUDENT_STATUS.PENDING && (
-        <div className="action-card-enterprise">
-          <div className="action-card-header">
-            <div className="action-card-title-wrapper">
-              <FaClipboardCheck className="action-card-icon" />
-              <h3 className="action-card-title">Student Verification</h3>
-            </div>
-            <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
-          </div>
-          
-          <div className="action-card-body">
-            <button
-              className="btn-approve-enterprise"
-              onClick={handleApproveClick}
-              disabled={approving}
-            >
-              <FaCheckCircle className="btn-icon" />
-              {approving ? 'Approving...' : 'Approve Student'}
-            </button>
+       {/* ================= STATUS ACTION CARD ================= */}
+       {student.status === STUDENT_STATUS.PENDING && canEdit('students') && (
+         <div className="action-card-enterprise">
+           <div className="action-card-header">
+             <div className="action-card-title-wrapper">
+               <FaClipboardCheck className="action-card-icon" />
+               <h3 className="action-card-title">Student Verification</h3>
+             </div>
+             <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
+           </div>
+           
+           <div className="action-card-body">
+             <button
+               className="btn-approve-enterprise"
+               onClick={handleApproveClick}
+               disabled={approving}
+             >
+               <FaCheckCircle className="btn-icon" />
+               {approving ? 'Approving...' : 'Approve Student'}
+             </button>
 
-            <button
-              className="btn-reject-enterprise"
-              onClick={handleRejectClick}
-              disabled={rejecting}
-            >
-              <FaTimesCircle className="btn-icon" />
-              {rejecting ? 'Rejecting...' : 'Reject Student'}
-            </button>
-          </div>
-        </div>
-      )}
+             <button
+               className="btn-reject-enterprise"
+               onClick={handleRejectClick}
+               disabled={rejecting}
+             >
+               <FaTimesCircle className="btn-icon" />
+               {rejecting ? 'Rejecting...' : 'Reject Student'}
+             </button>
+           </div>
+         </div>
+       )}
 
       {/* ================= META INFORMATION ================= */}
       <div className="meta-info-enterprise">
