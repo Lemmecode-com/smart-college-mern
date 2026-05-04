@@ -6,6 +6,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
+import "../College-Admin/Dashboard.css";
 
 import {
   FaUsers,
@@ -15,7 +17,92 @@ import {
   FaSearch,
   FaFilter,
   FaChild,
+  FaArrowRight,
+  FaExclamationTriangle,
+  FaSyncAlt
 } from "react-icons/fa";
+
+// Brand Color Palette - Matching Application Theme
+const BRAND_COLORS = {
+  primary: {
+    main: '#1a4b6d',
+    dark: '#0f3a4a',
+    light: '#2a6b8d',
+    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+  },
+  success: {
+    main: '#28a745',
+    dark: '#218838',
+    light: '#28a745',
+    gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)'
+  },
+  info: {
+    main: '#17a2b8',
+    dark: '#138496',
+    light: '#17a2b8',
+    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+  },
+  warning: {
+    main: '#ffc107',
+    dark: '#e0a800',
+    light: '#ffc107',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+  },
+  danger: {
+    main: '#dc3545',
+    dark: '#c82333',
+    light: '#dc3545',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+  },
+  secondary: {
+    main: '#6c757d',
+    dark: '#545b62',
+    light: '#868e96',
+    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
+  }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
+};
 
 export default function ChildrenList() {
   const { user } = useContext(AuthContext);
@@ -73,16 +160,24 @@ export default function ChildrenList() {
     setFilteredChildren(filtered);
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      APPROVED: { label: "Active", className: "bg-success" },
-      PENDING: { label: "Pending", className: "bg-warning" },
-      REJECTED: { label: "Rejected", className: "bg-danger" },
-      DEACTIVATED: { label: "Inactive", className: "bg-secondary" },
+  const getStatusClass = (status) => {
+    const statusClasses = {
+      APPROVED: "parent-status-approved",
+      PENDING: "parent-status-pending",
+      REJECTED: "parent-status-rejected",
+      DEACTIVATED: "parent-status-deactivated",
     };
+    return statusClasses[status] || "parent-status-deactivated";
+  };
 
-    const config = statusConfig[status] || { label: status, className: "bg-secondary" };
-    return <span className={`badge ${config.className}`}>{config.label}</span>;
+  const getStatusLabel = (status) => {
+    const statusLabels = {
+      APPROVED: "Active Student",
+      PENDING: "Application Pending",
+      REJECTED: "Application Rejected",
+      DEACTIVATED: "Account Inactive",
+    };
+    return statusLabels[status] || status;
   };
 
   if (loading) {
@@ -90,48 +185,82 @@ export default function ChildrenList() {
   }
 
   return (
-    <div className="children-list-page">
-      <div className="erp-container">
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h1 className="erp-page-title">
-              <FaUsers className="me-3" />
-              My Children
-            </h1>
-            <p className="text-muted mb-0">
-              View and manage all your children's academic information.
-            </p>
-          </div>
-          <Breadcrumb
-            items={[
-              { label: "Dashboard", path: "/dashboard/parent" },
-              { label: "My Children", path: "/dashboard/parent/children" },
-            ]}
-          />
-        </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="dashboard-wrapper"
+      >
+        <div         className="dashboard-container-inner">
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            className="dashboard-header"
+          >
+            {/* Hero Section */}
+            <div             className="dashboard-header-hero">
+              <div className="row g-3 g-sm-4 align-items-center">
+                <div className="col-12 col-md-7 col-lg-8">
+                  <div className="d-flex align-items-center gap-3">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="initial"
+                      animate="pulse"
+                      className="header-icon-wrapper"
+                    >
+                      <FaUsers />
+                    </motion.div>
+                    <div                     className="header-title-section">
+                      <h1                       className="header-title">
+                        My Children
+                      </h1>
+                      <p                       className="header-subtitle">
+                        View and manage all your children's academic information.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-md-5 col-lg-4">
+                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
+                    <Breadcrumb
+                      items={[
+                        { label: "Dashboard", path: "/dashboard/parent" },
+                        { label: "My Children", path: "/dashboard/parent/children" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-        {/* Filters */}
-        <div className="card mb-4">
-          <div className="card-body">
+          {/* ================= SEARCH AND FILTERS ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            className="card"
+          >
             <div className="row g-3">
-              <div className="col-md-6">
-                <div className="input-group">
-                  <span className="input-group-text">
-                    <FaSearch />
-                  </span>
+              <div className="col-12 col-md-6">
+                <div                 className="input-group">
+                  <FaSearch className="parent-search-icon" />
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="Search by name, emailer..."
+                    className="parent-search-input"
+                    placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="col-md-3">
+              <div className="col-12 col-md-3">
                 <select
-                  className="form-select"
+                  className="parent-filter-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -142,174 +271,157 @@ export default function ChildrenList() {
                   <option value="DEACTIVATED">Inactive</option>
                 </select>
               </div>
-              <div className="col-md-3">
-                <div className="d-flex gap-2">
-                  <button
-                    className="btn btn-outline-secondary flex-fill"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("ALL");
-                    }}
-                  >
-                    <FaFilter className="me-1" />
-                    Clear Filters
-                  </button>
-                </div>
+              <div className="col-12 col-md-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="parent-clear-filters-btn w-100"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("ALL");
+                  }}
+                >
+                  <FaFilter className="me-1" />
+                  Clear Filters
+                </motion.button>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
 
-        {/* Children List */}
-        <div className="card">
-          <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
-              <FaChild className="me-2" />
-              Children ({filteredChildren.length})
-            </h5>
-            <small>Total: {children.length}</small>
-          </div>
-          <div className="card-body p-0">
-            {filteredChildren.length === 0 ? (
-              <div className="text-center py-5">
-                <FaChild size={48} className="text-muted mb-3" />
-                <h5 className="text-muted">
-                  {children.length === 0 ? "No Children Found" : "No Children Match Your Search"}
-                </h5>
-                <p className="text-muted">
-                  {children.length === 0
-                    ? "No student accounts are linked to your parent account yet."
-                    : "Try adjusting your search or filter criteria."
-                  }
-                </p>
+          {/* ================= CHILDREN TABLE ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={1}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="parent-table-container">
+              <div className="parent-table-header">
+                <h3 className="parent-table-title">
+                  <FaChild className="parent-table-icon" />
+                  Children Overview
+                </h3>
+                <div className="parent-table-count">
+                  Showing {filteredChildren.length} of {children.length}
+                </div>
               </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover mb-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th>Student</th>
-                      <th>Class</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredChildren.map((child) => (
-                      <tr key={child._id}>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="avatar-circle bg-primary text-white me-3">
-                              {child.fullName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="fw-bold">{child.fullName}</div>
-                              <small className="text-muted">{child.email}</small>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div>
-                            <div className="fw-semibold">{child.course_id?.name}</div>
-                            <small className="text-muted">
-                              Semester {child.currentSemester}
-                            </small>
-                          </div>
-                        </td>
-                        <td>
-                          {getStatusBadge(child.status)}
-                        </td>
-                        <td>
-                          <div className="d-flex gap-2">
-                            <button
-                              className="btn btn-outline-primary btn-sm"
-                              onClick={() => navigate(`/dashboard/parent/child/${child._id}`)}
-                              title="View Details"
-                            >
-                              <FaEye className="me-1" />
-                              View
-                            </button>
-                            {child.status === "APPROVED" && (
-                              <>
-                                <button
-                                  className="btn btn-outline-info btn-sm"
-                                  onClick={() => navigate(`/dashboard/parent/child/${child._id}/attendance`)}
-                                  title="View Attendance"
-                                >
-                                  <FaCalendarCheck className="me-1" />
-                                  Attendance
-                                </button>
-                                <button
-                                  className="btn btn-outline-success btn-sm"
-                                  onClick={() => navigate(`/dashboard/parent/child/${child._id}/fees`)}
-                                  title="View Fees"
-                                >
-                                  <FaRupeeSign className="me-1" />
-                                  Fees
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+
+              <div className="parent-table-responsive">
+                {filteredChildren.length === 0 ? (
+                  <EmptyState
+                    icon={<FaChild style={{ color: BRAND_COLORS.primary.main }} />}
+                    title={children.length === 0 ? "No Children Found" : "No Children Match Your Search"}
+                    message={
+                      children.length === 0
+                        ? "No student accounts are linked to your parent account yet."
+                        : "Try adjusting your search or filter criteria."
+                    }
+                    success={false}
+                  />
+                ) : (
+                  <table className="parent-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredChildren.map((child, idx) => (
+                        <motion.tr
+                          key={child._id}
+                          variants={fadeInVariants}
+                          custom={idx}
+                          initial="hidden"
+                          animate="visible"
+                        >
+                          <td>
+                            <div className="parent-student-info">
+                              <div className="parent-student-avatar">
+                                {child.fullName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="parent-student-details">
+                                <div className="parent-student-name">{child.fullName}</div>
+                                <div className="parent-student-email">{child.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="parent-course-info">
+                              <div className="parent-course-name">{child.course_id?.name}</div>
+                              <div className="parent-course-semester">
+                                Semester {child.currentSemester}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`parent-status-badge ${getStatusClass(child.status)}`}>
+                              {getStatusLabel(child.status)}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="parent-action-buttons">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="parent-btn-view"
+                                onClick={() => navigate(`/dashboard/parent/child/${child._id}`)}
+                                title="View Details"
+                              >
+                                <FaEye />
+                                View
+                              </motion.button>
+                              {child.status === "APPROVED" && (
+                                <>
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="parent-btn-attendance"
+                                    onClick={() => navigate(`/dashboard/parent/child/${child._id}/attendance`)}
+                                    title="View Attendance"
+                                  >
+                                    <FaCalendarCheck />
+                                    Attendance
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="parent-btn-fees"
+                                    onClick={() => navigate(`/dashboard/parent/child/${child._id}/fees`)}
+                                    title="View Fees"
+                                  >
+                                    <FaRupeeSign />
+                                    Fees
+                                  </motion.button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          </motion.div>
         </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ================= EMPTY STATE ================= */
+function EmptyState({ icon, title, message, success = false }) {
+  return (
+    <div className="parent-empty-state">
+      <div className="parent-empty-icon" style={{ opacity: success ? 0.9 : 0.6, color: success ? BRAND_COLORS.success.main : '#e2e8f0' }}>
+        {icon}
       </div>
-
-      <style jsx>{`
-        .children-list-page {
-          padding: 20px;
-          background: #f8f9fa;
-          min-height: 100vh;
-        }
-
-        .erp-container {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .erp-page-title {
-          color: #2d3748;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-        }
-
-        .avatar-circle {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          font-size: 14px;
-        }
-
-        .card {
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .table th {
-          border-top: none;
-          font-weight: 600;
-          color: #495057;
-        }
-
-        .table td {
-          vertical-align: middle;
-        }
-
-        .btn-sm {
-          padding: 0.25rem 0.5rem;
-          font-size: 0.875rem;
-        }
-      `}</style>
+      <h4 className="parent-empty-title">{title}</h4>
+      <p className="parent-empty-message">{message}</p>
     </div>
   );
 }

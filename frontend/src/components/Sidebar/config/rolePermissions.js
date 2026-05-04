@@ -1,7 +1,7 @@
 /**
  * Role Permissions Configuration - Enterprise SaaS Standard
  * Defines access levels for each user role
- * 
+ *
  * Benefits:
  * - Single source of truth for role-based access
  * - Easy to modify permissions without touching components
@@ -24,15 +24,15 @@ export const rolePermissions = {
    * Full system access - manages all colleges
    */
   SUPER_ADMIN: {
-    displayName: 'System Administrator',
-    canAccess: ['all'],
-    canCreate: ['all'],
-    canEdit: ['all'],
-    canDelete: ['all'],
+    displayName: "System Administrator",
+    canAccess: ["all"],
+    canCreate: ["all"],
+    canEdit: ["all"],
+    canDelete: ["all"],
     canManageUsers: true,
     canManageColleges: true,
     canViewSystemReports: true,
-    canManageSystemSettings: true
+    canManageSystemSettings: true,
   },
 
   /**
@@ -40,46 +40,76 @@ export const rolePermissions = {
    * Full access within their own college
    */
   COLLEGE_ADMIN: {
-    displayName: 'College Administrator',
+    displayName: "College Administrator",
     canAccess: [
-      'college',
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'reports',
-      'notifications',
-      'system-settings'
+      "college",
+      "departments",
+      "courses",
+      "subjects",
+      "teachers",
+      "students",
+      "fee-structure",
+      "reports",
+      "notifications",
+      "system-settings",
     ],
     canCreate: [
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'notifications'
+      "departments",
+      "courses",
+      "subjects",
+      "teachers",
+      "students",
+      "fee-structure",
+      "notifications",
     ],
     canEdit: [
-      'college',
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'fee-structure',
-      'system-settings'
+      "college",
+      "departments",
+      "courses",
+      "subjects",
+      "teachers",
+      "students",
+      "fee-structure",
+      "system-settings",
     ],
     canDelete: [
-      'departments',
-      'courses',
-      'teachers',
-      'students',
-      'notifications'
+      "departments",
+      "courses",
+      "subjects",
+      "teachers",
+      "students",
+      "fee-structure",
+      "notifications",
     ],
     canManageUsers: false,
     canManageColleges: false,
     canViewSystemReports: false,
-    canManageSystemSettings: false
+    canManageSystemSettings: false,
+  },
+
+  /**
+   * PRINCIPAL
+   * Read-only access to all college data
+   */
+  PRINCIPAL: {
+    displayName: "Principal",
+    canAccess: [
+      "college-view",
+      "departments-view",
+      "courses-view",
+      "subjects-view",
+      "teachers-view",
+      "students-view",
+      "fees-view",
+      "reports-view",
+    ],
+    canCreate: [],
+    canEdit: [],
+    canDelete: [],
+    canManageUsers: false,
+    canManageColleges: false,
+    canViewSystemReports: true,
+    canManageSystemSettings: false,
   },
 
   /**
@@ -87,51 +117,106 @@ export const rolePermissions = {
    * Access to teaching-related features
    */
   TEACHER: {
-    displayName: 'Teacher',
+    displayName: "Teacher",
     canAccess: [
-      'profile-teacher',
-      'timetable-teacher',
-      'sessions-teacher',
-      'attendance-teacher',
-      'notifications-teacher'
+      "profile-teacher",
+      "timetable-teacher",
+      "sessions-teacher",
+      "attendance-teacher",
+      "notifications-teacher",
     ],
     canCreate: [
-      'timetable-teacher',
-      'sessions-teacher',
-      'notifications-teacher'
+      "timetable-teacher",
+      "sessions-teacher",
+      "notifications-teacher",
     ],
-    canEdit: [
-      'profile-teacher'
-    ],
+    canEdit: ["profile-teacher"],
     canDelete: [],
     canManageUsers: false,
     canManageColleges: false,
     canViewSystemReports: false,
-    canManageSystemSettings: false
+    canManageSystemSettings: false,
   },
 
-   /**
-    * STUDENT
-    * View-only access to personal information
-    */
+  /**
+   * STUDENT
+   * View-only access to personal information
+   */
   STUDENT: {
-    displayName: 'Student',
+    displayName: "Student",
     canAccess: [
-      'profile-student',
-      'timetable-student',
-      'fees-student',
-      'attendance-student',
-      'notifications-student'
+      "profile-student",
+      "timetable-student",
+      "fees-student",
+      "attendance-student",
+      "notifications-student",
     ],
     canCreate: [],
-    canEdit: [
-      'profile-student'
-    ],
+    canEdit: ["profile-student"],
     canDelete: [],
     canManageUsers: false,
     canManageColleges: false,
     canViewSystemReports: false,
-    canManageSystemSettings: false
+    canManageSystemSettings: false,
+  },
+
+  /**
+   * PLATFORM_SUPPORT
+   * System health monitoring, audit logs, support tickets
+   */
+  PLATFORM_SUPPORT: {
+    displayName: "Platform Support",
+    canAccess: [
+      "platform-support",
+      "platform-support-health",
+      "platform-support-audit-logs",
+      "platform-support-system-logs",
+      "platform-support-integrations",
+      "platform-support-tickets",
+      "platform-support-errors",
+      "platform-support-colleges",
+      "platform-support-database",
+      "platform-support-config",
+    ],
+    canCreate: ["platform-support-tickets", "platform-support-broadcast"],
+    canEdit: [],
+    canDelete: [],
+    canManageUsers: false,
+    canManageColleges: false,
+    canViewSystemReports: true,
+    canManageSystemSettings: false,
+  },
+
+  /**
+   * ACCOUNTANT
+   * Manages fee collection, payments, receipts, and financial reports
+   * Full access to fee structures and payment management
+   */
+  ACCOUNTANT: {
+    displayName: "Accountant",
+    canAccess: [
+      "fee-structure",
+      "payments",
+      "receipts",
+      "financial-reports",
+    ],
+    canCreate: [
+      "fee-structure",
+      "payments",
+      "receipts",
+    ],
+    canEdit: [
+      "fee-structure",
+      "payments",
+    ],
+    canDelete: [
+      "fee-structure",
+      "payments",
+    ],
+    canManageUsers: false,
+    canManageColleges: false,
+    canViewSystemReports: true,
+    canManageSystemSettings: false,
   },
 
   /**
@@ -140,16 +225,16 @@ export const rolePermissions = {
    * Access mirrors College Admin for student admission-related sections only
    */
   ADMISSION_OFFICER: {
-    displayName: 'Admission Officer',
-    canAccess: ['admission'],
+    displayName: "Admission Officer",
+    canAccess: ["admission"],
     canCreate: [],
-    canEdit: [],
+    canEdit: ["students"],
     canDelete: [],
     canManageUsers: false,
     canManageColleges: false,
     canViewSystemReports: false,
-    canManageSystemSettings: false
-  }
+    canManageSystemSettings: false,
+  },
 };
 
 /**
@@ -161,10 +246,10 @@ export const rolePermissions = {
 export const hasAccess = (role, sectionId) => {
   const permissions = rolePermissions[role];
   if (!permissions) return false;
-  
+
   // Super admin has access to everything
-  if (permissions.canAccess.includes('all')) return true;
-  
+  if (permissions.canAccess.includes("all")) return true;
+
   return permissions.canAccess.includes(sectionId);
 };
 
@@ -177,10 +262,10 @@ export const hasAccess = (role, sectionId) => {
 export const canCreate = (role, sectionId) => {
   const permissions = rolePermissions[role];
   if (!permissions) return false;
-  
+
   // Super admin can create everything
-  if (permissions.canCreate.includes('all')) return true;
-  
+  if (permissions.canCreate.includes("all")) return true;
+
   return permissions.canCreate.includes(sectionId);
 };
 
@@ -193,10 +278,10 @@ export const canCreate = (role, sectionId) => {
 export const canEdit = (role, sectionId) => {
   const permissions = rolePermissions[role];
   if (!permissions) return false;
-  
+
   // Super admin can edit everything
-  if (permissions.canEdit.includes('all')) return true;
-  
+  if (permissions.canEdit.includes("all")) return true;
+
   return permissions.canEdit.includes(sectionId);
 };
 
@@ -209,10 +294,10 @@ export const canEdit = (role, sectionId) => {
 export const canDelete = (role, sectionId) => {
   const permissions = rolePermissions[role];
   if (!permissions) return false;
-  
+
   // Super admin can delete everything
-  if (permissions.canDelete.includes('all')) return true;
-  
+  if (permissions.canDelete.includes("all")) return true;
+
   return permissions.canDelete.includes(sectionId);
 };
 
@@ -225,13 +310,13 @@ export const canDelete = (role, sectionId) => {
 export const filterSectionsByRole = (role, sections) => {
   const permissions = rolePermissions[role];
   if (!permissions) return [];
-  
+
   // Super admin sees all sections
-  if (permissions.canAccess.includes('all')) return sections;
-  
+  if (permissions.canAccess.includes("all")) return sections;
+
   // Filter sections based on canAccess array
-  return sections.filter(section => 
-    permissions.canAccess.includes(section.id)
+  return sections.filter((section) =>
+    permissions.canAccess.includes(section.id),
   );
 };
 
@@ -242,7 +327,7 @@ export const filterSectionsByRole = (role, sections) => {
  */
 export const getRoleDisplayName = (role) => {
   const permissions = rolePermissions[role];
-  return permissions?.displayName || role?.replace('_', ' ') || 'User';
+  return permissions?.displayName || role?.replace("_", " ") || "User";
 };
 
 export default rolePermissions;
