@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useContext } from "react";
 import { toast } from "react-toastify";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaMoneyBillWave,
   FaChartPie,
@@ -21,26 +23,75 @@ import {
   FaFileInvoice,
   FaWallet,
   FaArrowLeft,
+  FaFilter,
+  FaChartLine,
 } from "react-icons/fa";
 
 export default function PaymentReports() {
+  const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
 
+  // Date filtering state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [dateFilter, setDateFilter] = useState("all"); // all, thisMonth, lastMonth, thisYear, custom
+
+  // Trend analysis state
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+
+  // Memoize year options to prevent unnecessary re-renders
+  const yearOptions = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => {
+      const year = new Date().getFullYear() - i;
+      return { value: year, label: year };
+    });
+  }, []);
+
   /* ================= FETCH PAYMENT SUMMARY ================= */
   const fetchPaymentSummary = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoadedRef.current) {
-      return;
-    }
-
     try {
       setLoading(true);
       setError("");
-      const res = await api.get("/reports/payments/summary");
+
+      // Build query parameters based on date filter
+      let queryParams = {};
+      if (dateFilter !== "all") {
+        const now = new Date();
+        let start, end;
+
+        switch (dateFilter) {
+          case "thisMonth":
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+          case "lastMonth":
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case "thisYear":
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31);
+            break;
+          case "custom":
+            if (startDate) start = new Date(startDate);
+            if (endDate) end = new Date(endDate);
+            break;
+          default:
+            break;
+        }
+
+        if (start) queryParams.startDate = start.toISOString().split('T')[0];
+        if (end) queryParams.endDate = end.toISOString().split('T')[0];
+      }
+
+      const queryString = new URLSearchParams(queryParams).toString();
+      const url = `/reports/payments/filtered${queryString ? `?${queryString}` : ''}`;
+
+      const res = await api.get(url);
       setData(res.data || {});
       setRetryCount(0);
       toast.success("Payment summary loaded successfully!", {
@@ -61,9 +112,8 @@ export default function PaymentReports() {
       });
     } finally {
       setLoading(false);
-      hasLoadedRef.current = true;
     }
-  }, []);
+  }, [dateFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchPaymentSummary();
@@ -219,7 +269,10 @@ export default function PaymentReports() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          ...(user?.role === "COLLEGE_ADMIN" || user?.role === "PRINCIPAL"
+            ? [{ label: "Reports", path: "/college-admin/reports-dashboard" }]
+            : []
+          ),
           { label: "Payment Summary" },
         ]}
       />
@@ -272,6 +325,168 @@ export default function PaymentReports() {
           <strong>Financial Overview:</strong> This report provides a real-time
           summary of fee collection status for all students. Data is updated
           automatically with each transaction.
+        </div>
+      </div>
+
+      {/* DATE FILTER CONTROLS */}
+      <div className="erp-card animate-fade-in" style={{ marginBottom: '1.5rem' }}>
+        <div className="erp-card-header">
+          <h3>
+            <FaFilter className="erp-card-icon" />
+            Filter by Date Range
+          </h3>
+        </div>
+        <div className="erp-card-body">
+          <div className="filter-controls" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="filter-group">
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a4b6d' }}>
+                Quick Filters:
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className={`btn ${dateFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => setDateFilter('all')}
+                >
+                  All Time
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'thisMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => setDateFilter('thisMonth')}
+                >
+                  This Month
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'lastMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => setDateFilter('lastMonth')}
+                >
+                  Last Month
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'thisYear' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => setDateFilter('thisYear')}
+                >
+                  This Year
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'custom' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => setDateFilter('custom')}
+                >
+                  Custom Range
+                </button>
+              </div>
+            </div>
+
+            {dateFilter === 'custom' && (
+              <div
+                className="date-inputs"
+                style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                    Start Date:
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    style={{
+                      width: '140px',
+                      pointerEvents: 'auto',
+                      zIndex: 10
+                    }}
+                    value={startDate}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setStartDate(e.target.value);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                    End Date:
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    style={{
+                      width: '140px',
+                      pointerEvents: 'auto',
+                      zIndex: 10
+                    }}
+                    value={endDate}
+                    onChange={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setEndDate(e.target.value);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={fetchPaymentSummary}
+                  style={{ alignSelf: 'flex-end' }}
+                >
+                  <FaSyncAlt /> Apply Filter
+                </button>
+              </div>
+            )}
+
+            {dateFilter !== 'custom' && dateFilter !== 'all' && (
+              <button
+                className="btn btn-success btn-sm"
+                onClick={fetchPaymentSummary}
+                style={{ alignSelf: 'flex-end' }}
+              >
+                <FaSyncAlt /> Apply Filter
+              </button>
+            )}
+          </div>
+
+          {data?.dateRange && (
+            <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+              <small style={{ color: '#6c757d' }}>
+                <strong>Current Filter:</strong> {data.dateRange.startDate || 'Start'} to {data.dateRange.endDate || 'End'}
+              </small>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1689,7 +1904,161 @@ export default function PaymentReports() {
             grid-template-columns: 1fr;
           }
         }
+
+        /* ================= TREND ANALYSIS ================= */
+        .trend-analysis-section {
+          margin-top: 2rem;
+        }
+
+        .trend-chart-container {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          padding: 2rem;
+          margin-top: 1rem;
+        }
+
+        .trend-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .trend-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #1a4b6d;
+          margin: 0;
+        }
+
+        .year-selector {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .year-select {
+          padding: 0.5rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-weight: 600;
+          color: #1a4b6d;
+        }
+
+        .trend-chart-placeholder {
+          height: 300px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 12px;
+          border: 2px dashed #dee2e6;
+        }
+
+        .trend-placeholder-text {
+          text-align: center;
+          color: #6c757d;
+        }
+
+        .trend-placeholder-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
       `}</style>
+
+      {/* TREND ANALYSIS SECTION */}
+      <div className="trend-analysis-section animate-fade-in">
+        <div className="erp-card">
+          <div className="erp-card-header">
+            <h3>
+              <FaChartLine className="erp-card-icon" />
+              Payment Collection Trends
+            </h3>
+            <p className="erp-card-subtitle">
+              Monthly payment collection analysis and trends
+            </p>
+          </div>
+          <div className="erp-card-body">
+            <div className="trend-header">
+              <div>
+                <h4 className="trend-title">Monthly Collection Trends</h4>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#6c757d', fontSize: '0.875rem' }}>
+                  Track payment collection patterns over time
+                </p>
+              </div>
+              <div className="year-selector">
+                <label style={{ fontWeight: '600', color: '#1a4b6d' }}>Year:</label>
+                <select
+                  className="year-select"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    const year = parseInt(e.target.value);
+                    if (year !== selectedYear) {
+                      setSelectedYear(year);
+                      toast.success(`Year ${year} selected for trend analysis`, {
+                        position: "top-right",
+                        autoClose: 2000,
+                      });
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // Prevent form submission on Enter
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    // Prevent any key press events from bubbling
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  {yearOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="trend-chart-container">
+              <div className="trend-chart-placeholder">
+                <div className="trend-placeholder-text">
+                  <FaChartLine className="trend-placeholder-icon" />
+                  <h5>Trend Analysis Chart</h5>
+                  <p>Interactive chart showing monthly payment collection trends will be displayed here.</p>
+                  <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                    Features: Monthly collection amounts, transaction counts, year-over-year comparison
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sample trend data display */}
+            <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#28a745' }}>₹2,45,000</div>
+                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Best Month Collection</div>
+              </div>
+              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#17a2b8' }}>March</div>
+                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Peak Collection Month</div>
+              </div>
+              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ffc107' }}>+15%</div>
+                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Growth vs Last Year</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

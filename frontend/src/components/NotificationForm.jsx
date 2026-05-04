@@ -57,9 +57,9 @@ const ROLE_CONFIG = {
     listRoute: "/teacher/notifications/list",
     canCreate: true,
     canEdit: true,
-    canTarget: false,
+    canTarget: true,
     placeholder: "students",
-    successMessage: "Notification sent successfully to all students!",
+    successMessage: "Notification sent successfully to students!",
     editSuccessMessage: "Notification updated successfully!",
   },
 };
@@ -180,7 +180,7 @@ export default function NotificationForm({
     type: "GENERAL",
     priority: mode === "edit" ? "NORMAL" : "LOW",
     expiresAt: "",
-    target: "ALL",
+    target: role === "teacher" ? "STUDENTS" : "ALL",
     target_department: "",
     target_course: "",
     target_semester: "",
@@ -352,7 +352,7 @@ export default function NotificationForm({
             type: "GENERAL",
             priority: "LOW",
             expiresAt: "",
-            target: "ALL",
+            target: "STUDENTS",
             target_department: "",
             target_course: "",
             target_semester: "",
@@ -389,7 +389,7 @@ export default function NotificationForm({
             expiresAt: new Date(new Date().setDate(new Date().getDate() + 7))
               .toISOString()
               .slice(0, 16),
-            target: "ALL",
+            target: "STUDENTS",
             target_department: "",
             target_course: "",
             target_semester: "",
@@ -1137,6 +1137,78 @@ export default function NotificationForm({
                             <FaChalkboardTeacher /> Teachers Only
                           </label>
                         </div>
+
+                        {/* DEPARTMENT Option - Available for both admin and teacher */}
+                        {(role === "college-admin" || role === "teacher") && (
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="target"
+                                value="DEPARTMENT"
+                                checked={form.target === "DEPARTMENT"}
+                                onChange={handleChange}
+                              />
+                              <FaUsers /> Specific Department
+                            </label>
+                          </div>
+                        )}
+
+                        {/* COURSE Option - Available for both admin and teacher */}
+                        {(role === "college-admin" || role === "teacher") && (
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="target"
+                                value="COURSE"
+                                checked={form.target === "COURSE"}
+                                onChange={handleChange}
+                              />
+                              <FaGraduationCap /> Specific Course
+                            </label>
+                          </div>
+                        )}
+
+                        {/* SEMESTER Option - Available for both admin and teacher */}
+                        {(role === "college-admin" || role === "teacher") && (
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="target"
+                                value="SEMESTER"
+                                checked={form.target === "SEMESTER"}
+                                onChange={handleChange}
+                              />
+                              <FaCalendarAlt /> Specific Semester
+                            </label>
+                          </div>
+                        )}
 
                         {form.target === "DEPARTMENT" && (
                           <div

@@ -3,11 +3,100 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
-import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
-import { FaSave, FaArrowLeft } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import "../College-Admin/Dashboard.css";
 
+import {
+  FaSave,
+  FaArrowLeft,
+  FaUserPlus,
+  FaCheckCircle,
+  FaSyncAlt,
+  FaExclamationTriangle,
+  FaEye,
+  FaEyeSlash
+} from "react-icons/fa";
+
+// Brand Color Palette - Matching Application Theme
 const BRAND_COLORS = {
-  primary: { main: "#1a4b6d", gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)" },
+  primary: {
+    main: '#1a4b6d',
+    dark: '#0f3a4a',
+    light: '#2a6b8d',
+    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+  },
+  success: {
+    main: '#28a745',
+    dark: '#218838',
+    light: '#28a745',
+    gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)'
+  },
+  info: {
+    main: '#17a2b8',
+    dark: '#138496',
+    light: '#17a2b8',
+    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+  },
+  warning: {
+    main: '#ffc107',
+    dark: '#e0a800',
+    light: '#ffc107',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+  },
+  danger: {
+    main: '#dc3545',
+    dark: '#c82333',
+    light: '#dc3545',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+  },
+  secondary: {
+    main: '#6c757d',
+    dark: '#545b62',
+    light: '#868e96',
+    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
+  }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
 };
 
 export default function EditStaffProfile() {
@@ -32,6 +121,10 @@ export default function EditStaffProfile() {
   }, [currentUser, actualUserId, navigate]);
 
   const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    // Profile fields
     mobileNumber: "",
     designation: "",
     employmentType: "FULL_TIME",
@@ -49,7 +142,9 @@ export default function EditStaffProfile() {
     qualification: "",
     experienceYears: "",
   });
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
@@ -57,16 +152,22 @@ export default function EditStaffProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(`/staff/profile/${actualUserId}`);
-        const p = res.data.data;
+        console.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
+        setLoading(true);
+        const res = await api.get(`/college/staff/profile/${actualUserId}`);
+        console.log("[EditStaffProfile] API response:", res.data);
+        const p = res.data.data || res.data;
         if (p) {
           setFormData({
+            name: p.name || "",
+            email: p.email || "",
+            role: p.role || "",
             mobileNumber: p.mobileNumber || "",
             designation: p.designation || "",
             employmentType: p.employmentType || "FULL_TIME",
-            joiningDate: p.joiningDate ? p.joiningDate.split("T")[0] : "",
+            joiningDate: p.joiningDate ? new Date(p.joiningDate).toISOString().split('T')[0] : "",
             gender: p.gender || "",
-            dateOfBirth: p.dateOfBirth ? p.dateOfBirth.split("T")[0] : "",
+            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : "",
             bloodGroup: p.bloodGroup || "",
             address: p.address || "",
             city: p.city || "",
@@ -80,7 +181,10 @@ export default function EditStaffProfile() {
           });
         }
       } catch (err) {
+        console.error("[EditStaffProfile] API error:", err);
         setError(err.response?.data?.message || "Failed to load profile");
+      } finally {
+        setLoading(false);
       }
     };
     if (actualUserId) fetchProfile();
@@ -92,7 +196,7 @@ export default function EditStaffProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError(null);
     setSuccess(false);
 
@@ -101,273 +205,654 @@ export default function EditStaffProfile() {
         ...formData,
         experienceYears: formData.experienceYears ? Number(formData.experienceYears) : 0,
       };
-      await api.put(`/staff/profile/${actualUserId}`, payload);
+      console.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
+      const res = await api.put(`/college/staff/profile/${actualUserId}`, payload);
+      console.log("[EditStaffProfile] Update response:", res.data);
       setSuccess(true);
       setTimeout(() => navigate(`/staff/profile/${actualUserId}`), 1500);
     } catch (err) {
+      console.error("[EditStaffProfile] Update error:", err);
       setError(err.response?.data?.message || "Update failed");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  if (loading) return <Loading fullScreen size="lg" text="Loading staff profile..." />;
+
   return (
-    <Container className="p-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <Button variant="outline-secondary" size="sm" onClick={() => navigate(-1)} className="mb-2">
-            <FaArrowLeft /> Back
-          </Button>
-          <h2 style={{ color: BRAND_COLORS.primary.main }}>
-            <FaSave className="me-2" /> Edit Staff Profile
-          </h2>
-        </div>
-      </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="dashboard-wrapper"
+      >
+        <div className="dashboard-container-inner">
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            className="dashboard-header"
+          >
+            {/* Hero Section */}
+            <div className="dashboard-header-hero">
+              <div className="row g-3 g-sm-4 align-items-center">
+                <div className="col-12 col-md-7 col-lg-8">
+                  <div className="d-flex align-items-center gap-3">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="initial"
+                      animate="pulse"
+                      className="header-icon-wrapper"
+                    >
+                      <FaSave />
+                    </motion.div>
+                    <div className="header-title-section">
+                      <h1 className="header-title">
+                        Edit Staff Profile
+                      </h1>
+                      <p className="header-subtitle">
+                        Update staff member information and credentials
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-md-5 col-lg-4">
+                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate(`/staff/profile/${actualUserId}`)}
+                      className="dashboard-btn btn-profile"
+                      onFocus={(e) => {
+                        e.target.style.outline = '2px solid #1a4b6d';
+                        e.target.style.outlineOffset = '2px';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.outline = 'none';
+                      }}
+                    >
+                      <FaArrowLeft className="me-1" />
+                      <span className="btn-text">Back to Profile</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
-      <Card className="shadow-sm" style={{ borderRadius: "1rem" }}>
-        <Card.Body>
-          <Form onSubmit={handleSubmit}>
-            <Row xs={1} md={2} className="g-3">
-              {/* Mobile */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Mobile Number</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="mobileNumber"
-                    value={formData.mobileNumber}
-                    onChange={handleChange}
-                    placeholder="10-digit mobile"
-                  />
-                </Form.Group>
-              </Col>
+          {/* ================= FORM CONTENT ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+          >
+            <form onSubmit={handleSubmit}>
+              <div className="row g-3 g-md-4">
+              {/* Basic Information */}
+              <div className="col-12">
+                <SectionCard
+                  title="Basic Information"
+                  icon={<FaUserPlus />}
+                  subtitle="Core staff details and credentials"
+                  color={BRAND_COLORS.primary.main}
+                >
+                  <div className="section-card-body">
+                    <div className="row g-3">
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Full Name"
+                          required
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="name"
+                            placeholder="Enter full name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Email Address"
+                          required
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="email"
+                            name="email"
+                            placeholder="Enter email address"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="Role"
+                          required
+                          icon={<FaUserPlus />}
+                        >
+                          <select
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            className="form-select"
+                            required
+                          >
+                            <option value="">Select Role</option>
+                            <option value="ACCOUNTANT">Accountant</option>
+                            <option value="ADMISSION_OFFICER">Admission Officer</option>
+                            <option value="PRINCIPAL">Principal</option>
+                            <option value="HOD">Head of Department</option>
+                            <option value="EXAM_COORDINATOR">Exam Coordinator</option>
+                            <option value="PLATFORM_SUPPORT">Platform Support</option>
+                          </select>
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="Mobile Number"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="tel"
+                            name="mobileNumber"
+                            placeholder="10-digit mobile number"
+                            value={formData.mobileNumber}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="Designation"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="designation"
+                            placeholder="e.g., Senior Accountant"
+                            value={formData.designation}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
 
-              {/* Designation */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Designation</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="designation"
-                    value={formData.designation}
-                    onChange={handleChange}
-                    placeholder="e.g., Senior Accountant"
-                  />
-                </Form.Group>
-              </Col>
+              {/* Employment Information */}
+              <div className="col-12 col-lg-6">
+                <SectionCard
+                  title="Employment Details"
+                  icon={<FaUserPlus />}
+                  subtitle="Work-related information"
+                  color={BRAND_COLORS.info.main}
+                >
+                  <div className="section-card-body">
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <FormField
+                          label="Employment Type"
+                          icon={<FaUserPlus />}
+                        >
+                          <select
+                            name="employmentType"
+                            value={formData.employmentType}
+                            onChange={handleChange}
+                            className="form-select"
+                          >
+                            <option value="FULL_TIME">Full Time</option>
+                            <option value="PART_TIME">Part Time</option>
+                            <option value="CONTRACT">Contract</option>
+                            <option value="INTERN">Intern</option>
+                          </select>
+                        </FormField>
+                      </div>
+                      <div className="col-12">
+                        <FormField
+                          label="Joining Date"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="date"
+                            name="joiningDate"
+                            value={formData.joiningDate}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12">
+                        <FormField
+                          label="Experience (Years)"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="number"
+                            name="experienceYears"
+                            placeholder="0"
+                            min="0"
+                            value={formData.experienceYears}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
 
-              {/* Employment Type */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Employment Type</Form.Label>
-                  <Form.Select
-                    name="employmentType"
-                    value={formData.employmentType}
-                    onChange={handleChange}
-                  >
-                    <option value="FULL_TIME">Full Time</option>
-                    <option value="PART_TIME">Part Time</option>
-                    <option value="CONTRACT">Contract</option>
-                    <option value="INTERN">Intern</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
+              {/* Personal Information */}
+              <div className="col-12 col-lg-6">
+                <SectionCard
+                  title="Personal Information"
+                  icon={<FaUserPlus />}
+                  subtitle="Additional personal details"
+                  color={BRAND_COLORS.success.main}
+                >
+                  <div className="section-card-body">
+                    <div className="row g-3">
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Gender"
+                          icon={<FaUserPlus />}
+                        >
+                          <select
+                            name="gender"
+                            value={formData.gender}
+                            onChange={handleChange}
+                            className="form-select"
+                          >
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Date of Birth"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="date"
+                            name="dateOfBirth"
+                            value={formData.dateOfBirth}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Blood Group"
+                          icon={<FaUserPlus />}
+                        >
+                          <select
+                            name="bloodGroup"
+                            value={formData.bloodGroup}
+                            onChange={handleChange}
+                            className="form-select"
+                          >
+                            <option value="">Select Blood Group</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Qualification"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="qualification"
+                            placeholder="e.g., B.Com, MCA"
+                            value={formData.qualification}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
 
-              {/* Joining Date */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Joining Date</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="joiningDate"
-                    value={formData.joiningDate}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Gender */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Gender</Form.Label>
-                  <Form.Select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
-              {/* DOB */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Date of Birth</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Blood Group */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Blood Group</Form.Label>
-                  <Form.Select
-                    name="bloodGroup"
-                    value={formData.bloodGroup}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
-              {/* Qualification */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Qualification</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="qualification"
-                    value={formData.qualification}
-                    onChange={handleChange}
-                    placeholder="e.g., B.Com, MCA"
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Experience */}
-              <Col>
-                <Form.Group>
-                  <Form.Label>Experience (Years)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="experienceYears"
-                    min="0"
-                    value={formData.experienceYears}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Address (full width) */}
-              <Col xs={12}>
-                <Form.Group>
-                  <Form.Label>Address</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={2}
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Full address"
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* City, State, Pincode */}
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>City</Form.Label>
-                  <Form.Control type="text" name="city" value={formData.city} onChange={handleChange} />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>State</Form.Label>
-                  <Form.Control type="text" name="state" value={formData.state} onChange={handleChange} />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Pincode</Form.Label>
-                  <Form.Control type="text" name="pincode" value={formData.pincode} onChange={handleChange} />
-                </Form.Group>
-              </Col>
+              {/* Address Information */}
+              <div className="col-12 col-lg-6">
+                <SectionCard
+                  title="Address Information"
+                  icon={<FaUserPlus />}
+                  subtitle="Complete address details"
+                  color={BRAND_COLORS.warning.main}
+                >
+                  <div className="section-card-body">
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <FormField
+                          label="Address"
+                          icon={<FaUserPlus />}
+                        >
+                          <textarea
+                            rows={3}
+                            name="address"
+                            placeholder="Full address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="City"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="city"
+                            placeholder="City"
+                            value={formData.city}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="State"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="state"
+                            placeholder="State"
+                            value={formData.state}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <FormField
+                          label="Pincode"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="pincode"
+                            placeholder="PIN"
+                            value={formData.pincode}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
 
               {/* Emergency Contact */}
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Emergency Contact Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="emergencyContactName"
-                    value={formData.emergencyContactName}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Emergency Contact Phone</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="emergencyContactPhone"
-                    value={formData.emergencyContactPhone}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Relation</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="emergencyRelation"
-                    value={formData.emergencyRelation}
-                    onChange={handleChange}
-                    placeholder="e.g., Father"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+              <div className="col-12 col-lg-6">
+                <SectionCard
+                  title="Emergency Contact"
+                  icon={<FaUserPlus />}
+                  subtitle="Emergency contact information"
+                  color={BRAND_COLORS.secondary.main}
+                >
+                  <div className="section-card-body">
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <FormField
+                          label="Contact Name"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="emergencyContactName"
+                            placeholder="Emergency contact person"
+                            value={formData.emergencyContactName}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Contact Phone"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="tel"
+                            name="emergencyContactPhone"
+                            placeholder="Phone number"
+                            value={formData.emergencyContactPhone}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <FormField
+                          label="Relation"
+                          icon={<FaUserPlus />}
+                        >
+                          <input
+                            type="text"
+                            name="emergencyRelation"
+                            placeholder="e.g., Father, Spouse"
+                            value={formData.emergencyRelation}
+                            onChange={handleChange}
+                            className="form-control"
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
 
-            {/* Error */}
-            {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
-
-            {/* Success */}
-            {success && (
-              <Alert variant="success" className="mt-3">
-                Profile updated successfully! Redirecting...
-              </Alert>
-            )}
-
-            {/* Actions */}
-            <div className="mt-4 text-end">
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={loading}
-                style={{
-                  background: BRAND_COLORS.primary.gradient,
-                  border: "none",
-                  padding: "0.75rem 2rem",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                }}
-              >
-                {loading ? "Saving..." : <> <FaSave className="me-2" /> Save Changes </>}
-              </Button>
+              {/* Submit Section */}
+              <div className="col-12">
+                <motion.div
+                  variants={fadeInVariants}
+                  custom={2}
+                  initial="hidden"
+                  animate="visible"
+                  className="d-flex justify-content-end gap-3"
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/staff/profile/${actualUserId}`)}
+                    className="dashboard-btn btn-outline"
+                  >
+                    <FaArrowLeft className="me-1" />
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={saving}
+                    className="dashboard-btn"
+                    style={{
+                      background: BRAND_COLORS.primary.gradient,
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.75rem 2rem',
+                      borderRadius: '0.5rem',
+                      fontWeight: 600,
+                      minHeight: '48px',
+                      minWidth: '200px'
+                    }}
+                  >
+                    {saving ? (
+                      <>
+                        <motion.div variants={spinVariants} animate="animate" style={{ display: 'inline-block' }}>
+                          <FaSyncAlt />
+                        </motion.div>
+                        <span className="ms-2">Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaSave className="me-1" />
+                        Update Profile
+                      </>
+                    )}
+                  </motion.button>
+                </motion.div>
+              </div>
             </div>
-          </Form>
-        </Card.Body>
-      </Card>
-    </Container>
+          </form>
+          </motion.div>
+
+          {/* ================= SUCCESS MESSAGE ================= */}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mt-4"
+              >
+                <div
+                  className="alert alert-success d-flex align-items-center gap-3"
+                  style={{ borderRadius: '0.75rem' }}
+                >
+                  <div
+                    className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      background: BRAND_COLORS.success.gradient,
+                      color: 'white'
+                    }}
+                  >
+                    <FaCheckCircle />
+                  </div>
+                  <div className="flex-grow-1">
+                    <strong>Success!</strong> Staff profile updated successfully.
+                    <div className="mt-2">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate(`/staff/profile/${actualUserId}`)}
+                        className="btn btn-sm"
+                        style={{
+                          background: BRAND_COLORS.success.main,
+                          color: 'white',
+                          border: 'none'
+                        }}
+                      >
+                        View Updated Profile
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ================= ERROR DISPLAY ================= */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mt-4"
+              >
+                <ErrorDisplay message={error} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ================= FORM FIELD COMPONENT ================= */
+function FormField({ label, required, icon, children }) {
+  return (
+    <div className="form-group">
+      <label className="form-label d-flex align-items-center gap-2">
+        {icon && <span style={{ color: BRAND_COLORS.primary.main, fontSize: '1rem' }}>{icon}</span>}
+        {label}
+        {required && <span style={{ color: BRAND_COLORS.danger.main }}>*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+/* ================= SECTION CARD COMPONENT ================= */
+function SectionCard({ title, icon, subtitle, color, children }) {
+  return (
+    <div className="section-card">
+      <div className="section-card-header">
+        <h3 className="section-card-title">
+          <span className="section-card-icon" style={{ color }}>{icon}</span>
+          {title}
+        </h3>
+        {subtitle && (
+          <span className="section-card-subtitle">
+            {subtitle}
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ================= ERROR DISPLAY COMPONENT ================= */
+function ErrorDisplay({ message }) {
+  return (
+    <div
+      className="alert alert-danger d-flex align-items-center gap-3"
+      style={{ borderRadius: '0.75rem' }}
+    >
+      <div
+        className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
+        style={{
+          width: '40px',
+          height: '40px',
+          background: BRAND_COLORS.danger.gradient,
+          color: 'white'
+        }}
+      >
+        <FaExclamationTriangle />
+      </div>
+      <div className="flex-grow-1">
+        <strong>Error:</strong> {message}
+      </div>
+    </div>
   );
 }

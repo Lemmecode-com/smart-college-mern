@@ -130,6 +130,12 @@ app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
 /* ================= AUDIT LOGS (Admin Actions) ================= */
 app.use("/api/audit-logs", require("./src/routes/auditLog.routes"));
 
+/* ================= PLATFORM SUPPORT ================= */
+app.use(
+  "/api/platform-support",
+  require("./src/routes/platformSupport.routes")
+);
+
 /* ================= STRIPE ================= */
 app.use("/api/stripe", require("./src/routes/stripe.routes"));
 app.use(

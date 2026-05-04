@@ -124,7 +124,7 @@ exports.createStaff = async (req, res, next) => {
             emergencyContactPhone: emergencyContactPhone || "",
             emergencyRelation: emergencyRelation || "",
             qualification: qualification || "",
-            experienceYears: experienceYears || 0,
+             experienceYears: parseInt(experienceYears) || 0,
           },
         ],
         { session }
@@ -205,6 +205,144 @@ exports.listStaff = async (req, res, next) => {
       success: true,
       data: staffList,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/college/staff/:id
+ * Get individual staff profile details
+ */
+exports.getStaffProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Find the user
+    const user = await User.findOne({
+      _id: id,
+      college_id: req.user.college_id,
+      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+    });
+
+    if (!user) {
+      return next(new AppError("Staff member not found", 404, "STAFF_NOT_FOUND"));
+    }
+
+    // Find the staff profile
+    const profile = await StaffProfile.findOne({
+      user_id: id,
+      college_id: req.user.college_id,
+    });
+
+    // Combine user and profile data
+    const staffData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+      createdAt: user.createdAt,
+      // Profile fields (may be empty)
+      mobileNumber: profile?.mobileNumber || "",
+      designation: profile?.designation || "",
+      employmentType: profile?.employmentType || "FULL_TIME",
+      joiningDate: profile?.joiningDate || null,
+      gender: profile?.gender || "",
+      dateOfBirth: profile?.dateOfBirth || null,
+      bloodGroup: profile?.bloodGroup || "",
+      address: profile?.address || "",
+      city: profile?.city || "",
+      state: profile?.state || "",
+      pincode: profile?.pincode || "",
+      emergencyContactName: profile?.emergencyContactName || "",
+      emergencyContactPhone: profile?.emergencyContactPhone || "",
+      emergencyRelation: profile?.emergencyRelation || "",
+      qualification: profile?.qualification || "",
+      experienceYears: profile?.experienceYears || 0,
+    };
+
+    res.json({
+      success: true,
+      data: staffData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/college/staff/:id
+ * Update staff profile details
+ */
+exports.updateStaffProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Find the user first to verify ownership
+    const user = await User.findOne({
+      _id: id,
+      college_id: req.user.college_id,
+      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+    });
+
+    if (!user) {
+      return next(new AppError("Staff member not found", 404, "STAFF_NOT_FOUND"));
+    }
+
+    // Separate user fields from profile fields
+    const userFields = {};
+    const profileFields = {};
+
+    // Define which fields belong to User vs StaffProfile
+    const userFieldNames = ['name', 'email', 'role', 'isActive'];
+    const profileFieldNames = [
+      'mobileNumber', 'designation', 'employmentType', 'joiningDate',
+      'gender', 'dateOfBirth', 'bloodGroup', 'address', 'city', 'state', 'pincode',
+      'emergencyContactName', 'emergencyContactPhone', 'emergencyRelation',
+      'qualification', 'experienceYears'
+    ];
+
+    // Split the data
+    Object.keys(updateData).forEach(key => {
+      if (userFieldNames.includes(key)) {
+        userFields[key] = updateData[key];
+      } else if (profileFieldNames.includes(key)) {
+        profileFields[key] = updateData[key];
+      }
+    });
+
+    // Start transaction for atomic updates
+    const session = await User.startSession();
+    session.startTransaction();
+
+    try {
+      // Update user fields if any
+      if (Object.keys(userFields).length > 0) {
+        await User.findByIdAndUpdate(id, userFields, { session, new: true });
+      }
+
+      // Update or create staff profile
+      await StaffProfile.findOneAndUpdate(
+        { user_id: id, college_id: req.user.college_id },
+        { ...profileFields, user_id: id, college_id: req.user.college_id },
+        { session, upsert: true, new: true }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.json({
+        success: true,
+        message: "Staff profile updated successfully",
+      });
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      throw err;
+    }
   } catch (error) {
     next(error);
   }
