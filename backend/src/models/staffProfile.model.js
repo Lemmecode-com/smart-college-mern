@@ -22,11 +22,11 @@ const staffProfileSchema = new mongoose.Schema({
   },
   joiningDate: Date,
   // Personal details (optional)
-  gender: { type: String, enum: ["Male", "Female", "Other"], default: "" },
+  gender: { type: String, enum: ["", "Male", "Female", "Other"], default: "" },
   dateOfBirth: Date,
   bloodGroup: {
     type: String,
-    enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
+    enum: ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
     default: "",
   },
   address: { type: String, default: "" },

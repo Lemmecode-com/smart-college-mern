@@ -44,7 +44,7 @@ export default function FeeReceipt() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN")
+  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT")
     return <Navigate to="/dashboard" replace />;
 
   /* ================= EARLY VALIDATION - PAYMENT ID ================= */
@@ -161,7 +161,7 @@ export default function FeeReceipt() {
 
         // Use different endpoints based on user role
         const endpoint =
-          user.role === "COLLEGE_ADMIN"
+          (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
             ? `/admin/payments/receipt/${paymentId}`
             : `/student/payments/receipt/${paymentId}`;
 
@@ -249,7 +249,7 @@ export default function FeeReceipt() {
 
   // Handle go back action
   const handleGoBack = () => {
-    if (user.role === "COLLEGE_ADMIN") {
+    if (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT") {
       navigate("/college-admin/payment-history");
     } else {
       navigate("/student/fees");
@@ -488,18 +488,18 @@ export default function FeeReceipt() {
       <div className="mb-3">
         <button
           className="btn-back-to-fees"
-          onClick={() =>
-            user.role === "COLLEGE_ADMIN"
-              ? navigate("/college-admin/payment-history")
-              : navigate("/student/fees")
-          }
+            onClick={() =>
+              (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
+                ? navigate("/college-admin/payment-history")
+                : navigate("/student/fees")
+            }
           aria-label="Go back to fees page"
-        >
-          <FaArrowLeft className="me-1" aria-hidden="true" />{" "}
-          {user.role === "COLLEGE_ADMIN"
-            ? "Back to Payment History"
-            : "Back to Fees"}
-        </button>
+          >
+            <FaArrowLeft />{" "}
+            {(user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
+              ? "Back to Payment History"
+              : "Back to Fees"}
+          </button>
       </div>
 
       {/* Skip Link for Screen Readers */}

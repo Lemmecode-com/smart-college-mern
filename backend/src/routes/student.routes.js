@@ -26,6 +26,7 @@ const {
   moveToAlumni,
   getAlumni,
   getDeactivatedStudents,
+  searchStudents,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -198,6 +199,15 @@ router.get(
   role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getDeactivatedStudents,
+);
+
+// 🔍 ACCOUNTANT/COLLEGE_ADMIN/PRINCIPAL: Search students by name/email
+router.get(
+  "/search",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  searchStudents,
 );
 
 module.exports = router;

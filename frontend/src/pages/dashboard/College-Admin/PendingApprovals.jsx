@@ -7,6 +7,7 @@ import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaSearch,
@@ -36,6 +37,8 @@ const PAGE_SIZE = 5;
 export default function PendingApprovals({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
+  const canApprove = canEdit('students');
 
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
@@ -66,6 +69,10 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
     return <Navigate to="/dashboard" />;
   }
   // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
+  // Additional check: redirect PRINCIPAL to their dashboard if not in admissionOfficerMode
+  if (!admissionOfficerMode && user.role === "PRINCIPAL") {
+    return <Navigate to="/dashboard/principal" replace />;
+  }
 
   /* ================= FETCH PENDING STUDENTS ================= */
   const fetchPendingStudents = async () => {
@@ -435,7 +442,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
               />
               Select All ({paginatedStudents.length})
             </label>
-            {selectedStudents.size > 0 && (
+            {selectedStudents.size > 0 && canEdit('students') && (
               <button
                 className="btn btn-bulk-approve"
                 onClick={handleBulkApprove}
@@ -484,23 +491,25 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
             </div>
           ) : (
             <div className="table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th className="th-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedStudents.length > 0 &&
-                          selectedStudents.size === paginatedStudents.length
-                        }
-                        onChange={toggleSelectAll}
-                        className="row-checkbox"
-                      />
-                    </th>
-                    <th className="th-student">
-                      <FaGraduationCap className="header-icon" /> Student Name
-                    </th>
+                <table className="erp-table">
+                  <thead>
+                    <tr>
+                      {canApprove && (
+                        <th className="th-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={
+                              paginatedStudents.length > 0 &&
+                              selectedStudents.size === paginatedStudents.length
+                            }
+                            onChange={toggleSelectAll}
+                            className="row-checkbox"
+                          />
+                        </th>
+                      )}
+                      <th className="th-student">
+                        <FaGraduationCap className="header-icon" /> Student Name
+                      </th>
                     <th className="th-course">
                       <FaBookOpen className="header-icon" /> Course
                     </th>
@@ -557,42 +566,46 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
                       </td>
                       <td className="cell-actions">
                         <div className="action-buttons">
-                          <button
-                            className="btn btn-action btn-view-student"
-                            onClick={() =>
-                              navigate(`/college/view-student/${student._id}`)
-                            }
-                            title="View Student Details"
-                          >
+                            <button
+                              className="btn btn-action btn-view-student"
+                              onClick={() =>
+                                navigate(`/college/view-student/${student._id}`)
+                              }
+                              title="View Student Details"
+                            >
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          <button
-                            className="btn btn-action btn-approve"
-                            onClick={() => handleApprove(student._id)}
-                            disabled={processingId === student._id}
-                            title="Approve Student"
-                          >
-                            <FaCheck />
-                            <span className="btn-text">
-                              {processingId === student._id
-                                ? "Processing..."
-                                : "Approve"}
-                            </span>
-                          </button>
-                          <button
-                            className="btn btn-action btn-reject"
-                            onClick={() => handleRejectClick(student._id)}
-                            disabled={processingId === student._id}
-                            title="Reject Student"
-                          >
-                            <FaTimes />
-                            <span className="btn-text">
-                              {processingId === student._id
-                                ? "Processing..."
-                                : "Reject"}
-                            </span>
-                          </button>
+                          {canEdit('students') && (
+                            <button
+                              className="btn btn-action btn-approve"
+                              onClick={() => handleApprove(student._id)}
+                              disabled={processingId === student._id}
+                              title="Approve Student"
+                            >
+                              <FaCheck />
+                              <span className="btn-text">
+                                {processingId === student._id
+                                  ? "Processing..."
+                                  : "Approve"}
+                              </span>
+                            </button>
+                          )}
+                          {canEdit('students') && (
+                            <button
+                              className="btn btn-action btn-reject"
+                              onClick={() => handleRejectClick(student._id)}
+                              disabled={processingId === student._id}
+                              title="Reject Student"
+                            >
+                              <FaTimes />
+                              <span className="btn-text">
+                                {processingId === student._id
+                                  ? "Processing..."
+                                  : "Reject"}
+                              </span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
