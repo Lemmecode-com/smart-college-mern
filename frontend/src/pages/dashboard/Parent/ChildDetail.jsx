@@ -6,6 +6,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
+import "./ParentPortal.css";
 
 import {
   FaUser,
@@ -21,7 +23,98 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaClock,
+  FaArrowRight,
+  FaExclamationTriangle,
+  FaSyncAlt,
+  FaEye,
+  FaChartBar,
+  FaCreditCard,
+  FaHistory,
+  FaFileAlt,
+  FaUserGraduate
 } from "react-icons/fa";
+
+// Brand Color Palette - Matching Application Theme
+const BRAND_COLORS = {
+  primary: {
+    main: '#1a4b6d',
+    dark: '#0f3a4a',
+    light: '#2a6b8d',
+    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+  },
+  success: {
+    main: '#28a745',
+    dark: '#218838',
+    light: '#28a745',
+    gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)'
+  },
+  info: {
+    main: '#17a2b8',
+    dark: '#138496',
+    light: '#17a2b8',
+    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+  },
+  warning: {
+    main: '#ffc107',
+    dark: '#e0a800',
+    light: '#ffc107',
+    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+  },
+  danger: {
+    main: '#dc3545',
+    dark: '#c82333',
+    light: '#dc3545',
+    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+  },
+  secondary: {
+    main: '#6c757d',
+    dark: '#545b62',
+    light: '#868e96',
+    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
+  }
+};
+
+// Animation Variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
+  })
+};
+
+const slideDownVariants = {
+  hidden: { opacity: 0, y: -30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" }
+  }
+};
+
+const pulseVariants = {
+  initial: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const spinVariants = {
+  animate: {
+    rotate: 360,
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear"
+    }
+  }
+};
 
 export default function ChildDetail() {
   const { user } = useContext(AuthContext);
@@ -100,19 +193,34 @@ export default function ChildDetail() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      APPROVED: { label: "Active", className: "bg-success" },
-      PENDING: { label: "Pending", className: "bg-warning" },
-      REJECTED: { label: "Rejected", className: "bg-danger" },
-      DEACTIVATED: { label: "Inactive", className: "bg-secondary" },
+  const getStatusColor = (status) => {
+    const colors = {
+      APPROVED: BRAND_COLORS.success.main,
+      PENDING: BRAND_COLORS.warning.main,
+      REJECTED: BRAND_COLORS.danger.main,
+      DEACTIVATED: BRAND_COLORS.secondary.main,
     };
+    return colors[status] || BRAND_COLORS.secondary.main;
+  };
 
-    const config = statusConfig[status] || {
-      label: status,
-      className: "bg-secondary",
+  const getStatusGradient = (status) => {
+    const gradients = {
+      APPROVED: BRAND_COLORS.success.gradient,
+      PENDING: BRAND_COLORS.warning.gradient,
+      REJECTED: BRAND_COLORS.danger.gradient,
+      DEACTIVATED: BRAND_COLORS.secondary.gradient,
     };
-    return <span className={`badge ${config.className}`}>{config.label}</span>;
+    return gradients[status] || BRAND_COLORS.secondary.gradient;
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      APPROVED: "Active Student",
+      PENDING: "Application Pending",
+      REJECTED: "Application Rejected",
+      DEACTIVATED: "Account Inactive",
+    };
+    return labels[status] || status;
   };
 
   const calculateAttendancePercentage = () => {
@@ -151,427 +259,618 @@ export default function ChildDetail() {
   }
 
   return (
-    <div className="child-detail-page">
-      <div className="erp-container">
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h1 className="erp-page-title">
-              <FaUser className="me-3" />
-              {child.fullName}
-            </h1>
-            <p className="text-muted mb-0">
-              {child.course_id?.name} - Semester {child.currentSemester}
-            </p>
-          </div>
-          <Breadcrumb
-            items={[
-              { label: "Dashboard", path: "/dashboard/parent" },
-              { label: "My Children", path: "/dashboard/parent/children" },
-              {
-                label: child.fullName,
-                path: `/dashboard/parent/child/${childId}`,
-              },
-            ]}
-          />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="row mb-4">
-
-          <div className="col-md-3 mb-3">
-            <div className="card border-success h-100">
-              <div className="card-body text-center">
-                <FaGraduationCap className="text-success mb-2" size={30} />
-                <div className="mb-1">{getStatusBadge(child.status)}</div>
-                <p className="card-text text-muted small">Status</p>
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="parent-portal-wrapper"
+      >
+        <div className="parent-portal-container">
+          {/* ================= HEADER ================= */}
+          <motion.div
+            variants={slideDownVariants}
+            initial="hidden"
+            animate="visible"
+            className="parent-dashboard-header"
+          >
+            {/* Hero Section */}
+            <div className="parent-dashboard-header-hero">
+              <div className="row g-3 g-sm-4 align-items-center">
+                <div className="col-12 col-md-7 col-lg-8">
+                  <div className="d-flex align-items-center gap-3">
+                    <motion.div
+                      variants={pulseVariants}
+                      initial="initial"
+                      animate="pulse"
+                      className="parent-header-icon-wrapper"
+                    >
+                      <FaUserGraduate />
+                    </motion.div>
+                    <div className="parent-header-title-section">
+                      <h1 className="parent-header-title">
+                        {child.fullName}
+                      </h1>
+                      <p className="parent-header-subtitle">
+                        {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-12 col-md-5 col-lg-4">
+                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
+                    <Breadcrumb
+                      items={[
+                        { label: "Dashboard", path: "/dashboard/parent" },
+                        { label: "My Children", path: "/dashboard/parent/children" },
+                        {
+                          label: child.fullName,
+                          path: `/dashboard/parent/child/${childId}`,
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="col-md-3 mb-3">
-            <div className="card border-info h-100">
-              <div className="card-body text-center">
-                <FaCalendarCheck className="text-info mb-2" size={30} />
-                <h6 className="card-title mb-1">
-                  {calculateAttendancePercentage()}%
-                </h6>
-                <p className="card-text text-muted small">Attendance</p>
+          {/* ================= QUICK STATS ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={0}
+            initial="hidden"
+            animate="visible"
+            className="dashboard-section"
+          >
+            <div className="row g-3 g-md-4">
+              <div className="col-12 col-sm-6 col-lg-4">
+                <StatCard
+                  icon={FaGraduationCap}
+                  label="Academic Status"
+                  value={getStatusLabel(child.status)}
+                  color={getStatusColor(child.status)}
+                  gradient={getStatusGradient(child.status)}
+                  subtitle="Current enrollment status"
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-4">
+                <StatCard
+                  icon={FaCalendarCheck}
+                  label="Attendance Rate"
+                  value={`${calculateAttendancePercentage()}%`}
+                  color={BRAND_COLORS.info.main}
+                  gradient={BRAND_COLORS.info.gradient}
+                  subtitle={`${attendance.length} sessions recorded`}
+                />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-4">
+                <StatCard
+                  icon={FaRupeeSign}
+                  label="Pending Fees"
+                  value={fees ? `₹${(fees.totalFee - fees.paidAmount).toLocaleString()}` : "--"}
+                  color={BRAND_COLORS.warning.main}
+                  gradient={BRAND_COLORS.warning.gradient}
+                  subtitle={fees ? `Total: ₹${fees.totalFee.toLocaleString()}` : "Fee information unavailable"}
+                />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="col-md-3 mb-3">
-            <div className="card border-warning h-100">
-              <div className="card-body text-center">
-                <FaRupeeSign className="text-warning mb-2" size={30} />
-                <h6 className="card-title mb-1">
-                  {fees ? `₹${(fees.totalFee - fees.paidAmount).toLocaleString()}` : "--"}
-                </h6>
-                <p className="card-text text-muted small">Pending Fees</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="card">
-          <div className="card-header">
-            <ul className="nav nav-tabs card-header-tabs">
-              <li className="nav-item">
-                <button
-                  className={`nav-link ${activeTab === "profile" ? "active" : ""}`}
+          {/* ================= TABS ================= */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={1}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="parent-tabs-container">
+              <div className="parent-tabs-header">
+                <TabButton
+                  icon={<FaUser />}
+                  label="Profile"
+                  isActive={activeTab === "profile"}
                   onClick={() => handleTabChange("profile")}
-                >
-                  <FaUser className="me-2" />
-                  Profile
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`nav-link ${activeTab === "attendance" ? "active" : ""}`}
+                />
+                <TabButton
+                  icon={<FaCalendarCheck />}
+                  label="Attendance"
+                  isActive={activeTab === "attendance"}
                   onClick={() => handleTabChange("attendance")}
-                >
-                  <FaCalendarCheck className="me-2" />
-                  Attendance
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`nav-link ${activeTab === "fees" ? "active" : ""}`}
+                />
+                <TabButton
+                  icon={<FaRupeeSign />}
+                  label="Fees & Payments"
+                  isActive={activeTab === "fees"}
                   onClick={() => handleTabChange("fees")}
-                >
-                  <FaRupeeSign className="me-2" />
-                  Fees
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div className="card-body">
-            {/* Profile Tab */}
-            {activeTab === "profile" && (
-              <div className="profile-tab">
-                <div className="row">
-                  <div className="col-md-6">
-                    <h5 className="mb-3">Personal Information</h5>
-                    <div className="info-item">
-                      <strong>Full Name:</strong> {child.fullName}
-                    </div>
-                    <div className="info-item">
-                      <strong>Email:</strong>
-                      <a href={`mailto:${child.email}`} className="ms-1">
-                        <FaEnvelope className="me-1" />
-                        {child.email}
-                      </a>
-                    </div>
-                    <div className="info-item">
-                      <strong>Mobile:</strong>
-                      <a href={`tel:${child.mobileNumber}`} className="ms-1">
-                        <FaPhone className="me-1" />
-                        {child.mobileNumber}
-                      </a>
-                    </div>
-                    <div className="info-item">
-                      <strong>Date of Birth:</strong>{" "}
-                      {new Date(child.dateOfBirth).toLocaleDateString()}
-                    </div>
-                    <div className="info-item">
-                      <strong>Gender:</strong> {child.gender}
-                    </div>
-                    <div className="info-item">
-                      <strong>Blood Group:</strong>{" "}
-                      {child.bloodGroup || "Not specified"}
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <h5 className="mb-3">Academic Information</h5>
-                    <div className="info-item">
-                      <strong>Course:</strong> {child.course_id?.name}
-                    </div>
-                    <div className="info-item">
-                      <strong>Department:</strong> {child.department_id?.name}
-                    </div>
-                    <div className="info-item">
-                      <strong>Current Semester:</strong> {child.currentSemester}
-                    </div>
-                    <div className="info-item">
-                      <strong>Admission Year:</strong> {child.admissionYear}
-                    </div>
-                    <div className="info-item">
-                      <strong>Category:</strong> {child.category}
-                    </div>
-                  </div>
-                </div>
-
-                <hr />
-
-                <div className="row">
-                  <div className="col-md-6">
-                    <h5 className="mb-3">Address Information</h5>
-                    <div className="info-item">
-                      <FaMapMarkerAlt className="me-2 text-muted" />
-                      {child.addressLine}
-                      <br />
-                      {child.city}, {child.state} - {child.pincode}
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <h5 className="mb-3">Parent Information</h5>
-                    <div className="info-item">
-                      <strong>Father:</strong> {child.fatherName}
-                      {child.fatherMobile && (
-                        <a href={`tel:${child.fatherMobile}`} className="ms-2">
-                          <FaPhone className="me-1" />
-                          {child.fatherMobile}
-                        </a>
-                      )}
-                    </div>
-                    <div className="info-item">
-                      <strong>Mother:</strong> {child.motherName}
-                      {child.motherMobile && (
-                        <a href={`tel:${child.motherMobile}`} className="ms-2">
-                          <FaPhone className="me-1" />
-                          {child.motherMobile}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                />
               </div>
-            )}
 
-            {/* Attendance Tab */}
-            {activeTab === "attendance" && (
-              <div className="attendance-tab">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Attendance Records</h5>
-                  <div className="text-muted">
-                    Overall Attendance:{" "}
-                    <strong>{calculateAttendancePercentage()}%</strong>
-                  </div>
-                </div>
-
-                {attendance.length === 0 ? (
-                  <div className="text-center py-4">
-                    <FaCalendarCheck size={48} className="text-muted mb-3" />
-                    <h6 className="text-muted">No Attendance Records</h6>
-                    <p className="text-muted small">
-                      Attendance data will appear here once classes begin.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-striped">
-                      <thead>
-                        <tr>
-                          <th>Date</th>
-                          <th>Subject</th>
-                          <th>Status</th>
-                          <th>Session</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {attendance.map((record, index) => (
-                          <tr key={index}>
-                            <td>
-                              {new Date(record.date).toLocaleDateString()}
-                            </td>
-                            <td>{record.subject_id?.name || "N/A"}</td>
-                            <td>
-                              {record.status === "PRESENT" ? (
-                                <span className="text-success">
-                                  <FaCheckCircle className="me-1" />
-                                  Present
-                                </span>
-                              ) : (
-                                <span className="text-danger">
-                                  <FaTimesCircle className="me-1" />
-                                  Absent
-                                </span>
-                              )}
-                            </td>
-                            <td>
-                              <small className="text-muted">
-                                <FaClock className="me-1" />
-                                {record.session_type}
-                              </small>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Fees Tab */}
-            {activeTab === "fees" && (
-              <div className="fees-tab">
-                <h5 className="mb-3">Fee Information</h5>
-
-                {!fees ? (
-                  <div className="text-center py-4">
-                    <FaRupeeSign size={48} className="text-muted mb-3" />
-                    <h6 className="text-muted">
-                      Fee Information Not Available
-                    </h6>
-                    <p className="text-muted small">
-                      Fee details will be displayed here once processed.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="row">
-                    <div className="col-md-6">
-                      <div className="card border-primary">
-                        <div className="card-header bg-primary text-white">
-                          <h6 className="mb-0">Fee Summary</h6>
-                        </div>
-                        <div className="card-body">
-                          <div className="fee-item">
-                            <strong>Total Fee:</strong> ₹
-                            {fees.totalFee?.toLocaleString()}
-                          </div>
-                          <div className="fee-item">
-                            <strong>Paid Amount:</strong> ₹
-                            {fees.paidAmount?.toLocaleString()}
-                          </div>
-                          <div className="fee-item">
-                            <strong>Pending Amount:</strong> ₹
-                            {(
-                              fees.totalFee - fees.paidAmount
-                            )?.toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="col-md-6">
-                      <div className="card border-info">
-                        <div className="card-header bg-info text-white">
-                          <h6 className="mb-0">Installments</h6>
-                        </div>
-                        <div className="card-body">
-                          {fees.installments?.map((installment, index) => (
-                            <div key={index} className="installment-item mb-2">
-                              <div className="d-flex justify-content-between">
-                                <span>{installment.name}</span>
-                                <span
-                                  className={`badge ${
-                                    installment.status === "PAID"
-                                      ? "bg-success"
-                                      : installment.status === "PENDING"
-                                        ? "bg-warning"
-                                        : "bg-secondary"
-                                  }`}
-                                >
-                                  {installment.status}
-                                </span>
+              <div className="parent-tab-content">
+                <AnimatePresence mode="wait">
+                  {/* Profile Tab */}
+                  {activeTab === "profile" && (
+                    <motion.div
+                      key="profile"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="row g-3 g-md-4">
+                        <div className="col-12 col-lg-6">
+                          <ProfileCard
+                            title="Personal Information"
+                            icon={<FaUser />}
+                            color={BRAND_COLORS.primary.main}
+                          >
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaUser />
                               </div>
-                              <div className="d-flex justify-content-between text-muted small">
-                                <span>
-                                  ₹{installment.amount?.toLocaleString()}
-                                </span>
-                                <span>
-                                  Due:{" "}
-                                  {new Date(
-                                    installment.dueDate,
-                                  ).toLocaleDateString()}
-                                </span>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Full Name</div>
+                                <div className="parent-profile-value">{child.fullName}</div>
                               </div>
                             </div>
-                          ))}
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaEnvelope />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Email Address</div>
+                                <div className="parent-profile-value">
+                                  <a href={`mailto:${child.email}`} className="text-decoration-none">
+                                    {child.email}
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaPhone />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Mobile Number</div>
+                                <div className="parent-profile-value">
+                                  <a href={`tel:${child.mobileNumber}`} className="text-decoration-none">
+                                    {child.mobileNumber}
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaCalendarCheck />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Date of Birth</div>
+                                <div className="parent-profile-value">
+                                  {new Date(child.dateOfBirth).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                          </ProfileCard>
+                        </div>
+
+                        <div className="col-12 col-lg-6">
+                          <ProfileCard
+                            title="Academic Details"
+                            icon={<FaGraduationCap />}
+                            color={BRAND_COLORS.success.main}
+                          >
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaGraduationCap />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Course</div>
+                                <div className="parent-profile-value">{child.course_id?.name}</div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaSchool />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Department</div>
+                                <div className="parent-profile-value">{child.department_id?.name}</div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaIdCard />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Current Semester</div>
+                                <div className="parent-profile-value">{child.currentSemester}</div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaCalendarCheck />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Admission Year</div>
+                                <div className="parent-profile-value">{child.admissionYear}</div>
+                              </div>
+                            </div>
+                          </ProfileCard>
+                        </div>
+
+                        <div className="col-12 col-lg-6">
+                          <ProfileCard
+                            title="Address Information"
+                            icon={<FaMapMarkerAlt />}
+                            color={BRAND_COLORS.info.main}
+                          >
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaMapMarkerAlt />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Address</div>
+                                <div className="parent-profile-value">
+                                  {child.addressLine}<br />
+                                  {child.city}, {child.state} - {child.pincode}
+                                </div>
+                              </div>
+                            </div>
+                          </ProfileCard>
+                        </div>
+
+                        <div className="col-12 col-lg-6">
+                          <ProfileCard
+                            title="Family Information"
+                            icon={<FaUsers />}
+                            color={BRAND_COLORS.warning.main}
+                          >
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaUser />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Father's Name</div>
+                                <div className="parent-profile-value">
+                                  {child.fatherName}
+                                  {child.fatherMobile && (
+                                    <span className="ms-2">
+                                      <a href={`tel:${child.fatherMobile}`} className="text-decoration-none">
+                                        <FaPhone className="me-1" />
+                                        {child.fatherMobile}
+                                      </a>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="parent-profile-item">
+                              <div className="parent-profile-icon">
+                                <FaUser />
+                              </div>
+                              <div className="parent-profile-content">
+                                <div className="parent-profile-label">Mother's Name</div>
+                                <div className="parent-profile-value">
+                                  {child.motherName}
+                                  {child.motherMobile && (
+                                    <span className="ms-2">
+                                      <a href={`tel:${child.motherMobile}`} className="text-decoration-none">
+                                        <FaPhone className="me-1" />
+                                        {child.motherMobile}
+                                      </a>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </ProfileCard>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+                    </motion.div>
+                  )}
 
-        {/* Back Button */}
-        <div className="mt-4">
-          <button
-            className="btn btn-outline-secondary"
-            onClick={() => navigate("/dashboard/parent/children")}
+                  {/* Attendance Tab */}
+                  {activeTab === "attendance" && (
+                    <motion.div
+                      key="attendance"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="parent-attendance-chart">
+                        <div className="parent-chart-header">
+                          <div>
+                            <h3 className="parent-chart-title">Attendance Overview</h3>
+                            <p className="text-muted mb-0">Track your child's attendance performance</p>
+                          </div>
+                          <div className="parent-chart-stats">
+                            <div className="parent-chart-stat">
+                              <div className="parent-chart-value">{calculateAttendancePercentage()}%</div>
+                              <div className="parent-chart-label">Overall Rate</div>
+                            </div>
+                            <div className="parent-chart-stat">
+                              <div className="parent-chart-value">{attendance.length}</div>
+                              <div className="parent-chart-label">Total Sessions</div>
+                            </div>
+                            <div className="parent-chart-stat">
+                              <div className="parent-chart-value">
+                                {attendance.filter(r => r.status === 'PRESENT').length}
+                              </div>
+                              <div className="parent-chart-label">Present</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {attendance.length === 0 ? (
+                          <EmptyState
+                            icon={<FaCalendarCheck style={{ color: BRAND_COLORS.info.main }} />}
+                            title="No Attendance Records"
+                            message="Attendance data will appear here once classes begin."
+                            success={false}
+                          />
+                        ) : (
+                          <div className="parent-table-responsive">
+                            <table className="parent-table">
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Subject</th>
+                                  <th>Status</th>
+                                  <th>Session Type</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {attendance.map((record, idx) => (
+                                  <motion.tr
+                                    key={idx}
+                                    variants={fadeInVariants}
+                                    custom={idx}
+                                    initial="hidden"
+                                    animate="visible"
+                                  >
+                                    <td>{new Date(record.date).toLocaleDateString()}</td>
+                                    <td>{record.subject_id?.name || "N/A"}</td>
+                                    <td>
+                                      <span className={`parent-status-badge ${
+                                        record.status === 'PRESENT' ? 'parent-status-approved' : 'parent-status-rejected'
+                                      }`}>
+                                        {record.status === 'PRESENT' ? (
+                                          <><FaCheckCircle /> Present</>
+                                        ) : (
+                                          <><FaTimesCircle /> Absent</>
+                                        )}
+                                      </span>
+                                    </td>
+                                    <td>{record.session_type || "Regular"}</td>
+                                  </motion.tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Fees Tab */}
+                  {activeTab === "fees" && (
+                    <motion.div
+                      key="fees"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {!fees ? (
+                        <EmptyState
+                          icon={<FaRupeeSign style={{ color: BRAND_COLORS.warning.main }} />}
+                          title="Fee Information Not Available"
+                          message="Fee details will be displayed here once processed."
+                          success={false}
+                        />
+                      ) : (
+                        <div className="row g-3 g-md-4">
+                          <div className="col-12 col-lg-6">
+                            <FeeCard
+                              title="Fee Summary"
+                              icon={<FaRupeeSign />}
+                              color={BRAND_COLORS.primary.main}
+                            >
+                              <div className="parent-fee-item">
+                                <div className="parent-fee-icon">
+                                  <FaFileAlt />
+                                </div>
+                                <div>
+                                  <div className="parent-fee-title">Total Fee</div>
+                                  <div className="parent-fee-amount">₹{fees.totalFee?.toLocaleString()}</div>
+                                </div>
+                              </div>
+                              <div className="parent-fee-item">
+                                <div className="parent-fee-icon">
+                                  <FaCheckCircle />
+                                </div>
+                                <div>
+                                  <div className="parent-fee-title">Paid Amount</div>
+                                  <div className="parent-fee-amount text-success">₹{fees.paidAmount?.toLocaleString()}</div>
+                                </div>
+                              </div>
+                              <div className="parent-fee-item">
+                                <div className="parent-fee-icon">
+                                  <FaClock />
+                                </div>
+                                <div>
+                                  <div className="parent-fee-title">Pending Amount</div>
+                                  <div className="parent-fee-amount text-warning">
+                                    ₹{(fees.totalFee - fees.paidAmount)?.toLocaleString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </FeeCard>
+                          </div>
+
+                          <div className="col-12 col-lg-6">
+                            <FeeCard
+                              title="Payment Installments"
+                              icon={<FaCreditCard />}
+                              color={BRAND_COLORS.info.main}
+                            >
+                              <div className="space-y-3">
+                                {fees.installments?.map((installment, idx) => (
+                                  <motion.div
+                                    key={idx}
+                                    className="p-3 bg-light rounded-lg"
+                                    variants={fadeInVariants}
+                                    custom={idx}
+                                    initial="hidden"
+                                    animate="visible"
+                                  >
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                      <h6 className="mb-0">{installment.name}</h6>
+                                      <span className={`parent-status-badge ${
+                                        installment.status === 'PAID' ? 'parent-status-approved' :
+                                        installment.status === 'PENDING' ? 'parent-status-pending' :
+                                        'parent-status-secondary'
+                                      }`}>
+                                        {installment.status}
+                                      </span>
+                                    </div>
+                                    <div className="d-flex justify-content-between text-sm">
+                                      <span>₹{installment.amount?.toLocaleString()}</span>
+                                      <span className="text-muted">
+                                        Due: {new Date(installment.dueDate).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            </FeeCard>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Back Button */}
+          <motion.div
+            variants={fadeInVariants}
+            custom={2}
+            initial="hidden"
+            animate="visible"
+            className="mt-4"
           >
-            <FaArrowLeft className="me-2" />
-            Back to Children
-          </button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="parent-btn-outline"
+              onClick={() => navigate("/dashboard/parent/children")}
+            >
+              <FaArrowLeft className="me-2" />
+              Back to Children
+            </motion.button>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ================= TAB BUTTON ================= */
+function TabButton({ icon, label, isActive, onClick }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`parent-tab-item ${isActive ? 'active' : ''}`}
+      onClick={onClick}
+    >
+      {icon}
+      <span>{label}</span>
+    </motion.button>
+  );
+}
+
+/* ================= STAT CARD ================= */
+function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
+  return (
+    <motion.div
+      whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}
+      whileTap={{ scale: 0.98 }}
+      className="parent-stat-card"
+      tabIndex={0}
+      role="region"
+      aria-label={`${label}: ${value}`}
+      onFocus={(e) => {
+        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.08)';
+        e.currentTarget.style.outline = '2px solid #1a4b6d';
+        e.currentTarget.style.outlineOffset = '2px';
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.04)';
+        e.currentTarget.style.outline = 'none';
+      }}
+    >
+      <div className="parent-stat-card-icon" style={{ background: gradient }}>
+        <Icon />
+      </div>
+      <div className="parent-stat-card-content">
+        <div className="parent-card-label">{label}</div>
+        <div className="parent-card-value">{value}</div>
+        {subtitle && <div className="parent-card-subtitle">{subtitle}</div>}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= PROFILE CARD ================= */
+function ProfileCard({ title, icon, color, children }) {
+  return (
+    <div className="parent-profile-card">
+      <div className="parent-profile-header">
+        <h3 className="parent-profile-title">
+          <span className="me-2" style={{ color: 'white', fontSize: '1.1rem' }}>{icon}</span>
+          {title}
+        </h3>
+      </div>
+      <div className="parent-profile-body">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ================= FEE CARD ================= */
+function FeeCard({ title, icon, color, children }) {
+  return (
+    <div className="parent-fee-card">
+      <div className="parent-fee-header">
+        <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${color}20, ${color}10)` }}>
+          <span style={{ color }}>{icon}</span>
+        </div>
+        <div>
+          <h3 className="parent-fee-title">{title}</h3>
         </div>
       </div>
+      <div className="p-3">
+        {children}
+      </div>
+    </div>
+  );
+}
 
-      <style jsx>{`
-        .child-detail-page {
-          padding: 20px;
-          background: #f8f9fa;
-          min-height: 100vh;
-        }
-
-        .erp-container {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .erp-page-title {
-          color: #2d3748;
-          font-weight: 700;
-          margin-bottom: 0.5rem;
-        }
-
-        .card {
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-tabs .nav-link {
-          border: none;
-          color: #12191e;
-          font-weight: 500;
-        }
-
-        .nav-tabs .nav-link.active {
-          background-color: #007bff;
-          color: white;
-          border-color: #007bff;
-        }
-
-        .info-item {
-          margin-bottom: 12px;
-          padding: 8px 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-
-        .info-item:last-child {
-          border-bottom: none;
-        }
-
-        .fee-item,
-        .installment-item {
-          padding: 8px 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-
-        .installment-item:last-child {
-          border-bottom: none;
-        }
-
-        .table th {
-          background-color: #f8f9fa;
-          font-weight: 600;
-          border-top: none;
-        }
-
-        .table-responsive {
-          border-radius: 8px;
-          overflow: hidden;
-        }
-      `}</style>
+/* ================= EMPTY STATE ================= */
+function EmptyState({ icon, title, message, success = false }) {
+  return (
+    <div className="parent-empty-state">
+      <div className="parent-empty-icon" style={{ opacity: success ? 0.9 : 0.6, color: success ? BRAND_COLORS.success.main : '#e2e8f0' }}>
+        {icon}
+      </div>
+      <h4 className="parent-empty-title">{title}</h4>
+      <p className="parent-empty-message">{message}</p>
     </div>
   );
 }

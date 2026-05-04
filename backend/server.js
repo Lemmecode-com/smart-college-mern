@@ -12,8 +12,12 @@ const validateEncryptionConfig = require("./src/utils/validateEncryptionConfig")
 // Validate encryption configuration before starting server
 validateEncryptionConfig();
 
-connectDB().then(() => {
-  seedSuperAdmin();
+connectDB().then(async () => {
+  await seedSuperAdmin();
+  // Initialize default permissions
+  const permissionService = require("./src/services/permission.service");
+  await permissionService.initializeDefaultPermissions();
+  await permissionService.initializePlatformSupportFeatures();
   initializeCronJobs();
 });
 

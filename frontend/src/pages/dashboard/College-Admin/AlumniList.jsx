@@ -393,6 +393,10 @@ export default function AlumniList({ admissionOfficerMode = false }) {
     return <Navigate to="/dashboard" />;
   }
   // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
+  // Additional check: redirect PRINCIPAL to their dashboard if not in admissionOfficerMode
+  if (!admissionOfficerMode && user.role === "PRINCIPAL") {
+    return <Navigate to="/dashboard/principal" replace />;
+  }
 
   const fetchAlumni = async () => {
     try {

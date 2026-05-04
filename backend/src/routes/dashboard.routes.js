@@ -12,6 +12,7 @@ const {
   teacherDashboard,
   collegeAdminDashboard,
   superAdminDashboard,
+  principalDashboard,
   publicStats,
 } = require("../controllers/dashboard.controller");
 
@@ -34,13 +35,22 @@ router.get(
   teacherDashboard,
 );
 
-// 🏫 College Admin Dashboard — also accessible by PRINCIPAL (read-only)
+// 🏫 College Admin Dashboard
 router.get(
   "/college-admin",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   collegeAdminDashboard,
+);
+
+// 🎓 Principal Dashboard (read-only)
+router.get(
+  "/principal",
+  auth,
+  role(ROLE.PRINCIPAL),
+  collegeMiddleware,
+  principalDashboard,
 );
 
 // 🧑‍💼 Super Admin Dashboard
