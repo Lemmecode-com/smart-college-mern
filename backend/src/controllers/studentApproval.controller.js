@@ -123,11 +123,16 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
-    // 5️⃣ Find fee structure (correct)
+    // 5️⃣ Find fee structure (with OTHER category fallback to GEN)
+    let feeCategory = student.category;
+    if (feeCategory === "OTHER") {
+      feeCategory = "GEN"; // Map OTHER to General category for fee lookup
+    }
+
     const feeStructure = await FeeStructure.findOne({
       college_id: student.college_id,
       course_id: student.course_id,
-      category: student.category,
+      category: feeCategory,
     });
 
     if (!feeStructure) {
@@ -154,6 +159,22 @@ exports.approveStudent = async (req, res, next) => {
       paidAmount: 0,
       installments,
     });
+
+// ✅ FIX: Issue #6 - Generate enrollment number
+    const college = await College.findById(student.college_id).select("code");
+    const courseInfo = await Course.findById(student.course_id).select("code");
+
+    // Count existing students in same course+year to generate sequential number
+    const existingCount = await Student.countDocuments({
+      course_id: student.course_id,
+      admissionYear: student.admissionYear,
+      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED"] },
+    });
+
+    const sequence = String(existingCount + 1).padStart(4, "0");
+    const enrollmentNumber = `${college.code}-${courseInfo.code}${student.admissionYear}-${sequence}`;
+    student.enrollmentNumber = enrollmentNumber;
+    // ✅ END FIX: enrollment number generation
 
     // 7️⃣ Approve student (AFTER fee allocation)
     student.status = "APPROVED";
@@ -333,13 +354,18 @@ exports.bulkApproveStudents = async (req, res, next) => {
             reason: "Fee record already exists",
           });
           continue;
+}
+
+        // ── 6. Find fee structure (with OTHER category fallback to GEN) ──
+        let feeCategory = student.category;
+        if (feeCategory === "OTHER") {
+          feeCategory = "GEN";
         }
 
-        // ── 6. Find fee structure ──
         const feeStructure = await FeeStructure.findOne({
           college_id: student.college_id,
           course_id: student.course_id,
-          category: student.category,
+          category: feeCategory,
         });
 
         if (!feeStructure) {
@@ -351,7 +377,23 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 7. Create student fee ──
+        // ── 7. Generate enrollment number (FIX: Issue #6) ──
+        const collegeData = await College.findById(student.college_id).select(
+          "code",
+        );
+        const courseData = await Course.findById(student.course_id).select(
+          "code",
+        );
+
+        const existingCount = await Student.countDocuments({
+          course_id: student.course_id,
+          admissionYear: student.admissionYear,
+          status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED"] },
+        });
+        const sequence = String(existingCount + 1).padStart(4, "0");
+        student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
+
+        // ── 8. Create student fee ──
         const installments = feeStructure.installments.map((inst) => ({
           name: inst.name,
           amount: inst.amount,
@@ -368,13 +410,13 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 8. Approve student ──
+        // ── 9. Approve student ──
         student.status = "APPROVED";
         student.approvedBy = req.user.id;
         student.approvedAt = new Date();
         await student.save();
 
-        // ── 9. Auto-create parent accounts (non-blocking) ──
+        // ── 10. Auto-create parent accounts (non-blocking) ──
         let bulkParentResult = null;
         (async () => {
           try {

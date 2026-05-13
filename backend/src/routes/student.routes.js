@@ -147,15 +147,6 @@ router.get(
   getStudentById,
 );
 
-//ADMIN / ADMISSION_OFFICER / PRINCIPAL: GETS registered students
-router.get(
-  "/registered",
-  auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
-  collegeMiddleware,
-  getRegisteredStudents,
-);
-
 //ADMIN / ADMISSION_OFFICER / PRINCIPAL: GET individual registered student
 router.get(
   "/registered/:id",
