@@ -248,75 +248,84 @@ exports.registerStudent = async (req, res, next) => {
       college_id: college._id,
     });
 
-    // ✅ 5️⃣ Create Student WITH user_id reference (NO password field)
-    const registeredStud = await Student.create({
-      user_id: user._id, // ← Link to User
-      fullName,
-      email,
-      mobileNumber,
-      gender,
-      dateOfBirth,
-      addressLine,
-      city,
-      state,
-      pincode,
-      college_id: college._id,
-      department_id,
-      course_id,
-      admissionYear,
-      currentSemester,
-      previousQualification,
-      previousInstitute,
-      category,
-      nationality,
-      bloodGroup,
-       alternateMobile,
-       // Parent/Guardian Details
-       fatherName,
-       fatherMobile,
-       fatherEmail,
-       motherName,
-       motherMobile,
-       motherEmail,
-       // 10th (SSC) Academic Details
-      sscSchoolName,
-      sscBoard,
-      sscPassingYear,
-      sscPercentage,
-      sscRollNumber,
-      // 12th (HSC) Academic Details
-      hscSchoolName,
-      hscBoard,
-      hscStream,
-      hscPassingYear,
-      hscPercentage,
-      hscRollNumber,
-      // Document Upload Paths - Map all document types to their respective fields
-      sscMarksheetPath: documentPaths["10th_marksheet"] || "",
-      hscMarksheetPath: documentPaths["12th_marksheet"] || "",
-      passportPhotoPath: documentPaths["passport_photo"] || "",
-      categoryCertificatePath: documentPaths["category_certificate"] || "",
-      incomeCertificatePath: documentPaths["income_certificate"] || "",
-      characterCertificatePath: documentPaths["character_certificate"] || "",
-      transferCertificatePath: documentPaths["transfer_certificate"] || "",
-      aadharCardPath: documentPaths["aadhar_card"] || "",
-      entranceExamScorePath: documentPaths["entrance_exam_score"] || "",
-      migrationCertificatePath: documentPaths["migration_certificate"] || "",
-      domicileCertificatePath: documentPaths["domicile_certificate"] || "",
-      casteCertificatePath: documentPaths["caste_certificate"] || "",
-      nonCreamyLayerCertificatePath:
-        documentPaths["non_creamy_layer_certificate"] || "",
-      physicallyChallengedCertificatePath:
-        documentPaths["physically_challenged_certificate"] || "",
-      sportsQuotaCertificatePath:
-        documentPaths["sports_quota_certificate"] || "",
-      nriSponsorCertificatePath: documentPaths["nri_sponsor_certificate"] || "",
-      gapCertificatePath: documentPaths["gap_certificate"] || "",
-      affidavitPath: documentPaths["affidavit"] || "",
-      // Store all documents in a flexible field
-      documents: documentPaths,
-      status: "PENDING",
-    });
+// ✅ 5️⃣ Create Student WITH user_id reference (NO password field)
+     // Rollback User if Student creation fails to prevent orphaned accounts
+     let registeredStud;
+     try {
+       registeredStud = await Student.create({
+         user_id: user._id, // ← Link to User
+         fullName,
+         email,
+         mobileNumber,
+         gender,
+         dateOfBirth,
+         addressLine,
+         city,
+         state,
+         pincode,
+         college_id: college._id,
+         department_id,
+         course_id,
+         admissionYear,
+         currentSemester,
+         previousQualification,
+         previousInstitute,
+         category,
+         nationality,
+         bloodGroup,
+         alternateMobile,
+         // Parent/Guardian Details
+         fatherName,
+         fatherMobile,
+         fatherEmail,
+         motherName,
+         motherMobile,
+         motherEmail,
+         // 10th (SSC) Academic Details
+         sscSchoolName,
+         sscBoard,
+         sscPassingYear,
+         sscPercentage,
+         sscRollNumber,
+         // 12th (HSC) Academic Details
+         hscSchoolName,
+         hscBoard,
+         hscStream,
+         hscPassingYear,
+         hscPercentage,
+         hscRollNumber,
+         // Document Upload Paths - Map all document types to their respective fields
+         sscMarksheetPath: documentPaths["10th_marksheet"] || "",
+         hscMarksheetPath: documentPaths["12th_marksheet"] || "",
+         passportPhotoPath: documentPaths["passport_photo"] || "",
+         categoryCertificatePath: documentPaths["category_certificate"] || "",
+         incomeCertificatePath: documentPaths["income_certificate"] || "",
+         characterCertificatePath: documentPaths["character_certificate"] || "",
+         transferCertificatePath: documentPaths["transfer_certificate"] || "",
+         aadharCardPath: documentPaths["aadhar_card"] || "",
+         entranceExamScorePath: documentPaths["entrance_exam_score"] || "",
+         migrationCertificatePath: documentPaths["migration_certificate"] || "",
+         domicileCertificatePath: documentPaths["domicile_certificate"] || "",
+         casteCertificatePath: documentPaths["caste_certificate"] || "",
+         nonCreamyLayerCertificatePath:
+           documentPaths["non_creamy_layer_certificate"] || "",
+         physicallyChallengedCertificatePath:
+           documentPaths["physically_challenged_certificate"] || "",
+         sportsQuotaCertificatePath:
+           documentPaths["sports_quota_certificate"] || "",
+         nriSponsorCertificatePath:
+           documentPaths["nri_sponsor_certificate"] || "",
+         gapCertificatePath: documentPaths["gap_certificate"] || "",
+         affidavitPath: documentPaths["affidavit"] || "",
+         // Store all documents in a flexible field
+         documents: documentPaths,
+         status: "PENDING",
+       });
+     } catch (studentError) {
+       // 🧹 Rollback: Delete orphaned User if Student creation fails
+       await User.deleteOne({ _id: user._id });
+       throw studentError; // Re-throw to outer catch
+     }
 
     // 📧 Send registration success email (non-blocking)
     (async () => {
