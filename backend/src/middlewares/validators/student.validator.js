@@ -349,14 +349,21 @@ exports.validateStudentProfileUpdate = [
 
 /**
  * Student ID Parameter Validation
- * Used in: GET/PUT/DELETE /api/students/:id
+ * Used in: GET/PUT/DELETE /api/students/:id and /:studentId/approve etc.
+ * Accepts either 'id' or 'studentId' param to cover all route patterns
  */
 exports.validateStudentId = [
-  param('studentId')
-    .notEmpty().withMessage('Student ID is required')
-    .isMongoId().withMessage('Invalid student ID format'),
-
-  exports.handleValidationErrors
+  (req, res, next) => {
+    // Support both :id and :studentId route params
+    const studentId = req.params.studentId || req.params.id;
+    if (!studentId || !studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        errors: [{ field: 'studentId', message: 'Valid student ID is required' }],
+      });
+    }
+    next();
+  },
 ];
 
 /**
