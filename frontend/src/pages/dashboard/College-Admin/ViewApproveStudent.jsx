@@ -258,14 +258,10 @@ DetailRow.defaultProps = {
 
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
   const fileName = getFileName(path);
-  // Use secure API endpoint for document access (authorization enforced)
+  // Use axios-configured baseURL; no duplication of VITE_API_BASE_URL
   const secureDocUrl = path
-    ? `${baseUrl}/students/documents/${getFileName(path)}`
+    ? `${api.defaults.baseURL}/students/documents/${fileName}`
     : null;
 
   return (

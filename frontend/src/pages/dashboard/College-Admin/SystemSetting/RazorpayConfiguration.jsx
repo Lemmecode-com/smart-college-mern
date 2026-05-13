@@ -26,13 +26,6 @@ import {
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-if (!API_BASE_URL) {
-  throw new Error(
-    "VITE_API_BASE_URL is required for payment gateway configuration",
-  );
-}
-
 const RazorpayConfiguration = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -291,10 +284,12 @@ const RazorpayConfiguration = () => {
               <FaCreditCard className="me-2 text-primary" />
               Razorpay Configuration
             </h2>
-            <p className="text-muted mb-0">
-              Configure Razorpay payment gateway for your college
-            </p>
-          </div>
+                   <p className="text-muted mb-0">
+                     Configure this webhook URL in your Razorpay dashboard:
+                   </p>
+                    <div className="bg-light p-3 rounded font-monospace">
+                      {api.defaults.baseURL}/razorpay/webhook
+                    </div>
         </div>
 
         <button
@@ -595,12 +590,12 @@ const RazorpayConfiguration = () => {
                     <FaInfoCircle className="me-2" />
                     Webhook Configuration
                   </h5>
-                  <p className="mb-2">
-                    Configure this webhook URL in your Razorpay dashboard:
-                  </p>
-                  <div className="bg-light p-3 rounded font-monospace">
-                    {API_BASE_URL}/razorpay/webhook
-                  </div>
+                   <p className="mb-2">
+                     Configure this webhook URL in your Razorpay dashboard:
+                   </p>
+                   <div className="bg-light p-3 rounded font-monospace">
+                     {api.defaults.baseURL}/razorpay/webhook
+                   </div>
                   <p className="text-muted small mt-2 mb-0">
                     This allows Razorpay to send payment notifications to your
                     application.
