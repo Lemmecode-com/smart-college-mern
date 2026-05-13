@@ -21,13 +21,13 @@ const { STUDENT_STATUS, CATEGORY, GENDER } = require("../utils/constants");
 const studentSchema = new mongoose.Schema(
   {
     // 🔗 User Reference (Links to User collection)
-    // FIX: Issue #1 - Make user_id required to ensure consistent authentication
+    // NOTE: Not required - existing students may lack user_id during migration
+    // The approval flow creates Users for students missing user_id
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Student must have a linked User account"],
       unique: true,
-      sparse: true // Allows documents without user_id during migration
+      sparse: true, // Allows documents without user_id during migration
     },
 
     // 🔗 College Mapping
@@ -282,6 +282,12 @@ const studentSchema = new mongoose.Schema(
       type: String,
       enum: ["SELF"],
       default: "SELF",
+    },
+
+    enrollmentNumber: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows existing docs without it during migration
     },
 
     approvedBy: {
