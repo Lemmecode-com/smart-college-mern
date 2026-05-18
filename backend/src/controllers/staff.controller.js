@@ -3,6 +3,8 @@ const crypto = require("crypto");
 const AppError = require("../utils/AppError");
 const User = require("../models/user.model");
 const StaffProfile = require("../models/staffProfile.model");
+const Teacher = require("../models/teacher.model");
+const Department = require("../models/department.model");
 const { ROLE } = require("../utils/constants");
 
 /**
@@ -21,36 +23,42 @@ const generateTempPassword = (length = 10) => {
  * POST /api/college/staff
  * Create a staff account (used by COLLEGE_ADMIN)
  */
-exports.createStaff = async (req, res, next) => {
-  try {
-    // Only COLLEGE_ADMIN can access this endpoint (enforced by middleware)
-    const {
-      name,
-      email,
-      role,
-      // Extended profile fields (optional)
-      mobileNumber,
-      designation,
-      employmentType,
-      joiningDate,
-      gender,
-      dateOfBirth,
-      bloodGroup,
-      address,
-      city,
-      state,
-      pincode,
-      emergencyContactName,
-      emergencyContactPhone,
-      emergencyRelation,
-      qualification,
-      experienceYears,
-    } = req.body;
+  exports.createStaff = async (req, res, next) => {
+   try {
+     // Only COLLEGE_ADMIN can access this endpoint (enforced by middleware)
+     const {
+       name,
+       email,
+       role,
+       departmentId,
+       // Extended profile fields (optional)
+       mobileNumber,
+       designation,
+       employmentType,
+       joiningDate,
+       gender,
+       dateOfBirth,
+       bloodGroup,
+       address,
+       city,
+       state,
+       pincode,
+       emergencyContactName,
+       emergencyContactPhone,
+       emergencyRelation,
+       qualification,
+       experienceYears,
+     } = req.body;
 
-    // Validate required fields
-    if (!name || !email || !role) {
-      return next(new AppError("Name, email, and role are required", 400, "MISSING_FIELDS"));
-    }
+     // Validate required fields
+     if (!name || !email || !role) {
+       return next(new AppError("Name, email, and role are required", 400, "MISSING_FIELDS"));
+     }
+
+     // If role is HOD, departmentId is required
+     if (role === "HOD" && (!departmentId || departmentId === "")) {
+       return next(new AppError("Department is required for HOD role", 400, "MISSING_DEPARTMENT_FOR_HOD"));
+     }
 
     // Validate role: must be a staff role that COLLEGE_ADMIN can create
     const allowedRoles = [
@@ -73,16 +81,42 @@ exports.createStaff = async (req, res, next) => {
       );
     }
 
-    // Check if user already exists
+    // ─── Conflict checks (User table + Teacher table) ───
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(new AppError("User with this email already exists", 409, "EMAIL_EXISTS"));
+      return next(new AppError("A user with this email already exists", 409, "EMAIL_EXISTS"));
+    }
+
+    // For HOD role, check if a Teacher record with this email already exists
+    if (role === "HOD") {
+      const existingTeacher = await Teacher.findOne({ email });
+      if (existingTeacher) {
+        return next(new AppError(
+          `A teacher with this email already exists in your college. ` +
+          `To promote that teacher to HOD, use the "Assign HOD" feature on the teacher's profile instead.`,
+          409,
+          "EMAIL_EXISTS_IN_TEACHER"
+        ));
+      }
     }
 
     // Generate temporary password (plaintext - will be auto-hashed by User.pre-save hook)
     const tempPassword = generateTempPassword(12);
 
-    // Start transaction — create User and StaffProfile together
+    // Generate a unique employee ID for the HOD's Teacher record
+    const generateEmployeeId = async (collegeId) => {
+      let empId;
+      let exists = true;
+      let counter = 1;
+      while (exists) {
+        empId = `EMP-${Date.now().toString().slice(-6)}-${String(counter).padStart(3, '0')}`;
+        exists = await Teacher.exists({ college_id: collegeId, employeeId: empId });
+        counter++;
+      }
+      return empId;
+    };
+
+    // Start transaction — create User, StaffProfile, and (for HOD) Teacher together
     const session = await User.startSession();
     session.startTransaction();
 
@@ -124,11 +158,53 @@ exports.createStaff = async (req, res, next) => {
             emergencyContactPhone: emergencyContactPhone || "",
             emergencyRelation: emergencyRelation || "",
             qualification: qualification || "",
-             experienceYears: parseInt(experienceYears) || 0,
+            experienceYears: parseInt(experienceYears) || 0,
           },
         ],
         { session }
       );
+
+      let teacher = null;
+
+      // If role is HOD, create Teacher record required by hodMiddleware
+      if (role === "HOD") {
+        const employeeId = await generateEmployeeId(req.user.college_id);
+        teacher = await Teacher.create(
+          [
+            {
+              college_id: req.user.college_id,
+              user_id: user[0]._id,
+              department_id: departmentId,
+              name,
+              email,
+              employeeId,
+              designation: designation || "Head of Department",
+              qualification: qualification || "",
+              experienceYears: parseInt(experienceYears) || 0,
+              createdBy: req.user.id,
+              // Personal details
+              gender: gender || "",
+              bloodGroup: bloodGroup || "",
+              dateOfBirth: dateOfBirth || null,
+              address: address || "",
+              city: city || "",
+              state: state || "",
+              pincode: pincode || "",
+              employmentType: employmentType || "FULL_TIME",
+              mobileNumber: mobileNumber || "",
+              joiningDate: joiningDate || null,
+            },
+          ],
+          { session }
+        );
+
+        // Assign teacher's _id as HOD of the department (Teacher._id, NOT User._id)
+        await Department.findByIdAndUpdate(
+          departmentId,
+          { hod_id: teacher[0]._id },
+          { session, new: true }
+        );
+      }
 
       await session.commitTransaction();
       session.endSession();
@@ -145,6 +221,7 @@ exports.createStaff = async (req, res, next) => {
             role: user[0].role,
             college_id: user[0].college_id,
           },
+          teacher: teacher ? { id: teacher[0]._id, employeeId: teacher[0].employeeId } : null,
           temporaryPassword: tempPassword, // shown only once
         },
       });
