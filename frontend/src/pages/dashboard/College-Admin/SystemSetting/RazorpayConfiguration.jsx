@@ -327,15 +327,15 @@ const RazorpayConfiguration = () => {
         )}
       </div>
 
-      {isGatewayActive ? (
-        <>
-          {/* Configuration Form */}
-          <div className="card shadow-sm mb-4">
-            <div className="card-body p-4">
-              <h5 className="fw-bold mb-4">
-                <FaKey className="me-2 text-primary" />
-                API Credentials
-              </h5>
+       {isGatewayActive ? (
+         <>
+           {/* Configuration Form */}
+           <div className="card shadow-sm mb-4">
+             <div className="card-body p-4">
+               <h5 className="fw-bold mb-4">
+                 <FaKey className="me-2 text-primary" />
+                 API Credentials
+               </h5>
 
               {/* Mode Toggle */}
               <div className="mb-4">

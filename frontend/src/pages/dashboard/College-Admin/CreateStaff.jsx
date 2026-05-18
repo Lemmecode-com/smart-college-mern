@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
@@ -101,32 +101,33 @@ const spinVariants = {
 export default function CreateStaff() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    role: "",
-    mobileNumber: "",
-    designation: "",
-    employmentType: "FULL_TIME",
-    joiningDate: "",
-    gender: "",
-    dateOfBirth: "",
-    bloodGroup: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-    emergencyRelation: "",
-    qualification: "",
-    experienceYears: 0,
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
+   const [formData, setFormData] = useState({
+     name: "",
+     email: "",
+     role: "",
+     departmentId: "",
+     mobileNumber: "",
+     designation: "",
+     employmentType: "FULL_TIME",
+     joiningDate: "",
+     gender: "",
+     dateOfBirth: "",
+     bloodGroup: "",
+     address: "",
+     city: "",
+     state: "",
+     pincode: "",
+     emergencyContactName: "",
+     emergencyContactPhone: "",
+     emergencyRelation: "",
+     qualification: "",
+     experienceYears: 0,
+   });
+    const [departments, setDepartments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
 
   const allowedRoles = [
     "ACCOUNTANT",
@@ -137,28 +138,33 @@ export default function CreateStaff() {
     "PLATFORM_SUPPORT",
   ];
 
-  const validateForm = () => {
-    if (!formData.name.trim()) return "Full name is required";
-    if (!formData.email.trim()) return "Email is required";
+   const validateForm = () => {
+     if (!formData.name.trim()) return "Full name is required";
+     if (!formData.email.trim()) return "Email is required";
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) return "Invalid email format";
+     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+     if (!emailRegex.test(formData.email)) return "Invalid email format";
 
-    if (!formData.role) return "Role is required";
+     if (!formData.role) return "Role is required";
 
-    if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
-      return "Mobile number must be 10 digits";
-    }
+     // If role is HOD, department is required
+     if (formData.role === "HOD" && !formData.departmentId) {
+       return "Department is required for HOD role";
+     }
 
-    if (
-      formData.emergencyContactPhone &&
-      !/^\d{10}$/.test(formData.emergencyContactPhone)
-    ) {
-      return "Emergency phone must be 10 digits";
-    }
+     if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
+       return "Mobile number must be 10 digits";
+     }
 
-    return null;
-  };
+     if (
+       formData.emergencyContactPhone &&
+       !/^\d{10}$/.test(formData.emergencyContactPhone)
+     ) {
+       return "Emergency phone must be 10 digits";
+     }
+
+     return null;
+   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -169,53 +175,86 @@ export default function CreateStaff() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setResult(null);
+  // Fetch departments for this college when component mounts
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
+  // Reset departmentId when role changes away from HOD
+  useEffect(() => {
+    if (formData.role !== "HOD") {
+      setFormData(prev => ({ ...prev, departmentId: "" }));
     }
+  }, [formData.role]);
 
+    const fetchDepartments = async () => {
     try {
-      setLoading(true);
-
-      const res = await api.post("/college/staff", formData);
-
-      setResult(res.data);
-      toast.success("Staff account created successfully!");
-
-      setFormData({
-        name: "",
-        email: "",
-        role: "",
-        mobileNumber: "",
-        designation: "",
-        employmentType: "FULL_TIME",
-        joiningDate: "",
-        gender: "",
-        dateOfBirth: "",
-        bloodGroup: "",
-        address: "",
-        city: "",
-        state: "",
-        pincode: "",
-        emergencyContactName: "",
-        emergencyContactPhone: "",
-        emergencyRelation: "",
-        qualification: "",
-        experienceYears: 0,
-      });
+      const res = await api.get("/departments");
+      setDepartments(res.data || []);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to create account");
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch departments:", err);
+      // Continue without departments - form will still work
+      setDepartments([]);
     }
   };
+
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+     setError(null);
+     setResult(null);
+
+     const validationError = validateForm();
+     if (validationError) {
+       setError(validationError);
+       return;
+     }
+
+     try {
+       setLoading(true);
+
+       // Prepare data for sending
+       const staffData = { ...formData };
+       // If role is HOD, include departmentId; otherwise, remove it to avoid sending empty string
+       if (staffData.role === "HOD") {
+         // departmentId is already in formData
+       } else {
+         delete staffData.departmentId;
+       }
+
+       const res = await api.post("/college/staff", staffData);
+
+       setResult(res.data);
+       toast.success("Staff account created successfully!");
+
+       setFormData({
+         name: "",
+         email: "",
+         role: "",
+         departmentId: "",
+         mobileNumber: "",
+         designation: "",
+         employmentType: "FULL_TIME",
+         joiningDate: "",
+         gender: "",
+         dateOfBirth: "",
+         bloodGroup: "",
+         address: "",
+         city: "",
+         state: "",
+         pincode: "",
+         emergencyContactName: "",
+         emergencyContactPhone: "",
+         emergencyRelation: "",
+         qualification: "",
+         experienceYears: 0,
+       });
+     } catch (err) {
+       console.error(err);
+       setError(err.response?.data?.message || "Failed to create account");
+     } finally {
+       setLoading(false);
+     }
+   };
 
   const handleCopy = () => {
     if (result?.temporaryPassword) {
@@ -335,27 +374,50 @@ export default function CreateStaff() {
                             />
                           </FormField>
                         </div>
-                        <div className="col-12 col-md-4">
-                          <FormField
-                            label="Role"
-                            required
-                            icon={<FaUserPlus />}
-                          >
-                            <select
-                              name="role"
-                              value={formData.role}
-                              onChange={handleChange}
-                              className="form-select"
-                            >
-                              <option value="">Select Role</option>
-                              {allowedRoles.map((r) => (
-                                <option key={r} value={r}>
-                                  {r.replaceAll("_", " ")}
-                                </option>
-                              ))}
-                            </select>
-                          </FormField>
-                        </div>
+                         <div className="col-12 col-md-4">
+                           <FormField
+                             label="Role"
+                             required
+                             icon={<FaUserPlus />}
+                           >
+                             <select
+                               name="role"
+                               value={formData.role}
+                               onChange={handleChange}
+                               className="form-select"
+                             >
+                               <option value="">Select Role</option>
+                               {allowedRoles.map((r) => (
+                                 <option key={r} value={r}>
+                                   {r.replaceAll("_", " ")}
+                                 </option>
+                               ))}
+                             </select>
+                           </FormField>
+                         </div>
+                         {formData.role === "HOD" && (
+                           <div className="col-12 col-md-4">
+                             <FormField
+                               label="Department"
+                               required
+                               icon={<FaUserPlus />}
+                             >
+                               <select
+                                 name="departmentId"
+                                 value={formData.departmentId}
+                                 onChange={handleChange}
+                                 className="form-select"
+                                >
+                                  <option value="">Select Department</option>
+                                  {departments.map((dept) => (
+                                    <option key={dept._id} value={dept._id}>
+                                      {dept.name} ({dept.code})
+                                    </option>
+                                  ))}
+                                </select>
+                             </FormField>
+                           </div>
+                         )}
                         <div className="col-12 col-md-4">
                           <FormField
                             label="Mobile Number"
