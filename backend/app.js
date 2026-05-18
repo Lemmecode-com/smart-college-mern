@@ -85,6 +85,7 @@ app.use("/api/college", require("./src/routes/college.routes"));
 app.use("/api/college", require("./src/routes/staff.routes")); // Staff account management
 app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff extended profiles
 app.use("/api/master", require("./src/routes/master.routes"));
+app.use("/api/hod", require("./src/routes/hod.routes")); // HOD module
 
 /* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));
