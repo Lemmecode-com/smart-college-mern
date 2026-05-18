@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
   FaGraduationCap,
@@ -73,6 +74,7 @@ const scaleVariants = {
 
 export default function CreateTimetable() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [department, setDepartment] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,39 +91,51 @@ export default function CreateTimetable() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* LOAD PROFILE */
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await api.get("/teachers/my-profile");
-        // The API interceptor unwraps the response, so teacher data is at res.data.teacher
-        const teacherData = res.data.teacher || res.data;
-        setDepartment(teacherData.department_id);
-      } catch (err) {
-        setError("Failed to load department information");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProfile();
-  }, []);
+  /* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
+  const loadProfile = useCallback(async () => {
+    if (!user?.id || !user?.role) { setLoading(false); return; } // user still loading
+    try {
+      const isHOD = user.role === "HOD";
+      const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
+      const res   = await api.get(endpoint);
+      const data  = res.data;
+      const deptId = data.department_id
+                  || data.teacher?.department_id
+                  || data.teacher?.department?.id;
+      if (deptId) setDepartment({ _id: deptId });
+    } catch {
+      setError("Failed to load department information");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  /* LOAD COURSES */
-  useEffect(() => {
+  useEffect(() => { if (user?.id) loadProfile(); }, [user]);
+
+  /* LOAD COURSES — re-runs whenever department changes */
+  const loadCourses = useCallback(async () => {
     if (!department?._id) return;
-    const loadCourses = async () => {
-      try {
-        const res = await api.get(`/courses/department/${department._id}`);
-        // The API interceptor wraps arrays in res.data.data
-        const coursesList = res.data.data || res.data.courses || res.data;
-        setCourses(Array.isArray(coursesList) ? coursesList : []);
-      } catch (err) {
-        setError("Failed to load courses for your department");
-        setCourses([]);
-      }
-    };
-    loadCourses();
+    try {
+      const res = await api.get("/courses/department/" + department._id);
+      const coursesList = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data.courses)
+        ? res.data.courses
+        : [];
+      setCourses(coursesList);
+    } catch {
+      setError("Failed to load courses for your department");
+      setCourses([]);
+    }
   }, [department]);
+
+  useEffect(() => { loadCourses(); }, [loadCourses]);
+
+  /* Hard timeout escape hatch — loader can never be stuck past 6 s */
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 6000);
+    return () => clearTimeout(t);
+  }, []);
 
   /* GENERATE SEMESTERS BASED ON SELECTED COURSE */
   useEffect(() => {
