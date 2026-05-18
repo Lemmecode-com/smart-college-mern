@@ -17,7 +17,7 @@ module.exports = async (req, res, next) => {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    /* ================= STEP 3: Resolve timetable ================= */
+    /* ================= STEP 3: Resolve timetable (optional) ================= */
     let timetableId =
       req.body?.timetable_id ||
       req.params?.id ||
@@ -32,23 +32,22 @@ module.exports = async (req, res, next) => {
       }
     }
 
-    if (!timetableId) {
-      throw new AppError("Timetable ID missing", 400, "TIMETABLE_ID_MISSING");
-    }
+    let timetable = null;
 
-    const timetable = await Timetable.findById(timetableId).populate('department_id', 'name hod_id');
-    if (!timetable) {
-      throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
-    }
+    /* ===== Only enforce timetable + HOD-dept check when a timetableId is present ===== */
+    if (timetableId) {
+      timetable = await Timetable.findById(timetableId).populate('department_id', 'name hod_id');
+      if (!timetable) {
+        throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
+      }
 
-    /* ================= STEP 4: Verify HOD ================= */
-    // Check if teacher is the HOD of the department that owns this timetable
-    const department = await Department.findOne({
-      _id: timetable.department_id._id || timetable.department_id,
-      hod_id: teacher._id,
-    });
+      /* ================= STEP 4: Verify HOD ================= */
+      const department = await Department.findOne({
+        _id: timetable.department_id._id || timetable.department_id,
+        hod_id: teacher._id,
+      });
 
-    if (!department) {
+      if (!department) {
       // Debug info to help diagnose the issue
       console.log("\n=== HOD Permission Check Failed ===");
       console.log("Request Path:", req.originalUrl);
@@ -74,11 +73,20 @@ module.exports = async (req, res, next) => {
         throw new AppError("Only HOD can manage this timetable", 403, "HOD_ONLY");
       }
     }
-
-    /* ================= STEP 5: Attach ================= */
+    // timetable/department resolved from timetable
     req.teacher = teacher;
     req.department = department;
     req.timetable = timetable;
+  } else {
+    /* ===== No timetableId — resolve department directly from teacher record ===== */
+    const department = await Department.findOne({ hod_id: teacher._id });
+    if (!department) {
+      throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
+    }
+    req.teacher = teacher;
+    req.department = department;
+    req.timetable = null;
+  }
 
     next();
   } catch (error) {

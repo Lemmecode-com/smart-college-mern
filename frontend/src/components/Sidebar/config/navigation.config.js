@@ -1126,6 +1126,86 @@ export const navigationConfig = {
          ],
        },
      ],
+    },
+
+   /**
+    * HOD Navigation
+    * Head of Department – manages timetables, teachers, and department overview
+    */
+   HOD: {
+     dashboard: {
+       path: "/hod/dashboard",
+       icon: FaChalkboardTeacher,
+       label: "HOD Dashboard",
+     },
+     sections: [
+       {
+         id: "hod-timetable",
+         title: "Timetable",
+         icon: FaCalendarAlt,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/timetable/list",
+             icon: FaListOl,
+             label: "View Timetables",
+             exact: true,
+           },
+           {
+             path: "/timetable/weekly-timetable",
+             icon: FaClock,
+             label: "Weekly Schedule",
+             exact: true,
+           },
+           {
+             path: "/timetable/create-timetable",
+             icon: FaPlus,
+             label: "Create Timetable",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "hod-teachers",
+         title: "Department Teachers",
+         icon: FaUsers,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/hod/teachers",
+             icon: FaUsers,
+             label: "All Teachers",
+             exact: true,
+           },
+           {
+             path: "/hod/department",
+             icon: FaLayerGroup,
+             label: "Department Info",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "hod-profile",
+         title: "My Profile",
+         icon: FaUser,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/profile/my-profile",
+             icon: FaUser,
+             label: "View Profile",
+             exact: true,
+           },
+           {
+             path: "/hod/profile",
+             icon: FaUser,
+             label: "HOD Profile",
+             exact: true,
+           },
+         ],
+       },
+     ],
    },
 
   /**
@@ -1144,7 +1224,7 @@ export const navigationConfig = {
       PARENT_GUARDIAN: "/dashboard/parent",
       PLATFORM_SUPPORT: "/dashboard/support",
       TEACHER: "/teacher/dashboard",
-      HOD: "/teacher/dashboard",
+      HOD: "/hod/dashboard",
       STUDENT: "/student/dashboard",
     };
     return paths[role] || "/dashboard";
