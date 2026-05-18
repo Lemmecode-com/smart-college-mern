@@ -139,6 +139,12 @@ import ConfigurationViewer from "./pages/dashboard/PlatformSupport/Configuration
 // ================= EXAM COORDINATOR =================
 import ExamDashboard from "./pages/dashboard/ExamCoordinator/ExamDashboard";
 
+// ================= HOD =================
+import HodDashboard from "./pages/dashboard/HOD/HodDashboard";
+import HodTeachers from "./pages/dashboard/HOD/HodTeachers";
+import HodDepartment from "./pages/dashboard/HOD/HodDepartment";
+import HodProfile from "./pages/dashboard/HOD/HodProfile";
+
 // ================= STUDENT =================
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
 import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
@@ -318,31 +324,31 @@ function AppContent({
             element={
               !user ? (
                 <Navigate to="/login" />
-              ) : user.role === "SUPER_ADMIN" ? (
-                <Navigate to="/super-admin/dashboard" />
-              ) : user.role === "COLLEGE_ADMIN" ? (
-                <Navigate to="/dashboard" />
-               ) : user.role === "PRINCIPAL" ? (
-                 <Navigate to="/dashboard/principal" />
-               ) : user.role === "HOD" ? (
+               ) : user.role === "SUPER_ADMIN" ? (
+                 <Navigate to="/super-admin/dashboard" />
+               ) : user.role === "COLLEGE_ADMIN" ? (
+                 <Navigate to="/dashboard" />
+                ) : user.role === "PRINCIPAL" ? (
+                  <Navigate to="/dashboard/principal" />
+                ) : user.role === "HOD" ? (
+                  <Navigate to="/hod/dashboard" />
+                ) : user.role === "ACCOUNTANT" ? (
+                 <Navigate to="/dashboard/accountant" />
+               ) : user.role === "ADMISSION_OFFICER" ? (
+                 <Navigate to="/dashboard/admission" />
+               ) : user.role === "EXAM_COORDINATOR" ? (
+                 <Navigate to="/dashboard/exam" />
+               ) : user.role === "PARENT_GUARDIAN" ? (
+                 <Navigate to="/dashboard/parent" />
+               ) : user.role === "PLATFORM_SUPPORT" ? (
+                 <Navigate to="/dashboard/support" />
+               ) : user.role === "TEACHER" ? (
                  <Navigate to="/teacher/dashboard" />
-               ) : user.role === "ACCOUNTANT" ? (
-                <Navigate to="/dashboard/accountant" />
-              ) : user.role === "ADMISSION_OFFICER" ? (
-                <Navigate to="/dashboard/admission" />
-              ) : user.role === "EXAM_COORDINATOR" ? (
-                <Navigate to="/dashboard/exam" />
-              ) : user.role === "PARENT_GUARDIAN" ? (
-                <Navigate to="/dashboard/parent" />
-              ) : user.role === "PLATFORM_SUPPORT" ? (
-                <Navigate to="/dashboard/support" />
-              ) : user.role === "TEACHER" ? (
-                <Navigate to="/teacher/dashboard" />
-              ) : user.role === "STUDENT" ? (
-                <Navigate to="/student/dashboard" />
-              ) : (
-                <Navigate to="/login" />
-              )
+               ) : user.role === "STUDENT" ? (
+                 <Navigate to="/student/dashboard" />
+               ) : (
+                 <Navigate to="/login" />
+               )
             }
           />
 
@@ -934,6 +940,39 @@ function AppContent({
               }
             />
 
+            {/* ================= HOD ================= */}
+            <Route
+              path="/hod/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/profile"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/department"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodDepartment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/teachers"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodTeachers />
+                </ProtectedRoute>
+              }
+            />
             {/* ================= TEACHER ================= */}
             <Route
               path="/teacher/dashboard"
@@ -1447,105 +1486,103 @@ function AppContent({
                }
              />
 
-             {/* ================= TEACHERS ================= */}
+              {/* TIMETABLE */}
 
-             {/* TIMETABLE */}
+              <Route
+                path="/timetable/list"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL", "HOD"]}>
+                    <TimetableList />
+                  </ProtectedRoute>
+                }
+              />
 
+              <Route
+                path="/timetable/add-slot"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                    <AddTimetableSlot />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/timetable/weekly-timetable"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL", "HOD"]}>
+                    <MySchedule />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/timetable/:timetableId/weekly"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL", "HOD"]}>
+                    <WeeklyTimetable />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/timetable/my-timetable"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                    <MyTimetable />
+                  </ProtectedRoute>
+                }
+              />
              <Route
-               path="/timetable/list"
+               path="/timetable/create/exceptions"
                element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
-                   <TimetableList />
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <CreateException/>
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/timetable/exceptions"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <ExceptionManagement />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/sessions/my-sessions"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <MySessions />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="profile/my-profile"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <MyProfile />
+                 </ProtectedRoute>
+               }
+             />
+             <Route
+               path="/profile/edit-profile"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <EditTeacherProfile />
                  </ProtectedRoute>
                }
              />
 
+             {/* Sessions */}
+
+             {/* New Timetable created by teacher(hod) */}
              <Route
-               path="/timetable/add-slot"
+               path="/timetable/create-timetable"
                element={
-                 <ProtectedRoute allowedRoles={["TEACHER"]}>
-                   <AddTimetableSlot />
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <CreateTimetable />
                  </ProtectedRoute>
                }
              />
-             <Route
-               path="/timetable/weekly-timetable"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
-                   <MySchedule />
-                 </ProtectedRoute>
-               }
-             />
-
-             <Route
-               path="/timetable/:timetableId/weekly"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "PRINCIPAL"]}>
-                   <WeeklyTimetable />
-                 </ProtectedRoute>
-               }
-             />
-
-             <Route
-               path="/timetable/my-timetable"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER"]}>
-                   <MyTimetable />
-                 </ProtectedRoute>
-               }
-             />
-            <Route
-              path="/timetable/create/exceptions"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateException/>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timetable/exceptions"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <ExceptionManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sessions/my-sessions"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <MySessions />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="profile/my-profile"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <MyProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/edit-profile"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <EditTeacherProfile />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Sessions */}
-
-            {/* New Timetable created by teacher(hod) */}
-            <Route
-              path="/timetable/create-timetable"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <CreateTimetable />
-                </ProtectedRoute>
-              }
-            />
 
             {/* ================= FALLBACK ================= */}
             <Route path="*" element={<Navigate to="/home" />} />
