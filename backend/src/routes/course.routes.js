@@ -27,11 +27,11 @@ router.get(
   getAllCourses,
 );
 
-// Get Courses by Department — COLLEGE_ADMIN, TEACHER, PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT
+// Get Courses by Department — COLLEGE_ADMIN, TEACHER, HOD, PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT
 router.get(
   "/department/:departmentId",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getCoursesByDepartment,
 );
