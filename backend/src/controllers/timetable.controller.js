@@ -32,27 +32,28 @@ exports.createTimetable = async (req, res) => {
 
      const { department_id, course_id, semester, academicYear } = req.body;
 
-     // 🔒 SECURITY: Ensure user can only create timetable for their own department
-     const department = await Department.findOne({
-       _id: department_id,
-       hod_id: teacher._id,
-       college_id: req.college_id,
-     });
-
-     if (!department) {
-       return res.status(403).json({
-         message:
-           "Access denied: You can only create timetables for your own department",
-       });
-     }
-
-     // Additional check for teachers (non-HODs) to ensure they belong to the department
-     if (req.user.role === "TEACHER" && teacher.department_id.toString() !== department_id) {
-       return res.status(403).json({
-         message:
-           "Access denied: You can only create timetables for your own department",
-       });
-     }
+      // 🔒 SECURITY: Ensure user can only create timetable for their own department
+      let isAuthorized = false;
+      
+      if (req.user.role === "HOD") {
+        // For HODs: check if they are the HOD of the target department
+        const hodDepartment = await Department.findOne({
+          _id: department_id,
+          hod_id: teacher._id,
+          college_id: req.college_id,
+        });
+        isAuthorized = !!hodDepartment;
+      } else if (req.user.role === "TEACHER") {
+        // For TEACHERs: check if they belong to the target department
+        isAuthorized = teacher.department_id.toString() === department_id;
+      }
+      
+      if (!isAuthorized) {
+        return res.status(403).json({
+          message:
+            "Access denied: You can only create timetables for your own department",
+        });
+      }
 
      const exists = await Timetable.findOne({
        department_id,
