@@ -121,7 +121,8 @@ exports.sendPaymentDueReminders = async () => {
               installment,
               daysOverdue,
               escalationLevel,
-              subject: title
+              subject: title,
+              collegeId: student.college_id
             });
 
             // Create in-app notification

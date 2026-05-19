@@ -27,7 +27,7 @@ import { toast } from "react-toastify";
 
 const PAGE_SIZE = 5;
 
-export default function ApproveStudents() {
+export default function ApproveStudents({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,7 +47,10 @@ export default function ApproveStudents() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   /* ================= FETCH APPROVED STUDENTS ================= */
   const fetchApprovedStudents = async () => {
@@ -245,14 +248,21 @@ export default function ApproveStudents() {
 
   return (
     <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Students", path: "/students" },
-          { label: "Approved Students" },
-        ]}
-      />
+       {/* BREADCRUMBS */}
+       <Breadcrumb
+         items={admissionOfficerMode
+           ? [
+               { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Admissions", path: "/admission/applications" },
+               { label: "Approved Students" },
+             ]
+           : [
+               { label: "Dashboard", path: "/dashboard" },
+               { label: "Students", path: "/students" },
+               { label: "Approved Students" },
+             ]
+         }
+       />
 
       {/* HEADER */}
       <div className="erp-page-header">

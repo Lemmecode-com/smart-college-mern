@@ -31,22 +31,24 @@ exports.getStripeConfig = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         configured: false,
+        isActive: false,
         message: "Stripe is not configured for this college",
       });
     }
 
-    const isTestMode = config.credentials.keyId.includes("pk_test_");
+    const isTestMode = config.credentials?.keyId?.includes("pk_test_");
 
     res.status(200).json({
       success: true,
-      configured: true,
+      configured: !!(config.credentials?.keyId && !config.credentials.keyId.startsWith("temp_")),
+      isActive: config.isActive,
       config: {
         id: config._id,
         gatewayCode: config.gatewayCode,
         credentials: {
-          keyId: config.credentials.keyId,
-          hasSecret: true,
-          hasWebhookSecret: !!config.credentials.webhookSecret,
+          keyId: config.credentials?.keyId,
+          hasSecret: !!config.credentials?.keySecret,
+          hasWebhookSecret: !!config.credentials?.webhookSecret,
         },
         configuration: config.configuration,
         isActive: config.isActive,
@@ -55,6 +57,73 @@ exports.getStripeConfig = async (req, res, next) => {
         updatedAt: config.updatedAt,
         isTestMode,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Toggle Stripe active status
+ * @route PATCH /api/admin/stripe/config/status
+ * @access Private (College Admin)
+ */
+exports.toggleStripeActive = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      throw new AppError(
+        "isActive must be a boolean value",
+        400,
+        "VALIDATION_ERROR",
+      );
+    }
+
+    let config = await CollegePaymentConfig.findOne({
+      collegeId,
+      gatewayCode: "stripe",
+    });
+
+    if (!config) {
+      config = await CollegePaymentConfig.create({
+        collegeId,
+        gatewayCode: "stripe",
+        isActive,
+        credentials: {
+          keyId: "temp_" + Date.now(),
+          keySecret: "temp_" + Date.now(),
+        },
+        configuration: {
+          currency: "INR",
+          enabled: isActive,
+          testMode: true,
+        },
+      });
+    } else {
+      config.isActive = isActive;
+      config.configuration.enabled = isActive;
+      config.configuration.currency = config.configuration.currency || "INR";
+      config.configuration.testMode = config.configuration.testMode ?? true;
+      await config.save();
+    }
+
+    if (!isActive) {
+      invalidateStripeInstanceCache(collegeId.toString());
+    }
+
+    logger.logInfo("Stripe active status toggled", {
+      collegeId,
+      isActive,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: isActive
+        ? "Stripe gateway enabled"
+        : "Stripe gateway disabled",
+      isActive: config.isActive,
     });
   } catch (error) {
     next(error);
