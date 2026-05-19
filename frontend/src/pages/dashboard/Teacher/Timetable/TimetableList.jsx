@@ -94,18 +94,22 @@ export default function TimetableList() {
     fetchTimetables();
   }, []);
 
-  const fetchTimetables = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/timetable");
-      setTimetables(res.data.timetables || res.data);
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchTimetables = async () => {
+     try {
+       setLoading(true);
+       const res = await api.get("/timetable");
+       // Handle API response format: { success: true, data: { timetables: [...] } }
+       const timetableData = res.data.data?.timetables || res.data.timetables || res.data || [];
+       // Filter out any timetables without valid _id to prevent React key warnings
+       const validTimetables = timetableData.filter(timetable => timetable && timetable._id);
+       setTimetables(validTimetables);
+       setError("");
+     } catch (err) {
+       setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
+     } finally {
+       setLoading(false);
+     }
+   };
 
   /* ================= PUBLISH TIMETABLE ================= */
   const showPublishConfirm = (id) => {
@@ -119,28 +123,28 @@ export default function TimetableList() {
     });
   };
 
-  const confirmPublishTimetable = async () => {
-    setPublishingId(confirmModal.id);
-    try {
-      await api.put(`/timetable/${confirmModal.id}/publish`);
-      fetchTimetables();
-      toast.success("Timetable published successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />
-      });
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />
-      });
-    } finally {
-      setPublishingId(null);
-      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-    }
-  };
+   const confirmPublishTimetable = async () => {
+     setPublishingId(confirmModal.id);
+     try {
+       await api.put(`/api/timetable/${confirmModal.id}/publish`);
+       fetchTimetables();
+       toast.success("Timetable published successfully!", {
+         position: "top-right",
+         autoClose: 3000,
+         icon: <FaCheckCircle />
+       });
+     } catch (err) {
+       const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
+       toast.error(errorMsg, {
+         position: "top-right",
+         autoClose: 5000,
+         icon: <FaExclamationTriangle />
+       });
+     } finally {
+       setPublishingId(null);
+       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+     }
+   };
 
   /* ================= DELETE TIMETABLE ================= */
   const showDeleteConfirm = (id) => {
@@ -154,28 +158,28 @@ export default function TimetableList() {
     });
   };
 
-  const confirmDeleteTimetable = async () => {
-    setDeletingId(confirmModal.id);
-    try {
-      await api.delete(`/timetable/${confirmModal.id}`);
-      fetchTimetables();
-      toast.success("Timetable deleted successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />
-      });
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />
-      });
-    } finally {
-      setDeletingId(null);
-      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-    }
-  };
+   const confirmDeleteTimetable = async () => {
+     setDeletingId(confirmModal.id);
+     try {
+       await api.delete(`/api/timetable/${confirmModal.id}`);
+       fetchTimetables();
+       toast.success("Timetable deleted successfully!", {
+         position: "top-right",
+         autoClose: 3000,
+         icon: <FaCheckCircle />
+       });
+     } catch (err) {
+       const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
+       toast.error(errorMsg, {
+         position: "top-right",
+         autoClose: 5000,
+         icon: <FaExclamationTriangle />
+       });
+     } finally {
+       setDeletingId(null);
+       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+     }
+   };
 
   /* ================= EDIT TIMETABLE ================= */
   const editTimetable = (id) => {

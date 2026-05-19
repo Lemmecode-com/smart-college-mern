@@ -16,79 +16,83 @@ const ApiResponse = require("../utils/ApiResponse");
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
 ========================================================= */
 exports.createTimetable = async (req, res) => {
-  try {
-    if (req.user.role !== "TEACHER") {
-      return res
-        .status(403)
-        .json({ message: "Only teachers can create timetable" });
-    }
+   try {
+     if (req.user.role !== "TEACHER" && req.user.role !== "HOD") {
+       return res
+         .status(403)
+         .json({ message: "Only teachers and HOD can create timetable" });
+     }
 
-    // 🔧 Use teacher service (centralized logic)
-    const teacher = await teacherService.getTeacherWithValidation(
-      req.user.id,
-      req.college_id,
-      true, // check active status
-    );
+     // 🔧 Use teacher service (centralized logic)
+     const teacher = await teacherService.getTeacherWithValidation(
+       req.user.id,
+       req.college_id,
+       true, // check active status
+     );
 
-    const { department_id, course_id, semester, academicYear } = req.body;
+     const { department_id, course_id, semester, academicYear } = req.body;
 
-    // 🔒 SECURITY: Ensure teacher can only create timetable for their own department
-    if (teacher.department_id.toString() !== department_id) {
-      return res.status(403).json({
-        message:
-          "Access denied: You can only create timetables for your own department",
-      });
-    }
+     // 🔒 SECURITY: Ensure user can only create timetable for their own department
+     const department = await Department.findOne({
+       _id: department_id,
+       hod_id: teacher._id,
+       college_id: req.college_id,
+     });
 
-    const department = await Department.findOne({
-      _id: department_id,
-      hod_id: teacher._id,
-      college_id: req.college_id,
-    });
+     if (!department) {
+       return res.status(403).json({
+         message:
+           "Access denied: You can only create timetables for your own department",
+       });
+     }
 
-    if (!department) {
-      return res.status(403).json({ message: "Only HOD can create timetable" });
-    }
+     // Additional check for teachers (non-HODs) to ensure they belong to the department
+     if (req.user.role === "TEACHER" && teacher.department_id.toString() !== department_id) {
+       return res.status(403).json({
+         message:
+           "Access denied: You can only create timetables for your own department",
+       });
+     }
 
-    const exists = await Timetable.findOne({
-      department_id,
-      course_id,
-      semester,
-      academicYear,
-      college_id: req.college_id,
-    });
+     const exists = await Timetable.findOne({
+       department_id,
+       course_id,
+       semester,
+       academicYear,
+       college_id: req.college_id,
+     });
 
-    if (exists) {
-      return res.status(400).json({ message: "Timetable already exists" });
-    }
+     if (exists) {
+       return res.status(400).json({ message: "Timetable already exists" });
+     }
 
-    const course = await Course.findById(course_id).select("name");
-    const name = course
-      ? `${course.name} - Sem ${semester} (${academicYear})`
-      : `Semester ${semester} (${academicYear})`;
+     const course = await Course.findById(course_id).select("name");
+     const name = course
+       ? `${course.name} - Sem ${semester} (${academicYear})`
+       : `Semester ${semester} (${academicYear})`;
 
-    const timetable = await Timetable.create({
-      college_id: req.college_id,
-      department_id,
-      course_id,
-      semester,
-      academicYear,
-      name,
-      createdBy: teacher._id,
-    });
+     const timetable = await Timetable.create({
+       college_id: req.college_id,
+       department_id,
+       course_id,
+       semester,
+       academicYear,
+       name,
+       createdBy: teacher._id,
+     });
 
-    ApiResponse.created(
-      res,
-      {
-        timetable,
-      },
-      "Timetable created successfully",
-    );
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create timetable" });
-  }
-};
+     ApiResponse.created(
+       res,
+       {
+         timetable,
+       },
+       "Timetable created successfully",
+     );
+   } catch (err) {
+     console.error(err);
+     res.status(500).json({ message: "Failed to create timetable" });
+   }
+ };
 
 /* =========================================================
    PUBLISH TIMETABLE (HOD/COLLEGE_ADMIN)
