@@ -9,7 +9,8 @@ import {
   FaBriefcase,
   FaMapMarkerAlt,
   FaArrowLeft,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaLayerGroup,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 
@@ -22,18 +23,20 @@ export default function HodProfile() {
     fetchProfile();
   }, []);
 
-   const fetchProfile = async () => {
-     try {
-       setLoading(true);
-       const res = await api.get("/profile");
-       setProfile(res.data?.teacher || null);
-     } catch (error) {
-       console.error("Error fetching HOD profile:", error);
-       toast.error(error.response?.data?.message || "Failed to load profile");
-     } finally {
-       setLoading(false);
-     }
-   };
+const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/hod/profile");
+        // Handle both wrapped { teacher: {...} } and unwrapped teacher data
+        const teacherData = res.data?.teacher || res.data;
+        setProfile(teacherData || null);
+      } catch (error) {
+        console.error("Error fetching HOD profile:", error);
+        toast.error(error.response?.data?.message || "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
 
   if (loading) {
     return (
