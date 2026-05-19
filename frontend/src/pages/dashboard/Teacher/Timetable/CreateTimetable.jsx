@@ -91,7 +91,7 @@ export default function CreateTimetable() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-    /* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
+/* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
     const loadProfile = useCallback(async () => {
       if (!user?.id || !user?.role) { 
         setLoading(false); 
@@ -104,20 +104,27 @@ export default function CreateTimetable() {
         const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
         const res   = await api.get(endpoint);
         const data  = res.data;
-        // Handle API response format: { success: true, data: { ... } } or direct data
-        const profileData = data.data?.data || data.data || data;
-        const deptId = profileData?.department_id
-                   || profileData?.teacher?.department_id
-                   || profileData?.teacher?.department?.id
-                   || profileData?.teacher?.department?.department_id; // For HOD profile format
-        if (deptId) {
-            // Get full department details including name
-            const deptRes = await api.get(`/departments/${deptId}`);
-            const deptData = deptRes.data.data?.dept || deptRes.data;
-            setDepartment(deptData);
-          // Load courses after department is set (triggered by useEffect)
+        
+        // For HOD, use /hod/department endpoint which has proper permissions
+        if (isHOD) {
+          const deptRes = await api.get(`/hod/department`);
+          const deptData = deptRes.data.data?.department || deptRes.data.department || deptRes.data;
+          setDepartment(deptData);
         } else {
-          throw new Error("Department ID not found in profile");
+          // For teachers, department is already populated in profile
+          // teacher.department_id contains { _id, name, code }
+          // After axios interceptor: data = { teacher: {...}, success, message }
+          const teacher = data?.teacher;
+          if (teacher?.department_id) {
+            const deptInfo = teacher.department_id;
+            setDepartment({
+              _id: deptInfo._id || deptInfo.id,
+              name: deptInfo.name,
+              code: deptInfo.code,
+            });
+          } else {
+            throw new Error("Department not found in teacher profile");
+          }
         }
       } catch (err) {
         console.error("Profile loading error:", err);
@@ -195,7 +202,7 @@ export default function CreateTimetable() {
      setSubmitting(true);
 
      try {
-       const response = await api.post("/api/timetable", {
+       const response = await api.post("/timetable", {
          department_id: department._id,
          course_id: form.course_id,
          semester: Number(form.semester),

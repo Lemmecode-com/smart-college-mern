@@ -85,22 +85,21 @@ const getHodProfile = async (req, res) => {
  * GET /api/hod/department
  */
 const getHodDepartment = async (req, res) => {
-  try {
-    // Department was already resolved by hodMiddleware (with or without a Teacher record)
-    const department = req.department;
-    const departmentDetail = await Department.findById(department._id)
-      .populate("hod_id", "name employeeId")
-      .populate("teachers", "name employeeId");
-
-    if (!departmentDetail) {
-      throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
-    }
-
-    ApiResponse.success(res, { department: departmentDetail }, "HOD department details fetched successfully");
-  } catch (error) {
-    throw error;
-  }
-};
+   try {
+     // Department was already resolved by hodMiddleware (with or without a Teacher record)
+     const department = req.department;
+     const departmentDetail = await Department.findById(department._id)
+       .populate("hod_id", "name employeeId");
+ 
+     if (!departmentDetail) {
+       throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
+     }
+ 
+     ApiResponse.success(res, { department: departmentDetail }, "HOD department details fetched successfully");
+   } catch (error) {
+     throw error;
+   }
+ };
 
 /**
  * GET Teachers in HOD's Department
