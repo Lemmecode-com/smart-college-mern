@@ -6,15 +6,35 @@ const {
 const AppError = require("../utils/AppError");
 
 /**
- * COLLEGE ADMIN: Payment report
+ * COLLEGE ADMIN: Payment report with date filtering support
  */
 exports.getCollegePaymentReport = async (req, res) => {
   try {
     const collegeId = req.college_id;
+    const { startDate, endDate } = req.query;
 
-    const fees = await StudentFee.find({
-      college_id: collegeId,
-    })
+    let matchConditions = { college_id: collegeId };
+
+    // Add date filtering if provided
+    if (startDate || endDate) {
+      matchConditions.installments = {};
+
+      if (startDate) {
+        matchConditions.installments.$elemMatch = {
+          ...matchConditions.installments.$elemMatch,
+          paidAt: { $gte: new Date(startDate) }
+        };
+      }
+
+      if (endDate) {
+        matchConditions.installments.$elemMatch = {
+          ...matchConditions.installments.$elemMatch,
+          paidAt: { $lte: new Date(endDate) }
+        };
+      }
+    }
+
+    const fees = await StudentFee.find(matchConditions)
       .populate("student_id", "fullName email")
       .populate("course_id", "name");
 
@@ -23,13 +43,25 @@ exports.getCollegePaymentReport = async (req, res) => {
     const report = fees.map((fee) => {
       totalCollected += fee.paidAmount;
 
+      // Filter installments by date if date range provided
+      let filteredInstallments = fee.installments;
+      if (startDate || endDate) {
+        filteredInstallments = fee.installments.filter(inst => {
+          if (!inst.paidAt) return false;
+          const paidDate = new Date(inst.paidAt);
+          if (startDate && paidDate < new Date(startDate)) return false;
+          if (endDate && paidDate > new Date(endDate)) return false;
+          return true;
+        });
+      }
+
       return {
         student: fee.student_id,
         course: fee.course_id,
         totalFee: fee.totalFee,
         paidAmount: fee.paidAmount,
         pendingAmount: fee.totalFee - fee.paidAmount,
-        installments: fee.installments,
+        installments: filteredInstallments,
       };
     });
 
@@ -37,6 +69,7 @@ exports.getCollegePaymentReport = async (req, res) => {
       totalCollected,
       totalStudents: report.length,
       report,
+      dateRange: startDate || endDate ? { startDate, endDate } : null,
     });
   } catch (error) {
     console.error("Admin payment report error:", error);

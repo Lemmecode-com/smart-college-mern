@@ -426,6 +426,69 @@ exports.superAdminDashboard = async (req, res, next) => {
 };
 
 /**
+ * 🏫 PRINCIPAL DASHBOARD (read-only)
+ */
+exports.principalDashboard = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    if (!collegeId) {
+      throw new AppError("College ID missing", 403, "COLLEGE_ID_MISSING");
+    }
+
+    const college = await College.findById(collegeId).select("name code email establishedYear logo");
+
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    const [
+      totalStudents,
+      totalTeachers,
+      totalDepartments,
+      totalCourses,
+      pendingAdmissions,
+    ] = await Promise.all([
+      Student.countDocuments({ college_id: collegeId }),
+      Teacher.countDocuments({ college_id: collegeId }),
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+    ]);
+
+    const recentStudents = await Student.find({ college_id: collegeId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("fullName email enrollmentNumber status");
+
+    ApiResponse.success(
+      res,
+      {
+        college: {
+          id: college._id,
+          name: college.name,
+          code: college.code,
+          email: college.email,
+          establishedYear: college.establishedYear,
+          logo: college.logo,
+        },
+        stats: {
+          totalStudents,
+          totalTeachers,
+          totalDepartments,
+          totalCourses,
+          pendingAdmissions,
+        },
+        recentStudents,
+      },
+      "Principal dashboard data fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * 🌍 PUBLIC STATS (for landing page — no auth required)
  */
 exports.publicStats = async (req, res, next) => {

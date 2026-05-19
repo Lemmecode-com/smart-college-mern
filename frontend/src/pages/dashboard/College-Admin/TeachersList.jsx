@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
 import { toast } from "react-toastify";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaChalkboardTeacher,
@@ -39,10 +40,12 @@ import {
 export default function TeachersList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
-  /* ================= SECURITY ================= */
+  /* ================= SECURITY =================*/
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= STATE ================= */
   const [teachers, setTeachers] = useState([]);
@@ -312,13 +315,15 @@ export default function TeachersList() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/teachers/add-teacher")}
-          >
-            <FaPlus className="erp-btn-icon" />
-            <span>Add New Teacher</span>
-          </button>
+          {canCreate('teachers') && (
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/teachers/add-teacher")}
+            >
+              <FaPlus className="erp-btn-icon" />
+              <span>Add New Teacher</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -454,14 +459,16 @@ export default function TeachersList() {
               <p className="empty-description">
                 There are no teachers registered in your college yet.
               </p>
-              <button
-                className="erp-btn erp-btn-primary empty-action"
-                onClick={() => navigate("/teachers/add-teacher")}
-                aria-label="Add your first teacher"
-              >
-                <FaPlus className="erp-btn-icon" />
-                Add Your First Teacher
-              </button>
+               {!hasTeachers && canCreate('teachers') && (
+                 <button
+                   className="erp-btn erp-btn-primary empty-action"
+                   onClick={() => navigate("/teachers/add-teacher")}
+                   aria-label="Add your first teacher"
+                 >
+                   <FaPlus className="erp-btn-icon" />
+                   Add Your First Teacher
+                 </button>
+               )}
             </div>
           ) : !hasResults ? (
             <div className="empty-state">
@@ -597,50 +604,56 @@ export default function TeachersList() {
                           {teacher.status || "INACTIVE"}
                         </span>
                       </td>
-                      <td className="action-cell">
-                        <div className="action-buttons">
-                          <Link
-                            to={`/teachers/view/${teacher._id}`}
-                            className="action-btn view-btn"
-                            title="View Details"
-                            aria-label={`View details for ${teacher.name}`}
-                          >
-                            <FaEye />
-                          </Link>
-                          <Link
-                            to={`/teachers/edit/${teacher._id}`}
-                            className="action-btn edit-btn"
-                            title="Edit Teacher"
-                            aria-label={`Edit ${teacher.name}`}
-                          >
-                            <FaEdit />
-                          </Link>
-                          <button
-                            className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
-                            title={
-                              teacher.status === "ACTIVE"
-                                ? "Deactivate Teacher"
-                                : "Reactivate Teacher"
-                            }
-                            onClick={() => handleToggleActive(teacher)}
-                            aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
-                          >
-                            {teacher.status === "ACTIVE" ? (
-                              <FaUserTimes />
-                            ) : (
-                              <FaUserCheck />
-                            )}
-                          </button>
-                          <button
-                            className="action-btn delete-btn"
-                            title="Delete Teacher"
-                            onClick={() => deleteTeacher(teacher._id)}
-                            aria-label={`Delete ${teacher.name}`}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
+                       <td className="action-cell">
+                         <div className="action-buttons">
+                           <Link
+                             to={`/teachers/view/${teacher._id}`}
+                             className="action-btn view-btn"
+                             title="View Details"
+                             aria-label={`View details for ${teacher.name}`}
+                           >
+                             <FaEye />
+                           </Link>
+                           {canEdit('teachers') && (
+                             <Link
+                               to={`/teachers/edit/${teacher._id}`}
+                               className="action-btn edit-btn"
+                               title="Edit Teacher"
+                               aria-label={`Edit ${teacher.name}`}
+                             >
+                               <FaEdit />
+                             </Link>
+                           )}
+                           {canEdit('teachers') && (
+                             <button
+                               className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
+                               title={
+                                 teacher.status === "ACTIVE"
+                                   ? "Deactivate Teacher"
+                                   : "Reactivate Teacher"
+                               }
+                               onClick={() => handleToggleActive(teacher)}
+                               aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
+                             >
+                               {teacher.status === "ACTIVE" ? (
+                                 <FaUserTimes />
+                               ) : (
+                                 <FaUserCheck />
+                               )}
+                             </button>
+                           )}
+                           {canDelete('teachers') && (
+                             <button
+                               className="action-btn delete-btn"
+                               title="Delete Teacher"
+                               onClick={() => deleteTeacher(teacher._id)}
+                               aria-label={`Delete ${teacher.name}`}
+                             >
+                               <FaTrash />
+                             </button>
+                           )}
+                         </div>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
