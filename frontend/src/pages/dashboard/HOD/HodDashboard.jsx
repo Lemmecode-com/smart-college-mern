@@ -307,7 +307,9 @@ const HodDashboard = () => {
                         justifyContent: 'space-between',
                         padding: '1rem 1.25rem'
                       }}
-                      onClick={() => navigate("/timetable/create")}
+                      onClick={() => {
+                        navigate("/timetable/create");
+                      }}
                     >
                       <span><FaCalendarAlt className="me-2" /> Create Timetable</span>
                       <FaArrowRight />
@@ -327,7 +329,9 @@ const HodDashboard = () => {
                         justifyContent: 'space-between',
                         padding: '1rem 1.25rem'
                       }}
-                      onClick={() => navigate("/hod/teachers")}
+                      onClick={() => {
+                        navigate("/hod/teachers");
+                      }}
                     >
                       <span><FaUsers className="me-2" /> View Teachers</span>
                       <FaArrowRight />
@@ -337,7 +341,7 @@ const HodDashboard = () => {
                       whileTap={{ scale: 0.98 }}
                       className="btn btn-lg"
                       style={{
-                        background: BRAND_COLORS.info.gradient,
+                        background: BRAND_COLORS.warning.gradient,
                         color: 'white',
                         border: 'none',
                         borderRadius: '12px',
@@ -347,7 +351,9 @@ const HodDashboard = () => {
                         justifyContent: 'space-between',
                         padding: '1rem 1.25rem'
                       }}
-                      onClick={() => navigate("/hod/department")}
+                      onClick={() => {
+                        navigate("/hod/department");
+                      }}
                     >
                       <span><FaLayerGroup className="me-2" /> Department Info</span>
                       <FaArrowRight />
