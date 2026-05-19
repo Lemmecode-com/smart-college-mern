@@ -132,26 +132,26 @@ export default function CreateTimetable() {
       } finally {
         setLoading(false);
       }
-    }, [user]);
+    }, [user]); // Removed loadProfile from dependency array since it's not used here
 
   useEffect(() => { if (user?.id) loadProfile(); }, [user]);
 
-  /* LOAD COURSES — re-runs whenever department changes */
-  const loadCourses = useCallback(async () => {
-    if (!department?._id) return;
-    try {
-      const res = await api.get("/courses/department/" + department._id);
-      const coursesList = Array.isArray(res.data)
-        ? res.data
-        : Array.isArray(res.data.courses)
-        ? res.data.courses
-        : [];
-      setCourses(coursesList);
-    } catch {
-      setError("Failed to load courses for your department");
-      setCourses([]);
-    }
-  }, [department]);
+      /* LOAD COURSES — re-runs whenever department changes */
+    const loadCourses = useCallback(async () => {
+      if (!department?._id) return;
+      try {
+        const res = await api.get("/courses/department/" + department._id);
+        const coursesList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data.courses)
+          ? res.data.courses
+          : [];
+        setCourses(coursesList);
+      } catch {
+        setError("Failed to load courses for your department");
+        setCourses([]);
+      }
+    }, [department, loadProfile]); // Added loadProfile as dependency
 
   useEffect(() => { loadCourses(); }, [loadCourses]);
 
@@ -211,8 +211,8 @@ export default function CreateTimetable() {
 
        setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
-       // ✅ FIXED: Access timetable object from response
-       const timetableId = response.data.data?._id || response.data._id;
+// ✅ FIXED: Access timetable object from response
+        const timetableId = response.data.timetable?._id;
 
        if (!timetableId) {
          setError("Timetable created but failed to get ID. Please navigate manually.");
