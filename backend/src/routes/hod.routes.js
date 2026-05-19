@@ -16,7 +16,8 @@ const {
 
 /* ================= HOD ROUTES ================= */
 // Apply middlewares to ALL HOD routes
-router.use(auth, role(ROLE.HOD), hodMiddleware, collegeMiddleware);
+// Allow both TEACHER and HOD roles - hodMiddleware will verify actual HOD status
+router.use(auth, role(ROLE.TEACHER, ROLE.HOD), hodMiddleware, collegeMiddleware);
 
 // HOD Dashboard
 router.get("/dashboard", getHodDashboard);

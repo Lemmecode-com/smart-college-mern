@@ -22,18 +22,18 @@ export default function HodProfile() {
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/hod/profile");
-      setProfile(res.data?.teacher || null);
-    } catch (error) {
-      console.error("Error fetching HOD profile:", error);
-      toast.error(error.response?.data?.message || "Failed to load profile");
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchProfile = async () => {
+     try {
+       setLoading(true);
+       const res = await api.get("/profile");
+       setProfile(res.data?.teacher || null);
+     } catch (error) {
+       console.error("Error fetching HOD profile:", error);
+       toast.error(error.response?.data?.message || "Failed to load profile");
+     } finally {
+       setLoading(false);
+     }
+   };
 
   if (loading) {
     return (

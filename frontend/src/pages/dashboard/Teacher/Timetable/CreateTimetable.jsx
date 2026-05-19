@@ -91,24 +91,41 @@ export default function CreateTimetable() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
-  const loadProfile = useCallback(async () => {
-    if (!user?.id || !user?.role) { setLoading(false); return; } // user still loading
-    try {
-      const isHOD = user.role === "HOD";
-      const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
-      const res   = await api.get(endpoint);
-      const data  = res.data;
-      const deptId = data.department_id
-                  || data.teacher?.department_id
-                  || data.teacher?.department?.id;
-      if (deptId) setDepartment({ _id: deptId });
-    } catch {
-      setError("Failed to load department information");
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    /* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
+    const loadProfile = useCallback(async () => {
+      if (!user?.id || !user?.role) { 
+        setLoading(false); 
+        return; 
+      } // user still loading
+      try {
+        setLoading(true);
+        setError("");
+        const isHOD = user.role === "HOD";
+        const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
+        const res   = await api.get(endpoint);
+        const data  = res.data;
+        // Handle API response format: { success: true, data: { ... } } or direct data
+        const profileData = data.data?.data || data.data || data;
+        const deptId = profileData?.department_id
+                   || profileData?.teacher?.department_id
+                   || profileData?.teacher?.department?.id
+                   || profileData?.teacher?.department?.department_id; // For HOD profile format
+        if (deptId) {
+            // Get full department details including name
+            const deptRes = await api.get(`/departments/${deptId}`);
+            const deptData = deptRes.data.data?.dept || deptRes.data;
+            setDepartment(deptData);
+          // Load courses after department is set (triggered by useEffect)
+        } else {
+          throw new Error("Department ID not found in profile");
+        }
+      } catch (err) {
+        console.error("Profile loading error:", err);
+        setError("Failed to load department information: " + (err.message || "Unknown error"));
+      } finally {
+        setLoading(false);
+      }
+    }, [user]);
 
   useEffect(() => { if (user?.id) loadProfile(); }, [user]);
 
@@ -170,41 +187,41 @@ export default function CreateTimetable() {
     );
   }, [form, courses]);
 
-  /* SUBMIT HANDLER */
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
+   /* SUBMIT HANDLER */
+   const submitHandler = async (e) => {
+     e.preventDefault();
+     setError("");
+     setSuccess("");
+     setSubmitting(true);
 
-    try {
-      const response = await api.post("/timetable", {
-        department_id: department._id,
-        course_id: form.course_id,
-        semester: Number(form.semester),
-        academicYear: form.academicYear,
-      });
+     try {
+       const response = await api.post("/api/timetable", {
+         department_id: department._id,
+         course_id: form.course_id,
+         semester: Number(form.semester),
+         academicYear: form.academicYear,
+       });
 
-      setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
+       setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
-      // ✅ FIXED: Access timetable object from response
-      const timetableId = response.data.timetable?._id || response.data._id;
+       // ✅ FIXED: Access timetable object from response
+       const timetableId = response.data.data?._id || response.data._id;
 
-      if (!timetableId) {
-        setError("Timetable created but failed to get ID. Please navigate manually.");
-        return;
-      }
+       if (!timetableId) {
+         setError("Timetable created but failed to get ID. Please navigate manually.");
+         return;
+       }
 
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        navigate(`/timetable/${timetableId}/weekly`);
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+       // Auto-redirect after 2 seconds
+       setTimeout(() => {
+         navigate(`/timetable/${timetableId}/weekly`);
+       }, 2000);
+     } catch (err) {
+       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Department Information..." />;
