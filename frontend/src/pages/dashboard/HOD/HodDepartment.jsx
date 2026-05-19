@@ -20,17 +20,17 @@ export default function HodDepartment() {
     fetchDepartment();
   }, []);
 
-  const fetchDepartment = async () => {
-    try {
-      const res = await api.get("/hod/department");
-      setDepartment(res.data?.department || null);
-    } catch (error) {
-      console.error("Error fetching department:", error);
-      toast.error(error.response?.data?.message || "Failed to load department");
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchDepartment = async () => {
+     try {
+       const res = await api.get("/hod/department");
+       setDepartment(res.data?.department || null);
+     } catch (error) {
+       console.error("Error fetching department:", error);
+       toast.error(error.response?.data?.message || "Failed to load department");
+     } finally {
+       setLoading(false);
+     }
+   };
 
   if (loading) {
     return (
