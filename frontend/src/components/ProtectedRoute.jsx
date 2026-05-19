@@ -2,6 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../auth/AuthContext";
 import Loading from "./Loading";
+import { getDashboardPath } from "./Sidebar/config/navigation.config";
 
 export default function ProtectedRoute({ allowedRoles, children }) {
   const { user, loading } = useContext(AuthContext);
@@ -14,9 +15,7 @@ export default function ProtectedRoute({ allowedRoles, children }) {
     allowedRoles &&
     !allowedRoles.includes(user.role)
   ) {
-    return user.role === "SUPER_ADMIN"
-      ? <Navigate to="/super-admin/dashboard" replace />
-      : <Navigate to="/dashboard" replace />;
+    return <Navigate to={getDashboardPath(user.role)} replace />;
   }
 
   return children;
