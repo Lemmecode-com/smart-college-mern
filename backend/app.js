@@ -82,7 +82,10 @@ app.use("/api/", globalLimiter);
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/college", require("./src/routes/college.routes"));
+app.use("/api/college", require("./src/routes/staff.routes")); // Staff account management
+app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff extended profiles
 app.use("/api/master", require("./src/routes/master.routes"));
+app.use("/api/hod", require("./src/routes/hod.routes")); // HOD module
 
 /* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));
@@ -90,8 +93,12 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
+app.use("/api/admission", require("./src/routes/admission.routes"));
+app.use("/api/exam", require("./src/routes/exam.routes"));
+app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/admin/email", require("./src/routes/collegeEmailConfig.routes"));
 
 /* ================= ATTENDANCE ================= */
 app.use("/api/attendance", require("./src/routes/attendance.routes"));
@@ -102,7 +109,9 @@ app.use(
   require("./src/routes/student.payment.routes"),
 );
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/admin/payment", require("./src/routes/paymentConfig.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
+app.use("/api/accountant", require("./src/routes/accountant.routes")); // Accountant module
 
 /* ================= STUDENT PROMOTION ================= */
 app.use("/api/promotion", require("./src/routes/promotion.routes"));
@@ -121,6 +130,12 @@ app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
 
 /* ================= AUDIT LOGS (Admin Actions) ================= */
 app.use("/api/audit-logs", require("./src/routes/auditLog.routes"));
+
+/* ================= PLATFORM SUPPORT ================= */
+app.use(
+  "/api/platform-support",
+  require("./src/routes/platformSupport.routes")
+);
 
 /* ================= STRIPE ================= */
 app.use("/api/stripe", require("./src/routes/stripe.routes"));

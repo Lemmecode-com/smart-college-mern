@@ -26,6 +26,7 @@ const {
   moveToAlumni,
   getAlumni,
   getDeactivatedStudents,
+  searchStudents,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
@@ -34,6 +35,7 @@ const {
 } = require("../controllers/studentApproval.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
+const { ROLE } = require("../utils/constants");
 
 // 🌍 PUBLIC STUDENT REGISTRATION
 router.post(
@@ -44,20 +46,20 @@ router.post(
   registerStudent,
 );
 
-// 🔐 COLLEGE ADMIN → LIST REGISTERED STUDENTS
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL → LIST REGISTERED STUDENTS (PENDING)
 router.get(
   "/registered",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getRegisteredStudents,
 );
 
-// 🔐 COLLEGE ADMIN → APPROVAL WORKFLOW
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → APPROVAL WORKFLOW
 router.put(
   "/:studentId/approve",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   approveStudent,
@@ -66,17 +68,17 @@ router.put(
 router.put(
   "/:studentId/reject",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   rejectStudent,
 );
 
-// 🔐 COLLEGE ADMIN → BULK APPROVE STUDENTS
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → BULK APPROVE STUDENTS
 router.post(
   "/bulk-approve",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   bulkApproveStudents,
 );
@@ -127,38 +129,29 @@ router.delete(
   deleteStudent,
 );
 
-//ADMIN : GETS approved students
+//ADMIN / ADMISSION_OFFICER / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GETS approved students
 router.get(
   "/approved-students",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getApprovedStudents,
 );
 
-//ADMIN : GET individual approved student
+//ADMIN / ADMISSION_OFFICER / PRINCIPAL / EXAM_COORDINATOR / ACCOUNTANT: GET individual approved student
 router.get(
   "/approved-stud/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.ACCOUNTANT),
   collegeMiddleware,
   getStudentById,
 );
 
-//ADMIN : GETS registered students
-router.get(
-  "/registered",
-  auth,
-  role("COLLEGE_ADMIN"),
-  collegeMiddleware,
-  getRegisteredStudents,
-);
-
-//ADMIN : GET individual registered student
+//ADMIN / ADMISSION_OFFICER / PRINCIPAL: GET individual registered student
 router.get(
   "/registered/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getRegisteredStudentById,
 );
@@ -172,31 +165,40 @@ router.get(
   getStudentsForTeacher,
 );
 
-// 🎓 ADMIN: Move student to Alumni (for students who completed course)
+// 🎓 ADMIN/ADMISSION_OFFICER: Move student to Alumni
 router.post(
   "/:studentId/to-alumni",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   moveToAlumni,
 );
 
-// 🎓 ADMIN: Get all Alumni
+// 🎓 ADMIN/ADMISSION_OFFICER/PRINCIPAL: Get all Alumni
 router.get(
   "/alumni",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAlumni,
 );
 
-// 🚫 ADMIN: Get deactivated students (for reactivation)
+// 🚫 ADMIN/ADMISSION_OFFICER/PRINCIPAL: Get deactivated students (for reactivation)
 router.get(
   "/deactivated",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
   collegeMiddleware,
   getDeactivatedStudents,
+);
+
+// 🔍 ACCOUNTANT/COLLEGE_ADMIN/PRINCIPAL: Search students by name/email
+router.get(
+  "/search",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  searchStudents,
 );
 
 module.exports = router;

@@ -143,7 +143,8 @@ export default function AuditLogs() {
 
   // Security check
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   // Fetch audit logs
   const fetchLogs = async () => {
