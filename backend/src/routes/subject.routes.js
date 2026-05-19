@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   createSubject,
@@ -13,14 +14,20 @@ const {
   deleteSubject
 } = require("../controllers/subject.controller");
 
-router.post("/",auth, role("COLLEGE_ADMIN"), collegeMiddleware, createSubject);
-router.get("/course/:courseId",auth, role("COLLEGE_ADMIN", "TEACHER"), collegeMiddleware, getSubjectsByCourse);
-router.put("/:id",auth, role("COLLEGE_ADMIN"), collegeMiddleware, updateSubject);
-router.delete("/:id",auth, role("COLLEGE_ADMIN"), collegeMiddleware, deleteSubject);
+router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createSubject);
+router.get(
+  "/course/:courseId",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  getSubjectsByCourse
+);
+router.put("/:id", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, updateSubject);
+router.delete("/:id", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, deleteSubject);
 router.get(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getSubjectById
 );

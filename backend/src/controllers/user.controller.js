@@ -1,9 +1,11 @@
 const User = require("../models/user.model");
 const Teacher = require("../models/teacher.model");
 const Student = require("../models/student.model");
+const College = require("../models/college.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const emailService = require("../services/email.service");
 
 /**
  * Deactivate a user (COLLEGE_ADMIN only)
@@ -86,6 +88,18 @@ exports.deactivateUser = async (req, res, next) => {
       })
       .catch((err) => console.error("Audit log failed:", err));
 
+    // Send email notification for student deactivation (non-blocking)
+    if (user.role === "STUDENT" && studentData) {
+      const college = await College.findById(req.college_id).select("name").lean();
+      emailService.sendAccountStatusEmail({
+        to: user.email,
+        studentName: studentData.fullName,
+        collegeName: college?.name || "Your College",
+        status: "DEACTIVATED",
+        collegeId: req.college_id,
+      }).catch((err) => console.error("Deactivation email failed:", err.message));
+    }
+
     ApiResponse.success(
       res,
       {
@@ -165,6 +179,18 @@ exports.reactivateUser = async (req, res, next) => {
         name: studentData?.fullName || teacherData?.name || user.email,
       })
       .catch((err) => console.error("Audit log failed:", err));
+
+    // Send email notification for student reactivation (non-blocking)
+    if (user.role === "STUDENT" && studentData) {
+      const college = await College.findById(req.college_id).select("name").lean();
+      emailService.sendAccountStatusEmail({
+        to: user.email,
+        studentName: studentData.fullName,
+        collegeName: college?.name || "Your College",
+        status: "REACTIVATED",
+        collegeId: req.college_id,
+      }).catch((err) => console.error("Reactivation email failed:", err.message));
+    }
 
     ApiResponse.success(
       res,

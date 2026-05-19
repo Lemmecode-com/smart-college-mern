@@ -46,7 +46,7 @@ function getOrdinalSuffix(num) {
   return "th";
 }
 
-export default function StudentPromotion() {
+export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -86,7 +86,10 @@ export default function StudentPromotion() {
   };
 
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   // 🎓 HELPER: Calculate academic year number from semester & admission year
   const getAcademicYear = (semester, admissionYear) => {
@@ -342,13 +345,19 @@ export default function StudentPromotion() {
 
   return (
     <div className="page-container">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Student Promotion" },
-        ]}
-      />
+       {/* Breadcrumb */}
+       <Breadcrumb
+         items={admissionOfficerMode
+           ? [
+               { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Student Promotion" },
+             ]
+           : [
+               { label: "Dashboard", path: "/dashboard" },
+               { label: "Student Promotion" },
+             ]
+         }
+       />
 
       {/* Page Header */}
       <div className="page-header">
@@ -884,8 +893,8 @@ export default function StudentPromotion() {
                 />
               </div>
 
-              {/* Override Checkbox */}
-              {!selectedStudent.allInstallmentsPaid && (
+              {/* Override Checkbox - College Admin only */}
+              {!admissionOfficerMode && !selectedStudent.allInstallmentsPaid && (
                 <div className="alert alert-warning">
                   <label className="custom-checkbox-label">
                     <input
@@ -1081,7 +1090,7 @@ export default function StudentPromotion() {
 
         .btn-outline-primary {
           background: rgba(255, 255, 255, 0.15);
-          color: white;
+          color: skyblue;
           border: 2px solid rgba(255, 255, 255, 0.4);
           backdrop-filter: blur(10px);
           padding: 12px 20px;
@@ -1099,6 +1108,8 @@ export default function StudentPromotion() {
           border-color: rgba(255, 255, 255, 0.6);
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          color: skyblue;
+          font-weight: bold;
         }
 
         .stats-grid {
