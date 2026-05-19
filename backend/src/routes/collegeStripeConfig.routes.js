@@ -28,6 +28,17 @@ router.get(
 );
 
 /**
+ * @route   PATCH /api/admin/stripe/config/status
+ * @desc    Toggle Stripe active status
+ * @access  Private (College Admin)
+ */
+router.patch(
+  "/config/status",
+  checkCollegeAccess,
+  asyncHandler(controller.toggleStripeActive),
+);
+
+/**
  * @route   POST /api/admin/stripe/config
  * @desc    Save/Update Stripe configuration
  * @access  Private (College Admin)

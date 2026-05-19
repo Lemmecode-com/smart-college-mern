@@ -175,17 +175,19 @@ exports.registerStudent = async (req, res, next) => {
       admissionYear,
       currentSemester,
       previousQualification,
-      previousInstitute,
-      // category is extracted earlier for validation
-      nationality,
-      bloodGroup,
-      alternateMobile,
-      // Parent/Guardian Details
-      fatherName,
-      fatherMobile,
-      motherName,
-      motherMobile,
-      // 10th (SSC) Academic Details
+       previousInstitute,
+       // category is extracted earlier for validation
+       nationality,
+       bloodGroup,
+       alternateMobile,
+       // Parent/Guardian Details
+       fatherName,
+       fatherMobile,
+       fatherEmail,
+       motherName,
+       motherMobile,
+       motherEmail,
+       // 10th (SSC) Academic Details
       sscSchoolName,
       sscBoard,
       sscPassingYear,
@@ -246,73 +248,84 @@ exports.registerStudent = async (req, res, next) => {
       college_id: college._id,
     });
 
-    // ✅ 5️⃣ Create Student WITH user_id reference (NO password field)
-    const registeredStud = await Student.create({
-      user_id: user._id, // ← Link to User
-      fullName,
-      email,
-      mobileNumber,
-      gender,
-      dateOfBirth,
-      addressLine,
-      city,
-      state,
-      pincode,
-      college_id: college._id,
-      department_id,
-      course_id,
-      admissionYear,
-      currentSemester,
-      previousQualification,
-      previousInstitute,
-      category,
-      nationality,
-      bloodGroup,
-      alternateMobile,
-      // Parent/Guardian Details
-      fatherName,
-      fatherMobile,
-      motherName,
-      motherMobile,
-      // 10th (SSC) Academic Details
-      sscSchoolName,
-      sscBoard,
-      sscPassingYear,
-      sscPercentage,
-      sscRollNumber,
-      // 12th (HSC) Academic Details
-      hscSchoolName,
-      hscBoard,
-      hscStream,
-      hscPassingYear,
-      hscPercentage,
-      hscRollNumber,
-      // Document Upload Paths - Map all document types to their respective fields
-      sscMarksheetPath: documentPaths["10th_marksheet"] || "",
-      hscMarksheetPath: documentPaths["12th_marksheet"] || "",
-      passportPhotoPath: documentPaths["passport_photo"] || "",
-      categoryCertificatePath: documentPaths["category_certificate"] || "",
-      incomeCertificatePath: documentPaths["income_certificate"] || "",
-      characterCertificatePath: documentPaths["character_certificate"] || "",
-      transferCertificatePath: documentPaths["transfer_certificate"] || "",
-      aadharCardPath: documentPaths["aadhar_card"] || "",
-      entranceExamScorePath: documentPaths["entrance_exam_score"] || "",
-      migrationCertificatePath: documentPaths["migration_certificate"] || "",
-      domicileCertificatePath: documentPaths["domicile_certificate"] || "",
-      casteCertificatePath: documentPaths["caste_certificate"] || "",
-      nonCreamyLayerCertificatePath:
-        documentPaths["non_creamy_layer_certificate"] || "",
-      physicallyChallengedCertificatePath:
-        documentPaths["physically_challenged_certificate"] || "",
-      sportsQuotaCertificatePath:
-        documentPaths["sports_quota_certificate"] || "",
-      nriSponsorCertificatePath: documentPaths["nri_sponsor_certificate"] || "",
-      gapCertificatePath: documentPaths["gap_certificate"] || "",
-      affidavitPath: documentPaths["affidavit"] || "",
-      // Store all documents in a flexible field
-      documents: documentPaths,
-      status: "PENDING",
-    });
+// ✅ 5️⃣ Create Student WITH user_id reference (NO password field)
+     // Rollback User if Student creation fails to prevent orphaned accounts
+     let registeredStud;
+     try {
+       registeredStud = await Student.create({
+         user_id: user._id, // ← Link to User
+         fullName,
+         email,
+         mobileNumber,
+         gender,
+         dateOfBirth,
+         addressLine,
+         city,
+         state,
+         pincode,
+         college_id: college._id,
+         department_id,
+         course_id,
+         admissionYear,
+         currentSemester,
+         previousQualification,
+         previousInstitute,
+         category,
+         nationality,
+         bloodGroup,
+         alternateMobile,
+         // Parent/Guardian Details
+         fatherName,
+         fatherMobile,
+         fatherEmail,
+         motherName,
+         motherMobile,
+         motherEmail,
+         // 10th (SSC) Academic Details
+         sscSchoolName,
+         sscBoard,
+         sscPassingYear,
+         sscPercentage,
+         sscRollNumber,
+         // 12th (HSC) Academic Details
+         hscSchoolName,
+         hscBoard,
+         hscStream,
+         hscPassingYear,
+         hscPercentage,
+         hscRollNumber,
+         // Document Upload Paths - Map all document types to their respective fields
+         sscMarksheetPath: documentPaths["10th_marksheet"] || "",
+         hscMarksheetPath: documentPaths["12th_marksheet"] || "",
+         passportPhotoPath: documentPaths["passport_photo"] || "",
+         categoryCertificatePath: documentPaths["category_certificate"] || "",
+         incomeCertificatePath: documentPaths["income_certificate"] || "",
+         characterCertificatePath: documentPaths["character_certificate"] || "",
+         transferCertificatePath: documentPaths["transfer_certificate"] || "",
+         aadharCardPath: documentPaths["aadhar_card"] || "",
+         entranceExamScorePath: documentPaths["entrance_exam_score"] || "",
+         migrationCertificatePath: documentPaths["migration_certificate"] || "",
+         domicileCertificatePath: documentPaths["domicile_certificate"] || "",
+         casteCertificatePath: documentPaths["caste_certificate"] || "",
+         nonCreamyLayerCertificatePath:
+           documentPaths["non_creamy_layer_certificate"] || "",
+         physicallyChallengedCertificatePath:
+           documentPaths["physically_challenged_certificate"] || "",
+         sportsQuotaCertificatePath:
+           documentPaths["sports_quota_certificate"] || "",
+         nriSponsorCertificatePath:
+           documentPaths["nri_sponsor_certificate"] || "",
+         gapCertificatePath: documentPaths["gap_certificate"] || "",
+         affidavitPath: documentPaths["affidavit"] || "",
+         // Store all documents in a flexible field
+         documents: documentPaths,
+         status: "PENDING",
+       });
+     } catch (studentError) {
+       // 🧹 Rollback: Delete orphaned User if Student creation fails
+       await User.deleteOne({ _id: user._id });
+       throw studentError; // Re-throw to outer catch
+     }
 
     // 📧 Send registration success email (non-blocking)
     (async () => {
@@ -330,6 +343,7 @@ exports.registerStudent = async (req, res, next) => {
           collegeName: college?.name || "Our College",
           courseName: course?.name,
           admissionYear: registeredStud.admissionYear,
+          collegeId: registeredStud.college_id,
         });
       } catch (emailError) {
         // Non-critical - continue
@@ -943,9 +957,17 @@ exports.getStudentById = async (req, res) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    const fee = await StudentFee.findOne({
+    // 🔧 OPTIMIZATION: Use Promise.race to prevent hanging on fee query
+    const feePromise = StudentFee.findOne({
       student_id: student._id,
     }).select("totalFee paidAmount installments");
+
+    // Timeout after 5 seconds to prevent hanging
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve(null), 5000);
+    });
+
+    const fee = await Promise.race([feePromise, timeoutPromise]);
 
     ApiResponse.success(
       res,
@@ -957,7 +979,7 @@ exports.getStudentById = async (req, res) => {
           installments: [],
         },
       },
-      "Student fetched successfully",
+      "Student details fetched successfully"
     );
   } catch (error) {
     next(error);
@@ -1494,5 +1516,56 @@ exports.getStudentDocument = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * SEARCH STUDENTS (ACCOUNTANT/COLLEGE_ADMIN/PRINCIPAL)
+ * GET /api/students/search?q=searchTerm
+ */
+exports.searchStudents = async (req, res) => {
+  try {
+    const { role, college_id } = req.user;
+    const { q: searchQuery } = req.query;
+
+    if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only admin, accountant, or principal can search students."
+      });
+    }
+
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be at least 2 characters long"
+      });
+    }
+
+    // Search for students by name or email in the college
+    const students = await Student.find({
+      college_id,
+      $or: [
+        { fullName: { $regex: searchQuery.trim(), $options: 'i' } },
+        { email: { $regex: searchQuery.trim(), $options: 'i' } }
+      ]
+    })
+    .populate('course_id', 'name')
+    .select('fullName email course_id admissionYear status')
+    .limit(20) // Limit results to prevent overwhelming the UI
+    .sort({ fullName: 1 });
+
+    res.json({
+      success: true,
+      students,
+      count: students.length
+    });
+
+  } catch (error) {
+    console.error("Student search error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search students"
+    });
   }
 };

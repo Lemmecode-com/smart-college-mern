@@ -69,7 +69,7 @@ const securityAuditSchema = new mongoose.Schema({
 
   userRole: {
     type: String,
-    enum: ['SUPER_ADMIN', 'COLLEGE_ADMIN', 'HOD', 'TEACHER', 'STUDENT']
+    enum: ['SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRINCIPAL', 'HOD', 'ACCOUNTANT', 'ADMISSION_OFFICER', 'EXAM_COORDINATOR', 'PARENT_GUARDIAN', 'PLATFORM_SUPPORT', 'TEACHER', 'STUDENT']
   },
 
   collegeId: {

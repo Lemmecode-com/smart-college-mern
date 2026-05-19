@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBookOpen,
@@ -56,7 +57,7 @@ const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
 );
 
 // Course Table Component
-const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete }) => {
+const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, canEdit, canDelete }) => {
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === "asc" ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />;
@@ -219,34 +220,38 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete }) 
                     </div>
                   </div>
                 </td>
-                <td className="col-actions">
-                  <div className="action-group">
-                    <button
-                      className="action-btn action-view"
-                      title="View Details"
-                      aria-label={`View ${course.name} details`}
-                      onClick={() => onView(course._id)}
-                    >
-                      <FaEye />
-                    </button>
-                    <button
-                      className="action-btn action-edit"
-                      title="Edit Course"
-                      aria-label={`Edit ${course.name}`}
-                      onClick={() => onEdit(course._id)}
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      className="action-btn action-delete"
-                      title="Delete Course"
-                      aria-label={`Delete ${course.name}`}
-                      onClick={() => onDelete(course)}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </td>
+                 <td className="col-actions">
+                   <div className="action-group">
+                     <button
+                       className="action-btn action-view"
+                       title="View Details"
+                       aria-label={`View ${course.name} details`}
+                       onClick={() => onView(course._id)}
+                     >
+                       <FaEye />
+                     </button>
+                     {canEdit && (
+                       <button
+                         className="action-btn action-edit"
+                         title="Edit Course"
+                         aria-label={`Edit ${course.name}`}
+                         onClick={() => onEdit(course._id)}
+                       >
+                         <FaEdit />
+                       </button>
+                     )}
+                     {canDelete && (
+                       <button
+                         className="action-btn action-delete"
+                         title="Delete Course"
+                         aria-label={`Delete ${course.name}`}
+                         onClick={() => onDelete(course)}
+                       >
+                         <FaTrash />
+                       </button>
+                     )}
+                   </div>
+                 </td>
               </tr>
             );
           })}
@@ -440,7 +445,7 @@ const SkeletonLoader = () => (
 );
 
 // Empty State Component
-const EmptyState = ({ hasDepartment, onAddCourse }) => (
+const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
   <div className="empty-state-wrapper">
     <div className="empty-state-icon">
       <div className="empty-icon-circle">
@@ -455,7 +460,7 @@ const EmptyState = ({ hasDepartment, onAddCourse }) => (
         ? "There are no courses in this department yet. Get started by adding your first course."
         : "Choose a department from the dropdown above to view and manage courses."}
     </p>
-    {hasDepartment && (
+    {hasDepartment && allowAdd && (
       <button
         className="btn btn-primary btn-lg"
         onClick={onAddCourse}
@@ -491,11 +496,12 @@ const Toast = ({ message, type, onClose }) => {
 export default function CourseList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
@@ -787,14 +793,16 @@ export default function CourseList() {
             <FaArrowLeft className="btn-icon" />
             <span>Back</span>
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleAddCourse}
-            aria-label="Add New Course"
-          >
-            <FaPlus className="btn-icon" />
-            <span>Add Course</span>
-          </button>
+          {canCreate('courses') && (
+            <button
+              className="btn btn-primary"
+              onClick={handleAddCourse}
+              aria-label="Add New Course"
+            >
+              <FaPlus className="btn-icon" />
+              <span>Add Course</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -950,7 +958,8 @@ export default function CourseList() {
               ) : filteredCourses.length === 0 ? (
                 <EmptyState 
                   hasDepartment={true} 
-                  onAddCourse={handleAddCourse} 
+                  onAddCourse={handleAddCourse}
+                  allowAdd={canCreate('courses')}
                 />
               ) : (
                 <CourseTable
@@ -960,6 +969,8 @@ export default function CourseList() {
                   onView={handleViewCourse}
                   onEdit={handleEditCourse}
                   onDelete={handleDeleteClick}
+                  canEdit={canEdit('courses')}
+                  canDelete={canDelete('courses')}
                 />
               )}
             </div>

@@ -28,16 +28,26 @@ import {
   FaUsers,
   FaGraduationCap,
   FaCheckCircle,
-  FaChartBar,
+  FaChartLine,
   FaMoneyBill,
   FaFileAlt,
   FaUser,
   FaEdit,
   FaClock,
-  FaChartLine,
+  FaChartBar,
   FaCreditCard,
   FaUserTimes,
   FaExclamationTriangle,
+  FaChalkboardTeacher,
+  FaHistory,
+  FaShieldAlt,
+  FaUserPlus,
+  FaHeartbeat,
+  FaDatabase,
+  FaTicketAlt,
+  FaPlug,
+  FaBug,
+  FaArrowUp,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -335,6 +345,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "staff",
+        title: "Staff Management",
+        icon: FaUsers,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/college/staff/create",
+            icon: FaUserPlus,
+            label: "Create Staff Account",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "system-settings",
         title: "System Settings",
         icon: FaCog,
@@ -362,6 +386,12 @@ export const navigationConfig = {
             path: "/system-settings/notifications",
             icon: FaBell,
             label: "Notification Settings",
+            exact: true,
+          },
+          {
+            path: "/system-settings/email-configuration",
+            icon: FaEnvelope,
+            label: "Email Configuration",
             exact: true,
           },
           {
@@ -444,7 +474,6 @@ export const navigationConfig = {
           },
         ],
       },
-
       {
         id: "manage-exceptions",
         title: "Manage Exceptions",
@@ -599,21 +628,609 @@ export const navigationConfig = {
       },
     ],
   },
+
+  /**
+   * PRINCIPAL Navigation
+   * Read-only access to all academic and administrative data
+   */
+  PRINCIPAL: {
+    dashboard: {
+      path: "/dashboard/principal",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "college-view",
+        title: "College",
+        icon: FaUniversity,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/college/profile",
+            icon: FaUniversity,
+            label: "College Profile",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "departments-view",
+        title: "Departments",
+        icon: FaBook,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/departments",
+            icon: FaListOl,
+            label: "All Departments",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "courses-view",
+        title: "Courses",
+        icon: FaLayerGroup,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/courses",
+            icon: FaListOl,
+            label: "Course List",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "subjects-view",
+        title: "Subjects",
+        icon: FaBook,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/subjects",
+            icon: FaListOl,
+            label: "Subject List",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "teachers-view",
+        title: "Teachers",
+        icon: FaUserGraduate,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/teachers",
+            icon: FaListOl,
+            label: "Teacher List",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "students-view",
+        title: "Students",
+        icon: FaUserGraduate,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/students/pending-approvals",
+            icon: FaClock,
+            label: "Pending Approvals",
+            exact: true,
+          },
+          {
+            path: "/students/alumni",
+            icon: FaUserGraduate,
+            label: "Alumni",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "fees-view",
+        title: "Fee Structures",
+        icon: FaMoneyBillWave,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/fees/list",
+            icon: FaListOl,
+            label: "Fee Structures",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "reports-view",
+        title: "Reports & Analytics",
+        icon: FaChartPie,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/college-admin/reports-dashboard",
+            icon: FaChartBar,
+            label: "Reports Dashboard",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports",
+            icon: FaGraduationCap,
+            label: "Admission Reports",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-summary",
+            icon: FaMoneyBillWave,
+            label: "Payment Reports",
+            exact: false,
+          },
+          {
+            path: "/college-admin/payment-history",
+            icon: FaFileInvoiceDollar,
+            label: "Payment History",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/attendance",
+            icon: FaClipboardList,
+            label: "Attendance Reports",
+            exact: true,
+          },
+          {
+            path: "/college-admin/audit-logs",
+            icon: FaCheckCircle,
+            label: "Audit Logs",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * ACCOUNTANT Navigation
+   * Fee collection, payment tracking, receipts, financial reports
+   */
+  ACCOUNTANT: {
+    dashboard: {
+      path: "/dashboard/accountant",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "accountant-fees",
+        title: "Fee Management",
+        icon: FaMoneyBillWave,
+        defaultOpen: true,
+        items: [
+        {
+          path: "/college-admin/payment-history",
+          icon: FaListOl,
+          label: "Payment History",
+          exact: true,
+        },
+          {
+            path: "/fees/list",
+            icon: FaListOl,
+            label: "Fee Structures",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-summary",
+            icon: FaListOl,
+            label: "Payment Reports",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-trends",
+            icon: FaChartBar,
+            label: "Payment Trends",
+            exact: true,
+          },
+          {
+            path: "/college-admin/student-reports",
+            icon: FaUser,
+            label: "Student Reports",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * ADMISSION_OFFICER Navigation
+   * Full admission lifecycle management (mirrors College Admin's student access)
+   */
+  ADMISSION_OFFICER: {
+    dashboard: {
+      path: "/dashboard/admission",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "admission",
+        title: "Admissions",
+        icon: FaUserGraduate,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/admission/applications",
+            icon: FaClock,
+            label: "Pending Applications",
+            exact: true,
+          },
+          {
+            path: "/admission/approved",
+            icon: FaCheckCircle,
+            label: "Approved Students",
+            exact: true,
+          },
+          {
+            path: "/admission/promotion",
+            icon: FaArrowUp,
+            label: "Student Promotion",
+            exact: true,
+          },
+          {
+            path: "/admission/alumni",
+            icon: FaGraduationCap,
+            label: "Alumni",
+            exact: true,
+          },
+          {
+            path: "/admission/deactivated",
+            icon: FaUserTimes,
+            label: "Deactivated Students",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * EXAM_COORDINATOR Navigation
+   * Placeholder until V1.1
+   */
+  EXAM_COORDINATOR: {
+    dashboard: {
+      path: "/dashboard/exam",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "exam",
+        title: "Exam Planning",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/exam",
+            icon: FaExclamationTriangle,
+            label: "Exam Dashboard",
+            exact: true,
+          },
+          {
+            path: "/students/approved-students",
+            icon: FaUserGraduate,
+            label: "Approved Students",
+            exact: true,
+          },
+          {
+            path: "/teachers",
+            icon: FaChalkboardTeacher,
+            label: "Teachers",
+            exact: true,
+          },
+          {
+            path: "/timetable/list",
+            icon: FaCalendarAlt,
+            label: "Timetable",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * PARENT_GUARDIAN Navigation
+   * Access to own children's data
+   */
+  PARENT_GUARDIAN: {
+    dashboard: {
+      path: "/dashboard/parent",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "parent-children",
+        title: "My Children",
+        icon: FaUsers,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/children",
+            icon: FaListOl,
+            label: "Children List",
+            exact: true,
+          },
+          {
+            path: "/dashboard/parent/child/:childId",
+            icon: FaUser,
+            label: "Child Profile",
+            exact: false,
+            dynamic: true,
+          },
+        ],
+      },
+      {
+        id: "parent-academic",
+        title: "Academic Info",
+        icon: FaBook,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/child/:childId/attendance",
+            icon: FaClipboardList,
+            label: "Child Attendance",
+            exact: false,
+            dynamic: true,
+          },
+        ],
+      },
+      {
+        id: "parent-finance",
+        title: "Finance",
+        icon: FaMoneyBillWave,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/child/:childId/fees",
+            icon: FaFileInvoiceDollar,
+            label: "Child Fees",
+            exact: false,
+            dynamic: true,
+          },
+        ],
+      },
+    ],
+  },
+
+   /**
+    * PLATFORM_SUPPORT Navigation
+    * System health, monitoring, support tickets, diagnostics
+    */
+   PLATFORM_SUPPORT: {
+     dashboard: {
+       path: "/dashboard/support",
+       icon: FaTachometerAlt,
+       label: "Dashboard",
+     },
+     sections: [
+       {
+         id: "support-overview",
+         title: "Overview",
+         icon: FaTachometerAlt,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/dashboard/support",
+             icon: FaTachometerAlt,
+             label: "Support Dashboard",
+             exact: true,
+           },
+           {
+             path: "/platform-support/colleges",
+             icon: FaUniversity,
+             label: "Colleges Health",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-health",
+         title: "System Health",
+         icon: FaHeartbeat,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/health",
+             icon: FaChartLine,
+             label: "Health Monitor",
+             exact: true,
+           },
+           {
+             path: "/platform-support/database",
+             icon: FaDatabase,
+             label: "Database Diagnostics",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-logs",
+         title: "Logs & Audit",
+         icon: FaClipboardList,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/audit-logs",
+             icon: FaClipboardList,
+             label: "Audit Logs",
+             exact: true,
+           },
+           {
+             path: "/platform-support/system-logs",
+             icon: FaBug,
+             label: "System Logs",
+             exact: true,
+           },
+           {
+             path: "/platform-support/errors",
+             icon: FaExclamationTriangle,
+             label: "Error Analytics",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-integrations",
+         title: "Integrations",
+         icon: FaPlug,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/integrations",
+             icon: FaPlug,
+             label: "Service Health",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-tickets",
+         title: "Support Tickets",
+         icon: FaTicketAlt,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/tickets",
+             icon: FaTicketAlt,
+             label: "All Tickets",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "support-config",
+         title: "Configuration",
+         icon: FaCog,
+         defaultOpen: false,
+         items: [
+           {
+             path: "/platform-support/config",
+             icon: FaCog,
+             label: "System Config",
+             exact: true,
+           },
+         ],
+       },
+     ],
+    },
+
+   /**
+    * HOD Navigation
+    * Head of Department – manages timetables, teachers, and department overview
+    */
+   HOD: {
+     dashboard: {
+       path: "/hod/dashboard",
+       icon: FaChalkboardTeacher,
+       label: "HOD Dashboard",
+     },
+     sections: [
+       {
+         id: "hod-timetable",
+         title: "Timetable",
+         icon: FaCalendarAlt,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/timetable/list",
+             icon: FaListOl,
+             label: "View Timetables",
+             exact: true,
+           },
+           {
+             path: "/timetable/weekly-timetable",
+             icon: FaClock,
+             label: "Weekly Schedule",
+             exact: true,
+           },
+           {
+             path: "/timetable/create-timetable",
+             icon: FaPlus,
+             label: "Create Timetable",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "hod-teachers",
+         title: "Department Teachers",
+         icon: FaUsers,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/hod/teachers",
+             icon: FaUsers,
+             label: "All Teachers",
+             exact: true,
+           },
+           {
+             path: "/hod/department",
+             icon: FaLayerGroup,
+             label: "Department Info",
+             exact: true,
+           },
+         ],
+       },
+       {
+         id: "hod-profile",
+         title: "My Profile",
+         icon: FaUser,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/profile/my-profile",
+             icon: FaUser,
+             label: "View Profile",
+             exact: true,
+           },
+           {
+             path: "/hod/profile",
+             icon: FaUser,
+             label: "HOD Profile",
+             exact: true,
+           },
+         ],
+       },
+     ],
+   },
+
+  /**
+   * Get dashboard path for a given role
+   * @param {string} role - User role
+   * @returns {string} Dashboard path for the role
+   */
+  getDashboardPath: (role) => {
+    const paths = {
+      SUPER_ADMIN: "/super-admin/dashboard",
+      COLLEGE_ADMIN: "/dashboard",
+      PRINCIPAL: "/dashboard/principal",
+      ACCOUNTANT: "/dashboard/accountant",
+      ADMISSION_OFFICER: "/dashboard/admission",
+      EXAM_COORDINATOR: "/dashboard/exam",
+      PARENT_GUARDIAN: "/dashboard/parent",
+      PLATFORM_SUPPORT: "/dashboard/support",
+      TEACHER: "/teacher/dashboard",
+      HOD: "/hod/dashboard",
+      STUDENT: "/student/dashboard",
+    };
+    return paths[role] || "/dashboard";
+  },
 };
 
-/**
- * Get dashboard path for a given role
- * @param {string} role - User role (SUPER_ADMIN, COLLEGE_ADMIN, TEACHER, STUDENT)
- * @returns {string} Dashboard path for the role
- */
-export const getDashboardPath = (role) => {
-  const paths = {
-    SUPER_ADMIN: "/super-admin/dashboard",
-    COLLEGE_ADMIN: "/dashboard",
-    TEACHER: "/teacher/dashboard",
-    STUDENT: "/student/dashboard",
-  };
-  return paths[role] || "/dashboard";
-};
+export const getDashboardPath = navigationConfig.getDashboardPath;
 
 export default navigationConfig;

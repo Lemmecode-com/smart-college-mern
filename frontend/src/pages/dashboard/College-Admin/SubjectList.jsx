@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBook,
@@ -29,6 +30,7 @@ import {
 export default function SubjectList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -45,8 +47,8 @@ export default function SubjectList() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH DEPARTMENTS ================= */
   useEffect(() => {
@@ -301,13 +303,15 @@ export default function SubjectList() {
 
             {selectedCourse && (
               <div className="filter-actions">
-                <button
-                  className="add-subject-btn"
-                  onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                >
-                  <FaPlus className="erp-btn-icon" />
-                  <span>Add Subject</span>
-                </button>
+                {canCreate('subjects') && (
+                  <button
+                    className="add-subject-btn"
+                    onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+                  >
+                    <FaPlus className="erp-btn-icon" />
+                    <span>Add Subject</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -356,15 +360,15 @@ export default function SubjectList() {
                       ? "No subjects match your search criteria." 
                       : `No subjects found for ${selectedCourseName}.`}
                   </p>
-                  {!searchTerm && (
-                    <button
-                      className="add-subject-btn large"
-                      onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                    >
-                      <FaPlus className="erp-btn-icon" />
-                      Add Your First Subject
-                    </button>
-                  )}
+                   {!searchTerm && canCreate('subjects') && (
+                     <button
+                       className="add-subject-btn large"
+                       onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+                     >
+                       <FaPlus className="erp-btn-icon" />
+                       Add Your First Subject
+                     </button>
+                   )}
                 </div>
               ) : (
                 <table className="erp-table">
@@ -454,20 +458,24 @@ export default function SubjectList() {
                             >
                               <FaEye />
                             </button>
-                            <button 
-                              className="action-btn edit-btn"
-                              title="Edit Subject"
-                              onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-                            >
-                              <FaEdit />
-                            </button>
-                            <button 
-                              className="action-btn delete-btn"
-                              title="Delete Subject"
-                              onClick={() => handleDeleteClick(subject)}
-                            >
-                              <FaTrash />
-                            </button>
+                            {canEdit('subjects') && (
+                              <button 
+                                className="action-btn edit-btn"
+                                title="Edit Subject"
+                                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+                              >
+                                <FaEdit />
+                              </button>
+                            )}
+                            {canDelete('subjects') && (
+                              <button 
+                                className="action-btn delete-btn"
+                                title="Delete Subject"
+                                onClick={() => handleDeleteClick(subject)}
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
