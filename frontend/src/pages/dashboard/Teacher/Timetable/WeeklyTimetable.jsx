@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
@@ -167,81 +167,13 @@ const TIMES = [
 export default function WeeklyTimetable() {
   const { timetableId } = useParams();
   const navigate = useNavigate();
+  
+  // Compute HOD status once to avoid duplication
+  const isHOD = useMemo(() => {
+    return user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER" || user?.role === "HOD";
+  }, [user]);
 
-  // ✅ Validate timetableId - redirect if missing
-  useEffect(() => {
-    if (!timetableId) {
-      toast.error(
-        "Timetable ID is required. Redirecting to timetable list...",
-        {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaExclamationTriangle />,
-        },
-      );
-      setTimeout(() => {
-        navigate("/timetable");
-      }, 3000);
-      return;
-    }
-  }, [timetableId, navigate]);
-  const { user } = useContext(AuthContext);
-  const [timetable, setTimetable] = useState(null);
-  const [weekly, setWeekly] = useState({});
-  const [subjects, setSubjects] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [editSlot, setEditSlot] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [isHOD, setIsHOD] = useState(false);
-  const [form, setForm] = useState({
-    timetable_id: "",
-    day: "MON",
-    startTime: "",
-    endTime: "",
-    subject_id: "",
-    teacher_id: "",
-    room: "",
-    slotType: "LECTURE",
-  });
-  const [showTooltip, setShowTooltip] = useState(null);
-  const [tooltipContent, setTooltipContent] = useState("");
-  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoContent, setInfoContent] = useState("");
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    slotId: null,
-    title: "Delete Slot?",
-    message:
-      "Are you sure you want to delete this timetable slot? This action cannot be undone.",
-    type: "danger",
-  });
-
-  // Date range state for week navigation
-  const [dateRange, setDateRange] = useState(() => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    return {
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    };
-  });
-  const [timetableIdForSchedule, setTimetableIdForSchedule] = useState(null);
-  const [isNavigating, setIsNavigating] = useState(false); // Subtle loading for week nav
-
-  /* ================= LOAD WEEKLY ================= */
+   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
     // If no timetableId, fetch teacher's weekly timetable instead
     if (!timetableId) {
@@ -249,15 +181,15 @@ export default function WeeklyTimetable() {
         try {
           setLoading(true);
           setError(null);
-          const res = await api.get("/timetable/weekly");
-          setTimetable(res.data.timetable || null);
-          setWeekly(res.data.weekly || {});
+          const res = await api.get("/api/timetable/weekly");
+          setTimetable(res.data.data?.timetable || null);
+          setWeekly(res.data.data?.weekly || {});
 
-          if (res.data.timetable) {
-            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+          if (res.data.data?.timetable) {
+            setForm((f) => ({ ...f, timetable_id: res.data.data.timetable._id }));
           }
 
-          setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
+          setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER" || user?.role === "HOD");
         } catch (err) {
           const errorMessage =
             err.response?.data?.message ||
@@ -269,47 +201,47 @@ export default function WeeklyTimetable() {
         }
       };
 
-      loadTeacherWeekly();
-      return;
-    }
-
-    const load = async () => {
-      // ✅ Don't load if timetableId is missing
-      if (!timetableId) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await api.get(`/timetable/${timetableId}/weekly`);
-        setTimetable(res.data.timetable);
-        setWeekly(res.data.weekly || {});
-        setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
-
-        // Set HOD status based on user role
-        setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER");
-
-        const [subRes, teachRes] = await Promise.all([
-          api.get(`/subjects/course/${res.data.timetable.course_id}`),
-          api.get(`/teachers/department/${res.data.timetable.department_id}`),
-        ]);
-
-        setSubjects(subRes.data.subjects || subRes.data || []);
-        setTeachers(teachRes.data.teachers || teachRes.data || []);
-      } catch (err) {
-        const errorMessage =
-          err.response?.data?.message ||
-          "Failed to load weekly timetable. Please try again.";
-        const statusCode = err.response?.status;
-        setError({ message: errorMessage, statusCode });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [timetableId, user]);
+       loadTeacherWeekly();
+       return;
+     }
+ 
+     const load = async () => {
+       // ✅ Don't load if timetableId is missing
+       if (!timetableId) {
+         return;
+       }
+ 
+       try {
+         setLoading(true);
+         setError(null);
+         const res = await api.get(`/api/timetable/${timetableId}/weekly`);
+         setTimetable(res.data.data?.timetable);
+         setWeekly(res.data.data?.weekly || {});
+         setForm((f) => ({ ...f, timetable_id: res.data.data.timetable._id }));
+ 
+         // Set HOD status based on user role (using computed isHOD)
+         // setIsHOD(user?.role === "COLLEGE_ADMIN" || user?.role === "TEACHER" || user?.role === "HOD");
+ 
+         const [subRes, teachRes] = await Promise.all([
+           api.get(`/api/subjects/course/${res.data.data.timetable.course_id}`),
+           api.get(`/api/teachers/department/${res.data.data.timetable.department_id}`),
+         ]);
+ 
+         setSubjects(subRes.data.data?.subjects || subRes.data || []);
+         setTeachers(teachRes.data.data?.teachers || teachRes.data || []);
+       } catch (err) {
+         const errorMessage =
+           err.response?.data?.message ||
+           "Failed to load weekly timetable. Please try again.";
+         const statusCode = err.response?.status;
+         setError({ message: errorMessage, statusCode });
+       } finally {
+         setLoading(false);
+       }
+     };
+ 
+     load();
+   }, [timetableId, user]);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -386,81 +318,81 @@ export default function WeeklyTimetable() {
     }
   };
 
-  /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
-  const fetchScheduleForDateRange = async (startDate, endDate) => {
-    if (!timetableId && !timetableIdForSchedule) {
-      // No timetable ID available — fall back to static weekly
-      await refreshWeekly();
-      return;
-    }
+   /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
+   const fetchScheduleForDateRange = async (startDate, endDate) => {
+     if (!timetableId && !timetableIdForSchedule) {
+       // No timetable ID available — fall back to static weekly
+       await refreshWeekly();
+       return;
+     }
 
-    const effectiveTimetableId = timetableId || timetableIdForSchedule;
+     const effectiveTimetableId = timetableId || timetableIdForSchedule;
 
-    try {
-      setIsNavigating(true);
-      setLoading(true);
-      setError(null);
+     try {
+       setIsNavigating(true);
+       setLoading(true);
+       setError(null);
 
-      const res = await api.get(`/timetable/${effectiveTimetableId}/schedule`, {
-        params: { startDate, endDate },
-      });
+       const res = await api.get(`/api/timetable/${effectiveTimetableId}/schedule`, {
+         params: { startDate, endDate },
+       });
 
-      const scheduleObj = res.data?.data || {};
-      const schedule = scheduleObj.schedule || [];
-      const timetableData = scheduleObj.timetable || null;
+       const scheduleObj = res.data?.data || {};
+       const schedule = scheduleObj.schedule || [];
+       const timetableData = scheduleObj.timetable || null;
 
-      if (timetableData) {
-        setTimetable(timetableData);
-        // Update form timetable_id if not already set
-        if (!form.timetable_id) {
-          setForm((f) => ({ ...f, timetable_id: timetableData._id }));
-        }
-      }
+       if (timetableData) {
+         setTimetable(timetableData);
+         // Update form timetable_id if not already set
+         if (!form.timetable_id) {
+           setForm((f) => ({ ...f, timetable_id: timetableData._id }));
+         }
+       }
 
-      if (schedule && schedule.length > 0) {
-        // Convert schedule format to weekly format (MON-SAT grid)
-        const weeklyData = {
-          MON: [],
-          TUE: [],
-          WED: [],
-          THU: [],
-          FRI: [],
-          SAT: [],
-        };
+       if (schedule && schedule.length > 0) {
+         // Convert schedule format to weekly format (MON-SAT grid)
+         const weeklyData = {
+           MON: [],
+           TUE: [],
+           WED: [],
+           THU: [],
+           FRI: [],
+           SAT: [],
+         };
 
-        schedule.forEach((daySchedule) => {
-          if (daySchedule.slots && daySchedule.slots.length > 0) {
-            const date = parseLocalDate(daySchedule.date);
-            const dayName = DAY_MAP[date.getDay()];
+         schedule.forEach((daySchedule) => {
+           if (daySchedule.slots && daySchedule.slots.length > 0) {
+             const date = parseLocalDate(daySchedule.date);
+             const dayName = DAY_MAP[date.getDay()];
 
-            if (weeklyData[dayName]) {
-              const slotsWithContext = daySchedule.slots.map((slot) => ({
-                ...slot,
-                exceptionDate: daySchedule.date,
-                isHolidayOnly: daySchedule.isHoliday || false,
-              }));
-              weeklyData[dayName].push(...slotsWithContext);
-            }
-          }
-        });
+             if (weeklyData[dayName]) {
+               const slotsWithContext = daySchedule.slots.map((slot) => ({
+                 ...slot,
+                 exceptionDate: daySchedule.date,
+                 isHolidayOnly: daySchedule.isHoliday || false,
+               }));
+               weeklyData[dayName].push(...slotsWithContext);
+             }
+           }
+         });
 
-        setWeekly(weeklyData);
-      } else {
-        // No schedule for this date range — show empty grid
-        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
-      }
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        "Failed to load schedule. Please try again.";
-      console.error("Schedule fetch error:", err);
-      // On error, fall back to static weekly
-      await refreshWeekly();
-    } finally {
-      setLoading(false);
-      setIsNavigating(false);
-    }
-  };
+         setWeekly(weeklyData);
+       } else {
+         // No schedule for this date range — show empty grid
+         setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+       }
+     } catch (err) {
+       const errorMessage =
+         err.response?.data?.message ||
+         "Failed to load schedule. Please try again.";
+       console.error("Schedule fetch error:", err);
+       // On error, fall back to static weekly
+       await refreshWeekly();
+     } finally {
+       setLoading(false);
+       setIsNavigating(false);
+     }
+   };
 
   /* ================= WEEK NAVIGATION ================= */
   const goToPreviousWeek = async () => {
