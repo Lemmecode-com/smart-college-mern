@@ -112,7 +112,7 @@ exports.assignHOD = async (req, res) => {
     });
 
     if (!department) {
-      return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+      return ApiError.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
     }
 
     // Check teacher
@@ -123,13 +123,21 @@ exports.assignHOD = async (req, res) => {
     });
 
     if (!teacher) {
-      return ApiResponse.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
+      return ApiError.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
     }
 
+    // Assign HOD to department
     department.hod_id = teacher._id;
     await department.save();
 
-    ApiResponse.success(res, { department }, "HOD assigned successfully");
+    // Also update the teacher's user role to HOD
+    const user = await User.findById(teacher.user_id);
+    if (user) {
+      user.role = "HOD";
+      await user.save();
+    }
+
+    ApiError.success(res, { department }, "HOD assigned successfully");
   } catch (error) {
     throw error;
   }
