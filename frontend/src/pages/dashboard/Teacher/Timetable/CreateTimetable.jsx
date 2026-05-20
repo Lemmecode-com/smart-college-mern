@@ -91,43 +91,67 @@ export default function CreateTimetable() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
-  const loadProfile = useCallback(async () => {
-    if (!user?.id || !user?.role) { setLoading(false); return; } // user still loading
-    try {
-      const isHOD = user.role === "HOD";
-      const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
-      const res   = await api.get(endpoint);
-      const data  = res.data;
-      const deptId = data.department_id
-                  || data.teacher?.department_id
-                  || data.teacher?.department?.id;
-      if (deptId) setDepartment({ _id: deptId });
-    } catch {
-      setError("Failed to load department information");
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+/* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
+    const loadProfile = useCallback(async () => {
+      if (!user?.id || !user?.role) { 
+        setLoading(false); 
+        return; 
+      } // user still loading
+      try {
+        setLoading(true);
+        setError("");
+        const isHOD = user.role === "HOD";
+        const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
+        const res   = await api.get(endpoint);
+        const data  = res.data;
+        
+        // For HOD, use /hod/department endpoint which has proper permissions
+        if (isHOD) {
+          const deptRes = await api.get(`/hod/department`);
+          const deptData = deptRes.data.data?.department || deptRes.data.department || deptRes.data;
+          setDepartment(deptData);
+        } else {
+          // For teachers, department is already populated in profile
+          // teacher.department_id contains { _id, name, code }
+          // After axios interceptor: data = { teacher: {...}, success, message }
+          const teacher = data?.teacher;
+          if (teacher?.department_id) {
+            const deptInfo = teacher.department_id;
+            setDepartment({
+              _id: deptInfo._id || deptInfo.id,
+              name: deptInfo.name,
+              code: deptInfo.code,
+            });
+          } else {
+            throw new Error("Department not found in teacher profile");
+          }
+        }
+      } catch (err) {
+        console.error("Profile loading error:", err);
+        setError("Failed to load department information: " + (err.message || "Unknown error"));
+      } finally {
+        setLoading(false);
+      }
+    }, [user]); // Removed loadProfile from dependency array since it's not used here
 
   useEffect(() => { if (user?.id) loadProfile(); }, [user]);
 
-  /* LOAD COURSES — re-runs whenever department changes */
-  const loadCourses = useCallback(async () => {
-    if (!department?._id) return;
-    try {
-      const res = await api.get("/courses/department/" + department._id);
-      const coursesList = Array.isArray(res.data)
-        ? res.data
-        : Array.isArray(res.data.courses)
-        ? res.data.courses
-        : [];
-      setCourses(coursesList);
-    } catch {
-      setError("Failed to load courses for your department");
-      setCourses([]);
-    }
-  }, [department]);
+      /* LOAD COURSES — re-runs whenever department changes */
+    const loadCourses = useCallback(async () => {
+      if (!department?._id) return;
+      try {
+        const res = await api.get("/courses/department/" + department._id);
+        const coursesList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data.courses)
+          ? res.data.courses
+          : [];
+        setCourses(coursesList);
+      } catch {
+        setError("Failed to load courses for your department");
+        setCourses([]);
+      }
+    }, [department, loadProfile]); // Added loadProfile as dependency
 
   useEffect(() => { loadCourses(); }, [loadCourses]);
 
@@ -170,41 +194,41 @@ export default function CreateTimetable() {
     );
   }, [form, courses]);
 
-  /* SUBMIT HANDLER */
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
+   /* SUBMIT HANDLER */
+   const submitHandler = async (e) => {
+     e.preventDefault();
+     setError("");
+     setSuccess("");
+     setSubmitting(true);
 
-    try {
-      const response = await api.post("/timetable", {
-        department_id: department._id,
-        course_id: form.course_id,
-        semester: Number(form.semester),
-        academicYear: form.academicYear,
-      });
+     try {
+       const response = await api.post("/timetable", {
+         department_id: department._id,
+         course_id: form.course_id,
+         semester: Number(form.semester),
+         academicYear: form.academicYear,
+       });
 
-      setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
+       setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
-      // ✅ FIXED: Access timetable object from response
-      const timetableId = response.data.timetable?._id || response.data._id;
+// ✅ FIXED: Access timetable object from response
+        const timetableId = response.data.timetable?._id;
 
-      if (!timetableId) {
-        setError("Timetable created but failed to get ID. Please navigate manually.");
-        return;
-      }
+       if (!timetableId) {
+         setError("Timetable created but failed to get ID. Please navigate manually.");
+         return;
+       }
 
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        navigate(`/timetable/${timetableId}/weekly`);
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+       // Auto-redirect after 2 seconds
+       setTimeout(() => {
+         navigate(`/timetable/${timetableId}/weekly`);
+       }, 2000);
+     } catch (err) {
+       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Department Information..." />;
