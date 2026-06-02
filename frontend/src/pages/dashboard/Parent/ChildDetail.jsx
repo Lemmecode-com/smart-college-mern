@@ -11,6 +11,7 @@ import "./ParentPortal.css";
 
 import {
   FaUser,
+  FaUsers,
   FaCalendarCheck,
   FaRupeeSign,
   FaArrowLeft,

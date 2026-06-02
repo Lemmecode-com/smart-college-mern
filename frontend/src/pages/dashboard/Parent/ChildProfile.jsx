@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaArrowLeft,
   FaUser,
@@ -102,7 +103,7 @@ const spinVariants = {
 };
 
 export default function ChildProfile() {
-  const { studentId } = useParams();
+  const { childId } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -111,7 +112,7 @@ export default function ChildProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(`/parent/student/${studentId}/profile`);
+        const res = await api.get(`/parent/student/${childId}/profile`);
         setStudent(res.data.data || res.data);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load profile");
@@ -120,7 +121,7 @@ export default function ChildProfile() {
       }
     };
     fetchProfile();
-  }, [studentId]);
+  }, [childId]);
 
   if (loading) {
     return (
@@ -274,15 +275,13 @@ export default function ChildProfile() {
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-outline"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
+                    <Breadcrumb
+                      items={[
+                        { label: "Home", path: "/dashboard/parent" },
+                        { label: "My Children", path: "/dashboard/parent/children" },
+                        { label: "Profile", path: `/dashboard/parent/child/${childId}` },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
