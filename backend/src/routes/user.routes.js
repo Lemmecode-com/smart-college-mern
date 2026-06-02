@@ -3,7 +3,7 @@ const router = express.Router();
 
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
-const collegeMiddleware = require("../middlewares/college.middleware");
+const collegeIsolation = require("../middlewares/collegeIsolation.middleware");
 
 const {
   deactivateUser,
@@ -20,7 +20,7 @@ router.put(
   "/:id/deactivate",
   auth,
   role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
-  collegeMiddleware,
+  collegeIsolation(),
   deactivateUser
 );
 
@@ -34,7 +34,7 @@ router.put(
   "/:id/reactivate",
   auth,
   role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
-  collegeMiddleware,
+  collegeIsolation(),
   reactivateUser
 );
 
