@@ -121,12 +121,17 @@ exports.yearValidatorMessage = (minYear = 1900, maxYearOffset = 5) => {
 
 /**
  * 8. Password Strength Validator
- * Centralized minimum length policy for all password entry points
- * Default: min 8 characters
+ * Centralized password policy for all password entry points
+ * Policy: min 8 characters, with uppercase, lowercase, number, and special character
  */
 exports.validatePassword = (password) => {
-  if (!password) return false;
-  return password.length >= 8;
+  if (!password || typeof password !== 'string') return false;
+  if (password.length < 8) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  if (!/[^A-Za-z0-9]/.test(password)) return false;
+  return true;
 };
 
-exports.passwordValidationMessage = 'Password must be at least 8 characters long';
+exports.passwordValidationMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character';
