@@ -10,6 +10,7 @@ const RefreshToken = require("../models/refreshToken.model");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
 const PasswordReset = require("../models/passwordReset.model");
 const AppError = require("../utils/AppError");
+const { validatePassword, passwordValidationMessage } = require("../utils/validators");
 const {
   createAndSendOTP,
   verifyOTP,
@@ -384,6 +385,10 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
       );
     }
 
+    if (!validatePassword(newPassword)) {
+      throw new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD");
+    }
+
     // Verify OTP
     const result = await verifyOTP(email, otp);
 
@@ -463,10 +468,10 @@ exports.changePassword = async (req, res, next) => {
       return next(new AppError("Invalid user ID format", 400, "INVALID_ID"));
     }
 
-    // Validate new password strength
-    if (newPassword.length < 8) {
+    // Validate new password strength using centralized policy
+    if (!validatePassword(newPassword)) {
       return next(
-        new AppError("Password must be at least 8 characters long", 400, "WEAK_PASSWORD")
+        new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD")
       );
     }
 
