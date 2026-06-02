@@ -314,6 +314,41 @@ const webhookLimiter = rateLimit({
   },
 });
 
+/**
+ * Session/Auth Endpoint Rate Limiter
+ * For refresh tokens and change-password endpoints
+ * Higher than authLimiter because these fire on every page-load (refresh)
+ * and after first-login (change-password).
+ *
+ * For development: 500 requests per 5 minutes
+ * For production: 100 requests per 5 minutes
+ * Always tracks by IP.
+ */
+const sessionLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 500 : 100,
+  message: {
+    success: false,
+    message: "Too many auth requests, please try again after 5 minutes",
+    code: "RATE_LIMIT_EXCEEDED",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
+  handler: (req, res, next, options) => {
+    logger.logWarning(`RATE LIMIT HIT - Session endpoint from IP: ${req.ip}`, {
+      ip: req.ip,
+      endpoint: req.originalUrl,
+    });
+    res.status(options.statusCode).json({
+      success: false,
+      message: "Too many auth requests, please try again after 5 minutes",
+      code: "RATE_LIMIT_EXCEEDED",
+    });
+  },
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -324,4 +359,5 @@ module.exports = {
   apiLimiter,
   publicLimiter,
   webhookLimiter,
+  sessionLimiter,
 };
