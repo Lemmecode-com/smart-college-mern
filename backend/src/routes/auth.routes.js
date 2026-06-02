@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
 const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword, changePassword } = require("../controllers/auth.controller");
-const { authLimiter, passwordResetLimiter } = require("../middlewares/rateLimit.middleware");
+const { authLimiter, passwordResetLimiter, sessionLimiter } = require("../middlewares/rateLimit.middleware");
 
 // Login - strict rate limit to prevent brute force
 router.post("/login", authLimiter, login);
@@ -10,20 +10,20 @@ router.post("/login", authLimiter, login);
 router.post("/logout", auth, logout);
 
 // 🔐 Refresh access token (requires valid refresh token cookie)
-router.post("/refresh", refreshToken);
+router.post("/refresh", sessionLimiter, refreshToken);
 
 // Get user info (for checking authentication status) - DYNAMIC
-router.get("/me", auth, async (req, res) => {
-  try {
-    const { id, role, college_id } = req.user;
-    
-    let userData = {
-      id,
-      role,
-      college_id,
-      email: null,
-      name: null
-    };
+  router.get("/me", auth, async (req, res) => {
+    try {
+      const { id, opaqueId, role, college_id } = req.user;
+
+      let userData = {
+        id: opaqueId,
+        role,
+        college_id,
+        email: null,
+        name: null
+      };
     
     // Fetch role-specific user data from database
     if (role === "COLLEGE_ADMIN") {
@@ -97,6 +97,6 @@ router.post("/verify-otp-reset", authLimiter, verifyOTPAndResetPassword);
 // 🔐 Change Password (Works for both authenticated and first-login users)
 // For first-login: pass { userId, currentPassword, newPassword }
 // For logged-in: auth middleware provides userId, body { currentPassword, newPassword }
-router.post("/change-password", changePassword);
+router.post("/change-password", sessionLimiter, changePassword);
 
 module.exports = router;
