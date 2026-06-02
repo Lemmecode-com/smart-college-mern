@@ -70,7 +70,8 @@ const globalLimiter = rateLimit({
  * Strict Rate Limiter - For authentication routes
  * For development: 30 requests per minute (easier testing)
  * For production: 5 requests per 15 minutes (security)
- * Always tracks by IP (users are not authenticated yet)
+ * Tracks by email when available, otherwise falls back to IP.
+ * This prevents distributed botnet/proxy attacks from bypassing account lockout.
  */
 const authLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
@@ -86,10 +87,20 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
-  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
+  keyGenerator: (req) => {
+    const email = req.body?.email?.trim().toLowerCase();
+    if (email) {
+      return `email:${email}`;
+    }
+    return `ip:${normalizeIp(req)}`;
+  },
   handler: (req, res, next, options) => {
-    logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
-      ip: req.ip,
+    const email = req.body?.email?.trim().toLowerCase();
+    const identifier = email || req.ip;
+    const identifierType = email ? "email" : "ip";
+    logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
+      identifier,
+      type: identifierType,
       window: `${options.windowMs / 60000} minutes`,
       max: options.max,
       endpoint: "auth",
