@@ -187,7 +187,7 @@ exports.approveStudent = async (req, res, next) => {
       .logStudentApproval(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 👨‍👩‍👧 Auto-create parent accounts
+    // 👨‍👩‍👧 Auto-create parent accounts (await to capture temp passwords in response)
     let parentCreationResult = null;
     try {
       parentCreationResult = await parentCreationService.createParentUsers(student);
@@ -201,6 +201,32 @@ exports.approveStudent = async (req, res, next) => {
       );
       parentCreationResult = { count: 0, parents: [], error: error.message };
     }
+
+    // 📧 Send admission email to student (fire-and-forget)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select(
+          "name email",
+        );
+        const crs = await Course.findById(student.course_id).select("name");
+        const loginUrl = buildFrontendUrl("/login");
+
+        await sendAdmissionApprovalEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: crs?.name || "N/A",
+          collegeName: college?.name || "Our College",
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl,
+          email: student.email,
+          collegeId: student.college_id,
+        });
+        console.log(`📧 Admission approval email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Admission email failed:", e.message);
+      }
+    })();
 
     res.json({
       message: "Student approved and fee allocated successfully",
