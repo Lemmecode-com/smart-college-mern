@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
 const User = require("../models/user.model");
+const { toOpaqueId } = require("../utils/opaqueId");
 
 /**
  * Authentication Middleware
@@ -67,6 +68,7 @@ module.exports = async (req, res, next) => {
     // Attach user info to request
     req.user = {
       id: decoded.id,
+      opaqueId: toOpaqueId(decoded.id),
       role: decoded.role,
       college_id: decoded.college_id || null,
     };
