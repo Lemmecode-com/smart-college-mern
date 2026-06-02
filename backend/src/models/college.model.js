@@ -96,11 +96,11 @@ collegeSchema.pre("findOneAndUpdate", async function () {
           .model("Course")
           .updateMany({ college_id: collegeId }, { $set: { isActive: false } }),
 
-        // 3. Deactivate students (set status to INACTIVE if exists, else isActive)
+        // 3. Deactivate students (only APPROVED students were active; preserve PENDING/REJECTED/ALUMNI)
         mongoose
           .model("Student")
           .updateMany(
-            { college_id: collegeId },
+            { college_id: collegeId, status: "APPROVED" },
             { $set: { status: "INACTIVE" } },
           ),
 
