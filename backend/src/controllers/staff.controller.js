@@ -6,6 +6,7 @@ const StaffProfile = require("../models/staffProfile.model");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const { ROLE } = require("../utils/constants");
+const AuditService = require("../services/auditLog.service");
 
 /**
  * Generate a random temporary password
@@ -209,7 +210,25 @@ const generateTempPassword = (length = 10) => {
       await session.commitTransaction();
       session.endSession();
 
-      // Return credentials ONCE
+      const staffName = name;
+      let employeeIdForAudit = null;
+      let departmentIdForAudit = null;
+
+      if (role === "HOD") {
+        departmentIdForAudit = departmentId;
+        employeeIdForAudit = teacher[0].employeeId;
+      }
+
+      AuditService.logStaffCreated(
+        req.user,
+        user[0],
+        role,
+        departmentIdForAudit,
+        employeeIdForAudit,
+        req,
+        staffName
+      ).catch((err) => console.error("Audit log failed:", err.message));
+
       res.status(201).json({
         success: true,
         message: "Staff account created successfully",
@@ -395,8 +414,17 @@ exports.updateStaffProfile = async (req, res, next) => {
     const session = await User.startSession();
     session.startTransaction();
 
+    const previousRole = user.role;
+    const previousUserFields = {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+    };
+
     try {
       // Update user fields if any
+      const roleChanged = userFields.role && userFields.role !== previousRole;
       if (Object.keys(userFields).length > 0) {
         await User.findByIdAndUpdate(id, userFields, { session, new: true });
       }
@@ -410,6 +438,32 @@ exports.updateStaffProfile = async (req, res, next) => {
 
       await session.commitTransaction();
       session.endSession();
+
+      if (roleChanged) {
+        AuditService.logStaffRoleChange(
+          req.user,
+          id,
+          user.name,
+          previousRole,
+          userFields.role,
+          req
+        ).catch((err) => console.error("Audit log failed:", err.message));
+      }
+
+      const changedFields = [];
+      ["name", "email", "role", "isActive"].forEach((field) => {
+        if (userFields[field] !== undefined && previousUserFields[field] !== userFields[field]) {
+          changedFields.push(field);
+        }
+      });
+
+      if (changedFields.length > 0) {
+        AuditService.logStaffUpdated(req.user, id, user.name, {
+          oldValues: { ...previousUserFields },
+          newValues: { ...userFields },
+          changedFields,
+        }, req).catch((err) => console.error("Audit log failed:", err.message));
+      }
 
       res.json({
         success: true,
