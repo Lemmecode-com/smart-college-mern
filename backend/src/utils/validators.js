@@ -118,3 +118,15 @@ exports.yearValidatorMessage = (minYear = 1900, maxYearOffset = 5) => {
   const currentYear = new Date().getFullYear();
   return `Year must be between ${minYear} and ${currentYear + maxYearOffset}`;
 };
+
+/**
+ * 8. Password Strength Validator
+ * Centralized minimum length policy for all password entry points
+ * Default: min 8 characters
+ */
+exports.validatePassword = (password) => {
+  if (!password) return false;
+  return password.length >= 8;
+};
+
+exports.passwordValidationMessage = 'Password must be at least 8 characters long';
