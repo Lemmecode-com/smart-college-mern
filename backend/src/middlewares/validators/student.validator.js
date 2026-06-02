@@ -8,6 +8,7 @@
  */
 
 const { body, param, query, validationResult } = require('express-validator');
+const { validatePassword, passwordValidationMessage } = require('../../utils/validators');
 
 /**
  * Handle validation errors
@@ -47,7 +48,7 @@ exports.validateStudentRegistration = [
 
   body('password')
     .notEmpty().withMessage('Password is required')
-    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    .custom(validatePassword).withMessage(passwordValidationMessage),
 
   body('mobileNumber')
     .trim()
