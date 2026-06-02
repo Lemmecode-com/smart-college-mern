@@ -7,7 +7,10 @@ const AppError = require("../utils/AppError");
 module.exports = async (req, res, next) => {
   try {
     /* ================= STEP 1: Find teacher profile ================= */
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    const teacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.user.college_id,
+    });
     if (!teacher) {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
@@ -21,7 +24,10 @@ module.exports = async (req, res, next) => {
 
     // If slotId is provided (for slot delete/update), fetch the slot to get timetable_id
     if (req.params?.slotId) {
-      const slot = await TimetableSlot.findById(req.params.slotId);
+      const slot = await TimetableSlot.findOne({
+        _id: req.params.slotId,
+        college_id: req.user.college_id,
+      });
       if (slot) {
         timetableId = slot.timetable_id;
       }
@@ -31,7 +37,10 @@ module.exports = async (req, res, next) => {
 
     /* ===== Only enforce timetable + HOD-dept check when a timetableId is present ===== */
     if (timetableId) {
-      timetable = await Timetable.findById(timetableId).populate('department_id', 'name hod_id');
+      timetable = await Timetable.findOne({
+        _id: timetableId,
+        college_id: req.user.college_id,
+      }).populate('department_id', 'name hod_id');
       if (!timetable) {
         throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
       }
@@ -40,6 +49,7 @@ module.exports = async (req, res, next) => {
       const department = await Department.findOne({
         _id: timetable.department_id._id || timetable.department_id,
         hod_id: teacher._id,
+        college_id: req.user.college_id,
       });
 
       if (!department) {
@@ -59,7 +69,8 @@ module.exports = async (req, res, next) => {
         
         // More specific error message
         const isHodOfOtherDept = await Department.findOne({
-          hod_id: teacher._id
+          hod_id: teacher._id,
+          college_id: req.user.college_id,
         });
         
         if (isHodOfOtherDept) {
@@ -74,7 +85,10 @@ module.exports = async (req, res, next) => {
       req.timetable = timetable;
     } else {
       /* ===== No timetableId — resolve department directly from teacher record ===== */
-      const department = await Department.findOne({ hod_id: teacher._id });
+      const department = await Department.findOne({
+        hod_id: teacher._id,
+        college_id: req.user.college_id,
+      });
       if (!department) {
         throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
       }
