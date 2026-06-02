@@ -46,7 +46,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
     // Create new OTP record
     const passwordReset = await PasswordReset.create({
       email,
-      otp,
+      otpHash: otp,
       expiresAt,
       isUsed: false,
     });
@@ -87,29 +87,16 @@ exports.createAndSendOTP = async (email, userType = "User") => {
  */
 exports.verifyOTP = async (email, otp) => {
   try {
-    // Find OTP record
     const record = await PasswordReset.findOne({
       email,
-      otp,
       isUsed: false,
+      expiresAt: { $gt: new Date() },
     });
 
-    // Check if record exists
-    if (!record) {
+    if (!record || !record.compareOTP(otp)) {
       return {
         valid: false,
         message: "Invalid OTP",
-      };
-    }
-
-    // Check if expired
-    if (!record.isValid()) {
-      // Delete expired OTP
-      await PasswordReset.deleteOne({ _id: record._id });
-      
-      return {
-        valid: false,
-        message: "OTP expired. Please request a new one.",
       };
     }
 
