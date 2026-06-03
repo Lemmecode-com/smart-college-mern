@@ -278,7 +278,7 @@ export default function SystemLogs() {
               <tbody>
                 {logs.map((log, idx) => (
                   <tr
-                    key={log._id || idx}
+                     key={log._id || log.message || `log-${idx}`}
                     className={log.level === "ERROR" ? "table-danger" : log.level === "WARN" ? "table-warning" : ""}
                   >
                     <td className="text-nowrap small">

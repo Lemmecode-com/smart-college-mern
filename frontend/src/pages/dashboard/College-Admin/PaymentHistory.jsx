@@ -1394,7 +1394,7 @@ export default function PaymentHistory() {
                     .join(", ");
 
                   return (
-                    <tr key={record.student_id?._id || `student-${idx}`}>
+                    <tr key={record.student_id?._id || record.student?.fullName || `student-${idx}`}>
                       <td>
                         <div className="payment-student-info">
                           <span className="payment-student-name">
