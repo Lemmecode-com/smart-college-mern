@@ -309,7 +309,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
               const isOverdue = relativeTime.type === 'overdue';
               
               return (
-                <tr key={installment._id || index} className={isOverdue ? 'row-overdue' : ''}>
+                <tr key={installment._id || installment.name || `installment-${index}`} className={isOverdue ? 'row-overdue' : ''}>
                   <td className="cell-index">{index + 1}</td>
                   <td className="cell-name">{installment.name}</td>
                   <td className="cell-amount text-end">{formatCurrency(installment.amount)}</td>
@@ -352,7 +352,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
           const isOverdue = getRelativeTime(installment.dueDate).type === 'overdue';
           return (
             <InstallmentCard
-              key={installment._id || index}
+              key={installment._id || installment.name || `installment-card-${index}`}
               installment={installment}
               index={index}
               isOverdue={isOverdue}
