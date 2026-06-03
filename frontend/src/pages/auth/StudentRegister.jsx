@@ -1641,6 +1641,8 @@ import {
   FaTimes,
   FaExclamationCircle,
   FaHome,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 
 /* ── Public Axios ── */
@@ -1671,6 +1673,7 @@ export default function StudentRegister() {
   const [currentStep, setCurrentStep] = useState(1);
   const [documentConfig, setDocumentConfig] = useState([]);
   const [configLoading, setConfigLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -1858,6 +1861,27 @@ export default function StudentRegister() {
       }
       if (!/^\d{10}$/.test(form.mobileNumber)) {
         alert("Please enter a valid 10-digit mobile number");
+        return false;
+      }
+      const password = form.password;
+      if (password.length < 8) {
+        alert("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character");
+        return false;
+      }
+      if (!/[A-Z]/.test(password)) {
+        alert("Password must include at least one uppercase letter (A-Z)");
+        return false;
+      }
+      if (!/[a-z]/.test(password)) {
+        alert("Password must include at least one lowercase letter (a-z)");
+        return false;
+      }
+      if (!/[0-9]/.test(password)) {
+        alert("Password must include at least one number (0-9)");
+        return false;
+      }
+      if (!/[^A-Za-z0-9]/.test(password)) {
+        alert("Password must include at least one special character (!@#$%^&* etc.)");
         return false;
       }
       return true;
@@ -2195,15 +2219,25 @@ export default function StudentRegister() {
           <label className="sr-label">
             Password <span className="sr-req">*</span>
           </label>
-          <input
-            type="password"
-            className="sr-input"
-            name="password"
-            placeholder="Create a strong password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
+          <div className="sr-password-wrap">
+            <input
+              type={showPassword ? "text" : "password"}
+              className="sr-input sr-input--password"
+              name="password"
+              placeholder="Create a strong password"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+            <button
+              type="button"
+              className="sr-password-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -3346,6 +3380,12 @@ export default function StudentRegister() {
           .sr-main-card { padding:2rem 2.5rem; }
           .sr-grid--2 { gap:1.1rem 1.5rem; }
         }
+
+        /* Password visibility toggle */
+        .sr-password-wrap { position:relative; }
+        .sr-input--password { padding-right: 2.6rem; }
+        .sr-password-toggle { position:absolute; right:.55rem; top:50%; transform:translateY(-50%); background:transparent; border:none; cursor:pointer; color:var(--rp-muted); padding:.25rem; display:inline-flex; align-items:center; justify-content:center; line-height:0; }
+        .sr-password-toggle:hover { color:var(--cyan-600); }
       `}</style>
     </div>
   );
