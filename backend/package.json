@@ -13,6 +13,7 @@
     "add-indexes": "node scripts/add-indexes.js",
     "add-timetable-indexes": "node scripts/add-timetable-indexes.js",
     "migrate": "node scripts/migrate.js",
+    "migrate:password-reset": "node scripts/migrate-password-reset.js",
     "migrate:timetable-dates": "node scripts/migrate-timetable-dates.js",
     "rollback": "node scripts/rollback.js",
     "rollback:data": "node scripts/rollback.js --data",
