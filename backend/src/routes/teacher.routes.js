@@ -49,7 +49,7 @@ router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createTeache
 router.get(
   "/",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachers,
 );
@@ -62,7 +62,7 @@ router.get(
 router.get(
   "/department/:departmentId",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByDepartment,
 );
@@ -71,7 +71,7 @@ router.get(
 router.get(
   "/course/:courseId",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByCourse,
 );
@@ -89,11 +89,11 @@ router.get(
    /:id ROUTES (must be AFTER specific routes above)
 ========================================================= */
 
-/* GET TEACHER BY ID — COLLEGE_ADMIN, PRINCIPAL, EXAM_COORDINATOR (read-only) */
+/* GET TEACHER BY ID — COLLEGE_ADMIN, HOD, PRINCIPAL, EXAM_COORDINATOR (read-only) */
 router.get(
   "/:id",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeacherById,
 );
