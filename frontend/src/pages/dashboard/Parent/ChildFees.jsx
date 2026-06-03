@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaArrowLeft,
   FaMoneyBillWave,
@@ -115,10 +116,9 @@ export default function ChildFees() {
     const fetchFees = async () => {
       try {
         const res = await api.get(`/parent/student/${childId}/fees`);
-        // The axios interceptor unwraps the response, so res.data is the feeRecord directly
         setFeeData(res.data);
       } catch (err) {
-        console.error("❌ ChildFees: Error:", err);
+        console.error("ChildFees: Error:", err);
         setError(err.response?.data?.message || "Failed to load fee details");
       } finally {
         setLoading(false);
@@ -255,15 +255,13 @@ export default function ChildFees() {
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-outline"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
+                    <Breadcrumb
+                      items={[
+                        { label: "Home", path: "/dashboard/parent" },
+                        { label: "My Children", path: "/dashboard/parent/children" },
+                        { label: "Fees", path: `/dashboard/parent/child/${childId}/fees` },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
@@ -383,6 +381,7 @@ export default function ChildFees() {
             custom={2}
             initial="hidden"
             animate="visible"
+            className="dashboard-section"
           >
             <div className="parent-fee-card">
               <div className="parent-fee-header">

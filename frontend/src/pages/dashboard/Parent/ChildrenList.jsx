@@ -8,6 +8,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import "../College-Admin/Dashboard.css";
+import "./ParentPortal.css";
 
 import {
   FaUsers,
@@ -192,7 +193,7 @@ export default function ChildrenList() {
         exit={{ opacity: 0 }}
         className="dashboard-wrapper"
       >
-        <div         className="dashboard-container-inner">
+        <div className="dashboard-container-inner">
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -201,7 +202,7 @@ export default function ChildrenList() {
             className="dashboard-header"
           >
             {/* Hero Section */}
-            <div             className="dashboard-header-hero">
+            <div className="dashboard-header-hero">
               <div className="row g-3 g-sm-4 align-items-center">
                 <div className="col-12 col-md-7 col-lg-8">
                   <div className="d-flex align-items-center gap-3">
@@ -213,11 +214,11 @@ export default function ChildrenList() {
                     >
                       <FaUsers />
                     </motion.div>
-                    <div                     className="header-title-section">
-                      <h1                       className="header-title">
+                    <div className="header-title-section">
+                      <h1 className="header-title">
                         My Children
                       </h1>
-                      <p                       className="header-subtitle">
+                      <p className="header-subtitle">
                         View and manage all your children's academic information.
                       </p>
                     </div>
@@ -227,7 +228,7 @@ export default function ChildrenList() {
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
                     <Breadcrumb
                       items={[
-                        { label: "Dashboard", path: "/dashboard/parent" },
+                        { label: "Home", path: "/dashboard/parent" },
                         { label: "My Children", path: "/dashboard/parent/children" },
                       ]}
                     />
@@ -243,11 +244,11 @@ export default function ChildrenList() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="card"
+            className="parent-search-container"
           >
             <div className="row g-3">
               <div className="col-12 col-md-6">
-                <div                 className="input-group">
+                <div className="parent-search-input-group">
                   <FaSearch className="parent-search-icon" />
                   <input
                     type="text"

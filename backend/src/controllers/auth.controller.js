@@ -610,13 +610,12 @@ const sendTokens = async (res, id, role, college_id, req) => {
     sameSite: "strict",
   });
 
-  // Send user info in the response (not the tokens)
+  // Send user info in the response (tokens are httpOnly cookies only)
   // Using standardized format with data wrapper
   res.json({
     success: true,
     message: "Login successful",
     data: {
-      accessToken,
       user: { id, role, college_id },
     },
   });
