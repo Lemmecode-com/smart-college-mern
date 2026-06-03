@@ -628,20 +628,21 @@ export default function WeeklyTimetable() {
   return (
     <>
       <AnimatePresence mode="wait">
-      <motion.div
-        key="weekly-timetable-main"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1.5rem",
-          paddingBottom: "2rem",
-          paddingLeft: "1rem",
-          paddingRight: "1rem",
-        }}
-      >
+        <>
+          <motion.div
+            key="weekly-timetable-main"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              minHeight: "100vh",
+              background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
+              paddingTop: "1.5rem",
+              paddingBottom: "2rem",
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+            }}
+          >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
           <motion.div
@@ -982,7 +983,7 @@ export default function WeeklyTimetable() {
                           <option value="">Select subject</option>
                           {/* ✅ FIXED: Fallback key prevents "same key" warning if _id is missing */}
                           {subjects.map((s, index) => (
-                            <option key={s._id ? s._id : `subject-fallback-${index}`} value={s._id || ""}>
+                            <option key={s._id || s.name || `subject-${index}`} value={s._id || ""}>
                               {s.name} ({s.code})
                             </option>
                           ))}
@@ -1131,7 +1132,9 @@ export default function WeeklyTimetable() {
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+        </motion.div>
+
+      </>
 
       </AnimatePresence>
 
