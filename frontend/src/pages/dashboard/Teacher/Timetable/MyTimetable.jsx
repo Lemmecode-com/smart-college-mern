@@ -699,7 +699,7 @@ export default function MyTimetable() {
 
                           return (
                             <motion.div
-                              key={slot._id || slotIndex}
+                              key={slot._id || slot.startTime || `slot-${slotIndex}`}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: slotIndex * 0.03 }}
