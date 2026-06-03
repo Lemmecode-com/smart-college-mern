@@ -1518,7 +1518,7 @@ export default function MySchedule() {
                     const time = `${slot.startTime} - ${slot.endTime}`;
                     return (
                       <ScheduleRow
-                        key={slot._id || time}
+                        key={slot._id || slot.startTime || `schedule-${time}`}
                         time={time}
                         slot={slot}
                         isCurrent={isCurrentTimeSlot(time)}
