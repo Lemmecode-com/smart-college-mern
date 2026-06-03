@@ -13,7 +13,7 @@ router.post("/logout", auth, logout);
 router.post("/refresh", sessionLimiter, refreshToken);
 
 // Get user info (for checking authentication status) - DYNAMIC
-  router.get("/me", auth, async (req, res) => {
+  router.get("/me", auth, async (req, res, next) => {
     try {
       const { id, opaqueId, role, college_id } = req.user;
 
