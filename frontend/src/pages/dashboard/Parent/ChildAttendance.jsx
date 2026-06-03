@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaArrowLeft,
   FaCalendarCheck,
@@ -254,15 +255,13 @@ export default function ChildAttendance() {
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-outline"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
+                    <Breadcrumb
+                      items={[
+                        { label: "Home", path: "/dashboard/parent" },
+                        { label: "My Children", path: "/dashboard/parent/children" },
+                        { label: "Attendance", path: `/dashboard/parent/child/${childId}/attendance` },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
