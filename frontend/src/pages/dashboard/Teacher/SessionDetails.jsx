@@ -906,7 +906,7 @@ export default function SessionDetails() {
                     <tbody>
                       {records.map((record, idx) => (
                         <RecordRow
-                          key={record._id || idx}
+                          key={record._id || record.student_id?._id || `record-${idx}`}
                           record={record}
                           delay={idx * 0.03}
                         />
