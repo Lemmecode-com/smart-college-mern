@@ -10,32 +10,21 @@ const AppError = require("../utils/AppError");
 exports.getStaffProfile = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    console.log(`[getStaffProfile] Request for userId: ${userId}, req.college_id: ${req.college_id}`);
 
-    // Find staff profile with user populate
     let profile = await StaffProfile.findOne({ user_id: new mongoose.Types.ObjectId(userId) })
       .populate("user_id", "name email role isActive mustChangePassword")
       .populate("college_id", "name code");
 
-    console.log(`[getStaffProfile] Found profile:`, profile ? { id: profile._id, user_id: profile.user_id, college_id: profile.college_id } : null);
-
     if (!profile) {
-      console.log(`[getStaffProfile] Profile missing, creating...`);
-      // Create profile on-demand if it doesn't exist
       const user = await User.findById(userId);
-      console.log(`[getStaffProfile] User found:`, user ? { id: user._id, college_id: user.college_id } : null);
       if (!user) {
-        console.log(`[getStaffProfile] User not found`);
         return next(new AppError("User not found", 404, "USER_NOT_FOUND"));
       }
 
-      // Verify college membership
       if (user.college_id.toString() !== req.college_id.toString()) {
-        console.log(`[getStaffProfile] College mismatch: user.college_id=${user.college_id}, req.college_id=${req.college_id}`);
         return next(new AppError("Access denied: user belongs to different college", 403, "FORBIDDEN"));
       }
 
-      // Create profile
       profile = await StaffProfile.create({
         user_id: userId,
         college_id: user.college_id,
@@ -54,45 +43,33 @@ exports.getStaffProfile = async (req, res, next) => {
         qualification: "",
         experienceYears: 0,
       });
-
-      console.log(`[getStaffProfile] Profile created:`, profile ? { id: profile._id, user_id: profile.user_id, college_id: profile.college_id } : null);
     } else if (!profile.college_id) {
-      console.log(`[getStaffProfile] Profile exists but college_id missing, updating...`);
-      // Update profile with college_id
       const user = await User.findById(userId);
       if (!user) {
-        console.log(`[getStaffProfile] User not found`);
         return next(new AppError("User not found", 404, "USER_NOT_FOUND"));
       }
 
       if (user.college_id.toString() !== req.college_id.toString()) {
-        console.log(`[getStaffProfile] College mismatch`);
         return next(new AppError("Access denied: user belongs to different college", 403, "FORBIDDEN"));
       }
 
       profile.college_id = user.college_id;
       await profile.save();
-      console.log(`[getStaffProfile] Profile updated with college_id`);
     }
 
-    // Populate after ensuring profile exists and is valid
     profile = await StaffProfile.findById(profile._id)
       .populate("user_id", "name email role isActive mustChangePassword")
       .populate("college_id", "name code");
 
-    // Verify college membership
     if (profile.college_id._id.toString() !== req.college_id.toString()) {
-      console.log(`[getStaffProfile] Final college check failed: profile.college_id=${profile.college_id._id}, req.college_id=${req.college_id}`);
       return next(new AppError("Access denied: staff belongs to different college", 403, "FORBIDDEN"));
     }
 
-    console.log(`[getStaffProfile] Success, returning profile`);
     res.json({
       success: true,
       data: profile,
     });
   } catch (error) {
-    console.error(`[getStaffProfile] Error:`, error);
     next(error);
   }
 };
