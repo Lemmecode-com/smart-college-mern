@@ -18,7 +18,7 @@ router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createSubjec
 router.get(
   "/course/:courseId",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getSubjectsByCourse
 );
@@ -27,7 +27,7 @@ router.delete("/:id", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, deleteS
 router.get(
   "/:id",
   auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getSubjectById
 );
