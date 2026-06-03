@@ -1125,7 +1125,7 @@ export default function ReportDashboard() {
                   <tbody>
                     {lowAttendancePagination.data.map((student) => (
                       <tr
-                        key={student._id || student.name}
+                        key={student._id || student.name || `student-${index}`}
                         className={
                           student.attendance < 60 ? "critical-row" : ""
                         }
