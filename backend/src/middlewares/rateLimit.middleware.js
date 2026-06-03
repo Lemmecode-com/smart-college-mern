@@ -55,14 +55,21 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => generateRateLimitKey(req),
-  handler: (req, res, next, options) => {
+  handler: (req, res) => {
     const identifier = req.user?.id ? `User:${req.user.id}` : `IP:${req.ip}`;
     logger.logWarning(`RATE LIMIT HIT - Global from ${identifier}`, {
-      identifier: req.user?.id || req.ip,
+      identifier,
       type: req.user?.id ? "user" : "ip",
       endpoint: req.originalUrl,
     });
-    res.status(options.statusCode).json(options.message);
+    res.status(429).json({
+      success: false,
+      message:
+        process.env.NODE_ENV === "development"
+          ? "Too many requests, please slow down (Development Mode)"
+          : "Too many requests, please try again after 5 minutes",
+      code: "RATE_LIMIT_EXCEEDED",
+    });
   },
 });
 
@@ -94,18 +101,21 @@ const authLimiter = rateLimit({
     }
     return `ip:${normalizeIp(req)}`;
   },
-  handler: (req, res, next, options) => {
+  handler: (req, res, next) => {
     const email = req.body?.email?.trim().toLowerCase();
     const identifier = email || req.ip;
     const identifierType = email ? "email" : "ip";
+    const options = req.rateLimit;
+    const windowMs = typeof options?.windowMs === 'number' ? options.windowMs : (15 * 60 * 1000);
+    const max = typeof options?.max === 'number' ? options.max : 5;
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
       identifier,
       type: identifierType,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
+      window: `${windowMs / 60000} minutes`,
+      max,
       endpoint: "auth",
     });
-    res.status(options.statusCode).json({
+    res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
@@ -295,20 +305,23 @@ const webhookLimiter = rateLimit({
     }
     return `ip:${normalizeIp(req)}`;
   },
-  handler: (req, res, next, options) => {
-    logger.logWarning(`RATE LIMIT HIT - Webhook endpoint from IP: ${req.ip}`, {
+  handler: (req, res, next) => {
+    const options = req.rateLimit;
+    const windowMs = typeof options?.windowMs === 'number' ? options.windowMs : (60 * 60 * 1000);
+    const max = typeof options?.max === 'number' ? options.max : 3;
+    const identifier = req.user?.id ? `User:${req.user.id}` : `IP:${req.ip}`;
+    logger.logWarning(`RATE LIMIT HIT - Password Reset from ${identifier}`, {
       ip: req.ip,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
-      endpoint: "webhook",
-      stripeSignature: req.headers["stripe-signature"] ? "Present" : "Missing",
+      window: `${windowMs / 60000} minutes`,
+      max,
+      endpoint: "password-reset",
     });
-    res.status(options.statusCode).json({
+    res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
-          ? "Too many webhook requests, please wait 1 minute (Development Mode)"
-          : "Too many webhook requests, please try again after 5 minutes",
+          ? "Too many password reset requests, please wait 1 minute (Development Mode)"
+          : "Too many password reset requests, please try again after 1 hour",
       code: "RATE_LIMIT_EXCEEDED",
     });
   },
