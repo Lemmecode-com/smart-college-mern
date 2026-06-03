@@ -425,6 +425,22 @@ exports.updateStaffProfile = async (req, res, next) => {
     try {
       // Update user fields if any
       const roleChanged = userFields.role && userFields.role !== previousRole;
+
+      if (roleChanged) {
+        if (id === req.user.id) {
+          return next(new AppError("Cannot change your own role", 400, "SELF_ROLE_CHANGE"));
+        }
+
+        const forbiddenTargets = ["SUPER_ADMIN", "COLLEGE_ADMIN"];
+        if (forbiddenTargets.includes(userFields.role)) {
+          return next(new AppError(
+            `You cannot assign role: ${userFields.role}`,
+            403,
+            "ROLE_ASSIGN_FORBIDDEN"
+          ));
+        }
+      }
+
       if (Object.keys(userFields).length > 0) {
         await User.findByIdAndUpdate(id, userFields, { session, new: true });
       }
