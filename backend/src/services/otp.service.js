@@ -35,7 +35,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
     const user = await User.findOne({ email }).select("college_id role").lean();
     
     // Generate OTP
-    const otp = this.generateOTP();
+    const otp = exports.generateOTP();
     
     // Set expiration (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
