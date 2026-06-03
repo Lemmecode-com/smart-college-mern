@@ -53,6 +53,10 @@ exports.deactivateUser = async (req, res, next) => {
     user.isActive = false;
     await user.save();
 
+    // Revoke all refresh tokens so deactivated user cannot obtain new access tokens
+    const RefreshToken = require("../models/refreshToken.model");
+    await RefreshToken.deleteMany({ user_id: user._id });
+
     // If the user is a TEACHER, also update the Teacher model
     let teacherData = null;
     if (user.role === "TEACHER") {
