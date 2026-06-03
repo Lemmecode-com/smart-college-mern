@@ -1,23 +1,3 @@
-// import React, { useState, useEffect, useMemo, useContext } from "react";
-// import { useParams, useNavigate } from "react-router-dom";
-// import { AuthContext } from "../../../auth/AuthContext";
-// import api from "../../../api/axios";
-// import Loading from "../../../components/Loading";
-// import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
-// import {
-//   FaUser,
-//   FaPhone,
-//   FaMapMarkerAlt,
-//   FaBirthdayCake,
-//   FaBriefcase,
-//   FaBuilding,
-//   FaCalendarAlt,
-//   FaIdCard,
-//   FaUsers,
-//   FaGraduationCap,
-//   FaCheckCircle,
-// } from "react-icons/fa";
-// import "./ViewStaffProfile.css";
 
 // const BRAND_COLORS = {
 //   primary: { main: "#1a4b6d", gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)" },
@@ -335,13 +315,10 @@ export default function ViewStaffProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        console.log("[ViewStaffProfile] Fetching profile for userId:", actualUserId);
         setLoading(true);
         const res = await api.get(`/staff/profile/${actualUserId}`);
-        console.log("[ViewStaffProfile] API response:", res.data);
         setProfile(res.data.data || res.data);
       } catch (err) {
-        console.error("[ViewStaffProfile] API error:", err);
         setError(err.response?.data?.message || "Failed to load profile");
       } finally {
         setLoading(false);
