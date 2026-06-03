@@ -41,14 +41,13 @@ passwordResetSchema.index({ email: 1, expiresAt: 1 });
 // Auto-delete expired OTPs (TTL index)
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Hash OTP before saving
-passwordResetSchema.pre("save", async function (next) {
+// Hash OTP before saving (async/await style — no callback needed)
+passwordResetSchema.pre("save", async function () {
   if (!this.isModified("otpHash")) {
-    return next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.otpHash = await bcrypt.hash(this.otpHash, salt);
-  next();
 });
 
 // Compare plaintext OTP against stored hash

@@ -145,6 +145,20 @@ exports.getTimetableById = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
+    // 🔒 SECURITY: HOD can only view timetables for their own department
+    if (req.user.role === "HOD") {
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+      );
+      const { isHOD } = await teacherService.getHODStatus(teacher);
+      if (isHOD && timetable.department_id.toString() !== teacher.department_id.toString()) {
+        return res.status(403).json({
+          message: "Access denied: HOD can only view timetables for their own department",
+        });
+      }
+    }
+
     // Get all slots for this timetable
     const slots = await TimetableSlot.find({
       timetable_id: timetable._id,
@@ -191,8 +205,8 @@ exports.getTimetables = async (req, res) => {
   try {
     const filter = { college_id: req.college_id };
 
-    // If teacher, restrict to their department OR courses they teach
-    if (req.user.role === "TEACHER") {
+    // If teacher or HOD, restrict to their department OR courses they teach
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
       const teacher = await teacherService.getTeacherWithValidation(
         req.user.id,
         req.college_id,
