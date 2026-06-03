@@ -53,20 +53,6 @@ module.exports = async (req, res, next) => {
       });
 
       if (!department) {
-        // Debug info to help diagnose the issue
-        console.log("\n=== HOD Permission Check Failed ===");
-        console.log("Request Path:", req.originalUrl);
-        console.log("Request Method:", req.method);
-        console.log("- Teacher ID:", teacher._id.toString());
-        console.log("- Teacher Name:", teacher.name);
-        console.log("- Teacher Department ID:", teacher.department_id?.toString());
-        console.log("- Timetable ID:", timetable._id.toString());
-        console.log("- Timetable Department ID:", timetable.department_id._id?.toString() || timetable.department_id.toString());
-        console.log("- Timetable Department Name:", timetable.department_id.name);
-        console.log("- Department HOD ID (from DB):", timetable.department_id.hod_id?.toString() || 'null');
-        console.log("- Is Teacher the HOD?", timetable.department_id.hod_id?.toString() === teacher._id.toString() ? 'YES' : 'NO');
-        console.log("===================================\n");
-        
         // More specific error message
         const isHodOfOtherDept = await Department.findOne({
           hod_id: teacher._id,
