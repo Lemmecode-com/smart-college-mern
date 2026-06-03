@@ -80,7 +80,7 @@ router.get(
 router.get(
   "/available-for-reassignment",
   auth,
-  role(ROLE.COLLEGE_ADMIN),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getAvailableTeachersForReassignment,
 );
@@ -102,7 +102,7 @@ router.get(
 router.get(
   "/:id/reassignment-data",
   auth,
-  role(ROLE.COLLEGE_ADMIN),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeacherReassignmentData,
 );
