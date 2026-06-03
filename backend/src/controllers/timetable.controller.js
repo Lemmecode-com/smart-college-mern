@@ -107,7 +107,7 @@ exports.publishTimetable = async (req, res) => {
     }
 
     // Add role check (only COLLEGE_ADMIN or TEACHER/HOD can publish)
-    if (!["COLLEGE_ADMIN", "TEACHER"].includes(req.user.role)) {
+    if (!["COLLEGE_ADMIN", "TEACHER", "HOD"].includes(req.user.role)) {
       return res.status(403).json({
         message: "Not authorized to publish timetable",
       });
