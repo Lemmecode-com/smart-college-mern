@@ -161,13 +161,13 @@ exports.updateSlot = async (req, res, next) => {
     }
 
     /* STEP 1: Find slot */
-    const slot = await TimetableSlot.findById(slotId);
+    const slot = await TimetableSlot.findOne({ _id: slotId, college_id: req.college_id });
     if (!slot) {
       throw new AppError("Slot not found", 404, "SLOT_NOT_FOUND");
     }
 
     /* STEP 2: Find timetable */
-    const timetable = await Timetable.findById(slot.timetable_id);
+    const timetable = await Timetable.findOne({ _id: slot.timetable_id, college_id: req.college_id });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
@@ -241,13 +241,13 @@ exports.deleteTimetableSlot = async (req, res) => {
     }
 
     /* STEP 1: Find slot */
-    const slot = await TimetableSlot.findById(slotId);
+    const slot = await TimetableSlot.findOne({ _id: slotId, college_id: req.college_id });
     if (!slot) {
       return res.status(404).json({ message: "Slot not found" });
     }
 
     /* STEP 2: Find timetable */
-    const timetable = await Timetable.findById(slot.timetable_id);
+    const timetable = await Timetable.findOne({ _id: slot.timetable_id, college_id: req.college_id });
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
     }
