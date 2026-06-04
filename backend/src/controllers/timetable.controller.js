@@ -100,7 +100,7 @@ exports.createTimetable = async (req, res) => {
 ========================================================= */
 exports.publishTimetable = async (req, res) => {
   try {
-    const timetable = await Timetable.findById(req.params.id);
+    const timetable = await Timetable.findOne({ _id: req.params.id, college_id: req.college_id });
 
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
@@ -695,7 +695,7 @@ exports.deleteTimetable = async (req, res) => {
     const { id } = req.params;
 
     // 1️⃣ Find timetable
-    const timetable = await Timetable.findById(id);
+    const timetable = await Timetable.findOne({ _id: id, college_id: req.college_id });
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
     }
@@ -717,7 +717,7 @@ exports.deleteTimetable = async (req, res) => {
     await TimetableSlot.deleteMany({ timetable_id: id });
 
     // 5️⃣ Delete timetable
-    await Timetable.findByIdAndDelete(id);
+    await Timetable.findOneAndDelete({ _id: id, college_id: req.college_id });
 
     ApiResponse.success(res, null, "Timetable deleted successfully");
   } catch (error) {

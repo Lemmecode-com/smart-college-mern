@@ -579,8 +579,8 @@ exports.updateException = async (req, res, next) => {
     }
 
     // 5️⃣ Update exception
-    const updatedException = await TimetableException.findByIdAndUpdate(
-      exceptionId,
+    const updatedException = await TimetableException.findOneAndUpdate(
+      { _id: exceptionId, college_id: req.college_id },
       { $set: updateData },
       { new: true, runValidators: true },
     )
