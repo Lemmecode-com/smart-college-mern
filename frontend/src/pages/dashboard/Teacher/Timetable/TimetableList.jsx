@@ -127,7 +127,7 @@ export default function TimetableList() {
    const confirmPublishTimetable = async () => {
      setPublishingId(confirmModal.id);
      try {
-       await api.put(`/api/timetable/${confirmModal.id}/publish`);
+        await api.put(`/timetable/${confirmModal.id}/publish`);
        fetchTimetables();
        toast.success("Timetable published successfully!", {
          position: "top-right",
