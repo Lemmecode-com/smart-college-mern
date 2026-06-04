@@ -212,8 +212,8 @@ exports.updateSlot = async (req, res, next) => {
     }
 
     /* STEP 5: Update slot (NO publish restriction now) */
-    const updatedSlot = await TimetableSlot.findByIdAndUpdate(
-      slotId,
+    const updatedSlot = await TimetableSlot.findOneAndUpdate(
+      { _id: slotId, college_id: req.college_id },
       req.body,
       { new: true }
     );
