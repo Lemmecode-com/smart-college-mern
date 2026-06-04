@@ -74,6 +74,7 @@ export default function TimetableList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const isTeacher = user?.role === "TEACHER";
+  const isHOD = user?.role === "HOD";
 
   const [timetables, setTimetables] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -607,8 +608,8 @@ export default function TimetableList() {
                               <FaEdit size={14} /> Edit
                             </motion.button>
                             
-                            {/* PUBLISH BUTTON (TEACHERS ONLY) */}
-                            {isTeacher && t.status === "DRAFT" && (
+                            {/* PUBLISH BUTTON (HOD ONLY) */}
+                            {isHOD && t.status === "DRAFT" && (
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -704,7 +705,7 @@ export default function TimetableList() {
               <div style={{ color: '#4a5568', fontSize: '0.95rem' }}>
                 <strong>Tip:</strong> Timetables in <span style={{ color: BRAND_COLORS.success.main, fontWeight: 600 }}>Published</span> status are visible to students. 
                 <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                  {isTeacher ? "As a teacher, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
+                  {isHOD ? "As HOD, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
                 </span>
               </div>
             </div>
