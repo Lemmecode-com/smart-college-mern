@@ -146,19 +146,17 @@ TimetableSchema.index({ course_id: 1, status: 1 });
 
 // ================= PRE-SAVE VALIDATION =================
 
-TimetableSchema.pre("save", function (next) {
-  // Validate date range length (max 2 years)
+TimetableSchema.pre("save", function () {
   if (this.startDate && this.endDate) {
     const start = new Date(this.startDate);
     const end = new Date(this.endDate);
     const diffYears = (end - start) / (1000 * 60 * 60 * 24 * 365);
 
     if (diffYears > 2) {
-      return next(new Error("Timetable date range cannot exceed 2 years"));
+      throw new Error("Timetable date range cannot exceed 2 years");
     }
   }
 
-  // Trim metadata
   if (this.metadata && typeof this.metadata === "object") {
     Object.keys(this.metadata).forEach((key) => {
       if (typeof this.metadata[key] === "string") {
@@ -166,8 +164,6 @@ TimetableSchema.pre("save", function (next) {
       }
     });
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Timetable", TimetableSchema);
