@@ -513,7 +513,10 @@ exports.updateException = async (req, res, next) => {
     }
 
     // 2️⃣ Verify HOD
-    const timetable = await Timetable.findById(exception.timetable_id);
+    const timetable = await Timetable.findOne({
+      _id: exception.timetable_id,
+      college_id: req.college_id,
+    });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
@@ -620,7 +623,10 @@ exports.deleteException = async (req, res, next) => {
     }
 
     // 2️⃣ Verify HOD
-    const timetable = await Timetable.findById(exception.timetable_id);
+    const timetable = await Timetable.findOne({
+      _id: exception.timetable_id,
+      college_id: req.college_id,
+    });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
@@ -681,7 +687,10 @@ exports.approveException = async (req, res, next) => {
     }
 
     // 2️⃣ Verify HOD
-    const timetable = await Timetable.findById(exception.timetable_id);
+    const timetable = await Timetable.findOne({
+      _id: exception.timetable_id,
+      college_id: req.college_id,
+    });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
@@ -746,7 +755,10 @@ exports.rejectException = async (req, res, next) => {
     }
 
     // 2️⃣ Verify HOD
-    const timetable = await Timetable.findById(exception.timetable_id);
+    const timetable = await Timetable.findOne({
+      _id: exception.timetable_id,
+      college_id: req.college_id,
+    });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
