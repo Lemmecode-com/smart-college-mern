@@ -1192,12 +1192,6 @@ export const navigationConfig = {
          defaultOpen: true,
          items: [
            {
-             path: "/profile/my-profile",
-             icon: FaUser,
-             label: "View Profile",
-             exact: true,
-           },
-           {
              path: "/hod/profile",
              icon: FaUser,
              label: "HOD Profile",
