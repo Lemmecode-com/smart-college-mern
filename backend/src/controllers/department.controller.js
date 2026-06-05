@@ -250,3 +250,73 @@ exports.assignHOD = async (req, res) => {
     throw error;
   }
 };
+
+/**
+ * REMOVE HOD FROM DEPARTMENT
+ */
+exports.removeHOD = async (req, res) => {
+  try {
+    // Check department exists
+    const department = await Department.findOne({
+      _id: req.params.id,
+      college_id: req.college_id
+    });
+
+    if (!department) {
+      return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+    }
+
+    // Check if department has an HOD assigned
+    if (!department.hod_id) {
+      return ApiResponse.error(res, "This department has no HOD assigned", "NO_HOD_ASSIGNED", 400);
+    }
+
+    // Save old HOD info for audit
+    const oldHodId = department.hod_id;
+    const oldHodTeacher = await Teacher.findOne({
+      _id: oldHodId,
+      college_id: req.college_id
+    }).select("user_id name");
+
+    let oldHodUserId = null;
+    let oldHodName = null;
+
+    if (oldHodTeacher) {
+      oldHodUserId = oldHodTeacher.user_id;
+      oldHodName = oldHodTeacher.name;
+    }
+
+    // Remove HOD from department
+    department.hod_id = null;
+    await department.save();
+
+    // Update User.role from HOD to TEACHER
+    if (oldHodUserId) {
+      const oldHodUser = await User.findById(oldHodUserId);
+      if (oldHodUser && oldHodUser.role === "HOD") {
+        oldHodUser.role = "TEACHER";
+        await oldHodUser.save();
+      }
+    }
+
+    // Log audit
+    AuditService.logHODRemoved(
+      req.user,
+      department._id,
+      department.name,
+      oldHodId,
+      oldHodName,
+      req
+    ).catch((err) => console.error("Audit log failed:", err.message));
+
+    ApiResponse.success(res, {
+      success: true,
+      department: {
+        _id: department._id,
+        hod_id: null
+      }
+    }, "HOD removed successfully");
+  } catch (error) {
+    throw error;
+  }
+};
