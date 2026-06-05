@@ -272,15 +272,16 @@ exports.getTimetables = async (req, res) => {
 };
 
 /* =========================================================
-   WEEKLY TIMETABLE — TEACHER (OWN SCHEDULE)
-========================================================= */
+    WEEKLY TIMETABLE — TEACHER (OWN SCHEDULE) OR HOD (DEPARTMENT)
+   ========================================================= */
 /**
- * GET /api/timetable/weekly
- * Purpose:
- *  - Show weekly schedule for logged-in teacher
- *  - ONLY slots from PUBLISHED timetables
- *  - Includes exception data for current week (holidays, cancellations, etc.)
- */
+  * GET /api/timetable/weekly
+  * Purpose:
+  *  - TEACHER: Show weekly schedule for logged-in teacher
+  *  - HOD: Show weekly schedule for entire department
+  *  - ONLY slots from PUBLISHED timetables
+  *  - Includes exception data for current week (holidays, cancellations, etc.)
+  */
 exports.getWeeklyTimetableForTeacher = async (req, res) => {
   try {
     const teacher = await teacherService.getTeacherWithValidation(
@@ -288,8 +289,19 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       req.college_id,
     );
 
+    // Check if teacher is HOD
+    const isHod = await Department.findOne({
+      _id: teacher.department_id,
+      hod_id: teacher._id,
+    });
+
+    // Build query based on role
+    const slotQuery = isHod
+      ? { department_id: teacher.department_id }
+      : { teacher_id: teacher._id };
+
     const slots = await TimetableSlot.find({
-      teacher_id: teacher._id,
+      ...slotQuery,
     })
       .populate("subject_id", "name code")
       .populate("teacher_id", "name")
