@@ -329,8 +329,8 @@ export default function AdmissionDashboard() {
               </motion.div>
             </div>
 
-            {/* QUICK ACTIONS - Full width on mobile, 4/12 on desktop */}
-            <div className="col-12 col-lg-4">
+            {/* QUICK ACTIONS - Below Recent Pending Applications, horizontal layout */}
+            <div className="col-12">
               <motion.div
                 variants={fadeInVariants}
                 custom={2}
@@ -344,52 +344,42 @@ export default function AdmissionDashboard() {
                   color={BRAND_COLORS.primary.main}
                 >
                   <div className="section-card-body">
-                    <div className="row g-3">
-                      <div className="col-12">
-                        <QuickActionCard
-                          icon={FaClock}
-                          label="Pending Applications"
-                          path="/admission/applications"
-                          color={BRAND_COLORS.warning.main}
-                          gradient={BRAND_COLORS.warning.gradient}
-                        />
-                      </div>
-                      <div className="col-12">
-                        <QuickActionCard
-                          icon={FaCheckCircle}
-                          label="Approved Students"
-                          path="/admission/approved"
-                          color={BRAND_COLORS.success.main}
-                          gradient={BRAND_COLORS.success.gradient}
-                        />
-                      </div>
-                      <div className="col-12">
-                        <QuickActionCard
-                          icon={FaArrowUp}
-                          label="Student Promotion"
-                          path="/admission/promotion"
-                          color={BRAND_COLORS.info.main}
-                          gradient={BRAND_COLORS.info.gradient}
-                        />
-                      </div>
-                      <div className="col-12">
-                        <QuickActionCard
-                          icon={FaGraduationCap}
-                          label="View Alumni"
-                          path="/admission/alumni"
-                          color={BRAND_COLORS.secondary.main}
-                          gradient={BRAND_COLORS.secondary.gradient}
-                        />
-                      </div>
-                      <div className="col-12">
-                        <QuickActionCard
-                          icon={FaUserTimes}
-                          label="Deactivated Students"
-                          path="/admission/deactivated"
-                          color={BRAND_COLORS.danger.main}
-                          gradient={BRAND_COLORS.danger.gradient}
-                        />
-                      </div>
+                    <div className="quick-actions-row">
+                      <QuickActionCard
+                        icon={FaClock}
+                        label="Pending Applications"
+                        path="/admission/applications"
+                        color={BRAND_COLORS.warning.main}
+                        gradient={BRAND_COLORS.warning.gradient}
+                      />
+                      <QuickActionCard
+                        icon={FaCheckCircle}
+                        label="Approved Students"
+                        path="/admission/approved"
+                        color={BRAND_COLORS.success.main}
+                        gradient={BRAND_COLORS.success.gradient}
+                      />
+                      <QuickActionCard
+                        icon={FaArrowUp}
+                        label="Student Promotion"
+                        path="/admission/promotion"
+                        color={BRAND_COLORS.info.main}
+                        gradient={BRAND_COLORS.info.gradient}
+                      />
+                      <QuickActionCard
+                        icon={FaGraduationCap}
+                        label="View Alumni"
+                        path="/admission/alumni"
+                        color={BRAND_COLORS.secondary.main}
+                        gradient={BRAND_COLORS.secondary.gradient}
+                      />
+                      <QuickActionCard
+                        icon={FaUserTimes}
+                        label="Deactivated Students"
+                        path="/admission/deactivated"
+                        color={BRAND_COLORS.danger.main}
+                        gradient={BRAND_COLORS.danger.gradient}
+                      />
                     </div>
                   </div>
                 </SectionCard>
