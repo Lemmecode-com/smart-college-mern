@@ -259,10 +259,18 @@ DetailRow.defaultProps = {
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
   const fileName = getFileName(path);
-  // Use axios-configured baseURL; no duplication of VITE_API_BASE_URL
-  const secureDocUrl = path
-    ? `${api.defaults.baseURL}/students/documents/${fileName}`
-    : null;
+
+  const handleViewDocument = async (filename) => {
+    try {
+      const response = await api.get(`/students/documents/${filename}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Failed to load document");
+    }
+  };
 
   return (
     <tr className="detail-row">
@@ -274,16 +282,15 @@ function DocumentRow({ label, path, icon }) {
       </td>
       <td className="detail-value">
         {path ? (
-          <a
-            href={secureDocUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="document-link"
-            aria-label={`View ${label} (opens in new tab)`}
+          <button
+            onClick={() => handleViewDocument(fileName)}
+            className="document-link btn btn-link p-0"
+            aria-label={`View ${label}`}
+            type="button"
           >
             <FaExternalLinkAlt className="link-icon" aria-hidden="true" />
             {fileName || "View Document"}
-          </a>
+          </button>
         ) : (
           <span
             className="document-not-uploaded"
