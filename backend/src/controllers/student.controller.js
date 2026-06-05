@@ -28,9 +28,10 @@ exports.registerStudent = async (req, res, next) => {
     // Get uploaded files
     const files = req.files || {};
 
-    // Load document configuration for this college
+    // Load document configuration for this college (case-insensitive)
+    const sanitizedCode = collegeCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const docConfig = await DocumentConfig.findOne({
-      collegeCode,
+      collegeCode: { $regex: new RegExp(`^${sanitizedCode}$`, 'i') },
       isActive: true,
     });
     if (docConfig) {
@@ -67,9 +68,10 @@ exports.registerStudent = async (req, res, next) => {
       for (const doc of docConfig.documents) {
         // Map document type to backend field name
         const backendFieldName = documentFieldMap[doc.type] || doc.type;
+        const fieldFiles = files[backendFieldName];
 
         // Check mandatory documents (only if enabled)
-        if (doc.enabled && doc.mandatory && !files[backendFieldName]) {
+        if (doc.enabled && doc.mandatory && !(fieldFiles && fieldFiles.length && fieldFiles[0]?.path)) {
           // Skip category certificate if category is GEN
           if (doc.type === "category_certificate" && category === "GEN") {
             continue;
@@ -196,11 +198,14 @@ exports.registerStudent = async (req, res, next) => {
       // 12th (HSC) Academic Details
       hscSchoolName,
       hscBoard,
-      hscStream,
+      hscStream: hscStreamRaw,
       hscPassingYear,
       hscPercentage,
       hscRollNumber,
     } = req.body;
+    
+    // Convert empty strings to undefined for enum fields to prevent validation errors
+    let hscStream = hscStreamRaw === '' ? undefined : hscStreamRaw;
 
     // 1️⃣ Resolve college (using service)
     const college = await collegeService.findCollegeByCode(collegeCode);
