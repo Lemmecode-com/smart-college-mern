@@ -299,6 +299,22 @@
   height: 100%;
   position: relative;
   overflow: hidden;
+  flex: 1 1 0;
+  min-width: 160px;
+}
+
+.quick-actions-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-md);
+  overflow-x: auto;
+  padding-bottom: var(--spacing-xs);
+}
+
+.quick-actions-row .quick-action-card {
+  flex: 1 1 0;
+  min-width: 180px;
+  white-space: nowrap;
 }
 
 .quick-action-card::after {
@@ -642,6 +658,16 @@
 
   .section-card-body {
     padding: var(--spacing-md);
+  }
+
+  .quick-actions-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .quick-actions-row .quick-action-card {
+    flex: 1 1 calc(50% - var(--spacing-md));
+    min-width: 140px;
   }
 
   .quick-action-card {
