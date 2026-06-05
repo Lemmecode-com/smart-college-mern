@@ -144,7 +144,7 @@ const isValidObjectId = (id) => {
 
 const getFileName = (filePath) => {
   if (!filePath) return null;
-  const parts = filePath.split('\\');
+  const parts = filePath.split(/[\\/]/);
   return parts[parts.length - 1];
 };
 
@@ -403,9 +403,17 @@ export default function ViewStudent() {
   }, [student]);
 
   /* ================= ACTION HANDLERS ================= */
-  const handleViewDocument = useCallback((path) => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    window.open(`${baseUrl}/${path}`, '_blank', 'noopener,noreferrer');
+  const handleViewDocument = useCallback(async (path) => {
+    try {
+      const fileName = getFileName(path);
+      const response = await api.get(`/students/documents/${fileName}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Failed to load document");
+    }
   }, []);
 
   const handleApproveClick = useCallback(() => {
