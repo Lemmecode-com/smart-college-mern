@@ -28,17 +28,32 @@ const getHodDashboard = async (req, res) => {
       .limit(5)
       .select("name startDate endDate status createdAt");
 
+    let hodDetails = null;
+    if (department.hod_id) {
+      const hodTeacher = await Teacher.findById(department.hod_id)
+        .select("name employeeId");
+
+      if (hodTeacher) {
+        hodDetails = {
+          id: hodTeacher._id,
+          name: hodTeacher.name,
+          employeeId: hodTeacher.employeeId,
+        };
+      }
+    }
+
     ApiResponse.success(res, {
       department: {
         id: department._id,
         name: department.name,
-        code: department.code
+        code: department.code,
       },
+      hod: hodDetails,
       stats: {
         teachers: teachersCount,
-        timetables: timetablesCount
+        timetables: timetablesCount,
       },
-      recentTimetables
+      recentTimetables,
     }, "HOD dashboard data fetched successfully");
   } catch (error) {
     throw error;
