@@ -185,19 +185,52 @@ exports.assignHOD = async (req, res) => {
       return ApiResponse.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
     }
 
-    // Capture previous HOD state before mutation
-    const previousHodId = department.hod_id;
-    const previousUser = await User.findById(teacher.user_id);
-    const previousUserRole = previousUser ? previousUser.role : null;
+    // Step 0: Check if teacher is already HOD of another department (uniqueness validation)
+    const existingHodAssignment = await Department.findOne({
+      college_id: req.college_id,
+      hod_id: teacher_id,
+      _id: { $ne: department._id } // Exclude current department
+    });
 
-    // Assign HOD to department
+    if (existingHodAssignment) {
+      return ApiResponse.error(
+        res,
+        "This teacher is already assigned as HOD of another department",
+        "TEACHER_ALREADY_HOD",
+        400
+      );
+    }
+
+    // Step 1: If department already has an HOD, rollback their role to TEACHER
+    let previousHodId = null;
+    let previousUserRole = null;
+
+    if (department.hod_id) {
+      const previousHodTeacher = await Teacher.findOne({
+        _id: department.hod_id,
+        college_id: req.college_id
+      });
+
+      if (previousHodTeacher) {
+        const previousHodUser = await User.findById(previousHodTeacher.user_id);
+        if (previousHodUser && previousHodUser.role === "HOD") {
+          previousHodUser.role = "TEACHER";
+          await previousHodUser.save();
+        }
+        previousHodId = previousHodTeacher._id;
+        previousUserRole = "TEACHER";
+      }
+    }
+
+    // Step 2: Assign new HOD to department
     department.hod_id = teacher._id;
     await department.save();
 
-    // Also update the teacher's user role to HOD
-    if (previousUser) {
-      previousUser.role = "HOD";
-      await previousUser.save();
+    // Step 3: Update new teacher's user role to HOD
+    const newUser = await User.findById(teacher.user_id);
+    if (newUser) {
+      newUser.role = "HOD";
+      await newUser.save();
     }
 
     AuditService.logHODAssigned(
@@ -206,7 +239,7 @@ exports.assignHOD = async (req, res) => {
       department.name,
       teacher._id,
       teacher.name,
-      previousHodId || null,
+      previousHodId,
       previousUserRole,
       teacher._id,
       req
