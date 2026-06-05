@@ -13,6 +13,7 @@ const {
   updateDepartment,
   deleteDepartment,
   assignHOD,
+  removeHOD,
 } = require("../controllers/department.controller");
 
 // Apply middlewares to ALL department routes — PRINCIPAL, EXAM_COORDINATOR, ACCOUNTANT read-only, COLLEGE_ADMIN write
@@ -35,5 +36,8 @@ router.delete("/:id", role(ROLE.COLLEGE_ADMIN), deleteDepartment);
 
 // Assign HOD — COLLEGE_ADMIN only
 router.put("/:id/assign-hod", role(ROLE.COLLEGE_ADMIN), assignHOD);
+
+// Remove HOD — COLLEGE_ADMIN only
+router.delete("/:id/hod", role(ROLE.COLLEGE_ADMIN), removeHOD);
 
 module.exports = router;

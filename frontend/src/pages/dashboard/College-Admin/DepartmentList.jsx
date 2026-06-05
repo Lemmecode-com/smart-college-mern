@@ -503,6 +503,24 @@ export default function DepartmentList() {
                                 <FaUserTie size={14} />
                               </button>
                             )}
+                            {canEdit('departments') && d.hod_id && (
+                              <button
+                                className="btn btn-sm btn-outline-secondary hover-lift"
+                                title="Remove HOD"
+                                onClick={async () => {
+                                  if (window.confirm("Are you sure you want to remove this HOD? The teacher will retain their TEACHER role.")) {
+                                    try {
+                                      await api.delete(`/departments/${d._id}/hod`);
+                                      fetchDepartments();
+                                    } catch (err) {
+                                      alert(err.response?.data?.message || "Failed to remove HOD");
+                                    }
+                                  }
+                                }}
+                              >
+                                <FaTimes size={14} />
+                              </button>
+                            )}
                             {canDelete('departments') && (
                               <button
                                 className="btn btn-sm btn-outline-danger hover-lift"
