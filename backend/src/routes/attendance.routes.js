@@ -35,7 +35,7 @@ const {
 router.get(
   "/today-slots",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   getTodaySlotsForTeacher,
 );
