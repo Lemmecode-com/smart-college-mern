@@ -11,6 +11,7 @@ import {
   FaEdit,
   FaTrash,
   FaUserTie,
+  FaUserSlash,
   FaSearch,
   FaPlus,
   FaInfoCircle,
@@ -28,6 +29,8 @@ import {
   FaTimes,
 } from "react-icons/fa";
 
+import ConfirmModal from "../../../components/ConfirmModal";
+
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -41,6 +44,9 @@ export default function DepartmentList() {
   const [showHelp, setShowHelp] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Fixed at 5 records per page
+  const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [removingHod, setRemovingHod] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -79,6 +85,23 @@ export default function DepartmentList() {
       fetchDepartments();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete department");
+    }
+  };
+
+  /* ================= REMOVE HOD ================= */
+  const handleRemoveHod = async () => {
+    if (!selectedDepartment) return;
+
+    setRemovingHod(true);
+    try {
+      await api.delete(`/departments/${selectedDepartment._id}/hod`);
+      setShowRemoveHodModal(false);
+      setSelectedDepartment(null);
+      fetchDepartments();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to remove HOD");
+    } finally {
+      setRemovingHod(false);
     }
   };
 
@@ -502,26 +525,20 @@ export default function DepartmentList() {
                               >
                                 <FaUserTie size={14} />
                               </button>
-                            )}
-                            {canEdit('departments') && d.hod_id && (
-                              <button
-                                className="btn btn-sm btn-outline-secondary hover-lift"
-                                title="Remove HOD"
-                                onClick={async () => {
-                                  if (window.confirm("Are you sure you want to remove this HOD? The teacher will retain their TEACHER role.")) {
-                                    try {
-                                      await api.delete(`/departments/${d._id}/hod`);
-                                      fetchDepartments();
-                                    } catch (err) {
-                                      alert(err.response?.data?.message || "Failed to remove HOD");
-                                    }
-                                  }
-                                }}
-                              >
-                                <FaTimes size={14} />
-                              </button>
-                            )}
-                            {canDelete('departments') && (
+                             )}
+                             {canEdit('departments') && d.hod_id && (
+                               <button
+                                 className="btn btn-sm btn-outline-secondary hover-lift"
+                                 title="Remove HOD"
+                                 onClick={() => {
+                                   setSelectedDepartment(d);
+                                   setShowRemoveHodModal(true);
+                                 }}
+                               >
+                                 <FaUserSlash size={14} />
+                               </button>
+                             )}
+                             {canDelete('departments') && (
                               <button
                                 className="btn btn-sm btn-outline-danger hover-lift"
                                 title="Delete Department"
@@ -751,6 +768,25 @@ export default function DepartmentList() {
           }
         }
       `}</style>
+
+      <ConfirmModal
+        isOpen={showRemoveHodModal}
+        onClose={() => {
+          setShowRemoveHodModal(false);
+          setSelectedDepartment(null);
+        }}
+        onConfirm={handleRemoveHod}
+        title="Remove HOD"
+        message={
+          selectedDepartment
+            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            : ""
+        }
+        type="warning"
+        confirmText="Remove HOD"
+        cancelText="Cancel"
+        isLoading={removingHod}
+      />
     </div>
   );
 }
