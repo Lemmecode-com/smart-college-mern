@@ -1325,6 +1325,7 @@ exports.getTodaySlotsForTeacher = async (req, res, next) => {
 
     const slots = await TimetableSlot.find(slotQuery)
       .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
       .populate("timetable_id", "name status semester academicYear")
       .populate("course_id", "name")
       .sort({ startTime: 1 });
