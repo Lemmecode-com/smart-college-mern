@@ -47,7 +47,7 @@ const subjectSchema = new mongoose.Schema(
     teacher_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",
-      required: true,
+      required: false,
     },
 
     status: {
@@ -67,5 +67,13 @@ const subjectSchema = new mongoose.Schema(
 
 // Prevent duplicate subject per course & semester
 subjectSchema.index({ college_id: 1, course_id: 1, code: 1 }, { unique: true });
+
+// Composite index for HOD Subject Coverage queries
+// Supports: GET /hod/subjects/coverage
+// Query pattern: { department_id, teacher_id, status }
+subjectSchema.index(
+  { department_id: 1, teacher_id: 1, status: 1 },
+  { background: true }
+);
 
 module.exports = mongoose.model("Subject", subjectSchema);
