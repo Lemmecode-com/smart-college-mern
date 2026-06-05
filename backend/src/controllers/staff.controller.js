@@ -99,6 +99,21 @@ const generateTempPassword = (length = 10) => {
           "EMAIL_EXISTS_IN_TEACHER"
         ));
       }
+
+      // For HOD role, check if department already has an HOD
+      const departmentWithHod = await Department.findOne({
+        _id: departmentId,
+        college_id: req.user.college_id,
+        hod_id: { $ne: null }
+      });
+
+      if (departmentWithHod) {
+        return next(new AppError(
+          "This department already has an HOD assigned. Please remove the current HOD first.",
+          400,
+          "DEPARTMENT_ALREADY_HAS_HOD"
+        ));
+      }
     }
 
     // Generate temporary password (plaintext - will be auto-hashed by User.pre-save hook)
