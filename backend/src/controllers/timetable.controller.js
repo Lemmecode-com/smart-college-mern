@@ -15,6 +15,7 @@ const {
 const teacherService = require("../services/teacher.service");
 const timetableScheduleService = require("../services/timetableSchedule.service");
 const ApiResponse = require("../utils/ApiResponse");
+const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -241,8 +242,9 @@ exports.getTimetableById = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // Exclude ARCHIVED timetables from read APIs (Phase 3)
-    if (timetable.status === "ARCHIVED") {
+    // Allow ARCHIVED timetables when explicitly requested via ?includeArchived=true
+    const includeArchived = req.query.includeArchived === "true";
+    if (timetable.status === "ARCHIVED" && !includeArchived) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -879,8 +881,9 @@ exports.getWeeklyTimetableById = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // Exclude ARCHIVED timetables from read APIs (Phase 3)
-    if (timetable.status === "ARCHIVED") {
+    // Allow ARCHIVED timetables when explicitly requested via ?includeArchived=true
+    const includeArchived = req.query.includeArchived === "true";
+    if (timetable.status === "ARCHIVED" && !includeArchived) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -955,6 +958,8 @@ exports.deleteTimetable = async (req, res, next) => {
       await session.abortTransaction();
       return res.status(404).json({ message: "Timetable not found" });
     }
+
+    assertTimetableMutable(timetable);
 
     // 2️⃣ Business rule: prevent deletion of timetables with attendance sessions
     // Check for attendance sessions linked to this timetable's slots
@@ -1083,8 +1088,9 @@ exports.getSchedule = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // Exclude ARCHIVED timetables from read APIs (Phase 3)
-    if (timetable.status === "ARCHIVED") {
+    // Allow ARCHIVED timetables when explicitly requested via ?includeArchived=true
+    const includeArchived = req.query.includeArchived === "true";
+    if (timetable.status === "ARCHIVED" && !includeArchived) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -1198,8 +1204,9 @@ exports.getTodaySchedule = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // Exclude ARCHIVED timetables from read APIs (Phase 3)
-    if (timetable.status === "ARCHIVED") {
+    // Allow ARCHIVED timetables when explicitly requested via ?includeArchived=true
+    const includeArchived = req.query.includeArchived === "true";
+    if (timetable.status === "ARCHIVED" && !includeArchived) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -1235,8 +1242,9 @@ exports.getWeeklySchedule = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // Exclude ARCHIVED timetables from read APIs (Phase 3)
-    if (timetable.status === "ARCHIVED") {
+    // Allow ARCHIVED timetables when explicitly requested via ?includeArchived=true
+    const includeArchived = req.query.includeArchived === "true";
+    if (timetable.status === "ARCHIVED" && !includeArchived) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
