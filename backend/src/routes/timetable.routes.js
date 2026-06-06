@@ -11,6 +11,7 @@ const { ROLE } = require("../utils/constants");
 const {
   createTimetable,
   publishTimetable,
+  archiveTimetable,
   getTimetableById,
   deleteTimetable,
   getTimetables,
@@ -154,6 +155,26 @@ router.put(
   collegeMiddleware,
   hod,
   publishTimetable
+);
+
+/* ================= ARCHIVE TIMETABLE ================= */
+router.put(
+  "/:id/archive",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  archiveTimetable
+);
+
+/* ================= DELETE TIMETABLE ================= */
+router.delete(
+  "/:id",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  deleteTimetable
 );
 
 /* ================= EXCEPTIONS ================= */
