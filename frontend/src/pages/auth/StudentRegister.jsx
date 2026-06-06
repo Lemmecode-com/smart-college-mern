@@ -1859,8 +1859,8 @@ export default function StudentRegister() {
         alert("Please enter a valid email address");
         return false;
       }
-      if (!/^\d{10}$/.test(form.mobileNumber)) {
-        alert("Please enter a valid 10-digit mobile number");
+      if (!/^[6-9]\d{9}$/.test(form.mobileNumber)) {
+        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
         return false;
       }
       const password = form.password;
@@ -1896,12 +1896,12 @@ export default function StudentRegister() {
         alert("Please fill all parent details");
         return false;
       }
-      if (!/^\d{10}$/.test(form.fatherMobile)) {
-        alert("Please enter a valid 10-digit father's mobile number");
+      if (!/^[6-9]\d{9}$/.test(form.fatherMobile)) {
+        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
         return false;
       }
-      if (!/^\d{10}$/.test(form.motherMobile)) {
-        alert("Please enter a valid 10-digit mother's mobile number");
+      if (!/^[6-9]\d{9}$/.test(form.motherMobile)) {
+        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
         return false;
       }
       // Validate email format if provided
@@ -2087,8 +2087,6 @@ export default function StudentRegister() {
         if (form[doc.type])
           formData.append(fieldMap[doc.type] || doc.type, form[doc.type]);
       });
-      if (form.category !== "GEN" && form.category_certificate)
-        formData.append("categoryCertificate", form.category_certificate);
 
       const response = await publicApi.post(
         `/students/register/${collegeCode}`,
@@ -2634,6 +2632,7 @@ export default function StudentRegister() {
               onChange={handleChange}
               required
             >
+            
               <option value="Science">Science</option>
               <option value="Commerce">Commerce</option>
               <option value="Arts">Arts</option>
