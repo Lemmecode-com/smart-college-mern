@@ -15,6 +15,8 @@ const {
   getTimetableById,
   deleteTimetable,
   getTimetables,
+  getArchivedTimetables,
+  getTimetableStats,
   getWeeklyTimetableById,
   getWeeklyTimetableForTeacher,
   getStudentTimetable,
@@ -61,6 +63,24 @@ router.get(
   role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
   collegeMiddleware,
   getTimetables
+);
+
+/* ================= ARCHIVED ================= */
+router.get(
+  "/archived",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getArchivedTimetables
+);
+
+/* ================= STATS ================= */
+router.get(
+  "/stats",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getTimetableStats
 );
 
 /* ================= STUDENT ================= */
