@@ -373,6 +373,133 @@ exports.getTimetables = async (req, res) => {
 };
 
 /* =========================================================
+    ARCHIVED TIMETABLES
+   ========================================================= */
+exports.getArchivedTimetables = async (req, res) => {
+  try {
+    const filter = { college_id: req.college_id, status: "ARCHIVED" };
+
+    // Apply same role-based scoping as getTimetables
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+      );
+
+      const { isHOD } = await teacherService.getHODStatus(teacher);
+
+      if (isHOD) {
+        filter.department_id = teacher.department_id;
+      } else {
+        const teacherCourses = teacher.courses || [];
+        if (teacherCourses.length === 0) {
+          return ApiResponse.success(
+            res,
+            {
+              timetables: [],
+              count: 0,
+            },
+            "No archived timetables found",
+          );
+        }
+        filter.course_id = { $in: teacherCourses };
+      }
+    }
+
+    // Allow department filter override for HOD/Admin
+    if (req.query.department_id) {
+      if (req.user.role === "TEACHER") {
+        const teacher = await teacherService.getTeacherWithValidation(
+          req.user.id,
+          req.college_id,
+        );
+        const { isHOD } = await teacherService.getHODStatus(teacher);
+
+        if (!isHOD) {
+          return res.status(403).json({
+            message:
+              "Access denied: You can only view timetables for your department",
+          });
+        }
+      }
+      filter.department_id = req.query.department_id;
+    }
+
+    const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
+    ApiResponse.success(
+      res,
+      {
+        timetables,
+        count: timetables.length,
+      },
+      "Archived timetables fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Archived Timetables Error:", error);
+    res.status(500).json({ message: "Failed to fetch archived timetables" });
+  }
+};
+
+/* =========================================================
+    TIMETABLE STATISTICS
+   ========================================================= */
+exports.getTimetableStats = async (req, res) => {
+  try {
+    // Build base filter with role-based scoping (mirrors getTimetables)
+    let baseFilter = { college_id: req.college_id };
+
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+      );
+
+      const { isHOD } = await teacherService.getHODStatus(teacher);
+
+      if (isHOD) {
+        baseFilter.department_id = teacher.department_id;
+      } else {
+        const teacherCourses = teacher.courses || [];
+        if (teacherCourses.length === 0) {
+          return ApiResponse.success(
+            res,
+            {
+              total: 0,
+              published: 0,
+              draft: 0,
+              archived: 0,
+            },
+            "Stats fetched successfully",
+          );
+        }
+        baseFilter.course_id = { $in: teacherCourses };
+      }
+    }
+
+    const [total, published, draft, archived] = await Promise.all([
+      Timetable.countDocuments(baseFilter),
+      Timetable.countDocuments({ ...baseFilter, status: "PUBLISHED" }),
+      Timetable.countDocuments({ ...baseFilter, status: "DRAFT" }),
+      Timetable.countDocuments({ ...baseFilter, status: "ARCHIVED" }),
+    ]);
+
+    ApiResponse.success(
+      res,
+      {
+        total,
+        published,
+        draft,
+        archived,
+      },
+      "Timetable statistics fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Timetable Stats Error:", error);
+    res.status(500).json({ message: "Failed to fetch timetable statistics" });
+  }
+};
+
+/* =========================================================
     WEEKLY TIMETABLE — TEACHER (OWN SCHEDULE) OR HOD (DEPARTMENT)
    ========================================================= */
 /**
