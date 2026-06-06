@@ -720,13 +720,29 @@ export default function WeeklyTimetable() {
                     <motion.div
                       style={{
                         padding: "0.375rem 1rem", borderRadius: "20px",
-                        backgroundColor: timetable?.status === "PUBLISHED" ? `${BRAND_COLORS.success.main}20` : `${BRAND_COLORS.warning.main}20`,
-                        color: timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
+                        backgroundColor: timetable?.status === "PUBLISHED" 
+                          ? `${BRAND_COLORS.success.main}20` 
+                          : timetable?.status === "ARCHIVED"
+                            ? `${BRAND_COLORS.secondary.main}20`
+                            : `${BRAND_COLORS.warning.main}20`,
+                        color: timetable?.status === "PUBLISHED" 
+                          ? BRAND_COLORS.success.main 
+                          : timetable?.status === "ARCHIVED"
+                            ? BRAND_COLORS.secondary.main
+                            : BRAND_COLORS.warning.main,
                         fontWeight: 600, fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.5rem",
-                        border: `1px solid ${timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}40`,
+                        border: `1px solid ${timetable?.status === "PUBLISHED" 
+                          ? BRAND_COLORS.success.main 
+                          : timetable?.status === "ARCHIVED"
+                            ? BRAND_COLORS.secondary.main
+                            : BRAND_COLORS.warning.main}40`,
                       }}
                     >
-                      {timetable?.status === "PUBLISHED" ? <FaCheckCircle size={14} /> : <FaLock size={14} />}
+                      {timetable?.status === "PUBLISHED" 
+                        ? <FaCheckCircle size={14} /> 
+                        : timetable?.status === "ARCHIVED"
+                          ? <FaArchive size={14} />
+                          : <FaLock size={14} />}
                       {timetable?.status}
                     </motion.div>
                   </div>
