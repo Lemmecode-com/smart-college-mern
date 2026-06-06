@@ -1,7 +1,11 @@
 const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
+const TimetableException = require("../models/timetableException.model");
+const AttendanceSession = require("../models/attendanceSession.model");
+const AuditLog = require("../models/auditLog.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const {
   getValidDatesForSlot,
@@ -96,8 +100,8 @@ exports.createTimetable = async (req, res) => {
  };
 
 /* =========================================================
-   PUBLISH TIMETABLE (HOD/COLLEGE_ADMIN)
-========================================================= */
+     PUBLISH TIMETABLE (HOD/COLLEGE_ADMIN)
+  ========================================================= */
 exports.publishTimetable = async (req, res) => {
   try {
     const timetable = await Timetable.findOne({ _id: req.params.id, college_id: req.college_id });
@@ -106,7 +110,14 @@ exports.publishTimetable = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-     // Only HOD can publish timetables
+    // Block publishing archived timetables (terminal state)
+    if (timetable.status === "ARCHIVED") {
+      return res.status(400).json({
+        message: "Cannot publish an archived timetable. Archived timetables are preserved for record-keeping.",
+      });
+    }
+
+    // Only HOD can publish timetables
     if (!["HOD"].includes(req.user.role)) {
       return res.status(403).json({
         message: "Not authorized to publish timetable",
@@ -115,6 +126,30 @@ exports.publishTimetable = async (req, res) => {
 
     timetable.status = "PUBLISHED";
     await timetable.save();
+
+    // Fire-and-forget audit log
+    AuditLog.create({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "TIMETABLE_PUBLISHED",
+      resourceType: "Timetable",
+      resourceId: timetable._id,
+      ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        status: timetable.status,
+      },
+      newValues: {
+        status: "PUBLISHED",
+      },
+    }).catch((err) =>
+      console.error("Audit log failed for timetable publication:", err.message),
+    );
 
     ApiResponse.success(
       res,
@@ -130,8 +165,69 @@ exports.publishTimetable = async (req, res) => {
 };
 
 /* =========================================================
-   GET TIMETABLE BY ID
-========================================================= */
+    ARCHIVE TIMETABLE (HOD only - terminal lifecycle state)
+    — Sets status to ARCHIVED, preserves all data including attendance
+    — Audit log: TIMETABLE_ARCHIVED
+ ========================================================= */
+exports.archiveTimetable = async (req, res) => {
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    if (timetable.status === "ARCHIVED") {
+      return res.status(400).json({ message: "Timetable is already archived" });
+    }
+
+    const previousStatus = timetable.status;
+    timetable.status = "ARCHIVED";
+    await timetable.save();
+
+    // Fire-and-forget audit log
+    AuditLog.create({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "TIMETABLE_ARCHIVED",
+      resourceType: "Timetable",
+      resourceId: timetable._id,
+      ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        status: previousStatus,
+      },
+      newValues: {
+        status: "ARCHIVED",
+      },
+    }).catch((err) =>
+      console.error("Audit log failed for timetable archival:", err.message),
+    );
+
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+      },
+      "Timetable archived successfully",
+    );
+  } catch (error) {
+    console.error("Archive Timetable Error:", error);
+    res.status(500).json({ message: "Failed to archive timetable" });
+  }
+};
+
+/* =========================================================
+    GET TIMETABLE BY ID
+ ========================================================= */
 exports.getTimetableById = async (req, res) => {
   try {
     const timetable = await Timetable.findOne({
@@ -142,6 +238,11 @@ exports.getTimetableById = async (req, res) => {
       .populate("course_id", "name");
 
     if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Exclude ARCHIVED timetables from read APIs (Phase 3)
+    if (timetable.status === "ARCHIVED") {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -199,11 +300,11 @@ exports.getTimetableById = async (req, res) => {
 };
 
 /* =========================================================
-   LIST TIMETABLES
-========================================================= */
+    LIST TIMETABLES
+  ========================================================= */
 exports.getTimetables = async (req, res) => {
   try {
-    const filter = { college_id: req.college_id };
+    const filter = { college_id: req.college_id, status: { $ne: "ARCHIVED" } };
 
     // If teacher or HOD, restrict to their department OR courses they teach
     if (req.user.role === "TEACHER" || req.user.role === "HOD") {
@@ -631,11 +732,11 @@ exports.getStudentTodayTimetable = async (req, res) => {
 };
 
 /* =========================================================
-   WEEKLY TIMETABLE — HOD (FULL VIEW)
-========================================================= */
+    WEEKLY TIMETABLE — HOD (FULL VIEW)
+  ========================================================= */
 exports.getWeeklyTimetableById = async (req, res) => {
   try {
-    // ✅ Validate timetableId parameter
+    // 1️⃣ Validate timetableId parameter
     if (!req.params.timetableId || req.params.timetableId === "undefined") {
       return res.status(400).json({
         message: "Invalid timetable ID. Please select a valid timetable.",
@@ -648,6 +749,11 @@ exports.getWeeklyTimetableById = async (req, res) => {
     });
 
     if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Exclude ARCHIVED timetables from read APIs (Phase 3)
+    if (timetable.status === "ARCHIVED") {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -700,19 +806,52 @@ exports.getWeeklyTimetableById = async (req, res) => {
 };
 
 /* =========================================================
-   DELETE TIMETABLE (HOD)
-========================================================= */
-exports.deleteTimetable = async (req, res) => {
+    DELETE TIMETABLE (HOD only, cannot delete if has attendance sessions)
+    — Transaction-wrapped: TimetableException → AttendanceSession.slot_id nullify → TimetableSlot → Timetable
+    — Audit log: fire-and-forget (consistent with other controllers)
+    — Business rule: Block deletion if any attendance sessions exist; require archival instead
+ ========================================================= */
+exports.deleteTimetable = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
 
-    // 1️⃣ Find timetable
-    const timetable = await Timetable.findOne({ _id: id, college_id: req.college_id });
+    // 1️⃣ Find timetable (scoped to college)
+    const timetable = await Timetable.findOne({
+      _id: id,
+      college_id: req.college_id,
+    }).session(session);
+
     if (!timetable) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // 2️⃣ Find teacher profile and check HOD status
+    // 2️⃣ Business rule: prevent deletion of timetables with attendance sessions
+    // Check for attendance sessions linked to this timetable's slots
+    const slotIds = await TimetableSlot.find({
+      timetable_id: id,
+      college_id: req.college_id,
+    })
+      .session(session)
+      .distinct("_id");
+
+    const attendanceCount = await AttendanceSession.countDocuments({
+      slot_id: { $in: slotIds },
+      college_id: req.college_id,
+    }).session(session);
+
+    if (attendanceCount > 0) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message:
+          "This timetable contains attendance records and must be archived instead.",
+      });
+    }
+
+    // 3️⃣ Verify HOD ownership (defense-in-depth; hod middleware also runs but we recheck here)
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
       req.college_id,
@@ -720,21 +859,81 @@ exports.deleteTimetable = async (req, res) => {
     const { isHOD } = await teacherService.getHODStatus(teacher);
 
     if (!isHOD) {
+      await session.abortTransaction();
       return res.status(403).json({
         message: "Access denied: Only HOD can delete timetable",
       });
     }
 
-    // 4️⃣ Delete slots first
-    await TimetableSlot.deleteMany({ timetable_id: id });
+    // Verify HOD belongs to the timetable's department
+    const department = await Department.findOne({
+      _id: timetable.department_id,
+      hod_id: teacher._id,
+      college_id: req.college_id,
+    }).session(session);
 
-    // 5️⃣ Delete timetable
-    await Timetable.findOneAndDelete({ _id: id, college_id: req.college_id });
+    if (!department) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        message:
+          "You are not the HOD of the department this timetable belongs to.",
+      });
+    }
 
-    ApiResponse.success(res, null, "Timetable deleted successfully");
+    // 4️⃣ Delete all exceptions tied to this timetable
+    await TimetableException.deleteMany({ timetable_id: id }).session(session);
+
+    // 5️⃣ Delete all slots
+    await TimetableSlot.deleteMany({ timetable_id: id }).session(session);
+
+    // 6️⃣ Delete timetable
+    await Timetable.findOneAndDelete({
+      _id: id,
+      college_id: req.college_id,
+    }).session(session);
+
+    // 7️⃣ Commit — all-or-nothing
+    await session.commitTransaction();
+
+    // 8️⃣ Fire-and-forget audit log (consistent with all other controllers)
+    AuditLog.create({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "TIMETABLE_DELETED",
+      resourceType: "Timetable",
+      resourceId: timetable._id,
+      ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        timetableId: timetable._id,
+        timetableName: timetable.name,
+        departmentId: timetable.department_id,
+        semester: timetable.semester,
+        academicYear: timetable.academicYear,
+        status: timetable.status,
+        slotCount: slotIds.length,
+        deletedBy: req.user.id,
+      },
+    }).catch((err) =>
+      console.error("Audit log failed for timetable deletion:", err.message),
+    );
+
+    ApiResponse.success(
+      res,
+      null,
+      `Timetable "${timetable.name}" and ${slotIds.length} slot(s) deleted successfully`,
+    );
   } catch (error) {
+    await session.abortTransaction();
     console.error("Delete Timetable Error:", error);
-    res.status(500).json({ message: "Failed to delete timetable" });
+    next(error);
+  } finally {
+    await session.endSession();
   }
 };
 
@@ -754,6 +953,11 @@ exports.getSchedule = async (req, res) => {
     });
 
     if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Exclude ARCHIVED timetables from read APIs (Phase 3)
+    if (timetable.status === "ARCHIVED") {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -850,9 +1054,9 @@ exports.getSchedule = async (req, res) => {
 };
 
 /* =========================================================
-   GET TODAY'S SCHEDULE
-   GET /api/timetable/:id/schedule/today
-========================================================= */
+    GET TODAY'S SCHEDULE
+    GET /api/timetable/:id/schedule/today
+ ========================================================= */
 exports.getTodaySchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -864,6 +1068,11 @@ exports.getTodaySchedule = async (req, res) => {
     });
 
     if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Exclude ARCHIVED timetables from read APIs (Phase 3)
+    if (timetable.status === "ARCHIVED") {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
@@ -882,9 +1091,9 @@ exports.getTodaySchedule = async (req, res) => {
 };
 
 /* =========================================================
-   GET WEEKLY SCHEDULE
-   GET /api/timetable/:id/schedule/week
-========================================================= */
+    GET WEEKLY SCHEDULE
+    GET /api/timetable/:id/schedule/week
+ ========================================================= */
 exports.getWeeklySchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -896,6 +1105,11 @@ exports.getWeeklySchedule = async (req, res) => {
     });
 
     if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    // Exclude ARCHIVED timetables from read APIs (Phase 3)
+    if (timetable.status === "ARCHIVED") {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
