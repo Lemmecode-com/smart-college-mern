@@ -118,10 +118,16 @@ export default function NavbarComponent({
      fetchCollegeInfo();
    }, [user.college_id, user.role]);
 
-  /* ================= FETCH COUNT (UNREAD ONLY) ================= */
-  const fetchCount = async (silent = false) => {
+/* ================= FETCH COUNT (UNREAD ONLY) ================= */
+   const fetchCount = async (silent = false) => {
     // Skip if in backoff period
     if (rateLimitBackoff && backoffUntil && Date.now() < backoffUntil) {
+      return;
+    }
+
+    // Only supported roles have notification endpoints
+    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT"];
+    if (!supportedRoles.includes(user.role)) {
       return;
     }
 
@@ -177,9 +183,15 @@ export default function NavbarComponent({
     }
   };
 
-  /* ================= FETCH UNREAD FOR BELL ================= */
-  const fetchNotes = async () => {
-    setFetchingNotes(true);
+/* ================= FETCH UNREAD FOR BELL ================= */
+   const fetchNotes = async () => {
+     // Only supported roles have notification endpoints
+     const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT"];
+     if (!supportedRoles.includes(user.role)) {
+       setNotes([]);
+       return;
+     }
+     setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
       // Backend now returns array directly: [...]
