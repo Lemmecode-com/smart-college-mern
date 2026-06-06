@@ -100,7 +100,6 @@ export default function ReportDashboard() {
   // ================= STATE MANAGEMENT =================
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasLoaded, setHasLoaded] = useState(false); // Prevent duplicate toasts
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -154,11 +153,11 @@ export default function ReportDashboard() {
       { metric: "Rejected", value: admissionData.rejected || 0 },
       {
         metric: "Approval Rate",
-        value: `${admissionData.approvedPercentage || 0}%`,
+        value: parseFloat((admissionData.approvedPercentage || 0).toFixed(1)),
       },
       {
         metric: "Pending Rate",
-        value: `${admissionData.pendingPercentage || 0}%`,
+        value: parseFloat((admissionData.pendingPercentage || 0).toFixed(1)),
       },
     ];
   };
@@ -169,21 +168,19 @@ export default function ReportDashboard() {
     return [
       {
         metric: "Total Expected Fee",
-        value: formatCurrency(paymentData.total || 0),
+        value: paymentData.total || 0,
       },
       {
         metric: "Total Collected",
-        value: formatCurrency(
-          paymentData.collected || paymentData.totalCollected || 0,
-        ),
+        value: paymentData.collected || paymentData.totalCollected || 0,
       },
       {
         metric: "Total Pending",
-        value: formatCurrency(paymentData.pending || 0),
+        value: paymentData.pending || 0,
       },
       {
         metric: "Collection Rate",
-        value: `${paymentData.collectionRate || 0}%`,
+        value: parseFloat((paymentData.collectionRate || 0).toFixed(1)),
       },
     ];
   };
@@ -193,9 +190,9 @@ export default function ReportDashboard() {
     return filteredStudentPayments.map((student) => ({
       name: student.name,
       course: student.course,
-      totalFee: formatCurrency(student.totalFee),
-      paid: formatCurrency(student.paid),
-      pending: formatCurrency(student.pending),
+      totalFee: student.totalFee || 0,
+      paid: student.paid || 0,
+      pending: student.pending || 0,
       status: student.status,
     }));
   };
@@ -206,7 +203,7 @@ export default function ReportDashboard() {
     return [
       {
         metric: "Overall Attendance",
-        value: `${attendanceData.percentage || attendanceData.attendancePercentage || 0}%`,
+        value: parseFloat((attendanceData.percentage || attendanceData.attendancePercentage || 0).toFixed(1)),
       },
       {
         metric: "Total Sessions",
@@ -224,16 +221,13 @@ export default function ReportDashboard() {
     return filteredLowAttendance.map((student) => ({
       name: student.name,
       course: student.course,
-      attendance: `${student.attendance}%`,
+      attendance: parseFloat((student.attendance || 0).toFixed(1)),
       status: student.status,
     }));
   };
 
   // ================= FETCH DATA =================
   const fetchAllReports = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoaded) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -251,14 +245,14 @@ export default function ReportDashboard() {
         setCoursesLoading(false);
       }
 
-      // Fetch all reports in parallel from API endpoints
+      // Fetch all reports in parallel — tolerate individual failures
       const [
         admissionRes,
         paymentRes,
         attendanceRes,
         studentPaymentsRes,
         lowAttendanceRes,
-      ] = await Promise.all([
+      ] = await Promise.allSettled([
         api.get("/reports/admissions/college-admin-summary"),
         api.get("/reports/payments/summary"),
         api.get("/reports/attendance/summary"),
@@ -266,56 +260,93 @@ export default function ReportDashboard() {
         api.get("/reports/attendance/low-attendance"),
       ]);
 
-      setAdmissionData(admissionRes.data);
-      setPaymentData(paymentRes.data);
+      if (admissionRes.status === "fulfilled") setAdmissionData(admissionRes.value.data);
+      else console.error("Admission summary failed:", admissionRes.reason);
 
-      // Fix: Attendance API returns array, extract first element
-      const attendanceData = Array.isArray(attendanceRes.data)
-        ? attendanceRes.data[0] || {}
-        : attendanceRes.data;
-      setAttendanceData(attendanceData);
+      if (paymentRes.status === "fulfilled") setPaymentData(paymentRes.value.data);
+      else console.error("Payment summary failed:", paymentRes.reason);
 
-      // Use real API data for student payments
-      if (studentPaymentsRes.data && Array.isArray(studentPaymentsRes.data)) {
-        setStudentPayments(studentPaymentsRes.data);
+      if (attendanceRes.status === "fulfilled") {
+        const data = attendanceRes.value.data;
+        const attendanceData = Array.isArray(data) ? data[0] || {} : data;
+        setAttendanceData(attendanceData);
       } else {
+        console.error("Attendance summary failed:", attendanceRes.reason);
+      }
+
+      if (studentPaymentsRes.status === "fulfilled") {
+        setStudentPayments(
+          Array.isArray(studentPaymentsRes.value.data)
+            ? studentPaymentsRes.value.data
+            : [],
+        );
+      } else {
+        console.error("Student payments failed:", studentPaymentsRes.reason);
         setStudentPayments([]);
       }
 
-      // Use real API data for low attendance students
-      if (
-        lowAttendanceRes.data &&
-        Array.isArray(lowAttendanceRes.data) &&
-        lowAttendanceRes.data.length > 0
-      ) {
-        setLowAttendanceStudents(lowAttendanceRes.data);
+      if (lowAttendanceRes.status === "fulfilled") {
+        setLowAttendanceStudents(
+          lowAttendanceRes.value.data && Array.isArray(lowAttendanceRes.value.data)
+            ? lowAttendanceRes.value.data
+            : [],
+        );
       } else {
+        console.error("Low attendance failed:", lowAttendanceRes.reason);
         setLowAttendanceStudents([]);
       }
 
-      // Show success toast with unique toastId to prevent duplicates
+      setAdmissionData(admissionRes.value.data);
+      setPaymentData(paymentRes.value.data);
+
+      if (attendanceRes.status === "fulfilled") {
+        const data = attendanceRes.value.data;
+        const attendanceData = Array.isArray(data) ? data[0] || {} : data;
+        setAttendanceData(attendanceData);
+      } else {
+        console.error("Attendance summary failed:", attendanceRes.reason);
+      }
+
+      if (studentPaymentsRes.status === "fulfilled") {
+        setStudentPayments(
+          Array.isArray(studentPaymentsRes.value.data)
+            ? studentPaymentsRes.value.data
+            : [],
+        );
+      } else {
+        console.error("Student payments failed:", studentPaymentsRes.reason);
+        setStudentPayments([]);
+      }
+
+      if (lowAttendanceRes.status === "fulfilled") {
+        setLowAttendanceStudents(
+          lowAttendanceRes.value.data && Array.isArray(lowAttendanceRes.value.data)
+            ? lowAttendanceRes.value.data
+            : [],
+        );
+      } else {
+        console.error("Low attendance failed:", lowAttendanceRes.reason);
+        setLowAttendanceStudents([]);
+      }
+
       toast.success("Reports loaded successfully!", {
         ...CONFIG.TOAST,
         toastId: "reports-loaded-success",
       });
-      setHasLoaded(true); // Mark as loaded to prevent duplicate toasts
     } catch (err) {
-      console.error("Error fetching reports:", err);
+      console.error("Unexpected error fetching reports:", err);
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load reports. Please try again.";
-      const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
-      // Show error toast with unique toastId to prevent duplicates
+      setError({ message: errorMessage, statusCode: err.response?.status });
       toast.error(errorMessage, {
         ...CONFIG.TOAST,
         toastId: "reports-load-error",
       });
-      setHasLoaded(true);
     } finally {
       setLoading(false);
     }
-  }, [hasLoaded]);
+  }, []);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -323,7 +354,6 @@ export default function ReportDashboard() {
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
     setError(null);
-    setHasLoaded(false);
     await fetchAllReports();
     setIsRetrying(false);
   };
@@ -543,7 +573,7 @@ export default function ReportDashboard() {
           >
             <FaSyncAlt className="spin-icon" /> Refresh Data
           </button>
-          <button className="btn-export" aria-label="Export all reports">
+          <button className="btn-export" aria-label="Export all reports" onClick={() => window.print()}>
             <FaDownload /> Export All
           </button>
         </div>
