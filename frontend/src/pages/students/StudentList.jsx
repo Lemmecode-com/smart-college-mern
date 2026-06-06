@@ -17,12 +17,6 @@ export default function StudentList() {
   if (loading) return <p>Loading students...</p>;
   if (error) return <p className="text-danger">{error}</p>;
 
-  const getDepartmentName = (id) => {
-    if (!id) return '—';
-    const dept = departments.find((d) => d._id === id);
-    return dept ? dept.name : '—';
-  };
-
   return (
     <div className="card shadow-sm mt-4">
       <div className="card-body">
