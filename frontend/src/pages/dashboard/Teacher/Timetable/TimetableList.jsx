@@ -787,7 +787,7 @@ export default function TimetableList() {
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate(`/timetable/${t._id}/weekly`)}
+                                onClick={() => navigate(`/timetable/${t._id}/weekly${activeTab === "archived" ? "?includeArchived=true" : ""}`)}
                                 title="View Weekly Timetable"
                                 style={{
                                   padding: '0.5rem 0.875rem',
