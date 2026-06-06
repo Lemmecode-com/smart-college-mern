@@ -4,6 +4,7 @@ const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
+const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -50,6 +51,8 @@ exports.addSlot = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "slot");
 
     /* ================= SUBJECT VALIDATION ================= */
     const subject = await Subject.findOne({
@@ -144,7 +147,11 @@ exports.addSlot = async (req, res, next) => {
       slot,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
+    console.error("Add Slot Error:", error);
+    res.status(500).json({ message: "Failed to add slot" });
   }
 };
 
@@ -171,6 +178,8 @@ exports.updateSlot = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "slot");
 
     /* STEP 3: Verify Teacher */
     const teacher = await Teacher.findOne({ user_id: req.user.id });
@@ -224,6 +233,9 @@ exports.updateSlot = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
     console.error("Update Slot Error:", error);
     res.status(500).json({ message: "Failed to update slot" });
   }
@@ -251,6 +263,8 @@ exports.deleteTimetableSlot = async (req, res) => {
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
     }
+
+    assertTimetableMutable(timetable, "slot");
 
     /* STEP 3: Verify Teacher */
     const teacher = await Teacher.findOne({ user_id: req.user.id });
@@ -280,6 +294,9 @@ exports.deleteTimetableSlot = async (req, res) => {
     });
 
   } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
     console.error("Delete Slot Error:", error);
     res.status(500).json({ message: "Failed to delete timetable slot" });
   }

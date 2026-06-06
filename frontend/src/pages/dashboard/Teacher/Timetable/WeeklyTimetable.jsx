@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
@@ -29,6 +29,8 @@ import {
   FaLightbulb,
   FaGraduationCap,
   FaShieldAlt,
+  FaArchive,
+  
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -164,6 +166,8 @@ export default function WeeklyTimetable() {
   const { user } = useContext(AuthContext);
   const { timetableId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const includeArchived = searchParams.get("includeArchived") === "true";
 
   const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
@@ -223,11 +227,17 @@ export default function WeeklyTimetable() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoContent, setInfoContent] = useState("");
 
-  // ✅ FIXED: Only HOD and COLLEGE_ADMIN can manage timetables. 
+  const isReadOnly = includeArchived && timetable?.status === "ARCHIVED";
+
+  // ✅ FIXED: Only HOD and COLLEGE_ADMIN can manage timetables.
   // This prevents 403 Forbidden errors when regular TEACHERs try to fetch restricted data.
+  // Read-only mode is enforced when viewing an ARCHIVED timetable via ?includeArchived=true
   const canManageTimetable = useMemo(() => {
-    return user?.role === "COLLEGE_ADMIN" || user?.role === "HOD";
-  }, [user]);
+    return (
+      (user?.role === "COLLEGE_ADMIN" || user?.role === "HOD") &&
+      !isReadOnly
+    );
+  }, [user, isReadOnly]);
 
   /* ================= LOAD WEEKLY ================= */
   useEffect(() => {
@@ -250,15 +260,16 @@ export default function WeeklyTimetable() {
        return;
      }
 
-     const load = async () => {
-       if (!timetableId) return;
+      const load = async () => {
+        if (!timetableId) return;
 
-       try {
-         setLoading(true);
-         setError(null);
-         const res = await api.get(`/timetable/${timetableId}/weekly`);
-         setTimetable(res.data?.timetable);
-         setWeekly(res.data?.weekly || {});
+        try {
+          setLoading(true);
+          setError(null);
+          const url = `/timetable/${timetableId}/weekly${includeArchived ? "?includeArchived=true" : ""}`;
+          const res = await api.get(url);
+          setTimetable(res.data?.timetable);
+          setWeekly(res.data?.weekly || {});
 
          if (res.data?.timetable) {
            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
@@ -291,8 +302,8 @@ export default function WeeklyTimetable() {
        }
      };
 
-     load();
-   }, [timetableId, user, canManageTimetable]);
+      load();
+    }, [timetableId, user]);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -306,15 +317,16 @@ export default function WeeklyTimetable() {
        if (!timetableId) {
          const res = await api.get("/timetable/weekly");
          setWeekly(res.data.weekly || {});
-       } else {
-         const res = await api.get(`/timetable/${timetableId}/weekly`);
-         setTimetable(res.data?.timetable || null);
-         setWeekly(res.data?.weekly || {});
+        } else {
+          const url = `/timetable/${timetableId}/weekly${includeArchived ? "?includeArchived=true" : ""}`;
+          const res = await api.get(url);
+          setTimetable(res.data?.timetable || null);
+          setWeekly(res.data?.weekly || {});
 
-         if (res.data?.timetable) {
-           setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+          if (res.data?.timetable && !isReadOnly) {
+            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
 
-           if (canManageTimetable) {
+            if (canManageTimetable) {
              try {
                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
                setSubjects(subRes.data || []);
@@ -766,40 +778,57 @@ export default function WeeklyTimetable() {
             </div>
 
             {/* Info Banner */}
-            <div
-              style={{
-                padding: "1rem 2rem", backgroundColor: timetable?.status === "PUBLISHED" ? "#dcfce7" : "#ffedd5",
-                borderTop: "1px solid", borderColor: timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
-                display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
-                <FaInfoCircle
-                  style={{
-                    color: timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                    fontSize: "1.25rem",
-                  }}
-                />
-                <span style={{ color: "#1e293b", fontWeight: 500 }}>
-                  {timetable?.status === "PUBLISHED"
-                    ? "This timetable is published and visible to students. Only HOD can modify it."
-                    : "This timetable is in draft mode. Complete it and publish when ready."}
-                </span>
-              </div>
-              {canManageTimetable && (
-                <div
-                  style={{
-                    display: "flex", alignItems: "center", gap: "0.5rem",
-                    backgroundColor: timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
-                    color: timetable?.status === "PUBLISHED" ? "#166534" : "#92400e",
-                    padding: "0.375rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: 600,
-                  }}
-                >
-                  <FaUserShield size={14} />
-                  HOD Access: Enabled
+            {isReadOnly ? (
+              <div
+                style={{
+                  padding: "1rem 2rem", backgroundColor: "#f1f5f9",
+                  borderTop: "2px solid", borderColor: BRAND_COLORS.secondary.main,
+                  display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
+                  <FaArchive style={{ color: BRAND_COLORS.secondary.main, fontSize: "1.25rem" }} />
+                  <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                    This timetable has been archived and is available for historical reference only. No modifications are permitted.
+                  </span>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: "1rem 2rem", backgroundColor: timetable?.status === "PUBLISHED" ? "#dcfce7" : "#ffedd5",
+                  borderTop: "1px solid", borderColor: timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
+                  display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1 }}>
+                  <FaInfoCircle
+                    style={{
+                      color: timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
+                      fontSize: "1.25rem",
+                    }}
+                  />
+                  <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                    {timetable?.status === "PUBLISHED"
+                      ? "This timetable is published and visible to students. Only HOD can modify it."
+                      : "This timetable is in draft mode. Complete it and publish when ready."}
+                  </span>
+                </div>
+                {canManageTimetable && (
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", gap: "0.5rem",
+                      backgroundColor: timetable?.status === "PUBLISHED" ? "#bbf7d0" : "#fed7aa",
+                      color: timetable?.status === "PUBLISHED" ? "#166534" : "#92400e",
+                      padding: "0.375rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: 600,
+                    }}
+                  >
+                    <FaUserShield size={14} />
+                    HOD Access: Enabled
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
 
           {/* ================= TIMETABLE GRID ================= */}
