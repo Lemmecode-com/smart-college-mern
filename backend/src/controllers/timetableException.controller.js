@@ -9,6 +9,7 @@ const teacherService = require("../services/teacher.service");
 const exceptionValidationService = require("../services/exceptionValidation.service");
 const { cache: scheduleCache } = require("../services/scheduleCache.service");
 const { parseLocalDateSafe } = require("../utils/date.utils");
+const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 
 /* =========================================================
    CREATE SINGLE EXCEPTION
@@ -27,6 +28,8 @@ exports.createException = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "exception");
 
     // 2️⃣ Verify user is HOD of this department
     if (req.user.role !== "TEACHER") {
@@ -260,6 +263,8 @@ exports.createBulkExceptions = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "exception");
 
     // 2️⃣ Verify HOD
     if (req.user.role !== "TEACHER") {
@@ -521,6 +526,8 @@ exports.updateException = async (req, res, next) => {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
 
+    assertTimetableMutable(timetable, "exception");
+
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
       req.college_id,
@@ -631,6 +638,8 @@ exports.deleteException = async (req, res, next) => {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
 
+    assertTimetableMutable(timetable, "exception");
+
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
       req.college_id,
@@ -694,6 +703,8 @@ exports.approveException = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "exception");
 
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
@@ -762,6 +773,8 @@ exports.rejectException = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "exception");
 
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
