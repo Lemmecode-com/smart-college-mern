@@ -22,7 +22,9 @@ import {
   FaClock,
   FaInfoCircle,
   FaLock,
-  FaUnlock
+  FaUnlock,
+  FaArchive,
+  
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -81,6 +83,7 @@ export default function TimetableList() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
+  const [archivingId, setArchivingId] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     action: null,
@@ -643,37 +646,74 @@ export default function TimetableList() {
                               </motion.button>
                             )}
                             
-                            {/* DELETE BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => showDeleteConfirm(t._id)}
-                              disabled={deletingId === t._id}
-                              title="Delete Timetable"
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #fecaca',
-                                backgroundColor: deletingId === t._id ? '#94a3b8' : BRAND_COLORS.danger.main,
-                                color: 'white',
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              {deletingId === t._id ? (
-                                <motion.div variants={spinVariants} animate="animate">
-                                  <FaSyncAlt size={14} />
-                                </motion.div>
-                              ) : (
-                                <FaTrash size={14} />
-                              )}
-                              {deletingId === t._id ? 'Deleting...' : 'Delete'}
-                            </motion.button>
+{/* ARCHIVE BUTTON (HOD ONLY) - For PUBLISHED timetables only */}
+                            {isHOD && t.status === "PUBLISHED" && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => showArchiveConfirm(t._id)}
+                                disabled={archivingId === t._id}
+                                title="Archive Timetable"
+                                style={{
+                                  padding: '0.5rem 0.875rem',
+                                  borderRadius: '10px',
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: archivingId === t._id ? '#94a3b8' : BRAND_COLORS.secondary.main,
+                                  color: 'white',
+                                  fontSize: '0.875rem',
+                                  fontWeight: 600,
+                                  cursor: archivingId === t._id ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: archivingId === t._id ? 'none' : '0 2px 8px rgba(108, 117, 125, 0.3)'
+                                }}
+                              >
+                                {archivingId === t._id ? (
+                                  <motion.div variants={spinVariants} animate="animate">
+                                    <FaSyncAlt size={14} />
+                                  </motion.div>
+                                ) : (
+                                  <FaArchive size={14} />
+                                )}
+                                {archivingId === t._id ? 'Archiving...' : 'Archive'}
+                              </motion.button>
+                            )}
+                            
+                            {/* DELETE BUTTON - Only for DRAFT timetables (ARCHIVED timetables cannot be deleted) */}
+                            {isHOD && t.status === "DRAFT" && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => showDeleteConfirm(t._id)}
+                                disabled={deletingId === t._id}
+                                title="Delete Timetable"
+                                style={{
+                                  padding: '0.5rem 0.875rem',
+                                  borderRadius: '10px',
+                                  border: '1px solid #fecaca',
+                                  backgroundColor: deletingId === t._id ? '#94a3b8' : BRAND_COLORS.danger.main,
+                                  color: 'white',
+                                  fontSize: '0.875rem',
+                                  fontWeight: 600,
+                                  cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                {deletingId === t._id ? (
+                                  <motion.div variants={spinVariants} animate="animate">
+                                    <FaSyncAlt size={14} />
+                                  </motion.div>
+                                ) : (
+                                  <FaTrash size={14} />
+                                )}
+                                {deletingId === t._id ? 'Deleting...' : 'Delete'}
+                              </motion.button>
+                            )}
                           </div>
                         </td>
                       </motion.tr>
@@ -717,12 +757,30 @@ export default function TimetableList() {
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" })}
-        onConfirm={confirmModal.action === "publish" ? confirmPublishTimetable : confirmDeleteTimetable}
+        onConfirm={
+          confirmModal.action === "publish" 
+            ? confirmPublishTimetable 
+            : confirmModal.action === "archive" 
+              ? confirmArchiveTimetable 
+              : confirmDeleteTimetable
+        }
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
-        confirmText={confirmModal.action === "publish" ? "Publish" : "Delete"}
-        isLoading={confirmModal.action === "publish" ? publishingId === confirmModal.id : deletingId === confirmModal.id}
+        confirmText={
+          confirmModal.action === "publish" 
+            ? "Publish" 
+            : confirmModal.action === "archive" 
+              ? "Archive" 
+              : "Delete"
+        }
+        isLoading={
+          confirmModal.action === "publish" 
+            ? publishingId === confirmModal.id 
+            : confirmModal.action === "archive" 
+              ? archivingId === confirmModal.id 
+              : deletingId === confirmModal.id
+        }
       />
     </AnimatePresence>
   );
