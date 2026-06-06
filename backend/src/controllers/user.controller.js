@@ -54,8 +54,12 @@ exports.deactivateUser = async (req, res, next) => {
     await user.save();
 
     // Revoke all refresh tokens so deactivated user cannot obtain new access tokens
-    const RefreshToken = require("../models/refreshToken.model");
-    await RefreshToken.deleteMany({ user_id: user._id });
+    try {
+      const RefreshToken = require("../models/refreshToken.model");
+      await RefreshToken.deleteMany({ user_id: user._id });
+    } catch (tokenErr) {
+      console.error("Failed to revoke refresh tokens during deactivation:", tokenErr.message);
+    }
 
     // If the user is a TEACHER, also update the Teacher model
     let teacherData = null;
@@ -94,11 +98,17 @@ exports.deactivateUser = async (req, res, next) => {
 
     // Send email notification for student deactivation (non-blocking)
     if (user.role === "STUDENT" && studentData) {
-      const college = await College.findById(req.college_id).select("name").lean();
+      let collegeName = "Your College";
+      try {
+        const college = await College.findById(req.college_id).select("name").lean();
+        if (college?.name) collegeName = college.name;
+      } catch (collegeErr) {
+        console.error("Failed to fetch college for deactivation email:", collegeErr.message);
+      }
       emailService.sendAccountStatusEmail({
         to: user.email,
         studentName: studentData.fullName,
-        collegeName: college?.name || "Your College",
+        collegeName,
         status: "DEACTIVATED",
         collegeId: req.college_id,
       }).catch((err) => console.error("Deactivation email failed:", err.message));
@@ -186,11 +196,17 @@ exports.reactivateUser = async (req, res, next) => {
 
     // Send email notification for student reactivation (non-blocking)
     if (user.role === "STUDENT" && studentData) {
-      const college = await College.findById(req.college_id).select("name").lean();
+      let collegeName = "Your College";
+      try {
+        const college = await College.findById(req.college_id).select("name").lean();
+        if (college?.name) collegeName = college.name;
+      } catch (collegeErr) {
+        console.error("Failed to fetch college for reactivation email:", collegeErr.message);
+      }
       emailService.sendAccountStatusEmail({
         to: user.email,
         studentName: studentData.fullName,
-        collegeName: college?.name || "Your College",
+        collegeName,
         status: "REACTIVATED",
         collegeId: req.college_id,
       }).catch((err) => console.error("Reactivation email failed:", err.message));
