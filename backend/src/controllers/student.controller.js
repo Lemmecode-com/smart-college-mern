@@ -18,6 +18,13 @@ const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 
+const normalizePath = (filePath) => {
+  if (!filePath) return "";
+  const normalized = filePath.replace(/\\/g, "/");
+  const match = normalized.match(/uploads\/(.+)$/);
+  return match ? `uploads/${match[1]}` : normalized;
+};
+
 exports.registerStudent = async (req, res, next) => {
   try {
     const { collegeCode } = req.params;
@@ -100,41 +107,26 @@ exports.registerStudent = async (req, res, next) => {
           docType = reverseFieldMap[fieldName];
         }
 
-        // Save the file if it exists
+// Save the file if it exists
         if (fieldFiles && fieldFiles[0]?.path) {
           const filePath = fieldFiles[0].path;
-documentPaths[docType] = filePath.replace(
-             /^(?:.*[\\/])?uploads[\\/]/,
-             "uploads/",
-           );
+documentPaths[docType] = normalizePath(filePath);
         }
       }
     } else {
       // Use default document fields (backward compatibility)
       // Also handle ALL uploaded files dynamically
       const sscMarksheetPath = files.sscMarksheet?.[0]?.path
-        ? files.sscMarksheet[0].path.replace(
-            /^(?:.*[\\/])?uploads[\\/]/,
-            "uploads/",
-          )
+        ? normalizePath(files.sscMarksheet[0].path)
         : "";
       const hscMarksheetPath = files.hscMarksheet?.[0]?.path
-        ? files.hscMarksheet[0].path.replace(
-            /^(?:.*[\\/])?uploads[\\/]/,
-            "uploads/",
-          )
+        ? normalizePath(files.hscMarksheet[0].path)
         : "";
       const passportPhotoPath = files.passportPhoto?.[0]?.path
-        ? files.passportPhoto[0].path.replace(
-            /^(?:.*[\\/])?uploads[\\/]/,
-            "uploads/",
-          )
+        ? normalizePath(files.passportPhoto[0].path)
         : "";
       const categoryCertificatePath = files.categoryCertificate?.[0]?.path
-        ? files.categoryCertificate[0].path.replace(
-            /^(?:.*[\\/])?uploads[\\/]/,
-            "uploads/",
-          )
+        ? normalizePath(files.categoryCertificate[0].path)
         : "";
 
       documentPaths["10th_marksheet"] = sscMarksheetPath;
@@ -150,10 +142,7 @@ documentPaths[docType] = filePath.replace(
           fieldFiles[0] &&
           fieldFiles[0].path
         ) {
-          const filePath = fieldFiles[0].path.replace(
-            /^(?:.*[\\/])?uploads[\\/]/,
-            "uploads/",
-          );
+          const filePath = normalizePath(fieldFiles[0].path);
           // Convert fieldName to docType (e.g., aadharCard -> aadhar_card)
           const docType = fieldName.replace(/([A-Z])/g, "_$1").toLowerCase();
           documentPaths[docType] = filePath;
