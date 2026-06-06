@@ -1889,9 +1889,9 @@ function DocumentCard({
   // No duplication of VITE_API_BASE_URL
   const documentUrl = filePath
     ? (() => {
-        const fileName = filePath.split("/").pop();
-        return `${api.defaults.baseURL}/students/documents/${fileName}`;
-      })()
+      const fileName = filePath.split(/[\\/]/).pop();
+      return `${api.defaults.baseURL}/students/documents/${fileName}`;
+    })()
     : null;
 
   // Check if file actually exists (not null, not undefined, not empty string)
