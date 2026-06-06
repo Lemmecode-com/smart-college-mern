@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const Timetable = require("../models/timetable.model");
@@ -22,6 +23,10 @@ module.exports = async (req, res, next) => {
       req.params?.timetableId ||
       null;
 
+    console.log("🟡 [HOD MIDDLEWARE] req.params:", req.params);
+    console.log("🟡 [HOD MIDDLEWARE] timetableId resolved:", timetableId);
+    console.log("🟡 [HOD MIDDLEWARE] IS VALID OBJECT ID:", mongoose.isValidObjectId(timetableId));
+
     // If slotId is provided (for slot delete/update), fetch the slot to get timetable_id
     if (req.params?.slotId) {
       const slot = await TimetableSlot.findOne({
@@ -37,6 +42,10 @@ module.exports = async (req, res, next) => {
 
     /* ===== Only enforce timetable + HOD-dept check when a timetableId is present ===== */
     if (timetableId) {
+      if (!mongoose.isValidObjectId(timetableId)) {
+        throw new AppError("Invalid timetable ID", 400, "INVALID_TIMETABLE_ID");
+      }
+
       timetable = await Timetable.findOne({
         _id: timetableId,
         college_id: req.user.college_id,
