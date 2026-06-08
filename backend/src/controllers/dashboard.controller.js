@@ -330,7 +330,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     const collegeId = req.college_id;
 
     const college = await College.findById(collegeId).select(
-      "name code email establishedYear logo",
+      "name code email establishedYear logo registrationUrl",
     );
 
     if (!college) {
@@ -377,6 +377,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           email: college.email,
           establishedYear: college.establishedYear,
           logo: college.logo,
+          registrationUrl: college.registrationUrl,
         },
 
         stats: {
