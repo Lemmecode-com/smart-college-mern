@@ -36,11 +36,13 @@ const {
   createException,
   createBulkExceptions,
   getExceptions,
+  getMyExceptions,
+  getPendingApprovals,
+  getApprovalHistory,
   updateException,
   deleteException,
   approveException,
   rejectException,
-  getPendingApprovals,
 } = require("../controllers/timetableException.controller");
 
 /* ================= CREATE ================= */
@@ -207,6 +209,24 @@ router.get(
   getPendingApprovals
 );
 
+// Get teacher's own requests
+router.get(
+  "/exceptions/my",
+  auth,
+  role(ROLE.TEACHER),
+  collegeMiddleware,
+  getMyExceptions
+);
+
+// Get HOD approval history
+router.get(
+  "/exceptions/history",
+  auth,
+  role(ROLE.HOD),
+  collegeMiddleware,
+  getApprovalHistory
+);
+
 // Create single exception
 router.post(
   "/:id/exceptions",
@@ -238,7 +258,7 @@ router.get(
 router.put(
   "/exceptions/:exceptionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
   updateException
 );
@@ -247,7 +267,7 @@ router.put(
 router.delete(
   "/exceptions/:exceptionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
   deleteException
 );
@@ -256,7 +276,7 @@ router.delete(
 router.put(
   "/exceptions/:exceptionId/approve",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
   approveException
 );
@@ -265,7 +285,7 @@ router.put(
 router.put(
   "/exceptions/:exceptionId/reject",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
   rejectException
 );
