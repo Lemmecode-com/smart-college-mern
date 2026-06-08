@@ -108,10 +108,10 @@ module.exports = function collegeIsolation(options = {}) {
       }
 
       // 🔒 Step 6: Check for college_id manipulation in request
-      const requestedCollegeId = 
-        req.params.college_id || 
-        req.query.college_id || 
-        req.body.college_id;
+       const requestedCollegeId =
+         req.params.college_id ||
+         req.query.college_id ||
+         req.body?.college_id;
 
       if (requestedCollegeId && requestedCollegeId !== req.user.college_id.toString()) {
         // 🔒 SECURITY: Log detailed violation attempt
