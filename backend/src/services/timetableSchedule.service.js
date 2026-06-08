@@ -289,6 +289,7 @@ function generateExtraSlots(extraExceptions) {
  * @param {Date} startDate - Start date for schedule
  * @param {Date} endDate - End date for schedule
  * @param {Object} options - Optional configuration
+ * @param {string} collegeId - College ID for tenant isolation
  * @returns {Object} Complete schedule grouped by date
  */
 exports.generateSchedule = async (
@@ -296,6 +297,7 @@ exports.generateSchedule = async (
   startDate,
   endDate,
   options = {},
+  collegeId = null,
 ) => {
   try {
     // Generate cache key
@@ -315,8 +317,11 @@ exports.generateSchedule = async (
       return cachedSchedule;
     }
 
-    // 1️⃣ Load timetable template
-    const timetable = await Timetable.findById(timetableId)
+    // 1️⃣ Load timetable template (with college_id scope if provided)
+    const timetableQuery = collegeId
+      ? { _id: timetableId, college_id: collegeId }
+      : { _id: timetableId };
+    const timetable = await Timetable.findOne(timetableQuery)
       .populate("department_id", "name")
       .populate("course_id", "name code");
 
