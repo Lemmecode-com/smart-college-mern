@@ -33,11 +33,7 @@ export default function AttendanceSummary() {
 
   /* ================= FETCH ATTENDANCE SUMMARY ================= */
   const fetchAttendanceSummary = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoadedRef.current) {
-      return;
-    }
-
+    hasLoadedRef.current = false;
     try {
       setLoading(true);
       setError("");
@@ -96,28 +92,12 @@ export default function AttendanceSummary() {
   const getExportData = () => {
     if (!data || data.totalRecords === undefined) return [];
     return [
-      {
-        metric: "Total Attendance Records",
-        value: data.totalRecords?.toLocaleString() || "0",
-      },
-      {
-        metric: "Total Sessions Conducted",
-        value: (Math.round(data.totalRecords / 50) || 0).toLocaleString(),
-      },
-      {
-        metric: "Average Present Students",
-        value: data.averageAttendance?.toLocaleString() || "0",
-      },
-      {
-        metric: "Average Absent Students",
-        value: (50 - (data.averageAttendance || 0)).toLocaleString(),
-      },
-      { metric: "Attendance Rate", value: `${attendanceRate.toFixed(1)}%` },
-      {
-        metric: "Status",
-        value:
-          attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1),
-      },
+      { metric: "Total Attendance Records", value: data.totalRecords || 0 },
+      { metric: "Total Sessions Conducted", value: Math.round((data.totalRecords || 0) / 50) || 0 },
+      { metric: "Average Present Students", value: data.averageAttendance || 0 },
+      { metric: "Average Absent Students", value: 50 - (data.averageAttendance || 0) },
+      { metric: "Attendance Rate", value: parseFloat(attendanceRate.toFixed(1)) },
+      { metric: "Status", value: attendanceStatus },
     ];
   };
 

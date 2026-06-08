@@ -53,6 +53,7 @@ export default function PaymentReports() {
 
   /* ================= FETCH PAYMENT SUMMARY ================= */
   const fetchPaymentSummary = useCallback(async () => {
+    hasLoadedRef.current = false;
     try {
       setLoading(true);
       setError("");
@@ -153,20 +154,11 @@ export default function PaymentReports() {
   const getExportData = () => {
     if (!data) return [];
     return [
-      {
-        metric: "Total Expected Fee",
-        value: formatCurrency(data.totalExpectedFee || 0),
-      },
-      {
-        metric: "Total Collected",
-        value: formatCurrency(data.totalCollected || 0),
-      },
-      {
-        metric: "Total Pending",
-        value: formatCurrency(data.totalPending || 0),
-      },
-      { metric: "Collection Rate", value: `${collectionRate.toFixed(1)}%` },
-      { metric: "Pending Rate", value: `${pendingRate.toFixed(1)}%` },
+      { metric: "Total Expected Fee", value: data.totalExpectedFee || 0 },
+      { metric: "Total Collected", value: data.totalCollected || 0 },
+      { metric: "Total Pending", value: data.totalPending || 0 },
+      { metric: "Collection Rate", value: parseFloat(collectionRate.toFixed(1)) },
+      { metric: "Pending Rate", value: parseFloat(pendingRate.toFixed(1)) },
     ];
   };
 
