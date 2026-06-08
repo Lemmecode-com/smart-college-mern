@@ -155,6 +155,7 @@ exports.createException = async (req, res, next) => {
       const slot = await TimetableSlot.findOne({
         _id: slot_id,
         timetable_id: timetableId,
+        college_id: req.college_id,
       });
 
       if (!slot) {
@@ -171,7 +172,7 @@ exports.createException = async (req, res, next) => {
         extraSlot?.subject_id &&
         extraSlot?.teacher_id
       ) {
-        const subject = await Subject.findById(extraSlot.subject_id);
+        const subject = await Subject.findOne({ _id: extraSlot.subject_id, college_id: req.college_id });
         if (
           subject &&
           subject.teacher_id.toString() !== extraSlot.teacher_id.toString()
@@ -534,7 +535,7 @@ exports.updateException = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
     if (
       !isHOD ||
@@ -712,9 +713,12 @@ exports.approveException = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
-    if (!isHOD) {
+    if (
+      !isHOD ||
+      teacher.department_id.toString() !== timetable.department_id.toString()
+    ) {
       throw new AppError(
         "Access denied: Only HOD can approve exceptions",
         403,
@@ -782,9 +786,12 @@ exports.rejectException = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
-    if (!isHOD) {
+    if (
+      !isHOD ||
+      teacher.department_id.toString() !== timetable.department_id.toString()
+    ) {
       throw new AppError(
         "Access denied: Only HOD can reject exceptions",
         403,

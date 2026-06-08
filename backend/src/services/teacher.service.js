@@ -83,14 +83,18 @@ exports.isTeacherActive = (teacher) => {
 /**
  * Check if teacher is HOD of their department
  * @param {Object} teacher - Teacher document
+ * @param {string} collegeId - College ID for tenant isolation
  * @returns {Promise<boolean>} True if HOD
  */
-exports.isTeacherHOD = async (teacher) => {
+exports.isTeacherHOD = async (teacher, collegeId = null) => {
   if (!teacher || !teacher.department_id) {
     return false;
   }
   
-  const department = await Department.findById(teacher.department_id);
+  const query = collegeId 
+    ? { _id: teacher.department_id, college_id: collegeId }
+    : { _id: teacher.department_id };
+  const department = await Department.findOne(query);
   return department && department.hod_id && department.hod_id.toString() === teacher._id.toString();
 };
 
@@ -114,14 +118,15 @@ exports.getTeacherWithValidation = async (userId, collegeId, checkActive = true)
 /**
  * Get HOD status for teacher
  * @param {Object} teacher - Teacher document
+ * @param {string} collegeId - College ID for tenant isolation
  * @returns {Promise<Object>} { isHOD: boolean, department: Object|null }
  */
-exports.getHODStatus = async (teacher) => {
-  const isHOD = await this.isTeacherHOD(teacher);
+exports.getHODStatus = async (teacher, collegeId = null) => {
+  const isHOD = await this.isTeacherHOD(teacher, collegeId);
   
   let department = null;
-  if (isHOD && teacher.department_id) {
-    department = await Department.findById(teacher.department_id);
+  if (isHOD && teacher.department_id && collegeId) {
+    department = await Department.findOne({ _id: teacher.department_id, college_id: collegeId });
   }
   
   return {
