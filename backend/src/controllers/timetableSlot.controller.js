@@ -205,7 +205,10 @@ exports.updateSlot = async (req, res, next) => {
         throw new AppError("New teacher not found", 404, "TEACHER_NOT_FOUND");
       }
 
-      const subject = await Subject.findById(slot.subject_id);
+      const subject = await Subject.findOne({
+        _id: slot.subject_id,
+        college_id: req.college_id,
+      });
       if (!subject) {
         throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
       }
