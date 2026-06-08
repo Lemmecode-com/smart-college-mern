@@ -1139,32 +1139,38 @@ export const navigationConfig = {
        label: "HOD Dashboard",
      },
      sections: [
-       {
-         id: "hod-timetable",
-         title: "Timetable",
-         icon: FaCalendarAlt,
-         defaultOpen: true,
-         items: [
-           {
-             path: "/timetable/list",
-             icon: FaListOl,
-             label: "View Timetables",
-             exact: true,
-           },
-           {
-             path: "/timetable/weekly-timetable",
-             icon: FaClock,
-             label: "Weekly Schedule",
-             exact: true,
-           },
-           {
-             path: "/timetable/create-timetable",
-             icon: FaPlus,
-             label: "Create Timetable",
-             exact: true,
-           },
-         ],
-       },
+        {
+          id: "hod-timetable",
+          title: "Timetable",
+          icon: FaCalendarAlt,
+          defaultOpen: true,
+          items: [
+            {
+              path: "/timetable/list",
+              icon: FaListOl,
+              label: "View Timetables",
+              exact: true,
+            },
+            {
+              path: "/timetable/weekly-timetable",
+              icon: FaClock,
+              label: "Weekly Schedule",
+              exact: true,
+            },
+            {
+              path: "/timetable/create-timetable",
+              icon: FaPlus,
+              label: "Create Timetable",
+              exact: true,
+            },
+            {
+              path: "/hod/exception-approvals",
+              icon: FaExclamationTriangle,
+              label: "Exception Approvals",
+              exact: true,
+            },
+          ],
+        },
        {
          id: "hod-teachers",
          title: "Department Teachers",
