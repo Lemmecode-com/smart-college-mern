@@ -1177,6 +1177,8 @@ exports.getSchedule = async (req, res) => {
       id,
       startLocal,
       endLocal,
+      {},
+      req.college_id,
     );
 
     ApiResponse.success(res, schedule, "Schedule fetched successfully");

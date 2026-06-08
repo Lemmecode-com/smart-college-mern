@@ -144,6 +144,7 @@ import HodDashboard from "./pages/dashboard/HOD/HodDashboard";
 import HodTeachers from "./pages/dashboard/HOD/HodTeachers";
 import HodDepartment from "./pages/dashboard/HOD/HodDepartment";
 import HodProfile from "./pages/dashboard/HOD/HodProfile";
+import HodExceptionApprovals from "./pages/dashboard/HOD/HodExceptionApprovals";
 
 // ================= STUDENT =================
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
@@ -970,6 +971,14 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["HOD"]}>
                   <HodTeachers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/exception-approvals"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodExceptionApprovals />
                 </ProtectedRoute>
               }
             />
