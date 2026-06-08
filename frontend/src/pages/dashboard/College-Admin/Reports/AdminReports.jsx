@@ -42,7 +42,6 @@ const CONFIG = {
 };
 
 /* ================= MODULE-LEVEL FLAG (Persists across re-renders) ================= */
-let hasFetchedData = false;
 
 export default function AdminReports() {
   const [data, setData] = useState(null);
@@ -53,8 +52,7 @@ export default function AdminReports() {
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = useCallback(async () => {
-    // Prevent duplicate fetches - check both module flag and ref
-    if (hasFetchedData || hasLoadedRef.current) {
+    if (hasLoadedRef.current) {
       return;
     }
     
@@ -65,38 +63,29 @@ export default function AdminReports() {
       setData(res.data);
       setRetryCount(0);
       
-      // Show success toast with unique ID to prevent duplicates
       toast.success("Admission reports loaded successfully!", {
         ...CONFIG.TOAST,
         toastId: "admin-reports-success",
       });
-      
-      // Set both flags to prevent any duplicate calls
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
     } catch (err) {
       console.error("Reports fetch error:", err);
       setError(
         err.response?.data?.message ||
           "Failed to load admission summary. Please try again.",
       );
-      // Show error toast with unique ID to prevent duplicates
       toast.error("Failed to load admission reports.", {
         ...CONFIG.TOAST,
         toastId: "admin-reports-error",
       });
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
     } finally {
       setLoading(false);
+      hasLoadedRef.current = true;
     }
   }, []);
 
   useEffect(() => {
     fetchSummary();
-    // Cleanup function to reset flags on unmount - fixes blank page on second navigation
     return () => {
-      hasFetchedData = false;
       hasLoadedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,8 +95,6 @@ export default function AdminReports() {
   const handleRetry = useCallback(() => {
     if (retryCount < CONFIG.MAX_RETRY) {
       setRetryCount((prev) => prev + 1);
-      // Reset both flags to allow retry
-      hasFetchedData = false;
       hasLoadedRef.current = false;
       fetchSummary();
     } else {
