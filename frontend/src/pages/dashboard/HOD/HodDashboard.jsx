@@ -999,7 +999,15 @@ const HodDashboard = () => {
                         transition: "all 0.2s",
                         cursor: "pointer",
                       }}
-                      onClick={() => navigate(`/timetable/${t._id}/weekly`)}
+                      onClick={() =>
+                        navigate(
+                          `/timetable/${t._id}/weekly${
+                            t.status === "ARCHIVED"
+                              ? "?includeArchived=true"
+                              : ""
+                          }`
+                        )
+                      }
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = BRAND.accent;
                         e.currentTarget.style.boxShadow =
