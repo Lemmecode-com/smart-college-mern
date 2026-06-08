@@ -303,7 +303,7 @@ exports.generateSchedule = async (
     // Generate cache key
     const startStr = formatDate(startDate);
     const endStr = formatDate(endDate);
-    const cacheKey = scheduleCache.generateKey(timetableId, startStr, endStr);
+    const cacheKey = scheduleCache.generateKey(timetableId, startStr, endStr, collegeId || "global");
 
     // Check cache first
     let cachedSchedule;
@@ -378,6 +378,7 @@ exports.generateSchedule = async (
     // 2️⃣ Load all slots for this timetable
     const allSlots = await TimetableSlot.find({
       timetable_id: timetableId,
+      ...(collegeId && { college_id: collegeId }),
     })
       .populate("subject_id", "name code")
       .populate("teacher_id", "name email")
@@ -413,6 +414,7 @@ exports.generateSchedule = async (
 
     const exceptions = await TimetableException.find({
       timetable_id: timetableId,
+      ...(collegeId && { college_id: collegeId }),
       exceptionDate: {
         $gte: queryStart,
         $lt: queryEnd,
@@ -590,13 +592,13 @@ exports.generateSchedule = async (
  * @param {string} timetableId - Timetable ID
  * @returns {Object} Today's schedule
  */
-exports.getTodaySchedule = async (timetableId) => {
+exports.getTodaySchedule = async (timetableId, collegeId = null) => {
   try {
     const today = parseLocalDateSafe(new Date());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const result = await this.generateSchedule(timetableId, today, tomorrow);
+    const result = await this.generateSchedule(timetableId, today, tomorrow, {}, collegeId);
 
     if (!result || result.schedule.length === 0) {
       return {

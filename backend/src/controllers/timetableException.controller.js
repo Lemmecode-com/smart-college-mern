@@ -3,6 +3,8 @@ const TimetableSlot = require("../models/timetableSlot.model");
 const TimetableException = require("../models/timetableException.model");
 const Teacher = require("../models/teacher.model");
 const Subject = require("../models/subject.model");
+const AuditLog = require("../models/auditLog.model");
+const Notification = require("../models/notification.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const teacherService = require("../services/teacher.service");
@@ -31,7 +33,7 @@ exports.createException = async (req, res, next) => {
 
     assertTimetableMutable(timetable, "exception");
 
-    // 2️⃣ Verify user is HOD of this department
+    // 2️⃣ Verify user is TEACHER of this department
     if (req.user.role !== "TEACHER") {
       throw new AppError(
         "Only teachers can create exceptions",
@@ -46,16 +48,12 @@ exports.createException = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
-
-    if (
-      !isHOD ||
-      teacher.department_id.toString() !== timetable.department_id.toString()
-    ) {
+    // 🔒 SECURITY: Teacher must belong to the timetable's department
+    if (teacher.department_id.toString() !== timetable.department_id.toString()) {
       throw new AppError(
-        "Access denied: Only HOD of this department can create exceptions",
+        "Access denied: You can only create exceptions for timetables in your department",
         403,
-        "HOD_ONLY",
+        "DEPARTMENT_MISMATCH",
       );
     }
 
@@ -211,7 +209,7 @@ exports.createException = async (req, res, next) => {
       slot_id: slot_id || null,
       exceptionDate: parseLocalDateSafe(exceptionDate),
       type,
-      status: "APPROVED", // HOD creates, so auto-approve
+      status: "PENDING",
       reason,
       rescheduledTo: rescheduledTo ? parseLocalDateSafe(rescheduledTo) : null,
       rescheduledSlotId: rescheduledSlotId || null,
@@ -219,8 +217,6 @@ exports.createException = async (req, res, next) => {
       newRoom: newRoom || null,
       substituteTeacher: substituteTeacher || null,
       createdBy: req.user.id,
-      approvedBy: req.user.id, // HOD approved
-      approvedAt: new Date(),
       notifyAffected: notifyAffected !== false,
       notes: notes || null,
     });
@@ -236,10 +232,69 @@ exports.createException = async (req, res, next) => {
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetableId);
 
+    // 🔔 NOTIFICATION: Notify HOD of the department
+    (async () => {
+      try {
+        const Department = require("../models/department.model");
+        const hodDepartment = await Department.findOne({
+          _id: timetable.department_id,
+          college_id: req.college_id,
+        });
+        if (hodDepartment && hodDepartment.hod_id) {
+          const hodUser = await Teacher.findOne({
+            _id: hodDepartment.hod_id,
+          }).populate("user_id", "_id");
+          if (hodUser && hodUser.user_id) {
+            await Notification.create({
+              college_id: req.college_id,
+              createdBy: req.user.id,
+              createdByRole: "TEACHER",
+              target: "INDIVIDUAL",
+              target_users: [hodUser.user_id._id],
+              title: "New Timetable Exception Request",
+              message: "A teacher has submitted a timetable exception request requiring your approval.",
+              type: "ACADEMIC",
+              actionUrl: "/hod/exception-approvals",
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.error("Failed to send HOD notification for exception:", notifErr.message);
+      }
+    })();
+
+    // 📋 AUDIT LOG: Log exception creation
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_CREATED",
+          resourceType: "TimetableException",
+          resourceId: exception._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 201,
+          newValues: {
+            timetableId: timetableId,
+            type: type,
+            status: "PENDING",
+            exceptionDate: exceptionDate,
+          },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception creation:", auditErr.message);
+      }
+    })();
+
     ApiResponse.created(
       res,
       { exception: populatedException },
-      "Exception created successfully",
+      "Exception request submitted for HOD approval",
     );
   } catch (error) {
     next(error);
@@ -267,7 +322,7 @@ exports.createBulkExceptions = async (req, res, next) => {
 
     assertTimetableMutable(timetable, "exception");
 
-    // 2️⃣ Verify HOD
+    // 2️⃣ Verify TEACHER of this department
     if (req.user.role !== "TEACHER") {
       throw new AppError(
         "Only teachers can create exceptions",
@@ -282,16 +337,12 @@ exports.createBulkExceptions = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
-
-    if (
-      !isHOD ||
-      teacher.department_id.toString() !== timetable.department_id.toString()
-    ) {
+    // 🔒 SECURITY: Teacher must belong to the timetable's department
+    if (teacher.department_id.toString() !== timetable.department_id.toString()) {
       throw new AppError(
-        "Access denied: Only HOD of this department can create exceptions",
+        "Access denied: You can only create exceptions for timetables in your department",
         403,
-        "HOD_ONLY",
+        "DEPARTMENT_MISMATCH",
       );
     }
 
@@ -359,25 +410,83 @@ exports.createBulkExceptions = async (req, res, next) => {
           continue;
         }
 
-        // Create exception
-        const exception = await TimetableException.create({
-          college_id: req.college_id,
-          timetable_id: timetableId,
-          slot_id: slot_id || null,
-          exceptionDate: new Date(exceptionDate),
-          type,
-          status: "APPROVED",
-          reason,
-          rescheduledTo: rescheduledTo ? new Date(rescheduledTo) : null,
-          extraSlot: extraSlot || null,
-          newRoom: newRoom || null,
-          substituteTeacher: substituteTeacher || null,
-          createdBy: req.user.id,
-          approvedBy: req.user.id,
-          approvedAt: new Date(),
-          notifyAffected: true,
-          notes: notes || null,
+const exception = await TimetableException.create({
+           college_id: req.college_id,
+           timetable_id: timetableId,
+           slot_id: slot_id || null,
+           exceptionDate: new Date(exceptionDate),
+           type,
+           status: "PENDING",
+           reason,
+           rescheduledTo: rescheduledTo ? new Date(rescheduledTo) : null,
+           extraSlot: extraSlot || null,
+           newRoom: newRoom || null,
+           substituteTeacher: substituteTeacher || null,
+           createdBy: req.user.id,
+           notifyAffected: true,
+           notes: notes || null,
         });
+
+        // 🔔 NOTIFICATION: Notify HOD for each created exception (batch-friendly)
+        (async () => {
+          try {
+            const Department = require("../models/department.model");
+            for (const createdExc of [exception]) {
+              const hodDept = await Department.findOne({
+                _id: timetable.department_id,
+                college_id: req.college_id,
+              });
+              if (hodDept && hodDept.hod_id) {
+                const hodUser = await Teacher.findOne({
+                  _id: hodDept.hod_id,
+                }).populate("user_id", "_id");
+                if (hodUser && hodUser.user_id) {
+                  await Notification.create({
+                    college_id: req.college_id,
+                    createdBy: req.user.id,
+                    createdByRole: "TEACHER",
+                    target: "INDIVIDUAL",
+                    target_users: [hodUser.user_id._id],
+                    title: "New Timetable Exception Request",
+                    message: "A teacher has submitted a timetable exception request requiring your approval.",
+                    type: "ACADEMIC",
+                    actionUrl: "/hod/exception-approvals",
+                  });
+                }
+              }
+            }
+          } catch (notifErr) {
+            console.error("Bulk exception HOD notification failed:", notifErr.message);
+          }
+        })();
+
+        // 📋 AUDIT LOG: Log exception creation
+        (async () => {
+          try {
+            await AuditLog.create({
+              collegeId: req.college_id,
+              userId: req.user.id,
+              userEmail: req.user.email,
+              userRole: req.user.role,
+              action: "TIMETABLE_EXCEPTION_CREATED",
+              resourceType: "TimetableException",
+              resourceId: exception._id,
+              ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+              userAgent: req.get("user-agent"),
+              endpoint: req.originalUrl,
+              method: req.method,
+              statusCode: 201,
+              newValues: {
+                timetableId: timetableId,
+                type: type,
+                status: "PENDING",
+                exceptionDate: exceptionDate,
+              },
+            });
+          } catch (auditErr) {
+            console.error("Audit log failed for bulk exception creation:", auditErr.message);
+          }
+        })();
 
         results.success.push(exception._id);
       } catch (err) {
@@ -647,7 +756,7 @@ exports.deleteException = async (req, res, next) => {
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
     if (
       !isHOD ||
@@ -696,6 +805,15 @@ exports.approveException = async (req, res, next) => {
       );
     }
 
+    // 🔒 SECURITY: Prevent HOD from approving own request
+    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
+      throw new AppError(
+        "Cannot approve your own exception request. Please ask another HOD to approve.",
+        403,
+        "SELF_APPROVAL_NOT_ALLOWED",
+      );
+    }
+
     // 2️⃣ Verify HOD
     const timetable = await Timetable.findOne({
       _id: exception.timetable_id,
@@ -735,6 +853,51 @@ exports.approveException = async (req, res, next) => {
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
 
+    // 🔔 NOTIFICATION: Notify request creator
+    (async () => {
+      try {
+        if (exception.createdBy) {
+          await Notification.create({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            target: "INDIVIDUAL",
+            target_users: [exception.createdBy],
+            title: "Timetable Exception Approved",
+            message: "Your timetable exception request has been approved.",
+            type: "ACADEMIC",
+            actionUrl: "/timetable/exceptions",
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to send approval notification:", notifErr.message);
+      }
+    })();
+
+    // 📋 AUDIT LOG: Log exception approval
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_APPROVED",
+          resourceType: "TimetableException",
+          resourceId: exception._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues: { status: "PENDING" },
+          newValues: { status: "APPROVED" },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception approval:", auditErr.message);
+      }
+    })();
+
     ApiResponse.success(res, { exception }, "Exception approved successfully");
   } catch (error) {
     next(error);
@@ -766,6 +929,15 @@ exports.rejectException = async (req, res, next) => {
         "Exception not found or already approved/rejected",
         404,
         "EXCEPTION_NOT_PENDING",
+      );
+    }
+
+    // 🔒 SECURITY: Prevent HOD from rejecting own request
+    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
+      throw new AppError(
+        "Cannot reject your own exception request. Please ask another HOD to process.",
+        403,
+        "SELF_REJECTION_NOT_ALLOWED",
       );
     }
 
@@ -809,6 +981,51 @@ exports.rejectException = async (req, res, next) => {
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
 
+    // 🔔 NOTIFICATION: Notify request creator
+    (async () => {
+      try {
+        if (exception.createdBy) {
+          await Notification.create({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            target: "INDIVIDUAL",
+            target_users: [exception.createdBy],
+            title: "Timetable Exception Rejected",
+            message: `Your timetable exception request has been rejected. Reason: ${rejectionReason}`,
+            type: "ACADEMIC",
+            actionUrl: "/timetable/exceptions",
+          });
+        }
+      } catch (notifErr) {
+        console.error("Failed to send rejection notification:", notifErr.message);
+      }
+    })();
+
+    // 📋 AUDIT LOG: Log exception rejection
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_REJECTED",
+          resourceType: "TimetableException",
+          resourceId: exception._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues: { status: "PENDING" },
+          newValues: { status: "REJECTED", rejectionReason: rejectionReason },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception rejection:", auditErr.message);
+      }
+    })();
+
     ApiResponse.success(res, { exception }, "Exception rejected successfully");
   } catch (error) {
     next(error);
@@ -816,28 +1033,18 @@ exports.rejectException = async (req, res, next) => {
 };
 
 /* =========================================================
-   GET PENDING APPROVALS
-   GET /api/timetable/exceptions/pending
+    GET PENDING APPROVALS
+    GET /api/timetable/exceptions/pending
 ========================================================= */
 exports.getPendingApprovals = async (req, res, next) => {
   try {
-    // Only HODs can see pending approvals
-    if (req.user.role !== "TEACHER") {
-      throw new AppError(
-        "Only teachers can view pending approvals",
-        403,
-        "UNAUTHORIZED",
-      );
-    }
-
     const teacher = await teacherService.getTeacherWithValidation(
       req.user.id,
       req.college_id,
       true,
     );
 
-    const { isHOD } = await teacherService.getHODStatus(teacher);
-
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
     if (!isHOD) {
       throw new AppError(
         "Access denied: Only HOD can view pending approvals",
@@ -846,9 +1053,18 @@ exports.getPendingApprovals = async (req, res, next) => {
       );
     }
 
-    // Get pending exceptions for HOD's department
+    // Get timetables for HOD's department
+    const departmentTimetables = await Timetable.find({
+      college_id: req.college_id,
+      department_id: teacher.department_id,
+    }).select("_id");
+
+    const timetableIds = departmentTimetables.map(t => t._id);
+
+    // Query pending exceptions for HOD's department directly in MongoDB
     const pendingExceptions = await TimetableException.find({
       college_id: req.college_id,
+      timetable_id: { $in: timetableIds },
       status: "PENDING",
       isActive: true,
     })
@@ -857,20 +1073,120 @@ exports.getPendingApprovals = async (req, res, next) => {
       .populate("createdBy", "name email")
       .sort({ exceptionDate: 1, createdAt: -1 });
 
-    // Filter to only show exceptions for HOD's department
-    const departmentTimetables = pendingExceptions.filter(
-      (exc) =>
-        exc.timetable_id?.department_id?.toString() ===
-        teacher.department_id.toString(),
+    ApiResponse.success(
+      res,
+      {
+        pendingExceptions,
+        count: pendingExceptions.length,
+      },
+      "Pending approvals fetched successfully",
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+    GET MY EXCEPTIONS (Teacher's own requests)
+    GET /api/timetable/exceptions/my
+========================================================= */
+exports.getMyExceptions = async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 50 } = req.query;
+
+    // Build query - teacher can only see their own requests
+    const query = {
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      isActive: true,
+    };
+
+    // Filter by status if provided
+    if (status) {
+      query.status = status;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const exceptions = await TimetableException.find(query)
+      .populate("timetable_id", "name semester academicYear")
+      .populate("slot_id", "day startTime endTime")
+      .populate("approvedBy", "name email")
+      .populate("rejectedBy", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await TimetableException.countDocuments(query);
 
     ApiResponse.success(
       res,
       {
-        pendingExceptions: departmentTimetables,
-        count: departmentTimetables.length,
+        exceptions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
       },
-      "Pending approvals fetched successfully",
+      "My exceptions fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+    GET APPROVAL HISTORY (HOD's department - APPROVED/REJECTED)
+    GET /api/timetable/exceptions/history
+========================================================= */
+exports.getApprovalHistory = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      true,
+    );
+
+    const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
+    if (!isHOD) {
+      throw new AppError(
+        "Access denied: Only HOD can view approval history",
+        403,
+        "HOD_ONLY",
+      );
+    }
+
+    // Get timetables for HOD's department
+    const departmentTimetables = await Timetable.find({
+      college_id: req.college_id,
+      department_id: teacher.department_id,
+    }).select("_id");
+
+    const timetableIds = departmentTimetables.map(t => t._id);
+
+    // Query APPROVED and REJECTED exceptions for HOD's department
+    const historyExceptions = await TimetableException.find({
+      college_id: req.college_id,
+      timetable_id: { $in: timetableIds },
+      status: { $in: ["APPROVED", "REJECTED"] },
+      isActive: true,
+    })
+      .populate("timetable_id", "name semester academicYear")
+      .populate("slot_id", "day startTime endTime")
+      .populate("createdBy", "name email")
+      .populate("approvedBy", "name email")
+      .populate("rejectedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    ApiResponse.success(
+      res,
+      {
+        exceptions: historyExceptions,
+        count: historyExceptions.length,
+      },
+      "Approval history fetched successfully",
     );
   } catch (error) {
     next(error);
