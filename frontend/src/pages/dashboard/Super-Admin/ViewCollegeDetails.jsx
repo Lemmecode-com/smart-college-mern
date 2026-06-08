@@ -6,20 +6,28 @@ import Loading from "../../../components/Loading";
 import { toast } from "react-toastify";
 import {
   FaUniversity,
+  FaCheckCircle,
+  FaTimesCircle,
   FaEnvelope,
   FaPhone,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaUsers,
-  FaChalkboardTeacher,
-  FaLayerGroup,
-  FaBook,
-  FaClipboardList,
-  FaArrowLeft,
-  FaQrcode,
+  FaSearch,
+  FaEye,
+  FaToggleOff,
+  FaToggleOn,
   FaSyncAlt,
-  FaCheckCircle,
+  FaInfoCircle,
+  FaDownload,
+  FaFilter,
+  FaChevronDown,
+  FaChevronUp,
+  FaChevronRight,
+  FaPlus,
+  FaListOl,
+  FaFileExcel,
+  FaFilePdf,
+  FaChevronLeft,
 } from "react-icons/fa";
+import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Animation variants
@@ -120,18 +128,6 @@ export default function ViewCollegeDetails() {
       document.head.removeChild(style);
     };
   }, []);
-
-  // Fix registration URL to use frontend URL from env instead of backend URL
-  const getFrontendRegistrationUrl = (url) => {
-    if (!url) return "";
-    const frontendUrl =
-      import.meta.env.VITE_FRONTEND_URL || window.location.origin;
-    // Replace backend URL with frontend URL from environment
-    return url
-      .replace(/https?:\/\/localhost:\d+/, frontendUrl)
-      .replace(/https?:\/\/127\.0\.0\.1:\d+/, frontendUrl)
-      .replace(/https?:\/\/[a-zA-Z0-9.-]+:\d+/, frontendUrl);
-  };
 
   const frontendRegistrationUrl = getFrontendRegistrationUrl(
     college?.registrationUrl,
