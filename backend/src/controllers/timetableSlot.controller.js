@@ -182,7 +182,7 @@ exports.updateSlot = async (req, res, next) => {
     assertTimetableMutable(timetable, "slot");
 
     /* STEP 3: Verify Teacher */
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    const teacher = await Teacher.findOne({ user_id: req.user.id, college_id: req.college_id });
     if (!teacher) {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
@@ -191,6 +191,7 @@ exports.updateSlot = async (req, res, next) => {
     const department = await Department.findOne({
       _id: timetable.department_id,
       hod_id: teacher._id,
+      college_id: req.college_id,
     });
 
     if (!department) {
@@ -199,7 +200,7 @@ exports.updateSlot = async (req, res, next) => {
 
     /* STEP 5: If teacher_id is being updated, validate it matches subject's teacher */
     if (req.body.teacher_id) {
-      const newTeacher = await Teacher.findById(req.body.teacher_id);
+      const newTeacher = await Teacher.findOne({ _id: req.body.teacher_id, college_id: req.college_id });
       if (!newTeacher) {
         throw new AppError("New teacher not found", 404, "TEACHER_NOT_FOUND");
       }
@@ -267,7 +268,7 @@ exports.deleteTimetableSlot = async (req, res) => {
     assertTimetableMutable(timetable, "slot");
 
     /* STEP 3: Verify Teacher */
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    const teacher = await Teacher.findOne({ user_id: req.user.id, college_id: req.college_id });
     if (!teacher) {
       return res.status(403).json({
         message: "Teacher profile not found",
@@ -278,6 +279,7 @@ exports.deleteTimetableSlot = async (req, res) => {
     const department = await Department.findOne({
       _id: timetable.department_id,
       hod_id: teacher._id,
+      college_id: req.college_id,
     });
 
     if (!department) {
