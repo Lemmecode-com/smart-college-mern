@@ -366,7 +366,11 @@ export default function WeeklyTimetable() {
         const res = await api.get("/timetable/weekly");
         setWeekly(res.data.weekly || {});
       } else {
-        const res = await api.get(`/timetable/${timetableId}/weekly`);
+        const res = await api.get(
+          `/timetable/${timetableId}/weekly${
+            includeArchived ? "?includeArchived=true" : ""
+          }`
+        );
         setTimetable(res.data?.timetable || null);
         setWeekly(res.data?.weekly || {});
 
