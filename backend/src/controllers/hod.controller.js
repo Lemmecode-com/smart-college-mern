@@ -103,8 +103,8 @@ const getHodDepartment = async (req, res) => {
    try {
      // Department was already resolved by hodMiddleware (with or without a Teacher record)
      const department = req.department;
-     const departmentDetail = await Department.findById(department._id)
-       .populate("hod_id", "name employeeId");
+const departmentDetail = await Department.findById(department._id)
+      .populate("hod_id", "name employeeId email mobileNumber");
  
      if (!departmentDetail) {
        throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
