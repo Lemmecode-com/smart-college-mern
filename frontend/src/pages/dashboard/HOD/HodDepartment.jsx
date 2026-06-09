@@ -235,10 +235,10 @@ export default function HodDepartment() {
                       {department.hod_id.email}
                     </div>
                   )}
-                  {department.hod_id?.phone && (
+                  {department.hod_id?.mobileNumber && (
                     <div className="mb-3">
                       <FaPhone className="me-2 text-muted" />
-                      {department.hod_id.phone}
+                      {department.hod_id.mobileNumber}
                     </div>
                   )}
                 </div>
