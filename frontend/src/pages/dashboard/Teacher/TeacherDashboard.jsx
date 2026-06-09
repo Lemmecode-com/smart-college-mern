@@ -274,23 +274,23 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            {/* Teacher Info Bar */}
-            <div className="px-3 px-md-4 py-3 bg-light border-top">
-              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
-                  <span
-                    className="px-3 py-1 rounded-pill fw-semibold small"
-                    style={{
-                      backgroundColor: '#dcfce7',
-                      color: '#166534',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    Active Faculty
-                  </span>
-                </div>
-                <motion.button
+{/* Teacher Info Bar */}
+             <div className="px-3 px-md-4 py-3 bg-light border-top">
+               <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                 <div className="d-flex align-items-center gap-2">
+                   <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
+                   <span
+                     className="px-3 py-1 rounded-pill fw-semibold small"
+                     style={{
+                       backgroundColor: teacher.isHod ? '#fef3c7' : '#dcfce7',
+                       color: teacher.isHod ? '#92400e' : '#166534',
+                       fontSize: '0.8rem'
+                     }}
+                   >
+                     {teacher.isHod ? 'Head of Department' : teacher.designation || 'Active Faculty'}
+                   </span>
+                 </div>
+                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/profile/edit-profile")}
