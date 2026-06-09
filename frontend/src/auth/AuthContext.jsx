@@ -14,35 +14,38 @@ export const AuthProvider = ({ children }) => {
        // Note: With httpOnly cookies, the token will be stored in the cookie automatically
        const res = await api.post("/auth/login", credentials);
 
-       // Get user info from the response (interceptor unwraps it)
-       const userInfo = res.data.user || {
-         id: res.data.id,
-         role: res.data.role,
-         college_id: res.data.college_id,
-       };
+// Get user info from the response (interceptor unwraps it)
+        const userInfo = res.data.user || {
+          id: res.data.id,
+          realId: res.data.realId,
+          role: res.data.role,
+          college_id: res.data.college_id,
+        };
 
-       // Fetch complete user data immediately after login
-       try {
-         const profileRes = await api.get("/auth/me");
-         // Store complete user data from backend
-         setUser({
-           id: profileRes.data.id,
-           role: profileRes.data.role,
-           college_id: profileRes.data.college_id || null,
-           email: profileRes.data.email || null,
-           name: profileRes.data.name || null,
-         });
-       } catch (profileError) {
-         // Fallback to basic info if profile fetch fails
-         logger.warn("Profile fetch after login failed, using basic info");
-         setUser({
-           id: userInfo.id,
-           role: userInfo.role,
-           college_id: userInfo.college_id || null,
-           email: null,
-           name: null,
-         });
-       }
+// Fetch complete user data immediately after login
+        try {
+          const profileRes = await api.get("/auth/me");
+          // Store complete user data from backend
+          setUser({
+            id: profileRes.data.id,
+            realId: profileRes.data.realId,
+            role: profileRes.data.role,
+            college_id: profileRes.data.college_id || null,
+            email: profileRes.data.email || null,
+            name: profileRes.data.name || null,
+          });
+        } catch (profileError) {
+          // Fallback to basic info if profile fetch fails
+          logger.warn("Profile fetch after login failed, using basic info");
+          setUser({
+            id: userInfo.id,
+            realId: userInfo.realId,
+            role: userInfo.role,
+            college_id: userInfo.college_id || null,
+            email: null,
+            name: null,
+          });
+        }
 
        // Return success and user data for first-login handling
        return { 
@@ -52,7 +55,8 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
     const errorData = error?.response?.data || {};
     const userId = errorData?.user?.id;
-    const user = userId ? { id: userId } : undefined;
+    const realId = errorData?.user?.realId;
+    const user = userId ? { id: userId, realId } : undefined;
 
     return {
       success: false,
@@ -89,14 +93,15 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await api.get("/auth/me");
 
-        // Store complete user data from backend
-        setUser({
-          id: res.data.id,
-          role: res.data.role,
-          college_id: res.data.college_id || null,
-          email: res.data.email || null,
-          name: res.data.name || null,
-        });
+// Store complete user data from backend
+         setUser({
+           id: res.data.id,
+           realId: res.data.realId,
+           role: res.data.role,
+           college_id: res.data.college_id || null,
+           email: res.data.email || null,
+           name: res.data.name || null,
+         });
       } catch (error) {
         // 401 is expected for unauthenticated users - don't log it as error
         // Only log if it's a different error (network issue, server error, etc.)
