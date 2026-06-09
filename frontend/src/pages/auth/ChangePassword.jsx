@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
 import { FaKey, FaCheckCircle, FaExclamationTriangle, FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import { AuthContext } from "../../auth/AuthContext";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
   const [userId, setUserId] = useState(null);
   const [formData, setFormData] = useState({
@@ -18,18 +20,34 @@ export default function ChangePassword() {
     newPassword: false,
     confirmPassword: false,
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Get userId from sessionStorage (set by Login.jsx on first-login trigger)
+// Get userId: from sessionStorage (first-login) OR from auth context (logged-in users)
+   useEffect(() => {
+     const storedUserId = sessionStorage.getItem("userId");
+     if (storedUserId) {
+       setUserId(storedUserId);
+     } else if (user?.realId) {
+       setUserId(user.realId);
+     }
+   }, [user?.realId]);
+
+  // Redirect logic after successful password change
   useEffect(() => {
-    const storedUserId = sessionStorage.getItem("userId");
-    if (storedUserId) {
-      setUserId(storedUserId);
+    if (success) {
+      const isFirstLogin = !!sessionStorage.getItem("userId");
+      const timer = setTimeout(() => {
+        if (isFirstLogin) {
+          navigate("/login");
+        } else {
+          navigate(-1);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [success, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -63,7 +81,7 @@ export default function ChangePassword() {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       };
-      // Include userId only on first-login (stored from Login.jsx)
+      // Include userId for both: first-login (from sessionStorage) and logged-in users (from AuthContext)
       if (userId) {
         payload.userId = userId;
       }
@@ -72,12 +90,10 @@ export default function ChangePassword() {
 
       if (res.data.success) {
         setSuccess(res.data.message);
-        // Clear stored userId
+        // Clear stored userId if exists
         sessionStorage.removeItem("userId");
         // Clear form
         setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-        // Redirect to login after 3 seconds
-        setTimeout(() => navigate("/login"), 3000);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to change password");
@@ -97,7 +113,7 @@ export default function ChangePassword() {
                   <FaKey className="text-primary" style={{ fontSize: "3rem" }} />
                   <h3 className="mt-3">Change Your Password</h3>
                   <p className="text-muted">
-                    You must change your temporary password before continuing.
+                    {userId ? "Enter your current and new password to update" : "You must change your temporary password before continuing."}
                   </p>
                 </div>
 
@@ -113,19 +129,19 @@ export default function ChangePassword() {
                     <FaCheckCircle className="me-2" />
                     {success}
                     <div className="mt-2">
-                      <small>Redirecting to login...</small>
+                      <small>{userId ? "Redirecting back..." : "Redirecting to login..."}</small>
                     </div>
                   </Alert>
                 )}
 
                 <Form onSubmit={handleSubmit}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Current Password (Temporary)</Form.Label>
+                    <Form.Label>Current Password{!userId ? " (Temporary)" : ""}</Form.Label>
                     <div className="password-field-wrap">
                       <Form.Control
                         type={showPassword.currentPassword ? "text" : "password"}
                         name="currentPassword"
-                        placeholder="Enter temporary password"
+                        placeholder={userId ? "Enter current password" : "Enter temporary password"}
                         value={formData.currentPassword}
                         onChange={handleChange}
                         required

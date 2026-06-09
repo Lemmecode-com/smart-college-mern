@@ -19,6 +19,7 @@ router.post("/refresh", sessionLimiter, refreshToken);
 
       let userData = {
         id: opaqueId,
+        realId: id,
         role,
         college_id,
         email: null,
