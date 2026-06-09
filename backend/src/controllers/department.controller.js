@@ -48,7 +48,7 @@ exports.getDepartmentById = async (req, res) => {
   const department = await Department.findOne({
     _id: req.params.id,
     college_id: req.college_id
-  });
+  }).populate('hod_id', 'name email');
 
   if (!department) {
     return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
@@ -63,7 +63,7 @@ exports.getDepartmentById = async (req, res) => {
 exports.getDepartments = async (req, res) => {
   const departments = await Department.find({
     college_id: req.college_id
-  });
+  }).populate('hod_id', 'name email');
 
   ApiResponse.success(res, { departments }, "Departments fetched successfully");
 };
