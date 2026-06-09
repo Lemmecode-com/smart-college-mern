@@ -253,13 +253,14 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         );
       }
 
-      fetchPendingStudents();
+      await fetchPendingStudents();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to approve student", {
         position: "top-right",
         autoClose: 5000,
       });
     } finally {
+      setShowApproveModal(false);
       setProcessingId(null);
       setPendingApproveId(null);
     }
