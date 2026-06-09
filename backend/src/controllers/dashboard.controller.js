@@ -245,7 +245,7 @@ exports.teacherDashboard = async (req, res, next) => {
     const teacher = await Teacher.findOne({
       user_id: userId,
       college_id: collegeId,
-    }).select("name email employeeId");
+    }).select("name email employeeId designation department_id");
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -286,6 +286,17 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
+    // Check if teacher is HOD of their department
+    let isHod = false;
+    if (teacher.department_id) {
+      const department = await Department.findOne({
+        _id: teacher.department_id,
+        hod_id: teacher._id,
+        college_id: collegeId,
+      });
+      isHod = !!department;
+    }
+
     ApiResponse.success(
       res,
       {
@@ -293,6 +304,8 @@ exports.teacherDashboard = async (req, res, next) => {
           name: teacher.name,
           email: teacher.email,
           employeeId: teacher.employeeId,
+          designation: teacher.designation,
+          isHod,
         },
         stats: {
           totalLecturesTaken,
