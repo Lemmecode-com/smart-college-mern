@@ -39,7 +39,9 @@ export default function ChangePassword() {
     if (success) {
       const isFirstLogin = !!sessionStorage.getItem("userId");
       const timer = setTimeout(() => {
-        if (isFirstLogin) {
+        if (user?.role === "COLLEGE_ADMIN" && isFirstLogin) {
+          navigate("/college/setup-wizard");
+        } else if (isFirstLogin) {
           navigate("/login");
         } else {
           navigate(-1);
@@ -47,7 +49,7 @@ export default function ChangePassword() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [success, navigate]);
+  }, [success, navigate, user?.role]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
