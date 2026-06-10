@@ -142,6 +142,10 @@ export default function CollegeAdminDashboard() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
+  if (college && college.setupCompleted === false) {
+    return <Navigate to="/college/setup-wizard" />;
+  }
+
   /* ================= STATE ================= */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

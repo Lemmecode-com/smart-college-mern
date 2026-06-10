@@ -26,6 +26,17 @@ const collegeSchema = new mongoose.Schema({
       message: emailValidatorMessage,
     },
   },
+  admin_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+  },
+  adminEmail: {
+    type: String,
+  },
+  adminName: {
+    type: String,
+  },
   contactNumber: {
     type: String,
     required: true,
@@ -62,6 +73,10 @@ const collegeSchema = new mongoose.Schema({
   registrationQr: {
     type: String, // file path of QR image
     required: true,
+  },
+  setupCompleted: {
+    type: Boolean,
+    default: false,
   },
 });
 
