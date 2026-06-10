@@ -200,6 +200,7 @@ import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacher
 // ================= STAFF MANAGEMENT =================
 import CreateStaff from "./pages/dashboard/College-Admin/CreateStaff";
 import StaffList from "./pages/dashboard/College-Admin/StaffList";
+import CollegeSetupWizard from "./pages/dashboard/College-Admin/CollegeSetupWizard";
 import ViewStaffProfile from "./pages/dashboard/College-Admin/ViewStaffProfile";
 import EditStaffProfile from "./pages/dashboard/College-Admin/EditStaffProfile";
 
@@ -460,6 +461,14 @@ function AppContent({
             />
 
             {/* ================= COLLEGE ADMIN ================= */}
+            <Route
+              path="/college/setup-wizard"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <CollegeSetupWizard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={

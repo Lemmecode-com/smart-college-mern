@@ -351,6 +351,12 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
+            path: "/college/staff",
+            icon: FaUsers,
+            label: "Staff List",
+            exact: true,
+          },
+          {
             path: "/college/staff/create",
             icon: FaUserPlus,
             label: "Create Staff Account",
