@@ -566,12 +566,18 @@ export default function PrincipalDashboard() {
                             </td>
                             <td>{new Date(student.createdAt).toLocaleDateString()}</td>
                             <td className="text-end">
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => navigate(`/college/view-student/${student._id}`)}
-                              >
-                                <FaEye /> View
-                              </button>
+<button
+                                 className="btn btn-sm btn-outline-primary"
+                                 onClick={() => {
+                                   if (student.status === 'PENDING') {
+                                     navigate(`/college/view-student/${student._id}`);
+                                   } else {
+                                     navigate(`/college/view-approved-student/${student._id}`);
+                                   }
+                                 }}
+                               >
+                                 <FaEye /> View
+                               </button>
                             </td>
                           </tr>
                         ))}
