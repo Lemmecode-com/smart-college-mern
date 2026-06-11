@@ -6,24 +6,9 @@ import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 
-import {
-  FaSearch,
-  FaEye,
-  FaCheckCircle,
-  FaGraduationCap,
-  FaBuilding,
-  FaBookOpen,
-  FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaExclamationTriangle,
-  FaSyncAlt,
-  FaUserCheck,
-  FaUserTimes,
-  FaEnvelope,
-  FaUsers,
-} from "react-icons/fa";
+import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble } from "react-icons/fa";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 const PAGE_SIZE = 5;
 
@@ -44,6 +29,9 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
     byCourse: {},
     byYear: {},
   });
+  const [processingId, setProcessingId] = useState(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollStudentId, setEnrollStudentId] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -201,6 +189,33 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
           position: "top-right",
         });
       }
+    }
+  };
+
+  /* ================= CONFIRM ENROLLMENT ================= */
+  const handleConfirmEnrollment = (studentId) => {
+    setEnrollStudentId(studentId);
+    setShowEnrollModal(true);
+  };
+
+  const executeConfirmEnrollment = async () => {
+    if (!enrollStudentId) return;
+
+    setProcessingId(enrollStudentId);
+    try {
+      await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
+      toast.success("Enrollment confirmed successfully!", {
+        position: "top-right",
+      });
+      fetchApprovedStudents();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to confirm enrollment", {
+        position: "top-right",
+      });
+    } finally {
+      setShowEnrollModal(false);
+      setEnrollStudentId(null);
+      setProcessingId(null);
     }
   };
 
@@ -425,10 +440,22 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                         </span>
                       </td>
                       <td className="cell-status">
-                        <span className="badge badge-status">
-                          <FaCheckCircle className="badge-icon" />
-                          APPROVED
-                        </span>
+                        {student.status === "OFFER_MADE" ? (
+                          <span className="badge badge-offer-made">
+                            <FaEnvelope className="badge-icon" />
+                            OFFER MADE
+                          </span>
+                        ) : student.status === "ENROLLED" ? (
+                          <span className="badge badge-enrolled">
+                            <FaCheckDouble className="badge-icon" />
+                            ENROLLED
+                          </span>
+                        ) : (
+                          <span className="badge badge-status">
+                            <FaCheckCircle className="badge-icon" />
+                            APPROVED
+                          </span>
+                        )}
                       </td>
                       <td className="cell-actions">
                         <div className="action-buttons">
@@ -444,6 +471,21 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
+                          {student.status === "OFFER_MADE" && (
+                            <button
+                              className="btn btn-action btn-confirm-enrollment"
+                              onClick={() => handleConfirmEnrollment(student._id)}
+                              disabled={processingId === student._id}
+                              title="Confirm Enrollment"
+                            >
+                              <FaCheckDouble />
+                              <span className="btn-text">
+                                {processingId === student._id
+                                  ? "Processing..."
+                                  : "Confirm Enrollment"}
+                              </span>
+                            </button>
+                          )}
                           {student.user_id && (
                             <button
                               className={`btn btn-action ${student.status === "DEACTIVATED" ? "btn-reactivate-student" : "btn-deactivate-student"}`}
@@ -1279,7 +1321,47 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
             padding: 14px 14px;
           }
         }
+
+        /* Badge styles for new statuses */
+        .badge-offer-made {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-enrolled {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment:hover {
+          background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 100%);
+          box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+        }
       `}</style>
+
+      {/* CONFIRM ENROLLMENT MODAL */}
+      <ConfirmModal
+        isOpen={showEnrollModal}
+        onClose={() => {
+          setShowEnrollModal(false);
+          setEnrollStudentId(null);
+        }}
+        onConfirm={executeConfirmEnrollment}
+        title="Confirm Enrollment"
+        message="Are you sure you want to confirm enrollment for this student? This will finalize their admission status."
+        type="success"
+        confirmText="Confirm Enrollment"
+        cancelText="Cancel"
+        isLoading={processingId === enrollStudentId}
+      />
     </div>
   );
 }

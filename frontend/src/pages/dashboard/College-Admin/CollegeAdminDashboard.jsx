@@ -142,14 +142,11 @@ export default function CollegeAdminDashboard() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
-  if (college && college.setupCompleted === false) {
-    return <Navigate to="/college/setup-wizard" />;
-  }
-
   /* ================= STATE ================= */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [college, setCollege] = useState(null);
+  const [setupRedirect, setSetupRedirect] = useState(false);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -242,6 +239,11 @@ export default function CollegeAdminDashboard() {
         // Set college data
         setCollege(data.college);
 
+        // Check if setup is incomplete
+        if (data.college && data.college.setupCompleted === false) {
+          setSetupRedirect(true);
+        }
+
         // Set statistics
         setStats({
           totalStudents: data.stats.totalStudents || 0,
@@ -287,6 +289,11 @@ export default function CollegeAdminDashboard() {
   /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Dashboard..." />;
+  }
+
+  // Redirect to setup wizard if college setup is incomplete
+  if (setupRedirect) {
+    return <Navigate to="/college/setup-wizard" replace />;
   }
 
   return (
@@ -611,7 +618,13 @@ export default function CollegeAdminDashboard() {
                           <StudentItem
                             key={student._id}
                             student={student}
-                            onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                            onClick={() => {
+                               if (student.status === 'PENDING') {
+                                 navigate(`/college/view-student/${student._id}`);
+                               } else {
+                                 navigate(`/college/view-approved-student/${student._id}`);
+                               }
+                             }}
                           />
                         ))}
                       </div>

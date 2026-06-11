@@ -113,7 +113,32 @@ exports.login = async (req, res, next) => {
       );
     }
 
-    // Only APPROVED students can login
+    if (student && (student.status === "OFFER_MADE" || student.status === "ENROLLED")) {
+      // OFFER_MADE and ENROLLED students can login with read-only access
+      const user = await User.findOne({ email, role: "STUDENT" });
+
+      if (user) {
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          securityAuditService
+            .logLoginFailed(email, req, "INVALID_CREDENTIALS")
+            .catch((err) => console.error("Audit log failed:", err));
+          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        }
+        securityAuditService
+          .logLoginSuccess(student, req)
+          .catch((err) => console.error("Audit log failed:", err));
+        return sendTokens(
+          res,
+          student.user_id,
+          "STUDENT",
+          student.college_id,
+          req,
+        );
+      }
+    }
+
+    // APPROVED students can login
     student = await Student.findOne({ email, status: "APPROVED" });
     if (student) {
       // ✅ Find the User record for password verification
