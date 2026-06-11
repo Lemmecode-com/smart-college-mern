@@ -882,6 +882,68 @@ exports.sendAccountStatusEmail = async ({
 };
 
 /**
+ * Send Staff/Teacher Credentials Email
+ */
+exports.sendStaffCredentialsEmail = async ({ to, name, temporaryPassword, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: "Your Account Has Been Created - Action Required",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #1a4b6d; text-align: center;">Welcome to the College Management System</h2>
+
+        <p>Dear ${name},</p>
+
+        <p>Your account has been created by the college administration. You can now log in to the portal using the credentials below.</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #1a4b6d;">Your Account Details:</h3>
+          <p><strong>Email:</strong> ${to}</p>
+          <p><strong>Role:</strong> Staff/Teacher</p>
+          <p><strong>Temporary Password:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: monospace;">${temporaryPassword}</code></p>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #856404;">⚠️ Important: Change Your Password</h4>
+          <p>For security reasons, you must change your temporary password on your first login.</p>
+          <p>Please log in to the portal and update your password immediately.</p>
+        </div>
+
+        <h3>What you can do in the portal:</h3>
+        <ul>
+          <li>View and manage your profile information</li>
+          <li>Mark and review attendance</li>
+          <li>Access your timetable and schedule</li>
+          <li>View attendance reports</li>
+          <li>Receive important notifications and announcements</li>
+        </ul>
+
+        <p>If you have any questions or need assistance, please contact the college administration.</p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="text-align: center; color: #666; font-size: 14px;">
+          This is an automated message from ${fromName}. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Staff credentials email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+  } catch (error) {
+    logger.logError("❌ Failed to send staff credentials email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
+  }
+};
+
+/**
  * Send Parent Account Creation Email
  */
 exports.sendParentAccountCreatedEmail = async ({
