@@ -299,6 +299,27 @@ const studentSchema = new mongoose.Schema(
       type: Date,
     },
 
+    offerMadeAt: {
+      type: Date,
+    },
+
+    offerMadeBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    seatConfirmedAt: {
+      type: Date,
+    },
+
+    enrollmentConfirmedAt: {
+      type: Date,
+    },
+
+    enrollmentDate: {
+      type: Date,
+    },
+
     rejectionReason: {
       type: String,
     },

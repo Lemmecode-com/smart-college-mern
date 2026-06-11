@@ -880,7 +880,7 @@ exports.getApprovedStudents = async (req, res) => {
     // Build filter
     const filter = {
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
     };
 
     if (department_id) filter.department_id = department_id;
@@ -1209,7 +1209,7 @@ exports.getStudentsForTeacher = async (req, res) => {
     const filter = {
       course_id: { $in: courseIds },
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     };
 
     // Get total count
