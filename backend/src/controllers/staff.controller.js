@@ -7,6 +7,7 @@ const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const { ROLE } = require("../utils/constants");
 const AuditService = require("../services/auditLog.service");
+const { sendStaffCredentialsEmail } = require("../services/email.service");
 
 /**
  * Generate a random temporary password
@@ -259,6 +260,13 @@ const generateTempPassword = (length = 10) => {
           temporaryPassword: tempPassword, // shown only once
         },
       });
+
+      sendStaffCredentialsEmail({
+        to: email,
+        name,
+        temporaryPassword: tempPassword,
+        collegeId: req.user.college_id,
+      }).catch((err) => console.error("Failed to send staff credentials email:", err.message));
     } catch (err) {
       await session.abortTransaction();
       session.endSession();
