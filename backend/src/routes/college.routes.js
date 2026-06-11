@@ -16,4 +16,12 @@ router.post(
   markSetupComplete
 );
 
+// COLLEGE ADMIN / STAFF: Get own college info
+router.get(
+  "/my-college",
+  auth,
+  collegeMiddleware,
+  getMyCollege
+);
+
 module.exports = router;
