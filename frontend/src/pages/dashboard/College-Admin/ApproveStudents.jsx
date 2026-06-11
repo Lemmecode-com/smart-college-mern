@@ -12,7 +12,7 @@ import ConfirmModal from "../../../components/ConfirmModal";
 
 const PAGE_SIZE = 5;
 
-export default function ApproveStudents({ admissionOfficerMode = false }) {
+export default function ApproveStudents({ admissionOfficerMode = false, principalMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,7 +35,10 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+  if (principalMode && user.role !== "PRINCIPAL") {
+    return <Navigate to="/dashboard" />;
+  }
+  if (!admissionOfficerMode && !principalMode && user.role !== "COLLEGE_ADMIN") {
     return <Navigate to="/dashboard" />;
   }
   // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
@@ -47,21 +50,16 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
       setError("");
       const res = await api.get("/students/approved-students");
 
-      // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
-        // New format: { success: true, data: [...], pagination: {...} }
         data = res.data.data;
       } else if (Array.isArray(res.data)) {
-        // Old format: [...]
         data = res.data;
       } else {
         data = [];
       }
 
       setStudents(data);
-
-      // Calculate stats client-side (no API changes)
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
@@ -74,43 +72,38 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
     }
   };
 
-  /* ================= CALCULATE STATS ================= */
-  const calculateStats = (studentList) => {
-    const byDepartment = {};
-    const byCourse = {};
-    const byYear = {};
-
-    studentList.forEach((student) => {
-      // Department stats
-      const dept = student.department_id?.name || "Unknown";
-      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
-
-      // Course stats
-      const course = student.course_id?.name || "Unknown";
-      byCourse[course] = (byCourse[course] || 0) + 1;
-
-      // Year stats
-      const year = student.admissionYear || "Unknown";
-      byYear[year] = (byYear[year] || 0) + 1;
-    });
-
-    setStats({
-      total: studentList.length,
-      byDepartment,
-      byCourse,
-      byYear,
-    });
+  /* ================= FETCH ALL STUDENTS (PRINCIPAL) ================= */
+  const fetchAllStudents = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api.get("/students/approved");
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data.data)
+        ? res.data.data
+        : [];
+      setStudents(data);
+      calculateStats(data);
+      setRetryCount(0);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to load students. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchApprovedStudents();
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
   }, []);
 
   // Refresh when navigating from approval action
   useEffect(() => {
     if (location.state?.refresh) {
-      fetchApprovedStudents();
-      // Clear the refresh flag
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state?.refresh]);
@@ -141,7 +134,7 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
   const handleRetry = () => {
     if (retryCount < 3) {
       setRetryCount((prev) => prev + 1);
-      fetchApprovedStudents();
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
     }
@@ -263,53 +256,65 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
 
   return (
     <div className="erp-container">
-       {/* BREADCRUMBS */}
-       <Breadcrumb
-         items={admissionOfficerMode
-           ? [
-               { label: "Dashboard", path: "/dashboard/admission" },
-               { label: "Admissions", path: "/admission/applications" },
-               { label: "Approved Students" },
-             ]
-           : [
-               { label: "Dashboard", path: "/dashboard" },
-               { label: "Students", path: "/students" },
-               { label: "Approved Students" },
-             ]
-         }
-       />
+        {/* BREADCRUMBS */}
+        <Breadcrumb
+          items={principalMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/principal" },
+                { label: "Students", path: "/principal/students" },
+                { label: "All Students" },
+              ]
+            : admissionOfficerMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/admission" },
+                { label: "Admissions", path: "/admission/applications" },
+                { label: "Approved Students" },
+              ]
+            : [
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Students", path: "/students" },
+                { label: "Approved Students" },
+              ]
+          }
+        />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaCheckCircle />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Approved Students</h1>
-            <p className="erp-page-subtitle">
-              View and manage students approved for admission
-            </p>
+        {/* HEADER */}
+        <div className="erp-page-header">
+          <div className="erp-header-content">
+            <div className="erp-header-icon">
+              {principalMode ? <FaUsers /> : <FaCheckCircle />}
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">
+                {principalMode ? "All Students" : "Approved Students"}
+              </h1>
+              <p className="erp-page-subtitle">
+                {principalMode
+                  ? "View all students across the college"
+                  : "View and manage students approved for admission"}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* STATS CARDS */}
-      <div className="stats-grid animate-fade-in">
-        <div className="stat-card">
-          <div
-            className="stat-card-icon"
-            style={{
-              background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
-            }}
-          >
-            <FaUserCheck />
+        {/* STATS CARDS */}
+        <div className="stats-grid animate-fade-in">
+          <div className="stat-card">
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+              }}
+            >
+              <FaUserCheck />
+            </div>
+            <div className="stat-card-content">
+              <div className="stat-card-label">
+                {principalMode ? "Total Students" : "Total Approved"}
+              </div>
+              <div className="stat-card-value">{stats.total}</div>
+            </div>
           </div>
-          <div className="stat-card-content">
-            <div className="stat-card-label">Total Approved</div>
-            <div className="stat-card-value">{stats.total}</div>
-          </div>
-        </div>
         <div className="stat-card">
           <div
             className="stat-card-icon"
@@ -370,11 +375,12 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
         <div className="erp-card-header">
           <h3>
             <FaGraduationCap className="erp-card-icon" />
-            Approved Student Records
+            {principalMode ? "Student Records" : "Approved Student Records"}
           </h3>
           <span className="record-count">
             {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"} Approved
+            {filteredStudents.length === 1 ? "Student" : "Students"}
+            {principalMode ? "" : " Approved"}
           </span>
         </div>
 
@@ -458,6 +464,7 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                         )}
                       </td>
                       <td className="cell-actions">
+                        {!principalMode && (
                         <div className="action-buttons">
                           <button
                             className="btn btn-action btn-view-student"
@@ -509,7 +516,8 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                             </button>
                           )}
                         </div>
-                      </td>
+                          )}
+                        </td>
                     </tr>
                   ))}
                 </tbody>
