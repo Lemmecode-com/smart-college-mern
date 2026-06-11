@@ -6,11 +6,21 @@ const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const { sendStaffCredentialsEmail } = require("../services/email.service");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
+
+const generateTempPassword = (length = 10) => {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+};
 
 /* =========================================================
    CREATE TEACHER (College Admin)
@@ -29,7 +39,6 @@ exports.createTeacher = async (req, res, next) => {
       department_id,
       course_id,
       courses = [],
-      password,
       // New fields for complete profile
       gender,
       bloodGroup,
@@ -74,6 +83,9 @@ exports.createTeacher = async (req, res, next) => {
       }
     }
 
+    /* ================= Generate Temp Password ================= */
+    const tempPassword = generateTempPassword(12);
+
     /* ================= Duplicate User ================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -84,9 +96,11 @@ exports.createTeacher = async (req, res, next) => {
     const user = await User.create({
       name,
       email,
-      password,
+      password: tempPassword,
       role: "TEACHER",
       college_id: req.college_id,
+      isActive: true,
+      mustChangePassword: true,
     });
 
     /* ================= Create Teacher ================= */
@@ -119,9 +133,17 @@ exports.createTeacher = async (req, res, next) => {
       res,
       {
         teacher,
+        temporaryPassword: tempPassword,
       },
       "Teacher created successfully",
     );
+
+    sendStaffCredentialsEmail({
+      to: email,
+      name,
+      temporaryPassword: tempPassword,
+      collegeId: req.college_id,
+    }).catch((err) => console.error("Failed to send teacher credentials email:", err.message));
   } catch (error) {
     next(error);
   }

@@ -71,13 +71,22 @@ exports.login = async (req, res, next) => {
     if (teacher) {
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      // 🔒 SECURITY AUDIT: Log successful login
+
+      const linkedUser = await User.findOne({ email, role: "TEACHER" });
+      if (linkedUser && linkedUser.mustChangePassword === true) {
+        return res.status(403).json({
+          success: false,
+          code: "MUST_CHANGE_PASSWORD",
+          message: "You must change your temporary password on first login",
+          user: { id: linkedUser._id },
+        });
+      }
+
       securityAuditService
         .logLoginSuccess(teacher, req)
         .catch((err) => console.error("Audit log failed:", err));
