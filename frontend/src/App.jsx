@@ -690,16 +690,26 @@ function AppContent({
                 }
               />
 
-              <Route
-                path="/college-admin/reports/payment-trends"
-                element={
-                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
-                    <PaymentTrends />
-                  </ProtectedRoute>
-                }
-              />
+             <Route
+               path="/college-admin/reports/payment-trends"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL", "ACCOUNTANT"]}>
+                   <PaymentTrends />
+                 </ProtectedRoute>
+               }
+             />
 
-            {/* Audit Logs */}
+             {/* ================= PRINCIPAL STUDENTS ================= */}
+             <Route
+               path="/principal/students"
+               element={
+                 <ProtectedRoute allowedRoles={["PRINCIPAL"]}>
+                   <ApproveStudents principalMode={true} />
+                 </ProtectedRoute>
+               }
+             />
+
+             {/* Audit Logs */}
             <Route
               path="/college-admin/audit-logs"
               element={
