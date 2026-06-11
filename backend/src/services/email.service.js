@@ -356,6 +356,126 @@ exports.sendAdmissionApprovalEmail = async ({
 };
 
 /**
+ * Send Admission Offer Email
+ * Sent when student status changes to OFFER_MADE
+ */
+exports.sendAdmissionOfferEmail = async ({
+  to,
+  studentName,
+  courseName,
+  collegeName,
+  admissionYear,
+  enrollmentNumber,
+  loginUrl,
+  email,
+  collegeId,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `🎫 Admission Offer - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎫 Admission Offer</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your seat is reserved</p>
+        </div>
+
+        <div style="padding: 30px; background: #ffffff; border: 1px solid #e0e0e0;">
+          <p style="font-size: 16px; color: #333;">Dear <strong>${studentName}</strong>,</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            We are pleased to offer you admission to <strong>${courseName}</strong> for the academic year <strong>${admissionYear}</strong>.
+          </p>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #1f6f8b; font-size: 18px;">📋 Offer Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>College:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Course:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Enrollment Number:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;"><strong>${enrollmentNumber}</strong></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0;"><strong>Status:</strong></td>
+                <td style="padding: 10px 0; text-align: right;"><span style="color: #ffc107; font-weight: bold;">OFFER MADE</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="margin-top: 0; color: #856404;">⚠️ Next Steps</h4>
+            <ol style="margin: 10px 0; padding-left: 20px; color: #495057;">
+              <li>Log in to the student portal using your credentials</li>
+              <li>Review and confirm your enrollment</li>
+              <li>Complete fee payment to finalize admission</li>
+              <li>Complete your profile and upload any pending documents</li>
+            </ol>
+          </div>
+
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${loginUrl}"
+               style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); 
+                      color: white; 
+                      padding: 15px 40px; 
+                      text-decoration: none; 
+                      border-radius: 8px; 
+                      font-weight: 600; 
+                      font-size: 16px;
+                      display: inline-block;">
+              🚀 Login to Student Portal
+            </a>
+          </div>
+
+          <p style="color: #666; font-size: 14px;">
+            Please complete your enrollment within 7 days by logging in and confirming your acceptance.
+          </p>
+
+          <p style="color: #333; margin-top: 30px;">
+            Regards,<br/>
+            <strong>Admissions Team</strong><br/>
+            ${collegeName}
+          </p>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0; border-top: none;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            This is an automated message. Please do not reply to this email.<br/>
+            © ${new Date().getFullYear()} ${collegeName}. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Admission offer email sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
+    return true;
+  } catch (error) {
+    logger.logError("❌ Failed to send admission offer email", {
+      error: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
  * Send Admission Rejection Email
  */
 exports.sendAdmissionRejectionEmail = async ({
