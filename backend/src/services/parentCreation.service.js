@@ -9,14 +9,13 @@ const { buildFrontendUrl } = require("../utils/urlBuilder");
  * Parent Creation Service
  * Automatically creates parent/guardian user accounts when students are approved
  */
+const crypto = require("crypto");
+
 class ParentCreationService {
 
-  /**
-   * Generate a temporary password for parent accounts
-   * @returns {string} Temporary password
-   */
   generateTempPassword() {
-    return "Parent" + Math.random().toString(36).slice(-8);
+    const bytes = crypto.randomBytes(12);
+    return "P@" + bytes.toString("hex").slice(0, 12);
   }
 
   /**
@@ -185,39 +184,46 @@ class ParentCreationService {
       // Create ParentGuardian linking records
       for (const parent of parentUsers) {
         try {
-          // Check if ParentGuardian record already exists
+          const parentId = parent.user._id;
+          const studentId = student._id;
+
           const existingLink = await ParentGuardian.findOne({
-            user_id: parent.user._id,
-            student_ids: student._id
+            user_id: parentId,
           });
 
-          if (!existingLink) {
+          if (existingLink) {
+            if (!existingLink.student_ids.includes(studentId)) {
+              existingLink.student_ids = [...existingLink.student_ids, studentId];
+              await existingLink.save();
+              logger.logInfo("ParentGuardian link updated - student added", {
+                parentUserId: parentId,
+                studentId,
+                relation: parent.relation,
+              });
+            } else {
+              logger.logInfo("ParentGuardian link already exists", {
+                parentUserId: parentId,
+                studentId,
+              });
+            }
+          } else {
             await ParentGuardian.create({
-              user_id: parent.user._id,
-              student_ids: [student._id],
+              user_id: parentId,
+              student_ids: [studentId],
               relation: parent.relation,
             });
 
             logger.logInfo("ParentGuardian link created", {
-              parentUserId: parent.user._id,
-              studentId: student._id,
-              relation: parent.relation
-            });
-          } else {
-            logger.logInfo("ParentGuardian link already exists", {
-              parentUserId: parent.user._id,
-              studentId: student._id
+              parentUserId: parentId,
+              studentId,
+              relation: parent.relation,
             });
           }
-
-          // TODO: Send email notification to parent
-          // This will be implemented after email service setup
-
         } catch (error) {
-          logger.logError("Failed to create ParentGuardian link", {
+          logger.logError("Failed to create/update ParentGuardian link", {
             parentUserId: parent.user._id,
             studentId: student._id,
-            error: error.message
+            error: error.message,
           });
         }
       }
