@@ -4,6 +4,29 @@ const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const AppError = require("../utils/AppError");
 
+function normalizeStatus(status) {
+  return String(status || "").toUpperCase();
+}
+
+function isEnrolledStatus(status) {
+  return ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(normalizeStatus(status));
+}
+
+function getStatusLabel(status) {
+  switch (normalizeStatus(status)) {
+    case "APPROVED":
+      return "Active";
+    case "ENROLLED":
+      return "Enrolled";
+    case "OFFER_MADE":
+      return "Offer Made";
+    case "SEAT_CONFIRMED":
+      return "Seat Confirmed";
+    default:
+      return normalizeStatus(status) || "Unknown";
+  }
+}
+
 /**
  * GET /api/parent/children
  * List all students linked to the parent
@@ -20,14 +43,14 @@ exports.getChildren = async (req, res, next) => {
     }
 
     const students = await Student.find({ _id: { $in: studentIds } })
-      .select("fullName email phone enrollmentNo status department_id course_id currentSemester")
+      .select("fullName email mobileNumber enrollmentNo status department_id course_id currentSemester")
       .populate("department_id", "name code")
       .populate("course_id", "name")
       .sort({ fullName: 1 });
 
     res.json({
       success: true,
-      children: students, // Changed from data to children
+      children: students,
     });
   } catch (error) {
     next(error);
@@ -58,7 +81,10 @@ exports.getChildProfile = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: student,
+      data: {
+        ...student.toObject(),
+        fullName: student.fullName,
+      },
     });
   } catch (error) {
     next(error);
@@ -78,7 +104,6 @@ exports.getChildAttendance = async (req, res, next) => {
       return next(new AppError("Access denied: Student not linked to your account", 403, "NOT_AUTHORIZED"));
     }
 
-    // Find attendance records for the student
     const records = await AttendanceRecord.find({ student_id: studentId })
       .populate("session_id", "date slotNumber topic")
       .populate("course_id", "name")
@@ -117,10 +142,17 @@ exports.getChildFees = async (req, res, next) => {
         message: "No fee record found for this student",
       });
     }
+    const basic = feeRecord.toObject ? feeRecord.toObject() : feeRecord;
+    const data = {
+      ...basic,
+      outstandingAmount: (feeRecord.totalFee || 0) - (feeRecord.paidAmount || 0),
+      totalFee: basic.totalFee,
+      paidAmount: basic.paidAmount,
+    };
 
     res.json({
       success: true,
-      data: feeRecord,
+      data,
     });
   } catch (error) {
     next(error);
