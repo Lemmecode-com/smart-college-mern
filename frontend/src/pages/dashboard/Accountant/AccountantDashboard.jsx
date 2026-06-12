@@ -1,27 +1,27 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
-import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "react-bootstrap";
+import { motion } from "framer-motion";
 import {
-  FaFileInvoiceDollar,
-  FaMoneyBillWave,
-  FaReceipt,
-  FaChartLine,
-  FaPlus,
-  FaList,
-  FaHistory,
-  FaSyncAlt,
-  FaRupeeSign,
-  FaUsers,
-  FaCheckCircle,
-  FaClock,
-  FaTimesCircle,
-  FaChartBar
+   FaFileInvoiceDollar,
+   FaMoneyBillWave,
+   FaReceipt,
+   FaChartLine,
+   FaPlus,
+   FaList,
+   FaHistory,
+   FaSyncAlt,
+   FaUsers,
+   FaUser,
+   FaCheckCircle,
+   FaClock,
+   FaTimesCircle,
+   FaChartBar,
+   FaExclamationTriangle,
 } from "react-icons/fa";
 
 // Brand Colors
@@ -72,7 +72,6 @@ const slideDownVariants = {
 };
 
 export default function AccountantDashboard() {
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -84,16 +83,16 @@ export default function AccountantDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/admin/payments/report");
+      const res = await api.get("/accountant/dashboard");
       setStats(res.data);
-    } catch (err) {
-      console.error("Dashboard stats fetch error:", err);
-      const errorMsg = err.response?.data?.message || "Failed to load dashboard stats";
-      setError({ message: errorMsg, statusCode: err.response?.status });
-    } finally {
-      setLoading(false);
-    }
-  };
+     } catch (err) {
+       console.error("Dashboard stats fetch error:", err);
+       const errorMsg = err.response?.data?.message || "Failed to load dashboard stats";
+       setError({ message: errorMsg, statusCode: err.response?.status });
+     } finally {
+       setLoading(false);
+     }
+   };
 
   // Update current time every minute
   useEffect(() => {
@@ -117,7 +116,7 @@ export default function AccountantDashboard() {
   };
 
   // Calculate payment status counts
-  const calculatePaymentStats = () => {
+  const paymentStats = useMemo(() => {
     if (!stats?.report) return { paid: 0, partial: 0, due: 0 };
 
     return stats.report.reduce((acc, record) => {
@@ -133,9 +132,7 @@ export default function AccountantDashboard() {
       }
       return acc;
     }, { paid: 0, partial: 0, due: 0 });
-  };
-
-  const paymentStats = calculatePaymentStats();
+  }, [stats]);
 
   // Navigation handler
   const handleNavigate = (path) => {
@@ -470,98 +467,143 @@ export default function AccountantDashboard() {
 
         <div className="stat-card due">
           <div className="stat-icon">
+            <FaExclamationTriangle />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Total Defaulters</div>
+            <div className="stat-value">{stats?.totalDefaulters || 0}</div>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ borderLeftColor: "#dc3545" }}>
+          <div className="stat-icon" style={{ background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)" }}>
             <FaTimesCircle />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Payment Due</div>
-            <div className="stat-value">{paymentStats.due}</div>
+            <div className="stat-label">Critical Overdue</div>
+            <div className="stat-value">{stats?.criticalOverdueCount || 0}</div>
+          </div>
+        </div>
+
+        <div className="stat-card" style={{ borderLeftColor: "#ffc107" }}>
+          <div className="stat-icon" style={{ background: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)" }}>
+            <FaMoneyBillWave />
+          </div>
+          <div className="stat-content">
+            <div className="stat-label">Pending from Defaulters</div>
+            <div className="stat-value">{formatCurrency(stats?.pendingAmountFromDefaulters || 0)}</div>
           </div>
         </div>
       </motion.div>
 
-      {/* ================= ACTION CARDS ================= */}
-      <motion.div
-        variants={fadeInVariants}
-        initial="hidden"
-        animate="visible"
-        custom={1}
-        className="actions-grid"
-      >
-        <div className="action-card">
-          <div className="action-header">
-            <h3>
-              <FaFileInvoiceDollar />
-              Fee Structure Management
-            </h3>
-          </div>
-          <div className="action-body">
-            <div className="action-buttons">
-              <button
-                className="action-btn"
-                onClick={() => handleNavigate("/fees/list")}
-              >
-                <FaList /> View Fee Structures
-              </button>
-              <button
-                className="action-btn"
-                onClick={() => handleNavigate("/fees/create")}
-              >
-                <FaPlus /> Create Fee Structure
-              </button>
-            </div>
-          </div>
-        </div>
+{/* ================= ACTION CARDS ================= */}
+       <motion.div
+         variants={fadeInVariants}
+         initial="hidden"
+         animate="visible"
+         custom={1}
+         className="actions-grid"
+       >
+         <div className="action-card">
+           <div className="action-header">
+             <h3>
+               <FaFileInvoiceDollar />
+               Fee Structure Management
+             </h3>
+           </div>
+           <div className="action-body">
+             <div className="action-buttons">
+               <button
+                 className="action-btn"
+                 onClick={() => handleNavigate("/fees/list")}
+               >
+                 <FaList /> View Fee Structures
+               </button>
+               <button
+                 className="action-btn"
+                 onClick={() => handleNavigate("/fees/create")}
+               >
+                 <FaPlus /> Create Fee Structure
+               </button>
+             </div>
+           </div>
+         </div>
 
-        <div className="action-card">
-          <div className="action-header">
-            <h3>
-              <FaReceipt />
-              Payment Management
-            </h3>
-          </div>
-          <div className="action-body">
-            <div className="action-buttons">
-              <button
-                className="action-btn"
-                onClick={() => handleNavigate("/college-admin/payment-history")}
-              >
-                <FaHistory /> Payment History
-              </button>
-              <button
-                className="action-btn secondary"
-                onClick={() => handleNavigate("/college-admin/reports/payment-summary")}
-              >
-                <FaChartLine /> Financial Reports
-              </button>
-            </div>
-          </div>
-        </div>
+         <div className="action-card">
+           <div className="action-header">
+             <h3>
+               <FaMoneyBillWave />
+               Offline Payments
+             </h3>
+           </div>
+           <div className="action-body">
+             <div className="action-buttons">
+               <button
+                 className="action-btn"
+                 onClick={() => handleNavigate("/accountant/record-offline-payment")}
+               >
+                 <FaPlus /> Record Offline Payment
+               </button>
+               <button
+                 className="action-btn secondary"
+                 onClick={() => handleNavigate("/accountant/defaulters")}
+               >
+                 <FaTimesCircle /> Defaulter List
+               </button>
+             </div>
+           </div>
+         </div>
 
-        <div className="action-card">
-            <div className="action-header">
-              <h3>
-                <FaChartBar />
-                Advanced Analytics
-              </h3>
-            </div>
-            <div className="action-body">
-              <div className="action-buttons">
-                <button
-                  className="action-btn"
-                  onClick={() => handleNavigate("/college-admin/payment-history")}
-                >
-                  <FaHistory /> Payment History
-                </button>
-                <button
-                  className="action-btn secondary"
-                  onClick={() => handleNavigate("/college-admin/reports/payment-trends")}
-                >
-                  <FaChartBar /> Payment Trends
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+         <div className="action-card">
+           <div className="action-header">
+             <h3>
+               <FaReceipt />
+               Payment Management
+             </h3>
+           </div>
+           <div className="action-body">
+             <div className="action-buttons">
+               <button
+                 className="action-btn"
+                 onClick={() => handleNavigate("/college-admin/payment-history")}
+               >
+                 <FaHistory /> Payment History
+               </button>
+               <button
+                 className="action-btn secondary"
+                 onClick={() => handleNavigate("/college-admin/reports/payment-summary")}
+               >
+                 <FaChartLine /> Financial Reports
+               </button>
+             </div>
+           </div>
+         </div>
+
+         <div className="action-card">
+           <div className="action-header">
+             <h3>
+               <FaChartBar />
+               Analytics & Reports
+             </h3>
+           </div>
+           <div className="action-body">
+             <div className="action-buttons">
+               <button
+                 className="action-btn"
+                 onClick={() => handleNavigate("/college-admin/reports/payment-trends")}
+               >
+                 <FaChartBar /> Payment Trends
+               </button>
+               <button
+                 className="action-btn secondary"
+                 onClick={() => handleNavigate("/college-admin/student-reports")}
+               >
+                 <FaUser /> Student Reports
+               </button>
+             </div>
+           </div>
+         </div>
+       </motion.div>
       </div>
   );
 }
