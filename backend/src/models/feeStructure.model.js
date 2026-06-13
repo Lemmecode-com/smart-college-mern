@@ -16,6 +16,11 @@ const feeStructureSchema = new mongoose.Schema({
       enum: ["GEN", "OBC", "SC", "ST", "EWS"],
       required: true,
     },
+    // Optional: target academic year (e.g. "2025-2026") for year-specific fee structures
+    academicYear: {
+      type: String,
+      default: null,
+    },
     totalFee: {
       type: Number,
       required: true,
