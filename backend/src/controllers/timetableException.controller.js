@@ -188,7 +188,7 @@ exports.createException = async (req, res, next) => {
     const existingException = await TimetableException.findOne({
       timetable_id: timetableId,
       slot_id: slot_id || null,
-      exceptionDate: new Date(exceptionDate),
+      exceptionDate: parseLocalDateSafe(exceptionDate),
       type,
       status: { $in: ["PENDING", "APPROVED"] },
       isActive: true,
@@ -392,11 +392,10 @@ exports.createBulkExceptions = async (req, res, next) => {
           continue;
         }
 
-        // Check for duplicates
         const existing = await TimetableException.findOne({
           timetable_id: timetableId,
           slot_id: slot_id || null,
-          exceptionDate: new Date(exceptionDate),
+          exceptionDate: parseLocalDateSafe(exceptionDate),
           type,
           status: { $in: ["PENDING", "APPROVED"] },
           isActive: true,
@@ -410,21 +409,21 @@ exports.createBulkExceptions = async (req, res, next) => {
           continue;
         }
 
-const exception = await TimetableException.create({
-           college_id: req.college_id,
-           timetable_id: timetableId,
-           slot_id: slot_id || null,
-           exceptionDate: new Date(exceptionDate),
-           type,
-           status: "PENDING",
-           reason,
-           rescheduledTo: rescheduledTo ? new Date(rescheduledTo) : null,
-           extraSlot: extraSlot || null,
-           newRoom: newRoom || null,
-           substituteTeacher: substituteTeacher || null,
-           createdBy: req.user.id,
-           notifyAffected: true,
-           notes: notes || null,
+        const exception = await TimetableException.create({
+          college_id: req.college_id,
+          timetable_id: timetableId,
+          slot_id: slot_id || null,
+          exceptionDate: parseLocalDateSafe(exceptionDate),
+          type,
+          status: "PENDING",
+          reason,
+          rescheduledTo: rescheduledTo ? parseLocalDateSafe(rescheduledTo) : null,
+          extraSlot: extraSlot || null,
+          newRoom: newRoom || null,
+          substituteTeacher: substituteTeacher || null,
+          createdBy: req.user.id,
+          notifyAffected: true,
+          notes: notes || null,
         });
 
         // 🔔 NOTIFICATION: Notify HOD for each created exception (batch-friendly)
@@ -553,6 +552,10 @@ exports.getExceptions = async (req, res, next) => {
       isActive: true,
     };
 
+    if (req.user.role === "TEACHER") {
+      query.createdBy = req.user.id;
+    }
+
     // Filter by date range
     if (startDate || endDate) {
       query.exceptionDate = {};
@@ -584,6 +587,8 @@ exports.getExceptions = async (req, res, next) => {
       .populate("substituteTeacher", "name")
       .populate("createdBy", "name email")
       .populate("approvedBy", "name")
+      .populate("rejectedBy", "name email")
+      .populate("withdrawnBy", "name email")
       .sort({ exceptionDate: 1, type: 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -715,6 +720,174 @@ exports.updateException = async (req, res, next) => {
       res,
       { exception: updatedException },
       "Exception updated successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   WITHDRAW EXCEPTION
+   PUT /api/timetable/exceptions/:exceptionId/withdraw
+========================================================= */
+exports.withdrawException = async (req, res, next) => {
+  try {
+    const { exceptionId } = req.params;
+    const { withdrawalReason } = req.body;
+
+    if (req.user.role !== "TEACHER") {
+      throw new AppError(
+        "Only teachers can withdraw exception requests",
+        403,
+        "UNAUTHORIZED_ROLE",
+      );
+    }
+
+    // 1️⃣ Find own exception (any status)
+    const exception = await TimetableException.findOne({
+      _id: exceptionId,
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      isActive: true,
+    });
+
+    if (!exception) {
+      const existingException = await TimetableException.findOne({
+        _id: exceptionId,
+        college_id: req.college_id,
+        isActive: true,
+      });
+
+      if (!existingException) {
+        throw new AppError("Exception not found", 404, "EXCEPTION_NOT_FOUND");
+      }
+
+      throw new AppError(
+        "Access denied: You can only withdraw your own requests",
+        403,
+        "NOT_CREATOR",
+      );
+    }
+
+    // 1.1️ Re-fetch latest state — race condition guard
+    const latestException = await TimetableException.findById(exceptionId);
+    if (!latestException || latestException.status !== "PENDING") {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
+
+    // 2️⃣ Verify timetable lifecycle integrity
+    const timetable = await Timetable.findOne({
+      _id: exception.timetable_id,
+      college_id: req.college_id,
+    });
+
+    if (!timetable) {
+      throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
+    }
+
+    assertTimetableMutable(timetable, "exception");
+
+    // 3️ Withdraw exception using the freshly-fetched, guard-validated document
+    await latestException.withdraw(
+      req.user.id,
+      withdrawalReason?.trim() || "No reason provided",
+    );
+
+    // 4️ Populate response
+    const populatedException = await TimetableException.findById(latestException._id)
+      .populate("slot_id", "day startTime endTime")
+      .populate("extraSlot.subject_id", "name code")
+      .populate("extraSlot.teacher_id", "name")
+      .populate("substituteTeacher", "name")
+      .populate("createdBy", "name email")
+      .populate("withdrawnBy", "name email");
+
+    // 🗑️ Invalidate cache for this timetable
+    scheduleCache.invalidateTimetable(timetable._id);
+
+    // 🔔 NOTIFICATION: Notify HOD of the department
+    (async () => {
+      try {
+        const Department = require("../models/department.model");
+        const hodDepartment = await Department.findOne({
+          _id: timetable.department_id,
+          college_id: req.college_id,
+        });
+        if (hodDepartment && hodDepartment.hod_id) {
+          const hodUser = await Teacher.findOne({
+            _id: hodDepartment.hod_id,
+          }).populate("user_id", "name _id");
+          if (hodUser && hodUser.user_id) {
+            const teacherName = (req.user.name || "A teacher").trim();
+            const exceptionDateStr = latestException.exceptionDate
+              ? latestException.exceptionDate.toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "unknown date";
+            const exceptionType = latestException.type || "TIMETABLE";
+            const withdrawalReason =
+              (latestException.withdrawalReason || "No reason provided").trim();
+
+            await Notification.create({
+              college_id: req.college_id,
+              createdBy: req.user.id,
+              createdByRole: "TEACHER",
+              target: "INDIVIDUAL",
+              target_users: [hodUser.user_id._id],
+              title: "Timetable Exception Request Withdrawn",
+              message: `${teacherName} withdrew a ${exceptionType} request for ${exceptionDateStr}. Reason: ${withdrawalReason}`,
+              type: "ACADEMIC",
+              actionUrl: "/hod/exception-approvals",
+            });
+          }
+        }
+      } catch (notifErr) {
+        console.error("Failed to send withdrawal notification:", notifErr.message);
+      }
+    })();
+
+    // 📋 AUDIT LOG: Log exception withdrawal
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_WITHDRAWN",
+          resourceType: "TimetableException",
+          resourceId: exception._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues: { status: "PENDING" },
+          newValues: {
+            status: "WITHDRAWN",
+            withdrawalReason: exception.withdrawalReason,
+          },
+          metadata: {
+            timetableId: timetable._id,
+            exceptionDate: exception.exceptionDate,
+            type: exception.type,
+          },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception withdrawal:", auditErr.message);
+      }
+    })();
+
+    ApiResponse.success(
+      res,
+      { exception: populatedException },
+      "Exception request withdrawn successfully",
     );
   } catch (error) {
     next(error);
@@ -1076,6 +1249,7 @@ exports.getPendingApprovals = async (req, res, next) => {
     ApiResponse.success(
       res,
       {
+        exceptions: pendingExceptions,
         pendingExceptions,
         count: pendingExceptions.length,
       },
@@ -1113,6 +1287,7 @@ exports.getMyExceptions = async (req, res, next) => {
       .populate("slot_id", "day startTime endTime")
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
+      .populate("withdrawnBy", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1166,11 +1341,11 @@ exports.getApprovalHistory = async (req, res, next) => {
 
     const timetableIds = departmentTimetables.map(t => t._id);
 
-    // Query APPROVED and REJECTED exceptions for HOD's department
+    // Query APPROVED, REJECTED, and WITHDRAWN exceptions for HOD's department
     const historyExceptions = await TimetableException.find({
       college_id: req.college_id,
       timetable_id: { $in: timetableIds },
-      status: { $in: ["APPROVED", "REJECTED"] },
+      status: { $in: ["APPROVED", "REJECTED", "WITHDRAWN"] },
       isActive: true,
     })
       .populate("timetable_id", "name semester academicYear")
@@ -1178,12 +1353,20 @@ exports.getApprovalHistory = async (req, res, next) => {
       .populate("createdBy", "name email")
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
+      .populate("withdrawnBy", "name email")
       .sort({ createdAt: -1 });
+
+    const approved = historyExceptions.filter((exception) => exception.status === "APPROVED");
+    const rejected = historyExceptions.filter((exception) => exception.status === "REJECTED");
+    const withdrawn = historyExceptions.filter((exception) => exception.status === "WITHDRAWN");
 
     ApiResponse.success(
       res,
       {
         exceptions: historyExceptions,
+        approved,
+        rejected,
+        withdrawn,
         count: historyExceptions.length,
       },
       "Approval history fetched successfully",
