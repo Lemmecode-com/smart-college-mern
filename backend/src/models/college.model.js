@@ -83,9 +83,10 @@ const collegeSchema = new mongoose.Schema({
 // 🔒 SOFT DELETE: Cascade isActive=false to all related data when college is deactivated
 collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
+  const isActiveValue = update?.isActive ?? update?.$set?.isActive;
 
   // Only trigger soft delete when isActive is being set to false
-  if (update.isActive === false) {
+  if (isActiveValue === false) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
@@ -111,12 +112,12 @@ collegeSchema.pre("findOneAndUpdate", async function () {
           .model("Course")
           .updateMany({ college_id: collegeId }, { $set: { isActive: false } }),
 
-        // 3. Deactivate students (only APPROVED students were active; preserve PENDING/REJECTED/ALUMNI)
+        // 3. Deactivate students (only APPROVED; snapshot status so restore is exact)
         mongoose
           .model("Student")
           .updateMany(
             { college_id: collegeId, status: "APPROVED" },
-            { $set: { status: "INACTIVE" } },
+            { $set: { status: "INACTIVE", suspendedFromStatus: "APPROVED" } },
           ),
 
         // 4. Deactivate teachers
@@ -189,9 +190,10 @@ collegeSchema.pre("findOneAndUpdate", async function () {
 // 🔄 RESTORE: Cascade isActive=true when college is reactivated
 collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
+  const isActiveValue = update?.isActive ?? update?.$set?.isActive;
 
   // Only trigger restore when isActive is being set to true
-  if (update.isActive === true) {
+  if (isActiveValue === true) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
@@ -214,12 +216,12 @@ collegeSchema.pre("findOneAndUpdate", async function () {
           .model("Course")
           .updateMany({ college_id: collegeId }, { $set: { isActive: true } }),
 
-        // 3. Activate students (only those who were set to INACTIVE by cascade)
+        // 3. Restore only students suspended by college cascade (not PENDING/REJECTED/etc.)
         mongoose
           .model("Student")
           .updateMany(
-            { college_id: collegeId, status: "INACTIVE" },
-            { $set: { status: "APPROVED" } },
+            { college_id: collegeId, status: "INACTIVE", suspendedFromStatus: "APPROVED" },
+            { $set: { status: "APPROVED", suspendedFromStatus: null } },
           ),
 
         // 4. Activate teachers
