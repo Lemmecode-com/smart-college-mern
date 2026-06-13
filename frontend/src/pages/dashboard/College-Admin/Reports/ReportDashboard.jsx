@@ -16,7 +16,6 @@ import {
   FaChartBar,
   FaChartLine,
   FaTable,
-  FaDownload,
   FaFilter,
   FaSearch,
   FaExclamationTriangle,
@@ -168,15 +167,15 @@ export default function ReportDashboard() {
     return [
       {
         metric: "Total Expected Fee",
-        value: paymentData.total || 0,
+        value: paymentData.totalExpectedFee || 0,
       },
       {
         metric: "Total Collected",
-        value: paymentData.collected || paymentData.totalCollected || 0,
+        value: paymentData.totalCollected || 0,
       },
       {
         metric: "Total Pending",
-        value: paymentData.pending || 0,
+        value: paymentData.totalPending || 0,
       },
       {
         metric: "Collection Rate",
@@ -202,12 +201,16 @@ export default function ReportDashboard() {
     if (!attendanceData) return [];
     return [
       {
-        metric: "Overall Attendance",
-        value: parseFloat((attendanceData.percentage || attendanceData.attendancePercentage || 0).toFixed(1)),
+        metric: "Overall Attendance %",
+        value: parseFloat((attendanceData.averageAttendance || 0).toFixed(1)),
       },
       {
         metric: "Total Sessions",
-        value: attendanceData.totalSessions || attendanceData.total || 0,
+        value: attendanceData.totalSessions || attendanceData.totalRecords || 0,
+      },
+      {
+        metric: "Total Records",
+        value: attendanceData.totalRecords || 0,
       },
       {
         metric: "Average Attendance",
@@ -572,9 +575,6 @@ export default function ReportDashboard() {
             aria-label="Refresh report data"
           >
             <FaSyncAlt className="spin-icon" /> Refresh Data
-          </button>
-          <button className="btn-export" aria-label="Export all reports" onClick={() => window.print()}>
-            <FaDownload /> Export All
           </button>
         </div>
       </div>
