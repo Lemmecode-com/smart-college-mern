@@ -64,6 +64,7 @@ const auditLogSchema = new mongoose.Schema(
         "TIMETABLE_EXCEPTION_DELETED",
         "TIMETABLE_EXCEPTION_APPROVED",
         "TIMETABLE_EXCEPTION_REJECTED",
+        "TIMETABLE_EXCEPTION_WITHDRAWN",
       ],
       index: true,
     },
