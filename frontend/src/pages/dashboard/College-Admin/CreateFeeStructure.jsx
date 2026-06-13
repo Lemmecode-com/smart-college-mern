@@ -39,7 +39,7 @@ export default function CreateFeeStructure() {
   const [totalFee, setTotalFee] = useState("");
 
   const [installments, setInstallments] = useState([
-    { name: "", amount: "", dueDate: "" }
+    { name: "", amount: "", dueDate: "", order: 1 }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -119,10 +119,11 @@ export default function CreateFeeStructure() {
         course_id,
         category,
         totalFee: Number(totalFee),
-        installments: installments.map((i) => ({
+        installments: installments.map((i, idx) => ({
           name: i.name,
           amount: Number(i.amount),
-          dueDate: i.dueDate
+          dueDate: i.dueDate,
+          order: i.order || idx + 1,
         }))
       });
 
