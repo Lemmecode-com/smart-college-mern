@@ -30,6 +30,7 @@ const {
 } = require("../controllers/student.controller");
 const {
   approveStudent,
+  confirmEnrollment,
   rejectStudent,
   bulkApproveStudents,
 } = require("../controllers/studentApproval.controller");
@@ -63,6 +64,15 @@ router.put(
   collegeMiddleware,
   validateStudentId,
   approveStudent,
+);
+
+router.put(
+  "/:studentId/confirm-enrollment",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
+  collegeMiddleware,
+  validateStudentId,
+  confirmEnrollment,
 );
 
 router.put(
