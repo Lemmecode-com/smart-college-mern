@@ -3,6 +3,7 @@ const Student = require("../models/student.model");
 const {
   getPaymentOverdueReport,
 } = require("../services/paymentReminder.service");
+const { sendPaymentReceiptEmail } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 
 /**
@@ -218,6 +219,21 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       );
     }
 
+    // Validate installment order: Previous installments must be paid
+    const installmentOrder = installment.order || 0;
+    if (installmentOrder > 1) {
+      const unpaidPrevious = studentFee.installments.some(
+        (i) => i.order < installmentOrder && i.status !== "PAID",
+      );
+      if (unpaidPrevious) {
+        throw new AppError(
+          "Cannot pay this installment. Previous installments are still pending.",
+          400,
+          "PREVIOUS_INSTALLMENTS_PENDING",
+        );
+      }
+    }
+
     // Generate transaction ID for offline payment
     const transactionId = `OFF-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
@@ -236,20 +252,42 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
 
     await studentFee.save();
 
+    // Send receipt email (non-blocking, don't fail if email fails)
+    try {
+      await sendPaymentReceiptEmail({
+        to: student.email,
+        studentName: student.fullName,
+        installment: {
+          name: installment.name,
+          amount: installment.amount,
+          paidAt: installment.paidAt,
+          transactionId: installment.transactionId,
+        },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeId: collegeId,
+      });
+    } catch (emailErr) {
+      console.error("Failed to send receipt email:", emailErr.message);
+    }
+
     res.json({
       success: true,
       message: `Installment marked as PAID successfully via ${paymentMode}`,
       data: {
+        installmentId: installment._id,
         studentId: student._id,
         studentName: student.fullName,
         installmentName: installment.name,
         amount: installment.amount,
         paymentMode: installment.paymentMode,
+        referenceNumber: installment.referenceNumber,
+        remarks: installment.remarks,
+        markedByAdmin: installment.markedByAdmin,
         paymentGateway: installment.paymentGateway,
         transactionId: installment.transactionId,
-        referenceNumber: installment.referenceNumber,
         paidAt: installment.paidAt,
-        remarks: installment.remarks,
         totalPaid: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       },
