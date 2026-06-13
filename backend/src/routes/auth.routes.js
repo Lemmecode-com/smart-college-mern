@@ -19,6 +19,7 @@ router.post("/refresh", sessionLimiter, refreshToken);
 
       let userData = {
         id: opaqueId,
+        realId: id,
         role,
         college_id,
         email: null,
@@ -27,14 +28,11 @@ router.post("/refresh", sessionLimiter, refreshToken);
     
     // Fetch role-specific user data from database
     if (role === "COLLEGE_ADMIN") {
-      const College = require("../models/college.model");
-      const college = await College.findOne({ admin_id: id })
-        .select('adminEmail adminName name')
-        .lean();
-      
-      if (college) {
-        userData.email = college.adminEmail || college.email;
-        userData.name = college.adminName || college.name;
+      const User = require("../models/user.model");
+      const user = await User.findById(id).select("email name").lean();
+      if (user) {
+        userData.email = user.email;
+        userData.name = user.name;
       }
     } 
     else if (role === "TEACHER") {
