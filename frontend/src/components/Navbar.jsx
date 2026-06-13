@@ -765,10 +765,10 @@ export default function NavbarComponent({
                     </button>
                     <button
                       className="profile-menu-item"
-                      // // onClick={() => {
-                      // //   setProfileOpen(false);
-                      // //   navigate("/settings");
-                      // }}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/system-settings/general");
+                      }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">
@@ -786,10 +786,10 @@ export default function NavbarComponent({
                     </button>
                     <button
                       className="profile-menu-item"
-                      // onClick={() => {
-                      //   setProfileOpen(false);
-                      //   navigate("/change-password");
-                      // }}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/change-password");
+                      }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">

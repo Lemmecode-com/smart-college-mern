@@ -64,7 +64,7 @@ module.exports = async (req, res, next) => {
 
     if (!college) {
       logger.error("College not found for collegeId", { userId: req.user.id, collegeId, role: req.user.role });
-      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+      throw new AppError("Your college account is invalid or has been removed. Please contact administrator.", 403, "COLLEGE_NOT_FOUND");
     }
 
     if (!college.isActive) {
