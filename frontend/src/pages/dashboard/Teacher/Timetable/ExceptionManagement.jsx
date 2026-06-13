@@ -263,7 +263,7 @@
 //       <ToastContainer position="top-right" theme="colored" />
 
 //       {/* ================= HEADER ================= */}
-//       <motion.div
+//       <MotionDiv
 //         initial={{ opacity: 0, y: -20 }}
 //         animate={{ opacity: 1, y: 0 }}
 //         className="position-relative overflow-hidden"
@@ -289,7 +289,7 @@
 //         <div className="p-4 text-white position-relative">
 //           <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
 //             <div className="d-flex align-items-center gap-3">
-//               <motion.div
+//               <MotionDiv
 //                 animate={{ scale: [1, 1.05, 1] }}
 //                 transition={{
 //                   duration: 2.5,
@@ -308,7 +308,7 @@
 //                 }}
 //               >
 //                 <FaExclamationTriangle />
-//               </motion.div>
+//               </MotionDiv>
 //               <div>
 //                 <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
 //                   Exception Management
@@ -321,7 +321,7 @@
 
 //             <div className="d-flex align-items-center gap-2">
 //               {pendingCount > 0 && (
-//                 <motion.span
+//                 <MotionSpan
 //                   initial={{ scale: 0 }}
 //                   animate={{ scale: 1 }}
 //                   className="badge fw-medium px-3 py-2"
@@ -334,9 +334,9 @@
 //                 >
 //                   <FaExclamationTriangle className="me-1" />
 //                   {pendingCount} Pending
-//                 </motion.span>
+//                 </MotionSpan>
 //               )}
-//               <motion.button
+//               <MotionButton
 //                 whileHover={{ scale: 1.02 }}
 //                 whileTap={{ scale: 0.98 }}
 //                 onClick={() => navigate("/timetable/create/exceptions")}
@@ -350,8 +350,8 @@
 //                 }}
 //               >
 //                 <FaPlus className="me-1" /> Add Exception
-//               </motion.button>
-//               <motion.button
+//               </MotionButton>
+//               <MotionButton
 //                 whileHover={{ scale: 1.02 }}
 //                 whileTap={{ scale: 0.98 }}
 //                 onClick={() => setShowBulkModal(true)}
@@ -365,7 +365,7 @@
 //                 }}
 //               >
 //                 <FaUpload className="me-1" /> Bulk Upload
-//               </motion.button>
+//               </MotionButton>
 //             </div>
 //           </div>
 //         </div>
@@ -415,7 +415,7 @@
 
 //             {/* Date Navigation */}
 //             <div className="d-flex align-items-center gap-2">
-//               <motion.button
+//               <MotionButton
 //                 whileHover={{ scale: 1.05 }}
 //                 whileTap={{ scale: 0.95 }}
 //                 onClick={goToPreviousMonth}
@@ -431,7 +431,7 @@
 //                 }}
 //               >
 //                 <FaChevronLeft style={{ fontSize: "0.75rem" }} />
-//               </motion.button>
+//               </MotionButton>
 //               <span
 //                 className="text-dark fw-semibold small px-3 py-2 rounded"
 //                 style={{
@@ -447,7 +447,7 @@
 //                   year: "numeric",
 //                 })}
 //               </span>
-//               <motion.button
+//               <MotionButton
 //                 whileHover={{ scale: 1.05 }}
 //                 whileTap={{ scale: 0.95 }}
 //                 onClick={goToNextMonth}
@@ -463,16 +463,16 @@
 //                 }}
 //               >
 //                 <FaChevronRight style={{ fontSize: "0.75rem" }} />
-//               </motion.button>
+//               </MotionButton>
 //             </div>
 //           </div>
 //         </div>
-//       </motion.div>
+//       </MotionDiv>
 
 //       {/* ================= EXCEPTIONS LIST ================= */}
 //       <div className="p-4">
 //         {exceptions.length === 0 ? (
-//           <motion.div
+//           <MotionDiv
 //             initial={{ opacity: 0, scale: 0.95 }}
 //             animate={{ opacity: 1, scale: 1 }}
 //             className="card shadow-lg border-0 text-center p-5"
@@ -497,7 +497,7 @@
 //             <p className="text-muted mb-4">
 //               No holidays, cancellations, or special events for this period.
 //             </p>
-//             <motion.button
+//             <MotionButton
 //               whileHover={{ scale: 1.02 }}
 //               whileTap={{ scale: 0.98 }}
 //               onClick={() => navigate("/timetable/create/exceptions")}
@@ -511,8 +511,8 @@
 //               }}
 //             >
 //               <FaPlus className="me-1" /> Add First Exception
-//             </motion.button>
-//           </motion.div>
+//             </MotionButton>
+//           </MotionDiv>
 //         ) : (
 //           <div className="row g-3">
 //             {exceptions.map((exc, index) => {
@@ -520,13 +520,13 @@
 //                 STATUS_COLORS[exc.status] || STATUS_COLORS.PENDING;
 
 //               return (
-//                 <motion.div
+//                 <MotionDiv
 //                   key={exc._id}
 //                   initial={{ opacity: 0, y: 20 }}
 //                   animate={{ opacity: 1, y: 0 }}
 //                   transition={{ delay: index * 0.03 }}
 //                 >
-//                   <motion.div
+//                   <MotionDiv
 //                     whileHover={{ y: -2 }}
 //                     className="card shadow-sm border-0"
 //                     style={{
@@ -706,7 +706,7 @@
 //                           {/* Approve/Reject for PENDING exceptions */}
 //                           {exc.status === "PENDING" && (
 //                             <div className="d-flex gap-1">
-//                               <motion.button
+//                               <MotionButton
 //                                 whileHover={{ scale: 1.05 }}
 //                                 whileTap={{ scale: 0.95 }}
 //                                 onClick={() => handleApprove(exc._id)}
@@ -726,8 +726,8 @@
 //                                 title="Approve"
 //                               >
 //                                 <FaCheck size={12} />
-//                               </motion.button>
-//                               <motion.button
+//                               </MotionButton>
+//                               <MotionButton
 //                                 whileHover={{ scale: 1.05 }}
 //                                 whileTap={{ scale: 0.95 }}
 //                                 onClick={() => handleReject(exc._id)}
@@ -747,13 +747,13 @@
 //                                 title="Reject"
 //                               >
 //                                 <FaTimes size={12} />
-//                               </motion.button>
+//                               </MotionButton>
 //                             </div>
 //                           )}
 
 //                           {/* Edit/Delete for all exceptions */}
 //                           <div className="d-flex gap-1">
-//                             <motion.button
+//                             <MotionButton
 //                               whileHover={{ scale: 1.05 }}
 //                               whileTap={{ scale: 0.95 }}
 //                               onClick={() => {
@@ -775,8 +775,8 @@
 //                               title="Edit"
 //                             >
 //                               <FaEdit size={12} />
-//                             </motion.button>
-//                             <motion.button
+//                             </MotionButton>
+//                             <MotionButton
 //                               whileHover={{ scale: 1.05 }}
 //                               whileTap={{ scale: 0.95 }}
 //                               onClick={() => handleDelete(exc._id)}
@@ -794,13 +794,13 @@
 //                               title="Delete"
 //                             >
 //                               <FaTrash size={12} />
-//                             </motion.button>
+//                             </MotionButton>
 //                           </div>
 //                         </div>
 //                       </div>
 //                     </div>
-//                   </motion.div>
-//                 </motion.div>
+//                   </MotionDiv>
+//                 </MotionDiv>
 //               );
 //             })}
 //           </div>
@@ -874,7 +874,7 @@
 //       tabIndex="-1"
 //       style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
 //     >
-//       <motion.div
+//       <MotionDiv
 //         initial={{ opacity: 0, scale: 0.95, y: 20 }}
 //         animate={{ opacity: 1, scale: 1, y: 0 }}
 //         className="modal-dialog modal-lg modal-dialog-centered"
@@ -922,7 +922,7 @@
 //           <form onSubmit={handleSubmit}>
 //             <div className="modal-body p-4" style={{ background: "#f8fafc" }}>
 //               {error && (
-//                 <motion.div
+//                 <MotionDiv
 //                   initial={{ opacity: 0, y: -10 }}
 //                   animate={{ opacity: 1, y: 0 }}
 //                   className="alert alert-danger d-flex align-items-center mb-3 border-0"
@@ -935,7 +935,7 @@
 //                 >
 //                   <FaInfoCircle className="me-2" />
 //                   {error}
-//                 </motion.div>
+//                 </MotionDiv>
 //               )}
 
 //               <div className="mb-3">
@@ -998,7 +998,7 @@
 //               className="modal-footer border-0 d-flex gap-2 p-3"
 //               style={{ background: "white" }}
 //             >
-//               <motion.button
+//               <MotionButton
 //                 whileHover={{ scale: 1.02 }}
 //                 whileTap={{ scale: 0.98 }}
 //                 type="button"
@@ -1012,8 +1012,8 @@
 //                 }}
 //               >
 //                 Cancel
-//               </motion.button>
-//               <motion.button
+//               </MotionButton>
+//               <MotionButton
 //                 whileHover={{ scale: 1.02 }}
 //                 whileTap={{ scale: 0.98 }}
 //                 type="submit"
@@ -1029,11 +1029,11 @@
 //               >
 //                 <FaUpload className="me-1" />
 //                 {submitting ? "Uploading..." : "Upload"}
-//               </motion.button>
+//               </MotionButton>
 //             </div>
 //           </form>
 //         </div>
-//       </motion.div>
+//       </MotionDiv>
 //     </div>
 //   );
 // }
@@ -1049,15 +1049,12 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
-import ConfirmModal from "../../../../components/ConfirmModal";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaCalendarAlt,
   FaPlus,
-  FaTrash,
-  FaEdit,
   FaCheck,
   FaTimes,
   FaInfoCircle,
@@ -1065,6 +1062,7 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaUpload,
+  FaUndo,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -1090,7 +1088,12 @@ const STATUS_COLORS = {
   APPROVED: { bg: "#e0f2fe", text: "#075985", border: "#bae6fd" },
   REJECTED: { bg: "#fee2e2", text: "#991b1b", border: "#fecaca" },
   COMPLETED: { bg: "#f0f4f8", text: "#475569", border: "#cbd5e1" },
+  WITHDRAWN: { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" },
 };
+
+const MotionDiv = motion.div;
+const MotionSpan = motion.span;
+const MotionButton = motion.button;
 
 export default function ExceptionManagement() {
   const { user } = useContext(AuthContext);
@@ -1112,10 +1115,12 @@ export default function ExceptionManagement() {
     };
   });
   const [pendingCount, setPendingCount] = useState(0);
-
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
+  const [withdrawModal, setWithdrawModal] = useState({
+    isOpen: false,
+    exceptionId: null,
+  });
+  const [withdrawalReason, setWithdrawalReason] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
 
   /* ================= FETCH TIMETABLES ================= */
   const fetchTimetables = async () => {
@@ -1175,73 +1180,34 @@ export default function ExceptionManagement() {
     }
   }, [selectedTimetable, dateRange, fetchExceptions]);
 
-    /* ================= DELETE EXCEPTION ================= */
-  const [showConfirmModal, setShowConfirmModal] = useState({
-    isOpen: false,
-    exceptionId: null
-  });
-
-  const handleDelete = async (exceptionId) => {
-    setShowConfirmModal({ isOpen: true, exceptionId });
+  /* ================= WITHDRAW EXCEPTION ================= */
+  const openWithdrawModal = (exceptionId) => {
+    setWithdrawModal({ isOpen: true, exceptionId });
+    setWithdrawalReason("");
   };
 
-  const handleConfirmDelete = async () => {
-    if (!showConfirmModal.exceptionId) return;
+  const handleConfirmWithdraw = async () => {
+    if (!withdrawModal.exceptionId) return;
 
+    setWithdrawLoading(true);
     try {
-      await api.delete(`/timetable/exceptions/${showConfirmModal.exceptionId}`);
-      toast.success("Exception deleted successfully", {
+      await api.put(`/timetable/exceptions/${withdrawModal.exceptionId}/withdraw`, {
+        withdrawalReason: withdrawalReason.trim() || "No reason provided",
+      });
+      toast.success("Exception request withdrawn successfully", {
         position: "top-right",
         autoClose: 3000,
       });
+      setWithdrawModal({ isOpen: false, exceptionId: null });
+      setWithdrawalReason("");
       fetchExceptions();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to delete exception", {
+      toast.error(err.response?.data?.message || "Failed to withdraw exception", {
         position: "top-right",
         autoClose: 5000,
       });
     } finally {
-      setShowConfirmModal({ isOpen: false, exceptionId: null });
-    }
-  };
-
-  /* ================= APPROVE EXCEPTION ================= */
-  const handleApprove = async (exceptionId) => {
-    try {
-      await api.put(`/timetable/exceptions/${exceptionId}/approve`);
-      toast.success("Exception approved successfully", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      fetchExceptions();
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to approve exception",
-        {
-          position: "top-right",
-          autoClose: 5000,
-        },
-      );
-    }
-  };
-
-  /* ================= REJECT EXCEPTION ================= */
-  const handleReject = async (exceptionId) => {
-    const reason = prompt("Enter rejection reason (optional):");
-    try {
-      await api.put(`/timetable/exceptions/${exceptionId}/reject`, {
-        rejectionReason: reason || "No reason provided",
-      });
-      toast.success("Exception rejected", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      fetchExceptions();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reject exception", {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      setWithdrawLoading(false);
     }
   };
 
@@ -1271,6 +1237,10 @@ export default function ExceptionManagement() {
       endDate: toLocalDateStr(end),
     });
   };
+
+  /* ================= SECURITY ================= */
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= LOADING ================= */
   if (loading && exceptions.length === 0) {
@@ -1308,7 +1278,7 @@ export default function ExceptionManagement() {
       <ToastContainer position="top-right" theme="colored" />
 
       {/* ================= HEADER ================= */}
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
@@ -1334,7 +1304,7 @@ export default function ExceptionManagement() {
         <div className="p-4 text-white position-relative">
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
             <div className="d-flex align-items-center gap-3">
-              <motion.div
+              <MotionDiv
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{
                   duration: 2.5,
@@ -1353,7 +1323,7 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaExclamationTriangle />
-              </motion.div>
+              </MotionDiv>
               <div>
                 <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
                   Exception Management
@@ -1366,7 +1336,7 @@ export default function ExceptionManagement() {
 
             <div className="d-flex align-items-center gap-2">
               {pendingCount > 0 && (
-                <motion.span
+                <MotionSpan
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="badge fw-medium px-3 py-2"
@@ -1379,9 +1349,9 @@ export default function ExceptionManagement() {
                 >
                   <FaExclamationTriangle className="me-1" />
                   {pendingCount} Pending
-                </motion.span>
+                </MotionSpan>
               )}
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate("/timetable/create/exceptions")}
@@ -1395,8 +1365,8 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaPlus className="me-1" /> Add Exception
-              </motion.button>
-              <motion.button
+              </MotionButton>
+              <MotionButton
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowBulkModal(true)}
@@ -1410,7 +1380,7 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaUpload className="me-1" /> Bulk Upload
-              </motion.button>
+              </MotionButton>
             </div>
           </div>
         </div>
@@ -1460,7 +1430,7 @@ export default function ExceptionManagement() {
 
             {/* Date Navigation */}
             <div className="d-flex align-items-center gap-2">
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={goToPreviousMonth}
@@ -1476,7 +1446,7 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaChevronLeft style={{ fontSize: "0.75rem" }} />
-              </motion.button>
+              </MotionButton>
               <span
                 className="text-dark fw-semibold small px-3 py-2 rounded"
                 style={{
@@ -1492,7 +1462,7 @@ export default function ExceptionManagement() {
                   year: "numeric",
                 })}
               </span>
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={goToNextMonth}
@@ -1508,16 +1478,16 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaChevronRight style={{ fontSize: "0.75rem" }} />
-              </motion.button>
+              </MotionButton>
             </div>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {/* ================= EXCEPTIONS LIST ================= */}
       <div className="p-4">
         {exceptions.length === 0 ? (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="card shadow-lg border-0 text-center p-5"
@@ -1542,7 +1512,7 @@ export default function ExceptionManagement() {
             <p className="text-muted mb-4">
               No holidays, cancellations, or special events for this period.
             </p>
-            <motion.button
+            <MotionButton
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/timetable/create/exceptions")}
@@ -1556,8 +1526,8 @@ export default function ExceptionManagement() {
               }}
             >
               <FaPlus className="me-1" /> Add First Exception
-            </motion.button>
-          </motion.div>
+            </MotionButton>
+          </MotionDiv>
         ) : (
           <div className="row g-3">
             {exceptions.map((exc, index) => {
@@ -1565,13 +1535,13 @@ export default function ExceptionManagement() {
                 STATUS_COLORS[exc.status] || STATUS_COLORS.PENDING;
 
               return (
-                <motion.div
+                <MotionDiv
                   key={exc._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03 }}
                 >
-                  <motion.div
+                  <MotionDiv
                     whileHover={{ y: -2 }}
                     className="card shadow-sm border-0"
                     style={{
@@ -1744,108 +1714,82 @@ export default function ExceptionManagement() {
                               </p>
                             </div>
                           )}
+                          {exc.status === "WITHDRAWN" && exc.withdrawnAt && (
+                            <div className="d-flex align-items-center">
+                              <FaUndo
+                                className="me-2"
+                                size={14}
+                                style={{ color: "#64748b" }}
+                              />
+                              <p
+                                className="small mb-0"
+                                style={{ color: "#64748b" }}
+                              >
+                                Withdrawn on{" "}
+                                <span className="fw-semibold">
+                                  {new Date(exc.withdrawnAt).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    },
+                                  )}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                          {exc.status === "WITHDRAWN" && exc.withdrawalReason && (
+                            <div className="d-flex align-items-center">
+                              <FaInfoCircle
+                                className="me-2"
+                                size={14}
+                                style={{ color: "#64748b" }}
+                              />
+                              <p
+                                className="small mb-0"
+                                style={{ color: "#64748b" }}
+                              >
+                                Reason: {exc.withdrawalReason}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         {/* Actions */}
                         <div className="d-flex flex-column gap-2">
-                          {/* Approve/Reject for PENDING exceptions */}
-                          {exc.status === "PENDING" && (
-                            <div className="d-flex gap-1">
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleApprove(exc._id)}
-                                className="btn btn-sm d-flex align-items-center justify-content-center"
-                                style={{
-                                  width: "32px",
-                                  height: "32px",
-                                  padding: 0,
-                                  borderRadius: "8px",
-                                  background:
-                                    "linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%)",
-                                  border: "none",
-                                  color: "white",
-                                  boxShadow:
-                                    "0 2px 4px rgba(61, 181, 230, 0.3)",
-                                }}
-                                title="Approve"
-                              >
-                                <FaCheck size={12} />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleReject(exc._id)}
-                                className="btn btn-sm d-flex align-items-center justify-content-center"
-                                style={{
-                                  width: "32px",
-                                  height: "32px",
-                                  padding: 0,
-                                  borderRadius: "8px",
-                                  background:
-                                    "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                                  border: "none",
-                                  color: "white",
-                                  boxShadow:
-                                    "0 2px 4px rgba(245, 158, 11, 0.2)",
-                                }}
-                                title="Reject"
-                              >
-                                <FaTimes size={12} />
-                              </motion.button>
-                            </div>
-                          )}
+                          {(() => {
+                            const canWithdraw =
+                              exc.status === "PENDING" &&
+                              exc.createdBy?._id?.toString() === user.id;
 
-                          {/* Edit/Delete for all exceptions */}
-                          <div className="d-flex gap-1">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                navigate("/timetable/create/exceptions", {
-                                  state: { editException: exc },
-                                });
-                              }}
-                              className="btn btn-sm d-flex align-items-center justify-content-center"
-                              style={{
-                                width: "32px",
-                                height: "32px",
-                                padding: 0,
-                                borderRadius: "8px",
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                color: "var(--sidebar-accent, #3db5e6)",
-                                transition: "all 0.2s ease",
-                              }}
-                              title="Edit"
-                            >
-                              <FaEdit size={12} />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleDelete(exc._id)}
-                              className="btn btn-sm d-flex align-items-center justify-content-center"
-                              style={{
-                                width: "32px",
-                                height: "32px",
-                                padding: 0,
-                                borderRadius: "8px",
-                                background: "#fef2f2",
-                                border: "1px solid #fecaca",
-                                color: "#ef4444",
-                                transition: "all 0.2s ease",
-                              }}
-                              title="Delete"
-                            >
-                              <FaTrash size={12} />
-                            </motion.button>
-                          </div>
+                            return canWithdraw ? (
+                              <MotionButton
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => openWithdrawModal(exc._id)}
+                                className="btn btn-sm d-flex align-items-center justify-content-center"
+                                style={{
+                                  width: "32px",
+                                  height: "32px",
+                                  padding: 0,
+                                  borderRadius: "8px",
+                                  background: "#fff7ed",
+                                  border: "1px solid #fed7aa",
+                                  color: "#c2410c",
+                                  transition: "all 0.2s ease",
+                                }}
+                                title="Withdraw"
+                              >
+                                <FaUndo size={12} />
+                              </MotionButton>
+                            ) : null;
+                          })()}
                         </div>
                       </div>
                     </div>
-                  </motion.div>
-                </motion.div>
+                  </MotionDiv>
+                </MotionDiv>
               );
             })}
           </div>
@@ -1861,18 +1805,131 @@ export default function ExceptionManagement() {
         />
       )}
 
-      {/* ================= CONFIRM DELETE MODAL ================= */}
-      <ConfirmModal
-        isOpen={showConfirmModal.isOpen}
-        onClose={() => setShowConfirmModal({ isOpen: false, exceptionId: null })}
-        onConfirm={handleConfirmDelete}
-        title="Delete Exception?"
-        message="Are you sure you want to delete this exception? This action cannot be undone."
-        type="danger"
-        confirmText="Delete"
-        cancelText="Cancel"
-        isLoading={false}
-      />
+      {/* ================= WITHDRAW MODAL ================= */}
+      <AnimatePresence>
+        {withdrawModal.isOpen && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(4px)",
+            }}
+            onClick={() =>
+              setWithdrawModal({ isOpen: false, exceptionId: null })
+            }
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="modal-dialog modal-dialog-centered"
+              style={{ maxWidth: "520px" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="modal-content border-0 shadow-lg"
+                style={{ borderRadius: "16px", overflow: "hidden" }}
+              >
+                <div
+                  className="modal-header border-0 text-white p-3"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+                  }}
+                >
+                  <h5 className="modal-title fw-bold mb-0">
+                    Withdraw Exception Request
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white opacity-75"
+                    onClick={() =>
+                      setWithdrawModal({ isOpen: false, exceptionId: null })
+                    }
+                    style={{ filter: "brightness(0) invert(1)" }}
+                  />
+                </div>
+
+                <div className="modal-body p-4" style={{ background: "#f8fafc" }}>
+                  <div className="alert alert-info border-0 mb-3" style={{ background: "#eff6ff", color: "#1e40af" }}>
+                    <FaInfoCircle className="me-2" />
+                    Withdrawing removes this request from HOD pending approvals. Create a new exception request if corrections are needed.
+                  </div>
+                  <label className="form-label fw-bold text-dark mb-2">
+                    Withdrawal Reason
+                  </label>
+                  <textarea
+                    className="form-control border-0"
+                    rows="4"
+                    value={withdrawalReason}
+                    onChange={(e) => setWithdrawalReason(e.target.value)}
+                    placeholder="Optional: Explain why you are withdrawing this request..."
+                    style={{
+                      background: "white",
+                      borderRadius: "10px",
+                      padding: "1rem",
+                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+                </div>
+
+                <div
+                  className="modal-footer border-0 d-flex gap-2 p-3"
+                  style={{ background: "white" }}
+                >
+                  <button
+                    onClick={() =>
+                      setWithdrawModal({ isOpen: false, exceptionId: null })
+                    }
+                    disabled={withdrawLoading}
+                    className="btn px-4 py-2 fw-medium"
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #e2e8f0",
+                      color: "#64748b",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmWithdraw}
+                    disabled={withdrawLoading}
+                    className="btn px-4 py-2 fw-bold text-white"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)",
+                      opacity: withdrawLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {withdrawLoading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          role="status"
+                          aria-hidden="true"
+                        />
+                        Withdrawing...
+                      </>
+                    ) : (
+                      <>
+                        <FaUndo className="me-1" /> Withdraw Request
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1932,7 +1989,7 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
       tabIndex="-1"
       style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
     >
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="modal-dialog modal-lg modal-dialog-centered"
@@ -1980,7 +2037,7 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
           <form onSubmit={handleSubmit}>
             <div className="modal-body p-4" style={{ background: "#f8fafc" }}>
               {error && (
-                <motion.div
+                <MotionDiv
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="alert alert-danger d-flex align-items-center mb-3 border-0"
@@ -1993,7 +2050,7 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
                 >
                   <FaInfoCircle className="me-2" />
                   {error}
-                </motion.div>
+                </MotionDiv>
               )}
 
               <div className="mb-3">
@@ -2056,7 +2113,7 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
               className="modal-footer border-0 d-flex gap-2 p-3"
               style={{ background: "white" }}
             >
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
@@ -2070,8 +2127,8 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
                 }}
               >
                 Cancel
-              </motion.button>
-              <motion.button
+              </MotionButton>
+              <MotionButton
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
@@ -2087,11 +2144,11 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
               >
                 <FaUpload className="me-1" />
                 {submitting ? "Uploading..." : "Upload"}
-              </motion.button>
+              </MotionButton>
             </div>
           </form>
         </div>
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 }
