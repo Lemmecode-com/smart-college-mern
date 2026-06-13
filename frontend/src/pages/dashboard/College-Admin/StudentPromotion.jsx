@@ -91,12 +91,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   }
   // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
-  // 🎓 HELPER: Calculate academic year number from semester & admission year
-  const getAcademicYear = (semester, admissionYear) => {
-    const yearNumber = Math.ceil(semester / 2); // Sem 1-2 = Year 1, Sem 3-4 = Year 2
-    return `Year ${yearNumber}`;
-  };
-
   // 🎓 HELPER: Calculate next academic year string (e.g., "2024-2025" → "2025-2026")
   const getNextAcademicYear = (currentYear) => {
     if (!currentYear) return "";
@@ -209,18 +203,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         overrideFeeCheck,
       });
 
-      // ✅ Updated success message with year-wise info
-      const currentYear = getAcademicYear(
-        selectedStudent.currentSemester,
-        selectedStudent.admissionYear,
-      );
-      const nextYear = getAcademicYear(
-        selectedStudent.currentSemester + 1,
-        selectedStudent.admissionYear,
-      );
-
+      // ✅ Updated success message with year-wise info from API
       setSuccessMessage(
-        `${selectedStudent.fullName} promoted successfully from ${currentYear} (Sem ${selectedStudent.currentSemester}) to ${nextYear} (Sem ${selectedStudent.currentSemester + 1})`,
+        `${selectedStudent.fullName} promoted successfully from ${selectedStudent.academicYearLabel} (Sem ${selectedStudent.currentSemester}) to Sem ${selectedStudent.currentSemester + 1}`,
       );
       setShowPromoteModal(false);
       fetchEligibleStudents();
@@ -229,6 +214,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         position: "top-right",
         autoClose: 4000,
       });
+      // Warn admin if fee structure was not found for new semester
+      if (response?.promotion?.feeAssignmentWarning) {
+        toast.warn(response.promotion.feeAssignmentWarning, {
+          position: "top-right",
+          autoClose: 8000,
+        });
+      }
     } catch (err) {
       // Show specific error message
       const errorMessage = err.response?.data?.message || err.message || "Failed to promote student.";
@@ -293,6 +285,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         position: "top-right",
         autoClose: 4000,
       });
+      // Warn if any promoted students had missing fee structures
+      const feeWarnings = res.results.success.filter(s => s.feeAssignmentWarning);
+      if (feeWarnings.length > 0) {
+        toast.warn(`${feeWarnings.length} student(s) promoted but fee structure not found for new semester. Please assign fees manually.`, {
+          position: "top-right",
+          autoClose: 8000,
+        });
+      }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to promote students.";
       setError(errorMessage);
@@ -691,10 +691,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <td>
                           <div>
                             <span className="badge badge-info">
-                              {getAcademicYear(
-                                student.currentSemester,
-                                student.admissionYear,
-                              )}
+                              {student.academicYearLabel}
                             </span>
                             <div
                               className="text-muted"
@@ -809,16 +806,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                 <div className="student-email">{selectedStudent.email}</div>
                 <div className="promotion-info">
                   <span className="badge badge-info">
-                    {getAcademicYear(
-                      selectedStudent.currentSemester,
-                      selectedStudent.admissionYear,
-                    )}
+                    {selectedStudent.academicYearLabel}
                     (Sem {selectedStudent.currentSemester}) →
-                    {getAcademicYear(
-                      selectedStudent.currentSemester + 1,
-                      selectedStudent.admissionYear,
-                    )}
-                    (Sem {selectedStudent.currentSemester + 1})
+                    {selectedStudent.nextAcademicYearLabel || `Sem ${selectedStudent.currentSemester + 1}`}
                   </span>
                   <span
                     className={`badge ${getFeeStatusBadge(selectedStudent.feeStatus)}`}

@@ -1,6 +1,8 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
+const FeeStructure = require("../models/feeStructure.model");
 const PromotionHistory = require("../models/promotionHistory.model");
+const Notification = require("../models/notification.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -13,6 +15,92 @@ function getAcademicYearLabel(semester) {
   const year = Math.ceil(semester / 2);
   const suffix = getOrdinalSuffix(year);
   return `${year}${suffix} Year`;
+}
+
+/**
+ * Helper: attempt to assign a new fee structure to student after promotion
+ * Returns: { newFeeAssigned, newFeeStructureId, newStudentFeeId, feeAssignmentWarning }
+ */
+async function assignFeeAfterPromotion(student, toSemester, newAcademicYear, college_id) {
+  try {
+    // Look for fee structure matching course + category (+ optional academicYear)
+    const feeStructureQuery = {
+      college_id,
+      course_id: student.course_id._id || student.course_id,
+      category: student.category,
+    };
+
+    // Prefer year-specific fee structure if available
+    const yearSpecific = await FeeStructure.findOne({
+      ...feeStructureQuery,
+      academicYear: newAcademicYear,
+    });
+
+    const feeStructure = yearSpecific || await FeeStructure.findOne(feeStructureQuery);
+
+    if (!feeStructure) {
+      return {
+        newFeeAssigned: false,
+        newFeeStructureId: null,
+        newStudentFeeId: null,
+        feeAssignmentWarning: `No fee structure found for course "${student.course_id?.name || student.course_id}" and category "${student.category}" for academic year ${newAcademicYear}. Please set up fee structure manually.`,
+      };
+    }
+
+    // Create new StudentFee record for the new academic year
+    const newStudentFee = await StudentFee.create({
+      student_id: student._id,
+      college_id,
+      course_id: student.course_id._id || student.course_id,
+      totalFee: feeStructure.totalFee,
+      paidAmount: 0,
+      installments: feeStructure.installments.map((inst) => ({
+        name: inst.name,
+        amount: inst.amount,
+        order: inst.order,
+        dueDate: inst.dueDate,
+        status: "PENDING",
+      })),
+    });
+
+    return {
+      newFeeAssigned: true,
+      newFeeStructureId: feeStructure._id,
+      newStudentFeeId: newStudentFee._id,
+      feeAssignmentWarning: null,
+    };
+  } catch (err) {
+    return {
+      newFeeAssigned: false,
+      newFeeStructureId: null,
+      newStudentFeeId: null,
+      feeAssignmentWarning: `Fee assignment failed: ${err.message}`,
+    };
+  }
+}
+
+/**
+ * Helper: send promotion notification to a student (fire-and-forget)
+ */
+async function sendPromotionNotification(student, toSemester, toYearLabel, newAcademicYear, adminId, adminName, college_id) {
+  try {
+    if (!student.user_id) return; // student has no linked user account yet
+    await Notification.create({
+      college_id,
+      createdBy: adminId,
+      createdByRole: "COLLEGE_ADMIN",
+      target: "INDIVIDUAL",
+      target_users: [student.user_id],
+      title: "🎓 Promotion Confirmed",
+      message: `Congratulations ${student.fullName}! You have been promoted to ${toYearLabel} (Semester ${toSemester}, ${newAcademicYear}) by ${adminName}.`,
+      type: "ACADEMIC",
+      priority: "HIGH",
+      actionUrl: "/student/dashboard",
+    });
+  } catch (err) {
+    // Notification failure must never break promotion — log only
+    console.error(`[PROMOTION] Notification failed for student ${student._id}:`, err.message);
+  }
 }
 
 /**
@@ -338,7 +426,16 @@ exports.promoteStudent = async (req, res, next) => {
 
     await student.save();
 
-    // 8. Create promotion history record
+    // 8. Calculate year labels
+    const fromYearLabel = getAcademicYearLabel(fromSemester);
+    const toYearLabel = getAcademicYearLabel(toSemester);
+
+    // 9. Assign fee structure for new semester
+    const feeAssignment = await assignFeeAfterPromotion(
+      student, toSemester, newAcademicYear, req.college_id
+    );
+
+    // 10. Create promotion history record
     const promotionRecord = await PromotionHistory.create({
       student_id: student._id,
       college_id: req.college_id,
@@ -357,15 +454,22 @@ exports.promoteStudent = async (req, res, next) => {
       remarks: remarks || null,
       status: "ACTIVE",
       isFinalSemesterPromotion: isMovingToFinalSemester,
+      newFeeAssigned: feeAssignment.newFeeAssigned,
+      newFeeStructureId: feeAssignment.newFeeStructureId,
+      newStudentFeeId: feeAssignment.newStudentFeeId,
+      feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
     });
 
-    // 9. Add to student's promotion history array
+    // 11. Add to student's promotion history array
     student.promotionHistory.push(promotionRecord._id);
     await student.save();
 
-    // 10. Calculate year labels for response
-    const fromYearLabel = getAcademicYearLabel(fromSemester);
-    const toYearLabel = getAcademicYearLabel(toSemester);
+    // 12. Send notification to student (non-blocking)
+    const adminName = req.user.name || req.user.email || 'Admin';
+    sendPromotionNotification(
+      student, toSemester, toYearLabel, newAcademicYear,
+      req.user.id, adminName, req.college_id
+    );
 
     ApiResponse.success(res, {
       promotion: {
@@ -382,6 +486,8 @@ exports.promoteStudent = async (req, res, next) => {
         remarks,
         isFinalSemesterPromotion: isMovingToFinalSemester,
         maxSemester,
+        newFeeAssigned: feeAssignment.newFeeAssigned,
+        feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
       },
     }, isMovingToFinalSemester
       ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
@@ -488,6 +594,14 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         student.isPromotionEligible = toSemester < maxSemester;
         await student.save();
 
+        const fromYearLabel = getAcademicYearLabel(fromSemester);
+        const toYearLabel = getAcademicYearLabel(toSemester);
+
+        // Assign fee structure for new semester
+        const feeAssignment = await assignFeeAfterPromotion(
+          student, toSemester, newAcademicYear, req.college_id
+        );
+
         const promotionRecord = await PromotionHistory.create({
           student_id: student._id,
           college_id: req.college_id,
@@ -506,13 +620,21 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           remarks: remarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
           status: "ACTIVE",
           isFinalSemesterPromotion: isMovingToFinalSemester,
+          newFeeAssigned: feeAssignment.newFeeAssigned,
+          newFeeStructureId: feeAssignment.newFeeStructureId,
+          newStudentFeeId: feeAssignment.newStudentFeeId,
+          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
         });
 
         student.promotionHistory.push(promotionRecord._id);
         await student.save();
 
-        const fromYearLabel = getAcademicYearLabel(fromSemester);
-        const toYearLabel = getAcademicYearLabel(toSemester);
+        // Send notification (non-blocking)
+        const adminName = req.user.name || req.user.email || 'Admin';
+        sendPromotionNotification(
+          student, toSemester, toYearLabel, newAcademicYear,
+          req.user.id, adminName, req.college_id
+        );
 
         results.success.push({
           studentId,
@@ -522,6 +644,8 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           fromYearLabel,
           toYearLabel,
           isFinalSemesterPromotion: isMovingToFinalSemester,
+          newFeeAssigned: feeAssignment.newFeeAssigned,
+          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
         });
       } catch (error) {
         results.failed.push({
