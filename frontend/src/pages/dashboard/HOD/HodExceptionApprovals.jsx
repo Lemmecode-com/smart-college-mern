@@ -15,6 +15,7 @@ import {
   FaUser,
   FaBook,
   FaClock,
+  FaUndo,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -22,14 +23,17 @@ const STATUS_COLORS = {
   PENDING: { bg: "#fef3c7", text: "#92400e", border: "#fde68a" },
   APPROVED: { bg: "#e0f2fe", text: "#075985", border: "#bae6fd" },
   REJECTED: { bg: "#fee2e2", text: "#991b1b", border: "#fecaca" },
+  WITHDRAWN: { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" },
 };
+
+const MotionDiv = motion.div;
 
 export default function HodExceptionApprovals() {
   const { user } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [history, setHistory] = useState({ approved: [], rejected: [] });
+  const [history, setHistory] = useState({ approved: [], rejected: [], withdrawn: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -38,9 +42,6 @@ export default function HodExceptionApprovals() {
     exceptionId: null,
     reason: "",
   });
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "HOD") return <Navigate to="/hod/dashboard" />;
 
   const fetchPending = async () => {
     try {
@@ -67,6 +68,7 @@ export default function HodExceptionApprovals() {
       setHistory({
         approved: data.approved || [],
         rejected: data.rejected || [],
+        withdrawn: data.withdrawn || [],
       });
     } catch (err) {
       const errorMsg =
@@ -161,7 +163,10 @@ export default function HodExceptionApprovals() {
     });
   };
 
-  if (loading && pendingRequests.length === 0 && history.approved.length === 0) {
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "HOD") return <Navigate to="/hod/dashboard" />;
+
+  if (loading && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
     return (
       <Loading
         fullScreen
@@ -172,7 +177,7 @@ export default function HodExceptionApprovals() {
     );
   }
 
-  if (error && pendingRequests.length === 0 && history.approved.length === 0) {
+  if (error && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
     return (
       <ApiError
         title="Loading Error"
@@ -184,7 +189,7 @@ export default function HodExceptionApprovals() {
   }
 
   const renderPendingCard = (exc, index) => (
-    <motion.div
+    <MotionDiv
       key={exc._id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -228,7 +233,7 @@ export default function HodExceptionApprovals() {
                       Teacher
                     </small>
                     <span className="fw-semibold text-dark small">
-                      {exc.teacher?.name || "Unknown Teacher"}
+                      {exc.createdBy?.name || "Unknown Teacher"}
                     </span>
                   </div>
                 </div>
@@ -288,12 +293,12 @@ export default function HodExceptionApprovals() {
               </div>
             )}
 
-            {exc.timetable && (
+            {exc.timetable_id && (
               <div className="mt-2">
                 <small className="text-muted" style={{ fontSize: "0.7rem" }}>
                   Timetable:{" "}
                   <span className="fw-medium text-dark">
-                    {exc.timetable.name || "Timetable"} (Sem {exc.timetable.semester || "N/A"})
+                    {exc.timetable_id.name || "Timetable"} (Sem {exc.timetable_id.semester || "N/A"})
                   </span>
                 </small>
               </div>
@@ -334,16 +339,48 @@ export default function HodExceptionApprovals() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 
   const renderHistoryCard = (exc, index, type) => {
-    const colors = type === "approved" ? STATUS_COLORS.APPROVED : STATUS_COLORS.REJECTED;
-    const actionBy = type === "approved" ? exc.approvedBy : exc.rejectedBy;
-    const actionAt = type === "approved" ? exc.approvedAt : exc.rejectedAt;
+    const colors = STATUS_COLORS[exc.status] || (
+      type === "approved" ? STATUS_COLORS.APPROVED : STATUS_COLORS.REJECTED
+    );
+    const actionBy =
+      type === "approved"
+        ? exc.approvedBy
+        : type === "rejected"
+          ? exc.rejectedBy
+          : exc.withdrawnBy;
+    const actionAt =
+      type === "approved"
+        ? exc.approvedAt
+        : type === "rejected"
+          ? exc.rejectedAt
+          : exc.withdrawnAt;
+    const actionLabel =
+      type === "approved"
+        ? "Approved By"
+        : type === "rejected"
+          ? "Rejected By"
+          : "Withdrawn By";
+    const statusLabel =
+      type === "approved"
+        ? "Approved"
+        : type === "rejected"
+          ? "Rejected"
+          : "Withdrawn";
+    const statusIcon =
+      type === "approved" ? (
+        <FaCheck className="me-1" size={10} />
+      ) : type === "rejected" ? (
+        <FaTimes className="me-1" size={10} />
+      ) : (
+        <FaUndo className="me-1" size={10} />
+      );
 
     return (
-      <motion.div
+      <MotionDiv
         key={exc._id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -371,17 +408,8 @@ export default function HodExceptionApprovals() {
                 borderRadius: "6px",
               }}
             >
-              {type === "approved" ? (
-                <>
-                  <FaCheck className="me-1" size={10} />
-                  Approved
-                </>
-              ) : (
-                <>
-                  <FaTimes className="me-1" size={10} />
-                  Rejected
-                </>
-              )}
+              {statusIcon}
+              {statusLabel}
             </span>
           </div>
 
@@ -394,7 +422,7 @@ export default function HodExceptionApprovals() {
                     Teacher
                   </small>
                   <span className="fw-semibold text-dark small">
-                    {exc.teacher?.name || "Unknown Teacher"}
+                    {exc.createdBy?.name || "Unknown Teacher"}
                   </span>
                 </div>
               </div>
@@ -430,7 +458,7 @@ export default function HodExceptionApprovals() {
                 <FaUser className="text-muted" size={14} />
                 <div>
                   <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    {type === "approved" ? "Approved By" : "Rejected By"}
+                    {actionLabel}
                   </small>
                   <span className="fw-semibold text-dark small">
                     {actionBy?.name || "N/A"}
@@ -470,14 +498,30 @@ export default function HodExceptionApprovals() {
             </div>
           )}
 
+          {type === "withdrawn" && exc.withdrawalReason && (
+            <div className="mt-2 p-2 rounded" style={{ background: "#f8fafc" }}>
+              <div className="d-flex align-items-start gap-2">
+                <FaUndo size={14} className="mt-1" style={{ color: "#64748b" }} />
+                <div>
+                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
+                    Withdrawal Reason
+                  </small>
+                  <p className="mb-0 small" style={{ color: "#64748b" }}>
+                    {exc.withdrawalReason}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-2">
             <small className="text-muted" style={{ fontSize: "0.7rem" }}>
-              {type === "approved" ? "Approved" : "Rejected"} At:{" "}
+              {statusLabel} At:{" "}
               <span className="fw-medium text-dark">{formatDateTime(actionAt)}</span>
             </small>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     );
   };
 
@@ -491,7 +535,7 @@ export default function HodExceptionApprovals() {
     >
       <ToastContainer position="top-right" theme="colored" />
 
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
@@ -504,7 +548,7 @@ export default function HodExceptionApprovals() {
       >
         <div className="p-4 text-white position-relative">
           <div className="d-flex align-items-center gap-3">
-            <motion.div
+            <MotionDiv
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               className="d-flex align-items-center justify-content-center"
@@ -519,7 +563,7 @@ export default function HodExceptionApprovals() {
               }}
             >
               <FaExclamationTriangle />
-            </motion.div>
+            </MotionDiv>
             <div>
               <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
                 Exception Approvals
@@ -530,7 +574,7 @@ export default function HodExceptionApprovals() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       <div className="p-4">
         <div className="card shadow-sm border-0" style={{ borderRadius: "12px", background: "white" }}>
@@ -583,7 +627,7 @@ export default function HodExceptionApprovals() {
             <div className="p-4">
               <AnimatePresence mode="wait">
                 {activeTab === "pending" && (
-                  <motion.div
+                  <MotionDiv
                     key="pending"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -594,7 +638,7 @@ export default function HodExceptionApprovals() {
                         <Loading size="md" text="Loading pending requests..." />
                       </div>
                     ) : pendingRequests.length === 0 ? (
-                      <motion.div
+                      <MotionDiv
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="text-center py-5"
@@ -614,15 +658,15 @@ export default function HodExceptionApprovals() {
                         <p className="text-muted">
                           No pending exception requests at the moment.
                         </p>
-                      </motion.div>
+                      </MotionDiv>
                     ) : (
                       pendingRequests.map((exc, index) => renderPendingCard(exc, index))
                     )}
-                  </motion.div>
+                  </MotionDiv>
                 )}
 
                 {activeTab === "history" && (
-                  <motion.div
+                  <MotionDiv
                     key="history"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -632,8 +676,8 @@ export default function HodExceptionApprovals() {
                       <div className="text-center py-5">
                         <Loading size="md" text="Loading history..." />
                       </div>
-                    ) : history.approved.length === 0 && history.rejected.length === 0 ? (
-                      <motion.div
+                    ) : history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0 ? (
+                      <MotionDiv
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         className="text-center py-5"
@@ -651,9 +695,9 @@ export default function HodExceptionApprovals() {
                         </div>
                         <h5 className="fw-bold text-dark mb-2">No History Yet</h5>
                         <p className="text-muted">
-                          Approved and rejected exceptions will appear here.
+                          Approved, rejected, and withdrawn exceptions will appear here.
                         </p>
-                      </motion.div>
+                      </MotionDiv>
                     ) : (
                       <>
                         {history.approved.length > 0 && (
@@ -692,9 +736,27 @@ export default function HodExceptionApprovals() {
                             )}
                           </>
                         )}
+                        {history.withdrawn.length > 0 && (
+                          <>
+                            <h6
+                              className="fw-bold text-uppercase mb-3 mt-4"
+                              style={{
+                                fontSize: "0.75rem",
+                                letterSpacing: "0.5px",
+                                color: "#475569",
+                              }}
+                            >
+                              <FaUndo className="me-1" /> Withdrawn Requests (
+                              {history.withdrawn.length})
+                            </h6>
+                            {history.withdrawn.map((exc, index) =>
+                              renderHistoryCard(exc, index, "withdrawn"),
+                            )}
+                          </>
+                        )}
                       </>
                     )}
-                  </motion.div>
+                  </MotionDiv>
                 )}
               </AnimatePresence>
             </div>
@@ -704,7 +766,7 @@ export default function HodExceptionApprovals() {
 
       <AnimatePresence>
         {rejectModal.isOpen && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -712,7 +774,7 @@ export default function HodExceptionApprovals() {
             tabIndex="-1"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           >
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="modal-dialog modal-dialog-centered"
@@ -802,8 +864,8 @@ export default function HodExceptionApprovals() {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </MotionDiv>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
