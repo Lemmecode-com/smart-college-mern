@@ -318,6 +318,21 @@ exports.createRazorpayOrder = async (req, res, next) => {
       );
     }
 
+    // Validate installment order: Previous installments must be paid
+    const installmentOrder = installment.order || 0;
+    if (installmentOrder > 1) {
+      const unpaidPrevious = studentFee.installments.some(
+        (i) => i.order < installmentOrder && i.status !== "PAID",
+      );
+      if (unpaidPrevious) {
+        throw new AppError(
+          "Cannot pay this installment. Previous installments are still pending.",
+          400,
+          "PREVIOUS_INSTALLMENTS_PENDING",
+        );
+      }
+    }
+
     // 🔒 RECOVERY: Check if there's already an active order for this installment
     // ⚠️ IMPORTANT: Get config FIRST to ensure we have keyId for all response paths
     let keyId;
