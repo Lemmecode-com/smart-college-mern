@@ -6,6 +6,7 @@ const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const {
   sendAdmissionApprovalEmail,
+  sendAdmissionOfferEmail,
   sendAdmissionRejectionEmail,
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
@@ -99,7 +100,7 @@ exports.approveStudent = async (req, res, next) => {
     const approvedCount = await Student.countDocuments({
       course_id: student.course_id,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
     });
 
     if (approvedCount >= course.maxStudents) {
@@ -160,32 +161,23 @@ exports.approveStudent = async (req, res, next) => {
       installments,
     });
 
-// ✅ FIX: Issue #6 - Generate enrollment number
-    const college = await College.findById(student.college_id).select("code");
-    const courseInfo = await Course.findById(student.course_id).select("code");
-
-    // Count existing students in same course+year to generate sequential number
+// 6️⃣ Generate enrollment number
+    const collegeData = await College.findById(student.college_id).select("code");
+    const courseData = await Course.findById(student.course_id).select("code");
     const existingCount = await Student.countDocuments({
       course_id: student.course_id,
       admissionYear: student.admissionYear,
-      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED"] },
+      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "SEAT_CONFIRMED"] },
     });
-
     const sequence = String(existingCount + 1).padStart(4, "0");
-    const enrollmentNumber = `${college.code}-${courseInfo.code}${student.admissionYear}-${sequence}`;
-    student.enrollmentNumber = enrollmentNumber;
-    // ✅ END FIX: enrollment number generation
+    student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
-    // 7️⃣ Approve student (AFTER fee allocation)
-    student.status = "APPROVED";
-    student.approvedBy = req.user.id;
-    student.approvedAt = new Date();
+    // 7️⃣ Approve student (set to OFFER_MADE status initially)
+    student.status = "OFFER_MADE";
+    student.offerMadeBy = req.user.id;
+    student.offerMadeAt = new Date();
+    student.approvedAt = undefined;
     await student.save();
-
-    // 📝 Audit log - Student approval
-    auditLogService
-      .logStudentApproval(student, req.user, req)
-      .catch((err) => console.error("Audit log failed:", err));
 
     // 👨‍👩‍👧 Auto-create parent accounts (await to capture temp passwords in response)
     let parentCreationResult = null;
@@ -202,7 +194,12 @@ exports.approveStudent = async (req, res, next) => {
       parentCreationResult = { count: 0, parents: [], error: error.message };
     }
 
-    // 📧 Send admission email to student (fire-and-forget)
+    // 📝 Audit log - Offer made
+    auditLogService
+      .logStudentOfferMade(student, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
+
+    // 📧 Send offer email to student (fire-and-forget)
     (async () => {
       try {
         const college = await College.findById(student.college_id).select(
@@ -211,7 +208,7 @@ exports.approveStudent = async (req, res, next) => {
         const crs = await Course.findById(student.course_id).select("name");
         const loginUrl = buildFrontendUrl("/login");
 
-        await sendAdmissionApprovalEmail({
+        await sendAdmissionOfferEmail({
           to: student.email,
           studentName: student.fullName,
           courseName: crs?.name || "N/A",
@@ -222,14 +219,14 @@ exports.approveStudent = async (req, res, next) => {
           email: student.email,
           collegeId: student.college_id,
         });
-        console.log(`📧 Admission approval email sent to ${student.email}`);
+        console.log(`📧 Admission offer email sent to ${student.email}`);
       } catch (e) {
-        console.error("❌ Admission email failed:", e.message);
+        console.error("❌ Admission offer email failed:", e.message);
       }
     })();
 
     res.json({
-      message: "Student approved and fee allocated successfully",
+      message: "Admission offer made successfully",
 
       student: {
         id: student._id,
@@ -240,7 +237,8 @@ exports.approveStudent = async (req, res, next) => {
         status: student.status,
         course: student.course_id,
         department: student.department_id,
-        approvedAt: student.approvedAt,
+        enrollmentNumber: student.enrollmentNumber,
+        offerMadeAt: student.offerMadeAt,
       },
 
       fee: {
@@ -356,7 +354,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const approvedCount = await Student.countDocuments({
           course_id: student.course_id,
           college_id: req.college_id,
-          status: "APPROVED",
+          status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
         });
 
         if (approvedCount >= course.maxStudents) {
@@ -414,7 +412,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const existingCount = await Student.countDocuments({
           course_id: student.course_id,
           admissionYear: student.admissionYear,
-          status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED"] },
+          status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
         });
         const sequence = String(existingCount + 1).padStart(4, "0");
         student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
@@ -436,10 +434,10 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 9. Approve student ──
-        student.status = "APPROVED";
-        student.approvedBy = req.user.id;
-        student.approvedAt = new Date();
+        // ── 9. Make admission offer ──
+        student.status = "OFFER_MADE";
+        student.offerMadeBy = req.user.id;
+        student.offerMadeAt = new Date();
         await student.save();
 
         // ── 10. Auto-create parent accounts (non-blocking) ──
@@ -456,7 +454,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
           }
         })();
 
-        // ── 10. Send email (non-blocking) ──
+        // ── 11. Send offer email (non-blocking) ──
         (async () => {
           try {
             const college = await College.findById(student.college_id).select(
@@ -465,7 +463,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
             const crs = await Course.findById(student.course_id).select("name");
             const loginUrl = buildFrontendUrl("/login");
 
-            await sendAdmissionApprovalEmail({
+            await sendAdmissionOfferEmail({
               to: student.email,
               studentName: student.fullName,
               courseName: crs?.name || "N/A",
@@ -477,7 +475,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
               collegeId: student.college_id,
             });
           } catch (e) {
-            console.error("❌ Bulk email failed:", e.message);
+            console.error("❌ Bulk offer email failed:", e.message);
           }
         })();
 
@@ -619,6 +617,96 @@ exports.rejectStudent = async (req, res, next) => {
         email: student.email,
         status: student.status,
         rejectionReason: student.rejectionReason,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * CONFIRM ENROLLMENT
+ * Transitions student from OFFER_MADE → ENROLLED → APPROVED
+ * Called when student confirms their seat and completes enrollment
+ */
+exports.confirmEnrollment = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+
+    // Find student with OFFER_MADE status
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: "OFFER_MADE",
+    });
+
+    if (!student) {
+      throw new AppError(
+        "Student not found or not in OFFER_MADE status",
+        404,
+        "STUDENT_NOT_FOUND",
+      );
+    }
+
+    // Check if student has made payment (at least first installment)
+    const studentFee = await StudentFee.findOne({
+      student_id: student._id,
+      college_id: student.college_id,
+    });
+
+    if (studentFee && studentFee.paidAmount < (studentFee.totalFee * 0.25)) {
+      // Allow enrollment even without 25% payment for now (can be enforced later)
+    }
+
+    // Transition to ENROLLED (student confirmed seat)
+    student.status = "ENROLLED";
+    student.seatConfirmedAt = student.seatConfirmedAt || new Date();
+    student.enrollmentConfirmedAt = new Date();
+    student.enrollmentDate = new Date();
+    student.approvedBy = req.user.id;
+    student.approvedAt = new Date();
+    await student.save();
+
+    // 📝 Audit log - Enrollment confirmed
+    auditLogService
+      .logStudentEnrollment(student, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
+
+    // 📧 Send enrollment confirmation email
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select(
+          "name email",
+        );
+        const crs = await Course.findById(student.course_id).select("name");
+        const loginUrl = buildFrontendUrl("/login");
+
+        await sendAdmissionApprovalEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: crs?.name || "N/A",
+          collegeName: college?.name || "Our College",
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl,
+          email: student.email,
+          collegeId: student.college_id,
+        });
+        console.log(`📧 Enrollment confirmation email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Enrollment email failed:", e.message);
+      }
+    })();
+
+    res.json({
+      message: "Enrollment confirmed successfully",
+      student: {
+        id: student._id,
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        enrollmentNumber: student.enrollmentNumber,
+        enrollmentDate: student.enrollmentDate,
       },
     });
   } catch (error) {

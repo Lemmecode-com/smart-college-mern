@@ -128,6 +128,66 @@ class AuditLogService {
   }
 
   /**
+   * Log student offer made
+   */
+  async logStudentOfferMade(student, user, req) {
+    return await this.logAudit({
+      collegeId: student.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "OFFER_MADE",
+      resourceType: "StudentApproval",
+      resourceId: student._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        studentId: student._id,
+        studentName: student.fullName,
+        email: student.email,
+        courseId: student.course_id,
+        status: "OFFER_MADE",
+        offerMadeBy: user.id,
+        offerMadeAt: student.offerMadeAt,
+        enrollmentNumber: student.enrollmentNumber,
+      },
+    });
+  }
+
+  /**
+   * Log student enrollment
+   */
+  async logStudentEnrollment(student, user, req) {
+    return await this.logAudit({
+      collegeId: student.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "ENROLL_CONFIRMED",
+      resourceType: "StudentApproval",
+      resourceId: student._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        studentId: student._id,
+        studentName: student.fullName,
+        email: student.email,
+        status: "APPROVED",
+        enrollmentConfirmedAt: student.enrollmentConfirmedAt,
+        enrollmentDate: student.enrollmentDate,
+        approvedBy: student.approvedBy,
+        approvedAt: student.approvedAt,
+      },
+    });
+  }
+
+  /**
    * Log fee structure creation
    */
   async logFeeStructureCreate(feeStructure, user, req) {
