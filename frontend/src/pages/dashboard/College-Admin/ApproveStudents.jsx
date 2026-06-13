@@ -6,28 +6,13 @@ import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 
-import {
-  FaSearch,
-  FaEye,
-  FaCheckCircle,
-  FaGraduationCap,
-  FaBuilding,
-  FaBookOpen,
-  FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaExclamationTriangle,
-  FaSyncAlt,
-  FaUserCheck,
-  FaUserTimes,
-  FaEnvelope,
-  FaUsers,
-} from "react-icons/fa";
+import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble } from "react-icons/fa";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 const PAGE_SIZE = 5;
 
-export default function ApproveStudents({ admissionOfficerMode = false }) {
+export default function ApproveStudents({ admissionOfficerMode = false, principalMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,10 +29,16 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
     byCourse: {},
     byYear: {},
   });
+  const [processingId, setProcessingId] = useState(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollStudentId, setEnrollStudentId] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+  if (principalMode && user.role !== "PRINCIPAL") {
+    return <Navigate to="/dashboard" />;
+  }
+  if (!admissionOfficerMode && !principalMode && user.role !== "COLLEGE_ADMIN") {
     return <Navigate to="/dashboard" />;
   }
   // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
@@ -59,21 +50,16 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
       setError("");
       const res = await api.get("/students/approved-students");
 
-      // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
-        // New format: { success: true, data: [...], pagination: {...} }
         data = res.data.data;
       } else if (Array.isArray(res.data)) {
-        // Old format: [...]
         data = res.data;
       } else {
         data = [];
       }
 
       setStudents(data);
-
-      // Calculate stats client-side (no API changes)
       calculateStats(data);
       setRetryCount(0);
     } catch (err) {
@@ -86,43 +72,38 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
     }
   };
 
-  /* ================= CALCULATE STATS ================= */
-  const calculateStats = (studentList) => {
-    const byDepartment = {};
-    const byCourse = {};
-    const byYear = {};
-
-    studentList.forEach((student) => {
-      // Department stats
-      const dept = student.department_id?.name || "Unknown";
-      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
-
-      // Course stats
-      const course = student.course_id?.name || "Unknown";
-      byCourse[course] = (byCourse[course] || 0) + 1;
-
-      // Year stats
-      const year = student.admissionYear || "Unknown";
-      byYear[year] = (byYear[year] || 0) + 1;
-    });
-
-    setStats({
-      total: studentList.length,
-      byDepartment,
-      byCourse,
-      byYear,
-    });
+  /* ================= FETCH ALL STUDENTS (PRINCIPAL) ================= */
+  const fetchAllStudents = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api.get("/students/approved");
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data.data)
+        ? res.data.data
+        : [];
+      setStudents(data);
+      calculateStats(data);
+      setRetryCount(0);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to load students. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchApprovedStudents();
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
   }, []);
 
   // Refresh when navigating from approval action
   useEffect(() => {
     if (location.state?.refresh) {
-      fetchApprovedStudents();
-      // Clear the refresh flag
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state?.refresh]);
@@ -153,7 +134,7 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
   const handleRetry = () => {
     if (retryCount < 3) {
       setRetryCount((prev) => prev + 1);
-      fetchApprovedStudents();
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
     } else {
       setError("Maximum retry attempts reached. Please check your connection.");
     }
@@ -204,6 +185,33 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
     }
   };
 
+  /* ================= CONFIRM ENROLLMENT ================= */
+  const handleConfirmEnrollment = (studentId) => {
+    setEnrollStudentId(studentId);
+    setShowEnrollModal(true);
+  };
+
+  const executeConfirmEnrollment = async () => {
+    if (!enrollStudentId) return;
+
+    setProcessingId(enrollStudentId);
+    try {
+      await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
+      toast.success("Enrollment confirmed successfully!", {
+        position: "top-right",
+      });
+      fetchApprovedStudents();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to confirm enrollment", {
+        position: "top-right",
+      });
+    } finally {
+      setShowEnrollModal(false);
+      setEnrollStudentId(null);
+      setProcessingId(null);
+    }
+  };
+
   /* ================= PAGINATION ================= */
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
@@ -248,53 +256,65 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
 
   return (
     <div className="erp-container">
-       {/* BREADCRUMBS */}
-       <Breadcrumb
-         items={admissionOfficerMode
-           ? [
-               { label: "Dashboard", path: "/dashboard/admission" },
-               { label: "Admissions", path: "/admission/applications" },
-               { label: "Approved Students" },
-             ]
-           : [
-               { label: "Dashboard", path: "/dashboard" },
-               { label: "Students", path: "/students" },
-               { label: "Approved Students" },
-             ]
-         }
-       />
+        {/* BREADCRUMBS */}
+        <Breadcrumb
+          items={principalMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/principal" },
+                { label: "Students", path: "/principal/students" },
+                { label: "All Students" },
+              ]
+            : admissionOfficerMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/admission" },
+                { label: "Admissions", path: "/admission/applications" },
+                { label: "Approved Students" },
+              ]
+            : [
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Students", path: "/students" },
+                { label: "Approved Students" },
+              ]
+          }
+        />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaCheckCircle />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Approved Students</h1>
-            <p className="erp-page-subtitle">
-              View and manage students approved for admission
-            </p>
+        {/* HEADER */}
+        <div className="erp-page-header">
+          <div className="erp-header-content">
+            <div className="erp-header-icon">
+              {principalMode ? <FaUsers /> : <FaCheckCircle />}
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">
+                {principalMode ? "All Students" : "Approved Students"}
+              </h1>
+              <p className="erp-page-subtitle">
+                {principalMode
+                  ? "View all students across the college"
+                  : "View and manage students approved for admission"}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* STATS CARDS */}
-      <div className="stats-grid animate-fade-in">
-        <div className="stat-card">
-          <div
-            className="stat-card-icon"
-            style={{
-              background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
-            }}
-          >
-            <FaUserCheck />
+        {/* STATS CARDS */}
+        <div className="stats-grid animate-fade-in">
+          <div className="stat-card">
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+              }}
+            >
+              <FaUserCheck />
+            </div>
+            <div className="stat-card-content">
+              <div className="stat-card-label">
+                {principalMode ? "Total Students" : "Total Approved"}
+              </div>
+              <div className="stat-card-value">{stats.total}</div>
+            </div>
           </div>
-          <div className="stat-card-content">
-            <div className="stat-card-label">Total Approved</div>
-            <div className="stat-card-value">{stats.total}</div>
-          </div>
-        </div>
         <div className="stat-card">
           <div
             className="stat-card-icon"
@@ -355,11 +375,12 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
         <div className="erp-card-header">
           <h3>
             <FaGraduationCap className="erp-card-icon" />
-            Approved Student Records
+            {principalMode ? "Student Records" : "Approved Student Records"}
           </h3>
           <span className="record-count">
             {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"} Approved
+            {filteredStudents.length === 1 ? "Student" : "Students"}
+            {principalMode ? "" : " Approved"}
           </span>
         </div>
 
@@ -425,12 +446,25 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                         </span>
                       </td>
                       <td className="cell-status">
-                        <span className="badge badge-status">
-                          <FaCheckCircle className="badge-icon" />
-                          APPROVED
-                        </span>
+                        {student.status === "OFFER_MADE" ? (
+                          <span className="badge badge-offer-made">
+                            <FaEnvelope className="badge-icon" />
+                            OFFER MADE
+                          </span>
+                        ) : student.status === "ENROLLED" ? (
+                          <span className="badge badge-enrolled">
+                            <FaCheckDouble className="badge-icon" />
+                            ENROLLED
+                          </span>
+                        ) : (
+                          <span className="badge badge-status">
+                            <FaCheckCircle className="badge-icon" />
+                            APPROVED
+                          </span>
+                        )}
                       </td>
                       <td className="cell-actions">
+                        {!principalMode && (
                         <div className="action-buttons">
                           <button
                             className="btn btn-action btn-view-student"
@@ -444,6 +478,21 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
+                          {student.status === "OFFER_MADE" && (
+                            <button
+                              className="btn btn-action btn-confirm-enrollment"
+                              onClick={() => handleConfirmEnrollment(student._id)}
+                              disabled={processingId === student._id}
+                              title="Confirm Enrollment"
+                            >
+                              <FaCheckDouble />
+                              <span className="btn-text">
+                                {processingId === student._id
+                                  ? "Processing..."
+                                  : "Confirm Enrollment"}
+                              </span>
+                            </button>
+                          )}
                           {student.user_id && (
                             <button
                               className={`btn btn-action ${student.status === "DEACTIVATED" ? "btn-reactivate-student" : "btn-deactivate-student"}`}
@@ -467,7 +516,8 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
                             </button>
                           )}
                         </div>
-                      </td>
+                          )}
+                        </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1279,7 +1329,47 @@ export default function ApproveStudents({ admissionOfficerMode = false }) {
             padding: 14px 14px;
           }
         }
+
+        /* Badge styles for new statuses */
+        .badge-offer-made {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-enrolled {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment:hover {
+          background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 100%);
+          box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+        }
       `}</style>
+
+      {/* CONFIRM ENROLLMENT MODAL */}
+      <ConfirmModal
+        isOpen={showEnrollModal}
+        onClose={() => {
+          setShowEnrollModal(false);
+          setEnrollStudentId(null);
+        }}
+        onConfirm={executeConfirmEnrollment}
+        title="Confirm Enrollment"
+        message="Are you sure you want to confirm enrollment for this student? This will finalize their admission status."
+        type="success"
+        confirmText="Confirm Enrollment"
+        cancelText="Cancel"
+        isLoading={processingId === enrollStudentId}
+      />
     </div>
   );
 }
