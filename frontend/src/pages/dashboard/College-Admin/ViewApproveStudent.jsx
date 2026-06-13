@@ -1418,9 +1418,9 @@ export default function ViewApproveStudent() {
                 <FaBookOpen className="meta-icon" aria-hidden="true" />
                 {student.course_id?.name || "N/A"}
               </span>
-              <span className="status-badge status-approved">
+              <span className={`status-badge status-${student.status?.toLowerCase() || 'approved'}`}>
                 <FaCheckCircle className="status-icon" aria-hidden="true" />
-                APPROVED
+                {student.status || "APPROVED"}
               </span>
             </div>
           </div>

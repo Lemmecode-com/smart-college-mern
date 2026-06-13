@@ -52,14 +52,32 @@ exports.createCollege = async (req, res, next) => {
       registrationQr,
     });
 
-    // 5️⃣ Create College Admin (plain password — hashed in User schema)
     const collegeAdmin = await User.create({
       name: adminName,
       email: adminEmail,
       password: adminPassword,
       role: "COLLEGE_ADMIN",
       college_id: college._id,
+      mustChangePassword: true,
     });
+
+    await College.findByIdAndUpdate(college._id, {
+      admin_id: collegeAdmin._id,
+      adminEmail: adminEmail,
+      adminName: adminName,
+    });
+
+    try {
+      await sendEmailToCollegeAdmin({
+        to: adminEmail,
+        collegeName: college.name,
+        subject: `Welcome to ${college.name} - Your Admin Credentials`,
+        message: `Dear ${adminName},\n\nWelcome to Smart College Management System!\n\nYour College Admin account has been created for ${college.name}.\n\nLogin Credentials:\nEmail: ${adminEmail}\nPassword: ${adminPassword}\nLogin URL: ${registrationUrl}\n\nIMPORTANT: You must change this password on your first login.\n\nBest regards,\nSmart College Platform`,
+        collegeId: college._id,
+      });
+    } catch (emailError) {
+      console.error("Failed to send welcome email to college admin:", emailError.message);
+    }
 
     res.status(201).json({
       message: "College and College Admin created successfully",
@@ -346,8 +364,9 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
       to: adminUser.email,
       collegeName: college.name,
       subject:
-        subject || `Regarding ${college.name} - Smart College Management`,
+        subject || `Welcome to ${college.name} - Smart College Management`,
       message: message || "No message provided",
+      collegeId,
     });
 
     res.json({
@@ -359,6 +378,25 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
         subject:
           subject || `Regarding ${college.name} - Smart College Management`,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markSetupComplete = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    if (!collegeId) {
+      throw new AppError("College ID not found in request", 400, "MISSING_COLLEGE_ID");
+    }
+
+    await College.findByIdAndUpdate(collegeId, { setupCompleted: true });
+
+    res.json({
+      success: true,
+      message: "College setup marked as complete.",
     });
   } catch (error) {
     next(error);
