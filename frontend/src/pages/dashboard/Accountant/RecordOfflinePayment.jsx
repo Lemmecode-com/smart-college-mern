@@ -5,13 +5,14 @@ import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import {
-  FaMoneyBillWave,
-  FaSearch,
-  FaUser,
-  FaFileInvoiceDollar,
-  FaReceipt,
-  FaCheckCircle,
-} from "react-icons/fa";
+   FaMoneyBillWave,
+   FaSearch,
+   FaUser,
+   FaFileInvoiceDollar,
+   FaReceipt,
+   FaCheckCircle,
+   FaExclamationTriangle,
+ } from "react-icons/fa";
 
 export default function RecordOfflinePayment() {
    const navigate = useNavigate();
@@ -131,9 +132,19 @@ const handlePaymentSubmit = async (e) => {
     }).format(amount || 0);
   };
 
+  // Filter pending installments
   const pendingInstallments = feeDetails?.installments?.filter(
     (inst) => inst.status === "PENDING",
   ) || [];
+
+  // Check if installment can be paid (previous installments must be paid first) - used in render
+  const canPayInstallment = (installment) => {
+    const order = installment.order || 0;
+    if (order <= 1) return true;
+    return !feeDetails?.installments?.some(
+      (i) => i.order < order && i.status !== "PAID",
+    );
+  };
 
   return (
     <div className="record-offline-payment-container">
@@ -348,42 +359,52 @@ const handlePaymentSubmit = async (e) => {
               </div>
 
 <div className="mb-4">
-                 <h5>
-                   <FaFileInvoiceDollar /> Select Pending Installment
-                 </h5>
-                 {pendingInstallments.length === 0 ? (
-                   <p className="text-muted">No pending installments found for this student.</p>
-                 ) : (
-                   <div>
-                     {pendingInstallments.map((inst, idx) => {
-                       const instId = inst._id?.$oid || inst._id || inst.id;
-                       return (
-                         <div
-                           key={instId || idx}
-                           className={`installment-item ${selectedInstallment === instId ? "selected" : ""}`}
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setSelectedInstallment(instId);
-                           }}
-                         >
-                           <div className="d-flex justify-content-between align-items-center">
-                             <div>
-                               <strong>{inst.name}</strong>
-                               <br />
-                               <small>Due: {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : "N/A"}</small>
-                             </div>
-                             <div>
-                               <span className="pending-badge">
-                                 {formatCurrency(inst.amount)}
-                               </span>
-                             </div>
-                           </div>
-                         </div>
-                       );
-                     })}
-                   </div>
-                 )}
-               </div>
+                  <h5>
+                    <FaFileInvoiceDollar /> Select Pending Installment
+                  </h5>
+                  {pendingInstallments.length === 0 ? (
+                    <p className="text-muted">No pending installments found for this student.</p>
+                  ) : (
+                    <div>
+                      {pendingInstallments.map((inst, idx) => {
+                        const instId = inst._id?.$oid || inst._id || inst.id;
+                        const isBlocked = !canPayInstallment(inst);
+                        return (
+                          <div
+                            key={instId || idx}
+                            className={`installment-item ${selectedInstallment === instId ? "selected" : ""} ${isBlocked ? "blocked" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isBlocked) {
+                                setSelectedInstallment(instId);
+                              }
+                            }}
+                            style={{ opacity: isBlocked ? 0.6 : 1, cursor: isBlocked ? "not-allowed" : "pointer" }}
+                            title={isBlocked ? "Previous installments must be paid first" : ""}
+                          >
+                            <div className="d-flex justify-content-between align-items-center">
+                              <div>
+                                <strong>{inst.name}</strong>
+                                <br />
+                                <small>Due: {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : "N/A"}</small>
+                                {isBlocked && (
+                                  <div className="text-warning small mt-1">
+                                    <FaExclamationTriangle /> Pay previous installments first
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="pending-badge">
+                                  {formatCurrency(inst.amount)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
               <form onSubmit={handlePaymentSubmit}>
                 <div className="mb-3">
