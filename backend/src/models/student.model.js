@@ -262,8 +262,14 @@ const studentSchema = new mongoose.Schema(
     // 🔐 System
     status: {
       type: String,
-      enum: Object.values(STUDENT_STATUS),
+      enum: [...Object.values(STUDENT_STATUS), "INACTIVE"],
       default: STUDENT_STATUS.PENDING,
+    },
+
+    // Tracks pre-suspension status so restore returns student to correct state
+    suspendedFromStatus: {
+      type: String,
+      default: null,
     },
 
     // 🎓 Alumni Information

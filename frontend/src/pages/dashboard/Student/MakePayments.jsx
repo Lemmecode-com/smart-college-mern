@@ -433,6 +433,9 @@ export default function MakePayments() {
       } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
         errorMsg =
           "This installment has already been paid or is invalid. Please refresh the page.";
+      } else if (errorCode === "PREVIOUS_INSTALLMENTS_PENDING") {
+        errorMsg =
+          "Cannot pay this installment. Please pay previous installments first.";
       } else if (errorCode === "DECRYPTION_FAILED") {
         errorMsg = "Payment configuration error. Please contact support.";
       } else if (errorCode === "RAZORPAY_INIT_FAILED") {
@@ -542,6 +545,14 @@ export default function MakePayments() {
       } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
         errorMsg =
           "This installment has already been paid or is invalid. Please refresh the page.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else if (errorCode === "PREVIOUS_INSTALLMENTS_PENDING") {
+        errorMsg =
+          "Cannot pay this installment. Please pay previous installments first.";
         toast.error(errorMsg, {
           position: "top-center",
           autoClose: 5000,
