@@ -46,6 +46,36 @@ function getOrdinalSuffix(num) {
   return "th";
 }
 
+const ATTENDANCE_STATUS = {
+  ELIGIBLE: "ELIGIBLE",
+  NOT_ELIGIBLE: "NOT_ELIGIBLE",
+  ATTENDANCE_NOT_AVAILABLE: "ATTENDANCE_NOT_AVAILABLE",
+};
+
+function formatStatus(status) {
+  return status ? status.replace(/_/g, " ") : "-";
+}
+
+function getAttendanceStatusBadge(status) {
+  switch (status) {
+    case ATTENDANCE_STATUS.ELIGIBLE:
+      return "badge badge-success";
+    case ATTENDANCE_STATUS.NOT_ELIGIBLE:
+      return "badge badge-danger";
+    case ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE:
+      return "badge badge-warning";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+function isStudentPromotable(student) {
+  if (!student) return false;
+  const feeOk = student.allInstallmentsPaid;
+  const attendanceOk = student.attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
+  return feeOk && attendanceOk;
+}
+
 export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -62,6 +92,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [promotionRemarks, setPromotionRemarks] = useState("");
   const [overrideFeeCheck, setOverrideFeeCheck] = useState(false);
+  const [overrideAttendanceCheck, setOverrideAttendanceCheck] = useState(false);
+  const [overrideAttendanceReason, setOverrideAttendanceReason] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
   const [retryCount, setRetryCount] = useState(0);
@@ -191,6 +223,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setSelectedStudent(student);
     setPromotionRemarks("");
     setOverrideFeeCheck(false);
+    setOverrideAttendanceCheck(false);
+    setOverrideAttendanceReason("");
     setShowPromoteModal(true);
   };
 
@@ -198,9 +232,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     try {
       setLoading(true);
 
+      if (
+        selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+        overrideAttendanceCheck &&
+        overrideAttendanceReason.trim().length < 10
+      ) {
+        toast.error("Attendance override reason must be at least 10 characters.", {
+          position: "top-right",
+          autoClose: 5000,
+        });
+        return;
+      }
+
       const response = await promoteStudent(selectedStudent._id, {
         remarks: promotionRemarks,
         overrideFeeCheck,
+        overrideAttendanceCheck,
+        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
 
       // ✅ Updated success message with year-wise info from API
@@ -271,9 +319,22 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const handleBulkPromote = async () => {
     try {
       setLoading(true);
+      if (
+        overrideAttendanceCheck &&
+        overrideAttendanceReason.trim().length < 10
+      ) {
+        toast.error("Attendance override reason must be at least 10 characters.", {
+          position: "top-right",
+          autoClose: 5000,
+        });
+        return;
+      }
+
       const res = await bulkPromoteStudents({
         studentIds: selectedStudents,
         overrideFeeCheck,
+        overrideAttendanceCheck,
+        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
       setSuccessMessage(
         `${res.results.success.length} students promoted successfully!`,
@@ -315,6 +376,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   ).length;
   const pendingCount = students.filter(
     (s) => s.feeStatus !== "FULLY_PAID",
+  ).length;
+  const selectedAttendanceNotAvailableCount = selectedStudents.filter((id) =>
+    students.find((student) => student._id === id)?.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
   ).length;
 
   const getFeeStatusBadge = (status) => {
@@ -447,6 +511,41 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           >
             <FaArrowUp /> {loading ? "Processing..." : "Promote All Selected"}
           </button>
+          {!admissionOfficerMode && (
+            <label className="custom-checkbox-label">
+              <input
+                type="checkbox"
+                checked={overrideFeeCheck}
+                onChange={(e) => setOverrideFeeCheck(e.target.checked)}
+                className="custom-checkbox"
+              />
+              <span>Override fee check</span>
+            </label>
+          )}
+          {selectedAttendanceNotAvailableCount > 0 && (
+            <div className="bulk-action-overrides">
+              <label className="custom-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={overrideAttendanceCheck}
+                  onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
+                  className="custom-checkbox"
+                />
+                <span>Override attendance check for {selectedAttendanceNotAvailableCount} student(s) with no attendance records</span>
+              </label>
+              {overrideAttendanceCheck && (
+                <input
+                  type="text"
+                  value={overrideAttendanceReason}
+                  onChange={(e) => setOverrideAttendanceReason(e.target.value)}
+                  className="form-control"
+                  placeholder="Attendance override reason (minimum 10 characters)"
+                  minLength={10}
+                  required
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -517,10 +616,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                     <th>Student</th>
                     <th>Promotion</th>
                     <th>Fee Status</th>
+                    <th>Attendance</th>
+                    <th>Override</th>
                     <th>Date</th>
                     <th>Promoted By</th>
                     <th>Remarks</th>
                   </tr>
+
                 </thead>
                 <tbody>
                   {promotionHistory && promotionHistory.length > 0 ? (
@@ -565,6 +667,26 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                             {record.feeStatus.replace("_", " ")}
                           </span>
                         </td>
+                        <td>
+                          <span
+                            className={`badge ${getAttendanceStatusBadge(record.attendanceStatus)}`}
+                          >
+                            {formatStatus(record.attendanceStatus)}
+                          </span>
+                          <div className="text-muted" style={{ fontSize: "11px" }}>
+                            {record.attendancePercentage ?? 0}%
+                          </div>
+                          {record.attendanceCheckedAt && (
+                            <div className="text-muted" style={{ fontSize: "11px" }}>
+                              {new Date(record.attendanceCheckedAt).toLocaleString()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-muted">
+                          {record.attendanceOverridden
+                            ? record.attendanceOverrideReason || "Attendance override recorded"
+                            : "-"}
+                        </td>
                         <td className="text-muted">
                           {new Date(record.promotionDate).toLocaleDateString()}
                         </td>
@@ -576,7 +698,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="text-center" style={{ padding: "40px" }}>
+                      <td colSpan="8" className="text-center" style={{ padding: "40px" }}>
                         No promotion history found
                       </td>
                     </tr>
@@ -670,6 +792,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       <th>Total Fee</th>
                       <th>Paid Amount</th>
                       <th>Status</th>
+                      <th>Attendance %</th>
+                      <th>Attendance Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -730,19 +854,35 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           </span>
                         </td>
                         <td>
+                          <span className="fw-bold">
+                            {student.attendancePercentage ?? 0}%
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${getAttendanceStatusBadge(student.attendanceStatus)}`}
+                          >
+                            {formatStatus(student.attendanceStatus)}
+                          </span>
+                        </td>
+                        <td>
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
                               onClick={() => openPromoteModal(student)}
-                              disabled={!student.allInstallmentsPaid}
+                              disabled={!isStudentPromotable(student)}
                               className={`btn btn-sm ${
-                                student.allInstallmentsPaid
+                                isStudentPromotable(student)
                                   ? "btn-primary"
                                   : "btn-secondary disabled"
                               }`}
                               title={
-                                student.allInstallmentsPaid
+                                isStudentPromotable(student)
                                   ? "Click to promote"
-                                  : "Fees pending - cannot promote"
+                                  : student.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE
+                                    ? "Attendance below threshold - cannot promote"
+                                    : student.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+                                      ? "Attendance not available - cannot promote"
+                                      : "Fees pending - cannot promote"
                               }
                             >
                               <FaArrowUp /> Promote
@@ -857,6 +997,56 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                 )}
               </div>
 
+              <div className="attendance-details">
+                <div className="attendance-row">
+                  <span className="attendance-label">Attendance Percentage:</span>
+                  <span className="attendance-value fw-bold">
+                    {selectedStudent.attendancePercentage ?? 0}%
+                  </span>
+                </div>
+                <div className="attendance-row">
+                  <span className="attendance-label">Attendance Status:</span>
+                  <span
+                    className={`badge ${getAttendanceStatusBadge(selectedStudent.attendanceStatus)}`}
+                  >
+                    {formatStatus(selectedStudent.attendanceStatus)}
+                  </span>
+                </div>
+                {selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && (
+                  <div className="attendance-override">
+                    <label className="custom-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={overrideAttendanceCheck}
+                        onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
+                        className="custom-checkbox"
+                      />
+                      <span>Override Attendance Check</span>
+                    </label>
+                    <p className="alert-text" style={{ marginTop: "8px" }}>
+                      Attendance Override Reason is required. Minimum 10 characters.
+                    </p>
+                    {overrideAttendanceCheck && (
+                      <input
+                        type="text"
+                        value={overrideAttendanceReason}
+                        onChange={(e) => setOverrideAttendanceReason(e.target.value)}
+                        className="form-control"
+                        placeholder="Reason (minimum 10 characters)"
+                        minLength={10}
+                        required
+                        aria-label="Attendance override reason"
+                      />
+                    )}
+                    {overrideAttendanceCheck && overrideAttendanceReason.trim().length > 0 && overrideAttendanceReason.trim().length < 10 && (
+                      <p className="alert-text text-danger" style={{ marginTop: "8px" }}>
+                        Attendance override reason must be at least 10 characters.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Promoted By */}
               <div className="promoted-by-info">
                 <div className="info-row">
@@ -905,7 +1095,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             <div className="modal-footer">
               <button
                 onClick={handlePromoteStudent}
-                disabled={loading}
+                disabled={
+                  loading ||
+                  !selectedStudent ||
+                  (!selectedStudent.allInstallmentsPaid && !overrideFeeCheck) ||
+                  selectedStudent.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
+                  (selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+                    (!overrideAttendanceCheck || overrideAttendanceReason.trim().length < 10))
+                }
                 className="btn btn-primary"
               >
                 {loading ? (
@@ -1389,6 +1586,62 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
           color: #ffffff;
           box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+        }
+
+        .badge-secondary {
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
+        }
+
+        .attendance-details {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          padding: 16px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          border: 1px solid #bae6fd;
+        }
+
+        .attendance-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 0;
+          border-bottom: 1px solid #bae6fd;
+        }
+
+        .attendance-row:last-child {
+          border-bottom: none;
+        }
+
+        .attendance-label {
+          color: #64748b;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .attendance-value {
+          font-weight: 700;
+          color: #0f3a4a;
+          font-size: 15px;
+        }
+
+        .attendance-override {
+          margin-top: 14px;
+          padding-top: 14px;
+          border-top: 1px solid #bae6fd;
+        }
+
+        .bulk-action-overrides {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          min-width: 280px;
+          padding: 10px;
+          border: 1px dashed #f59e0b;
+          border-radius: 12px;
+          background: #fffbeb;
         }
 
         .btn {
