@@ -2,9 +2,10 @@ const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
 const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword, changePassword } = require("../controllers/auth.controller");
 const { authLimiter, passwordResetLimiter, sessionLimiter } = require("../middlewares/rateLimit.middleware");
+const { validateLogin, validatePasswordReset, validateVerifyOTP, validateChangePassword } = require("../middlewares/validators/auth.validator");
 
 // Login - strict rate limit to prevent brute force
-router.post("/login", authLimiter, login);
+router.post("/login", authLimiter, validateLogin, login);
 
 // 🔐 Protected routes (no rate limit - already authenticated)
 router.post("/logout", auth, logout);
@@ -13,96 +14,71 @@ router.post("/logout", auth, logout);
 router.post("/refresh", sessionLimiter, refreshToken);
 
 // Get user info (for checking authentication status) - DYNAMIC
-  router.get("/me", auth, async (req, res, next) => {
-    try {
-      const { id, opaqueId, role, college_id } = req.user;
+router.get("/me", auth, async (req, res) => {
+  try {
+    const { id, opaqueId, role, college_id } = req.user;
 
-      let userData = {
-        id: opaqueId,
-        realId: id,
-        role,
-        college_id,
-        email: null,
-        name: null
+    let userData = {
+      id: opaqueId,
+      realId: id,
+      role,
+      college_id,
+      email: null,
+      name: null,
+    };
+
+    const User = require("../models/user.model");
+    const Student = require("../models/student.model");
+    const Teacher = require("../models/teacher.model");
+
+    const pickEmailName = async (Model, filter) => {
+      const doc = await Model.findOne(filter).select("email name fullName").lean();
+      if (!doc) return null;
+      return {
+        email: doc.email || (doc.fullName ? doc.email : null),
+        name: doc.name || doc.fullName || null,
       };
-    
-    // Fetch role-specific user data from database
-    if (role === "COLLEGE_ADMIN") {
-      const User = require("../models/user.model");
-      const user = await User.findById(id).select("email name").lean();
-      if (user) {
-        userData.email = user.email;
-        userData.name = user.name;
-      }
-    } 
-    else if (role === "TEACHER") {
-      const Teacher = require("../models/teacher.model");
-      const teacher = await Teacher.findOne({ user_id: id })
-        .select('email name')
-        .lean();
-      
-      if (teacher) {
-        userData.email = teacher.email;
-        userData.name = teacher.name;
-      }
-    } 
-    else if (role === "STUDENT") {
-      const Student = require("../models/student.model");
-      const student = await Student.findOne({ user_id: id })
-        .select('email fullName')
-        .lean();
-      
-      if (student) {
-        userData.email = student.email;
-        userData.name = student.fullName;
-      }
+    };
+
+    let profile = null;
+    if (["COLLEGE_ADMIN", "SUPER_ADMIN", "PRINCIPAL", "ACCOUNTANT"].includes(role)) {
+      profile = await pickEmailName(User, { _id: id });
+    } else if (role === "TEACHER") {
+      profile = await pickEmailName(Teacher, { user_id: id });
+      if (!profile) profile = await pickEmailName(User, { _id: id });
+    } else if (role === "STUDENT") {
+      profile = await pickEmailName(Student, { user_id: id });
     }
-else if (role === "PRINCIPAL") {
-       const User = require("../models/user.model");
-       const user = await User.findById(id).select('email name').lean();
-       if (user) {
-         userData.email = user.email;
-         userData.name = user.name;
-       }
-     }
-     else if (role === "ACCOUNTANT") {
-       const User = require("../models/user.model");
-       const user = await User.findById(id).select('email name').lean();
-       if (user) {
-         userData.email = user.email;
-         userData.name = user.name;
-       }
-     }
-    
-    // If profile not found, try to get from User collection
+
+    if (profile) {
+      userData.email = userData.email || profile.email;
+      userData.name = userData.name || profile.name;
+    }
+
     if (!userData.email || !userData.name) {
-      const User = require("../models/user.model");
-      const user = await User.findById(id).select('email').lean();
-      
+      const user = await User.findById(id).select("email").lean();
       if (user) {
         userData.email = userData.email || user.email;
-        userData.name = userData.name || user.email?.split('@')[0];
+        userData.name = userData.name || user.email?.split("@")[0];
       }
     }
-    
+
     res.json(userData);
   } catch (error) {
     console.error("/auth/me error:", error.message);
     res.status(500).json({
       success: false,
       message: "Failed to fetch user profile",
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // 🔐 Password Reset (Public) - very strict to prevent email spam
-router.post("/forgot-password", passwordResetLimiter, requestPasswordReset);
-router.post("/verify-otp-reset", authLimiter, verifyOTPAndResetPassword);
+router.post("/forgot-password", passwordResetLimiter, validatePasswordReset, requestPasswordReset);
+router.post("/verify-otp-reset", authLimiter, validateVerifyOTP, verifyOTPAndResetPassword);
 
 // 🔐 Change Password (Works for both authenticated and first-login users)
-// For first-login: pass { userId, currentPassword, newPassword }
-// For logged-in: auth middleware provides userId, body { currentPassword, newPassword }
-router.post("/change-password", sessionLimiter, changePassword);
+router.post("/change-password", sessionLimiter, validateChangePassword, changePassword);
 
 module.exports = router;
