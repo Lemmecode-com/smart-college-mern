@@ -494,6 +494,32 @@ class AuditLogService {
   }
 
   /**
+   * Log staff password reset
+   */
+  async logStaffPasswordReset(user, targetUser, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "STAFF_PASSWORD_RESET",
+      resourceType: "User",
+      resourceId: targetUser._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        userId: targetUser._id,
+        email: targetUser.email,
+        role: targetUser.role,
+        mustChangePassword: true,
+      },
+    });
+  }
+
+  /**
    * Log department creation
    */
   async logDepartmentCreated(user, department, req) {

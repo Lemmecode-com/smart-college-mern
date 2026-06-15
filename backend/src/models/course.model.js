@@ -69,6 +69,11 @@ const courseSchema = new mongoose.Schema(
       required: true
     },
 
+    yearLabels: {
+      type: [String],
+      default: undefined,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
