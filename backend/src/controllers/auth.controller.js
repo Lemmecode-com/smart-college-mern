@@ -19,6 +19,30 @@ const {
 } = require("../services/otp.service");
 const securityAuditService = require("../services/securityAudit.service");
 
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+const isAccountLocked = (record) => {
+  if (!record) return false;
+  if (!record.lockedUntil) return false;
+  return new Date() < new Date(record.lockedUntil);
+};
+
+const incrementLoginAttempts = async (Model, id) => {
+  const attempts = (await Model.findById(id).select("loginAttempts")) || {};
+  const next = (attempts.loginAttempts || 0) + 1;
+  const update =
+    next >= MAX_LOGIN_ATTEMPTS
+      ? { loginAttempts: next, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) }
+      : { loginAttempts: next };
+  await Model.findByIdAndUpdate(id, update);
+  return next;
+};
+
+const resetLoginAttempts = async (Model, id) => {
+  await Model.findByIdAndUpdate(id, { $unset: { loginAttempts: 1, lockedUntil: 1 } });
+};
+
 /**
  * COMMON LOGIN
  * Now generates both access token (short-lived) and refresh token (long-lived)
@@ -30,14 +54,25 @@ exports.login = async (req, res, next) => {
     // 1️⃣ SUPER / COLLEGE ADMIN — check isActive
     let user = await User.findOne({ email });
     if (user) {
+      if (isAccountLocked(user)) {
+        const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+        throw new AppError(
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          423,
+          "ACCOUNT_LOCKED",
+        );
+      }
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login
+        await incrementLoginAttempts(User, user._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
+
+      await resetLoginAttempts(User, user._id);
 
       // 🔒 Check if account is deactivated
       if (user.isActive === false) {
@@ -69,13 +104,25 @@ exports.login = async (req, res, next) => {
     // 2️⃣ TEACHER
     let teacher = await Teacher.findOne({ email, status: "ACTIVE" });
     if (teacher) {
+      if (isAccountLocked(teacher)) {
+        const remaining = Math.ceil((new Date(teacher.lockedUntil) - new Date()) / 60000);
+        throw new AppError(
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          423,
+          "ACCOUNT_LOCKED",
+        );
+      }
+
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
+        await incrementLoginAttempts(Teacher, teacher._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
+
+      await resetLoginAttempts(Teacher, teacher._id);
 
       const linkedUser = await User.findOne({ email, role: "TEACHER" });
       if (linkedUser && linkedUser.mustChangePassword === true) {
@@ -123,17 +170,28 @@ exports.login = async (req, res, next) => {
     }
 
     if (student && (student.status === "OFFER_MADE" || student.status === "ENROLLED")) {
-      // OFFER_MADE and ENROLLED students can login with read-only access
       const user = await User.findOne({ email, role: "STUDENT" });
 
       if (user) {
+        if (isAccountLocked(user)) {
+          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+          throw new AppError(
+            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+            423,
+            "ACCOUNT_LOCKED",
+          );
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+          await incrementLoginAttempts(User, user._id);
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
           throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
         }
+
+        await resetLoginAttempts(User, user._id);
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
@@ -150,32 +208,31 @@ exports.login = async (req, res, next) => {
     // APPROVED students can login
     student = await Student.findOne({ email, status: "APPROVED" });
     if (student) {
-      // ✅ Find the User record for password verification
       const user = await User.findOne({ email, role: "STUDENT" });
 
       if (user) {
-        // Use User.password (hashed) for verification
+        if (isAccountLocked(user)) {
+          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+          throw new AppError(
+            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+            423,
+            "ACCOUNT_LOCKED",
+          );
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          // 🔒 SECURITY AUDIT: Log failed login
+          await incrementLoginAttempts(User, user._id);
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
           throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
         }
-        // ✅ Ensure student has a linked User account
-        if (!student.user_id) {
-          throw new AppError(
-            "Student account not linked. Please contact admin.",
-            403,
-            "USER_NOT_LINKED",
-          );
-        }
-        // 🔒 SECURITY AUDIT: Log successful login
+
+        await resetLoginAttempts(User, user._id);
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
-        // Send student.user_id in token (consistent User._id for all students)
         return sendTokens(
           res,
           student.user_id,
@@ -184,7 +241,6 @@ exports.login = async (req, res, next) => {
           req,
         );
       } else {
-        // 🔒 SECURITY AUDIT: Log failed login
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));

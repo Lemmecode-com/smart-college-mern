@@ -145,6 +145,15 @@ const teacherSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    loginAttempts: {
+      type: Number,
+      default: 0,
+    },
+
+    lockedUntil: {
+      type: Date,
+    },
   },
   { timestamps: true },
 );
