@@ -39,32 +39,73 @@ function createCollegeTransporter(config) {
   });
 }
 
+function createGlobalFallbackTransporter() {
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = parseInt(process.env.EMAIL_PORT || "587");
+
+  if (!user || !pass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+  });
+}
+
 async function getCollegeTransporter(collegeId) {
-  const cacheKey = CACHE_PREFIX + collegeId.toString();
+  const cacheKey = CACHE_PREFIX + (collegeId ? collegeId.toString() : "global");
   const cached = transporterCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     logger.logInfo("Using cached college transporter", { collegeId });
     return cached;
   }
-  const config = await CollegeEmailConfig.getActiveConfig(collegeId);
+
   let transporter, fromName, fromEmail, isCollegeConfig = false;
-  if (config && config.isActive) {
-    try {
-      transporter = createCollegeTransporter(config);
-      fromName = config.fromName;
-      fromEmail = config.fromEmail;
-      isCollegeConfig = true;
-      logger.logInfo("Created college-specific transporter", { collegeId, fromEmail });
-    } catch (error) {
-      logger.logError("Failed to create college transporter", { collegeId, error: error.message });
+
+  // Try per-college config first
+  if (collegeId) {
+    const config = await CollegeEmailConfig.getActiveConfig(collegeId);
+    if (config && config.isActive) {
+      try {
+        transporter = createCollegeTransporter(config);
+        fromName = config.fromName;
+        fromEmail = config.fromEmail;
+        isCollegeConfig = true;
+        logger.logInfo("Created college-specific transporter", { collegeId, fromEmail });
+      } catch (error) {
+        logger.logError("Failed to create college transporter, will try global fallback", { collegeId, error: error.message });
+      }
     }
   }
+
+  // Fall back to global EMAIL_USER / EMAIL_PASS from .env
   if (!transporter) {
-    logger.logError("No email configuration found for college", { collegeId, error: "No config or config inactive" });
-    throw new Error("No email configuration found for this college. Please configure SMTP settings in System Settings.");
+    const fallback = createGlobalFallbackTransporter();
+    if (fallback) {
+      transporter = fallback;
+      fromName = process.env.EMAIL_FROM_NAME || "Smart College";
+      fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER;
+      isCollegeConfig = false;
+      logger.logInfo("Using global fallback email transporter", { fromEmail });
+    } else {
+      logger.logError("No email configuration available", {
+        collegeId,
+        hint: "Set EMAIL_USER and EMAIL_PASS in .env or configure SMTP in System Settings",
+      });
+      throw new Error(
+        "Email is not configured. Please set EMAIL_USER and EMAIL_PASS in .env " +
+        "or configure SMTP settings in System Settings."
+      );
+    }
   }
-  
-  const cacheData = { transporter, fromName, fromEmail, isCollegeConfig, collegeId: collegeId.toString(), timestamp: Date.now() };
+
+  const cacheData = { transporter, fromName, fromEmail, isCollegeConfig, collegeId: collegeId ? collegeId.toString() : null, timestamp: Date.now() };
   transporterCache.set(cacheKey, cacheData);
   return cacheData;
 }

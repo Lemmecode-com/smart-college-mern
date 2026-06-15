@@ -4,6 +4,7 @@ const {
   getPaymentOverdueReport,
 } = require("../services/paymentReminder.service");
 const { sendPaymentReceiptEmail } = require("../services/email.service");
+const { generatePaymentReceiptPdf } = require("../utils/pdfReceipt");
 const AppError = require("../utils/AppError");
 
 /**
@@ -254,6 +255,19 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
 
     // Send receipt email (non-blocking, don't fail if email fails)
     try {
+      const pdfBuffer = await generatePaymentReceiptPdf({
+        studentName: student.fullName,
+        enrollmentNumber: student.enrollmentNumber,
+        installment,
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeName: "",
+        transactionId: installment.transactionId,
+        paymentMode: installment.paymentMode,
+        paidAt: installment.paidAt,
+      });
+
       await sendPaymentReceiptEmail({
         to: student.email,
         studentName: student.fullName,
@@ -267,6 +281,13 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
         collegeId: collegeId,
+        attachments: [
+          {
+            filename: `receipt-${installment.transactionId}.pdf`,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
       });
     } catch (emailErr) {
       console.error("Failed to send receipt email:", emailErr.message);
