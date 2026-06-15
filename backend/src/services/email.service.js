@@ -38,6 +38,7 @@ exports.sendPaymentReceiptEmail = async ({
   paidAmount,
   remainingAmount,
   collegeId,
+  attachments = [],
 }) => {
   if (!collegeId) {
     throw new Error("collegeId is required for sending emails");
@@ -104,6 +105,7 @@ exports.sendPaymentReceiptEmail = async ({
         <p>Regards,<br/><b>${fromName}</b></p>
       </div>
     `,
+    attachments: Array.isArray(attachments) ? attachments : [],
   };
 
   await transporter.sendMail(mailOptions);
