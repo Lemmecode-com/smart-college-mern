@@ -93,7 +93,8 @@ exports.verifyOTP = async (email, otp) => {
       expiresAt: { $gt: new Date() },
     });
 
-    if (!record || !record.compareOTP(otp)) {
+    const isMatch = await record.compareOTP(otp);
+    if (!record || !isMatch) {
       return {
         valid: false,
         message: "Invalid OTP",

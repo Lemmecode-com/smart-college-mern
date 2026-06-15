@@ -105,8 +105,10 @@ import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/Attendanc
 import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
 
 // ================= ACCOUNTANT =================
-import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboard";
-import PaymentHistory from "./pages/dashboard/College-Admin/PaymentHistory";
+ import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboard";
+ import RecordOfflinePayment from "./pages/dashboard/Accountant/RecordOfflinePayment";
+ import DefaulterList from "./pages/dashboard/Accountant/DefaulterList";
+ import PaymentHistory from "./pages/dashboard/College-Admin/PaymentHistory";
 import StudentPaymentReport from "./pages/dashboard/College-Admin/StudentPaymentReport";
 import StudentReports from "./pages/dashboard/College-Admin/StudentReports";
 import PaymentTrends from "./pages/dashboard/College-Admin/PaymentTrends";
@@ -719,15 +721,33 @@ function AppContent({
               }
             />
 
-             {/* ACCOUNTANT ROUTES */}
-             <Route
-               path="/dashboard/accountant"
-               element={
-                 <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
-                   <AccountantDashboard />
-                 </ProtectedRoute>
-               }
-             />
+{/* ACCOUNTANT ROUTES */}
+              <Route
+                path="/dashboard/accountant"
+                element={
+                  <ProtectedRoute allowedRoles={["ACCOUNTANT"]}>
+                    <AccountantDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/accountant/record-offline-payment"
+                element={
+                  <ProtectedRoute allowedRoles={["ACCOUNTANT", "COLLEGE_ADMIN"]}>
+                    <RecordOfflinePayment />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/accountant/defaulters"
+                element={
+                  <ProtectedRoute allowedRoles={["ACCOUNTANT", "COLLEGE_ADMIN", "PRINCIPAL"]}>
+                    <DefaulterList />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* ================= ADMISSION OFFICER ================= */}
              <Route
