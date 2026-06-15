@@ -167,7 +167,7 @@ exports.approveStudent = async (req, res, next) => {
     const existingCount = await Student.countDocuments({
       course_id: student.course_id,
       admissionYear: student.admissionYear,
-      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "SEAT_CONFIRMED"] },
+      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "SEAT_CONFIRMED", "OFFER_MADE"] },
     });
     const sequence = String(existingCount + 1).padStart(4, "0");
     student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
