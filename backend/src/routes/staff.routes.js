@@ -32,4 +32,6 @@ router.get("/staff/profile/:id", staffController.getStaffProfile);
  */
 router.put("/staff/profile/:id", staffController.updateStaffProfile);
 
+router.put("/staff/:id/reset-password", staffController.resetStaffPassword);
+
 module.exports = router;

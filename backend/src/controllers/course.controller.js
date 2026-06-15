@@ -20,7 +20,8 @@ exports.createCourse = async (req, res, next) => {
     durationSemesters,
     durationYears,
     credits,
-    maxStudents
+    maxStudents,
+    yearLabels
   } = req.body;
 
   // Validate department
@@ -60,6 +61,10 @@ exports.createCourse = async (req, res, next) => {
     maxStudents,
     createdBy: req.user.id
   };
+
+  if (Array.isArray(yearLabels)) {
+    courseData.yearLabels = yearLabels.filter((label) => typeof label === "string" && label.trim().length > 0).map((label) => label.trim());
+  }
 
   // Only add durationYears if provided (otherwise let pre-save hook calculate it)
   if (durationYears) {
