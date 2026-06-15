@@ -78,6 +78,32 @@ const collegeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
+  subscription: {
+    plan: {
+      type: String,
+      enum: ["TRIAL", "BASIC", "PRO", "ENTERPRISE"],
+      default: "TRIAL",
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "EXPIRED", "CANCELLED", "PAST_DUE"],
+      default: "ACTIVE",
+    },
+    currentPeriodStart: {
+      type: Date,
+    },
+    currentPeriodEnd: {
+      type: Date,
+    },
+    trialEndsAt: {
+      type: Date,
+    },
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false,
+    },
+  },
 });
 
 // 🔒 SOFT DELETE: Cascade isActive=false to all related data when college is deactivated
