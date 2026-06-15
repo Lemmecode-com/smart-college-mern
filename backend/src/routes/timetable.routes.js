@@ -40,6 +40,7 @@ const {
   getPendingApprovals,
   getApprovalHistory,
   updateException,
+  withdrawException,
   deleteException,
   approveException,
   rejectException,
@@ -270,6 +271,15 @@ router.delete(
   role(ROLE.HOD),
   collegeMiddleware,
   deleteException
+);
+
+// Withdraw exception by creator
+router.put(
+  "/exceptions/:exceptionId/withdraw",
+  auth,
+  role(ROLE.TEACHER),
+  collegeMiddleware,
+  withdrawException
 );
 
 // Approve exception

@@ -52,7 +52,7 @@ const TimetableExceptionSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["PENDING", "APPROVED", "REJECTED", "COMPLETED"],
+      enum: ["PENDING", "APPROVED", "REJECTED", "COMPLETED", "WITHDRAWN"],
       default: "PENDING",
       index: true,
     },
@@ -124,6 +124,19 @@ const TimetableExceptionSchema = new mongoose.Schema(
     },
 
     rejectedAt: Date,
+
+    withdrawnBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    withdrawnAt: Date,
+
+    withdrawalReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
 
     // ================= NOTIFICATION =================
 
@@ -202,6 +215,19 @@ TimetableExceptionSchema.index({
   exceptionDate: 1,
 });
 
+TimetableExceptionSchema.index({
+  college_id: 1,
+  createdBy: 1,
+  status: 1,
+  exceptionDate: -1,
+});
+
+TimetableExceptionSchema.index({
+  college_id: 1,
+  status: 1,
+  withdrawnAt: -1,
+});
+
 // Index for slot-specific exceptions
 TimetableExceptionSchema.index({
   slot_id: 1,
@@ -252,6 +278,19 @@ TimetableExceptionSchema.pre("save", async function () {
     }
   }
 
+  // Validate WITHDRAWN status has withdrawal metadata
+  if (this.status === "WITHDRAWN") {
+    if (!this.withdrawnBy) {
+      throw new Error("WITHDRAWN exception must have withdrawnBy");
+    }
+    if (!this.withdrawnAt) {
+      throw new Error("WITHDRAWN exception must have withdrawnAt");
+    }
+    if (!this.withdrawalReason) {
+      throw new Error("WITHDRAWN exception must have withdrawalReason");
+    }
+  }
+
   // Validate type-specific required fields
   if (this.type === "TEACHER_CHANGE" && !this.substituteTeacher) {
     throw new Error("TEACHER_CHANGE exception must have substituteTeacher");
@@ -298,6 +337,14 @@ TimetableExceptionSchema.methods.reject = function (userId, reason) {
   this.rejectedBy = userId;
   this.rejectedAt = new Date();
   this.rejectionReason = reason;
+  return this.save();
+};
+
+TimetableExceptionSchema.methods.withdraw = function (userId, reason) {
+  this.status = "WITHDRAWN";
+  this.withdrawnBy = userId;
+  this.withdrawnAt = new Date();
+  this.withdrawalReason = reason;
   return this.save();
 };
 
