@@ -1,6 +1,7 @@
 const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const User = require("../models/user.model");
+const Course = require("../models/course.model");
 const ApiResponse = require("../utils/ApiResponse");
 const AuditService = require("../services/auditLog.service");
 
@@ -204,6 +205,7 @@ exports.assignHOD = async (req, res) => {
     // Step 1: If department already has an HOD, rollback their role to TEACHER
     let previousHodId = null;
     let previousUserRole = null;
+    let previousHodTeacherForNormalization = null;
 
     if (department.hod_id) {
       const previousHodTeacher = await Teacher.findOne({
@@ -219,6 +221,38 @@ exports.assignHOD = async (req, res) => {
         }
         previousHodId = previousHodTeacher._id;
         previousUserRole = "TEACHER";
+        previousHodTeacherForNormalization = previousHodTeacher;
+      }
+    }
+
+    // Normalize Teacher profile for demoted HOD (assignHOD scenario)
+    if (previousHodTeacherForNormalization) {
+      let prevTeacherNeedsUpdate = false;
+      const prevUpdateFields = {};
+
+      if (!previousHodTeacherForNormalization.status || previousHodTeacherForNormalization.status !== "ACTIVE") {
+        prevUpdateFields.status = "ACTIVE";
+        prevTeacherNeedsUpdate = true;
+      }
+
+      if (!previousHodTeacherForNormalization.department_id) {
+        prevUpdateFields.department_id = department._id;
+        prevTeacherNeedsUpdate = true;
+      }
+
+      if (!Array.isArray(previousHodTeacherForNormalization.courses) || previousHodTeacherForNormalization.courses.length === 0) {
+        const departmentCourses = await Course.find({
+          department_id: department._id,
+          college_id: req.college_id,
+          status: "ACTIVE",
+        }).select("_id");
+
+        prevUpdateFields.courses = departmentCourses.map((c) => c._id);
+        prevTeacherNeedsUpdate = true;
+      }
+
+      if (prevTeacherNeedsUpdate) {
+        await Teacher.findByIdAndUpdate(previousHodTeacherForNormalization._id, prevUpdateFields);
       }
     }
 
@@ -296,6 +330,37 @@ exports.removeHOD = async (req, res) => {
       if (oldHodUser && oldHodUser.role === "HOD") {
         oldHodUser.role = "TEACHER";
         await oldHodUser.save();
+      }
+    }
+
+    // Normalize Teacher profile for converted HOD
+    if (oldHodTeacher) {
+      let teacherNeedsUpdate = false;
+      const updateFields = {};
+
+      if (!oldHodTeacher.status || oldHodTeacher.status !== "ACTIVE") {
+        updateFields.status = "ACTIVE";
+        teacherNeedsUpdate = true;
+      }
+
+      if (!oldHodTeacher.department_id) {
+        updateFields.department_id = department._id;
+        teacherNeedsUpdate = true;
+      }
+
+      if (!Array.isArray(oldHodTeacher.courses) || oldHodTeacher.courses.length === 0) {
+        const departmentCourses = await Course.find({
+          department_id: department._id,
+          college_id: req.college_id,
+          status: "ACTIVE",
+        }).select("_id");
+
+        updateFields.courses = departmentCourses.map((c) => c._id);
+        teacherNeedsUpdate = true;
+      }
+
+      if (teacherNeedsUpdate) {
+        await Teacher.findByIdAndUpdate(oldHodTeacher._id, updateFields);
       }
     }
 
