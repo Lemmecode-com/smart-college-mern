@@ -797,57 +797,69 @@ export const navigationConfig = {
     ],
   },
 
-  /**
-   * ACCOUNTANT Navigation
-   * Fee collection, payment tracking, receipts, financial reports
-   */
-  ACCOUNTANT: {
-    dashboard: {
-      path: "/dashboard/accountant",
-      icon: FaTachometerAlt,
-      label: "Dashboard",
-    },
-    sections: [
-      {
-        id: "accountant-fees",
-        title: "Fee Management",
-        icon: FaMoneyBillWave,
-        defaultOpen: true,
-        items: [
-        {
-          path: "/college-admin/payment-history",
-          icon: FaListOl,
-          label: "Payment History",
-          exact: true,
-        },
-          {
-            path: "/fees/list",
-            icon: FaListOl,
-            label: "Fee Structures",
-            exact: true,
-          },
-          {
-            path: "/college-admin/reports/payment-summary",
-            icon: FaListOl,
-            label: "Payment Reports",
-            exact: true,
-          },
-          {
-            path: "/college-admin/reports/payment-trends",
-            icon: FaChartBar,
-            label: "Payment Trends",
-            exact: true,
-          },
-          {
-            path: "/college-admin/student-reports",
-            icon: FaUser,
-            label: "Student Reports",
-            exact: true,
-          },
-        ],
-      },
-    ],
-  },
+/**
+    * ACCOUNTANT Navigation
+    * Fee collection, payment tracking, receipts, financial reports
+    */
+   ACCOUNTANT: {
+     dashboard: {
+       path: "/dashboard/accountant",
+       icon: FaTachometerAlt,
+       label: "Dashboard",
+     },
+     sections: [
+       {
+         id: "accountant-fees",
+         title: "Fee Management",
+         icon: FaMoneyBillWave,
+         defaultOpen: true,
+         items: [
+           {
+             path: "/fees/list",
+             icon: FaListOl,
+             label: "Fee Structures",
+             exact: true,
+           },
+           {
+             path: "/accountant/record-offline-payment",
+             icon: FaMoneyBillWave,
+             label: "Record Offline Payment",
+             exact: true,
+           },
+           {
+             path: "/college-admin/payment-history",
+             icon: FaHistory,
+             label: "Payment History",
+             exact: true,
+           },
+           {
+             path: "/accountant/defaulters",
+             icon: FaUserTimes,
+             label: "Defaulter List",
+             exact: true,
+           },
+           {
+             path: "/college-admin/reports/payment-summary",
+             icon: FaChartBar,
+             label: "Payment Reports",
+             exact: true,
+           },
+           {
+             path: "/college-admin/reports/payment-trends",
+             icon: FaChartLine,
+             label: "Payment Trends",
+             exact: true,
+           },
+           {
+             path: "/college-admin/student-reports",
+             icon: FaUser,
+             label: "Student Reports",
+             exact: true,
+           },
+         ],
+       },
+     ],
+   },
 
   /**
    * ADMISSION_OFFICER Navigation

@@ -179,20 +179,6 @@ exports.approveStudent = async (req, res, next) => {
     student.approvedAt = undefined;
     await student.save();
 
-    // 👨‍👩‍👧 Auto-create parent accounts (await to capture temp passwords in response)
-    let parentCreationResult = null;
-    try {
-      parentCreationResult = await parentCreationService.createParentUsers(student);
-      if (parentCreationResult.count > 0) {
-        console.log(`✅ Created ${parentCreationResult.count} parent accounts for ${student.fullName}`);
-      }
-    } catch (error) {
-      console.error(
-        "❌ Failed to create parent accounts:",
-        error.message,
-      );
-      parentCreationResult = { count: 0, parents: [], error: error.message };
-    }
 
     // 📝 Audit log - Offer made
     auditLogService
@@ -246,12 +232,6 @@ exports.approveStudent = async (req, res, next) => {
         paidAmount: studentFee.paidAmount,
         installments: studentFee.installments,
       },
-
-      parentAccounts: parentCreationResult ? {
-        created: parentCreationResult.count,
-        parents: parentCreationResult.parents,
-        error: parentCreationResult.error
-      } : null,
     });
   } catch (error) {
     next(error);
@@ -667,6 +647,20 @@ exports.confirmEnrollment = async (req, res, next) => {
     student.approvedAt = new Date();
     await student.save();
 
+    let parentCreationResult = null;
+    try {
+      parentCreationResult = await parentCreationService.createParentUsers(student);
+      if (parentCreationResult.count > 0) {
+        console.log(`✅ Created ${parentCreationResult.count} parent accounts for ${student.fullName}`);
+      }
+    } catch (error) {
+      console.error(
+        "❌ Failed to create parent accounts:",
+        error.message,
+      );
+      parentCreationResult = { count: 0, parents: [], error: error.message };
+    }
+
     // 📝 Audit log - Enrollment confirmed
     auditLogService
       .logStudentEnrollment(student, req.user, req)
@@ -708,6 +702,11 @@ exports.confirmEnrollment = async (req, res, next) => {
         enrollmentNumber: student.enrollmentNumber,
         enrollmentDate: student.enrollmentDate,
       },
+      parentAccounts: parentCreationResult ? {
+        created: parentCreationResult.count,
+        parents: parentCreationResult.parents,
+        error: parentCreationResult.error,
+      } : null,
     });
   } catch (error) {
     next(error);
