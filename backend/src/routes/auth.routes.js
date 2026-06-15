@@ -57,14 +57,22 @@ router.post("/refresh", sessionLimiter, refreshToken);
         userData.name = student.fullName;
       }
     }
-    else if (role === "PRINCIPAL") {
-      const User = require("../models/user.model");
-      const user = await User.findById(id).select('email name').lean();
-      if (user) {
-        userData.email = user.email;
-        userData.name = user.name;
-      }
-    }
+else if (role === "PRINCIPAL") {
+       const User = require("../models/user.model");
+       const user = await User.findById(id).select('email name').lean();
+       if (user) {
+         userData.email = user.email;
+         userData.name = user.name;
+       }
+     }
+     else if (role === "ACCOUNTANT") {
+       const User = require("../models/user.model");
+       const user = await User.findById(id).select('email name').lean();
+       if (user) {
+         userData.email = user.email;
+         userData.name = user.name;
+       }
+     }
     
     // If profile not found, try to get from User collection
     if (!userData.email || !userData.name) {

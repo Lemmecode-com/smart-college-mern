@@ -85,6 +85,26 @@ const promotionHistorySchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
+  // Fee assignment tracking after promotion
+  newFeeAssigned: {
+    type: Boolean,
+    default: false,
+  },
+  newFeeStructureId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "FeeStructure",
+    default: null,
+  },
+  newStudentFeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "StudentFee",
+    default: null,
+  },
+  feeAssignmentWarning: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
 // Index for quick lookup of student promotion history

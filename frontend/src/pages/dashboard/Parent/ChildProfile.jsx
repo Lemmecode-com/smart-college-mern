@@ -207,8 +207,7 @@ export default function ChildProfile() {
   }
 
   const {
-    firstName,
-    lastName,
+    fullName,
     email,
     mobileNumber,
     phone,
@@ -231,8 +230,6 @@ export default function ChildProfile() {
     fatherMobile,
     motherMobile
   } = student;
-
-  const fullName = `${firstName} ${lastName}`;
 
   return (
     <AnimatePresence mode="wait">
