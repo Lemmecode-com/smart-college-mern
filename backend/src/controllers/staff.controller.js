@@ -392,6 +392,55 @@ exports.getStaffProfile = async (req, res, next) => {
 };
 
 /**
+ * PUT /api/college/staff/:id/reset-password
+ * Admin reset for a staff member's password
+ */
+exports.resetStaffPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findOne({
+      _id: id,
+      college_id: req.user.college_id,
+      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+      isActive: { $ne: false },
+    });
+
+    if (!user) {
+      return next(new AppError("Staff member not found", 404, "STAFF_NOT_FOUND"));
+    }
+
+    const tempPassword = generateTempPassword(12);
+
+    user.password = tempPassword;
+    user.mustChangePassword = true;
+    await user.save();
+
+    AuditService.logStaffPasswordReset(req.user, user, req)
+      .catch((err) => console.error("Audit log failed:", err.message));
+
+    sendStaffCredentialsEmail({
+      to: user.email,
+      name: user.name,
+      temporaryPassword: tempPassword,
+      collegeId: req.user.college_id,
+    }).catch((err) => console.error("Failed to send staff credentials email:", err.message));
+
+    res.json({
+      success: true,
+      message: "Password reset successfully. Temporary password sent to staff email.",
+      data: {
+        userId: user._id,
+        email: user.email,
+        temporaryPassword: tempPassword,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * PUT /api/college/staff/:id
  * Update staff profile details
  */

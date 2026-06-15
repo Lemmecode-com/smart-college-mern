@@ -38,6 +38,13 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  loginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockedUntil: {
+    type: Date,
+  },
 });
 
 /* ✅ FIXED PRE-SAVE HOOK */
