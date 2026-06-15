@@ -419,6 +419,7 @@ exports.generateSchedule = async (
         $gte: queryStart,
         $lt: queryEnd,
       },
+      status: { $in: ["APPROVED", "COMPLETED"] },
       isActive: true,
     })
       .populate("slot_id", "day startTime endTime subject_id teacher_id room")
