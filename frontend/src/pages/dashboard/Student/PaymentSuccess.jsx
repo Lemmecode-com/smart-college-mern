@@ -308,21 +308,21 @@ export default function PaymentSuccess() {
         <div className="payment-info">
           <div className="info-row">
             <span>Installment</span>
-            <strong>{payment?.installment?.name}</strong>
+            <strong>{payment?.installmentName}</strong>
           </div>
 
           <div className="info-row">
             <span>Amount Paid</span>
             <strong className="text-success">
-              ₹{payment?.installment?.amount?.toLocaleString()}
+              ₹{payment?.amount?.toLocaleString()}
             </strong>
           </div>
 
           <div className="info-row">
             <span>Paid On</span>
             <strong>
-              {payment?.installment?.paidAt
-                ? new Date(payment.installment.paidAt).toLocaleString("en-IN")
+              {payment?.paidAt
+                ? new Date(payment.paidAt).toLocaleString("en-IN")
                 : "N/A"}
             </strong>
           </div>
@@ -330,7 +330,7 @@ export default function PaymentSuccess() {
           <div className="info-row">
             <span>Transaction ID</span>
             <strong className="transaction-id">
-              {payment?.installment?.transactionId || "N/A"}
+              {payment?.transactionId || "N/A"}
             </strong>
             {paymentGateway === "RAZORPAY" && payment?.paymentId && (
               <div className="razorpay-payment-id">
@@ -370,11 +370,8 @@ export default function PaymentSuccess() {
           <button
             className="btn-primary"
             onClick={() => {
-              const installmentId =
-                payment?.installment?._id ||
-                window.history.state?.usr?.paymentData?.installment?._id;
-              if (installmentId) {
-                navigate(`/student/fee-receipt/${installmentId}`);
+              if (payment?.installmentId) {
+                navigate(`/student/fee-receipt/${payment.installmentId}`);
               } else {
                 toast.error(
                   "Receipt ID not found. Please go back and try again.",

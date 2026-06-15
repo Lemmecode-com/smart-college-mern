@@ -31,6 +31,10 @@ const studentFeeSchema = new mongoose.Schema({
     {
       name: String,
       amount: Number,
+      order: {
+        type: Number,
+        default: 0,
+      },
 
       dueDate: {
         type: Date,
