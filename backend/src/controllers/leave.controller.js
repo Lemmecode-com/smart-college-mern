@@ -158,17 +158,29 @@ exports.applyLeave = async (req, res, next) => {
 
     (async () => {
       try {
-        await Notification.create({
+        const Department = require("../models/department.model");
+        const hodDepartment = await Department.findOne({
+          _id: teacher.department_id,
           college_id: req.college_id,
-          createdBy: req.user.id,
-          createdByRole: req.user.role,
-          target: "DEPARTMENT",
-          target_users: [],
-          title: "New Leave Application",
-          message: `${teacher.name} has applied for ${leaveType} leave from ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}`,
-          type: "ACADEMIC",
-          actionUrl: "/hod/leave-approvals",
         });
+        if (hodDepartment && hodDepartment.hod_id) {
+          const hodUser = await Teacher.findOne({
+            _id: hodDepartment.hod_id,
+          }).populate("user_id", "_id");
+          if (hodUser && hodUser.user_id) {
+            await Notification.create({
+              college_id: req.college_id,
+              createdBy: req.user.id,
+              createdByRole: "TEACHER",
+              target: "INDIVIDUAL",
+              target_users: [hodUser.user_id._id],
+              title: "New Leave Application",
+              message: `${teacher.name} has applied for ${leaveType} leave from ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}`,
+              type: "ACADEMIC",
+              actionUrl: "/hod/leave-approvals",
+            });
+          }
+        }
       } catch (notifErr) {
         console.error("Failed to create leave notification:", notifErr.message);
       }
