@@ -126,7 +126,7 @@ export default function NavbarComponent({
     }
 
     // Only supported roles have notification endpoints
-    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT"];
+    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
     if (!supportedRoles.includes(user.role)) {
       return;
     }
@@ -138,6 +138,8 @@ export default function NavbarComponent({
         res = await api.get("/notifications/count/admin");
       if (user.role === "TEACHER")
         res = await api.get("/notifications/count/teacher");
+      if (user.role === "HOD")
+        res = await api.get("/notifications/count/hod");
       if (user.role === "STUDENT")
         res = await api.get("/notifications/count/student");
 
@@ -186,7 +188,7 @@ export default function NavbarComponent({
 /* ================= FETCH UNREAD FOR BELL ================= */
    const fetchNotes = async () => {
      // Only supported roles have notification endpoints
-     const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT"];
+      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
      if (!supportedRoles.includes(user.role)) {
        setNotes([]);
        return;
@@ -266,6 +268,8 @@ export default function NavbarComponent({
       navigate("/notification/list");
     } else if (user.role === "TEACHER") {
       navigate("/teacher/notifications/list");
+    } else if (user.role === "HOD") {
+      navigate("/hod/notifications/list");
     } else if (user.role === "STUDENT") {
       navigate("/notification/student");
     }
