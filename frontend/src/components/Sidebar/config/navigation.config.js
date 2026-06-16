@@ -1150,13 +1150,27 @@ export const navigationConfig = {
     * HOD Navigation
     * Head of Department – manages timetables, teachers, and department overview
     */
-   HOD: {
-     dashboard: {
-       path: "/hod/dashboard",
-       icon: FaChalkboardTeacher,
-       label: "HOD Dashboard",
-     },
-     sections: [
+    HOD: {
+      dashboard: {
+        path: "/hod/dashboard",
+        icon: FaChalkboardTeacher,
+        label: "HOD Dashboard",
+      },
+      sections: [
+        {
+          id: "hod-notifications",
+          title: "Notifications",
+          icon: FaBell,
+          defaultOpen: true,
+          items: [
+            {
+              path: "/hod/notifications/list",
+              icon: FaListOl,
+              label: "All Notifications",
+              exact: true,
+            },
+          ],
+        },
         {
           id: "hod-timetable",
           title: "Timetable",

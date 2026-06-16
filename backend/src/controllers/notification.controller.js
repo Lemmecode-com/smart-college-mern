@@ -262,6 +262,46 @@ exports.getStudentNotifications = async (req, res, next) => {
 
 /**
  * ================================
+ * HOD – VIEW NOTIFICATIONS
+ * Sees: Admin + HOD notifications (same pattern as Teacher)
+ * ================================
+ */
+exports.getHodNotifications = async (req, res, next) => {
+  try {
+    const notifications = await Notification.find({
+      college_id: req.college_id,
+      isActive: true,
+      $or: [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: new mongoose.Types.ObjectId(req.user.id) }
+      ]
+    }).sort({ createdAt: -1 });
+
+    const myNotifications = [];
+    const adminNotifications = [];
+
+    notifications.forEach((n) => {
+      if (
+        n.createdByRole === "HOD" &&
+        n.createdBy.toString() === req.user.id
+      ) {
+        myNotifications.push(n);
+      } else if (n.createdByRole === "COLLEGE_ADMIN") {
+        adminNotifications.push(n);
+      }
+    });
+
+    ApiResponse.success(res, {
+      myNotifications,
+      adminNotifications,
+    }, "HOD notifications fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ================================
  * TEACHER – VIEW NOTIFICATIONS
  * Sees: Admin notifications only
  * ================================
@@ -495,6 +535,43 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
   }
 };
 
+exports.getHodNotificationCount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+
+    const readIds = await getReadNotificationIds(userId);
+
+    const adminCount = await Notification.countDocuments({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      createdByRole: "COLLEGE_ADMIN"
+    });
+
+    const myCount = await Notification.countDocuments({
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+      $or: [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdBy: new mongoose.Types.ObjectId(userId) }
+      ]
+    });
+
+    ApiResponse.success(res, {
+      myCount,
+      adminCount,
+      total: myCount + adminCount
+    }, "HOD notification count fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getAdminNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -559,6 +636,12 @@ exports.getUnreadForBell = async (req, res, next) => {
       query.$or = [
         { createdByRole: "COLLEGE_ADMIN", createdBy: new mongoose.Types.ObjectId(req.user.id), college_id: req.college_id },
         { createdByRole: "TEACHER", college_id: req.college_id }
+      ];
+    } else if (req.user.role === "HOD") {
+      // HOD sees: Admin notifications + own HOD notifications
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN", college_id: req.college_id },
+        { createdBy: new mongoose.Types.ObjectId(req.user.id), college_id: req.college_id }
       ];
     }
 
