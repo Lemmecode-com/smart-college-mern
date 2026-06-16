@@ -11,7 +11,7 @@ router.post("/login", authLimiter, validateLogin, login);
 router.post("/logout", auth, logout);
 
 // 🔐 Refresh access token (requires valid refresh token cookie)
-router.post("/refresh", sessionLimiter, refreshToken);
+router.post("/refresh", authLimiter, refreshToken);
 
 // Get user info (for checking authentication status) - DYNAMIC
 router.get("/me", auth, async (req, res) => {
@@ -79,6 +79,6 @@ router.post("/forgot-password", passwordResetLimiter, validatePasswordReset, req
 router.post("/verify-otp-reset", authLimiter, validateVerifyOTP, verifyOTPAndResetPassword);
 
 // 🔐 Change Password (Works for both authenticated and first-login users)
-router.post("/change-password", sessionLimiter, validateChangePassword, changePassword);
+router.post("/change-password", authLimiter, validateChangePassword, changePassword);
 
 module.exports = router;
