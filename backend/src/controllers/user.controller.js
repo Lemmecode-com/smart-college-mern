@@ -143,6 +143,14 @@ exports.reactivateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    if (id === req.user.id) {
+      throw new AppError(
+        "You cannot reactivate your own account",
+        403,
+        "CANNOT_REACTIVATE_SELF",
+      );
+    }
+
     // Find the user
     const user = await User.findOne({
       _id: id,
