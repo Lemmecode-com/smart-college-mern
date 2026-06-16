@@ -151,6 +151,9 @@ exports.deleteCollege = async (req, res, next) => {
       { $set: { isActive: false } },
     );
 
+    AuditService.logCollegeDeactivated(req.user, college, req)
+      .catch((err) => console.error("Audit log failed:", err.message));
+
     res.json({
       message:
         "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
@@ -194,6 +197,9 @@ exports.restoreCollege = async (req, res, next) => {
       { _id: collegeId },
       { $set: { isActive: true } },
     );
+
+    AuditService.logCollegeRestored(req.user, college, req)
+      .catch((err) => console.error("Audit log failed:", err.message));
 
     res.json({
       message:

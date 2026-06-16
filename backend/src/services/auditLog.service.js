@@ -677,6 +677,58 @@ class AuditLogService {
     });
   }
 
+  async logCollegeDeactivated(user, college, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COLLEGE_DEACTIVATED",
+      resourceType: "College",
+      resourceId: college._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        collegeId: college._id,
+        collegeName: college.name,
+        collegeCode: college.code,
+        isActive: false,
+      },
+      metadata: {
+        note: "College deactivated by super admin",
+      },
+    });
+  }
+
+  async logCollegeRestored(user, college, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COLLEGE_RESTORED",
+      resourceType: "College",
+      resourceId: college._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        collegeId: college._id,
+        collegeName: college.name,
+        collegeCode: college.code,
+        isActive: true,
+      },
+      metadata: {
+        note: "College restored by super admin",
+      },
+    });
+  }
+
   _inferRoleFromTeacher(teacherId) {
     // Best-effort: we don't have teacher role info here; return null
     return null;
