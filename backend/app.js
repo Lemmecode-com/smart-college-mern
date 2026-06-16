@@ -99,6 +99,7 @@ app.use("/api/exam", require("./src/routes/exam.routes"));
 app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/leave", require("./src/routes/leave.routes"));
 app.use("/api/admin/email", require("./src/routes/collegeEmailConfig.routes"));
 
 /* ================= ATTENDANCE ================= */
