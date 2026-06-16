@@ -9,6 +9,7 @@ const parentGuardianSchema = new mongoose.Schema({
   college_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "College",
+    required: true,
     index: true,
   },
   student_ids: [
