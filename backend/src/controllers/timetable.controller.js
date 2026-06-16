@@ -125,6 +125,19 @@ exports.publishTimetable = async (req, res) => {
       });
     }
 
+    // 🔒 SECURITY: Verify HOD department ownership (defense-in-depth)
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
+    const { isHOD } = await teacherService.getHODStatus(teacher);
+
+    if (!isHOD || timetable.department_id.toString() !== teacher.department_id.toString()) {
+      return res.status(403).json({
+        message: "Access denied: You can only publish timetables for your own department",
+      });
+    }
+
     timetable.status = "PUBLISHED";
     await timetable.save();
 
@@ -183,6 +196,25 @@ exports.archiveTimetable = async (req, res) => {
 
     if (timetable.status === "ARCHIVED") {
       return res.status(400).json({ message: "Timetable is already archived" });
+    }
+
+    // 🔒 SECURITY: Verify HOD department ownership (defense-in-depth)
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
+    const { isHOD } = await teacherService.getHODStatus(teacher);
+
+    if (!isHOD) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can archive timetable",
+      });
+    }
+
+    if (timetable.department_id.toString() !== teacher.department_id.toString()) {
+      return res.status(403).json({
+        message: "Access denied: You can only archive timetables for your own department",
+      });
     }
 
     const previousStatus = timetable.status;
