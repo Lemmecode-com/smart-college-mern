@@ -219,7 +219,7 @@ Security audit service logs sensitive data (user emails, IP addresses, endpoints
 |-------------|----------------------------------------|
 | **Severity**| LOW                                    |
 | **File**    | `backend/src/routes/auth.routes.js:16-91` |
-| **Status**  | Not Fixed                              |
+| **Status**  | Accepted Risk - Deferred to V2 |
 
 **Description:**
 The `/auth/me` endpoint returns the authenticated user's `id`, which for students maps to `Student.user_id` (a User collection ObjectId). This allows enumeration of Student ↔ User `_id` mappings. Combined with other endpoints, this could be used for IDOR (Insecure Direct Object Reference) attacks.
