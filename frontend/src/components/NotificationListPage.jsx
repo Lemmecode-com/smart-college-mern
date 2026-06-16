@@ -68,6 +68,22 @@ const ROLE_CONFIG = {
     canCreate: true,
     showStats: true,
   },
+  hod: {
+    apiEndpoint: "/notifications/hod/read",
+    deleteEndpoint: "/notifications/delete-note/",
+    primaryNotesKey: "myNotifications",
+    secondaryNotesKey: "adminNotifications",
+    primaryLabel: "My HOD Notifications",
+    secondaryLabel: "Admin Notifications",
+    primaryIcon: FaChalkboardTeacher,
+    secondaryIcon: FaUserTie,
+    createRoute: null,
+    editRoute: null,
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/hod/dashboard",
+    canCreate: false,
+    showStats: true,
+  },
   student: {
     apiEndpoint: "/notifications/student/read",
     deleteEndpoint: null, // Students can't delete
