@@ -56,7 +56,10 @@ exports.deactivateUser = async (req, res, next) => {
     // Revoke all refresh tokens so deactivated user cannot obtain new access tokens
     try {
       const RefreshToken = require("../models/refreshToken.model");
-      await RefreshToken.deleteMany({ user_id: user._id });
+      await RefreshToken.updateMany(
+        { user_id: user._id, isRevoked: false },
+        { $set: { isRevoked: true } }
+      );
     } catch (tokenErr) {
       console.error("Failed to revoke refresh tokens during deactivation:", tokenErr.message);
     }
