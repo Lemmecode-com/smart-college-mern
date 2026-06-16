@@ -597,22 +597,23 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/notification/view/:id"
-              element={
-                <ProtectedRoute
-                  allowedRoles={[
-                    "COLLEGE_ADMIN",
-                    "TEACHER",
-                    "STUDENT",
-                    "SUPER_ADMIN",
-                    "PRINCIPAL",
-                  ]}
-                >
-                  <NotificationDetails />
-                </ProtectedRoute>
-              }
-            />
+           <Route
+             path="/notification/view/:id"
+             element={
+               <ProtectedRoute
+                 allowedRoles={[
+                   "COLLEGE_ADMIN",
+                   "TEACHER",
+                   "STUDENT",
+                   "SUPER_ADMIN",
+                   "PRINCIPAL",
+                   "HOD",
+                 ]}
+               >
+                 <NotificationDetails />
+               </ProtectedRoute>
+             }
+           />
             <Route
               path="/notification/edit/:id"
               element={
@@ -1022,11 +1023,20 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
+           <Route
+             path="/hod/reports"
+             element={
+               <ProtectedRoute allowedRoles={["HOD"]}>
+                 <HodReports />
+               </ProtectedRoute>
+             }
+           />
+            {/* ================= HOD NOTIFICATIONS ================= */}
             <Route
-              path="/hod/reports"
+              path="/hod/notifications/list"
               element={
                 <ProtectedRoute allowedRoles={["HOD"]}>
-                  <HodReports />
+                  <NotificationListPage role="hod" />
                 </ProtectedRoute>
               }
             />
