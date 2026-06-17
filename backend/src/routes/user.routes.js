@@ -9,6 +9,7 @@ const {
   deactivateUser,
   reactivateUser,
 } = require("../controllers/user.controller");
+const { validateMongoId } = require("../middlewares/validators/common.validator");
 
 /* =========================================================
    DEACTIVATE USER
@@ -21,6 +22,7 @@ router.put(
   auth,
   role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
   collegeIsolation(),
+  validateMongoId,
   deactivateUser
 );
 
@@ -35,6 +37,7 @@ router.put(
   auth,
   role("COLLEGE_ADMIN", "ADMISSION_OFFICER"),
   collegeIsolation(),
+  validateMongoId,
   reactivateUser
 );
 
