@@ -147,6 +147,7 @@ import HodTeachers from "./pages/dashboard/HOD/HodTeachers";
 import HodDepartment from "./pages/dashboard/HOD/HodDepartment";
 import HodProfile from "./pages/dashboard/HOD/HodProfile";
 import HodExceptionApprovals from "./pages/dashboard/HOD/HodExceptionApprovals";
+import HodReports from "./pages/dashboard/HOD/HodReports";
 
 // ================= STUDENT =================
 import StudentProfile from "./pages/dashboard/Student/StudentProfile";
@@ -596,22 +597,23 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/notification/view/:id"
-              element={
-                <ProtectedRoute
-                  allowedRoles={[
-                    "COLLEGE_ADMIN",
-                    "TEACHER",
-                    "STUDENT",
-                    "SUPER_ADMIN",
-                    "PRINCIPAL",
-                  ]}
-                >
-                  <NotificationDetails />
-                </ProtectedRoute>
-              }
-            />
+           <Route
+             path="/notification/view/:id"
+             element={
+               <ProtectedRoute
+                 allowedRoles={[
+                   "COLLEGE_ADMIN",
+                   "TEACHER",
+                   "STUDENT",
+                   "SUPER_ADMIN",
+                   "PRINCIPAL",
+                   "HOD",
+                 ]}
+               >
+                 <NotificationDetails />
+               </ProtectedRoute>
+             }
+           />
             <Route
               path="/notification/edit/:id"
               element={
@@ -1018,6 +1020,23 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["HOD"]}>
                   <HodExceptionApprovals />
+                </ProtectedRoute>
+              }
+            />
+           <Route
+             path="/hod/reports"
+             element={
+               <ProtectedRoute allowedRoles={["HOD"]}>
+                 <HodReports />
+               </ProtectedRoute>
+             }
+           />
+            {/* ================= HOD NOTIFICATIONS ================= */}
+            <Route
+              path="/hod/notifications/list"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <NotificationListPage role="hod" />
                 </ProtectedRoute>
               }
             />
