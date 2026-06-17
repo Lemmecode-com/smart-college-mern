@@ -7,6 +7,7 @@ const {
   parseLocalDateSafe,
 } = require("../utils/date.utils");
 const { cache: scheduleCache } = require("./scheduleCache.service");
+const { getYearLabelForSemester } = require("../utils/yearLabels");
 
 /**
  * TIMETABLE SCHEDULE SERVICE
@@ -323,7 +324,7 @@ exports.generateSchedule = async (
       : { _id: timetableId };
     const timetable = await Timetable.findOne(timetableQuery)
       .populate("department_id", "name")
-      .populate("course_id", "name code");
+      .populate("course_id", "name code yearLabels");
 
     if (!timetable) {
       throw new Error(`Timetable not found: ${timetableId}`);
@@ -558,8 +559,12 @@ exports.generateSchedule = async (
     }
 
     // 7️⃣ Cache and return final schedule
+    const courseYearLabels = timetable.course_id?.yearLabels;
+    const yearLabel = courseYearLabels?.length && timetable.semester !== undefined ? getYearLabelForSemester(timetable.semester, courseYearLabels) : null;
+
     const schedule = {
       timetable,
+      yearLabel,
       schedule: scheduleArray,
       summary: {
         totalDays: dates.length,
