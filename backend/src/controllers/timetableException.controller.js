@@ -2,6 +2,7 @@ const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const TimetableException = require("../models/timetableException.model");
 const Teacher = require("../models/teacher.model");
+const Student = require("../models/student.model");
 const Subject = require("../models/subject.model");
 const AuditLog = require("../models/auditLog.model");
 const Notification = require("../models/notification.model");
@@ -1044,6 +1045,66 @@ exports.approveException = async (req, res, next) => {
         }
       } catch (notifErr) {
         console.error("Failed to send approval notification:", notifErr.message);
+      }
+    })();
+
+    // 🔔 NOTIFICATION: Notify affected users (teachers + students) if notifyAffected is set
+    (async () => {
+      try {
+        if (!exception.notifyAffected || exception.notificationsSent) return;
+
+        const fullTimetable = await Timetable.findById(exception.timetable_id)
+          .select("course_id department_id semester division")
+          .lean();
+
+        if (!fullTimetable) return;
+
+        const slotTeacherIds = await TimetableSlot.find({
+          timetable_id: fullTimetable._id,
+        }).distinct("teacher_id");
+
+        const teacherUserIds = await Teacher.find({
+          _id: { $in: slotTeacherIds },
+        }).distinct("user_id");
+
+        const studentQuery = {
+          course_id: fullTimetable.course_id,
+          currentSemester: fullTimetable.semester,
+          status: "APPROVED",
+          college_id: req.college_id,
+        };
+        if (fullTimetable.division) {
+          studentQuery.division = fullTimetable.division;
+        }
+
+        const studentUserIds = await Student.find(studentQuery).distinct("user_id");
+
+        const allUserIds = [
+          ...new Set([...teacherUserIds, ...studentUserIds]),
+        ];
+
+        if (allUserIds.length === 0) return;
+
+        await Notification.insertMany(
+          allUserIds.map((uid) => ({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            target: "INDIVIDUAL",
+            target_users: [uid],
+            title: `Schedule Change: ${exception.type}`,
+            message: `A timetable exception (${exception.type}) on ${new Date(exception.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} affects your schedule. Reason: ${exception.reason}`,
+            type: "ACADEMIC",
+            actionUrl: "/timetable",
+            isActive: true,
+            isRead: false,
+          })),
+        );
+
+        exception.notificationsSent = true;
+        await exception.save();
+      } catch (notifErr) {
+        console.error("Failed to send affected-user notifications:", notifErr.message);
       }
     })();
 
