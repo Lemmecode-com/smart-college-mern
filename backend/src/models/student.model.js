@@ -138,6 +138,12 @@ const studentSchema = new mongoose.Schema(
       default: 1
     },
 
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     previousQualification: String,
     previousInstitute: String,
 
@@ -388,12 +394,13 @@ studentSchema.pre('save', async function(next) {
 studentSchema.index({ college_id: 1, email: 1 }, { unique: true });
 
 // ⚡ PERFORMANCE: Indexes for common queries
-studentSchema.index({ college_id: 1, status: 1 }); // Filter by college and status
-studentSchema.index({ college_id: 1, department_id: 1 }); // Department-wise students
-studentSchema.index({ college_id: 1, course_id: 1 }); // Course-wise students
-studentSchema.index({ user_id: 1 }); // Student lookup by user_id
-studentSchema.index({ college_id: 1, currentSemester: 1 }); // Semester-wise students
-studentSchema.index({ college_id: 1, currentYear: 1 }); // Year-wise students
-studentSchema.index({ status: 1, admissionYear: 1 }); // Admission year filtering
+studentSchema.index({ college_id: 1, status: 1 });
+studentSchema.index({ college_id: 1, department_id: 1 });
+studentSchema.index({ college_id: 1, course_id: 1 });
+studentSchema.index({ user_id: 1 });
+studentSchema.index({ college_id: 1, currentSemester: 1 });
+studentSchema.index({ college_id: 1, currentYear: 1 });
+studentSchema.index({ status: 1, admissionYear: 1 });
+studentSchema.index({ college_id: 1, course_id: 1, currentSemester: 1, division: 1 });
 
 module.exports = mongoose.model("Student", studentSchema);
