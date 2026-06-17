@@ -35,7 +35,7 @@ exports.createTimetable = async (req, res) => {
        true, // check active status
      );
 
-     const { department_id, course_id, semester, academicYear } = req.body;
+      const { department_id, course_id, semester, academicYear, division } = req.body;
 
       // 🔒 SECURITY: Ensure user can only create timetable for their own department
       let isAuthorized = false;
@@ -60,32 +60,37 @@ exports.createTimetable = async (req, res) => {
         });
       }
 
-     const exists = await Timetable.findOne({
-       department_id,
-       course_id,
-       semester,
-       academicYear,
-       college_id: req.college_id,
-     });
+      const exists = await Timetable.findOne({
+        college_id: req.college_id,
+        department_id,
+        course_id,
+        semester,
+        academicYear,
+        division: division || null,
+      });
 
-     if (exists) {
-       return res.status(400).json({ message: "Timetable already exists" });
-     }
+      if (exists) {
+        return res.status(400).json({ message: "Timetable already exists" });
+      }
 
-     const course = await Course.findById(course_id).select("name");
-     const name = course
-       ? `${course.name} - Sem ${semester} (${academicYear})`
-       : `Semester ${semester} (${academicYear})`;
+      const course = await Course.findById(course_id).select("name yearLabels");
+      const yearLabel = course?.yearLabels?.length
+        ? require("../utils/yearLabels").getYearLabelForSemester(semester, course.yearLabels)
+        : null;
+      const name = yearLabel
+        ? `${course?.name || "Course"} - ${yearLabel} - Sem ${semester} (${academicYear})${division ? ` - Div ${division}` : ""}`
+        : `${course?.name || "Course"} - Sem ${semester} (${academicYear})${division ? ` - Div ${division}` : ""}`;
 
-     const timetable = await Timetable.create({
-       college_id: req.college_id,
-       department_id,
-       course_id,
-       semester,
-       academicYear,
-       name,
-       createdBy: teacher._id,
-     });
+      const timetable = await Timetable.create({
+        college_id: req.college_id,
+        department_id,
+        course_id,
+        semester,
+        academicYear,
+        division: division || null,
+        name,
+        createdBy: teacher._id,
+      });
 
      ApiResponse.created(
        res,
@@ -268,7 +273,7 @@ exports.getTimetableById = async (req, res) => {
       college_id: req.college_id,
     })
       .populate("department_id", "name")
-      .populate("course_id", "name");
+      .populate("course_id", "name yearLabels");
 
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
@@ -292,6 +297,16 @@ exports.getTimetableById = async (req, res) => {
           message: "Access denied: HOD can only view timetables for their own department",
         });
       }
+    }
+
+    const yearLabelsUtils = require("../utils/yearLabels");
+    const timetableObj = timetable.toObject();
+    const course = timetable.course_id;
+    if (course?.yearLabels?.length) {
+      timetableObj.yearLabel = yearLabelsUtils.getYearLabelForSemester(
+        timetableObj.semester,
+        course.yearLabels,
+      );
     }
 
     // Get all slots for this timetable
@@ -322,7 +337,7 @@ exports.getTimetableById = async (req, res) => {
     ApiResponse.success(
       res,
       {
-        timetable,
+        timetable: timetableObj,
         slots: slotsWithDates,
       },
       "Timetable with valid dates retrieved successfully",
@@ -392,11 +407,26 @@ exports.getTimetables = async (req, res) => {
     }
 
     const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
+
+    const yearLabelsUtils = require("../utils/yearLabels");
+
+    const timetablesWithYearLabel = await Promise.all(
+      timetables.map(async (t) => {
+        const course = await Course.findById(t.course_id).select("yearLabels").lean();
+        const yearLabel = course?.yearLabels?.length
+          ? yearLabelsUtils.getYearLabelForSemester(t.semester, course.yearLabels)
+          : null;
+        const obj = t.toObject();
+        obj.yearLabel = yearLabel;
+        return obj;
+      }),
+    );
+
     ApiResponse.success(
       res,
       {
-        timetables,
-        count: timetables.length,
+        timetables: timetablesWithYearLabel,
+        count: timetablesWithYearLabel.length,
       },
       "Timetables fetched successfully",
     );
@@ -460,11 +490,26 @@ exports.getArchivedTimetables = async (req, res) => {
     }
 
     const timetables = await Timetable.find(filter).sort({ createdAt: -1 });
+
+    const yearLabelsUtils = require("../utils/yearLabels");
+
+    const timetablesWithYearLabel = await Promise.all(
+      timetables.map(async (t) => {
+        const course = await Course.findById(t.course_id).select("yearLabels").lean();
+        const yearLabel = course?.yearLabels?.length
+          ? yearLabelsUtils.getYearLabelForSemester(t.semester, course.yearLabels)
+          : null;
+        const obj = t.toObject();
+        obj.yearLabel = yearLabel;
+        return obj;
+      }),
+    );
+
     ApiResponse.success(
       res,
       {
-        timetables,
-        count: timetables.length,
+        timetables: timetablesWithYearLabel,
+        count: timetablesWithYearLabel.length,
       },
       "Archived timetables fetched successfully",
     );
@@ -569,9 +614,29 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       .populate("teacher_id", "name")
       .populate({
         path: "timetable_id",
-        select: "name semester academicYear status",
-        match: { status: "PUBLISHED" }, // 🔒 ONLY PUBLISHED
+        select: "name semester academicYear status division course_id",
+        match: { status: "PUBLISHED" },
       });
+
+    const yearLabelsUtils = require("../utils/yearLabels");
+    const timetableYearCache = {};
+    const slotsWithYearLabel = slots.map((slot) => {
+      if (!slot.timetable_id) return slot;
+      const tId = slot.timetable_id._id.toString();
+      let yearLabel = null;
+      if (slot.timetable_id.course_id?.yearLabels?.length) {
+        if (!timetableYearCache[tId]) {
+          timetableYearCache[tId] = yearLabelsUtils.getYearLabelForSemester(
+            slot.timetable_id.semester,
+            slot.timetable_id.course_id.yearLabels,
+          );
+        }
+        yearLabel = timetableYearCache[tId];
+      }
+      const slotObj = slot.toObject();
+      slotObj.yearLabel = yearLabel;
+      return slotObj;
+    });
 
     // Get current week's date range for exception lookup
     const today = new Date();
@@ -628,7 +693,7 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       SAT: [],
     };
 
-    slots.forEach((slot) => {
+    slotsWithYearLabel.forEach((slot) => {
       if (!slot.timetable_id) return; // draft filtered here
 
       // Add exception data to slot if exists
@@ -731,12 +796,18 @@ exports.getStudentTimetable = async (req, res) => {
       .populate("course_id", "name code")
       .populate({
         path: "timetable_id",
-        select: "semester academicYear status",
+        select: "semester academicYear status division",
         match: { status: "PUBLISHED" },
       })
       .sort({ day: 1, startTime: 1 });
 
-    const filteredSlots = slots.filter((slot) => slot.timetable_id);
+    const filteredSlots = slots.filter((slot) => {
+      if (!slot.timetable_id) return false;
+      if (slot.timetable_id.division) {
+        return student.division && slot.timetable_id.division === student.division;
+      }
+      return true;
+    });
 
     // Fetch current week's exceptions and attach to slots
     const today = new Date();
@@ -750,14 +821,8 @@ exports.getStudentTimetable = async (req, res) => {
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
 
-    // Get all timetable IDs for these slots
-    const timetableIds = [
-      ...new Set(
-        filteredSlots
-          .filter((s) => s.timetable_id)
-          .map((s) => s.timetable_id._id.toString()),
-      ),
-    ];
+    // Get matching timetable IDs for exception lookup
+    const timetableIds = matchingTimetables.map((t) => t._id);
 
     // Fetch exceptions for this week
     const TimetableExceptionModel = require("../models/timetableException.model");
@@ -856,11 +921,39 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course
+    // Find all PUBLISHED timetables for student's course and division
+    const timetableQuery = {
+      college_id: req.college_id,
+      course_id: student.course_id,
+      status: "PUBLISHED",
+    };
+    if (student.division) {
+      timetableQuery.$or = [
+        { division: student.division },
+        { division: null },
+      ];
+    }
+
+    const matchingTimetables = await Timetable.find(timetableQuery)
+      .select("_id semester academicYear")
+      .lean();
+
+    const timetableIds = matchingTimetables.map((t) => t._id);
+
+    if (timetableIds.length === 0) {
+      ApiResponse.success(
+        res,
+        { today: todayStr, dayName: todayDayName, totalSlots: 0, slots: [] },
+        "Today's timetable fetched successfully",
+      );
+      return;
+    }
+
     const slots = await TimetableSlot.find({
       college_id: req.college_id,
       department_id: student.department_id,
       course_id: student.course_id,
+      timetable_id: { $in: timetableIds },
       day: todayDayName,
     })
       .populate("subject_id", "name code")
@@ -868,13 +961,19 @@ exports.getStudentTodayTimetable = async (req, res) => {
       .populate("course_id", "name code")
       .populate({
         path: "timetable_id",
-        select: "semester academicYear status",
-        match: { status: "PUBLISHED" },
+        select: "semester academicYear status division",
       })
       .sort({ startTime: 1 });
 
-    // Filter only slots from PUBLISHED timetables
-    const publishedSlots = slots.filter((slot) => slot.timetable_id);
+    const timetableMetaMap = {};
+    matchingTimetables.forEach((t) => {
+      timetableMetaMap[t._id.toString()] = t;
+    });
+
+    const publishedSlots = slots.map((slot) => ({
+      ...slot.toObject(),
+      _timetableMeta: timetableMetaMap[slot.timetable_id.toString()] || null,
+    }));
 
     ApiResponse.success(
       res,

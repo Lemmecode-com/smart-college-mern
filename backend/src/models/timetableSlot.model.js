@@ -53,12 +53,15 @@ const TimetableSlotSchema = new mongoose.Schema(
       required: true,
     },
 
-    /* semester: {
-      type: Number,
-      required: true,
-    }, */
+    /* semester field removed — semester is stored on Timetable, not per-slot */
 
     room: String,
+
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+    },
 
     slotType: {
       type: String,
@@ -92,10 +95,13 @@ TimetableSlotSchema.index(
 );
 
 // Index for Timetable Health conflict detection
-// Supports: GET /hod/timetable-health
-// Query pattern: { timetable_id, day, startTime, endTime, teacher_id }
 TimetableSlotSchema.index(
   { timetable_id: 1, day: 1, startTime: 1, endTime: 1, teacher_id: 1 },
+  { background: true }
+);
+
+TimetableSlotSchema.index(
+  { timetable_id: 1, day: 1, startTime: 1, endTime: 1, division: 1 },
   { background: true }
 );
 
