@@ -22,6 +22,7 @@ exports.addSlot = async (req, res, next) => {
       teacher_id,
       room,
       slotType,
+      division,
     } = req.body;
 
     const collegeId = req.college_id;
@@ -88,6 +89,15 @@ exports.addSlot = async (req, res, next) => {
 
     console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${subject.name}`);
 
+    /* ================= DIVISION CONSISTENCY CHECK ================= */
+    if (division && timetable.division && division !== timetable.division) {
+      throw new AppError(
+        `Slot division "${division}" does not match timetable division "${timetable.division}"`,
+        400,
+        "DIVISION_MISMATCH",
+      );
+    }
+
     /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
       college_id: collegeId,
@@ -140,6 +150,7 @@ exports.addSlot = async (req, res, next) => {
       endTime,
       room,
       slotType,
+      division: division || null,
     });
 
     res.status(201).json({
@@ -198,7 +209,18 @@ exports.updateSlot = async (req, res, next) => {
       throw new AppError("Access denied: Only HOD can update timetable slots", 403, "HOD_ONLY");
     }
 
-    /* STEP 5: If teacher_id is being updated, validate it matches subject's teacher */
+    /* STEP 5: If division is being updated, validate it matches timetable's division */
+    if (req.body.division !== undefined && timetable.division) {
+      if (req.body.division && req.body.division !== timetable.division) {
+        throw new AppError(
+          `Slot division "${req.body.division}" does not match timetable division "${timetable.division}"`,
+          400,
+          "DIVISION_MISMATCH",
+        );
+      }
+    }
+
+    /* STEP 6: If teacher_id is being updated, validate it matches subject's teacher */
     if (req.body.teacher_id) {
       const newTeacher = await Teacher.findOne({ _id: req.body.teacher_id, college_id: req.college_id });
       if (!newTeacher) {

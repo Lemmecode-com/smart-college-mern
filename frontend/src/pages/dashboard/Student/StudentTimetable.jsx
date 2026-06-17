@@ -670,6 +670,14 @@ export default function StudentTimetable() {
     scheduleData?.timetable?.academicYear ||
     renderFirstSlot?.timetable_id?.academicYear ||
     "";
+  const division =
+    scheduleData?.timetable?.division ||
+    renderFirstSlot?.timetable_id?.division ||
+    "";
+  const yearLabel =
+    scheduleData?.timetable?.yearLabel ||
+    renderFirstSlot?.yearLabel ||
+    "";
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Your Timetable..." />;
@@ -710,8 +718,12 @@ export default function StudentTimetable() {
               {courseName && (
                 <>
                   <FaBook className="st-subtitle-icon" /> {courseName}
+                  {yearLabel && <span className="st-sep">•</span>}
+                  {yearLabel && <span>{yearLabel}</span>}
                   {semester && <span className="st-sep">•</span>}
                   {semester && <span>Sem {semester}</span>}
+                  {division && <span className="st-sep">•</span>}
+                  {division && <span>Div {division}</span>}
                   {academicYear && <span className="st-sep">•</span>}
                   {academicYear && <span>{academicYear}</span>}
                 </>
