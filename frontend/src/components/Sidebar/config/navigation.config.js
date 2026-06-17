@@ -383,6 +383,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/system-settings/promotion",
+            icon: FaGraduationCap,
+            label: "Promotion Settings",
+            exact: true,
+          },
+          {
             path: "/system-settings/fees",
             icon: FaMoneyBill,
             label: "Fee Settings",
