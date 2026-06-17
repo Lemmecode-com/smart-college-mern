@@ -191,6 +191,7 @@ import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting
 import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
 import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
 import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
+import PromotionSetting from "./pages/dashboard/College-Admin/SystemSetting/PromotionSetting";
 import EmailConfigurations from "./pages/dashboard/College-Admin/SystemSetting/EmailConfigurations";
 
 // ================= TEACHERS MANAGEMENT =================
@@ -1404,6 +1405,14 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                   <AcademicSetting />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/system-settings/promotion"
+              element={
+                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                  <PromotionSetting />
                 </ProtectedRoute>
               }
             />

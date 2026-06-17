@@ -84,6 +84,7 @@ export default function CreateTimetable() {
     course_id: "",
     semester: "",
     academicYear: "",
+    division: "",
   });
 
   const [previewName, setPreviewName] = useState("");
@@ -202,12 +203,13 @@ export default function CreateTimetable() {
      setSubmitting(true);
 
      try {
-       const response = await api.post("/timetable", {
-         department_id: department._id,
-         course_id: form.course_id,
-         semester: Number(form.semester),
-         academicYear: form.academicYear,
-       });
+      const response = await api.post("/timetable", {
+        department_id: department._id,
+        course_id: form.course_id,
+        semester: Number(form.semester),
+        academicYear: form.academicYear,
+        division: form.division || undefined,
+      });
 
        setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
@@ -645,9 +647,26 @@ export default function CreateTimetable() {
                           <FaTimesCircle size={14} /> Please select an academic year
                         </div>
                       )}
+                     </FormField>
+
+                    <FormField
+                      icon={<FaLayerGroup />}
+                      label="Division (Optional)"
+                      helperText="e.g., A, B, C — leave blank if not using divisions"
+                    >
+                      <input
+                        type="text"
+                        value={form.division}
+                        onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
+                        placeholder="e.g., A"
+                        style={{
+                          ...inputStyle,
+                          borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
+                        }}
+                      />
                     </FormField>
 
-                    <motion.button
+                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
