@@ -5,6 +5,7 @@ const PromotionHistory = require("../models/promotionHistory.model");
 const Notification = require("../models/notification.model");
 const Course = require("../models/course.model");
 const { getAttendanceDataForStudents } = require("../services/attendance.service");
+const PromotionPolicy = require("../models/promotionPolicy.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 
@@ -14,6 +15,15 @@ const ATTENDANCE_STATUS = {
   NOT_ELIGIBLE: "NOT_ELIGIBLE",
   ATTENDANCE_NOT_AVAILABLE: "ATTENDANCE_NOT_AVAILABLE",
 };
+
+async function getPromotionThreshold(collegeId) {
+  try {
+    const policy = await PromotionPolicy.getActivePolicy(collegeId);
+    return policy?.minAttendancePercentage ?? ATTENDANCE_THRESHOLD;
+  } catch {
+    return ATTENDANCE_THRESHOLD;
+  }
+}
 
 /**
  * Helper function to get academic year label based on semester
@@ -123,7 +133,7 @@ function getOrdinalSuffix(num) {
   return "th";
 }
 
-function getAttendanceStatus(attendanceData) {
+function getAttendanceStatus(attendanceData, threshold = ATTENDANCE_THRESHOLD) {
   const totalSessions = Number(attendanceData?.totalSessions || 0);
   const percentage = Number(attendanceData?.percentage || 0);
 
@@ -131,15 +141,15 @@ function getAttendanceStatus(attendanceData) {
     return ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE;
   }
 
-  return percentage >= ATTENDANCE_THRESHOLD
+  return percentage >= threshold
     ? ATTENDANCE_STATUS.ELIGIBLE
     : ATTENDANCE_STATUS.NOT_ELIGIBLE;
 }
 
-function getAttendanceSnapshot(attendanceData, attendanceOverridden, attendanceOverrideReason) {
+function getAttendanceSnapshot(attendanceData, attendanceOverridden, attendanceOverrideReason, threshold = ATTENDANCE_THRESHOLD) {
   return {
     attendancePercentage: Number(attendanceData?.percentage || 0),
-    attendanceStatus: getAttendanceStatus(attendanceData),
+    attendanceStatus: getAttendanceStatus(attendanceData, threshold),
     attendanceCheckedAt: new Date(),
     attendanceOverridden: Boolean(attendanceOverridden),
     attendanceOverrideReason: attendanceOverridden
@@ -212,8 +222,8 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
     console.log('[PROMOTION] Filter:', JSON.stringify(filter));
 
     // Debug: Check total students in college regardless of status
-    const totalStudentsInCollege = await Student.countDocuments({ 
-      college_id: req.college_id 
+    const totalStudentsInCollege = await Student.countDocuments({
+      college_id: req.college_id
     });
     const studentsByStatus = await Student.aggregate([
       { $match: { college_id: req.college_id } },
@@ -231,6 +241,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
     console.log('[PROMOTION] Found students with APPROVED status:', students.length);
     console.log('============ [PROMOTION] END DEBUG ============');
 
+    const threshold = await getPromotionThreshold(req.college_id);
     const attendanceData = await getAttendanceDataForStudents(students, req.college_id);
     const attendanceMap = new Map(
       attendanceData.map((attendance) => [attendance.student_id.toString(), attendance]),
@@ -291,7 +302,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           isFinalYear,
           maxSemester,
           attendancePercentage: attendance.percentage,
-          attendanceStatus: getAttendanceStatus(attendance),
+          attendanceStatus: getAttendanceStatus(attendance, threshold),
           attendanceTotalSessions: attendance.totalSessions,
         };
       })
@@ -311,6 +322,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       count: studentsWithFee.length,
       students: studentsWithFee,
       groupedBySemester,
+      promotionThreshold: threshold,
     }, "Students fetched successfully for promotion");
   } catch (error) {
     next(error);
@@ -348,8 +360,9 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
       status: "ACTIVE",
     }).sort({ promotionDate: -1 });
 
+    const threshold = await getPromotionThreshold(req.college_id);
     const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
-    const attendanceStatus = getAttendanceStatus(attendanceData);
+    const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
 
     // Calculate fee status
     let feeStatus = "PENDING";
@@ -476,8 +489,9 @@ exports.promoteStudent = async (req, res, next) => {
       }
     }
 
+    const threshold = await getPromotionThreshold(req.college_id);
     const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
-    const attendanceStatus = getAttendanceStatus(attendanceData);
+    const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
     const attendanceOverrideReason = validateAttendanceOverride(
       overrideAttendanceCheck,
       overrideAttendanceReason,
@@ -495,7 +509,7 @@ exports.promoteStudent = async (req, res, next) => {
 
     if (attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
       throw new AppError(
-        `Student attendance is below the required threshold of ${ATTENDANCE_THRESHOLD}%.`,
+        `Student attendance is below the required threshold of ${threshold}%.`,
         400,
         "ATTENDANCE_INSUFFICIENT"
       );
@@ -544,7 +558,8 @@ exports.promoteStudent = async (req, res, next) => {
     const attendanceSnapshot = getAttendanceSnapshot(
       attendanceData,
       attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-      attendanceOverrideReason
+      attendanceOverrideReason,
+      threshold
     );
 
     // 10. Create promotion history record
@@ -628,6 +643,8 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       failed: [],
     };
 
+    const threshold = await getPromotionThreshold(req.college_id);
+
     // Process each student
     for (const studentId of studentIds) {
       try {
@@ -635,11 +652,12 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           _id: studentId,
           college_id: req.college_id,
           status: "APPROVED",
-        }).populate("course_id", "name code semester");
+        }).populate("course_id", "name code durationSemesters durationYears");
 
         if (!student) {
           results.failed.push({
             studentId,
+            studentName: "Unknown",
             reason: "Student not found or not approved",
           });
           continue;
@@ -651,6 +669,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         if (student.currentSemester >= maxSemester) {
           results.failed.push({
             studentId,
+            studentName: student.fullName,
             reason: "Already in final semester - ready for Alumni",
           });
           continue;
@@ -692,7 +711,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         }
 
         const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
-        const attendanceStatus = getAttendanceStatus(attendanceData);
+        const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
         let attendanceOverrideReason = null;
 
         try {
@@ -715,7 +734,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           results.failed.push({
             studentId,
             studentName: student.fullName,
-            reason: `Attendance insufficient: ${attendanceData.percentage}%`,
+            reason: `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`,
             code: "ATTENDANCE_INSUFFICIENT",
           });
           continue;
@@ -759,7 +778,8 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         const attendanceSnapshot = getAttendanceSnapshot(
           attendanceData,
           attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-          attendanceOverrideReason
+          attendanceOverrideReason,
+          threshold
         );
 
         const promotionRecord = await PromotionHistory.create({
