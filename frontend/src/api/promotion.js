@@ -1,17 +1,8 @@
 import api from "./axios";
 
-/**
- * Student Promotion API Functions
- * For College Admin to promote students based on fee payment status
- */
-
 const PROMOTION_BASE_URL = "/promotion";
+const PROMOTION_POLICY_BASE_URL = "/promotion-policy";
 
-/**
- * Get all promotion eligible students with their fee status
- * @param {Object} filters - Optional filters (course_id, currentSemester)
- * @returns {Promise}
- */
 export const getPromotionEligibleStudents = async (filters = {}) => {
   const queryParams = new URLSearchParams();
   
@@ -89,5 +80,15 @@ export const getCollegePromotionHistory = async (filters = {}) => {
   const response = await api.get(
     `${PROMOTION_BASE_URL}/history${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
   );
+  return response.data;
+};
+
+export const getPromotionPolicy = async () => {
+  const response = await api.get(`${PROMOTION_POLICY_BASE_URL}/`);
+  return response.data;
+};
+
+export const updatePromotionPolicy = async (data) => {
+  const response = await api.put(`${PROMOTION_POLICY_BASE_URL}/`, data);
   return response.data;
 };

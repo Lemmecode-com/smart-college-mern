@@ -719,6 +719,12 @@ export default function WeeklyTimetable() {
                     {timetable?.name || "Weekly Timetable"}
                   </h1>
                   <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                    {timetable?.yearLabel && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <FaBook />
+                        <span style={{ opacity: 0.9 }}>{timetable.yearLabel}</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <FaUniversity />
                       <span style={{ opacity: 0.9 }}>Semester {timetable?.semester}</span>
@@ -727,6 +733,12 @@ export default function WeeklyTimetable() {
                       <FaClock />
                       <span style={{ opacity: 0.9 }}>{timetable?.academicYear}</span>
                     </div>
+                    {timetable?.division && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <FaLayerGroup />
+                        <span style={{ opacity: 0.9 }}>Division {timetable.division}</span>
+                      </div>
+                    )}
                     {timetable?.department_id?.name && (
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <FaLayerGroup />
