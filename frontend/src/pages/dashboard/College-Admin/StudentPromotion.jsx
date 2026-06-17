@@ -101,6 +101,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniStudent, setAlumniStudent] = useState(null);
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
+  const [promotionThreshold, setPromotionThreshold] = useState(75);
 
   // Confirm Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -144,6 +145,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       }
 
       setStudents(res.students || []);
+      if (res.promotionThreshold) {
+        setPromotionThreshold(res.promotionThreshold);
+      }
       setRetryCount(0);
     } catch (err) {
       setError(
@@ -716,6 +720,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             <div className="card-header-actions">
               <span className="text-muted">
                 {filteredStudents.length} of {students.length} students
+              </span>
+              <span className="badge badge-info ml-2">
+                Attendance threshold: {promotionThreshold}%
               </span>
             </div>
           </div>

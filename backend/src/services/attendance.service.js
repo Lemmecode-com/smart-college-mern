@@ -61,7 +61,10 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
       },
     },
     {
-      $unwind: "$slot",
+      $unwind: {
+        path: "$slot",
+        preserveNullAndEmptyArrays: false,
+      },
     },
     {
       $lookup: {
@@ -72,7 +75,10 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
       },
     },
     {
-      $unwind: "$timetable",
+      $unwind: {
+        path: "$timetable",
+        preserveNullAndEmptyArrays: false,
+      },
     },
     {
       $match: {
