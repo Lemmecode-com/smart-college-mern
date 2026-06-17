@@ -117,6 +117,7 @@ app.use("/api/accountant", require("./src/routes/accountant.routes")); // Accoun
 
 /* ================= STUDENT PROMOTION ================= */
 app.use("/api/promotion", require("./src/routes/promotion.routes"));
+app.use("/api/promotion-policy", require("./src/routes/promotionPolicy.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
 app.use(

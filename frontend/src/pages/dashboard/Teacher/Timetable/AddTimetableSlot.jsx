@@ -146,6 +146,7 @@ export default function AddTimetableSlot() {
     teacher_id: "",
     room: "",
     slotType: "LECTURE",
+    division: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -594,6 +595,39 @@ export default function AddTimetableSlot() {
                         value={form.room}
                         onChange={handleChange}
                         placeholder="e.g., A-101, Lab-2"
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '1rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500
+                        }}
+                      />
+                    </FormField>
+
+                    {/* Division (Optional) */}
+                    <FormField
+                      icon={<FaLayerGroup />}
+                      label="Division (Optional)"
+                      helperText={
+                        (timetables.find(t => t._id === form.timetable_id)?.division
+                          ? `Timetable division: ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                          : "Match timetable division or leave blank")
+                      }
+                    >
+                      <input
+                        type="text"
+                        name="division"
+                        value={form.division}
+                        onChange={handleChange}
+                        placeholder={
+                          timetables.find(t => t._id === form.timetable_id)?.division
+                            ? `Leave blank to use ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                            : "e.g., A, B, C (optional)"
+                        }
                         style={{
                           width: '100%',
                           padding: '0.875rem 1.25rem',
