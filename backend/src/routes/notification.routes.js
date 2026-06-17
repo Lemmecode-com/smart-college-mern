@@ -10,11 +10,13 @@ const {
   createTeacherNotification,
   getStudentNotifications,
   getTeacherNotifications,
+  getHodNotifications,
   getAdminNotifications,
   updateNotification,
   deleteNotification,
   getAdminNotificationCount,
   getTeacherNotificationCount,
+  getHodNotificationCount,
   getStudentNotificationCount,
   markAsRead,
   getUnreadForBell,
@@ -54,6 +56,14 @@ router.get(
 );
 
 router.get(
+  "/hod/read",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotifications,
+);
+
+router.get(
   "/student/read",
   auth,
   role("STUDENT"),
@@ -77,6 +87,15 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getTeacherNotificationCount,
+);
+
+// HOD
+router.get(
+  "/count/hod",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotificationCount,
 );
 
 // Student

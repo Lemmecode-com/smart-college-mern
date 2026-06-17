@@ -86,6 +86,7 @@ app.use("/api/college", require("./src/routes/staff.routes")); // Staff account 
 app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff extended profiles
 app.use("/api/master", require("./src/routes/master.routes"));
 app.use("/api/hod", require("./src/routes/hod.routes")); // HOD module
+app.use("/api/hod/reports", require("./src/routes/hodReport.routes")); // HOD Reports
 
 /* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));
@@ -98,6 +99,7 @@ app.use("/api/exam", require("./src/routes/exam.routes"));
 app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/leave", require("./src/routes/leave.routes"));
 app.use("/api/admin/email", require("./src/routes/collegeEmailConfig.routes"));
 
 /* ================= ATTENDANCE ================= */
