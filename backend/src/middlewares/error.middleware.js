@@ -61,12 +61,31 @@ const errorHandler = (err, req, res, next) => {
   }
 
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const keyPattern = err.keyPattern || {};
+    const isTimetableExceptionUniqueIndex =
+      err.indexName === "idx_exception_unique_pending_approved" ||
+      (
+        keyPattern.college_id === 1 &&
+        keyPattern.timetable_id === 1 &&
+        keyPattern.slot_id === 1 &&
+        keyPattern.exceptionDate === 1 &&
+        keyPattern.type === 1
+      );
+
     error = {
       statusCode: 409,
-      message: `${field} already exists`,
-      code: "DUPLICATE_FIELD",
+      message: "Duplicate timetable exception",
+      code: "DUPLICATE_EXCEPTION",
     };
+
+    if (!isTimetableExceptionUniqueIndex) {
+      const field = Object.keys(err.keyValue || {})[0];
+      error = {
+        statusCode: 409,
+        message: `${field || "field"} already exists`,
+        code: "DUPLICATE_FIELD",
+      };
+    }
   }
 
   if (err.name === "ValidationError") {
@@ -143,13 +162,14 @@ const errorHandler = (err, req, res, next) => {
   // Default values (reuse statusCode from line 12)
   const message = error.message || "Internal server error";
   const code = error.code || "INTERNAL_ERROR";
+  const responseStatusCode = error.statusCode || statusCode;
 
   console.log(
-    `🔴 [Error Handler] Sending response: status=${statusCode}, code=${code}, message=${message}`,
+    `🔴 [Error Handler] Sending response: status=${responseStatusCode}, code=${code}, message=${message}`,
   );
 
   // Send standardized error response
-  res.status(statusCode).json({
+  res.status(responseStatusCode).json({
     success: false,
     error: {
       code,

@@ -234,8 +234,24 @@ TimetableExceptionSchema.index({
   exceptionDate: 1,
 });
 
-// Index for status-based queries (standalone)
-TimetableExceptionSchema.index({ status: 1 });
+// Prevent duplicate active pending/approved exceptions for the same timetable slot and date.
+TimetableExceptionSchema.index(
+  {
+    college_id: 1,
+    timetable_id: 1,
+    slot_id: 1,
+    exceptionDate: 1,
+    type: 1,
+  },
+  {
+    name: "idx_exception_unique_pending_approved",
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["PENDING", "APPROVED"] },
+      isActive: true,
+    },
+  },
+);
 
 // ================= PRE-SAVE VALIDATION =================
 
