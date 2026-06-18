@@ -140,6 +140,31 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     }
   };
 
+  /* ================= CALCULATE STATS ================= */
+  const calculateStats = (studentList) => {
+    const byDepartment = {};
+    const byCourse = {};
+    const byYear = {};
+
+    studentList.forEach((student) => {
+      const dept = student.department_id?.name || "Unknown";
+      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
+
+      const course = student.course_id?.name || "Unknown";
+      byCourse[course] = (byCourse[course] || 0) + 1;
+
+      const year = student.admissionYear || "Unknown";
+      byYear[year] = (byYear[year] || 0) + 1;
+    });
+
+    setStats({
+      total: studentList.length,
+      byDepartment,
+      byCourse,
+      byYear,
+    });
+  };
+
   /* ================= SEARCH ================= */
   const filteredStudents = useMemo(() => {
     return students.filter((s) =>
