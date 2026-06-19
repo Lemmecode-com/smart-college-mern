@@ -221,10 +221,26 @@ export default function CreateStaff() {
          delete staffData.departmentId;
        }
 
-       const res = await api.post("/college/staff", staffData);
+        const res = await api.post("/college/staff", staffData);
 
-       setResult(res.data);
-       toast.success("Staff account created successfully!");
+        setResult(res.data);
+        toast.success(
+          res.data.message || "Staff account created successfully!",
+        );
+
+        if (res.data.emailDelivered === false && res.data.emailError) {
+          toast.warning(`Email warning: ${res.data.emailError}`, {
+            position: "top-right",
+            autoClose: 6000,
+          });
+        }
+
+        if (res.data.data?.temporaryPassword) {
+          toast.info(
+            `Temporary password: ${res.data.data.temporaryPassword} (share with staff)`,
+            { position: "top-right", autoClose: 10000 },
+          );
+        }
 
        setFormData({
          name: "",

@@ -424,7 +424,26 @@ export default function ViewStudent() {
     try {
       setApproving(true);
       const response = await api.put(`/students/${studentId}/approve`);
-      toast.success("Student approved successfully");
+
+      const approvalMsg = response.data.message || "Admission offer made";
+      toast.success(approvalMsg, {
+        position: "top-right",
+        autoClose: response.data.emailDelivered ? 3000 : 5000,
+      });
+
+      if (response.data.temporaryPassword) {
+        toast.info(
+          `Temporary password: ${response.data.temporaryPassword}`,
+          { position: "top-right", autoClose: 8000 },
+        );
+      }
+
+      if (response.data.emailError) {
+        toast.warning(
+          `Email delivery issue: ${response.data.emailError}`,
+          { position: "top-right", autoClose: 6000 },
+        );
+      }
 
       // Show parent account creation info if any parents were created
       if (response.data.parentAccounts && response.data.parentAccounts.created > 0) {
