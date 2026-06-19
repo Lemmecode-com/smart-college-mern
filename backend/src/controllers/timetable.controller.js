@@ -579,8 +579,8 @@ exports.getTimetableStats = async (req, res) => {
 };
 
 /* =========================================================
-    WEEKLY TIMETABLE — TEACHER (OWN SCHEDULE) OR HOD (DEPARTMENT)
-   ========================================================= */
+     WEEKLY TIMETABLE — TEACHER (OWN SCHEDULE) OR HOD (DEPARTMENT)
+    ========================================================= */
 /**
   * GET /api/timetable/weekly
   * Purpose:
@@ -602,10 +602,10 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       hod_id: teacher._id,
     });
 
-    // Build query based on role
+    // Build query based on role - include college_id for tenant isolation
     const slotQuery = isHod
-      ? { department_id: teacher.department_id }
-      : { teacher_id: teacher._id };
+      ? { department_id: teacher.department_id, college_id: req.college_id }
+      : { teacher_id: teacher._id, college_id: req.college_id };
 
     const slots = await TimetableSlot.find({
       ...slotQuery,
@@ -616,6 +616,10 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
         path: "timetable_id",
         select: "name semester academicYear status division course_id",
         match: { status: "PUBLISHED" },
+        populate: {
+          path: "course_id",
+          select: "yearLabels",
+        },
       });
 
     const yearLabelsUtils = require("../utils/yearLabels");
@@ -624,7 +628,8 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
       if (!slot.timetable_id) return slot;
       const tId = slot.timetable_id._id.toString();
       let yearLabel = null;
-      if (slot.timetable_id.course_id?.yearLabels?.length) {
+      // Check if course_id is populated (is an object) or just ObjectId
+      if (slot.timetable_id.course_id && typeof slot.timetable_id.course_id === 'object' && slot.timetable_id.course_id.yearLabels?.length) {
         if (!timetableYearCache[tId]) {
           timetableYearCache[tId] = yearLabelsUtils.getYearLabelForSemester(
             slot.timetable_id.semester,
@@ -662,6 +667,7 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
     // Fetch exceptions for this week
     const TimetableExceptionModel = require("../models/timetableException.model");
     const exceptions = await TimetableExceptionModel.find({
+      college_id: req.college_id,
       timetable_id: { $in: timetableIds },
       exceptionDate: {
         $gte: monday,
@@ -698,7 +704,7 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
 
       // Add exception data to slot if exists
       const slotExceptions = exceptionsByDay[slot.day] || [];
-      const slotObj = slot.toObject();
+      // slot is already a plain object from slotsWithYearLabel map
 
       // Find exceptions that apply to this specific slot or are day-wide (HOLIDAY)
       const applicableExceptions = slotExceptions.filter(
@@ -711,31 +717,31 @@ exports.getWeeklyTimetableForTeacher = async (req, res) => {
         // Check if there's a HOLIDAY (overrides everything)
         const holiday = applicableExceptions.find((e) => e.type === "HOLIDAY");
         if (holiday) {
-          slotObj.exception = {
+          slot.exception = {
             type: "HOLIDAY",
             reason: holiday.reason,
           };
-          slotObj.status = "HOLIDAY";
+          slot.status = "HOLIDAY";
         } else {
           // Use the first applicable exception
           const exc = applicableExceptions[0];
-          slotObj.exception = {
+          slot.exception = {
             type: exc.type,
             reason: exc.reason,
             rescheduledTo: exc.rescheduledTo,
           };
 
           if (exc.type === "CANCELLED") {
-            slotObj.status = "CANCELLED";
+            slot.status = "CANCELLED";
           } else if (exc.type === "EXTRA") {
-            slotObj.status = "EXTRA";
+            slot.status = "EXTRA";
           } else if (exc.type === "RESCHEDULED") {
-            slotObj.status = "RESCHEDULED";
+            slot.status = "RESCHEDULED";
           }
         }
       }
 
-      weekly[slot.day].push(slotObj);
+      weekly[slot.day].push(slot);
     });
 
     // Check if any day is fully cancelled by HOLIDAY
@@ -822,11 +828,18 @@ exports.getStudentTimetable = async (req, res) => {
     sunday.setHours(23, 59, 59, 999);
 
     // Get matching timetable IDs for exception lookup
-    const timetableIds = matchingTimetables.map((t) => t._id);
+    const timetableIds = [
+      ...new Set(
+        filteredSlots
+          .filter((s) => s.timetable_id)
+          .map((s) => s.timetable_id._id.toString()),
+      ),
+    ];
 
     // Fetch exceptions for this week
     const TimetableExceptionModel = require("../models/timetableException.model");
     const exceptions = await TimetableExceptionModel.find({
+      college_id: req.college_id,
       timetable_id: { $in: timetableIds },
       exceptionDate: {
         $gte: monday,

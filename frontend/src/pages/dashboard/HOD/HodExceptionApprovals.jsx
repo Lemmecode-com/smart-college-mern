@@ -1,9 +1,11 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import Pagination from "../../../components/Pagination";
+import CustomSelect from "../../../components/CustomSelect";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -16,8 +18,29 @@ import {
   FaBook,
   FaClock,
   FaUndo,
+  FaSearch,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All Status" },
+  { value: "PENDING", label: "Pending" },
+  { value: "APPROVED", label: "Approved" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "WITHDRAWN", label: "Withdrawn" },
+];
+
+const TYPE_OPTIONS = [
+  { value: "", label: "All Types" },
+  { value: "HOLIDAY", label: "Holiday" },
+  { value: "CANCELLED", label: "Cancelled Class" },
+  { value: "EXTRA", label: "Extra/Makeup Class" },
+  { value: "RESCHEDULED", label: "Rescheduled Class" },
+  { value: "ROOM_CHANGE", label: "Room Change" },
+  { value: "TEACHER_CHANGE", label: "Teacher Change" },
+  { value: "SPECIAL_EVENT", label: "Special Event" },
+  { value: "EXAM", label: "Exam Schedule" },
+];
 
 const STATUS_COLORS = {
   PENDING: { bg: "#fef3c7", text: "#92400e", border: "#fde68a" },
@@ -38,6 +61,7 @@ const EXCEPTION_TYPES = {
 };
 
 const MotionDiv = motion.div;
+const MotionButton = motion.button;
 
 export default function HodExceptionApprovals() {
   const { user } = useContext(AuthContext);
@@ -58,13 +82,38 @@ export default function HodExceptionApprovals() {
     exceptionId: null,
   });
 
+  // Search and filter state
+  const [searchTeacher, setSearchTeacher] = useState("");
+  const [searchSubject, setSearchSubject] = useState("");
+  const [searchType, setSearchType] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+    // Debounce refs
+  const searchTeacherRef = useRef(null);
+  const searchSubjectRef = useRef(null);
+  const searchTypeRef = useRef(null);
+
+  // Combined search and filter params
+  const getSearchParams = () => ({
+    page: currentPage,
+    limit: 20,
+    status: statusFilter || undefined,
+    type: typeFilter || undefined,
+    search: searchTeacher || searchSubject || undefined,
+  });
+
   const fetchPending = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/timetable/exceptions/pending");
+      const params = getSearchParams();
+      const res = await api.get("/timetable/exceptions/pending", { params });
       const data = res.data?.data || res.data || {};
       setPendingRequests(data.exceptions || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load pending requests";
@@ -78,13 +127,16 @@ export default function HodExceptionApprovals() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/timetable/exceptions/history");
+      const params = getSearchParams();
+      const res = await api.get("/timetable/exceptions/history", { params });
       const data = res.data?.data || res.data || {};
       setHistory({
         approved: data.approved || [],
         rejected: data.rejected || [],
         withdrawn: data.withdrawn || [],
       });
+      setTotalPages(data.pagination?.totalPages || 1);
+      
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load approval history";
@@ -94,13 +146,48 @@ export default function HodExceptionApprovals() {
     }
   };
 
+  
+
+  // Debounced search for teacher
+  useEffect(() => {
+    if (searchTeacherRef.current) {
+      clearTimeout(searchTeacherRef.current);
+    }
+    searchTeacherRef.current = setTimeout(() => {
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(searchTeacherRef.current);
+  }, [searchTeacher]);
+
+  // Debounced search for subject
+  useEffect(() => {
+    if (searchSubjectRef.current) {
+      clearTimeout(searchSubjectRef.current);
+    }
+    searchSubjectRef.current = setTimeout(() => {
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(searchSubjectRef.current);
+  }, [searchSubject]);
+
+  // Debounced search for type
+  useEffect(() => {
+    if (searchTypeRef.current) {
+      clearTimeout(searchTypeRef.current);
+    }
+    searchTypeRef.current = setTimeout(() => {
+      setTypeFilter(searchType);
+    }, 300);
+    return () => clearTimeout(searchTypeRef.current);
+  }, [searchType]);
+
   useEffect(() => {
     if (activeTab === "pending") {
       fetchPending();
     } else {
       fetchHistory();
     }
-  }, [activeTab]);
+  }, [activeTab, currentPage, statusFilter, typeFilter, searchTeacher, searchSubject]);
 
   const openApproveModal = (exceptionId) => {
     setApproveModal({ isOpen: true, exceptionId });
@@ -183,6 +270,16 @@ export default function HodExceptionApprovals() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchTeacher("");
+    setSearchSubject("");
+    setSearchType("");
+    setStatusFilter("");
+    setTypeFilter("");
+    setCurrentPage(1);
   };
 
   if (!user) return <Navigate to="/login" />;
@@ -268,7 +365,7 @@ export default function HodExceptionApprovals() {
                       Subject
                     </small>
                     <span className="fw-semibold text-dark small">
-                      {exc.subject?.name || exc.timetableSlot?.subject?.name || "N/A"}
+                      {exc.slot_id?.subject_id?.name || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -457,7 +554,7 @@ export default function HodExceptionApprovals() {
                     Subject
                   </small>
                   <span className="fw-semibold text-dark small">
-                    {exc.subject?.name || exc.timetableSlot?.subject?.name || "N/A"}
+                    {exc.slot_id?.subject_id?.name || "N/A"}
                   </span>
                 </div>
               </div>
@@ -601,18 +698,25 @@ export default function HodExceptionApprovals() {
       <div className="p-4">
         <div className="card shadow-sm border-0" style={{ borderRadius: "12px", background: "white" }}>
           <div className="card-body p-0">
-            <ul className="nav nav-tabs border-0 px-4 pt-3" style={{ gap: "4px" }}>
+            <ul className="nav nav-tabs border-0 px-4 pt-3 mb-0" style={{ gap: "4px" }}>
               <li className="nav-item">
                 <button
                   onClick={() => setActiveTab("pending")}
-                  className="nav-link border-0 fw-semibold px-4 py-2 position-relative"
+                  className="border-0 fw-semibold position-relative"
                   style={{
                     borderRadius: "8px 8px 0 0",
-                    color: activeTab === "pending" ? "var(--sidebar-accent, #3db5e6)" : "#64748b",
-                    background: activeTab === "pending" ? "#f0f9ff" : "transparent",
+                    color: activeTab === "pending" ? "#0f172a" : "#475569",
+                    background: activeTab === "pending" ? "#eff6ff" : "transparent",
+                    borderBottom:
+                      activeTab === "pending"
+                        ? "2px solid #0ea5e9"
+                        : "2px solid transparent",
+                    opacity: 1,
+                    marginBottom: 0,
+                    padding: "0.5rem 1rem",
                   }}
                 >
-                  <FaClock className="me-2" />
+                  <FaClock className="me-2" style={{ color: activeTab === "pending" ? "#0ea5e9" : "#64748b" }} />
                   Pending Approvals
                   {pendingRequests.length > 0 && (
                     <span
@@ -633,18 +737,120 @@ export default function HodExceptionApprovals() {
               <li className="nav-item">
                 <button
                   onClick={() => setActiveTab("history")}
-                  className="nav-link border-0 fw-semibold px-4 py-2 position-relative"
+                  className="border-0 fw-semibold position-relative"
                   style={{
                     borderRadius: "8px 8px 0 0",
-                    color: activeTab === "history" ? "var(--sidebar-accent, #3db5e6)" : "#64748b",
-                    background: activeTab === "history" ? "#f0f9ff" : "transparent",
+                    color: activeTab === "history" ? "#0f172a" : "#475569",
+                    background: activeTab === "history" ? "#eff6ff" : "transparent",
+                    borderBottom:
+                      activeTab === "history"
+                        ? "2px solid #0ea5e9"
+                        : "2px solid transparent",
+                    opacity: 1,
+                    marginBottom: 0,
+                    padding: "0.5rem 1rem",
                   }}
                 >
-                  <FaExclamationTriangle className="me-2" />
+                  <FaExclamationTriangle className="me-2" style={{ color: activeTab === "history" ? "#0ea5e9" : "#64748b" }} />
                   Approval History
                 </button>
               </li>
             </ul>
+
+            {/* Search and Filter Bar */}
+            <div className="px-4 py-3 border-bottom" style={{ background: "white", borderBottom: "1px solid #e2e8f0" }}>
+              <div className="d-flex flex-wrap gap-3 align-items-end">
+                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
+                  <label className="form-label fw-medium text-muted small mb-1">
+                    <FaSearch className="me-1" size={12} />
+                    Teacher Name
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    placeholder="Search teacher..."
+                    value={searchTeacher}
+                    onChange={(e) => setSearchTeacher(e.target.value)}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "0.5rem 0.75rem",
+                    }}
+                  />
+                </div>
+
+                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
+                  <label className="form-label fw-medium text-muted small mb-1">
+                    <FaSearch className="me-1" size={12} />
+                    Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    placeholder="Search subject..."
+                    value={searchSubject}
+                    onChange={(e) => setSearchSubject(e.target.value)}
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      padding: "0.5rem 0.75rem",
+                    }}
+                  />
+                </div>
+
+                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
+                  <label className="form-label fw-medium text-muted small mb-1">
+                    <FaSearch className="me-1" size={12} />
+                    Exception Type
+                  </label>
+                  <CustomSelect
+                    value={searchType}
+                    onChange={(e) => setSearchType(e.target.value)}
+                    options={TYPE_OPTIONS}
+                    placeholder="All Types"
+                    aria-label="Search by exception type"
+                  />
+                </div>
+
+                <div className="flex-shrink-0" style={{ minWidth: "180px" }}>
+                  <label className="form-label fw-medium text-muted small mb-1">
+                    Status
+                  </label>
+                  <CustomSelect
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    options={STATUS_OPTIONS}
+                    placeholder="All Status"
+                    aria-label="Filter by status"
+                  />
+                </div>
+
+                {(searchTeacher || searchSubject || searchType || statusFilter || typeFilter) && (
+                  <MotionButton
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleClearFilters}
+                    className="btn btn-sm fw-medium px-3 py-2 border-0"
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #e2e8f0",
+                      color: "#64748b",
+                      borderRadius: "8px",
+                      height: "38px",
+                    }}
+                  >
+                    Clear Filters
+                  </MotionButton>
+                )}
+              </div>
+
+              <div className="mt-2 text-muted small">
+                Showing records
+                {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+              </div>
+            </div>
 
             <div className="p-4">
               <AnimatePresence mode="wait">
