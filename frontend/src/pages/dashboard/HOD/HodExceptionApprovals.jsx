@@ -26,6 +26,17 @@ const STATUS_COLORS = {
   WITHDRAWN: { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" },
 };
 
+const EXCEPTION_TYPES = {
+  HOLIDAY: "Holiday",
+  CANCELLED: "Cancelled Class",
+  EXTRA: "Extra/Makeup Class",
+  RESCHEDULED: "Rescheduled Class",
+  ROOM_CHANGE: "Room Change",
+  TEACHER_CHANGE: "Teacher Change",
+  SPECIAL_EVENT: "Special Event",
+  EXAM: "Exam Schedule",
+};
+
 const MotionDiv = motion.div;
 
 export default function HodExceptionApprovals() {
@@ -41,6 +52,10 @@ export default function HodExceptionApprovals() {
     isOpen: false,
     exceptionId: null,
     reason: "",
+  });
+  const [approveModal, setApproveModal] = useState({
+    isOpen: false,
+    exceptionId: null,
   });
 
   const fetchPending = async () => {
@@ -87,14 +102,21 @@ export default function HodExceptionApprovals() {
     }
   }, [activeTab]);
 
-  const handleApprove = async (exceptionId) => {
+  const openApproveModal = (exceptionId) => {
+    setApproveModal({ isOpen: true, exceptionId });
+  };
+
+  const handleApprove = async () => {
+    if (!approveModal.exceptionId) return;
+
     try {
       setActionLoading(true);
-      await api.put(`/timetable/exceptions/${exceptionId}/approve`);
+      await api.put(`/timetable/exceptions/${approveModal.exceptionId}/approve`);
       toast.success("Exception approved successfully", {
         position: "top-right",
         autoClose: 3000,
       });
+      setApproveModal({ isOpen: false, exceptionId: null });
       fetchPending();
     } catch (err) {
       toast.error(
@@ -307,7 +329,7 @@ export default function HodExceptionApprovals() {
 
           <div className="d-flex gap-2 flex-shrink-0">
             <button
-              onClick={() => handleApprove(exc._id)}
+              onClick={() => openApproveModal(exc._id)}
               disabled={actionLoading}
               className="btn btn-sm d-flex align-items-center gap-1 fw-semibold px-3 py-2 border-0"
               style={{
@@ -861,6 +883,132 @@ export default function HodExceptionApprovals() {
                   >
                     <FaTimes className="me-1" />
                     {actionLoading ? "Rejecting..." : "Confirm Reject"}
+                  </button>
+                </div>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      {/* Approve Confirmation Modal */}
+      <AnimatePresence>
+        {approveModal.isOpen && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="modal show d-block"
+            tabIndex="-1"
+            style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          >
+            <MotionDiv
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="modal-dialog modal-dialog-centered"
+              style={{ maxWidth: "500px" }}
+            >
+              <div
+                className="modal-content border-0 shadow-lg"
+                style={{ borderRadius: "16px", overflow: "hidden" }}
+              >
+                <div
+                  className="modal-header border-0 text-white p-3"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  }}
+                >
+                  <h5 className="modal-title fw-bold mb-0">Approve Exception Request</h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white opacity-75"
+                    onClick={() =>
+                      setApproveModal({ isOpen: false, exceptionId: null })
+                    }
+                    style={{ filter: "brightness(0) invert(1)" }}
+                  />
+                </div>
+                <div className="modal-body p-4" style={{ background: "#f8fafc" }}>
+                  <div
+                    className="alert alert-info border-0 mb-3"
+                    style={{
+                      background: "#d1fae5",
+                      borderRadius: "10px",
+                      color: "#065f46",
+                    }}
+                  >
+                    <FaInfoCircle className="me-2" />
+                    This action will notify all affected teachers and students.
+                  </div>
+                  {(() => {
+                    const exc = pendingRequests.find(
+                      (e) => e._id === approveModal.exceptionId,
+                    );
+                    if (!exc) return null;
+                    return (
+                      <div className="small text-muted">
+                        <div className="mb-2">
+                          <strong>Date:</strong>{" "}
+                          {exc.exceptionDate
+                            ? new Date(exc.exceptionDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  weekday: "long",
+                                  month: "short",
+                                  day: "numeric",
+                                },
+                              )
+                            : "N/A"}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Type:</strong>{" "}
+                          {EXCEPTION_TYPES[exc.type] || exc.type}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Teacher:</strong>{" "}
+                          {exc.createdBy?.name || "Unknown"}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Reason:</strong> {exc.reason}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div
+                  className="modal-footer border-0 d-flex gap-2 p-3"
+                  style={{ background: "white" }}
+                >
+                  <button
+                    onClick={() =>
+                      setApproveModal({ isOpen: false, exceptionId: null })
+                    }
+                    disabled={actionLoading}
+                    className="btn px-4 py-2 fw-medium"
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #e2e8f0",
+                      color: "#64748b",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className="btn px-4 py-2 fw-bold text-white"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+                      opacity: actionLoading ? 0.7 : 1,
+                    }}
+                  >
+                    <FaCheck className="me-1" />
+                    {actionLoading ? "Approving..." : "Confirm Approve"}
                   </button>
                 </div>
               </div>
