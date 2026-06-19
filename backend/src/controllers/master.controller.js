@@ -10,6 +10,8 @@ const Timetable = require("../models/timetable.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
 const AppError = require("../utils/AppError");
+const FeeStructure = require("../models/feeStructure.model");
+const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const { sendEmailToCollegeAdmin } = require("../services/email.service");
 
 exports.createCollege = async (req, res, next) => {
@@ -398,11 +400,33 @@ exports.markSetupComplete = async (req, res, next) => {
       throw new AppError("College ID not found in request", 400, "MISSING_COLLEGE_ID");
     }
 
+    // Validate minimum onboarding prerequisites
+    const [deptCount, courseCount, feeCount, emailConfig] = await Promise.all([
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      FeeStructure.countDocuments({ college_id: collegeId }),
+      CollegeEmailConfig.getActiveConfig(collegeId),
+    ]);
+
+    const missing = [];
+    if (deptCount === 0) missing.push("at least one department");
+    if (courseCount === 0) missing.push("at least one course");
+    if (feeCount === 0) missing.push("at least one fee structure");
+    if (!emailConfig) missing.push("email configuration");
+
+    if (missing.length > 0) {
+      throw new AppError(
+        "Cannot finish setup. Please complete: " + missing.join(", "),
+        400,
+        "SETUP_INCOMPLETE"
+      );
+    }
+
     await College.findByIdAndUpdate(collegeId, { setupCompleted: true });
 
     res.json({
       success: true,
-      message: "College setup marked as complete.",
+      message: "College setup marked as complete. All required steps verified.",
     });
   } catch (error) {
     next(error);
