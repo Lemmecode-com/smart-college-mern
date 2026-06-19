@@ -17,6 +17,8 @@ const parentCreationService = require("../services/parentCreation.service");
 exports.approveStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
+    let tempPassword = null;
+    let emailResult = { success: false };
 
     // 1️⃣ Find pending student
     const student = await Student.findOne({
@@ -50,7 +52,7 @@ exports.approveStudent = async (req, res, next) => {
       } else {
         // Create new User account
         // Generate a temporary password (student will reset via forgot password)
-        const tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
+        tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
 
         const newUser = await User.create({
           name: student.fullName,
@@ -185,34 +187,39 @@ exports.approveStudent = async (req, res, next) => {
       .logStudentOfferMade(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 📧 Send offer email to student (fire-and-forget)
-    (async () => {
-      try {
-        const college = await College.findById(student.college_id).select(
-          "name email",
-        );
-        const crs = await Course.findById(student.course_id).select("name");
-        const loginUrl = buildFrontendUrl("/login");
+    // 📧 Send offer email to student and report delivery status
+    try {
+      const college = await College.findById(student.college_id).select(
+        "name email",
+      );
+      const crs = await Course.findById(student.course_id).select("name");
+      const loginUrl = buildFrontendUrl("/login");
 
-        await sendAdmissionOfferEmail({
-          to: student.email,
-          studentName: student.fullName,
-          courseName: crs?.name || "N/A",
-          collegeName: college?.name || "Our College",
-          admissionYear: student.admissionYear,
-          enrollmentNumber: student.enrollmentNumber,
-          loginUrl,
-          email: student.email,
-          collegeId: student.college_id,
-        });
-        console.log(`📧 Admission offer email sent to ${student.email}`);
-      } catch (e) {
-        console.error("❌ Admission offer email failed:", e.message);
-      }
-    })();
+      emailResult = await sendAdmissionOfferEmail({
+        to: student.email,
+        studentName: student.fullName,
+        courseName: crs?.name || "N/A",
+        collegeName: college?.name || "Our College",
+        admissionYear: student.admissionYear,
+        enrollmentNumber: student.enrollmentNumber,
+        loginUrl,
+        email: student.email,
+        collegeId: student.college_id,
+      });
+      console.log(`📧 Admission offer email sent to ${student.email}`);
+    } catch (e) {
+      console.error("❌ Admission offer email failed:", e.message);
+    }
+
+    const message = emailResult.success
+      ? "Admission offer made successfully"
+      : "Admission offer made. Email delivery failed - please share credentials manually.";
 
     res.json({
-      message: "Admission offer made successfully",
+      message,
+      emailDelivered: emailResult.success,
+      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
+      temporaryPassword: tempPassword,
 
       student: {
         id: student._id,

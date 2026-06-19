@@ -229,13 +229,21 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       const response = await api.put(`/students/${pendingApproveId}/approve`);
 
       // Show success message
-      toast.success(
-        "✅ Student approved successfully! Approval email sent to student.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        },
-      );
+      const approvalMsg =
+        response.data.emailDelivered === false
+          ? "Admission offer made. Email delivery failed - share credentials manually."
+          : response.data.message || "Student approved successfully!";
+      toast.success(approvalMsg, {
+        position: "top-right",
+        autoClose: response.data.emailDelivered ? 3000 : 5000,
+      });
+
+      if (response.data.temporaryPassword) {
+        toast.info(
+          `Temporary password: ${response.data.temporaryPassword} (share with student)`,
+          { position: "top-right", autoClose: 8000 },
+        );
+      }
 
       // Show parent account creation info if any parents were created
       if (response.data.parentAccounts && response.data.parentAccounts.created > 0) {
