@@ -245,9 +245,28 @@ const generateTempPassword = (length = 10) => {
         staffName
       ).catch((err) => console.error("Audit log failed:", err.message));
 
+      // Send credentials email and report delivery status
+      let emailResult = { success: false };
+      try {
+        emailResult = await sendStaffCredentialsEmail({
+          to: email,
+          name,
+          temporaryPassword: tempPassword,
+          collegeId: req.user.college_id,
+        });
+      } catch (err) {
+        console.error("Failed to send staff credentials email:", err.message);
+      }
+
+      const message = emailResult.success
+        ? "Staff account created. Credentials sent via email."
+        : "Staff account created. Email delivery failed - please share the temporary password manually.";
+
       res.status(201).json({
         success: true,
-        message: "Staff account created successfully",
+        message,
+        emailDelivered: emailResult.success,
+        emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
         data: {
           user: {
             id: user[0]._id,
@@ -260,13 +279,6 @@ const generateTempPassword = (length = 10) => {
           temporaryPassword: tempPassword, // shown only once
         },
       });
-
-      sendStaffCredentialsEmail({
-        to: email,
-        name,
-        temporaryPassword: tempPassword,
-        collegeId: req.user.college_id,
-      }).catch((err) => console.error("Failed to send staff credentials email:", err.message));
     } catch (err) {
       await session.abortTransaction();
       session.endSession();
@@ -419,16 +431,28 @@ exports.resetStaffPassword = async (req, res, next) => {
     AuditService.logStaffPasswordReset(req.user, user, req)
       .catch((err) => console.error("Audit log failed:", err.message));
 
-    sendStaffCredentialsEmail({
-      to: user.email,
-      name: user.name,
-      temporaryPassword: tempPassword,
-      collegeId: req.user.college_id,
-    }).catch((err) => console.error("Failed to send staff credentials email:", err.message));
+    // Send credentials email and report delivery status
+    let emailResult = { success: false };
+    try {
+      emailResult = await sendStaffCredentialsEmail({
+        to: user.email,
+        name: user.name,
+        temporaryPassword: tempPassword,
+        collegeId: req.user.college_id,
+      });
+    } catch (err) {
+      console.error("Failed to send staff credentials email:", err.message);
+    }
+
+    const message = emailResult.success
+      ? "Password reset successfully. Temporary password sent to staff email."
+      : "Password reset successfully. Email delivery failed - please share the temporary password manually.";
 
     res.json({
       success: true,
-      message: "Password reset successfully. Temporary password sent to staff email.",
+      message,
+      emailDelivered: emailResult.success,
+      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
       data: {
         userId: user._id,
         email: user.email,
