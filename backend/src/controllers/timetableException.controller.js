@@ -276,7 +276,14 @@ exports.createException = async (req, res, next) => {
 
     // 🔟 Populate response
     const populatedException = await TimetableException.findById(exception._id)
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
       .populate("substituteTeacher", "name")
@@ -659,7 +666,15 @@ exports.getExceptions = async (req, res, next) => {
     // 4️️ Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const exceptions = await TimetableException.find(query)
-      .populate("slot_id", "day startTime endTime")
+      .populate("timetable_id", "name semester academicYear")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
       .populate("substituteTeacher", "name")
@@ -915,7 +930,14 @@ exports.updateException = async (req, res, next) => {
       { $set: sanitizedUpdate },
       { new: true, runValidators: true },
     )
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
       .populate("substituteTeacher", "name")
@@ -1050,7 +1072,14 @@ exports.withdrawException = async (req, res, next) => {
 
     // 4️ Populate response
     const populatedException = await TimetableException.findById(withdrawnException._id)
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
       .populate("substituteTeacher", "name")
@@ -1609,7 +1638,7 @@ exports.rejectException = async (req, res, next) => {
 /* =========================================================
     GET PENDING APPROVALS
     GET /api/timetable/exceptions/pending
-========================================================= */
+  ========================================================= */
 exports.getPendingApprovals = async (req, res, next) => {
   try {
     const teacher = await teacherService.getTeacherWithValidation(
@@ -1635,17 +1664,58 @@ exports.getPendingApprovals = async (req, res, next) => {
 
     const timetableIds = departmentTimetables.map(t => t._id);
 
-    // Query pending exceptions for HOD's department directly in MongoDB
-    const pendingExceptions = await TimetableException.find({
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      type,
+      search,
+    } = req.query;
+
+    // Build query
+    const query = {
       college_id: req.college_id,
       timetable_id: { $in: timetableIds },
       status: "PENDING",
       isActive: true,
-    })
+    };
+
+    // Filter by status (for flexibility if needed)
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by type
+    if (type) {
+      query.type = type;
+    }
+
+    // Search by teacher name or subject name
+    if (search) {
+      const searchRegex = new RegExp(search, "i");
+      query.$or = [
+        { "createdBy.name": searchRegex },
+        { "createdBy.email": searchRegex },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const pendingExceptions = await TimetableException.find(query)
       .populate("timetable_id", "name semester academicYear")
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("createdBy", "name email")
-      .sort({ exceptionDate: 1, createdAt: -1 });
+      .sort({ exceptionDate: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await TimetableException.countDocuments(query);
 
     ApiResponse.success(
       res,
@@ -1653,6 +1723,12 @@ exports.getPendingApprovals = async (req, res, next) => {
         exceptions: pendingExceptions,
         pendingExceptions,
         count: pendingExceptions.length,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
       },
       "Pending approvals fetched successfully",
     );
@@ -1685,7 +1761,14 @@ exports.getMyExceptions = async (req, res, next) => {
 
     const exceptions = await TimetableException.find(query)
       .populate("timetable_id", "name semester academicYear")
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
       .populate("withdrawnBy", "name email")
@@ -1714,9 +1797,9 @@ exports.getMyExceptions = async (req, res, next) => {
 };
 
 /* =========================================================
-    GET APPROVAL HISTORY (HOD's department - APPROVED/REJECTED)
-    GET /api/timetable/exceptions/history
-========================================================= */
+     GET APPROVAL HISTORY (HOD's department - APPROVED/REJECTED)
+     GET /api/timetable/exceptions/history
+  ========================================================= */
 exports.getApprovalHistory = async (req, res, next) => {
   try {
     const teacher = await teacherService.getTeacherWithValidation(
@@ -1742,20 +1825,61 @@ exports.getApprovalHistory = async (req, res, next) => {
 
     const timetableIds = departmentTimetables.map(t => t._id);
 
-    // Query APPROVED, REJECTED, and WITHDRAWN exceptions for HOD's department
-    const historyExceptions = await TimetableException.find({
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      type,
+      search,
+    } = req.query;
+
+    // Build base query
+    const baseQuery = {
       college_id: req.college_id,
       timetable_id: { $in: timetableIds },
       status: { $in: ["APPROVED", "REJECTED", "WITHDRAWN"] },
       isActive: true,
-    })
+    };
+
+    // Filter by specific status
+    if (status) {
+      baseQuery.status = status;
+    }
+
+    // Filter by type
+    if (type) {
+      baseQuery.type = type;
+    }
+
+    // Search by teacher name or subject name
+    if (search) {
+      const searchRegex = new RegExp(search, "i");
+      baseQuery.$or = [
+        { "createdBy.name": searchRegex },
+        { "createdBy.email": searchRegex },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const historyExceptions = await TimetableException.find(baseQuery)
       .populate("timetable_id", "name semester academicYear")
-      .populate("slot_id", "day startTime endTime")
+      .populate({
+        path: "slot_id",
+        select: "day startTime endTime",
+        populate: {
+          path: "subject_id",
+          select: "name code"
+        }
+      })
       .populate("createdBy", "name email")
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
       .populate("withdrawnBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await TimetableException.countDocuments(baseQuery);
 
     const approved = historyExceptions.filter((exception) => exception.status === "APPROVED");
     const rejected = historyExceptions.filter((exception) => exception.status === "REJECTED");
@@ -1769,6 +1893,12 @@ exports.getApprovalHistory = async (req, res, next) => {
         rejected,
         withdrawn,
         count: historyExceptions.length,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
       },
       "Approval history fetched successfully",
     );
