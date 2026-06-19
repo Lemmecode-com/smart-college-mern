@@ -11,6 +11,7 @@ import {
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import SearchableSelect from "../../../../components/SearchableSelect";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -22,6 +23,8 @@ import {
   FaChevronDown,
   FaExclamationTriangle,
   FaArrowLeft,
+  FaDoorOpen,
+  FaUser,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -29,10 +32,12 @@ import { motion } from "framer-motion";
 const EXCEPTION_TYPES = {
   HOLIDAY: "Holiday",
   CANCELLED: "Cancelled Class",
-  EXTRA: "Extra/Makup Class",
+  EXTRA: "Extra/Makeup Class",
   RESCHEDULED: "Rescheduled Class",
   ROOM_CHANGE: "Room Change",
   TEACHER_CHANGE: "Teacher Change",
+  SPECIAL_EVENT: "Special Event",
+  EXAM: "Exam Schedule",
 };
 
 const MotionDiv = motion.div;
@@ -57,6 +62,8 @@ export default function CreateException() {
     type: "HOLIDAY",
     reason: "",
     rescheduledTo: "",
+    newRoom: "",
+    substituteTeacher: "",
     extraSlot: {
       startTime: "",
       endTime: "",
@@ -66,8 +73,8 @@ export default function CreateException() {
     },
   });
 
-  // Fetch timetables
-  useEffect(() => {
+// Fetch timetables
+   useEffect(() => {
     const fetchTimetables = async () => {
       try {
         const res = await api.get("/timetable");
@@ -95,6 +102,36 @@ export default function CreateException() {
 
     fetchTimetables();
   }, [timetableIdParam]);
+
+const fetchSubjectsForSearch = async (query) => {
+     if (!selectedTimetable) return [];
+     try {
+       const res = await api.get(`/subjects/course/${selectedTimetable.course_id}`, {
+         params: { search: query },
+       });
+       return (res.data || []).map((s) => ({
+         value: s._id,
+         label: `${s.code} - ${s.name}`,
+       }));
+     } catch (err) {
+       console.error("Failed to fetch subjects:", err);
+       return [];
+     }
+   };
+
+const fetchTeachersForSearch = async (query) => {
+     try {
+       const res = await api.get(`/hod/teachers`, {
+         params: { search: query },
+       });
+       return (res.data?.teachers || []).map((t) => ({
+         value: t._id,
+         label: `${t.name} (${t.employeeId})`,
+       }));
+     } catch {
+       return [];
+     }
+   };
 
   // Handle form submit
   const handleSubmit = async (e) => {
@@ -137,6 +174,16 @@ export default function CreateException() {
       return;
     }
 
+    if (formData.type === "ROOM_CHANGE" && !formData.newRoom?.trim()) {
+      toast.error("Please enter a new room");
+      return;
+    }
+
+    if (formData.type === "TEACHER_CHANGE" && !formData.substituteTeacher) {
+      toast.error("Please select a substitute teacher");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -154,6 +201,14 @@ export default function CreateException() {
 
       if (formData.type === "EXTRA") {
         payload.extraSlot = formData.extraSlot;
+      }
+
+      if (formData.type === "ROOM_CHANGE") {
+        payload.newRoom = formData.newRoom;
+      }
+
+      if (formData.type === "TEACHER_CHANGE") {
+        payload.substituteTeacher = formData.substituteTeacher;
       }
 
       await api.post(
@@ -499,7 +554,7 @@ export default function CreateException() {
                     />
                   </div>
 
-                  {/* RESCHEDULED: Rescheduled Date */}
+{/* RESCHEDULED: Rescheduled Date */}
                   {formData.type === "RESCHEDULED" && (
                     <MotionDiv
                       initial={{ opacity: 0, height: 0 }}
@@ -528,6 +583,63 @@ export default function CreateException() {
                     </MotionDiv>
                   )}
 
+                  {/* ROOM_CHANGE: New Room Field */}
+                  {formData.type === "ROOM_CHANGE" && (
+                    <MotionDiv
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mb-4"
+                    >
+                      <label className="form-label fw-bold text-dark mb-2">
+                        <FaDoorOpen className="me-2" />
+                        New Room <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control border-0"
+                        name="newRoom"
+                        value={formData.newRoom}
+                        onChange={handleChange}
+                        placeholder="Enter new room number"
+                        required
+                        style={{
+                          background: "#f8fafc",
+                          borderRadius: "12px",
+                          padding: "0.85rem 1rem",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      />
+                    </MotionDiv>
+                  )}
+
+                  {/* TEACHER_CHANGE: Substitute Teacher Dropdown */}
+                  {formData.type === "TEACHER_CHANGE" && (
+                    <MotionDiv
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mb-4"
+                    >
+                      <label className="form-label fw-bold text-dark mb-2">
+                        <FaUser className="me-2" />
+                        Substitute Teacher <span className="text-danger">*</span>
+                      </label>
+                      <SearchableSelect
+                        value={formData.substituteTeacher}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            substituteTeacher: e.target.value,
+                          }))
+                        }
+                        fetchOptions={fetchTeachersForSearch}
+                        placeholder="Search teacher by name..."
+                        aria-label="Select substitute teacher"
+                        style={{ minHeight: "44px" }}
+                      />
+                    </MotionDiv>
+                  )}
+
                   {/* EXTRA: Extra Slot Details */}
                   {formData.type === "EXTRA" && (
                     <MotionDiv
@@ -548,112 +660,98 @@ export default function CreateException() {
                         Extra Slot Details
                       </h6>
 
-                      <div className="row g-3">
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Start Time <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="time"
-                            className="form-control border-0"
-                            name="startTime"
-                            value={formData.extraSlot.startTime}
-                            onChange={handleExtraSlotChange}
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                              cursor: "pointer",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            End Time <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="time"
-                            className="form-control border-0"
-                            name="endTime"
-                            value={formData.extraSlot.endTime}
-                            onChange={handleExtraSlotChange}
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                              cursor: "pointer",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Subject <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="subject_id"
-                            value={formData.extraSlot.subject_id}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Subject ID"
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Teacher <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="teacher_id"
-                            value={formData.extraSlot.teacher_id}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Teacher ID"
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                        <div className="col-12">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Room (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="room"
-                            value={formData.extraSlot.room}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Room number (optional)"
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                      </div>
+<div className="row g-3">
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Start Time <span className="text-danger">*</span>
+                           </label>
+                           <input
+                             type="time"
+                             className="form-control border-0"
+                             name="startTime"
+                             value={formData.extraSlot.startTime}
+                             onChange={handleExtraSlotChange}
+                             required
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                               cursor: "pointer",
+                             }}
+                           />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             End Time <span className="text-danger">*</span>
+                           </label>
+                           <input
+                             type="time"
+                             className="form-control border-0"
+                             name="endTime"
+                             value={formData.extraSlot.endTime}
+                             onChange={handleExtraSlotChange}
+                             required
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                               cursor: "pointer",
+                             }}
+                           />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Subject <span className="text-danger">*</span>
+                           </label>
+<SearchableSelect
+                         value={formData.extraSlot.subject_id}
+                         onChange={handleExtraSlotChange}
+                         fetchOptions={fetchSubjectsForSearch}
+                         placeholder="Search subject..."
+                         aria-label="Select subject"
+                         name="subject_id"
+                         style={{ minHeight: "44px" }}
+                       />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Teacher <span className="text-danger">*</span>
+                           </label>
+<SearchableSelect
+                              value={formData.extraSlot.teacher_id}
+                              onChange={handleExtraSlotChange}
+                              fetchOptions={fetchTeachersForSearch}
+                              placeholder="Search teacher..."
+                              aria-label="Select teacher"
+                              name="teacher_id"
+                              style={{ minHeight: "44px" }}
+                            />
+                         </div>
+                         <div className="col-12">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Room (Optional)
+                           </label>
+                           <input
+                             type="text"
+                             className="form-control border-0"
+                             name="room"
+                             value={formData.extraSlot.room}
+                             onChange={handleExtraSlotChange}
+                             placeholder="Room number (optional)"
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                             }}
+                           />
+                         </div>
+                       </div>
                     </MotionDiv>
                   )}
 
