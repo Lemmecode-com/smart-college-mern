@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
 import "./Wizard.css";
 import {
   FaEnvelope,
@@ -64,6 +65,9 @@ export default function CollegeSetupWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [setupStatus, setSetupStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -76,6 +80,41 @@ export default function CollegeSetupWizard() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        setStatusLoading(true);
+        setStatusError("");
+        const res = await api.get("/college/setup-status");
+        setSetupStatus(res.data);
+      } catch (err) {
+        setStatusError(
+          err.response?.data?.message ||
+            "Failed to load setup status. Please try again.",
+        );
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+    fetchStatus();
+  }, [navigate]);
+
+  const isStepComplete = (stepId) => {
+    if (!setupStatus) return false;
+    if (stepId === "email") return setupStatus.emailConfigured === true;
+    return setupStatus.steps?.[stepId] === true;
+  };
+
+  const allStepsComplete = () => {
+    if (!setupStatus) return false;
+    return (
+      setupStatus.emailConfigured === true &&
+      STEPS.every(
+        (step) => step.id === "email" || setupStatus.steps?.[step.id] === true,
+      )
+    );
+  };
+
   const goToStep = (stepPath) => {
     navigate(stepPath);
   };
@@ -87,6 +126,11 @@ export default function CollegeSetupWizard() {
       navigate("/dashboard");
     } catch (err) {
       console.error("Failed to mark setup complete:", err);
+      toast.error(
+        err.response?.data?.message ||
+          "Setup incomplete. Please complete all required steps first.",
+        { position: "top-right" },
+      );
     } finally {
       setLoading(false);
     }
@@ -114,14 +158,15 @@ export default function CollegeSetupWizard() {
             const Icon = step.icon;
             const isActive = index === currentStep;
             const isPast = index < currentStep;
+            const complete = isStepComplete(step.id);
             return (
               <div
                 key={step.id}
-                className={`setup-step ${isActive ? "active" : ""} ${isPast ? "past" : ""}`}
+                className={`setup-step ${isActive ? "active" : ""} ${isPast ? "past" : ""} ${complete ? "complete" : ""}`}
                 onClick={() => setCurrentStep(index)}
               >
                 <div className="setup-step-icon">
-                  {isPast ? <FaCheckCircle /> : <Icon />}
+                  {complete ? <FaCheckCircle /> : isPast ? <FaCheckCircle /> : <Icon />}
                 </div>
                 <div className="setup-step-content">
                   <span className="setup-step-title">{step.title}</span>
@@ -169,6 +214,7 @@ export default function CollegeSetupWizard() {
             <button
               className="erp-btn erp-btn-primary"
               onClick={() => setCurrentStep((s) => s + 1)}
+              disabled={statusLoading}
             >
               Next
               <FaArrowRight className="erp-btn-icon" />
@@ -177,10 +223,10 @@ export default function CollegeSetupWizard() {
             <button
               className="erp-btn erp-btn-success"
               onClick={markComplete}
-              disabled={loading}
+              disabled={loading || statusLoading || !allStepsComplete()}
             >
               <FaCheckCircle className="erp-btn-icon" />
-              {loading ? "Saving..." : "Finish Setup"}
+              {loading ? "Saving..." : statusLoading ? "Checking..." : !allStepsComplete() ? "Complete all steps first" : "Finish Setup"}
             </button>
           )}
         </div>
