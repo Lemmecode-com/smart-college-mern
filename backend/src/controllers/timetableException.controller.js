@@ -10,9 +10,76 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const teacherService = require("../services/teacher.service");
 const exceptionValidationService = require("../services/exceptionValidation.service");
+const { validateExceptionForApproval, validateExceptionReferences } = require("../services/exceptionReferenceValidation.service");
 const { cache: scheduleCache } = require("../services/scheduleCache.service");
 const { parseLocalDateSafe } = require("../utils/date.utils");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
+
+const EDITABLE_EXCEPTION_FIELDS = new Set([
+  "reason",
+  "rescheduledTo",
+  "rescheduledSlotId",
+  "extraSlot",
+  "newRoom",
+  "substituteTeacher",
+  "notifyAffected",
+  "notes",
+  "attachments",
+]);
+
+const PROTECTED_EXCEPTION_FIELDS = new Set([
+  "status",
+  "approvedBy",
+  "approvedAt",
+  "rejectedBy",
+  "rejectedAt",
+  "withdrawnBy",
+  "withdrawnAt",
+  "createdBy",
+  "timetable_id",
+  "slot_id",
+  "type",
+  "exceptionDate",
+  "isActive",
+]);
+
+const NON_EDITABLE_EXCEPTION_STATUSES = new Set([
+  "APPROVED",
+  "REJECTED",
+  "WITHDRAWN",
+  "COMPLETED",
+]);
+
+const TIMETABLE_EXCEPTION_UNIQUE_INDEX_NAME =
+  "idx_exception_unique_pending_approved";
+
+function duplicateExceptionError() {
+  return new AppError(
+    "Duplicate timetable exception",
+    409,
+    "DUPLICATE_EXCEPTION",
+  );
+}
+
+function isTimetableExceptionDuplicateError(error) {
+  if (!error || error.code !== 11000) {
+    return false;
+  }
+
+  if (error.indexName === TIMETABLE_EXCEPTION_UNIQUE_INDEX_NAME) {
+    return true;
+  }
+
+  const keyPattern = error.keyPattern || {};
+
+  return (
+    keyPattern.college_id === 1 &&
+    keyPattern.timetable_id === 1 &&
+    keyPattern.slot_id === 1 &&
+    keyPattern.exceptionDate === 1 &&
+    keyPattern.type === 1
+  );
+}
 
 /* =========================================================
    CREATE SINGLE EXCEPTION
@@ -149,44 +216,21 @@ exports.createException = async (req, res, next) => {
       }
     }
 
-    // 7️⃣ Validate slot belongs to this timetable (if provided)
-    if (slot_id) {
-      const slot = await TimetableSlot.findOne({
-        _id: slot_id,
-        timetable_id: timetableId,
-        college_id: req.college_id,
-      });
-
-      if (!slot) {
-        throw new AppError(
-          "Slot not found in this timetable",
-          404,
-          "SLOT_NOT_FOUND",
-        );
-      }
-
-      // Validate teacher-subject match for EXTRA/TEACHER_CHANGE
-      if (
-        (type === "EXTRA" || type === "TEACHER_CHANGE") &&
-        extraSlot?.subject_id &&
-        extraSlot?.teacher_id
-      ) {
-        const subject = await Subject.findOne({ _id: extraSlot.subject_id, college_id: req.college_id });
-        if (
-          subject &&
-          subject.teacher_id.toString() !== extraSlot.teacher_id.toString()
-        ) {
-          throw new AppError(
-            "Teacher must match the subject's assigned teacher",
-            403,
-            "TEACHER_SUBJECT_MISMATCH",
-          );
-        }
-      }
-    }
+    // 7️⃣ Validate exception references before save
+    await validateExceptionReferences({
+      type,
+      substituteTeacher,
+      extraSlot,
+      rescheduledSlotId,
+      collegeId: req.college_id,
+      departmentId: timetable.department_id,
+      timetableId,
+      slotId: slot_id || null,
+    });
 
     // 8️⃣ Check for duplicate exceptions
     const existingException = await TimetableException.findOne({
+      college_id: req.college_id,
       timetable_id: timetableId,
       slot_id: slot_id || null,
       exceptionDate: parseLocalDateSafe(exceptionDate),
@@ -204,23 +248,31 @@ exports.createException = async (req, res, next) => {
     }
 
     // 9️⃣ Create exception
-    const exception = await TimetableException.create({
-      college_id: req.college_id,
-      timetable_id: timetableId,
-      slot_id: slot_id || null,
-      exceptionDate: parseLocalDateSafe(exceptionDate),
-      type,
-      status: "PENDING",
-      reason,
-      rescheduledTo: rescheduledTo ? parseLocalDateSafe(rescheduledTo) : null,
-      rescheduledSlotId: rescheduledSlotId || null,
-      extraSlot: extraSlot || null,
-      newRoom: newRoom || null,
-      substituteTeacher: substituteTeacher || null,
-      createdBy: req.user.id,
-      notifyAffected: notifyAffected !== false,
-      notes: notes || null,
-    });
+    let exception;
+    try {
+      exception = await TimetableException.create({
+        college_id: req.college_id,
+        timetable_id: timetableId,
+        slot_id: slot_id || null,
+        exceptionDate: parseLocalDateSafe(exceptionDate),
+        type,
+        status: "PENDING",
+        reason,
+        rescheduledTo: rescheduledTo ? parseLocalDateSafe(rescheduledTo) : null,
+        rescheduledSlotId: rescheduledSlotId || null,
+        extraSlot: extraSlot || null,
+        newRoom: newRoom || null,
+        substituteTeacher: substituteTeacher || null,
+        createdBy: req.user.id,
+        notifyAffected: notifyAffected !== false,
+        notes: notes || null,
+      });
+    } catch (error) {
+      if (isTimetableExceptionDuplicateError(error)) {
+        throw duplicateExceptionError();
+      }
+      throw error;
+    }
 
     // 🔟 Populate response
     const populatedException = await TimetableException.findById(exception._id)
@@ -394,6 +446,7 @@ exports.createBulkExceptions = async (req, res, next) => {
         }
 
         const existing = await TimetableException.findOne({
+          college_id: req.college_id,
           timetable_id: timetableId,
           slot_id: slot_id || null,
           exceptionDate: parseLocalDateSafe(exceptionDate),
@@ -410,22 +463,46 @@ exports.createBulkExceptions = async (req, res, next) => {
           continue;
         }
 
-        const exception = await TimetableException.create({
-          college_id: req.college_id,
-          timetable_id: timetableId,
-          slot_id: slot_id || null,
-          exceptionDate: parseLocalDateSafe(exceptionDate),
-          type,
-          status: "PENDING",
-          reason,
-          rescheduledTo: rescheduledTo ? parseLocalDateSafe(rescheduledTo) : null,
-          extraSlot: extraSlot || null,
-          newRoom: newRoom || null,
-          substituteTeacher: substituteTeacher || null,
-          createdBy: req.user.id,
-          notifyAffected: true,
-          notes: notes || null,
+        // 4️⃣ Validate exception references before save
+        await validateExceptionReferences({
+          type: exc.type,
+          substituteTeacher: exc.substituteTeacher,
+          extraSlot: exc.extraSlot,
+          rescheduledSlotId: exc.rescheduledSlotId,
+          collegeId: req.college_id,
+          departmentId: timetable.department_id,
+          timetableId,
+          slotId: (exc.slot_id || null),
         });
+
+        let exception;
+        try {
+          exception = await TimetableException.create({
+            college_id: req.college_id,
+            timetable_id: timetableId,
+            slot_id: exc.slot_id || null,
+            exceptionDate: parseLocalDateSafe(exc.exceptionDate),
+            type: exc.type,
+            status: "PENDING",
+            reason: exc.reason,
+            rescheduledTo: exc.rescheduledTo ? parseLocalDateSafe(exc.rescheduledTo) : null,
+            extraSlot: exc.extraSlot || null,
+            newRoom: exc.newRoom || null,
+            substituteTeacher: exc.substituteTeacher || null,
+            createdBy: req.user.id,
+            notifyAffected: true,
+            notes: exc.notes || null,
+          });
+        } catch (error) {
+          if (isTimetableExceptionDuplicateError(error)) {
+            results.failed.push({
+              exception: exc,
+              error: "DUPLICATE_EXCEPTION",
+            });
+            continue;
+          }
+          throw error;
+        }
 
         // 🔔 NOTIFICATION: Notify HOD for each created exception (batch-friendly)
         (async () => {
@@ -623,6 +700,93 @@ exports.updateException = async (req, res, next) => {
     const { exceptionId } = req.params;
     const updateData = req.body;
 
+    if (
+      !updateData ||
+      Array.isArray(updateData) ||
+      typeof updateData !== "object"
+    ) {
+      throw new AppError(
+        "Request body must be a JSON object",
+        400,
+        "INVALID_INPUT",
+      );
+    }
+
+    const requestedFields = Object.keys(updateData);
+    if (requestedFields.length === 0) {
+      throw new AppError("No update fields provided", 400, "INVALID_INPUT");
+    }
+
+    const blockedFields = requestedFields.filter((field) => {
+      if (field.startsWith("$")) return true;
+      return (
+        PROTECTED_EXCEPTION_FIELDS.has(field) ||
+        !EDITABLE_EXCEPTION_FIELDS.has(field)
+      );
+    });
+
+    if (blockedFields.length > 0) {
+      throw new AppError(
+        `Cannot update protected or unsupported fields: ${blockedFields.join(", ")}`,
+        400,
+        "INVALID_UPDATE_FIELD",
+      );
+    }
+
+    const sanitizedUpdate = {};
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "reason")) {
+      sanitizedUpdate.reason = String(updateData.reason).trim();
+      if (!sanitizedUpdate.reason) {
+        throw new AppError("reason is required", 400, "MISSING_REASON");
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "rescheduledTo")) {
+      sanitizedUpdate.rescheduledTo = updateData.rescheduledTo
+        ? parseLocalDateSafe(updateData.rescheduledTo)
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "rescheduledSlotId")) {
+      sanitizedUpdate.rescheduledSlotId = updateData.rescheduledSlotId || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "extraSlot")) {
+      sanitizedUpdate.extraSlot = updateData.extraSlot || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "newRoom")) {
+      sanitizedUpdate.newRoom = updateData.newRoom || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "substituteTeacher")) {
+      sanitizedUpdate.substituteTeacher = updateData.substituteTeacher || null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "notifyAffected")) {
+      sanitizedUpdate.notifyAffected = updateData.notifyAffected === true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "notes")) {
+      sanitizedUpdate.notes = updateData.notes
+        ? String(updateData.notes).trim()
+        : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, "attachments")) {
+      if (!Array.isArray(updateData.attachments)) {
+        throw new AppError(
+          "attachments must be an array",
+          400,
+          "INVALID_ATTACHMENTS",
+        );
+      }
+      sanitizedUpdate.attachments = updateData.attachments.map((attachment) =>
+        String(attachment),
+      );
+    }
+
     // 1️⃣ Find exception
     const exception = await TimetableException.findOne({
       _id: exceptionId,
@@ -663,59 +827,146 @@ exports.updateException = async (req, res, next) => {
       );
     }
 
-    // 3️⃣ Prevent updating completed exceptions
-    if (exception.status === "COMPLETED") {
+    if (NON_EDITABLE_EXCEPTION_STATUSES.has(exception.status)) {
       throw new AppError(
-        "Cannot update completed exceptions",
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
+
+    if (exception.status !== "PENDING") {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(sanitizedUpdate, "rescheduledTo") &&
+      (!sanitizedUpdate.rescheduledTo ||
+        Number.isNaN(sanitizedUpdate.rescheduledTo.getTime()))
+    ) {
+      throw new AppError(
+        "rescheduledTo must be a valid date",
         400,
-        "ALREADY_COMPLETED",
+        "INVALID_RESCHEDULE",
       );
     }
 
-    // 4️⃣ Validate conflict if date/time changed
-    if (updateData.exceptionDate || updateData.extraSlot) {
-      const newDate = new Date(
-        updateData.exceptionDate || exception.exceptionDate,
+    if (
+      exception.type === "RESCHEDULED" &&
+      Object.prototype.hasOwnProperty.call(sanitizedUpdate, "rescheduledTo") &&
+      !sanitizedUpdate.rescheduledTo
+    ) {
+      throw new AppError(
+        "RESCHEDULED exception requires rescheduledTo date",
+        400,
+        "INVALID_RESCHEDULE",
       );
-      const newExtraSlot = updateData.extraSlot || exception.extraSlot;
-
-      if (
-        newExtraSlot &&
-        newExtraSlot.teacher_id &&
-        newExtraSlot.startTime &&
-        newExtraSlot.endTime
-      ) {
-        const hasConflict =
-          await exceptionValidationService.checkTeacherConflict(
-            newExtraSlot.teacher_id,
-            newDate,
-            newExtraSlot.startTime,
-            newExtraSlot.endTime,
-            req.college_id,
-          );
-
-        if (hasConflict) {
-          throw new AppError(
-            "Teacher conflict at the new time",
-            409,
-            "TEACHER_CONFLICT",
-          );
-        }
-      }
     }
 
-    // 5️⃣ Update exception
+    await validateExceptionReferences({
+      type: exception.type,
+      substituteTeacher: sanitizedUpdate.substituteTeacher,
+      extraSlot: sanitizedUpdate.extraSlot,
+      rescheduledSlotId: sanitizedUpdate.rescheduledSlotId,
+      collegeId: req.college_id,
+      departmentId: timetable.department_id,
+      timetableId: exception.timetable_id,
+      slotId: exception.slot_id,
+    });
+
+    if (
+      exception.type === "ROOM_CHANGE" &&
+      Object.prototype.hasOwnProperty.call(sanitizedUpdate, "newRoom") &&
+      !sanitizedUpdate.newRoom
+    ) {
+      throw new AppError(
+        "ROOM_CHANGE exception requires newRoom",
+        400,
+        "INVALID_ROOM_CHANGE",
+      );
+    }
+
+    if (
+      exception.type === "TEACHER_CHANGE" &&
+      Object.prototype.hasOwnProperty.call(
+        sanitizedUpdate,
+        "substituteTeacher",
+      ) &&
+      !sanitizedUpdate.substituteTeacher
+    ) {
+      throw new AppError(
+        "TEACHER_CHANGE exception requires substituteTeacher",
+        400,
+        "INVALID_TEACHER_CHANGE",
+      );
+    }
+
     const updatedException = await TimetableException.findOneAndUpdate(
-      { _id: exceptionId, college_id: req.college_id },
-      { $set: updateData },
+      {
+        _id: exceptionId,
+        college_id: req.college_id,
+        status: "PENDING",
+        isActive: true,
+      },
+      { $set: sanitizedUpdate },
       { new: true, runValidators: true },
     )
       .populate("slot_id", "day startTime endTime")
       .populate("extraSlot.subject_id", "name code")
-      .populate("extraSlot.teacher_id", "name");
+      .populate("extraSlot.teacher_id", "name")
+      .populate("substituteTeacher", "name")
+      .populate("createdBy", "name email");
+
+    if (!updatedException) {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
 
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
+
+    const changedFields = Object.keys(sanitizedUpdate);
+    const oldValues = {};
+    changedFields.forEach((field) => {
+      oldValues[field] = exception.get(field);
+    });
+
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_UPDATED",
+          resourceType: "TimetableException",
+          resourceId: updatedException._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues,
+          newValues: sanitizedUpdate,
+          metadata: {
+            timetableId: timetable._id,
+            exceptionId: exception._id,
+            previousStatus: exception.status,
+            newStatus: updatedException.status,
+            changedFields,
+          },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception update:", auditErr.message);
+      }
+    })();
 
     ApiResponse.success(
       res,
@@ -744,39 +995,22 @@ exports.withdrawException = async (req, res, next) => {
       );
     }
 
-    // 1️⃣ Find own exception (any status)
+    // 1️⃣ Find own exception for auth and existence checks
     const exception = await TimetableException.findOne({
       _id: exceptionId,
       college_id: req.college_id,
-      createdBy: req.user.id,
       isActive: true,
     });
 
     if (!exception) {
-      const existingException = await TimetableException.findOne({
-        _id: exceptionId,
-        college_id: req.college_id,
-        isActive: true,
-      });
+      throw new AppError("Exception not found", 404, "EXCEPTION_NOT_FOUND");
+    }
 
-      if (!existingException) {
-        throw new AppError("Exception not found", 404, "EXCEPTION_NOT_FOUND");
-      }
-
+    if (exception.createdBy && exception.createdBy.toString() !== req.user.id.toString()) {
       throw new AppError(
         "Access denied: You can only withdraw your own requests",
         403,
         "NOT_CREATOR",
-      );
-    }
-
-    // 1.1️ Re-fetch latest state — race condition guard
-    const latestException = await TimetableException.findById(exceptionId);
-    if (!latestException || latestException.status !== "PENDING") {
-      throw new AppError(
-        "Exception has already been processed",
-        409,
-        "EXCEPTION_ALREADY_PROCESSED",
       );
     }
 
@@ -792,14 +1026,30 @@ exports.withdrawException = async (req, res, next) => {
 
     assertTimetableMutable(timetable, "exception");
 
-    // 3️ Withdraw exception using the freshly-fetched, guard-validated document
-    await latestException.withdraw(
-      req.user.id,
-      withdrawalReason?.trim() || "No reason provided",
+    // 3️ Perform atomic state transition WITHDRAWN
+    const withdrawnException = await TimetableException.findOneAndUpdate(
+      { _id: exceptionId, college_id: req.college_id, status: "PENDING" },
+      {
+        $set: {
+          status: "WITHDRAWN",
+          withdrawnBy: req.user.id,
+          withdrawnAt: new Date(),
+          withdrawalReason: withdrawalReason?.trim() || "No reason provided",
+        },
+      },
+      { new: true },
     );
 
+    if (!withdrawnException) {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
+
     // 4️ Populate response
-    const populatedException = await TimetableException.findById(latestException._id)
+    const populatedException = await TimetableException.findById(withdrawnException._id)
       .populate("slot_id", "day startTime endTime")
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
@@ -824,16 +1074,16 @@ exports.withdrawException = async (req, res, next) => {
           }).populate("user_id", "name _id");
           if (hodUser && hodUser.user_id) {
             const teacherName = (req.user.name || "A teacher").trim();
-            const exceptionDateStr = latestException.exceptionDate
-              ? latestException.exceptionDate.toLocaleDateString("en-GB", {
+            const exceptionDateStr = withdrawnException.exceptionDate
+              ? withdrawnException.exceptionDate.toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
                 })
               : "unknown date";
-            const exceptionType = latestException.type || "TIMETABLE";
+            const exceptionType = withdrawnException.type || "TIMETABLE";
             const withdrawalReason =
-              (latestException.withdrawalReason || "No reason provided").trim();
+              (withdrawnException.withdrawalReason || "No reason provided").trim();
 
             await Notification.create({
               college_id: req.college_id,
@@ -863,7 +1113,7 @@ exports.withdrawException = async (req, res, next) => {
           userRole: req.user.role,
           action: "TIMETABLE_EXCEPTION_WITHDRAWN",
           resourceType: "TimetableException",
-          resourceId: exception._id,
+          resourceId: withdrawnException._id,
           ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
           userAgent: req.get("user-agent"),
           endpoint: req.originalUrl,
@@ -872,12 +1122,12 @@ exports.withdrawException = async (req, res, next) => {
           oldValues: { status: "PENDING" },
           newValues: {
             status: "WITHDRAWN",
-            withdrawalReason: exception.withdrawalReason,
+            withdrawalReason: withdrawnException.withdrawalReason,
           },
           metadata: {
             timetableId: timetable._id,
-            exceptionDate: exception.exceptionDate,
-            type: exception.type,
+            exceptionDate: withdrawnException.exceptionDate,
+            type: withdrawnException.type,
           },
         });
       } catch (auditErr) {
@@ -944,11 +1194,59 @@ exports.deleteException = async (req, res, next) => {
     }
 
     // 3️⃣ Soft delete (set isActive = false)
+    const exceptionSnapshot = exception.toObject();
     exception.isActive = false;
     await exception.save();
 
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
+
+    (async () => {
+      try {
+        await AuditLog.create({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: "TIMETABLE_EXCEPTION_DELETED",
+          resourceType: "TimetableException",
+          resourceId: exception._id,
+          ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues: {
+            exceptionId: exception._id,
+            timetableId: exception.timetable_id,
+            slotId: exception.slot_id,
+            exceptionDate: exception.exceptionDate,
+            type: exception.type,
+            status: exception.status,
+            reason: exception.reason,
+            createdBy: exception.createdBy,
+            createdAt: exception.createdAt,
+            rescheduledTo: exception.rescheduledTo,
+            rescheduledSlotId: exception.rescheduledSlotId,
+            extraSlot: exception.extraSlot,
+            newRoom: exception.newRoom,
+            substituteTeacher: exception.substituteTeacher,
+            notifyAffected: exception.notifyAffected,
+            notes: exception.notes,
+            attachments: exception.attachments,
+          },
+          metadata: {
+            timetableId: timetable._id,
+            exceptionId: exception._id,
+            deletedBy: req.user.id,
+            deletedAt: new Date(),
+            previousStatus: exception.status,
+          },
+        });
+      } catch (auditErr) {
+        console.error("Audit log failed for exception deletion:", auditErr.message);
+      }
+    })();
 
     ApiResponse.success(res, null, "Exception deleted successfully");
   } catch (error) {
@@ -959,36 +1257,23 @@ exports.deleteException = async (req, res, next) => {
 /* =========================================================
    APPROVE EXCEPTION
    PUT /api/timetable/exceptions/:exceptionId/approve
-========================================================= */
+   ========================================================= */
 exports.approveException = async (req, res, next) => {
   try {
     const { exceptionId } = req.params;
 
-    // 1️⃣ Find exception
+    // 1️⃣ Fetch exception without status filter (for timetable/self checks)
     const exception = await TimetableException.findOne({
       _id: exceptionId,
       college_id: req.college_id,
-      status: "PENDING",
+      isActive: true,
     });
 
     if (!exception) {
-      throw new AppError(
-        "Exception not found or already approved/rejected",
-        404,
-        "EXCEPTION_NOT_PENDING",
-      );
+      throw new AppError("Exception not found", 404, "EXCEPTION_NOT_FOUND");
     }
 
-    // 🔒 SECURITY: Prevent HOD from approving own request
-    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
-      throw new AppError(
-        "Cannot approve your own exception request. Please ask another HOD to approve.",
-        403,
-        "SELF_APPROVAL_NOT_ALLOWED",
-      );
-    }
-
-    // 2️⃣ Verify HOD
+    // 2️⃣ Verify HOD and timetable
     const timetable = await Timetable.findOne({
       _id: exception.timetable_id,
       college_id: req.college_id,
@@ -1007,10 +1292,7 @@ exports.approveException = async (req, res, next) => {
 
     const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
-    if (
-      !isHOD ||
-      teacher.department_id.toString() !== timetable.department_id.toString()
-    ) {
+    if (!isHOD || teacher.department_id.toString() !== timetable.department_id.toString()) {
       throw new AppError(
         "Access denied: Only HOD can approve exceptions",
         403,
@@ -1018,11 +1300,61 @@ exports.approveException = async (req, res, next) => {
       );
     }
 
-    // 3️⃣ Approve
-    exception.status = "APPROVED";
-    exception.approvedBy = req.user.id;
-    exception.approvedAt = new Date();
-    await exception.save();
+    // 🔒 SECURITY: Prevent HOD from approving own request
+    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
+      throw new AppError(
+        "Cannot approve your own exception request. Please ask another HOD to approve.",
+        403,
+        "SELF_APPROVAL_NOT_ALLOWED",
+      );
+    }
+
+    // 4️ Revalidate all business references before transition
+    await validateExceptionForApproval(exceptionId, req.college_id);
+
+    const existingDuplicateException = await TimetableException.findOne({
+      _id: { $ne: exceptionId },
+      college_id: req.college_id,
+      timetable_id: exception.timetable_id,
+      slot_id: exception.slot_id || null,
+      exceptionDate: exception.exceptionDate,
+      type: exception.type,
+      status: { $in: ["PENDING", "APPROVED"] },
+      isActive: true,
+    });
+
+    if (existingDuplicateException) {
+      throw duplicateExceptionError();
+    }
+
+    // 5️⃣ Perform atomic state transition APPROVED
+    let approvedException;
+    try {
+      approvedException = await TimetableException.findOneAndUpdate(
+        { _id: exceptionId, college_id: req.college_id, status: "PENDING" },
+        {
+          $set: {
+            status: "APPROVED",
+            approvedBy: req.user.id,
+            approvedAt: new Date(),
+          },
+        },
+        { new: true },
+      );
+    } catch (error) {
+      if (isTimetableExceptionDuplicateError(error)) {
+        throw duplicateExceptionError();
+      }
+      throw error;
+    }
+
+    if (!approvedException) {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
 
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
@@ -1030,13 +1362,13 @@ exports.approveException = async (req, res, next) => {
     // 🔔 NOTIFICATION: Notify request creator
     (async () => {
       try {
-        if (exception.createdBy) {
+        if (approvedException.createdBy) {
           await Notification.create({
             college_id: req.college_id,
             createdBy: req.user.id,
             createdByRole: "HOD",
             target: "INDIVIDUAL",
-            target_users: [exception.createdBy],
+            target_users: [approvedException.createdBy],
             title: "Timetable Exception Approved",
             message: "Your timetable exception request has been approved.",
             type: "ACADEMIC",
@@ -1051,9 +1383,9 @@ exports.approveException = async (req, res, next) => {
     // 🔔 NOTIFICATION: Notify affected users (teachers + students) if notifyAffected is set
     (async () => {
       try {
-        if (!exception.notifyAffected || exception.notificationsSent) return;
+        if (!approvedException.notifyAffected || approvedException.notificationsSent) return;
 
-        const fullTimetable = await Timetable.findById(exception.timetable_id)
+        const fullTimetable = await Timetable.findById(approvedException.timetable_id)
           .select("course_id department_id semester division")
           .lean();
 
@@ -1092,8 +1424,8 @@ exports.approveException = async (req, res, next) => {
             createdByRole: "HOD",
             target: "INDIVIDUAL",
             target_users: [uid],
-            title: `Schedule Change: ${exception.type}`,
-            message: `A timetable exception (${exception.type}) on ${new Date(exception.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} affects your schedule. Reason: ${exception.reason}`,
+            title: `Schedule Change: ${approvedException.type}`,
+            message: `A timetable exception (${approvedException.type}) on ${new Date(approvedException.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} affects your schedule. Reason: ${approvedException.reason}`,
             type: "ACADEMIC",
             actionUrl: "/timetable",
             isActive: true,
@@ -1101,8 +1433,8 @@ exports.approveException = async (req, res, next) => {
           })),
         );
 
-        exception.notificationsSent = true;
-        await exception.save();
+        approvedException.notificationsSent = true;
+        await approvedException.save();
       } catch (notifErr) {
         console.error("Failed to send affected-user notifications:", notifErr.message);
       }
@@ -1118,7 +1450,7 @@ exports.approveException = async (req, res, next) => {
           userRole: req.user.role,
           action: "TIMETABLE_EXCEPTION_APPROVED",
           resourceType: "TimetableException",
-          resourceId: exception._id,
+          resourceId: approvedException._id,
           ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
           userAgent: req.get("user-agent"),
           endpoint: req.originalUrl,
@@ -1132,7 +1464,7 @@ exports.approveException = async (req, res, next) => {
       }
     })();
 
-    ApiResponse.success(res, { exception }, "Exception approved successfully");
+    ApiResponse.success(res, { exception: approvedException }, "Exception approved successfully");
   } catch (error) {
     next(error);
   }
@@ -1141,7 +1473,7 @@ exports.approveException = async (req, res, next) => {
 /* =========================================================
    REJECT EXCEPTION
    PUT /api/timetable/exceptions/:exceptionId/reject
-========================================================= */
+   ========================================================= */
 exports.rejectException = async (req, res, next) => {
   try {
     const { exceptionId } = req.params;
@@ -1151,31 +1483,18 @@ exports.rejectException = async (req, res, next) => {
       throw new AppError("rejectionReason is required", 400, "MISSING_REASON");
     }
 
-    // 1️⃣ Find exception
+    // 1️⃣ Find exception (to get timetable_id)
     const exception = await TimetableException.findOne({
       _id: exceptionId,
       college_id: req.college_id,
-      status: "PENDING",
+      isActive: true,
     });
 
     if (!exception) {
-      throw new AppError(
-        "Exception not found or already approved/rejected",
-        404,
-        "EXCEPTION_NOT_PENDING",
-      );
+      throw new AppError("Exception not found", 404, "EXCEPTION_NOT_FOUND");
     }
 
-    // 🔒 SECURITY: Prevent HOD from rejecting own request
-    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
-      throw new AppError(
-        "Cannot reject your own exception request. Please ask another HOD to process.",
-        403,
-        "SELF_REJECTION_NOT_ALLOWED",
-      );
-    }
-
-    // 2️⃣ Verify HOD
+    // 2️⃣ Verify HOD and timetable
     const timetable = await Timetable.findOne({
       _id: exception.timetable_id,
       college_id: req.college_id,
@@ -1194,10 +1513,7 @@ exports.rejectException = async (req, res, next) => {
 
     const { isHOD } = await teacherService.getHODStatus(teacher, req.college_id);
 
-    if (
-      !isHOD ||
-      teacher.department_id.toString() !== timetable.department_id.toString()
-    ) {
+    if (!isHOD || teacher.department_id.toString() !== timetable.department_id.toString()) {
       throw new AppError(
         "Access denied: Only HOD can reject exceptions",
         403,
@@ -1205,12 +1521,36 @@ exports.rejectException = async (req, res, next) => {
       );
     }
 
-    // 3️⃣ Reject
-    exception.status = "REJECTED";
-    exception.rejectedBy = req.user.id;
-    exception.rejectedAt = new Date();
-    exception.rejectionReason = rejectionReason;
-    await exception.save();
+    // 🔒 SECURITY: Prevent HOD from rejecting own request
+    if (exception.createdBy && exception.createdBy.toString() === req.user.id.toString()) {
+      throw new AppError(
+        "Cannot reject your own exception request. Please ask another HOD to process.",
+        403,
+        "SELF_REJECTION_NOT_ALLOWED",
+      );
+    }
+
+    // 3️⃣ Perform atomic state transition REJECTED
+    const rejectedException = await TimetableException.findOneAndUpdate(
+      { _id: exceptionId, college_id: req.college_id, status: "PENDING" },
+      {
+        $set: {
+          status: "REJECTED",
+          rejectedBy: req.user.id,
+          rejectedAt: new Date(),
+          rejectionReason,
+        },
+      },
+      { new: true },
+    );
+
+    if (!rejectedException) {
+      throw new AppError(
+        "Exception has already been processed",
+        409,
+        "EXCEPTION_ALREADY_PROCESSED",
+      );
+    }
 
     // 🗑️ Invalidate cache for this timetable
     scheduleCache.invalidateTimetable(timetable._id);
@@ -1218,13 +1558,13 @@ exports.rejectException = async (req, res, next) => {
     // 🔔 NOTIFICATION: Notify request creator
     (async () => {
       try {
-        if (exception.createdBy) {
+        if (rejectedException.createdBy) {
           await Notification.create({
             college_id: req.college_id,
             createdBy: req.user.id,
             createdByRole: "HOD",
             target: "INDIVIDUAL",
-            target_users: [exception.createdBy],
+            target_users: [rejectedException.createdBy],
             title: "Timetable Exception Rejected",
             message: `Your timetable exception request has been rejected. Reason: ${rejectionReason}`,
             type: "ACADEMIC",
@@ -1246,7 +1586,7 @@ exports.rejectException = async (req, res, next) => {
           userRole: req.user.role,
           action: "TIMETABLE_EXCEPTION_REJECTED",
           resourceType: "TimetableException",
-          resourceId: exception._id,
+          resourceId: rejectedException._id,
           ipAddress: req.ip || req.connection?.remoteAddress || "unknown",
           userAgent: req.get("user-agent"),
           endpoint: req.originalUrl,
@@ -1260,7 +1600,7 @@ exports.rejectException = async (req, res, next) => {
       }
     })();
 
-    ApiResponse.success(res, { exception }, "Exception rejected successfully");
+    ApiResponse.success(res, { exception: rejectedException }, "Exception rejected successfully");
   } catch (error) {
     next(error);
   }
