@@ -115,7 +115,7 @@ async function validateExceptionForApproval(exceptionId, collegeId) {
   if (!timetable) {
     throw new AppError("Referenced timetable not found", 404, "TIMETABLE_NOT_FOUND");
   }
-  if (timetable.status !== "APPROVED") {
+  if (timetable.status !== "PUBLISHED") {
     throw new AppError("Timetable is not active", 409, "TIMETABLE_NOT_ACTIVE");
   }
 
