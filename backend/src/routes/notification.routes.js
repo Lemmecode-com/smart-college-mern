@@ -12,6 +12,7 @@ const {
   getTeacherNotifications,
   getHodNotifications,
   getAdminNotifications,
+  getNotificationById,
   updateNotification,
   deleteNotification,
   getAdminNotificationCount,
@@ -110,7 +111,9 @@ router.get(
 
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
 
-router.post("/:notificationId/mark-read", auth, markAsRead);
+router.get("/:notificationId", auth, collegeMiddleware, getNotificationById);
+
+router.post("/:notificationId/mark-read", auth, collegeMiddleware, markAsRead);
 
 router.post("/mark-all-read", auth, collegeMiddleware, markAllAsRead);
 
