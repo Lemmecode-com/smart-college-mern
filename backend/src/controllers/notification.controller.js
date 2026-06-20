@@ -695,6 +695,82 @@ exports.getUnreadForBell = async (req, res, next) => {
   }
 };
 
+exports.markAllAsRead = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    if (!req.college_id) {
+      throw new AppError(
+        "College ID not available. Please login again.",
+        403,
+        "COLLEGE_ID_MISSING",
+      );
+    }
+
+    const readIds = await getReadNotificationIds(userId);
+
+    const query = {
+      college_id: req.college_id,
+      isActive: true,
+      _id: { $nin: readIds },
+    };
+
+    if (userRole === "STUDENT") {
+      query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
+    } else if (userRole === "TEACHER") {
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdByRole: "HOD" },
+        { target: "INDIVIDUAL", target_users: userId },
+      ];
+    } else if (userRole === "COLLEGE_ADMIN" || userRole === "PRINCIPAL") {
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN", createdBy: userObjectId },
+        { createdByRole: "TEACHER" },
+      ];
+    } else if (userRole === "HOD") {
+      query.$or = [
+        { createdByRole: "COLLEGE_ADMIN" },
+        { createdByRole: "TEACHER", target: "INDIVIDUAL", target_users: userId },
+        { createdByRole: "HOD", createdBy: userObjectId },
+      ];
+    }
+
+    const unreadNotifications = await Notification.find(query).select(
+      "_id",
+    );
+    const unreadIds = unreadNotifications.map((n) => n._id);
+
+    if (unreadIds.length === 0) {
+      return ApiResponse.success(
+        res,
+        { markedCount: 0, totalUnread: 0 },
+        "No unread notifications",
+      );
+    }
+
+    await NotificationRead.insertMany(
+      unreadIds.map((notificationId) => ({
+        notification_id: notificationId,
+        user_id: userId,
+        role: userRole,
+        readAt: new Date(),
+      })),
+      { ordered: false },
+    );
+
+    ApiResponse.success(
+      res,
+      { markedCount: unreadIds.length, totalUnread: 0 },
+      `Marked ${unreadIds.length} notifications as read`,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.markAsRead = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
@@ -703,15 +779,15 @@ exports.markAsRead = async (req, res, next) => {
     await NotificationRead.findOneAndUpdate(
       {
         notification_id: notificationId,
-        user_id: userId
+        user_id: userId,
       },
       {
         notification_id: notificationId,
         user_id: userId,
         role,
-        readAt: new Date()
+        readAt: new Date(),
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     ApiResponse.success(res, null, "Notification marked as read");

@@ -19,6 +19,7 @@ const {
   getHodNotificationCount,
   getStudentNotificationCount,
   markAsRead,
+  markAllAsRead,
   getUnreadForBell,
   sendPromotionNotification,
 } = require("../controllers/notification.controller");
@@ -110,6 +111,8 @@ router.get(
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
 
 router.post("/:notificationId/mark-read", auth, markAsRead);
+
+router.post("/mark-all-read", auth, collegeMiddleware, markAllAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);
