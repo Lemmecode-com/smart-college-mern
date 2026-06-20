@@ -660,7 +660,7 @@ exports.getUnreadForBell = async (req, res, next) => {
       studentProfile = await Student.findOne({
         user_id: req.user.id,
         college_id: req.college_id,
-        status: "APPROVED"
+        status: { $in: ["APPROVED", "ENROLLED"] }
       }).select("department_id course_id currentSemester");
 
       if (!studentProfile) {
