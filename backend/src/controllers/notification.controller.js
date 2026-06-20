@@ -340,7 +340,7 @@ exports.getNotificationById = async (req, res, next) => {
       studentProfile = await Student.findOne({
         user_id: req.user.id,
         college_id: req.college_id,
-        status: "APPROVED"
+        status: { $in: ["APPROVED", "ENROLLED"] }
       }).select("department_id course_id currentSemester");
 
       if (!studentProfile) {
@@ -474,7 +474,7 @@ exports.getStudentNotificationCount = async (req, res, next) => {
     const student = await Student.findOne({
       user_id: userId,
       college_id: req.college_id,
-      status: "APPROVED"
+      status: { $in: ["APPROVED", "ENROLLED"] }
     }).select("department_id course_id currentSemester");
 
     if (!student) {
@@ -708,7 +708,7 @@ exports.markAllAsRead = async (req, res, next) => {
       studentProfile = await Student.findOne({
         user_id: userId,
         college_id: req.college_id,
-        status: "APPROVED"
+        status: { $in: ["APPROVED", "ENROLLED"] }
       }).select("department_id course_id currentSemester");
 
       if (!studentProfile) {
@@ -781,7 +781,7 @@ exports.markAsRead = async (req, res, next) => {
       studentProfile = await Student.findOne({
         user_id: userId,
         college_id: req.college_id,
-        status: "APPROVED"
+        status: { $in: ["APPROVED", "ENROLLED"] }
       }).select("department_id course_id currentSemester");
 
       if (!studentProfile) {
