@@ -26,6 +26,15 @@ import {
   FaFileExcel,
   FaFilePdf,
   FaChevronLeft,
+  FaCalendarAlt,
+  FaArrowLeft,
+  FaMapMarkerAlt,
+  FaClipboardList,
+  FaLayerGroup,
+  FaBook,
+  FaChalkboardTeacher,
+  FaUsers,
+  FaQrcode,
 } from "react-icons/fa";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
 import { motion, AnimatePresence } from "framer-motion";
