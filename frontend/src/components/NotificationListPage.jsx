@@ -384,8 +384,8 @@ export default function NotificationListPage({ role = "college-admin" }) {
     return {
       totalPrimary: primaryNotes.length,
       totalSecondary: secondaryNotes.length,
-      unreadPrimary: primaryNotes.filter((n) => !n.read).length,
-      unreadSecondary: secondaryNotes.filter((n) => !n.read).length,
+      unreadPrimary: primaryNotes.filter((n) => !n.isRead).length,
+      unreadSecondary: secondaryNotes.filter((n) => !n.isRead).length,
       urgent: allNotes.filter((n) => n.priority === "URGENT").length,
       total: allNotes.length,
     };

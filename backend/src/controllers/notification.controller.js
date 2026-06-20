@@ -1,26 +1,15 @@
 const mongoose = require("mongoose");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
+const Student = require("../models/student.model");
+const {
+  getNotificationVisibilityQuery,
+  getReadNotificationIds,
+  attachReadStatus,
+  toObjectId,
+} = require("../services/notificationVisibility.service");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
-
-const getValidExpiryCondition = () => ({
-  $or: [
-    { expiresAt: null },
-    { expiresAt: { $gte: new Date() } }
-  ]
-});
-
-/**
- * Get all notification IDs already read by this user
- * ⚡ PERFORMANCE OPTIMIZED: Only loads IDs, not full documents
- */
-const getReadNotificationIds = async (userId) => {
-  const reads = await NotificationRead.find({ user_id: new mongoose.Types.ObjectId(userId) })
-    .select("notification_id");
-
-  return reads.map(r => r.notification_id);
-};
 
 /**
  * ================================
@@ -174,9 +163,6 @@ exports.createTeacherNotification = async (req, res, next) => {
  */
 exports.getStudentNotifications = async (req, res, next) => {
   try {
-    const Student = require("../models/student.model");
-    
-    // Get student profile to know their department, course, semester
     const student = await Student.findOne({
       user_id: req.user.id,
       college_id: req.college_id,
@@ -190,51 +176,14 @@ exports.getStudentNotifications = async (req, res, next) => {
       });
     }
 
-    // Build query for targeted notifications
-    // FIX: Use $and to combine two $or conditions properly (MongoDB doesn't support multiple $or at same level)
-    const targetQuery = {
-      college_id: req.college_id,
-      isActive: true,
-      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
-      $and: [
-        // Expiry condition
-        {
-          $or: [
-            { expiresAt: null },
-            { expiresAt: { $gte: new Date() } }
-          ]
-        },
-        // Target audience filtering
-        {
-          $or: [
-            { target: "ALL" },
-            { target: "STUDENTS" },
-            // Department-specific notifications
-            { 
-              target: "DEPARTMENT", 
-              target_department: student.department_id 
-            },
-            // Course-specific notifications
-            { 
-              target: "COURSE", 
-              target_course: student.course_id 
-            },
-            // Semester-specific notifications
-            { 
-              target: "SEMESTER", 
-              target_semester: student.currentSemester 
-            },
-            // Individual notifications (if student is in target_users)
-            {
-              target: "INDIVIDUAL",
-              target_users: req.user.id
-            }
-          ]
-        }
-      ]
-    };
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+      studentProfile: student,
+    });
 
-    const notifications = await Notification.find(targetQuery)
+    const notifications = await Notification.find(visibilityQuery)
       .populate("target_department", "name code")
       .populate("target_course", "name code")
       .sort({ createdAt: -1 });
@@ -252,8 +201,8 @@ exports.getStudentNotifications = async (req, res, next) => {
 
     ApiResponse.success(res, {
       count: notifications.length,
-      adminNotifications,
-      teacherNotifications,
+      adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
+      teacherNotifications: await attachReadStatus(teacherNotifications, req.user.id),
     }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
@@ -268,25 +217,21 @@ exports.getStudentNotifications = async (req, res, next) => {
  */
 exports.getHodNotifications = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+    });
 
-    const notifications = await Notification.find({
-      college_id: req.college_id,
-      isActive: true,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "HOD", createdBy: userObjectId },
-        { target: "INDIVIDUAL", target_users: userId }
-      ]
-    }).sort({ createdAt: -1 });
+    const notifications = await Notification.find(visibilityQuery)
+      .sort({ createdAt: -1 });
 
     const myNotifications = [];
     const adminNotifications = [];
     const teacherNotifications = [];
 
     notifications.forEach((n) => {
-      if (n.createdByRole === "HOD" && n.createdBy.toString() === userId) {
+      if (n.createdByRole === "HOD" && n.createdBy.toString() === req.user.id) {
         myNotifications.push(n);
       } else if (n.createdByRole === "TEACHER") {
         teacherNotifications.push(n);
@@ -296,9 +241,9 @@ exports.getHodNotifications = async (req, res, next) => {
     });
 
     ApiResponse.success(res, {
-      myNotifications,
-      adminNotifications,
-      teacherNotifications,
+      myNotifications: await attachReadStatus(myNotifications, req.user.id),
+      adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
+      teacherNotifications: await attachReadStatus(teacherNotifications, req.user.id),
     }, "HOD notifications fetched successfully");
   } catch (error) {
     next(error);
@@ -313,25 +258,21 @@ exports.getHodNotifications = async (req, res, next) => {
  */
 exports.getTeacherNotifications = async (req, res, next) => {
   try {
-    const userId = req.user.id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+    });
 
-    const notifications = await Notification.find({
-      college_id: req.college_id,
-      isActive: true,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "HOD" },
-        { target: "INDIVIDUAL", target_users: userId }
-      ]
-    }).sort({ createdAt: -1 });
+    const notifications = await Notification.find(visibilityQuery)
+      .sort({ createdAt: -1 });
 
     const myNotifications = [];
     const adminNotifications = [];
     const hodNotifications = [];
 
     notifications.forEach((n) => {
-      if (n.createdByRole === "TEACHER" && n.createdBy.toString() === userId) {
+      if (n.createdByRole === "TEACHER" && n.createdBy.toString() === req.user.id) {
         myNotifications.push(n);
       } else if (n.createdByRole === "COLLEGE_ADMIN") {
         adminNotifications.push(n);
@@ -341,9 +282,9 @@ exports.getTeacherNotifications = async (req, res, next) => {
     });
 
     ApiResponse.success(res, {
-      myNotifications,
-      adminNotifications,
-      hodNotifications,
+      myNotifications: await attachReadStatus(myNotifications, req.user.id),
+      adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
+      hodNotifications: await attachReadStatus(hodNotifications, req.user.id),
     }, "Teacher notifications fetched successfully");
   } catch (error) {
     next(error);
@@ -358,14 +299,14 @@ exports.getTeacherNotifications = async (req, res, next) => {
  */
 exports.getAdminNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({
-      college_id: req.college_id,
-      isActive: true,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdBy: new mongoose.Types.ObjectId(req.user.id) }
-      ]
-    }).sort({ createdAt: -1 });
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+    });
+
+    const notifications = await Notification.find(visibilityQuery)
+      .sort({ createdAt: -1 });
 
     const myNotifications = [];
     const staffNotifications = [];
@@ -382,9 +323,61 @@ exports.getAdminNotifications = async (req, res, next) => {
     });
 
     ApiResponse.success(res, {
-      myNotifications,
-      staffNotifications,
+      myNotifications: await attachReadStatus(myNotifications, req.user.id),
+      staffNotifications: await attachReadStatus(staffNotifications, req.user.id),
     }, "Student notifications fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getNotificationById = async (req, res, next) => {
+  try {
+    const notificationId = toObjectId(req.params.notificationId, "Notification ID");
+    let studentProfile = null;
+
+    if (req.user.role === "STUDENT") {
+      studentProfile = await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "APPROVED"
+      }).select("department_id course_id currentSemester");
+
+      if (!studentProfile) {
+        return res.status(404).json({
+          success: false,
+          message: "Student profile not found"
+        });
+      }
+    }
+
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+      studentProfile,
+    });
+
+    const notification = await Notification.findOne({
+      ...visibilityQuery,
+      _id: notificationId,
+    })
+      .populate("target_department", "name code")
+      .populate("target_course", "name code");
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
+
+    const [notificationWithReadStatus] = await attachReadStatus([notification], req.user.id);
+
+    return res.status(200).json({
+      success: true,
+      notification: notificationWithReadStatus,
+    });
   } catch (error) {
     next(error);
   }
@@ -478,20 +471,35 @@ exports.getStudentNotificationCount = async (req, res, next) => {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
-    const readIds = await getReadNotificationIds(userId);
-
-    // ⚡ PERFORMANCE FIX: Use countDocuments instead of find + manual counting
-    // This avoids loading full documents into memory and uses MongoDB's native counting
-    const adminCount = await Notification.countDocuments({
+    const student = await Student.findOne({
+      user_id: userId,
       college_id: req.college_id,
-      isActive: true,
+      status: "APPROVED"
+    }).select("department_id course_id currentSemester");
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student profile not found"
+      });
+    }
+
+    const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId,
+      studentProfile: student,
+    });
+
+    const adminCount = await Notification.countDocuments({
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "COLLEGE_ADMIN"
     });
 
     const teacherCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "TEACHER"
     });
@@ -509,38 +517,35 @@ exports.getStudentNotificationCount = async (req, res, next) => {
 exports.getTeacherNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
     const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId,
+    });
 
-    // Count notifications that teacher can see:
-    // - Admin notifications (COLLEGE_ADMIN)
-    // - HOD notifications (HOD role - exception approval/rejection)
-    // - Individual notifications where teacher is in target_users (own notifications)
     const adminCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "COLLEGE_ADMIN"
     });
 
     const hodCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "HOD"
     });
 
     const individualCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       target: "INDIVIDUAL",
-      target_users: userId
+      target_users: toObjectId(userId, "User ID")
     });
 
     const myCount = adminCount + hodCount + individualCount;
@@ -559,39 +564,36 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
 exports.getHodNotificationCount = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     if (!req.college_id) {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
     const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId,
+    });
 
-    // Count notifications that HOD can see:
-    // - Admin notifications (COLLEGE_ADMIN) - all college admin notifications
-    // - TEACHER notifications where HOD is in target_users (INDIVIDUAL targeting)
-    // - Own HOD notifications
     const adminCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "COLLEGE_ADMIN"
     });
 
     const teacherCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       target: "INDIVIDUAL",
-      target_users: userId
+      target_users: toObjectId(userId, "User ID")
     });
 
     const ownHodCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "HOD",
-      createdBy: userObjectId
+      createdBy: toObjectId(userId, "User ID")
     });
 
     const myCount = adminCount + teacherCount + ownHodCount;
@@ -616,20 +618,21 @@ exports.getAdminNotificationCount = async (req, res, next) => {
     }
 
     const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId,
+    });
 
-    // ⚡ PERFORMANCE FIX: Use countDocuments instead of find + manual counting
-    // Separate queries for better performance and clarity
     const myCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "COLLEGE_ADMIN",
-      createdBy: new mongoose.Types.ObjectId(userId)
+      createdBy: toObjectId(userId, "User ID")
     });
 
     const staffCount = await Notification.countDocuments({
-      college_id: req.college_id,
-      isActive: true,
+      ...visibilityQuery,
       _id: { $nin: readIds },
       createdByRole: "TEACHER"
     });
@@ -651,44 +654,34 @@ exports.getUnreadForBell = async (req, res, next) => {
     }
 
     const readIds = await getReadNotificationIds(req.user.id);
-    const userId = req.user.id;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    let studentProfile = null;
 
-    let query = {
-      college_id: req.college_id,
-      isActive: true,
-      _id: { $nin: readIds }
-    };
-
-    // Role-based filtering with proper INDIVIDUAL notification support
     if (req.user.role === "STUDENT") {
-      query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
-    } else if (req.user.role === "TEACHER") {
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "HOD" },
-        { target: "INDIVIDUAL", target_users: userId }
-      ];
-    } else if (req.user.role === "COLLEGE_ADMIN") {
-      // Admin sees: Admin-created notifications + Teacher-created notifications
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN", createdBy: userObjectId },
-        { createdByRole: "TEACHER" }
-      ];
-    } else if (req.user.role === "HOD") {
-      // HOD sees: Admin notifications + Teacher notifications (INDIVIDUAL) + Own notifications
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "TEACHER", target: "INDIVIDUAL", target_users: userId },
-        { createdByRole: "HOD", createdBy: userObjectId }
-      ];
+      studentProfile = await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "APPROVED"
+      }).select("department_id course_id currentSemester");
+
+      if (!studentProfile) {
+        return ApiResponse.success(res, [], "Unread notifications fetched successfully");
+      }
     }
 
-    const unread = await Notification.find(query)
-      .sort({ createdAt: -1 })
-      .limit(20);  // Increased limit for better UX
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+      studentProfile,
+    });
 
-    // ✅ Return array directly for frontend compatibility
+    const unread = await Notification.find({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+    })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
     ApiResponse.success(res, unread, "Unread notifications fetched successfully");
   } catch (err) {
     next(err);
@@ -699,7 +692,6 @@ exports.markAllAsRead = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     if (!req.college_id) {
       throw new AppError(
@@ -710,37 +702,35 @@ exports.markAllAsRead = async (req, res, next) => {
     }
 
     const readIds = await getReadNotificationIds(userId);
-
-    const query = {
-      college_id: req.college_id,
-      isActive: true,
-      _id: { $nin: readIds },
-    };
+    let studentProfile = null;
 
     if (userRole === "STUDENT") {
-      query.createdByRole = { $in: ["COLLEGE_ADMIN", "TEACHER"] };
-    } else if (userRole === "TEACHER") {
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "HOD" },
-        { target: "INDIVIDUAL", target_users: userId },
-      ];
-    } else if (userRole === "COLLEGE_ADMIN" || userRole === "PRINCIPAL") {
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN", createdBy: userObjectId },
-        { createdByRole: "TEACHER" },
-      ];
-    } else if (userRole === "HOD") {
-      query.$or = [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "TEACHER", target: "INDIVIDUAL", target_users: userId },
-        { createdByRole: "HOD", createdBy: userObjectId },
-      ];
+      studentProfile = await Student.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "APPROVED"
+      }).select("department_id course_id currentSemester");
+
+      if (!studentProfile) {
+        return ApiResponse.success(
+          res,
+          { markedCount: 0, totalUnread: 0 },
+          "No unread notifications",
+        );
+      }
     }
 
-    const unreadNotifications = await Notification.find(query).select(
-      "_id",
-    );
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: userRole,
+      userId,
+      studentProfile,
+    });
+
+    const unreadNotifications = await Notification.find({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+    }).select("_id");
     const unreadIds = unreadNotifications.map((n) => n._id);
 
     if (unreadIds.length === 0) {
@@ -761,6 +751,15 @@ exports.markAllAsRead = async (req, res, next) => {
       { ordered: false },
     );
 
+    await Notification.updateMany(
+      {
+        _id: { $in: unreadIds },
+        college_id: req.college_id,
+        isActive: true,
+      },
+      { $set: { isRead: true } },
+    );
+
     ApiResponse.success(
       res,
       { markedCount: unreadIds.length, totalUnread: 0 },
@@ -775,19 +774,64 @@ exports.markAsRead = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
     const { id: userId, role } = req.user;
+    const safeNotificationId = toObjectId(notificationId, "Notification ID");
+    let studentProfile = null;
+
+    if (role === "STUDENT") {
+      studentProfile = await Student.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "APPROVED"
+      }).select("department_id course_id currentSemester");
+
+      if (!studentProfile) {
+        return res.status(404).json({
+          success: false,
+          message: "Student profile not found"
+        });
+      }
+    }
+
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role,
+      userId,
+      studentProfile,
+    });
+
+    const notification = await Notification.findOne({
+      ...visibilityQuery,
+      _id: safeNotificationId,
+    }).select("_id");
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found"
+      });
+    }
 
     await NotificationRead.findOneAndUpdate(
       {
-        notification_id: notificationId,
+        notification_id: safeNotificationId,
         user_id: userId,
       },
       {
-        notification_id: notificationId,
+        notification_id: safeNotificationId,
         user_id: userId,
         role,
         readAt: new Date(),
       },
       { upsert: true },
+    );
+
+    await Notification.updateOne(
+      {
+        _id: safeNotificationId,
+        college_id: req.college_id,
+        isActive: true,
+      },
+      { $set: { isRead: true } },
     );
 
     ApiResponse.success(res, null, "Notification marked as read");
