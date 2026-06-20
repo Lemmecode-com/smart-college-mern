@@ -221,11 +221,12 @@ documentPaths[docType] = normalizePath(filePath);
     }
 
     // 3️⃣ Prevent duplicate
+    const existingUser = await User.findOne({ email });
     const exists = await Student.findOne({
       email,
       college_id: college._id,
     });
-    if (exists) {
+    if (exists || existingUser) {
       throw new AppError(
         "Student already registered with this email",
         409,
@@ -321,28 +322,35 @@ documentPaths[docType] = normalizePath(filePath);
        throw studentError; // Re-throw to outer catch
      }
 
-    // 📧 Send registration success email (non-blocking)
-    (async () => {
-      try {
-        const college = await College.findById(
-          registeredStud.college_id,
-        ).select("name");
-        const course = await Course.findById(registeredStud.course_id).select(
-          "name",
-        );
+     // 📧 Send registration success email (non-blocking)
+     (async () => {
+       try {
+         const college = await College.findById(
+           registeredStud.college_id,
+         ).select("name");
+         const course = await Course.findById(registeredStud.course_id).select(
+           "name",
+         );
 
-        await sendRegistrationSuccessEmail({
-          to: registeredStud.email,
-          studentName: registeredStud.fullName,
-          collegeName: college?.name || "Our College",
-          courseName: course?.name,
-          admissionYear: registeredStud.admissionYear,
-          collegeId: registeredStud.college_id,
-        });
-      } catch (emailError) {
-        // Non-critical - continue
-      }
-    })();
+         await sendRegistrationSuccessEmail({
+           to: registeredStud.email,
+           studentName: registeredStud.fullName,
+           collegeName: college?.name || "Our College",
+           courseName: course?.name,
+           admissionYear: registeredStud.admissionYear,
+           collegeId: registeredStud.college_id,
+         });
+       } catch (emailError) {
+         logger.logError("Failed to send registration success email", {
+           controller: "student.controller",
+           action: "registerStudent",
+           error: emailError.message,
+           stack: emailError.stack,
+           studentEmail: registeredStud.email,
+           collegeId: registeredStud.college_id,
+         });
+       }
+     })();
 
     logger.logInfo("Student registration successful", {
       controller: "student.controller",
