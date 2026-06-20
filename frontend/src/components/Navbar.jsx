@@ -235,27 +235,15 @@ export default function NavbarComponent({
   /* ================= MARK ALL AS READ ================= */
   const markAllAsRead = async () => {
     try {
-      // Optimistic update - clear all notifications immediately
-      const previousNotes = [...notes];
+      await api.post("/notifications/mark-all-read");
       setNotes([]);
       setCount(0);
-
-      // Mark all as read in background
-      const promises = previousNotes.map((n) =>
-        api.post(`/notifications/${n._id}/read`),
-      );
-      await Promise.all(promises);
-
-      // Refresh count to ensure sync
-      fetchCount();
-
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       logger.error("Mark all read failed", err);
       setToast("❌ Failed to mark all as read");
       setTimeout(() => setToast(null), 3000);
-      // Revert optimistic update on error
       fetchNotes();
       fetchCount();
     }
