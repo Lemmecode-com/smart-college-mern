@@ -46,6 +46,93 @@ const STATUS_COLORS = {
   WITHDRAWN: { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" },
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "N/A";
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const renderExceptionDetails = (exc, options = {}) => {
+  const rows = [];
+
+  if (exc.type === "ROOM_CHANGE" && exc.newRoom?.trim()) {
+    rows.push({ label: "New Room", value: exc.newRoom });
+  }
+
+  if (exc.type === "TEACHER_CHANGE" && exc.substituteTeacher?.name) {
+    rows.push({ label: "Substitute Teacher", value: exc.substituteTeacher.name });
+  }
+
+  if (exc.type === "EXTRA") {
+    const startTime = exc.extraSlot?.startTime;
+    const endTime = exc.extraSlot?.endTime;
+    const room = exc.extraSlot?.room?.trim();
+
+    if (startTime || endTime) {
+      rows.push({
+        label: "Extra Slot",
+        value: `${startTime || "N/A"} - ${endTime || "N/A"}`,
+      });
+    }
+
+    if (room) {
+      rows.push({ label: "Room", value: room });
+    }
+  }
+
+  if (exc.type === "RESCHEDULED") {
+    if (exc.rescheduledTo) {
+      rows.push({ label: "Rescheduled To", value: formatDate(exc.rescheduledTo) });
+    }
+
+    if (
+      exc.rescheduledSlotId?.day ||
+      exc.rescheduledSlotId?.startTime ||
+      exc.rescheduledSlotId?.endTime
+    ) {
+      rows.push({
+        label: "Rescheduled Slot",
+        value: `${exc.rescheduledSlotId?.day || "N/A"}, ${
+          exc.rescheduledSlotId?.startTime || "N/A"
+        } - ${exc.rescheduledSlotId?.endTime || "N/A"}`,
+      });
+    }
+  }
+
+  if (options.showActionBy) {
+    if (exc.status === "APPROVED" && exc.approvedBy?.name) {
+      rows.push({ label: "Approved By", value: exc.approvedBy.name });
+    }
+
+    if (exc.status === "REJECTED" && exc.rejectedBy?.name) {
+      rows.push({ label: "Rejected By", value: exc.rejectedBy.name });
+    }
+
+    if (exc.status === "WITHDRAWN" && exc.withdrawnBy?.name) {
+      rows.push({ label: "Withdrawn By", value: exc.withdrawnBy.name });
+    }
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      {rows.map((row) => (
+        <div className="d-flex align-items-start mb-2" key={row.label}>
+          <FaChevronRight className="me-2 mt-1" size={14} style={{ color: "#3b82f6" }} />
+          <p className="small mb-0">
+            <span className="fw-semibold">{row.label}: </span>
+            {row.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const MotionDiv = motion.div;
 const MotionSpan = motion.span;
 const MotionButton = motion.button;
@@ -603,112 +690,7 @@ export default function ExceptionManagement() {
                             <p className="small text-dark mb-0">{exc.reason}</p>
                           </div>
 
-                          {/* Rescheduled Info */}
-                          {exc.rescheduledTo && (
-                            <div className="d-flex align-items-center mb-2">
-                              <FaChevronRight
-                                className="me-2"
-                                size={14}
-                                style={{ color: "#3b82f6" }}
-                              />
-                              <p
-                                className="small mb-0"
-                                style={{ color: "#3b82f6" }}
-                              >
-                                Rescheduled to:{" "}
-                                <span className="fw-semibold">
-                                  {new Date(
-                                    exc.rescheduledTo,
-                                  ).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Approved/Rejected Info */}
-                          {exc.status === "APPROVED" && exc.approvedAt && (
-                            <div className="d-flex align-items-center">
-                              <FaCheck
-                                className="me-2"
-                                size={14}
-                                style={{ color: "#3db5e6" }}
-                              />
-                              <p
-                                className="small mb-0"
-                                style={{ color: "#075985" }}
-                              >
-                                Approved on{" "}
-                                <span className="fw-semibold">
-                                  {new Date(exc.approvedAt).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    },
-                                  )}
-                                </span>
-                              </p>
-                            </div>
-                          )}
-                          {exc.status === "REJECTED" && exc.rejectionReason && (
-                            <div className="d-flex align-items-center">
-                              <FaTimes
-                                className="me-2"
-                                size={14}
-                                style={{ color: "#ef4444" }}
-                              />
-                              <p
-                                className="small mb-0"
-                                style={{ color: "#ef4444" }}
-                              >
-                                Reason: {exc.rejectionReason}
-                              </p>
-                            </div>
-                          )}
-                          {exc.status === "WITHDRAWN" && exc.withdrawnAt && (
-                            <div className="d-flex align-items-center">
-                              <FaUndo
-                                className="me-2"
-                                size={14}
-                                style={{ color: "#64748b" }}
-                              />
-                              <p
-                                className="small mb-0"
-                                style={{ color: "#64748b" }}
-                              >
-                                Withdrawn on{" "}
-                                <span className="fw-semibold">
-                                  {new Date(exc.withdrawnAt).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    },
-                                  )}
-                                </span>
-                              </p>
-                            </div>
-                          )}
-                          {exc.status === "WITHDRAWN" && exc.withdrawalReason && (
-                            <div className="d-flex align-items-center">
-                              <FaInfoCircle
-                                className="me-2"
-                                size={14}
-                                style={{ color: "#64748b" }}
-                              />
-                              <p
-                                className="small mb-0"
-                                style={{ color: "#64748b" }}
-                              >
-                                Reason: {exc.withdrawalReason}
-                              </p>
-                            </div>
-                          )}
+                          {renderExceptionDetails(exc, { showActionBy: true })}
                         </div>
 
 {/* Actions */}

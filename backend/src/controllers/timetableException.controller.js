@@ -678,6 +678,7 @@ exports.getExceptions = async (req, res, next) => {
       .populate("extraSlot.subject_id", "name code")
       .populate("extraSlot.teacher_id", "name")
       .populate("substituteTeacher", "name")
+      .populate("rescheduledSlotId", "day startTime endTime")
       .populate("createdBy", "name email")
       .populate("approvedBy", "name")
       .populate("rejectedBy", "name email")
@@ -1711,6 +1712,8 @@ exports.getPendingApprovals = async (req, res, next) => {
         }
       })
       .populate("createdBy", "name email")
+      .populate("substituteTeacher", "name")
+      .populate("rescheduledSlotId", "day startTime endTime")
       .sort({ exceptionDate: 1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1772,6 +1775,8 @@ exports.getMyExceptions = async (req, res, next) => {
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
       .populate("withdrawnBy", "name email")
+      .populate("substituteTeacher", "name")
+      .populate("rescheduledSlotId", "day startTime endTime")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -1875,6 +1880,8 @@ exports.getApprovalHistory = async (req, res, next) => {
       .populate("approvedBy", "name email")
       .populate("rejectedBy", "name email")
       .populate("withdrawnBy", "name email")
+      .populate("substituteTeacher", "name")
+      .populate("rescheduledSlotId", "day startTime endTime")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
