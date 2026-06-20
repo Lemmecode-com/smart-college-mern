@@ -166,7 +166,7 @@ exports.getStudentNotifications = async (req, res, next) => {
     const student = await Student.findOne({
       user_id: req.user.id,
       college_id: req.college_id,
-      status: "APPROVED"
+      status: { $in: ["APPROVED", "ENROLLED"] }
     }).select("department_id course_id currentSemester");
 
     if (!student) {
