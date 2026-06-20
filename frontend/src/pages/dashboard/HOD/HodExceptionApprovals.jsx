@@ -272,6 +272,83 @@ export default function HodExceptionApprovals() {
     });
   };
 
+  const renderExceptionDetails = (exc, options = {}) => {
+    const rows = [];
+
+    if (exc.type === "ROOM_CHANGE" && exc.newRoom?.trim()) {
+      rows.push({ label: "New Room", value: exc.newRoom });
+    }
+
+    if (exc.type === "TEACHER_CHANGE" && exc.substituteTeacher?.name) {
+      rows.push({ label: "Substitute Teacher", value: exc.substituteTeacher.name });
+    }
+
+    if (exc.type === "EXTRA") {
+      const startTime = exc.extraSlot?.startTime;
+      const endTime = exc.extraSlot?.endTime;
+      const room = exc.extraSlot?.room?.trim();
+
+      if (startTime || endTime) {
+        rows.push({
+          label: "Extra Slot",
+          value: `${startTime || "N/A"} - ${endTime || "N/A"}`,
+        });
+      }
+
+      if (room) {
+        rows.push({ label: "Room", value: room });
+      }
+    }
+
+    if (exc.type === "RESCHEDULED") {
+      if (exc.rescheduledTo) {
+        rows.push({ label: "Rescheduled To", value: formatDate(exc.rescheduledTo) });
+      }
+
+      if (
+        exc.rescheduledSlotId?.day ||
+        exc.rescheduledSlotId?.startTime ||
+        exc.rescheduledSlotId?.endTime
+      ) {
+        rows.push({
+          label: "Rescheduled Slot",
+          value: `${exc.rescheduledSlotId?.day || "N/A"}, ${
+            exc.rescheduledSlotId?.startTime || "N/A"
+          } - ${exc.rescheduledSlotId?.endTime || "N/A"}`,
+        });
+      }
+    }
+
+    if (options.showActionBy) {
+      if (exc.status === "APPROVED" && exc.approvedBy?.name) {
+        rows.push({ label: "Approved By", value: exc.approvedBy.name });
+      }
+
+      if (exc.status === "REJECTED" && exc.rejectedBy?.name) {
+        rows.push({ label: "Rejected By", value: exc.rejectedBy.name });
+      }
+
+      if (exc.status === "WITHDRAWN" && exc.withdrawnBy?.name) {
+        rows.push({ label: "Withdrawn By", value: exc.withdrawnBy.name });
+      }
+    }
+
+    if (rows.length === 0) return null;
+
+    return (
+      <div className="mt-3">
+        {rows.map((row) => (
+          <div className="mb-2" key={row.label}>
+            <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
+              {row.label}
+            </small>
+            <span className="fw-semibold text-dark small">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Clear all filters
   const handleClearFilters = () => {
     setSearchTeacher("");
@@ -411,6 +488,8 @@ export default function HodExceptionApprovals() {
                 </div>
               </div>
             )}
+
+            {renderExceptionDetails(exc)}
 
             {exc.timetable_id && (
               <div className="mt-2">
@@ -600,6 +679,8 @@ export default function HodExceptionApprovals() {
               </div>
             </div>
           )}
+
+          {renderExceptionDetails(exc)}
 
           {type === "rejected" && exc.rejectionReason && (
             <div className="mt-2 p-2 rounded" style={{ background: "#fef2f2" }}>
