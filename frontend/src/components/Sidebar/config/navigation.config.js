@@ -481,7 +481,7 @@ export const navigationConfig = {
           {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
-            label: "My Schedule",
+            label: "Mark Attendance",
             exact: true,
           },
         ],
