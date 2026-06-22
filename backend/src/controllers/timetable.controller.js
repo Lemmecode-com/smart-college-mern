@@ -1245,7 +1245,7 @@ exports.getSchedule = async (req, res) => {
       });
     }
 
-    // 3️⃣ Validate date range limit (max 90 days)
+// 3️⃣ Validate date range limit (max 90 days)
     // Parse dates as local dates to avoid timezone issues
     const startLocal = parseLocalDateSafe(startDate);
     const endLocal = parseLocalDateSafe(endDate);
@@ -1298,11 +1298,20 @@ exports.getSchedule = async (req, res) => {
         });
       }
 
-      if (student.status !== "APPROVED") {
+      // Allow timetable access for APPROVED and ENROLLED students only.
+      // APPROVED: Fully enrolled student with active status
+      // ENROLLED: Student who has confirmed their seat (post-offer acceptance)
+      // PENDING/OFFER_MADE/REJECTED: Not yet fully enrolled - access denied
+      if (!["APPROVED", "ENROLLED"].includes(student.status)) {
+        // Debug logging for status validation
+        console.log(`[TIMETABLE_ACCESS] Blocked - Student: ${student._id}, Status: ${student.status}, Email: ${student.email}`);
         return res.status(403).json({
           message: "Access denied: Your student account is pending approval.",
         });
       }
+
+      // Debug logging for successful validation
+      console.log(`[TIMETABLE_ACCESS] Allowed - Student: ${student._id}, Status: ${student.status}`);
 
       if (
         student.department_id.toString() !==
@@ -1333,9 +1342,9 @@ exports.getSchedule = async (req, res) => {
 };
 
 /* =========================================================
-    GET TODAY'S SCHEDULE
-    GET /api/timetable/:id/schedule/today
- ========================================================= */
+     GET TODAY'S SCHEDULE
+     GET /api/timetable/:id/schedule/today
+  ========================================================= */
 exports.getTodaySchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1356,7 +1365,34 @@ exports.getTodaySchedule = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // 2️⃣ Generate today's schedule
+    // 2️⃣ Student authorization check
+    if (req.user.role === "STUDENT") {
+      const Student = require("../models/student.model");
+      const student = await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+      });
+
+      if (!student || !["APPROVED", "ENROLLED"].includes(student.status)) {
+        console.log(`[TIMETABLE_ACCESS] Blocked - Student: ${student?._id}, Status: ${student?.status}`);
+        return res.status(403).json({
+          message: "Access denied: Your student account is pending approval.",
+        });
+      }
+
+      // Validate student belongs to this timetable's course/department
+      if (
+        student.department_id.toString() !== timetable.department_id.toString() ||
+        student.course_id.toString() !== timetable.course_id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Access denied: You can only view schedules for your own course",
+        });
+      }
+      console.log(`[TIMETABLE_ACCESS] Allowed - Student: ${student._id}, Status: ${student.status}`);
+    }
+
+    // 3️⃣ Generate today's schedule
     const todaySchedule = await timetableScheduleService.getTodaySchedule(id);
 
     ApiResponse.success(
@@ -1371,9 +1407,9 @@ exports.getTodaySchedule = async (req, res) => {
 };
 
 /* =========================================================
-    GET WEEKLY SCHEDULE
-    GET /api/timetable/:id/schedule/week
- ========================================================= */
+     GET WEEKLY SCHEDULE
+     GET /api/timetable/:id/schedule/week
+  ========================================================= */
 exports.getWeeklySchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1394,7 +1430,34 @@ exports.getWeeklySchedule = async (req, res) => {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
-    // 2️⃣ Generate weekly schedule
+    // 2️⃣ Student authorization check
+    if (req.user.role === "STUDENT") {
+      const Student = require("../models/student.model");
+      const student = await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+      });
+
+      if (!student || !["APPROVED", "ENROLLED"].includes(student.status)) {
+        console.log(`[TIMETABLE_ACCESS] Blocked - Student: ${student?._id}, Status: ${student?.status}`);
+        return res.status(403).json({
+          message: "Access denied: Your student account is pending approval.",
+        });
+      }
+
+      // Validate student belongs to this timetable's course/department
+      if (
+        student.department_id.toString() !== timetable.department_id.toString() ||
+        student.course_id.toString() !== timetable.course_id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Access denied: You can only view schedules for your own course",
+        });
+      }
+      console.log(`[TIMETABLE_ACCESS] Allowed - Student: ${student._id}, Status: ${student.status}`);
+    }
+
+    // 3️⃣ Generate weekly schedule
     const weeklySchedule = await timetableScheduleService.getWeeklySchedule(id);
 
     ApiResponse.success(
