@@ -1297,7 +1297,7 @@ function AppContent({
             <Route
               path="/attendance/session/:sessionId"
               element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
                   <SessionDetails />
                 </ProtectedRoute>
               }
