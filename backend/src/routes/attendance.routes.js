@@ -28,7 +28,7 @@ const {
 } = require("../controllers/attendance.controller");
 
 /* =========================================================
-   ATTENDANCE SESSION APIs (Teacher)
+   ATTENDANCE SESSION APIs (Teacher + HOD for own subjects)
 ========================================================= */
 
 // ➕ NEW: Get today's slots for teacher (for easy attendance start)
@@ -44,16 +44,16 @@ router.get(
 router.post(
   "/sessions",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   createAttendanceSession,
 );
 
-// 📋 Get all sessions — TEACHER and PRINCIPAL (read-only)
+// 📋 Get all sessions — TEACHER, HOD and PRINCIPAL (read-only)
 router.get(
   "/sessions",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceSessions,
 );
@@ -61,7 +61,7 @@ router.get(
 router.get(
   "/report",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   teacherMiddleware,
   getAttendanceReport,
@@ -88,16 +88,16 @@ router.get(
 router.get(
   "/report/courses",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getTeacherCourses,
 );
 
-// 📄 Get single session — TEACHER and PRINCIPAL (read-only)
+// 📄 Get single session — TEACHER, HOD and PRINCIPAL (read-only)
 router.get(
   "/sessions/:sessionId",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceSessionById,
 );
@@ -106,7 +106,7 @@ router.get(
 router.put(
   "/sessions/:sessionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   updateAttendanceSession,
 );
@@ -115,7 +115,7 @@ router.put(
 router.delete(
   "/sessions/:sessionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   deleteAttendanceSession,
 );
@@ -124,7 +124,7 @@ router.delete(
 router.put(
   "/sessions/:sessionId/close",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   closeAttendanceSession,
 );
@@ -137,7 +137,7 @@ router.put(
 router.get(
   "/sessions/:sessionId/students",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   getStudentsForAttendance,
 );
@@ -146,7 +146,7 @@ router.get(
 router.post(
   "/sessions/:sessionId/mark",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   markAttendance,
 );
@@ -155,7 +155,7 @@ router.post(
 router.put(
   "/sessions/:sessionId/edit",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   editAttendance,
 );
@@ -163,7 +163,7 @@ router.put(
 router.get(
   "/sessions/:sessionId/records",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAttendanceRecordsBySession,
 );
@@ -171,7 +171,7 @@ router.get(
 router.get(
   "/report/subjects/:courseId",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getTeacherSubjectsByCourse,
 );
@@ -179,7 +179,7 @@ router.get(
 router.get(
   "/report/courses",
   auth,
-  role(ROLE.TEACHER, ROLE.PRINCIPAL),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   getTeacherCourses,
 );
