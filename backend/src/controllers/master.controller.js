@@ -9,6 +9,7 @@ const Student = require("../models/student.model");
 const Timetable = require("../models/timetable.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 const AppError = require("../utils/AppError");
 const FeeStructure = require("../models/feeStructure.model");
 const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
@@ -69,20 +70,42 @@ exports.createCollege = async (req, res, next) => {
       adminName: adminName,
     });
 
+    let emailSent = false;
+    let emailError = null;
     try {
       await sendEmailToCollegeAdmin({
         to: adminEmail,
         collegeName: college.name,
-        subject: `Welcome to ${college.name} - Your Admin Credentials`,
-        message: `Dear ${adminName},\n\nWelcome to Smart College Management System!\n\nYour College Admin account has been created for ${college.name}.\n\nLogin Credentials:\nEmail: ${adminEmail}\nPassword: ${adminPassword}\nLogin URL: ${registrationUrl}\n\nIMPORTANT: You must change this password on your first login.\n\nBest regards,\nSmart College Platform`,
+        subject: `Welcome to NOVAA`,
+        message: `Welcome ${adminName},
+
+Your account has been created successfully.
+
+Login Credentials:
+
+Email: ${adminEmail}
+Password: ${adminPassword}
+
+Login URL:
+${buildFrontendUrl("/login")}
+
+IMPORTANT: You must change this password on you first login
+
+Best Regards,
+NOVAA (SUPERADMIN)`,
         collegeId: college._id,
       });
-    } catch (emailError) {
-      console.error("Failed to send welcome email to college admin:", emailError.message);
+      emailSent = true;
+    } catch (emailErr) {
+      emailError = emailErr.message;
+      console.error("Failed to send welcome email to college admin:", emailErr.message);
+      console.error("Email error stack:", emailErr.stack);
     }
 
     res.status(201).json({
       message: "College and College Admin created successfully",
+      emailSent,
+      emailError,
       college: {
         id: college._id,
         name: college.name,
@@ -304,6 +327,12 @@ exports.getCollegeById = async (req, res, next) => {
       AttendanceSession.countDocuments({ college_id: collegeId }),
     ]);
 
+    // 3️⃣ Also fetch college admin email
+    const adminUser = await User.findOne({
+      college_id: collegeId,
+      role: "COLLEGE_ADMIN",
+    }).select("email");
+
     // 4️⃣ Response
     res.json({
       message: "College details fetched successfully",
@@ -318,6 +347,7 @@ exports.getCollegeById = async (req, res, next) => {
         logo: college.logo,
         registrationUrl: college.registrationUrl,
         registrationQr: college.registrationQr,
+        adminEmail: adminUser?.email || "",
         createdAt: college.createdAt,
       },
       stats: {

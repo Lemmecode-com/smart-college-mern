@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 const logger = require("../utils/logger");
-const { getCollegeTransporter } = require("./collegeEmail.service");
+const { getCollegeTransporter, getGlobalTransporter } = require("./collegeEmail.service");
 
 exports.sendPaymentReminderEmail = async ({ to, studentName, installment, collegeId }) => {
   if (!collegeId) {
@@ -801,21 +801,19 @@ exports.sendEmailToCollegeAdmin = async ({
   message,
   collegeId,
 }) => {
-  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+  const { transporter, fromEmail } = await getGlobalTransporter();
 
   const mailOptions = {
-    from: `"${fromName}" <${fromEmail}>`,
+    from: `"NOVAA" <${fromEmail}>`,
     to,
-    subject: subject || `Message regarding ${collegeName} - Smart College`,
+    subject: subject || `Welcome to NOVAA`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #1a4b6d; text-align: center;">Message from Super Admin</h2>
-        <p style="color: #555;">Dear College Admin,</p>
-        <p style="color: #555;">You have received a message regarding <strong>${collegeName}</strong>:</p>
+        <h2 style="color: #1a4b6d; text-align: center;">Welcome to NOVAA</h2>
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1a4b6d;">
-          <p style="margin: 0; color: #333; white-space: pre-wrap;">${message}</p>
+          <p style="margin: 0; color: #333; white-space: pre-wrap; font-size: 15px; line-height: 1.6;">${message}</p>
         </div>
-        <p style="color: #6c757d; font-size: 12px; text-align: center;">This is an automated message from Smart College Management System.</p>
+        <p style="color: #6c757d; font-size: 12px; text-align: center; margin-top: 20px;">Best Regards,<br/><strong>NOVAA (SUPERADMIN)</strong></p>
       </div>
     `,
   };
