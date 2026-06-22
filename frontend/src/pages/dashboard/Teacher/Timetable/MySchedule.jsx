@@ -855,6 +855,7 @@ export default function MySchedule() {
     slot: null,
     timeSlot: null,
   });
+  const [teacherId, setTeacherId] = useState(null);
   const { user } = useContext(AuthContext);
   const isHod = user?.role === "HOD";
   const navigate = useNavigate();
@@ -896,6 +897,20 @@ export default function MySchedule() {
     }
     setSessionsLoaded(true);
   }, [isClient]);
+
+  // Fetch current teacher profile for HOD ownership validation
+  useEffect(() => {
+    const fetchTeacherProfile = async () => {
+      if (!user || (user.role !== "TEACHER" && user.role !== "HOD")) return;
+      try {
+        const res = await api.get("/teachers/my-profile");
+        setTeacherId(res.data.teacher?._id);
+      } catch (err) {
+        console.error("Failed to fetch teacher profile:", err);
+      }
+    };
+    fetchTeacherProfile();
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -1538,8 +1553,9 @@ export default function MySchedule() {
                          sessionTimer={sessionTimers[slot._id]}
                          styles={styles}
                          attendanceMessage={slot.message}
-                         isHod={isHod}
-                       />
+                          isHod={isHod}
+                          teacherId={teacherId}
+                        />
                     );
                   })}
                 </div>
@@ -1664,6 +1680,7 @@ function ScheduleRow({
   styles,
   attendanceMessage,
   isHod = false,
+  teacherId,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
@@ -1706,12 +1723,15 @@ function ScheduleRow({
   // 3. No existing open session
   // 4. No existing closed session
   // 5. Slot is not cancelled, holiday, or rescheduled
+  // 6. HOD can only start attendance for subjects assigned to them
+  const isOwnSlot = !isHod || (teacherId && slot.teacher_id?._id === teacherId);
   const canStartAttendance =
     isPublished &&
     !isExceptionBlocked &&
     slotStatus === "active" && // ✅ STRICT: Must be within time window
     !hasOpenSession &&
-    !hasClosedSession;
+    !hasClosedSession &&
+    isOwnSlot;
 
   // Determine button state (priority order)
   let buttonState = "start";

@@ -4,6 +4,8 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaCalendarAlt,
@@ -19,6 +21,9 @@ import {
   FaChevronRight,
   FaExclamationTriangle,
   FaSun,
+  FaPlay,
+  FaTimesCircle,
+  FaSyncAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -100,6 +105,15 @@ export default function MyTimetable() {
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
+  const [activeSessions, setActiveSessions] = useState({});
+  const [attendanceSessions, setAttendanceSessions] = useState({});
+  const [creatingAttendance, setCreatingAttendance] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [attendanceConfirmModal, setAttendanceConfirmModal] = useState({
+    isOpen: false,
+    slot: null,
+    timeSlot: null,
+  });
   const hasLoadedRef = useRef(false);
 
   const MAX_RETRY = 3;
@@ -107,6 +121,100 @@ export default function MyTimetable() {
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
+
+  /* ================= CURRENT TIME UPDATER ================= */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  /* ================= LOAD ACTIVE ATTENDANCE SESSIONS ================= */
+  useEffect(() => {
+    const loadActiveSessions = async () => {
+      if (!timetableId) return;
+      try {
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+        const res = await api.get("/attendance/sessions", {
+          params: { date: todayStr, status: "active" },
+        });
+        const sessionsMap = {};
+        const attendanceMap = {};
+        if (res.data.sessions) {
+          res.data.sessions.forEach((session) => {
+            const slotId =
+              typeof session.slot_id === "object"
+                ? session.slot_id._id
+                : session.slot_id;
+            sessionsMap[slotId] = session;
+            attendanceMap[slotId] = session;
+          });
+        }
+        setActiveSessions(sessionsMap);
+        setAttendanceSessions(attendanceMap);
+      } catch (err) {
+        // Silently fail - use empty state
+      }
+    };
+
+    if (user?.role === "TEACHER" && timetableId) {
+      loadActiveSessions();
+    }
+  }, [timetableId, user?.role]);
+
+  /* ================= ATTENDANCE HELPERS ================= */
+  const DAY_MAP_JS = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+
+  const getTodayDayAbbr = () => {
+    return DAY_MAP_JS[new Date().getDay()];
+  };
+
+  const isTimeWithinSlot = (slot) => {
+    if (!slot.startTime || !slot.endTime) return false;
+    const [startH, startM] = slot.startTime.split(":").map(Number);
+    const [endH, endM] = slot.endTime.split(":").map(Number);
+    const now = currentTime;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  };
+
+  const getAttendanceButtonState = (slot, dayCode) => {
+    const isToday = dayCode === getTodayDayAbbr();
+    const isPublished = timetable?.status === "PUBLISHED";
+
+    if (!isPublished) return "unpublished";
+    if (!isToday) return "not_today";
+
+    const exception = slot.exception;
+    const isCancelled = slot.status === "CANCELLED" || exception?.type === "CANCELLED";
+    const isHoliday = slot.status === "HOLIDAY" || exception?.type === "HOLIDAY";
+    const isRescheduled = slot.status === "RESCHEDULED" || exception?.type === "RESCHEDULED";
+
+    if (isCancelled) return "cancelled";
+    if (isHoliday) return "holiday";
+    if (isRescheduled) return "rescheduled";
+
+    const slotStatus = isTimeWithinSlot(slot) ? "active" : "past";
+    const [endH, endM] = slot.endTime.split(":").map(Number);
+    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const endMinutes = endH * 60 + endM;
+    if (currentMinutes >= endMinutes) return "ended";
+
+    if (!isTimeWithinSlot(slot)) return "upcoming";
+
+    const slotId = slot._id;
+    const hasActiveSession = !!activeSessions[slotId] || slot.hasOpenSession;
+    const hasClosedSession = !!attendanceSessions[slotId] || slot.hasClosedSession;
+
+    if (hasActiveSession) return "active";
+    if (hasClosedSession) return "ended";
+
+    return "start";
+  };
 
   /* ================= FETCH TIMETABLE ================= */
   const fetchTimetable = async () => {
@@ -324,6 +432,89 @@ export default function MyTimetable() {
     navigate("/teacher/dashboard");
   };
 
+  /* ================= ATTENDANCE HANDLERS ================= */
+  const openAttendanceConfirm = (slot, dayCode) => {
+    const today = new Date();
+    const currentDayAbbr = DAY_MAP_JS[today.getDay()];
+
+    if (slot.day !== currentDayAbbr) {
+      toast.error("Attendance can only be started for today's lectures.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    setAttendanceConfirmModal({
+      isOpen: true,
+      slot,
+      timeSlot: `${slot.startTime} - ${slot.endTime}`,
+    });
+  };
+
+  const createAttendanceSession = async () => {
+    const { slot } = attendanceConfirmModal;
+    if (!slot) return;
+
+    setCreatingAttendance(slot._id);
+    try {
+      const todayDate = new Date().toISOString().split("T")[0];
+      const res = await api.post("/attendance/sessions", {
+        slot_id: slot._id,
+        lectureDate: todayDate,
+        lectureNumber: 1,
+      });
+
+      const newSession = res.data.session;
+      const slotId = slot._id;
+
+      setActiveSessions((prev) => ({ ...prev, [slotId]: newSession }));
+      setAttendanceSessions((prev) => ({ ...prev, [slotId]: newSession }));
+
+      toast.success("Attendance session started! Redirecting...", {
+        position: "top-right",
+        autoClose: 2000,
+        icon: <FaCheckCircle />,
+      });
+
+      setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
+
+      setTimeout(() => {
+        navigate(`/attendance/session/${newSession._id}`);
+      }, 1500);
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        "Failed to create attendance session. Please try again.";
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />,
+      });
+
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("exists") ||
+        message.toLowerCase().includes("duplicate")
+      ) {
+        const slotId = slot._id;
+        setActiveSessions((prev) => ({
+          ...prev,
+          [slotId]: { _id: "existing", status: "active" },
+        }));
+        setAttendanceSessions((prev) => ({
+          ...prev,
+          [slotId]: { _id: "existing", status: "active" },
+        }));
+      }
+
+      setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
+    } finally {
+      setCreatingAttendance(null);
+    }
+  };
+
   /* ================= HELPER FUNCTIONS ================= */
   const getTotalSlots = () => {
     return Object.values(weekly).reduce(
@@ -382,6 +573,7 @@ export default function MyTimetable() {
         padding: "1.5rem",
       }}
     >
+      <ToastContainer position="top-right" theme="colored" />
       {/* ================= HEADER ================= */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -896,6 +1088,195 @@ export default function MyTimetable() {
                                   </span>
                                 </div>
                               </div>
+
+                              {/* ================= ATTENDANCE BUTTON ================= */}
+                              {(() => {
+                                const btnState = getAttendanceButtonState(slot, dayCode);
+                                const slotId = slot._id;
+
+                                if (btnState === "cancelled" || btnState === "holiday" || btnState === "rescheduled") {
+                                  return null;
+                                }
+
+                                if (btnState === "unpublished") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f1f5f9",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.75rem",
+                                        color: "#64748b",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaExclamationTriangle size={12} />
+                                      <span>Timetable not published</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "not_today") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f8fafc",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.75rem",
+                                        color: "#94a3b8",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaClock size={12} />
+                                      <span>Mark attendance only on class day</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "upcoming") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#eff6ff",
+                                        border: "1px solid #bfdbfe",
+                                        fontSize: "0.75rem",
+                                        color: "#2563eb",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaSyncAlt size={12} />
+                                      <span>Available at {formatTime12Hour(slot.startTime)}</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "creating") {
+                                  return (
+                                    <motion.button
+                                      disabled
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        width: "100%",
+                                        padding: "0.6rem",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                                        color: "white",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "not-allowed",
+                                        opacity: 0.8,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                      }}
+                                    >
+                                      <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      >
+                                        <FaSyncAlt size={14} />
+                                      </motion.div>
+                                      Starting Session...
+                                    </motion.button>
+                                  );
+                                }
+
+                                if (btnState === "active") {
+                                  return (
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.6rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                                        color: "white",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "default",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.5rem",
+                                        boxShadow: "0 4px 12px rgba(40, 167, 69, 0.35)",
+                                      }}
+                                    >
+                                      <FaCheckCircle size={14} />
+                                      <span>Attendance Active</span>
+                                    </motion.div>
+                                  );
+                                }
+
+                                if (btnState === "ended") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f1f5f9",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.75rem",
+                                        color: "#64748b",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaTimesCircle size={12} />
+                                      <span>Session ended at {formatTime12Hour(slot.endTime)}</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "start") {
+                                  return (
+                                    <motion.button
+                                      whileHover={{ scale: 1.02, boxShadow: "0 6px 20px rgba(40, 167, 69, 0.4)" }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => openAttendanceConfirm(slot, dayCode)}
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        width: "100%",
+                                        padding: "0.6rem 0.75rem",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                                        color: "white",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                        boxShadow: "0 4px 15px rgba(40, 167, 69, 0.35)",
+                                      }}
+                                    >
+                                      <FaPlay size={13} />
+                                      <span>Mark Attendance</span>
+                                    </motion.button>
+                                  );
+                                }
+
+                                return null;
+                              })()}
                             </motion.div>
                           );
                         })}
@@ -908,7 +1289,230 @@ export default function MyTimetable() {
         </div>
       )}
 
-      {/* ================= CSS ================= */}
+      {/* ================= ATTENDANCE CONFIRM MODAL ================= */}
+      {attendanceConfirmModal.isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() =>
+            setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null })
+          }
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.3)",
+              width: "100%",
+              maxWidth: "450px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "1.75rem",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <FaCheckCircle style={{ color: "#28a745" }} /> Start Attendance
+              </h3>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() =>
+                  setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null })
+                }
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "8px",
+                }}
+              >
+                &times;
+              </motion.button>
+            </div>
+
+            {attendanceConfirmModal.slot && (
+              <div>
+                <div
+                  style={{
+                    padding: "1rem",
+                    borderRadius: "12px",
+                    backgroundColor: "#dbeafe",
+                    border: "1px solid #93c5fd",
+                    marginBottom: "1.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <FaBookOpen style={{ color: BRAND_COLORS.primary.main }} />
+                    <strong>
+                      {attendanceConfirmModal.slot.subject_id?.name}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                      color: "#4a5568",
+                    }}
+                  >
+                    <FaClock size={12} />
+                    <span>{attendanceConfirmModal.timeSlot}</span>
+                  </div>
+                  {attendanceConfirmModal.slot.room && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontSize: "0.9rem",
+                        color: "#4a5568",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <FaDoorOpen size={12} />
+                      <span>Room {attendanceConfirmModal.slot.room}</span>
+                    </div>
+                  )}
+                </div>
+
+                <p
+                  style={{
+                    color: "#4a5568",
+                    fontSize: "0.95rem",
+                    lineHeight: 1.6,
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  This will create a new attendance session for{" "}
+                  <strong>
+                    {attendanceConfirmModal.slot.subject_id?.name}
+                  </strong>{" "}
+                  today. Students will be able to mark their attendance.
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() =>
+                      setAttendanceConfirmModal({
+                        isOpen: false,
+                        slot: null,
+                        timeSlot: null,
+                      })
+                    }
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "white",
+                      color: "#1e293b",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={createAttendanceSession}
+                    disabled={creatingAttendance === attendanceConfirmModal.slot?._id}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: creatingAttendance === attendanceConfirmModal.slot?._id
+                        ? "#cbd5e1"
+                        : "linear-gradient(135deg, #28a745, #1e7e34)",
+                      color: "white",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: creatingAttendance === attendanceConfirmModal.slot?._id
+                        ? "not-allowed"
+                        : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    {creatingAttendance === attendanceConfirmModal.slot?._id ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <FaSyncAlt size={16} />
+                      </motion.div>
+                    ) : (
+                      <FaPlay size={14} />
+                    )}
+                    {creatingAttendance === attendanceConfirmModal.slot?._id
+                      ? "Starting..."
+                      : "Start Attendance"}
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
       <style>{`
         .card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
