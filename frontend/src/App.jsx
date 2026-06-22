@@ -1285,14 +1285,14 @@ function AppContent({
              />
 
             {/* ================= ATTENDANCE ================= */}
-            <Route
-              path="/attendance/my-sessions-list"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <AttendanceSessionsList />
-                </ProtectedRoute>
-              }
-            />
+<Route
+               path="/attendance/my-sessions-list"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <AttendanceSessionsList />
+                 </ProtectedRoute>
+               }
+             />
 
             <Route
               path="/attendance/session/:sessionId"
@@ -1303,23 +1303,23 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/attendance/session/:sessionId/mark"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <MarkAttendanceModal />
-                </ProtectedRoute>
-              }
-            />
+<Route
+               path="/attendance/session/:sessionId/mark"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <MarkAttendanceModal />
+                 </ProtectedRoute>
+               }
+             />
 
-            <Route
-              path="/attendance/session/:sessionId/edit"
-              element={
-                <ProtectedRoute allowedRoles={["TEACHER"]}>
-                  <EditAttendanceModal />
-                </ProtectedRoute>
-              }
-            />
+<Route
+               path="/attendance/session/:sessionId/edit"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <EditAttendanceModal />
+                 </ProtectedRoute>
+               }
+             />
 
             <Route
               path="/attendance/report"

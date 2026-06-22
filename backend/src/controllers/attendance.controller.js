@@ -199,11 +199,11 @@ exports.createAttendanceSession = async (req, res, next) => {
       slotType: slotWithDetails.slotType || "LECTURE",
     };
 
-    // Count students
+    // Count students (include APPROVED and ENROLLED for visibility)
     const totalStudents = await Student.countDocuments({
       college_id: collegeId,
       course_id: slot.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).session(session);
 
     // ✅ FIX: Edge Case 1 - Prevent session creation if no students enrolled
@@ -489,11 +489,11 @@ exports.getStudentsForAttendance = async (req, res) => {
       });
     }
 
-    // Fetch students
+    // Fetch students (include APPROVED and ENROLLED for visibility)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id fullName email");
 
     res.status(200).json(students);
@@ -831,11 +831,11 @@ exports.closeAttendanceSession = async (req, res) => {
       });
     }
 
-    // Fetch all students for the course
+    // Fetch all students for the course (include APPROVED and ENROLLED)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id");
 
     // Find present students
