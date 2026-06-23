@@ -263,14 +263,12 @@ exports.confirmStripePayment = async (req, res, next) => {
     const collegeId = req.college_id;
     const { sessionId } = req.body;
 
-    if (!sessionId) {
-      throw new AppError("Session ID is required", 400, "SESSION_ID_REQUIRED");
-    }
-
+    const confirmStartTime = Date.now();
     logger.logInfo("🔵 Confirming Stripe payment", {
       userId,
       collegeId,
       sessionId,
+      confirmStartTime,
     });
 
     // Get college-specific Stripe instance
@@ -291,6 +289,7 @@ exports.confirmStripePayment = async (req, res, next) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(
       session.payment_intent,
     );
+
     if (paymentIntent.status !== "succeeded") {
       logger.logWarning("⚠️ PaymentIntent not succeeded", {
         sessionId,
@@ -367,14 +366,17 @@ exports.confirmStripePayment = async (req, res, next) => {
     }
 
     // 🆕 Step 5: ATOMIC UPDATE (prevent race conditions with webhook)
-    // Only update if status is still PENDING
+    // Only update if status is still PENDING (primary idempotency guard)
+    // Note: stripeSessionId was set during createCheckoutSession, so $ne check is INVALID
+
+    const updateQuery = {
+      _id: studentFee._id,
+      "installments._id": installment._id,
+      "installments.status": "PENDING",
+    };
+
     const updateResult = await StudentFee.updateOne(
-      {
-        _id: studentFee._id,
-        "installments._id": installment._id,
-        "installments.status": "PENDING",
-        "installments.stripeSessionId": { $ne: sessionId },
-      },
+      updateQuery,
       {
         $set: {
           "installments.$.status": "PAID",
@@ -385,13 +387,6 @@ exports.confirmStripePayment = async (req, res, next) => {
         },
       },
     );
-
-    logger.logInfo("🔒 Atomic confirm-payment update completed", {
-      studentId: student._id,
-      matchedCount: updateResult.matchedCount,
-      modifiedCount: updateResult.modifiedCount,
-      sessionId,
-    });
 
     // If no documents matched, webhook already processed this
     if (updateResult.matchedCount === 0) {
