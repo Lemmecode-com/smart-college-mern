@@ -69,7 +69,7 @@ exports.sendLowAttendanceAlerts = async () => {
     let batch;
 
     do {
-      batch = await Student.find({ status: "APPROVED" })
+      batch = await Student.find({ status: { $in: ["APPROVED", "ENROLLED"] } })
         .populate("college_id", "name email")
         .populate("course_id", "name")
         .skip(skip)
@@ -141,7 +141,7 @@ exports.getLowAttendanceStudents = async (collegeId, threshold = 75) => {
   try {
     const students = await Student.find({
       college_id: collegeId,
-      status: "APPROVED"
+      status: { $in: ["APPROVED", "ENROLLED"] }
     })
       .populate("course_id", "name")
       .lean();
