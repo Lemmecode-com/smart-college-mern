@@ -383,6 +383,19 @@ export default function MakePayments() {
         const errorCode = response.error.code;
         const errorDescription = response.error.description;
 
+        // TEMP DIAGNOSTIC: Capture complete Razorpay error payload for root-cause analysis.
+        // Remove after identifying BAD_REQUEST_ERROR reason.
+        console.error("[Razorpay][DIAGNOSTIC] payment.failed payload:", {
+          errorCode,
+          errorDescription,
+          errorReason: response.error.reason,
+          errorSource: response.error.source,
+          errorStep: response.error.step,
+          errorField: response.error.field,
+          errorMetadata: response.error.metadata,
+          fullError: response.error,
+        });
+
         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
           autoClose: 5000,
@@ -395,6 +408,11 @@ export default function MakePayments() {
             razorpay_order_id: orderId,
             error_code: errorCode,
             error_description: errorDescription,
+            error_reason: response.error.reason || "",
+            error_source: response.error.source || "",
+            error_step: response.error.step || "",
+            error_field: response.error.field || "",
+            error_metadata: response.error.metadata || {},
           })
           .catch(() => {}); // Ignore logging errors
 
