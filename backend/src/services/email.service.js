@@ -938,8 +938,10 @@ exports.sendStaffCredentialsEmail = async ({ to, name, temporaryPassword, colleg
   try {
     const info = await transporter.sendMail(mailOptions);
     logger.logInfo("✅ Staff credentials email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+    return { success: true };
   } catch (error) {
     logger.logError("❌ Failed to send staff credentials email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
+    return { success: false, error: error.message };
   }
 };
 
