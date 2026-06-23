@@ -886,7 +886,7 @@ export default function ViewCollegeDetails() {
                 </label>
                 <input
                   type="text"
-                  value={college?.email}
+                  value={college?.adminEmail || ""}
                   readOnly
                   style={{
                     width: "100%",

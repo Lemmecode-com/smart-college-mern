@@ -133,7 +133,7 @@ const generateTempPassword = (length = 10) => {
       return empId;
     };
 
-    // Start transaction — create User, StaffProfile, and (for HOD) Teacher together
+// Start transaction — create User, StaffProfile, and (for HOD) Teacher together
     const session = await User.startSession();
     session.startTransaction();
 
@@ -191,7 +191,7 @@ const generateTempPassword = (length = 10) => {
             {
               college_id: req.user.college_id,
               user_id: user[0]._id,
-              department_id: departmentId,
+              department_id,
               name,
               email,
               employeeId,
@@ -245,7 +245,7 @@ const generateTempPassword = (length = 10) => {
         staffName
       ).catch((err) => console.error("Audit log failed:", err.message));
 
-      // Send credentials email and report delivery status
+      // Send credentials email and report delivery status (outside transaction)
       let emailResult = { success: false };
       try {
         emailResult = await sendStaffCredentialsEmail({
@@ -280,8 +280,14 @@ const generateTempPassword = (length = 10) => {
         },
       });
     } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
+      // Only abort if transaction hasn't been committed yet
+      try {
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
+      } finally {
+        session.endSession();
+      }
       throw err;
     }
   } catch (error) {
