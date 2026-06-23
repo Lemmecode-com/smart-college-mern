@@ -36,13 +36,13 @@ class ParentCreationService {
       // Create father user if email and name provided
       if (student.fatherEmail && student.fatherName && student.fatherEmail.trim()) {
         try {
-          // Check if user already exists
+          // Check if user already exists (by email)
           const existingFather = await User.findOne({
             email: student.fatherEmail,
-            college_id: student.college_id
           });
 
           if (!existingFather) {
+            // Create new user
             const tempPassword = this.generateTempPassword();
 
             const fatherUser = await User.create({
@@ -91,11 +91,26 @@ class ParentCreationService {
 
             createdCount++;
           } else {
-            logger.logInfo("Father user already exists, skipping creation", {
-              studentId: student._id,
-              parentEmail: student.fatherEmail,
-              existingUserId: existingFather._id
-            });
+            // User exists - verify they belong to the same college before adding to linkage
+            const sameCollege = !existingFather.college_id || existingFather.college_id.toString() === student.college_id.toString();
+            if (!sameCollege) {
+              logger.logInfo("Father user exists but belongs to different college - skipping linkage", {
+                studentId: student._id,
+                parentEmail: student.fatherEmail,
+                existingUserId: existingFather._id
+              });
+            } else {
+              parentUsers.push({
+                user: existingFather,
+                relation: "father",
+                tempPassword: null  // No new password since account already exists
+              });
+              logger.logInfo("Father user already exists, adding to linkage update", {
+                studentId: student._id,
+                parentEmail: student.fatherEmail,
+                existingUserId: existingFather._id
+              });
+            }
           }
         } catch (error) {
           logger.logError("Failed to create father user account", {
@@ -110,13 +125,13 @@ class ParentCreationService {
       // Create mother user if email and name provided
       if (student.motherEmail && student.motherName && student.motherEmail.trim()) {
         try {
-          // Check if user already exists
+          // Check if user already exists (by email)
           const existingMother = await User.findOne({
             email: student.motherEmail,
-            college_id: student.college_id
           });
 
           if (!existingMother) {
+            // Create new user
             const tempPassword = this.generateTempPassword();
 
             const motherUser = await User.create({
@@ -165,7 +180,13 @@ class ParentCreationService {
 
             createdCount++;
           } else {
-            logger.logInfo("Mother user already exists, skipping creation", {
+            // User exists - add to linkage update list
+            parentUsers.push({
+              user: existingMother,
+              relation: "mother",
+              tempPassword: null  // No new password since account already exists
+            });
+            logger.logInfo("Mother user already exists, adding to linkage update", {
               studentId: student._id,
               parentEmail: student.motherEmail,
               existingUserId: existingMother._id
@@ -181,17 +202,27 @@ class ParentCreationService {
         }
       }
 
-      // Create ParentGuardian linking records
+// Create ParentGuardian linking records
       for (const parent of parentUsers) {
         try {
           const parentId = parent.user._id;
           const studentId = student._id;
 
+          // Query by user_id first (handles both records with and without college_id)
           const existingLink = await ParentGuardian.findOne({
             user_id: parentId,
           });
 
           if (existingLink) {
+            // Migrate: backfill college_id if missing (save after update)
+            if (!existingLink.college_id && student.college_id) {
+              existingLink.college_id = student.college_id;
+              await existingLink.save();
+              logger.logInfo("ParentGuardian college_id backfilled", {
+                parentUserId: parentId,
+              });
+            }
+
             if (!existingLink.student_ids.includes(studentId)) {
               existingLink.student_ids = [...existingLink.student_ids, studentId];
               await existingLink.save();
@@ -209,6 +240,7 @@ class ParentCreationService {
           } else {
             await ParentGuardian.create({
               user_id: parentId,
+              college_id: student.college_id,
               student_ids: [studentId],
               relation: parent.relation,
             });
