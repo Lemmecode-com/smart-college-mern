@@ -1037,10 +1037,9 @@ export default function AttendanceReport() {
                         </h3>
                         <p
                           style={{
-                            margin: 0,
+                            margin: "0 auto",
                             color: "#64748b",
                             maxWidth: "600px",
-                            margin: "0 auto",
                           }}
                         >
                           No attendance data found for the selected filters.
