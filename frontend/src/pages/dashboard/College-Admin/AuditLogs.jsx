@@ -885,11 +885,10 @@ export default function AuditLogs() {
             </h3>
             <p
               style={{
-                margin: 0,
+                margin: "0 auto",
                 fontSize: "0.9375rem",
                 color: THEME.text.muted,
                 maxWidth: "400px",
-                margin: "0 auto",
               }}
             >
               Admin actions will appear here as you manage student data, fee
