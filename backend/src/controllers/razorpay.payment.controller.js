@@ -466,9 +466,25 @@ exports.createRazorpayOrder = async (req, res, next) => {
     if (!installment.amount || installment.amount <= 0) {
       logger.logError("❌ [createRazorpayOrder] Invalid installment amount", {
         amount: installment.amount,
+        typeofAmount: typeof installment.amount,
       });
       throw new AppError("Invalid payment amount", 400, "INVALID_AMOUNT");
     }
+
+    const amountInPaise = installment.amount * 100;
+
+    // TEMP DIAGNOSTIC: Log complete order creation context before calling Razorpay API.
+    // Remove after identifying BAD_REQUEST_ERROR reason.
+    logger.logInfo("🔵 [createRazorpayOrder] Pre-flight diagnostics", {
+      amount: installment.amount,
+      typeofAmount: typeof installment.amount,
+      amountInPaise,
+      keyId,
+      keyIdPrefix: keyId ? keyId.slice(0, 8) : undefined,
+      isTestKey: keyId ? keyId.startsWith("rzp_test_") : undefined,
+      isLiveKey: keyId ? keyId.startsWith("rzp_live_") : undefined,
+      collegeId: collegeId.toString(),
+    });
 
     let order;
     try {
@@ -1025,11 +1041,28 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
 exports.handleRazorpayPaymentFailure = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { razorpay_order_id, error_code, error_description } = req.body;
+    const {
+      razorpay_order_id,
+      error_code,
+      error_description,
+      error_reason,
+      error_source,
+      error_step,
+      error_field,
+      error_metadata,
+    } = req.body;
 
-    logger.logInfo("🔴 [Razorpay Payment] Payment failure", {
+    // TEMP DIAGNOSTIC: Log complete Razorpay error payload received from frontend
+    logger.logInfo("🔴 [Razorpay Payment] Payment failure (diagnostic)", {
       orderId: razorpay_order_id,
       errorCode: error_code,
+      errorDescription: error_description,
+      errorReason: error_reason,
+      errorSource: error_source,
+      errorStep: error_step,
+      errorField: error_field,
+      errorMetadata: error_metadata,
+      rawBody: req.body,
     });
 
     // Find student
@@ -1061,7 +1094,16 @@ exports.handleRazorpayPaymentFailure = async (req, res, next) => {
 
     // Update installment with failure information
     installment.status = "PENDING"; // Keep as PENDING so student can retry
-    installment.paymentFailureReason = `${error_code}: ${error_description}`;
+    installment.paymentFailureReason = [
+      error_code,
+      error_description,
+      error_reason,
+      error_source,
+      error_step,
+      error_field,
+    ]
+      .filter(Boolean)
+      .join(" | ");
     installment.paymentAttemptAt = new Date();
 
     await studentFee.save();
