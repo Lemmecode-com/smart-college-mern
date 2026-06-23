@@ -12,6 +12,7 @@ const {
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
+const { randomUUID } = require("crypto");
 
 /**
  * Create Stripe checkout session using college-specific Stripe configuration
@@ -158,10 +159,9 @@ exports.createCheckoutSession = async (req, res, next) => {
     }
 
     // 🔒 IDEMPOTENCY: Generate unique key to prevent duplicate sessions
-    // Format: stripe_checkout_{studentId}_{installmentId}_{hourTimestamp}
-    // Hour-based timestamp ensures new session each hour while preventing duplicates within same hour
-    const hourTimestamp = Math.floor(Date.now() / (60 * 60 * 1000));
-    const idempotencyKey = `stripe_checkout_${student._id}_${installment._id}_${hourTimestamp}`;
+    // Format: stripe_checkout_{studentId}_{installmentId}_{uniqueId}
+    // Using UUID ensures unique idempotency key for every checkout session creation
+    const idempotencyKey = `stripe_checkout_${student._id}_${installment._id}_${randomUUID()}`;
 
     logger.logInfo("🔒 Generated idempotency key for Stripe session", {
       studentId: student._id,
