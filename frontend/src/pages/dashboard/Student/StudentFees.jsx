@@ -216,6 +216,15 @@ export default function StudentFees() {
         ? 100
         : 0;
 
+  // Check if installment can be paid (previous installments must be paid first)
+  const canPayInstallment = (installment) => {
+    const order = installment.order || 0;
+    if (order <= 1) return true;
+    return !dashboard.installments.some(
+      (i) => i.order < order && i.status !== "PAID",
+    );
+  };
+
   // Copy to clipboard handler
   const copyToClipboard = async (text, id) => {
     try {
@@ -263,12 +272,24 @@ export default function StudentFees() {
       return;
     }
 
+    // Check if previous installments are paid
+    if (!canPayInstallment(installment)) {
+      toast.error(
+        "Cannot pay this installment. Please pay previous installments first.",
+        {
+          toastId: "order-error",
+        },
+      );
+      return;
+    }
+
     navigate("/student/make-payment", {
       state: {
         installmentId: installment._id,
         installmentName: installment.name,
         amount: installment.amount,
         dueDate: installment.dueDate,
+        order: installment.order || 0,
       },
     });
   };
@@ -755,31 +776,40 @@ export default function StudentFees() {
                             <span className="not-paid">Not paid yet</span>
                           )}
                         </td>
-                        <td className="cell-action">
-                          {installment.status === "PAID" ? (
-                            <button
-                              className="btn-receipt"
-                              onClick={() =>
-                                navigate(
-                                  `/student/fee-receipt/${installment._id}`,
-                                )
-                              }
-                              aria-label={`View receipt for ${installment.name}`}
-                              title="View Receipt"
-                            >
-                              <FaReceipt aria-hidden="true" /> Receipt
-                            </button>
-                          ) : (
-                            <button
-                              className="btn-pay"
-                              onClick={() => handleRedirectPayment(installment)}
-                              aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
-                              title="Pay Now"
-                            >
-                              <FaCreditCard aria-hidden="true" /> Pay
-                            </button>
-                          )}
-                        </td>
+<td className="cell-action">
+                           {installment.status === "PAID" ? (
+                             <button
+                               className="btn-receipt"
+                               onClick={() =>
+                                 navigate(
+                                   `/student/fee-receipt/${installment._id}`,
+                                 )
+                               }
+                               aria-label={`View receipt for ${installment.name}`}
+                               title="View Receipt"
+                             >
+                               <FaReceipt aria-hidden="true" /> Receipt
+                             </button>
+                           ) : canPayInstallment(installment) ? (
+                             <button
+                               className="btn-pay"
+                               onClick={() => handleRedirectPayment(installment)}
+                               aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
+                               title="Pay Now"
+                             >
+                               <FaCreditCard aria-hidden="true" /> Pay
+                             </button>
+                           ) : (
+                             <button
+                               className="btn-pay"
+                               disabled
+                               aria-label={`Cannot pay ${installment.name} - previous installments pending`}
+                               title="Pay previous installments first"
+                             >
+                               <FaCreditCard aria-hidden="true" /> Pay
+                             </button>
+                           )}
+                         </td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,17 +1,17 @@
 /**
  * Create Exception Page
- * Standalone page for creating/editing timetable exceptions (holidays, cancellations, etc.)
+ * Standalone page for creating timetable exceptions (holidays, cancellations, etc.)
  */
 import { useContext, useEffect, useState } from "react";
 import {
   useNavigate,
   useSearchParams,
-  useLocation,
   Navigate,
 } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import SearchableSelect from "../../../../components/SearchableSelect";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -23,32 +23,30 @@ import {
   FaChevronDown,
   FaExclamationTriangle,
   FaArrowLeft,
+  FaDoorOpen,
+  FaUser,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
-
-/**
- * Format a Date as YYYY-MM-DD using LOCAL date parts
- */
-const toLocalDateStr = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
 
 // Exception type display names
 const EXCEPTION_TYPES = {
   HOLIDAY: "Holiday",
   CANCELLED: "Cancelled Class",
-  EXTRA: "Extra/Makup Class",
+  EXTRA: "Extra/Makeup Class",
   RESCHEDULED: "Rescheduled Class",
   ROOM_CHANGE: "Room Change",
   TEACHER_CHANGE: "Teacher Change",
+  SPECIAL_EVENT: "Special Event",
+  EXAM: "Exam Schedule",
 };
+
+const MotionDiv = motion.div;
+const MotionButton = motion.button;
 
 export default function CreateException() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const location = useLocation();
 
   const [timetables, setTimetables] = useState([]);
   const [selectedTimetable, setSelectedTimetable] = useState(null);
@@ -59,30 +57,24 @@ export default function CreateException() {
   // Get timetableId from URL params
   const timetableIdParam = searchParams.get("timetableId");
 
-  // Check if we're editing an existing exception
-  const editException = location.state?.editException;
-  const isEditing = !!editException;
-
   const [formData, setFormData] = useState({
-    exceptionDate: editException?.exceptionDate?.split("T")[0] || "",
-    type: editException?.type || "HOLIDAY",
-    reason: editException?.reason || "",
-    rescheduledTo: editException?.rescheduledTo?.split("T")[0] || "",
+    exceptionDate: "",
+    type: "HOLIDAY",
+    reason: "",
+    rescheduledTo: "",
+    newRoom: "",
+    substituteTeacher: "",
     extraSlot: {
-      startTime: editException?.extraSlot?.startTime || "",
-      endTime: editException?.extraSlot?.endTime || "",
-      subject_id: editException?.extraSlot?.subject_id || "",
-      teacher_id: editException?.extraSlot?.teacher_id || "",
-      room: editException?.extraSlot?.room || "",
+      startTime: "",
+      endTime: "",
+      subject_id: "",
+      teacher_id: "",
+      room: "",
     },
   });
 
-  // Security check
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
-
-  // Fetch timetables
-  useEffect(() => {
+// Fetch timetables
+   useEffect(() => {
     const fetchTimetables = async () => {
       try {
         const res = await api.get("/timetable");
@@ -110,6 +102,36 @@ export default function CreateException() {
 
     fetchTimetables();
   }, [timetableIdParam]);
+
+const fetchSubjectsForSearch = async (query) => {
+     if (!selectedTimetable) return [];
+     try {
+       const res = await api.get(`/subjects/course/${selectedTimetable.course_id}`, {
+         params: { search: query },
+       });
+       return (res.data || []).map((s) => ({
+         value: s._id,
+         label: `${s.code} - ${s.name}`,
+       }));
+     } catch (err) {
+       console.error("Failed to fetch subjects:", err);
+       return [];
+     }
+   };
+
+const fetchTeachersForSearch = async (query) => {
+     try {
+       const res = await api.get(`/hod/teachers`, {
+         params: { search: query },
+       });
+       return (res.data?.teachers || []).map((t) => ({
+         value: t._id,
+         label: `${t.name} (${t.employeeId})`,
+       }));
+     } catch {
+       return [];
+     }
+   };
 
   // Handle form submit
   const handleSubmit = async (e) => {
@@ -152,6 +174,16 @@ export default function CreateException() {
       return;
     }
 
+    if (formData.type === "ROOM_CHANGE" && !formData.newRoom?.trim()) {
+      toast.error("Please enter a new room");
+      return;
+    }
+
+    if (formData.type === "TEACHER_CHANGE" && !formData.substituteTeacher) {
+      toast.error("Please select a substitute teacher");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -171,26 +203,23 @@ export default function CreateException() {
         payload.extraSlot = formData.extraSlot;
       }
 
-      if (isEditing) {
-        // Update existing exception
-        await api.put(`/timetable/exceptions/${editException._id}`, payload);
-
-        toast.success("Exception updated successfully", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        // Create new exception
-        await api.post(
-          `/timetable/${selectedTimetable._id}/exceptions`,
-          payload,
-        );
-
-        toast.success("Exception created successfully", {
-          position: "top-right",
-          autoClose: 3000,
-        });
+      if (formData.type === "ROOM_CHANGE") {
+        payload.newRoom = formData.newRoom;
       }
+
+      if (formData.type === "TEACHER_CHANGE") {
+        payload.substituteTeacher = formData.substituteTeacher;
+      }
+
+      await api.post(
+        `/timetable/${selectedTimetable._id}/exceptions`,
+        payload,
+      );
+
+      toast.success("Exception request submitted for approval", {
+        position: "top-right",
+        autoClose: 3000,
+      });
 
       // Navigate back to exception management
       setTimeout(() => {
@@ -201,7 +230,7 @@ export default function CreateException() {
     } catch (err) {
       const errorMsg =
         err.response?.data?.message ||
-        `Failed to ${isEditing ? "update" : "create"} exception`;
+        "Failed to submit exception request";
       setError(errorMsg);
       toast.error(errorMsg, {
         position: "top-right",
@@ -237,6 +266,9 @@ export default function CreateException() {
     }));
   };
 
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
+
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading..." color="primary" />;
   }
@@ -252,7 +284,7 @@ export default function CreateException() {
       <ToastContainer position="top-right" theme="colored" />
 
       {/* Header */}
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
@@ -278,7 +310,7 @@ export default function CreateException() {
         <div className="p-4 text-white position-relative">
           <div className="d-flex align-items-center justify-content-between">
             <div className="d-flex align-items-center gap-3">
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleCancel}
@@ -296,8 +328,8 @@ export default function CreateException() {
                 title="Go Back"
               >
                 <FaArrowLeft />
-              </motion.button>
-              <motion.div
+              </MotionButton>
+              <MotionDiv
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{
                   duration: 2.5,
@@ -316,21 +348,19 @@ export default function CreateException() {
                 }}
               >
                 <FaCalendarAlt />
-              </motion.div>
+              </MotionDiv>
               <div>
                 <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
-                  {isEditing ? "Edit Exception" : "Create Exception"}
+                  Create Exception
                 </h3>
                 <p className="mb-0 opacity-75" style={{ fontSize: "0.875rem" }}>
-                  {isEditing
-                    ? "Update the exception details"
-                    : "Add a holiday, cancellation, or special event"}
+                  Add a holiday, cancellation, or special event
                 </p>
               </div>
             </div>
 
             {/* Bulk Upload Button */}
-            <motion.button
+            <MotionButton
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() =>
@@ -351,16 +381,16 @@ export default function CreateException() {
             >
               <FaUpload />
               <span>Bulk Upload</span>
-            </motion.button>
+            </MotionButton>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
 
       {/* Form */}
       <div className="p-4">
         <div className="row justify-content-center">
           <div className="col-lg-8 col-xl-7">
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -374,7 +404,7 @@ export default function CreateException() {
             >
               <div className="card-body p-4">
                 {error && (
-                  <motion.div
+                  <MotionDiv
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="alert alert-danger d-flex align-items-center mb-3 border-0"
@@ -388,7 +418,7 @@ export default function CreateException() {
                   >
                     <FaInfoCircle className="me-2" />
                     {error}
-                  </motion.div>
+                  </MotionDiv>
                 )}
 
                 <form onSubmit={handleSubmit}>
@@ -408,7 +438,6 @@ export default function CreateException() {
                           setSelectedTimetable(tt);
                         }}
                         required
-                        disabled={isEditing}
                         style={{
                           background: "#f8fafc",
                           borderRadius: "12px",
@@ -418,7 +447,7 @@ export default function CreateException() {
                           appearance: "none",
                           WebkitAppearance: "none",
                           MozAppearance: "none",
-                          cursor: isEditing ? "not-allowed" : "pointer",
+                          cursor: "pointer",
                         }}
                       >
                         <option value="">Select a timetable...</option>
@@ -435,15 +464,6 @@ export default function CreateException() {
                         <FaChevronDown size={12} />
                       </div>
                     </div>
-                    {isEditing && (
-                      <small
-                        className="text-muted mt-2 d-block"
-                        style={{ fontSize: "0.8rem" }}
-                      >
-                        <FaInfoCircle className="me-1" />
-                        Timetable cannot be changed for existing exceptions
-                      </small>
-                    )}
                   </div>
 
                   {/* Exception Type */}
@@ -534,9 +554,9 @@ export default function CreateException() {
                     />
                   </div>
 
-                  {/* RESCHEDULED: Rescheduled Date */}
+{/* RESCHEDULED: Rescheduled Date */}
                   {formData.type === "RESCHEDULED" && (
-                    <motion.div
+                    <MotionDiv
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       className="mb-4"
@@ -560,12 +580,69 @@ export default function CreateException() {
                           cursor: "pointer",
                         }}
                       />
-                    </motion.div>
+                    </MotionDiv>
+                  )}
+
+                  {/* ROOM_CHANGE: New Room Field */}
+                  {formData.type === "ROOM_CHANGE" && (
+                    <MotionDiv
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mb-4"
+                    >
+                      <label className="form-label fw-bold text-dark mb-2">
+                        <FaDoorOpen className="me-2" />
+                        New Room <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control border-0"
+                        name="newRoom"
+                        value={formData.newRoom}
+                        onChange={handleChange}
+                        placeholder="Enter new room number"
+                        required
+                        style={{
+                          background: "#f8fafc",
+                          borderRadius: "12px",
+                          padding: "0.85rem 1rem",
+                          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      />
+                    </MotionDiv>
+                  )}
+
+                  {/* TEACHER_CHANGE: Substitute Teacher Dropdown */}
+                  {formData.type === "TEACHER_CHANGE" && (
+                    <MotionDiv
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mb-4"
+                    >
+                      <label className="form-label fw-bold text-dark mb-2">
+                        <FaUser className="me-2" />
+                        Substitute Teacher <span className="text-danger">*</span>
+                      </label>
+                      <SearchableSelect
+                        value={formData.substituteTeacher}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            substituteTeacher: e.target.value,
+                          }))
+                        }
+                        fetchOptions={fetchTeachersForSearch}
+                        placeholder="Search teacher by name..."
+                        aria-label="Select substitute teacher"
+                        style={{ minHeight: "44px" }}
+                      />
+                    </MotionDiv>
                   )}
 
                   {/* EXTRA: Extra Slot Details */}
                   {formData.type === "EXTRA" && (
-                    <motion.div
+                    <MotionDiv
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       className="mb-4 p-4 rounded"
@@ -583,113 +660,99 @@ export default function CreateException() {
                         Extra Slot Details
                       </h6>
 
-                      <div className="row g-3">
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Start Time <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="time"
-                            className="form-control border-0"
-                            name="startTime"
-                            value={formData.extraSlot.startTime}
-                            onChange={handleExtraSlotChange}
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                              cursor: "pointer",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            End Time <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="time"
-                            className="form-control border-0"
-                            name="endTime"
-                            value={formData.extraSlot.endTime}
-                            onChange={handleExtraSlotChange}
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                              cursor: "pointer",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Subject <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="subject_id"
-                            value={formData.extraSlot.subject_id}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Subject ID"
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Teacher <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="teacher_id"
-                            value={formData.extraSlot.teacher_id}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Teacher ID"
-                            required
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                        <div className="col-12">
-                          <label className="form-label fw-medium text-dark mb-2">
-                            Room (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control border-0"
-                            name="room"
-                            value={formData.extraSlot.room}
-                            onChange={handleExtraSlotChange}
-                            placeholder="Room number (optional)"
-                            style={{
-                              background: "white",
-                              borderRadius: "10px",
-                              padding: "0.75rem 0.85rem",
-                              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
-                              border: "1px solid #e2e8f0",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
+<div className="row g-3">
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Start Time <span className="text-danger">*</span>
+                           </label>
+                           <input
+                             type="time"
+                             className="form-control border-0"
+                             name="startTime"
+                             value={formData.extraSlot.startTime}
+                             onChange={handleExtraSlotChange}
+                             required
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                               cursor: "pointer",
+                             }}
+                           />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             End Time <span className="text-danger">*</span>
+                           </label>
+                           <input
+                             type="time"
+                             className="form-control border-0"
+                             name="endTime"
+                             value={formData.extraSlot.endTime}
+                             onChange={handleExtraSlotChange}
+                             required
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                               cursor: "pointer",
+                             }}
+                           />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Subject <span className="text-danger">*</span>
+                           </label>
+<SearchableSelect
+                         value={formData.extraSlot.subject_id}
+                         onChange={handleExtraSlotChange}
+                         fetchOptions={fetchSubjectsForSearch}
+                         placeholder="Search subject..."
+                         aria-label="Select subject"
+                         name="subject_id"
+                         style={{ minHeight: "44px" }}
+                       />
+                         </div>
+                         <div className="col-md-6">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Teacher <span className="text-danger">*</span>
+                           </label>
+<SearchableSelect
+                              value={formData.extraSlot.teacher_id}
+                              onChange={handleExtraSlotChange}
+                              fetchOptions={fetchTeachersForSearch}
+                              placeholder="Search teacher..."
+                              aria-label="Select teacher"
+                              name="teacher_id"
+                              style={{ minHeight: "44px" }}
+                            />
+                         </div>
+                         <div className="col-12">
+                           <label className="form-label fw-medium text-dark mb-2">
+                             Room (Optional)
+                           </label>
+                           <input
+                             type="text"
+                             className="form-control border-0"
+                             name="room"
+                             value={formData.extraSlot.room}
+                             onChange={handleExtraSlotChange}
+                             placeholder="Room number (optional)"
+                             style={{
+                               background: "white",
+                               borderRadius: "10px",
+                               padding: "0.75rem 0.85rem",
+                               boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
+                               border: "1px solid #e2e8f0",
+                             }}
+                           />
+                         </div>
+                       </div>
+                    </MotionDiv>
                   )}
 
                   {/* Action Buttons */}
@@ -697,7 +760,7 @@ export default function CreateException() {
                     className="d-flex gap-2 justify-content-end mt-5 pt-3"
                     style={{ borderTop: "1px solid #e2e8f0" }}
                   >
-                    <motion.button
+                    <MotionButton
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="button"
@@ -712,8 +775,8 @@ export default function CreateException() {
                       }}
                     >
                       <FaTimes className="me-1" /> Cancel
-                    </motion.button>
-                    <motion.button
+                    </MotionButton>
+                    <MotionButton
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
@@ -728,18 +791,12 @@ export default function CreateException() {
                       }}
                     >
                       <FaSave className="me-1" />
-                      {submitting
-                        ? isEditing
-                          ? "Updating..."
-                          : "Creating..."
-                        : isEditing
-                          ? "Update Exception"
-                          : "Create Exception"}
-                    </motion.button>
+                      {submitting ? "Submitting..." : "Submit Exception Request"}
+                    </MotionButton>
                   </div>
                 </form>
               </div>
-            </motion.div>
+            </MotionDiv>
           </div>
         </div>
       </div>

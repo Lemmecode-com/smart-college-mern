@@ -245,7 +245,7 @@ exports.teacherDashboard = async (req, res, next) => {
     const teacher = await Teacher.findOne({
       user_id: userId,
       college_id: collegeId,
-    }).select("name email employeeId");
+    }).select("name email employeeId designation department_id");
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -286,6 +286,17 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
+    // Check if teacher is HOD of their department
+    let isHod = false;
+    if (teacher.department_id) {
+      const department = await Department.findOne({
+        _id: teacher.department_id,
+        hod_id: teacher._id,
+        college_id: collegeId,
+      });
+      isHod = !!department;
+    }
+
     ApiResponse.success(
       res,
       {
@@ -293,6 +304,8 @@ exports.teacherDashboard = async (req, res, next) => {
           name: teacher.name,
           email: teacher.email,
           employeeId: teacher.employeeId,
+          designation: teacher.designation,
+          isHod,
         },
         stats: {
           totalLecturesTaken,
@@ -330,7 +343,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     const collegeId = req.college_id;
 
     const college = await College.findById(collegeId).select(
-      "name code email establishedYear logo",
+      "name code email establishedYear logo registrationUrl",
     );
 
     if (!college) {
@@ -377,6 +390,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           email: college.email,
           establishedYear: college.establishedYear,
           logo: college.logo,
+          registrationUrl: college.registrationUrl,
         },
 
         stats: {
@@ -419,6 +433,69 @@ exports.superAdminDashboard = async (req, res, next) => {
         colleges,
       },
       "Super admin dashboard data fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 🏫 PRINCIPAL DASHBOARD (read-only)
+ */
+exports.principalDashboard = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    if (!collegeId) {
+      throw new AppError("College ID missing", 403, "COLLEGE_ID_MISSING");
+    }
+
+    const college = await College.findById(collegeId).select("name code email establishedYear logo");
+
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    const [
+      totalStudents,
+      totalTeachers,
+      totalDepartments,
+      totalCourses,
+      pendingAdmissions,
+    ] = await Promise.all([
+      Student.countDocuments({ college_id: collegeId }),
+      Teacher.countDocuments({ college_id: collegeId }),
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+    ]);
+
+    const recentStudents = await Student.find({ college_id: collegeId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("fullName email enrollmentNumber status");
+
+    ApiResponse.success(
+      res,
+      {
+        college: {
+          id: college._id,
+          name: college.name,
+          code: college.code,
+          email: college.email,
+          establishedYear: college.establishedYear,
+          logo: college.logo,
+        },
+        stats: {
+          totalStudents,
+          totalTeachers,
+          totalDepartments,
+          totalCourses,
+          pendingAdmissions,
+        },
+        recentStudents,
+      },
+      "Principal dashboard data fetched successfully",
     );
   } catch (error) {
     next(error);

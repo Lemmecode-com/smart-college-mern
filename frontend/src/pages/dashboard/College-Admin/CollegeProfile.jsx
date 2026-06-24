@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaUniversity,
@@ -138,6 +139,7 @@ const spinVariants = {
 export default function CollegeProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [college, setCollege] = useState(null);
   const [stats, setStats] = useState({
@@ -156,7 +158,7 @@ export default function CollegeProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH PROFILE ================= */
   const fetchCollegeProfile = async () => {
@@ -415,32 +417,33 @@ export default function CollegeProfile() {
                 </div>
               </div>
             </div>
-
-            <motion.button
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 8px 20px rgba(26, 75, 109, 0.3)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/college/edit-profile")}
-              style={{
-                backgroundColor: BRAND_COLORS.primary.main,
-                color: "white",
-                border: "none",
-                padding: "0.875rem 1.75rem",
-                borderRadius: "0.75rem",
-                fontSize: "1rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                boxShadow: "0 4px 15px rgba(26, 75, 109, 0.3)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              <FaEdit /> Edit Profile
-            </motion.button>
+            {canEdit('college') && (
+              <motion.button
+                whileHover={{
+                  scale: 1.05,
+                  boxShadow: "0 8px 20px rgba(26, 75, 109, 0.3)",
+                }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/college/edit-profile")}
+                style={{
+                  backgroundColor: BRAND_COLORS.primary.main,
+                  color: "white",
+                  border: "none",
+                  padding: "0.875rem 1.75rem",
+                  borderRadius: "0.75rem",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  boxShadow: "0 4px 15px rgba(26, 75, 109, 0.3)",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <FaEdit /> Edit Profile
+              </motion.button>
+            )}
           </motion.div>
 
           {/* ================= MAIN CONTENT GRID ================= */}

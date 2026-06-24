@@ -1,9 +1,11 @@
 const User = require("../models/user.model");
 const Teacher = require("../models/teacher.model");
 const Student = require("../models/student.model");
+const College = require("../models/college.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const emailService = require("../services/email.service");
 
 /**
  * Deactivate a user (COLLEGE_ADMIN only)
@@ -51,6 +53,17 @@ exports.deactivateUser = async (req, res, next) => {
     user.isActive = false;
     await user.save();
 
+    // Revoke all refresh tokens so deactivated user cannot obtain new access tokens
+    try {
+      const RefreshToken = require("../models/refreshToken.model");
+      await RefreshToken.updateMany(
+        { user_id: user._id, isRevoked: false },
+        { $set: { isRevoked: true } }
+      );
+    } catch (tokenErr) {
+      console.error("Failed to revoke refresh tokens during deactivation:", tokenErr.message);
+    }
+
     // If the user is a TEACHER, also update the Teacher model
     let teacherData = null;
     if (user.role === "TEACHER") {
@@ -86,6 +99,24 @@ exports.deactivateUser = async (req, res, next) => {
       })
       .catch((err) => console.error("Audit log failed:", err));
 
+    // Send email notification for student deactivation (non-blocking)
+    if (user.role === "STUDENT" && studentData) {
+      let collegeName = "Your College";
+      try {
+        const college = await College.findById(req.college_id).select("name").lean();
+        if (college?.name) collegeName = college.name;
+      } catch (collegeErr) {
+        console.error("Failed to fetch college for deactivation email:", collegeErr.message);
+      }
+      emailService.sendAccountStatusEmail({
+        to: user.email,
+        studentName: studentData.fullName,
+        collegeName,
+        status: "DEACTIVATED",
+        collegeId: req.college_id,
+      }).catch((err) => console.error("Deactivation email failed:", err.message));
+    }
+
     ApiResponse.success(
       res,
       {
@@ -111,6 +142,14 @@ exports.deactivateUser = async (req, res, next) => {
 exports.reactivateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (id === req.user.id) {
+      throw new AppError(
+        "You cannot reactivate your own account",
+        403,
+        "CANNOT_REACTIVATE_SELF",
+      );
+    }
 
     // Find the user
     const user = await User.findOne({
@@ -165,6 +204,24 @@ exports.reactivateUser = async (req, res, next) => {
         name: studentData?.fullName || teacherData?.name || user.email,
       })
       .catch((err) => console.error("Audit log failed:", err));
+
+    // Send email notification for student reactivation (non-blocking)
+    if (user.role === "STUDENT" && studentData) {
+      let collegeName = "Your College";
+      try {
+        const college = await College.findById(req.college_id).select("name").lean();
+        if (college?.name) collegeName = college.name;
+      } catch (collegeErr) {
+        console.error("Failed to fetch college for reactivation email:", collegeErr.message);
+      }
+      emailService.sendAccountStatusEmail({
+        to: user.email,
+        studentName: studentData.fullName,
+        collegeName,
+        status: "REACTIVATED",
+        collegeId: req.college_id,
+      }).catch((err) => console.error("Reactivation email failed:", err.message));
+    }
 
     ApiResponse.success(
       res,

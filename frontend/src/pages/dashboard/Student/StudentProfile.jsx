@@ -1885,19 +1885,13 @@ function DocumentCard({
     }
   };
 
-  // Get base URL from environment variable
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
-
-  // Construct SECURE document URL via API endpoint (authorization enforced)
-  // Returns: "http://localhost:5000/api/students/documents/filename.pdf"
+  // Construct SECURE document URL using axios-configured baseURL
+  // No duplication of VITE_API_BASE_URL
   const documentUrl = filePath
     ? (() => {
-        const fileName = filePath.split("/").pop(); // Extract just the filename
-        return `${baseUrl}/students/documents/${fileName}`;
-      })()
+      const fileName = filePath.split(/[\\/]/).pop();
+      return `${api.defaults.baseURL}/students/documents/${fileName}`;
+    })()
     : null;
 
   // Check if file actually exists (not null, not undefined, not empty string)

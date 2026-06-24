@@ -1,139 +1,261 @@
-=============== Smart College MERN - Complete Dependencies ==================
-# Based on actual package.json files (Version 2.1.0)
-# Last Updated: April 14, 2026
+============== Smart College MERN - Deployment Requirements ==============
+Project version: 2.1.0
+Last updated: June 20, 2026
+Source files analyzed:
+- frontend/package.json
+- frontend/package-lock.json
+- backend/package.json
+- backend/package-lock.json
 
-=============== Frontend Dependencies ==================
-# Core React (v19)
-npm install react@^19.2.3
-npm install react-dom@^19.1.0
-npm install react-router-dom@^7.13.0
-npm install react-icons@^5.5.0
-npm install prop-types@^15.8.1
+============== Runtime Requirements ==============
+Node.js: >=20.19.0
+Recommended Node.js: 20.19.x LTS or 22.12.x+
+npm: 10+
+Package manager: npm
+Important: Use package-lock.json as the source of truth for deployments.
 
-# UI Frameworks & Styling
-npm install bootstrap@^5.3.8
-npm install react-bootstrap@^2.10.10
-npm install animate.css@^4.1.1
+Why Node.js >=20.19.0 is required:
+- Frontend Vite 7 requires Node.js ^20.19.0 || >=22.12.0.
+- Backend Mongoose 9 requires Node.js >=20.19.0.
+- Backend Express 5 requires Node.js >=18, but Mongoose 9 is the stricter requirement.
 
-# Animation
-npm install framer-motion@^12.34.0
-npm install motion@^12.34.0
-npm install swiper@^11.2.0
+MongoDB:
+- MongoDB Atlas is recommended.
+- Use a MongoDB server version compatible with Mongoose 9 / MongoDB Node.js driver 7.
 
-# HTTP & API
-npm install axios@^1.13.4
+============== Deployment Command Standard ==============
+Do not use npm install for repeatable deployments when package-lock.json exists.
+Use npm ci so the locked dependency tree is installed exactly.
 
-# Charts & Visualization
-npm install recharts@^3.7.0
-
-# PDF Generation
-npm install jspdf@^4.2.0
-npm install jspdf-autotable@^5.0.7
-npm install html2canvas@^1.4.1
-
-# Excel & File Handling
-npm install exceljs@^4.4.0
-npm install file-saver@^2.0.5
-npm install jszip@^3.10.1
-
-# Authentication
-npm install jwt-decode@^4.0.0
-
-# Utilities
-npm install moment@^2.30.1
-npm install uuid@^13.0.0
-npm install dom@^0.0.3
-npm install router@^2.2.0
-
-# Notifications
-npm install react-toastify@^11.0.5
-
-# Development Dependencies
-npm install -D vite@^7.0.0
-npm install -D @vitejs/plugin-react@^4.5.2
-npm install -D eslint@^9.39.4
-npm install -D eslint-plugin-react-hooks@^5.2.0
-npm install -D eslint-plugin-react-refresh@^0.4.20
-npm install -D @eslint/js@^9.29.0
-npm install -D globals@^16.2.0
-npm install -D @types/react@^19.1.8
-npm install -D @types/react-dom@^19.1.6
-
-
-=============== Backend Dependencies ==================
-# Core Framework
-npm install express@^5.2.1
-npm install mongoose@^9.1.3
-
-# Environment & Security
-npm install dotenv@^17.2.3
-npm install bcryptjs@^3.0.3
-npm install jsonwebtoken@^9.0.3
-npm install helmet@^8.1.0
-npm install cookie-parser@^1.4.7
-
-# Middleware & Validation
-npm install cors@^2.8.5
-npm install express-validator@^7.3.1
-npm install express-rate-limit@^8.2.1
-npm install morgan@^1.10.1
-
-# File Upload
-npm install multer@^2.0.2
-
-# Payment Integration
-npm install razorpay@^2.9.6
-npm install stripe@^20.3.0
-
-# Email & Communication
-npm install nodemailer@^7.0.13
-
-# QR Code Generation
-npm install qrcode@^1.5.4
-
-# PDF Generation
-npm install pdfkit@^0.18.0
-
-# Scheduling
-npm install node-cron@^4.2.1
-
-# Logging
-npm install winston@^3.19.0
-
-# Development Dependencies
-npm install -D nodemon
-
-
-=============== Installation Commands ==================
-
-# Backend Installation
+Backend production install:
 cd backend
-npm install
+npm ci --omit=dev
+npm start
 
-# Frontend Installation
+Frontend production build:
 cd frontend
-npm install
+npm ci
+npm run build
 
+Frontend production output:
+frontend/dist
 
-=============== Verify Installation ==================
+Frontend hosting:
+- Deploy frontend/dist to a static hosting provider, CDN, or web server.
+- Vite dev server is only for development, not production.
+- Set frontend environment variables before running npm run build because Vite embeds them into the build.
 
-# Check backend dependencies
+============== Backend Dependencies ==============
+Exact resolved versions from backend/package-lock.json:
+
+Core backend:
+- express 5.2.1
+- mongoose 9.1.3
+- dotenv 17.2.3
+- cors 2.8.5
+- cookie-parser 1.4.7
+
+Security and authentication:
+- bcryptjs 3.0.3
+- jsonwebtoken 9.0.3
+- helmet 8.1.0
+- express-rate-limit 8.2.1
+- uuid 14.0.0
+
+Validation and middleware:
+- express-validator 7.3.1
+- morgan 1.10.1
+- multer 2.0.2
+
+Email, scheduling, logging:
+- nodemailer 7.0.13
+- node-cron 4.2.1
+- winston 3.19.0
+
+PDF, QR, payments:
+- pdfkit 0.18.0
+- qrcode 1.5.4
+- razorpay 2.9.6
+- stripe 20.3.0
+
+Backend dev dependency:
+- No devDependencies are declared in backend/package.json.
+- nodemon is not declared as a backend dependency and should not be listed as a deployment requirement.
+
+============== Frontend Dependencies ==============
+Exact resolved versions from frontend/package-lock.json:
+
+Core React:
+- react 19.2.3
+- react-dom 19.2.3
+- react-router-dom 7.13.0
+- react-icons 5.5.0
+- prop-types 15.8.1
+
+UI and styling:
+- bootstrap 5.3.8
+- react-bootstrap 2.10.10
+- animate.css 4.1.1
+
+Animation:
+- framer-motion 12.34.0
+- motion 12.34.0
+- swiper 11.2.0
+
+HTTP and API:
+- axios 1.13.4
+
+Charts and visualization:
+- recharts 3.7.0
+
+PDF, image, Excel, and file handling:
+- jspdf 4.2.0
+- jspdf-autotable 5.0.7
+- html2canvas 1.4.1
+- exceljs 4.4.0
+- file-saver 2.0.5
+- jszip 3.10.1
+
+Authentication and utilities:
+- jwt-decode 4.0.0
+- moment 2.30.1
+- date-fns 4.2.1
+- uuid 13.0.0
+- dom 0.0.3
+- router 2.2.0
+
+Notifications:
+- react-toastify 11.0.5
+
+Frontend build and lint dev dependencies:
+- vite 7.3.1
+- @vitejs/plugin-react 4.7.0
+- eslint 9.39.4
+- @eslint/js 9.39.4
+- eslint-plugin-react-hooks 5.2.0
+- eslint-plugin-react-refresh 0.4.26
+- globals 16.5.0
+- @types/react 19.2.7
+- @types/react-dom 19.2.3
+
+============== Required Backend Environment Variables ==============
+Set these in backend/.env for production. Never commit production .env files.
+
+Server:
+- PORT=5000
+- NODE_ENV=production
+
+Rate limiting:
+- RATE_LIMIT_WINDOW_MS
+- RATE_LIMIT_MAX_REQUESTS
+- GENERAL_RATE_LIMIT
+- AUTH_RATE_LIMIT
+- ENABLE_RATE_LIMIT
+
+Database:
+- MONGO_URI or MONGODB_URI
+- DB_NAME
+
+Authentication and secrets:
+- JWT_SECRET
+- JWT_EXPIRE
+- JWT_ACCESS_EXPIRY
+- JWT_REFRESH_EXPIRY
+- OPAQUE_ID_SECRET
+- ENCRYPTION_MASTER_KEY
+
+Admin seed:
+- SUPER_ADMIN_EMAIL
+- SUPER_ADMIN_PASSWORD
+
+Frontend and CORS:
+- FRONTEND_URL
+- CLIENT_URL
+- CORS_ORIGINS
+
+Email:
+- EMAIL_USER
+- EMAIL_PASS
+- EMAIL_HOST
+- EMAIL_PORT
+- EMAIL_FROM_NAME
+- EMAIL_FROM_ADDRESS
+- EMAIL_PROVIDER
+- SUPPORT_EMAIL
+
+Optional backend variables:
+- STRIPE_SECRET_KEY, only if using global Stripe fallback
+- RAZORPAY_KEY_ID, only if using global Razorpay fallback
+- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET, only if using S3 uploads
+- ENABLE_2FA
+- ENABLE_AUDIT_LOGS
+- ENABLE_MONITORING
+- MAINTENANCE_MODE
+- NEW_ADMISSION_FLOW
+
+============== Required Frontend Environment Variables ==============
+Set these in frontend/.env before running npm run build.
+
+Required:
+- VITE_API_BASE_URL
+- VITE_FRONTEND_URL
+
+Optional:
+- VITE_ENABLE_LOGGING
+
+============== Optional Backend Deployment Scripts ==============
+Run only when required by the deployment plan.
+
+Database/index setup:
 cd backend
+npm run add-indexes
+
+Migrations:
+cd backend
+npm run migrate
+npm run migrate:password-reset
+npm run migrate:timetable-dates
+npm run migrate:timetable-exception-unique-index
+
+Seeding:
+cd backend
+npm run seed
+npm run seed:minimal
+npm run seed:users
+
+Cleanup:
+cd backend
+npm run cleanup:orphans
+
+Do not run seed scripts on an existing production database unless the data reset/seed behavior is intended.
+
+============== Verification Checklist ==============
+Backend:
+cd backend
+npm ci --omit=dev
+npm list --depth=0
+npm start
+
+Frontend:
+cd frontend
+npm ci
+npm run build
 npm list --depth=0
 
-# Check frontend dependencies
+Optional security check:
+cd backend
+npm audit --omit=dev
+
 cd frontend
-npm list --depth=0
+npm audit
 
-
-=============== Notes ==================
-- All versions are based on the actual package.json files
-- Frontend uses Vite as build tool (not Create React App)
-- Backend uses CommonJS modules (type: "commonjs")
-- Frontend uses ES modules (type: "module")
-- React 19 is being used (latest version)
-- Express 5 is being used (latest version)
-- Mongoose 9 is being used (latest version)
-- Payment gateways (Stripe + Razorpay) fully integrated
-- Winston logger used for structured logging
-- Multi-tenant payment architecture implemented
+============== Deployment Notes ==============
+- package-lock.json must be committed for reproducible deployments.
+- Use npm ci instead of npm install in deployment pipelines.
+- Frontend environment variables are baked into the build output.
+- Backend .env values must exist on the production server/container.
+- Do not expose backend secrets in frontend environment variables.
+- Use HTTPS for production frontend and backend domains.
+- Configure CORS_ORIGINS with the production frontend domain before deployment.
+- Ensure MongoDB Atlas network access allows the backend deployment IP.
+- Backend production entrypoint is backend/server.js through npm start.

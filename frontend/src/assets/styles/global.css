@@ -454,8 +454,19 @@ button.btn-lg {
 }
 
 /* =====================================================
-   RESPONSIVE TABLES
-   ===================================================== */
+    NAV TABS - Custom styling for tab navigation
+    ===================================================== */
+.nav-tabs .nav-item button {
+  transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-item button:hover {
+  background: #f1f5f9 !important;
+}
+
+.nav-tabs .nav-item button:active {
+  outline: none;
+}
 .table-responsive {
   width: 100%;
   overflow-x: auto;

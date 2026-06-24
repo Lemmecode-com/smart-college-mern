@@ -906,7 +906,7 @@ export default function SessionDetails() {
                     <tbody>
                       {records.map((record, idx) => (
                         <RecordRow
-                          key={record._id || idx}
+                          key={record._id || record.student_id?._id || `record-${idx}`}
                           record={record}
                           delay={idx * 0.03}
                         />
@@ -1346,10 +1346,9 @@ function EmptyState({ icon, title, message }) {
       </h3>
       <p
         style={{
-          margin: 0,
+          margin: "0 auto",
           fontSize: "1.1rem",
           maxWidth: "600px",
-          margin: "0 auto",
           lineHeight: 1.6,
         }}
       >

@@ -199,11 +199,11 @@ exports.createAttendanceSession = async (req, res, next) => {
       slotType: slotWithDetails.slotType || "LECTURE",
     };
 
-    // Count students
+    // Count students (include APPROVED and ENROLLED for visibility)
     const totalStudents = await Student.countDocuments({
       college_id: collegeId,
       course_id: slot.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).session(session);
 
     // ✅ FIX: Edge Case 1 - Prevent session creation if no students enrolled
@@ -396,7 +396,7 @@ exports.getAttendanceSessionById = async (req, res) => {
 
     res.json(session);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -489,16 +489,16 @@ exports.getStudentsForAttendance = async (req, res) => {
       });
     }
 
-    // Fetch students
+    // Fetch students (include APPROVED and ENROLLED for visibility)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id fullName email");
 
-    res.status(200).json(students);
+res.status(200).json(students);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -831,11 +831,11 @@ exports.closeAttendanceSession = async (req, res) => {
       });
     }
 
-    // Fetch all students for the course
+    // Fetch all students for the course (include APPROVED and ENROLLED)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id");
 
     // Find present students
@@ -1275,9 +1275,11 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
 };
 
 /* =========================================================
-   GET TODAY'S SLOTS FOR TEACHER (FOR ATTENDANCE)
+   GET TODAY'S SLOTS FOR TEACHER/HOD (FOR ATTENDANCE)
    GET /attendance/today-slots
-   Purpose: Show slots for today where teacher can start attendance
+   Purpose: Show slots for today where teacher/HOD can start attendance
+   - TEACHER: Only their own slots
+   - HOD: All slots in their department
 ========================================================= */
 exports.getTodaySlotsForTeacher = async (req, res, next) => {
   try {
@@ -1294,20 +1296,36 @@ exports.getTodaySlotsForTeacher = async (req, res, next) => {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
 
+    // Check if user is HOD of their department
+    const isHod = await Department.findOne({
+      _id: teacher.department_id,
+      hod_id: teacher._id,
+    });
+
     // Get today's day name
     const today = new Date();
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
     console.log(`📅 Today: ${todayStr} (${todayDayName})`);
+    console.log(`📊 User role: ${req.user.role}, Is HOD: ${!!isHod}`);
 
-    // Find all PUBLISHED timetables for teacher's department
-    const slots = await TimetableSlot.find({
-      college_id: collegeId,
-      teacher_id: teacher._id,
-      day: todayDayName,
-    })
+    // Build query based on role
+    const slotQuery = isHod
+      ? {
+          college_id: collegeId,
+          department_id: teacher.department_id,
+          day: todayDayName,
+        }
+      : {
+          college_id: collegeId,
+          teacher_id: teacher._id,
+          day: todayDayName,
+        };
+
+    const slots = await TimetableSlot.find(slotQuery)
       .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
       .populate("timetable_id", "name status semester academicYear")
       .populate("course_id", "name")
       .sort({ startTime: 1 });
