@@ -343,9 +343,9 @@ exports.getTimetableById = async (req, res) => {
       "Timetable with valid dates retrieved successfully",
     );
   } catch (error) {
-    console.error("Get Timetable Error:", error);
-    res.status(500).json({ message: error.message });
-  }
+console.error("Get Timetable Error:", error);
+     res.status(500).json({ message: "Internal server error" });
+   }
 };
 
 /* =========================================================
@@ -913,9 +913,9 @@ exports.getStudentTimetable = async (req, res) => {
       "Student timetable fetched successfully",
     );
   } catch (error) {
-    console.error("Student timetable error:", error);
-    res.status(500).json({ message: error.message });
-  }
+console.error("Student timetable error:", error);
+     res.status(500).json({ message: "Internal server error" });
+   }
 };
 
 /* =========================================================
@@ -1302,16 +1302,14 @@ exports.getSchedule = async (req, res) => {
       // APPROVED: Fully enrolled student with active status
       // ENROLLED: Student who has confirmed their seat (post-offer acceptance)
       // PENDING/OFFER_MADE/REJECTED: Not yet fully enrolled - access denied
-      if (!["APPROVED", "ENROLLED"].includes(student.status)) {
-        // Debug logging for status validation
-        console.log(`[TIMETABLE_ACCESS] Blocked - Student: ${student._id}, Status: ${student.status}, Email: ${student.email}`);
-        return res.status(403).json({
-          message: "Access denied: Your student account is pending approval.",
-        });
-      }
+if (!["APPROVED", "ENROLLED"].includes(student.status)) {
+         console.log("[TIMETABLE_ACCESS] Blocked - invalid student status");
+         return res.status(403).json({
+           message: "Access denied: Your student account is pending approval.",
+         });
+       }
 
-      // Debug logging for successful validation
-      console.log(`[TIMETABLE_ACCESS] Allowed - Student: ${student._id}, Status: ${student.status}`);
+       console.log("[TIMETABLE_ACCESS] Allowed - valid student status");
 
       if (
         student.department_id.toString() !==

@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const {
@@ -236,7 +237,7 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
     }
 
     // Generate transaction ID for offline payment
-    const transactionId = `OFF-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const transactionId = `OFF-${Date.now()}-${crypto.randomBytes(6).toString("hex").toUpperCase()}`;
 
     // Update installment as PAID
     installment.status = "PAID";
