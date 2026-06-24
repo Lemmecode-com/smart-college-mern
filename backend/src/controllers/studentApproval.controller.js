@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
@@ -6,15 +7,19 @@ const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const {
   sendAdmissionApprovalEmail,
+  sendAdmissionOfferEmail,
   sendAdmissionRejectionEmail,
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
 const auditLogService = require("../services/auditLog.service");
+const parentCreationService = require("../services/parentCreation.service");
 
 exports.approveStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
+    let tempPassword = null;
+    let emailResult = { success: false };
 
     // 1️⃣ Find pending student
     const student = await Student.findOne({
@@ -32,36 +37,30 @@ exports.approveStudent = async (req, res, next) => {
     }
 
     // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
-    if (!student.user_id) {
-      console.log(
-        `⚠️  Student ${student.email} missing user_id. Creating User account...`,
-      );
+if (!student.user_id) {
+       console.log("Student missing user_id. Creating User account...");
 
-      // Check if User already exists with this email
-      const existingUser = await User.findOne({ email: student.email });
+       const existingUser = await User.findOne({ email: student.email });
 
-      if (existingUser) {
-        // Link existing User to student
-        student.user_id = existingUser._id;
-        await student.save();
-        console.log(`✅ Linked existing User ${existingUser._id} to student`);
-      } else {
-        // Create new User account
-        // Generate a temporary password (student will reset via forgot password)
-        const tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
+       if (existingUser) {
+         student.user_id = existingUser._id;
+         await student.save();
+         console.log("Linked existing User to student");
+       } else {
+         tempPassword = "TempPass" + crypto.randomBytes(6).toString("hex").slice(0, 8);
 
-        const newUser = await User.create({
-          name: student.fullName,
-          email: student.email,
-          password: tempPassword,
-          role: "STUDENT",
-          college_id: student.college_id,
-        });
+         const newUser = await User.create({
+           name: student.fullName,
+           email: student.email,
+           password: tempPassword,
+           role: "STUDENT",
+           college_id: student.college_id,
+         });
 
-        student.user_id = newUser._id;
-        await student.save();
-        console.log(`✅ Created new User ${newUser._id} for student`);
-      }
+         student.user_id = newUser._id;
+         await student.save();
+         console.log("Created new User for student");
+       }
     }
 
     // 2️⃣ Validate course
@@ -98,7 +97,7 @@ exports.approveStudent = async (req, res, next) => {
     const approvedCount = await Student.countDocuments({
       course_id: student.course_id,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
     });
 
     if (approvedCount >= course.maxStudents) {
@@ -122,11 +121,16 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
-    // 5️⃣ Find fee structure (correct)
+    // 5️⃣ Find fee structure (with OTHER category fallback to GEN)
+    let feeCategory = student.category;
+    if (feeCategory === "OTHER") {
+      feeCategory = "GEN"; // Map OTHER to General category for fee lookup
+    }
+
     const feeStructure = await FeeStructure.findOne({
       college_id: student.college_id,
       course_id: student.course_id,
-      category: student.category,
+      category: feeCategory,
     });
 
     if (!feeStructure) {
@@ -154,48 +158,63 @@ exports.approveStudent = async (req, res, next) => {
       installments,
     });
 
-    // 7️⃣ Approve student (AFTER fee allocation)
-    student.status = "APPROVED";
-    student.approvedBy = req.user.id;
-    student.approvedAt = new Date();
+// 6️⃣ Generate enrollment number
+    const collegeData = await College.findById(student.college_id).select("code");
+    const courseData = await Course.findById(student.course_id).select("code");
+    const existingCount = await Student.countDocuments({
+      course_id: student.course_id,
+      admissionYear: student.admissionYear,
+      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "SEAT_CONFIRMED", "OFFER_MADE"] },
+    });
+    const sequence = String(existingCount + 1).padStart(4, "0");
+    student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
+
+    // 7️⃣ Approve student (set to OFFER_MADE status initially)
+    student.status = "OFFER_MADE";
+    student.offerMadeBy = req.user.id;
+    student.offerMadeAt = new Date();
+    student.approvedAt = undefined;
     await student.save();
 
-    // 📝 Audit log - Student approval
+
+    // 📝 Audit log - Offer made
     auditLogService
-      .logStudentApproval(student, req.user, req)
+      .logStudentOfferMade(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 📧 Send admission approval email (non-blocking)
-    (async () => {
-      try {
-        const college = await College.findById(student.college_id).select(
-          "name email",
-        );
-        const course = await Course.findById(student.course_id).select("name");
-        // Build dynamic login URL using utility function
-        const loginUrl = buildFrontendUrl("/login");
+    // 📧 Send offer email to student and report delivery status
+    try {
+      const college = await College.findById(student.college_id).select(
+        "name email",
+      );
+      const crs = await Course.findById(student.course_id).select("name");
+      const loginUrl = buildFrontendUrl("/login");
 
-        await sendAdmissionApprovalEmail({
-          to: student.email,
-          studentName: student.fullName,
-          courseName: course?.name || "N/A",
-          collegeName: college?.name || "Our College",
-          admissionYear: student.admissionYear,
-          enrollmentNumber: student.enrollmentNumber,
-          loginUrl: loginUrl,
-          email: student.email,
-        });
-        console.log(`✅ Admission approval email sent to ${student.email}`);
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send admission approval email:",
-          emailError.message,
-        );
-      }
-    })();
+      emailResult = await sendAdmissionOfferEmail({
+        to: student.email,
+        studentName: student.fullName,
+        courseName: crs?.name || "N/A",
+        collegeName: college?.name || "Our College",
+        admissionYear: student.admissionYear,
+        enrollmentNumber: student.enrollmentNumber,
+        loginUrl,
+        email: student.email,
+        collegeId: student.college_id,
+});
+      console.log("Admission offer email sent");
+     } catch (e) {
+       console.error("Admission offer email failed");
+     }
+
+    const message = emailResult.success
+      ? "Admission offer made successfully"
+      : "Admission offer made. Email delivery failed - please share credentials manually.";
 
     res.json({
-      message: "Student approved and fee allocated successfully",
+      message,
+      emailDelivered: emailResult.success,
+      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
+      temporaryPassword: tempPassword,
 
       student: {
         id: student._id,
@@ -206,7 +225,8 @@ exports.approveStudent = async (req, res, next) => {
         status: student.status,
         course: student.course_id,
         department: student.department_id,
-        approvedAt: student.approvedAt,
+        enrollmentNumber: student.enrollmentNumber,
+        offerMadeAt: student.offerMadeAt,
       },
 
       fee: {
@@ -264,9 +284,9 @@ exports.bulkApproveStudents = async (req, res, next) => {
           if (existingUser) {
             student.user_id = existingUser._id;
             await student.save();
-          } else {
-            const tempPassword =
-              "TempPass" + Math.random().toString(36).slice(-8);
+} else {
+             const tempPassword =
+               "TempPass" + crypto.randomBytes(6).toString("hex").slice(0, 8);
             const newUser = await User.create({
               name: student.fullName,
               email: student.email,
@@ -316,7 +336,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const approvedCount = await Student.countDocuments({
           course_id: student.course_id,
           college_id: req.college_id,
-          status: "APPROVED",
+          status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
         });
 
         if (approvedCount >= course.maxStudents) {
@@ -340,13 +360,18 @@ exports.bulkApproveStudents = async (req, res, next) => {
             reason: "Fee record already exists",
           });
           continue;
+}
+
+        // ── 6. Find fee structure (with OTHER category fallback to GEN) ──
+        let feeCategory = student.category;
+        if (feeCategory === "OTHER") {
+          feeCategory = "GEN";
         }
 
-        // ── 6. Find fee structure ──
         const feeStructure = await FeeStructure.findOne({
           college_id: student.college_id,
           course_id: student.course_id,
-          category: student.category,
+          category: feeCategory,
         });
 
         if (!feeStructure) {
@@ -358,7 +383,23 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 7. Create student fee ──
+        // ── 7. Generate enrollment number (FIX: Issue #6) ──
+        const collegeData = await College.findById(student.college_id).select(
+          "code",
+        );
+        const courseData = await Course.findById(student.course_id).select(
+          "code",
+        );
+
+        const existingCount = await Student.countDocuments({
+          course_id: student.course_id,
+          admissionYear: student.admissionYear,
+          status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
+        });
+        const sequence = String(existingCount + 1).padStart(4, "0");
+        student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
+
+        // ── 8. Create student fee ──
         const installments = feeStructure.installments.map((inst) => ({
           name: inst.name,
           amount: inst.amount,
@@ -375,13 +416,27 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 8. Approve student ──
-        student.status = "APPROVED";
-        student.approvedBy = req.user.id;
-        student.approvedAt = new Date();
+        // ── 9. Make admission offer ──
+        student.status = "OFFER_MADE";
+        student.offerMadeBy = req.user.id;
+        student.offerMadeAt = new Date();
         await student.save();
 
-        // ── 9. Send email (non-blocking) ──
+        // ── 10. Auto-create parent accounts (non-blocking) ──
+        let bulkParentResult = null;
+        (async () => {
+          try {
+            bulkParentResult = await parentCreationService.createParentUsers(student);
+if (bulkParentResult.count > 0) {
+               console.log(`Bulk: Created ${bulkParentResult.count} parent accounts`);
+             }
+           } catch (error) {
+             console.error("Bulk: Failed to create parent accounts");
+             bulkParentResult = { count: 0, parents: [], error: "Parent creation failed" };
+           }
+        })();
+
+        // ── 11. Send offer email (non-blocking) ──
         (async () => {
           try {
             const college = await College.findById(student.college_id).select(
@@ -390,7 +445,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
             const crs = await Course.findById(student.course_id).select("name");
             const loginUrl = buildFrontendUrl("/login");
 
-            await sendAdmissionApprovalEmail({
+            await sendAdmissionOfferEmail({
               to: student.email,
               studentName: student.fullName,
               courseName: crs?.name || "N/A",
@@ -399,20 +454,25 @@ exports.bulkApproveStudents = async (req, res, next) => {
               enrollmentNumber: student.enrollmentNumber,
               loginUrl,
               email: student.email,
+              collegeId: student.college_id,
             });
           } catch (e) {
-            console.error("❌ Bulk email failed:", e.message);
-          }
-        })();
+console.error("Bulk offer email failed");
+           }
+         })();
 
         results.approved.push({
           studentId: student._id,
           fullName: student.fullName,
           email: student.email,
+          parentAccounts: bulkParentResult ? {
+            created: bulkParentResult.count,
+            parents: bulkParentResult.parents
+          } : null,
         });
-      } catch (err) {
-        results.failed.push({ studentId, reason: err.message || "Unknown" });
-      }
+} catch (err) {
+         results.failed.push({ studentId, reason: "Processing failed" });
+       }
     }
 
     // 📝 Audit log - Bulk student approval
@@ -493,15 +553,15 @@ exports.rejectStudent = async (req, res, next) => {
               ? student.rejectionReason
               : null,
           canReapply: student.canReapply,
+          collegeId: student.college_id,
         });
-        console.log(`✅ Admission rejection email sent to ${student.email}`);
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send admission rejection email:",
-          emailError.message,
-        );
-      }
-    })();
+console.log("Admission rejection email sent");
+       } catch (emailError) {
+         console.error(
+           "Failed to send admission rejection email",
+         );
+       }
+     })();
 
     // 🔔 Create in-app notification (if User exists)
     try {
@@ -519,15 +579,12 @@ exports.rejectStudent = async (req, res, next) => {
         actionUrl: allowReapply ? `/register/${student.college_id}` : undefined,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       });
-      console.log(
-        `🔔 In-app notification created for student ${student.email}`,
-      );
-    } catch (notifError) {
-      console.error(
-        "❌ Failed to create in-app notification:",
-        notifError.message,
-      );
-    }
+console.log("In-app notification created");
+     } catch (notifError) {
+       console.error(
+         "Failed to create in-app notification",
+       );
+     }
 
     res.json({
       message: "Student rejected successfully",
@@ -539,6 +596,112 @@ exports.rejectStudent = async (req, res, next) => {
         status: student.status,
         rejectionReason: student.rejectionReason,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * CONFIRM ENROLLMENT
+ * Transitions student from OFFER_MADE → ENROLLED → APPROVED
+ * Called when student confirms their seat and completes enrollment
+ */
+exports.confirmEnrollment = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+
+    // Find student with OFFER_MADE status
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: "OFFER_MADE",
+    });
+
+    if (!student) {
+      throw new AppError(
+        "Student not found or not in OFFER_MADE status",
+        404,
+        "STUDENT_NOT_FOUND",
+      );
+    }
+
+    // Check if student has made payment (at least first installment)
+    const studentFee = await StudentFee.findOne({
+      student_id: student._id,
+      college_id: student.college_id,
+    });
+
+    if (studentFee && studentFee.paidAmount < (studentFee.totalFee * 0.25)) {
+      // Allow enrollment even without 25% payment for now (can be enforced later)
+    }
+
+    // Transition to ENROLLED (student confirmed seat)
+    student.status = "ENROLLED";
+    student.seatConfirmedAt = student.seatConfirmedAt || new Date();
+    student.enrollmentConfirmedAt = new Date();
+    student.enrollmentDate = new Date();
+    student.approvedBy = req.user.id;
+    student.approvedAt = new Date();
+    await student.save();
+
+    let parentCreationResult = null;
+    try {
+      parentCreationResult = await parentCreationService.createParentUsers(student);
+if (parentCreationResult.count > 0) {
+         console.log("Created parent accounts");
+       }
+     } catch (error) {
+       console.error("Failed to create parent accounts");
+       parentCreationResult = { count: 0, parents: [], error: "Parent creation failed" };
+     }
+
+    // 📝 Audit log - Enrollment confirmed
+    auditLogService
+      .logStudentEnrollment(student, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
+
+    // 📧 Send enrollment confirmation email
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select(
+          "name email",
+        );
+        const crs = await Course.findById(student.course_id).select("name");
+        const loginUrl = buildFrontendUrl("/login");
+
+        await sendAdmissionApprovalEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: crs?.name || "N/A",
+          collegeName: college?.name || "Our College",
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl,
+          email: student.email,
+          collegeId: student.college_id,
+        });
+console.log("Enrollment confirmation email sent");
+       } catch (e) {
+         console.error("Enrollment email failed");
+       }
+     })();
+
+    res.json({
+      message: "Enrollment confirmed successfully",
+      student: {
+        id: student._id,
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        enrollmentNumber: student.enrollmentNumber,
+        enrollmentDate: student.enrollmentDate,
+      },
+      parentAccounts: parentCreationResult ? {
+        created: parentCreationResult.count,
+        parents: parentCreationResult.parents,
+        error: parentCreationResult.error,
+      } : null,
     });
   } catch (error) {
     next(error);

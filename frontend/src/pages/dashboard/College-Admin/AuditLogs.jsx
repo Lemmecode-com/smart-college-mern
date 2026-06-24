@@ -143,7 +143,8 @@ export default function AuditLogs() {
 
   // Security check
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   // Fetch audit logs
   const fetchLogs = async () => {
@@ -884,11 +885,10 @@ export default function AuditLogs() {
             </h3>
             <p
               style={{
-                margin: 0,
+                margin: "0 auto",
                 fontSize: "0.9375rem",
                 color: THEME.text.muted,
                 maxWidth: "400px",
-                margin: "0 auto",
               }}
             >
               Admin actions will appear here as you manage student data, fee

@@ -4,12 +4,14 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBuilding,
   FaEdit,
   FaTrash,
   FaUserTie,
+  FaUserSlash,
   FaSearch,
   FaPlus,
   FaInfoCircle,
@@ -27,9 +29,12 @@ import {
   FaTimes,
 } from "react-icons/fa";
 
+import ConfirmModal from "../../../components/ConfirmModal";
+
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
   const [departments, setDepartments] = useState([]);
   const [search, setSearch] = useState("");
@@ -39,22 +44,28 @@ export default function DepartmentList() {
   const [showHelp, setShowHelp] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Fixed at 5 records per page
+  const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [removingHod, setRemovingHod] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
-  /* ================= FETCH ================= */
-  const fetchDepartments = async () => {
-    try {
-      const res = await api.get("/departments");
-      setDepartments(res.data || []);
-    } catch (err) {
-      setDepartments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+   /* ================= FETCH ================= */
+   const fetchDepartments = async () => {
+     try {
+       console.log('Fetching departments...');
+       const res = await api.get("/departments");
+       console.log('API response:', res.data);
+       setDepartments(res.data || []);
+     } catch (err) {
+       console.error('Fetch error:', err);
+       setDepartments([]);
+     } finally {
+       setLoading(false);
+     }
+   };
 
   useEffect(() => {
     fetchDepartments();
@@ -74,6 +85,23 @@ export default function DepartmentList() {
       fetchDepartments();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete department");
+    }
+  };
+
+  /* ================= REMOVE HOD ================= */
+  const handleRemoveHod = async () => {
+    if (!selectedDepartment) return;
+
+    setRemovingHod(true);
+    try {
+      await api.delete(`/departments/${selectedDepartment._id}/hod`);
+      setShowRemoveHodModal(false);
+      setSelectedDepartment(null);
+      fetchDepartments();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to remove HOD");
+    } finally {
+      setRemovingHod(false);
     }
   };
 
@@ -163,12 +191,14 @@ export default function DepartmentList() {
           >
             <FaInfoCircle size={16} /> Help
           </button>
-          <button
-            onClick={() => navigate("/departments/add")}
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
-          >
-            <FaPlus size={16} /> Add Department
-          </button>
+          {canCreate('departments') && (
+            <button
+              onClick={() => navigate("/departments/add")}
+              className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
+            >
+              <FaPlus size={16} /> Add Department
+            </button>
+          )}
         </div>
       </div>
 
@@ -355,14 +385,16 @@ export default function DepartmentList() {
                 >
                   <FaTimes size={14} /> Clear Filters
                 </button>
-              )}
-              <button
-                onClick={() => navigate("/departments/add")}
-                className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
-              >
-                <FaPlus /> Add Department
-              </button>
-            </div>
+               )}
+               {canCreate('departments') && (
+                 <button
+                   onClick={() => navigate("/departments/add")}
+                   className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
+                 >
+                   <FaPlus /> Add Department
+                 </button>
+               )}
+             </div>
           ) : (
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
@@ -472,31 +504,49 @@ export default function DepartmentList() {
                         </td>
                         <td className="text-center pe-4">
                           <div className="d-flex justify-content-center gap-1">
-                            <button
-                              className="btn btn-sm btn-outline-primary hover-lift"
-                              title="Edit Department"
-                              onClick={() =>
-                                navigate(`/departments/edit/${d._id}`)
-                              }
-                            >
-                              <FaEdit size={14} />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-warning hover-lift"
-                              title="Assign HOD"
-                              onClick={() =>
-                                navigate(`/departments/assign-hod/${d._id}`)
-                              }
-                            >
-                              <FaUserTie size={14} />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger hover-lift"
-                              title="Delete Department"
-                              onClick={() => handleDelete(d._id)}
-                            >
-                              <FaTrash size={14} />
-                            </button>
+                            {canEdit('departments') && (
+                              <button
+                                className="btn btn-sm btn-outline-primary hover-lift"
+                                title="Edit Department"
+                                onClick={() =>
+                                  navigate(`/departments/edit/${d._id}`)
+                                }
+                              >
+                                <FaEdit size={14} />
+                              </button>
+                            )}
+                            {canEdit('departments') && (
+                              <button
+                                className="btn btn-sm btn-outline-warning hover-lift"
+                                title="Assign HOD"
+                                onClick={() =>
+                                  navigate(`/departments/assign-hod/${d._id}`)
+                                }
+                              >
+                                <FaUserTie size={14} />
+                              </button>
+                             )}
+                             {canEdit('departments') && d.hod_id && (
+                               <button
+                                 className="btn btn-sm btn-outline-secondary hover-lift"
+                                 title="Remove HOD"
+                                 onClick={() => {
+                                   setSelectedDepartment(d);
+                                   setShowRemoveHodModal(true);
+                                 }}
+                               >
+                                 <FaUserSlash size={14} />
+                               </button>
+                             )}
+                             {canDelete('departments') && (
+                              <button
+                                className="btn btn-sm btn-outline-danger hover-lift"
+                                title="Delete Department"
+                                onClick={() => handleDelete(d._id)}
+                              >
+                                <FaTrash size={14} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -718,6 +768,25 @@ export default function DepartmentList() {
           }
         }
       `}</style>
+
+      <ConfirmModal
+        isOpen={showRemoveHodModal}
+        onClose={() => {
+          setShowRemoveHodModal(false);
+          setSelectedDepartment(null);
+        }}
+        onConfirm={handleRemoveHod}
+        title="Remove HOD"
+        message={
+          selectedDepartment
+            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            : ""
+        }
+        type="warning"
+        confirmText="Remove HOD"
+        cancelText="Cancel"
+        isLoading={removingHod}
+      />
     </div>
   );
 }

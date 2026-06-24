@@ -155,7 +155,7 @@ const exportButtonStyle = {
   fontSize: "0.875rem",
   transition: "all 0.2s ease",
   backgroundColor: "#f8f9fa",
-  color: "white",
+  color: "black",
 };
 
 // Add CSS styles for export buttons

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const passwordResetSchema = new mongoose.Schema(
   {
@@ -7,17 +8,18 @@ const passwordResetSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
 
-    otp: {
+    otpHash: {
       type: String,
       required: true,
-      length: 6,
     },
 
     expiresAt: {
       type: Date,
       required: true,
+      index: true,
     },
 
     isUsed: {
@@ -33,18 +35,32 @@ const passwordResetSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Index for faster lookups
+// Index for faster lookups
 passwordResetSchema.index({ email: 1, expiresAt: 1 });
 
-// ✅ Auto-delete expired OTPs (TTL index)
+// Auto-delete expired OTPs (TTL index)
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// ✅ Method to check if OTP is valid
+// Hash OTP before saving (async/await style — no callback needed)
+passwordResetSchema.pre("save", async function () {
+  if (!this.isModified("otpHash")) {
+    return;
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.otpHash = await bcrypt.hash(this.otpHash, salt);
+});
+
+// Compare plaintext OTP against stored hash
+passwordResetSchema.methods.compareOTP = function (otp) {
+  return bcrypt.compare(otp, this.otpHash);
+};
+
+// Check if OTP is valid
 passwordResetSchema.methods.isValid = function () {
   return !this.isUsed && this.expiresAt > new Date();
 };
 
-// ✅ Method to mark OTP as used
+// Mark OTP as used
 passwordResetSchema.methods.markAsUsed = function () {
   this.isUsed = true;
   return this.save();

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBook,
@@ -23,6 +24,7 @@ export default function ViewSubject() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [subject, setSubject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,8 @@ export default function ViewSubject() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH SUBJECT ================= */
   useEffect(() => {
@@ -105,11 +107,20 @@ export default function ViewSubject() {
 
         <div className="header-actions">
           <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(`/subjects/course/${coursePath}`)}
+            className="erp-btn erp-btn-outline"
+            onClick={() => navigate("/subjects")}
           >
             <FaArrowLeft /> <span>Back to Subjects</span>
           </button>
+
+          {canEdit('subjects') && (
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+            >
+              <FaEdit /> <span>Edit Subject</span>
+            </button>
+          )}
 
           <button
             className="erp-btn erp-btn-primary"

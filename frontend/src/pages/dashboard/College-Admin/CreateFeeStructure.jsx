@@ -39,16 +39,16 @@ export default function CreateFeeStructure() {
   const [totalFee, setTotalFee] = useState("");
 
   const [installments, setInstallments] = useState([
-    { name: "", amount: "", dueDate: "" }
+    { name: "", amount: "", dueDate: "", order: 1 }
   ]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+   /* ================= SECURITY ================= */
+   if (!user) return <Navigate to="/login" />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
@@ -119,10 +119,11 @@ export default function CreateFeeStructure() {
         course_id,
         category,
         totalFee: Number(totalFee),
-        installments: installments.map((i) => ({
+        installments: installments.map((i, idx) => ({
           name: i.name,
           amount: Number(i.amount),
-          dueDate: i.dueDate
+          dueDate: i.dueDate,
+          order: i.order || idx + 1,
         }))
       });
 

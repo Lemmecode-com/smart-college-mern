@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const PasswordReset = require("../models/passwordReset.model");
+const User = require("../models/user.model");
 const { sendOTPEmail } = require("./email.service");
 
 /**
@@ -30,8 +31,11 @@ exports.generateOTP = () => {
  */
 exports.createAndSendOTP = async (email, userType = "User") => {
   try {
+    // Lookup user to get collegeId
+    const user = await User.findOne({ email }).select("college_id role").lean();
+    
     // Generate OTP
-    const otp = this.generateOTP();
+    const otp = exports.generateOTP();
     
     // Set expiration (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -42,7 +46,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
     // Create new OTP record
     const passwordReset = await PasswordReset.create({
       email,
-      otp,
+      otpHash: otp,
       expiresAt,
       isUsed: false,
     });
@@ -54,13 +58,12 @@ exports.createAndSendOTP = async (email, userType = "User") => {
         otp,
         userType,
         expiresIn: 10,
+        collegeId: user?.college_id,
       });
       // console.log(`✅ Email sent to: ${email}`);
-    } catch (emailError) {
-      console.warn("⚠️  Email failed:", emailError.message);
-      // console.log(`🔑 OTP for ${email}: ${otp} (valid for 10 min)`);
-      // Don't fail the request if email fails - OTP is still stored in database
-    }
+} catch (emailError) {
+       console.warn("Email failed");
+     }
 
     // ✅ SECURITY: NEVER return OTP in API response
     // OTP should only be sent via email, not exposed in API
@@ -82,29 +85,17 @@ exports.createAndSendOTP = async (email, userType = "User") => {
  */
 exports.verifyOTP = async (email, otp) => {
   try {
-    // Find OTP record
     const record = await PasswordReset.findOne({
       email,
-      otp,
       isUsed: false,
+      expiresAt: { $gt: new Date() },
     });
 
-    // Check if record exists
-    if (!record) {
+    const isMatch = await record.compareOTP(otp);
+    if (!record || !isMatch) {
       return {
         valid: false,
         message: "Invalid OTP",
-      };
-    }
-
-    // Check if expired
-    if (!record.isValid()) {
-      // Delete expired OTP
-      await PasswordReset.deleteOne({ _id: record._id });
-      
-      return {
-        valid: false,
-        message: "OTP expired. Please request a new one.",
       };
     }
 
