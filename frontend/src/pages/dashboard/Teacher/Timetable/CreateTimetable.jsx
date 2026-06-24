@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
   FaGraduationCap,
@@ -73,6 +74,7 @@ const scaleVariants = {
 
 export default function CreateTimetable() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [department, setDepartment] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,7 @@ export default function CreateTimetable() {
     course_id: "",
     semester: "",
     academicYear: "",
+    division: "",
   });
 
   const [previewName, setPreviewName] = useState("");
@@ -89,39 +92,75 @@ export default function CreateTimetable() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* LOAD PROFILE */
-  useEffect(() => {
-    const loadProfile = async () => {
+/* LOAD PROFILE — re-runs whenever user hydrates from AuthContext */
+    const loadProfile = useCallback(async () => {
+      if (!user?.id || !user?.role) { 
+        setLoading(false); 
+        return; 
+      } // user still loading
       try {
-        const res = await api.get("/teachers/my-profile");
-        // The API interceptor unwraps the response, so teacher data is at res.data.teacher
-        const teacherData = res.data.teacher || res.data;
-        setDepartment(teacherData.department_id);
+        setLoading(true);
+        setError("");
+        const isHOD = user.role === "HOD";
+        const endpoint = isHOD ? "/hod/profile" : "/teachers/my-profile";
+        const res   = await api.get(endpoint);
+        const data  = res.data;
+        
+        // For HOD, use /hod/department endpoint which has proper permissions
+        if (isHOD) {
+          const deptRes = await api.get(`/hod/department`);
+          const deptData = deptRes.data.data?.department || deptRes.data.department || deptRes.data;
+          setDepartment(deptData);
+        } else {
+          // For teachers, department is already populated in profile
+          // teacher.department_id contains { _id, name, code }
+          // After axios interceptor: data = { teacher: {...}, success, message }
+          const teacher = data?.teacher;
+          if (teacher?.department_id) {
+            const deptInfo = teacher.department_id;
+            setDepartment({
+              _id: deptInfo._id || deptInfo.id,
+              name: deptInfo.name,
+              code: deptInfo.code,
+            });
+          } else {
+            throw new Error("Department not found in teacher profile");
+          }
+        }
       } catch (err) {
-        setError("Failed to load department information");
+        console.error("Profile loading error:", err);
+        setError("Failed to load department information: " + (err.message || "Unknown error"));
       } finally {
         setLoading(false);
       }
-    };
-    loadProfile();
-  }, []);
+    }, [user]); // Removed loadProfile from dependency array since it's not used here
 
-  /* LOAD COURSES */
-  useEffect(() => {
-    if (!department?._id) return;
-    const loadCourses = async () => {
+  useEffect(() => { if (user?.id) loadProfile(); }, [user]);
+
+      /* LOAD COURSES — re-runs whenever department changes */
+    const loadCourses = useCallback(async () => {
+      if (!department?._id) return;
       try {
-        const res = await api.get(`/courses/department/${department._id}`);
-        // The API interceptor wraps arrays in res.data.data
-        const coursesList = res.data.data || res.data.courses || res.data;
-        setCourses(Array.isArray(coursesList) ? coursesList : []);
-      } catch (err) {
+        const res = await api.get("/courses/department/" + department._id);
+        const coursesList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data.courses)
+          ? res.data.courses
+          : [];
+        setCourses(coursesList);
+      } catch {
         setError("Failed to load courses for your department");
         setCourses([]);
       }
-    };
-    loadCourses();
-  }, [department]);
+    }, [department, loadProfile]); // Added loadProfile as dependency
+
+  useEffect(() => { loadCourses(); }, [loadCourses]);
+
+  /* Hard timeout escape hatch — loader can never be stuck past 6 s */
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 6000);
+    return () => clearTimeout(t);
+  }, []);
 
   /* GENERATE SEMESTERS BASED ON SELECTED COURSE */
   useEffect(() => {
@@ -156,41 +195,42 @@ export default function CreateTimetable() {
     );
   }, [form, courses]);
 
-  /* SUBMIT HANDLER */
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
+   /* SUBMIT HANDLER */
+   const submitHandler = async (e) => {
+     e.preventDefault();
+     setError("");
+     setSuccess("");
+     setSubmitting(true);
 
-    try {
+     try {
       const response = await api.post("/timetable", {
         department_id: department._id,
         course_id: form.course_id,
         semester: Number(form.semester),
         academicYear: form.academicYear,
+        division: form.division || undefined,
       });
 
-      setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
+       setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
-      // ✅ FIXED: Access timetable object from response
-      const timetableId = response.data.timetable?._id || response.data._id;
+// ✅ FIXED: Access timetable object from response
+        const timetableId = response.data.timetable?._id;
 
-      if (!timetableId) {
-        setError("Timetable created but failed to get ID. Please navigate manually.");
-        return;
-      }
+       if (!timetableId) {
+         setError("Timetable created but failed to get ID. Please navigate manually.");
+         return;
+       }
 
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        navigate(`/timetable/${timetableId}/weekly`);
-      }, 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+       // Auto-redirect after 2 seconds
+       setTimeout(() => {
+         navigate(`/timetable/${timetableId}/weekly`);
+       }, 2000);
+     } catch (err) {
+       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
+     } finally {
+       setSubmitting(false);
+     }
+   };
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Department Information..." />;
@@ -607,9 +647,26 @@ export default function CreateTimetable() {
                           <FaTimesCircle size={14} /> Please select an academic year
                         </div>
                       )}
+                     </FormField>
+
+                    <FormField
+                      icon={<FaLayerGroup />}
+                      label="Division (Optional)"
+                      helperText="e.g., A, B, C — leave blank if not using divisions"
+                    >
+                      <input
+                        type="text"
+                        value={form.division}
+                        onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
+                        placeholder="e.g., A"
+                        style={{
+                          ...inputStyle,
+                          borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
+                        }}
+                      />
                     </FormField>
 
-                    <motion.button
+                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"

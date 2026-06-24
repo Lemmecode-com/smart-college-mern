@@ -55,12 +55,18 @@ exports.createFeeStructure = async (req, res, next) => {
       );
     }
 
+    // Auto-assign order based on index if not provided
+    const installmentsWithOrder = installments.map((i, idx) => ({
+      ...i,
+      order: i.order || idx + 1,
+    }));
+
     const feeStructure = await FeeStructure.create({
       college_id: req.college_id,
       course_id,
       category,
       totalFee,
-      installments,
+      installments: installmentsWithOrder,
     });
 
     // 📝 Audit log - Fee structure creation

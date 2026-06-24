@@ -9,7 +9,10 @@ const Student = require("../models/student.model");
 const Timetable = require("../models/timetable.model");
 const AttendanceSession = require("../models/attendanceSession.model");
 const { generateCollegeQR } = require("../utils/qrGenerator");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 const AppError = require("../utils/AppError");
+const FeeStructure = require("../models/feeStructure.model");
+const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const { sendEmailToCollegeAdmin } = require("../services/email.service");
 
 exports.createCollege = async (req, res, next) => {
@@ -52,17 +55,57 @@ exports.createCollege = async (req, res, next) => {
       registrationQr,
     });
 
-    // 5️⃣ Create College Admin (plain password — hashed in User schema)
     const collegeAdmin = await User.create({
       name: adminName,
       email: adminEmail,
       password: adminPassword,
       role: "COLLEGE_ADMIN",
       college_id: college._id,
+      mustChangePassword: true,
     });
+
+    await College.findByIdAndUpdate(college._id, {
+      admin_id: collegeAdmin._id,
+      adminEmail: adminEmail,
+      adminName: adminName,
+    });
+
+    let emailSent = false;
+    let emailError = null;
+    try {
+      await sendEmailToCollegeAdmin({
+        to: adminEmail,
+        collegeName: college.name,
+        subject: `Welcome to NOVAA`,
+        message: `Welcome ${adminName},
+
+Your account has been created successfully.
+
+Login Credentials:
+
+Email: ${adminEmail}
+Password: ${adminPassword}
+
+Login URL:
+${buildFrontendUrl("/login")}
+
+IMPORTANT: You must change this password on you first login
+
+Best Regards,
+NOVAA (SUPERADMIN)`,
+        collegeId: college._id,
+      });
+      emailSent = true;
+    } catch (emailErr) {
+      emailError = emailErr.message;
+      console.error("Failed to send welcome email to college admin:", emailErr.message);
+      console.error("Email error stack:", emailErr.stack);
+    }
 
     res.status(201).json({
       message: "College and College Admin created successfully",
+      emailSent,
+      emailError,
       college: {
         id: college._id,
         name: college.name,
@@ -133,6 +176,9 @@ exports.deleteCollege = async (req, res, next) => {
       { $set: { isActive: false } },
     );
 
+    AuditService.logCollegeDeactivated(req.user, college, req)
+      .catch((err) => console.error("Audit log failed:", err.message));
+
     res.json({
       message:
         "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
@@ -176,6 +222,9 @@ exports.restoreCollege = async (req, res, next) => {
       { _id: collegeId },
       { $set: { isActive: true } },
     );
+
+    AuditService.logCollegeRestored(req.user, college, req)
+      .catch((err) => console.error("Audit log failed:", err.message));
 
     res.json({
       message:
@@ -278,6 +327,12 @@ exports.getCollegeById = async (req, res, next) => {
       AttendanceSession.countDocuments({ college_id: collegeId }),
     ]);
 
+    // 3️⃣ Also fetch college admin email
+    const adminUser = await User.findOne({
+      college_id: collegeId,
+      role: "COLLEGE_ADMIN",
+    }).select("email");
+
     // 4️⃣ Response
     res.json({
       message: "College details fetched successfully",
@@ -292,6 +347,7 @@ exports.getCollegeById = async (req, res, next) => {
         logo: college.logo,
         registrationUrl: college.registrationUrl,
         registrationQr: college.registrationQr,
+        adminEmail: adminUser?.email || "",
         createdAt: college.createdAt,
       },
       stats: {
@@ -346,8 +402,9 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
       to: adminUser.email,
       collegeName: college.name,
       subject:
-        subject || `Regarding ${college.name} - Smart College Management`,
+        subject || `Welcome to ${college.name} - Smart College Management`,
       message: message || "No message provided",
+      collegeId,
     });
 
     res.json({
@@ -359,6 +416,47 @@ exports.sendEmailToCollegeAdmin = async (req, res, next) => {
         subject:
           subject || `Regarding ${college.name} - Smart College Management`,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.markSetupComplete = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    if (!collegeId) {
+      throw new AppError("College ID not found in request", 400, "MISSING_COLLEGE_ID");
+    }
+
+    // Validate minimum onboarding prerequisites
+    const [deptCount, courseCount, feeCount, emailConfig] = await Promise.all([
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      FeeStructure.countDocuments({ college_id: collegeId }),
+      CollegeEmailConfig.getActiveConfig(collegeId),
+    ]);
+
+    const missing = [];
+    if (deptCount === 0) missing.push("at least one department");
+    if (courseCount === 0) missing.push("at least one course");
+    if (feeCount === 0) missing.push("at least one fee structure");
+    if (!emailConfig) missing.push("email configuration");
+
+    if (missing.length > 0) {
+      throw new AppError(
+        "Cannot finish setup. Please complete: " + missing.join(", "),
+        400,
+        "SETUP_INCOMPLETE"
+      );
+    }
+
+    await College.findByIdAndUpdate(collegeId, { setupCompleted: true });
+
+    res.json({
+      success: true,
+      message: "College setup marked as complete. All required steps verified.",
     });
   } catch (error) {
     next(error);

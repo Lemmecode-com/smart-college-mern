@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -848,12 +849,15 @@ export default function MySchedule() {
   const [attendanceSessions, setAttendanceSessions] = useState({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionTimers, setSessionTimers] = useState({});
-  const [todaySlotsData, setTodaySlotsData] = useState(null); // NEW: Today's slots with attendance status
+  const [todaySlotsData, setTodaySlotsData] = useState(null);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     slot: null,
     timeSlot: null,
   });
+  const [teacherId, setTeacherId] = useState(null);
+  const { user } = useContext(AuthContext);
+  const isHod = user?.role === "HOD";
   const navigate = useNavigate();
   const toastIds = useRef({});
 
@@ -893,6 +897,20 @@ export default function MySchedule() {
     }
     setSessionsLoaded(true);
   }, [isClient]);
+
+  // Fetch current teacher profile for HOD ownership validation
+  useEffect(() => {
+    const fetchTeacherProfile = async () => {
+      if (!user || (user.role !== "TEACHER" && user.role !== "HOD")) return;
+      try {
+        const res = await api.get("/teachers/my-profile");
+        setTeacherId(res.data.teacher?._id);
+      } catch (err) {
+        console.error("Failed to fetch teacher profile:", err);
+      }
+    };
+    fetchTeacherProfile();
+  }, [user]);
 
   useEffect(() => {
     const load = async () => {
@@ -1517,25 +1535,27 @@ export default function MySchedule() {
                   {todaysSlots.map((slot, idx) => {
                     const time = `${slot.startTime} - ${slot.endTime}`;
                     return (
-                      <ScheduleRow
-                        key={slot._id || time}
-                        time={time}
-                        slot={slot}
-                        isCurrent={isCurrentTimeSlot(time)}
-                        onStartAttendance={openConfirmModal}
-                        creating={creating === slot._id}
-                        delay={idx * 0.05}
-                        hasActiveSession={
-                          !!activeSessions[slot._id] || slot.hasOpenSession
-                        }
-                        hasAttendanceSession={
-                          !!attendanceSessions[slot._id] ||
-                          slot.hasClosedSession
-                        }
-                        sessionTimer={sessionTimers[slot._id]}
-                        styles={styles}
-                        attendanceMessage={slot.message}
-                      />
+<ScheduleRow
+                         key={slot._id || slot.startTime || `schedule-${time}`}
+                         time={time}
+                         slot={slot}
+                         isCurrent={isCurrentTimeSlot(time)}
+                         onStartAttendance={openConfirmModal}
+                         creating={creating === slot._id}
+                         delay={idx * 0.05}
+                         hasActiveSession={
+                           !!activeSessions[slot._id] || slot.hasOpenSession
+                         }
+                         hasAttendanceSession={
+                           !!attendanceSessions[slot._id] ||
+                           slot.hasClosedSession
+                         }
+                         sessionTimer={sessionTimers[slot._id]}
+                         styles={styles}
+                         attendanceMessage={slot.message}
+                          isHod={isHod}
+                          teacherId={teacherId}
+                        />
                     );
                   })}
                 </div>
@@ -1659,6 +1679,8 @@ function ScheduleRow({
   sessionTimer,
   styles,
   attendanceMessage,
+  isHod = false,
+  teacherId,
 }) {
   const slotType =
     BRAND_COLORS.slotTypes[slot.slotType] || BRAND_COLORS.slotTypes.LECTURE;
@@ -1701,12 +1723,15 @@ function ScheduleRow({
   // 3. No existing open session
   // 4. No existing closed session
   // 5. Slot is not cancelled, holiday, or rescheduled
+  // 6. HOD can only start attendance for subjects assigned to them
+  const isOwnSlot = !isHod || (teacherId && slot.teacher_id?._id === teacherId);
   const canStartAttendance =
     isPublished &&
     !isExceptionBlocked &&
     slotStatus === "active" && // ✅ STRICT: Must be within time window
     !hasOpenSession &&
-    !hasClosedSession;
+    !hasClosedSession &&
+    isOwnSlot;
 
   // Determine button state (priority order)
   let buttonState = "start";
@@ -1843,28 +1868,30 @@ function ScheduleRow({
                   </>
                 )}
               </span>
+              </div>
+            </div>
+            <div className="timetable-info">
+              <div className="timetable-name">{slot.timetable_id?.name}</div>
+              <div className="timetable-meta">
+                Sem {slot.timetable_id?.semester} •{" "}
+                {slot.timetable_id?.academicYear}
+              </div>
             </div>
           </div>
-          <div className="timetable-info">
-            <div className="timetable-name">{slot.timetable_id?.name}</div>
-            <div className="timetable-meta">
-              Sem {slot.timetable_id?.semester} •{" "}
-              {slot.timetable_id?.academicYear}
-            </div>
-          </div>
-        </div>
-        <div className="content-bottom">
-          {/* <div className="teacher-info">
-            <FaChalkboardTeacher
-              size={isMobile ? 14 : 16}
-              className="teacher-icon"
-            />
-            <span>{slot.teacher_id?.name || "N/A"}</span>
-          </div> */}
-          {buttonState === "creating" ? (
-            <motion.button
-              disabled
-              className="btn-action btn-creating"
+          <div className="content-bottom">
+            {isHod && (
+              <div className="teacher-info">
+                <FaChalkboardTeacher
+                  size={isMobile ? 14 : 16}
+                  className="teacher-icon"
+                />
+                <span>Faculty: {slot.teacher_id?.name || "N/A"}</span>
+              </div>
+            )}
+            {buttonState === "creating" ? (
+              <motion.button
+                disabled
+                className="btn-action btn-creating"
               style={{
                 background: "linear-gradient(135deg, #28a745, #1e7e34)",
                 color: "white",

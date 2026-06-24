@@ -82,6 +82,47 @@ exports.getSubjectsByCourse = async (req, res, next) => {
  */
 exports.updateSubject = async (req, res, next) => {
   try {
+    // ✅ Validate teacher_id if being updated
+    if (req.body.teacher_id) {
+      // Fetch subject to get course_id and its department
+      const existingSubject = await Subject.findOne({
+        _id: req.params.id,
+        college_id: req.college_id,
+      }).populate({
+        path: "course_id",
+        select: "department_id",
+      });
+
+      if (!existingSubject) {
+        throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+      }
+
+      // Get course's department (from populated course)
+      const courseDepartmentId = existingSubject.course_id?.department_id;
+
+      // Fetch the new teacher
+      const teacher = await Teacher.findOne({
+        _id: req.body.teacher_id,
+        college_id: req.college_id,
+      });
+
+      if (!teacher) {
+        throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+      }
+
+      // Validate teacher belongs to same department as course
+      if (teacher.department_id.toString() !== courseDepartmentId.toString()) {
+        throw new AppError(
+          "Teacher must belong to the same department as the subject course",
+          400,
+          "TEACHER_DEPARTMENT_MISMATCH"
+        );
+      }
+
+      // Update department_id if needed (should match course department)
+      req.body.department_id = courseDepartmentId;
+    }
+
     const subject = await Subject.findOneAndUpdate(
       {
         _id: req.params.id,
@@ -118,7 +159,7 @@ exports.getSubjectById = async (req, res) => {
 
     res.json(subject);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

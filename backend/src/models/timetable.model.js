@@ -24,6 +24,12 @@ const TimetableSchema = new mongoose.Schema(
       required: true,
     },
 
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     academicYear: {
       type: String, // "2025-2026"
       required: true,
@@ -120,7 +126,20 @@ const TimetableSchema = new mongoose.Schema(
 
 // ================= INDEXES =================
 
-// Unique constraint: One timetable per department/course/semester/year
+// Unique constraint: One timetable per department/course/semester/division/year
+TimetableSchema.index(
+  {
+    college_id: 1,
+    department_id: 1,
+    course_id: 1,
+    semester: 1,
+    academicYear: 1,
+    division: 1,
+  },
+  { unique: true, sparse: true },
+);
+
+// Backward-compatible index for timetables without division (division: null)
 TimetableSchema.index(
   {
     college_id: 1,
@@ -129,8 +148,11 @@ TimetableSchema.index(
     semester: 1,
     academicYear: 1,
   },
-  { unique: true },
+  { unique: true, partialFilterExpression: { division: null } },
 );
+
+// Index for division-based student timetable lookups
+TimetableSchema.index({ college_id: 1, course_id: 1, semester: 1, division: 1, status: 1 });
 
 // Index for date-range queries (finding active timetables)
 TimetableSchema.index({ college_id: 1, startDate: 1, endDate: 1, status: 1 });
@@ -146,19 +168,17 @@ TimetableSchema.index({ course_id: 1, status: 1 });
 
 // ================= PRE-SAVE VALIDATION =================
 
-TimetableSchema.pre("save", function (next) {
-  // Validate date range length (max 2 years)
+TimetableSchema.pre("save", function () {
   if (this.startDate && this.endDate) {
     const start = new Date(this.startDate);
     const end = new Date(this.endDate);
     const diffYears = (end - start) / (1000 * 60 * 60 * 24 * 365);
 
     if (diffYears > 2) {
-      return next(new Error("Timetable date range cannot exceed 2 years"));
+      throw new Error("Timetable date range cannot exceed 2 years");
     }
   }
 
-  // Trim metadata
   if (this.metadata && typeof this.metadata === "object") {
     Object.keys(this.metadata).forEach((key) => {
       if (typeof this.metadata[key] === "string") {
@@ -166,8 +186,6 @@ TimetableSchema.pre("save", function (next) {
       }
     });
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Timetable", TimetableSchema);
