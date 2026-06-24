@@ -416,9 +416,7 @@ exports.handleStripeWebhook = async (req, res) => {
     logger.logInfo("Webhook processed successfully");
     res.json({ received: true });
   } catch (error) {
-    logger.logError("Webhook handler error", {
-      error: error.message,
-    });
+    logger.logError("Webhook handler error");
     // Return 500 to Stripe so they retry
     return res.status(500).send("Webhook handler failed");
   }

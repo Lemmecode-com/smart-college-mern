@@ -84,7 +84,6 @@ class SecurityAuditService {
       return saved;
     } catch (error) {
       const safeErrorMeta = SecurityAuditService.redactObject({
-        error: error.message,
         eventType: eventData?.eventType,
         category: eventData?.category,
         severity: eventData?.severity,
@@ -121,7 +120,7 @@ class SecurityAuditService {
         }
       });
     } catch (error) {
-      logger.logError('Failed to log login success', { error: error.message, email: user.email });
+      logger.logError('Failed to log login success', { email: user.email });
     }
   }
 
@@ -148,7 +147,7 @@ class SecurityAuditService {
         }
       });
     } catch (error) {
-      logger.logError('Failed to log login failed', { error: error.message, email });
+      logger.logError('Failed to log login failed', { email });
     }
   }
 
@@ -176,7 +175,7 @@ class SecurityAuditService {
         }
       });
     } catch (error) {
-      logger.logError('Failed to log logout', { error: error.message });
+      logger.logError('Failed to log logout');
     }
   }
 
@@ -224,7 +223,7 @@ class SecurityAuditService {
         }
       });
     } catch (error) {
-      logger.logError('Failed to log password reset request', { error: error.message, email });
+      logger.logError('Failed to log password reset request', { email });
     }
   }
 
@@ -248,7 +247,7 @@ class SecurityAuditService {
         }
       });
     } catch (error) {
-      logger.logError('Failed to log password reset success', { error: error.message, email });
+      logger.logError('Failed to log password reset success', { email });
     }
   }
 
@@ -296,7 +295,7 @@ class SecurityAuditService {
          }
        });
      } catch (error) {
-       logger.logError('Failed to log password change success', { error: error.message, email: user.email });
+        logger.logError('Failed to log password change success', { email: user.email });
      }
    }
 
@@ -324,7 +323,7 @@ class SecurityAuditService {
          }
        });
      } catch (error) {
-       logger.logError('Failed to log password change failed', { error: error.message, email: user.email });
+        logger.logError('Failed to log password change failed', { email: user.email });
      }
    }
 
