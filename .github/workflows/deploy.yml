@@ -1,0 +1,29 @@
+name: Deploy to edunovaa-prod
+
+on:
+  push:
+    branches:
+      - Features
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          request_pty: true
+          command_timeout: 5m
+          script: |
+            cd /var/www/edu-novaa/repo
+            echo "--- git pull ---"
+            git pull origin Features
+            echo "--- npm install ---"
+            cd backend && npm install --production
+            echo "--- pm2 restart ---"
+            pm2 restart smart-college-backend
+            echo "✅ Deploy complete"
