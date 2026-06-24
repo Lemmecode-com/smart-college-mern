@@ -311,7 +311,7 @@ exports.generateSchedule = async (
     try {
       cachedSchedule = scheduleCache.get(cacheKey);
     } catch (error) {
-      console.error("Cache get error:", error);
+      console.error("Cache get error:", error.message);
     }
 
     if (cachedSchedule) {
@@ -580,12 +580,12 @@ exports.generateSchedule = async (
     try {
       scheduleCache.set(cacheKey, schedule);
     } catch (error) {
-      console.error("Cache set error:", error);
+      console.error("Cache set error:", error.message);
     }
 
     return schedule;
   } catch (error) {
-    console.error("Schedule generation failed:", error);
+    console.error("Schedule generation failed:", error.message);
     throw error;
   }
 };
@@ -618,7 +618,7 @@ exports.getTodaySchedule = async (timetableId, collegeId = null) => {
 
     return result.schedule[0];
   } catch (error) {
-    console.error("Get today schedule failed:", error);
+    console.error("Get today schedule failed:", error.message);
     throw error;
   }
 };
@@ -648,7 +648,7 @@ exports.getWeeklySchedule = async (timetableId) => {
 
     return await this.generateSchedule(timetableId, monday, sunday);
   } catch (error) {
-    console.error("Get weekly schedule failed:", error);
+    console.error("Get weekly schedule failed:", error.message);
     throw error;
   }
 };
@@ -706,7 +706,7 @@ exports.getTeacherSchedule = async (
       },
     };
   } catch (error) {
-    console.error("Get teacher schedule failed:", error);
+    console.error("Get teacher schedule failed:", error.message);
     throw error;
   }
 };
@@ -725,7 +725,7 @@ exports.getStudentSchedule = async (timetableId, startDate, endDate) => {
   try {
     return await this.generateSchedule(timetableId, startDate, endDate);
   } catch (error) {
-    console.error("Get student schedule failed:", error);
+    console.error("Get student schedule failed:", error.message);
     throw error;
   }
 };
@@ -788,7 +788,7 @@ exports.getScheduleStatistics = async (timetableId, startDate, endDate) => {
       subjectWise: Object.values(subjectStats),
     };
   } catch (error) {
-    console.error("Get schedule statistics failed:", error);
+    console.error("Get schedule statistics failed:", error.message);
     throw error;
   }
 };
