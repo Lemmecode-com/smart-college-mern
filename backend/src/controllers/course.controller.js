@@ -7,10 +7,6 @@ const ApiResponse = require("../utils/ApiResponse");
  * CREATE Course
  */
 exports.createCourse = async (req, res, next) => {
-  console.log('📝 [CREATE COURSE] Request body:', req.body);
-  console.log('📝 [CREATE COURSE] College ID:', req.college_id);
-  console.log('📝 [CREATE COURSE] User ID:', req.user?.id);
-  
   const {
     department_id,
     name,
@@ -66,44 +62,33 @@ exports.createCourse = async (req, res, next) => {
     courseData.yearLabels = yearLabels.filter((label) => typeof label === "string" && label.trim().length > 0).map((label) => label.trim());
   }
 
-  // Only add durationYears if provided (otherwise let pre-save hook calculate it)
-  if (durationYears) {
-    courseData.durationYears = durationYears;
-  }
+// Only add durationYears if provided (otherwise let pre-save hook calculate it)
+   if (durationYears) {
+     courseData.durationYears = durationYears;
+   }
 
-  console.log('📝 [CREATE COURSE] Course data to save:', courseData);
-
-  try {
-    const course = await Course.create(courseData);
-    console.log('✅ [CREATE COURSE] Course created:', course._id);
-    ApiResponse.created(res, { course }, "Course created successfully");
-  } catch (error) {
-    console.error('❌ [CREATE COURSE] Error creating course:', error.message);
-    console.error('❌ [CREATE COURSE] Full error:', error);
-    throw error;
-  }
+   try {
+     const course = await Course.create(courseData);
+     ApiResponse.created(res, { course }, "Course created successfully");
+   } catch (error) {
+     throw error;
+   }
 };
 
 /**
  * READ Courses by Department
  */
 exports.getCoursesByDepartment = async (req, res, next) => {
-  try {
-    console.log('[getCoursesByDepartment] Department ID:', req.params.departmentId);
-    console.log('[getCoursesByDepartment] College ID:', req.college_id);
-    
-    const courses = await Course.find({
-      department_id: req.params.departmentId,
-      college_id: req.college_id
-    });
-    
-    console.log('[getCoursesByDepartment] Found courses:', courses.length);
-
-    ApiResponse.success(res, { courses }, "Department courses fetched successfully");
-  } catch (error) {
-    console.error('[getCoursesByDepartment] Error:', error);
-    next(error);
-  }
+   try {
+     const courses = await Course.find({
+       department_id: req.params.departmentId,
+       college_id: req.college_id
+     });
+     
+     ApiResponse.success(res, { courses }, "Department courses fetched successfully");
+   } catch (error) {
+     next(error);
+   }
 };
 
 /**
@@ -128,26 +113,20 @@ exports.getAllCourses = async (req, res, next) => {
  * READ Single Course (by ID)
  */
 exports.getCourseById = async (req, res, next) => {
-  try {
-    console.log('[getCourseById] Request ID:', req.params.id);
-    console.log('[getCourseById] College ID:', req.college_id);
-    
-    const course = await Course.findOne({
-      _id: req.params.id,
-      college_id: req.college_id
-    }).populate("department_id", "name code type");
-    
-    console.log('[getCourseById] Found course:', course ? course.name : 'NULL');
+   try {
+     const course = await Course.findOne({
+       _id: req.params.id,
+       college_id: req.college_id
+     }).populate("department_id", "name code type");
+     
+     if (!course) {
+       throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+     }
 
-    if (!course) {
-      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
-    }
-
-    ApiResponse.success(res, { course }, "Course fetched successfully");
-  } catch (error) {
-    console.error('[getCourseById] Error:', error);
-    next(error);
-  }
+     ApiResponse.success(res, { course }, "Course fetched successfully");
+   } catch (error) {
+     next(error);
+   }
 };
 
 

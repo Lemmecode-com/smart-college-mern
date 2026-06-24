@@ -192,12 +192,12 @@ exports.sendRegistrationSuccessEmail = async ({
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Registration success email sent", {
+logger.logInfo("Registration success email sent", {
       recipient: to.split("@")[0] + "@***",
     });
   } catch (error) {
-    logger.logError("❌ Failed to send registration email", {
-      error: error.message,
+    logger.logError("Failed to send registration email", {
+      code: error.code,
     });
   }
 };
@@ -350,10 +350,10 @@ exports.sendAdmissionApprovalEmail = async ({
     });
     return true;
   } catch (error) {
-    logger.logError("❌ Failed to send admission approval email", {
-      error: error.message,
+    logger.logError("Failed to send admission approval email", {
+      code: error.code,
     });
-    throw error;
+     throw error;
   }
 };
 
@@ -465,15 +465,15 @@ exports.sendAdmissionOfferEmail = async ({
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Admission offer email sent", {
+logger.logInfo("Admission offer email sent", {
       recipient: to.split("@")[0] + "@***",
     });
-    return true;
+     return true;
   } catch (error) {
-    logger.logError("❌ Failed to send admission offer email", {
-      error: error.message,
+    logger.logError("Failed to send admission offer email", {
+      code: error.code,
     });
-    throw error;
+     throw error;
   }
 };
 
@@ -549,14 +549,13 @@ exports.sendAdmissionRejectionEmail = async ({
     logger.logInfo("📧 [EMAIL SERVICE] Email sent successfully", {
       messageId: info.messageId,
     });
-    logger.logInfo("✅ Admission rejection email sent", {
+logger.logInfo("Admission rejection email sent", {
       recipient: to.split("@")[0] + "@***",
     });
-  } catch (error) {
-    logger.logError("❌ [EMAIL SERVICE] Failed to send email", {
-      error: error.message,
+   } catch (error) {
+    logger.logError("Failed to send admission rejection email", {
+      code: error.code,
     });
-    logger.logError("❌ [EMAIL SERVICE] Error stack", { error: error.stack });
     throw error; // Re-throw so the caller knows it failed
   }
 };
@@ -641,12 +640,12 @@ exports.sendLowAttendanceAlertEmail = async ({
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Low attendance alert sent", {
+    logger.logInfo("Low attendance alert sent", {
       recipient: to.split("@")[0] + "@***",
     });
   } catch (error) {
-    logger.logError("❌ Failed to send low attendance alert", {
-      error: error.message,
+    logger.logError("Failed to send low attendance alert", {
+      code: error.code,
     });
   }
 };
@@ -938,10 +937,10 @@ exports.sendStaffCredentialsEmail = async ({ to, name, temporaryPassword, colleg
   try {
     const info = await transporter.sendMail(mailOptions);
     logger.logInfo("✅ Staff credentials email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
-    return { success: true };
+     return { success: true };
   } catch (error) {
-    logger.logError("❌ Failed to send staff credentials email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
-    return { success: false, error: error.message };
+     logger.logError("Failed to send staff credentials email", { code: error.code, errno: error.errno, syscall: error.syscall });
+     return { success: false, error: "Email delivery failed" };
   }
 };
 
@@ -1014,10 +1013,10 @@ exports.sendParentAccountCreatedEmail = async ({
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Parent account creation email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+    logger.logInfo("Parent account creation email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
     return { success: true };
   } catch (error) {
-    logger.logError("❌ Failed to send parent account creation email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
-    return { success: false, error: error.message };
+    logger.logError("Failed to send parent account creation email", { code: error.code, errno: error.errno, syscall: error.syscall });
+    return { success: false, error: "Email delivery failed" };
   }
 };
