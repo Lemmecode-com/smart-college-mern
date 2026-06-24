@@ -61,9 +61,11 @@ exports.createAndSendOTP = async (email, userType = "User") => {
         collegeId: user?.college_id,
       });
       // console.log(`✅ Email sent to: ${email}`);
-} catch (emailError) {
-       console.warn("Email failed");
-     }
+    } catch (emailError) {
+      console.warn("⚠️  Email failed:", emailError.message);
+      // console.log(`🔑 OTP for ${email}: ${otp} (valid for 10 min)`);
+      // Don't fail the request if email fails - OTP is still stored in database
+    }
 
     // ✅ SECURITY: NEVER return OTP in API response
     // OTP should only be sent via email, not exposed in API

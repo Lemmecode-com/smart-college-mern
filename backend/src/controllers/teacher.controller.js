@@ -15,10 +15,9 @@ const {
 
 const generateTempPassword = (length = 10) => {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  const bytes = crypto.randomBytes(length);
   let password = "";
   for (let i = 0; i < length; i++) {
-    password += charset.charAt(bytes[i] % charset.length);
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
   }
   return password;
 };
@@ -139,12 +138,12 @@ exports.createTeacher = async (req, res, next) => {
       "Teacher created successfully",
     );
 
-sendStaffCredentialsEmail({
-       to: email,
-       name,
-       temporaryPassword: tempPassword,
-       collegeId: req.college_id,
-     }).catch((err) => console.error("Failed to send teacher credentials email"));
+    sendStaffCredentialsEmail({
+      to: email,
+      name,
+      temporaryPassword: tempPassword,
+      collegeId: req.college_id,
+    }).catch((err) => console.error("Failed to send teacher credentials email:", err.message));
   } catch (error) {
     next(error);
   }
