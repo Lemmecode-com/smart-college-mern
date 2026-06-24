@@ -19,13 +19,14 @@ jobs:
           request_pty: true
           command_timeout: 5m
           script: |
+            export PM2=/home/deploy/.nvm/versions/node/v20.20.2/bin/pm2
             cd /var/www/edu-novaa/repo
             echo "--- git pull ---"
             git pull origin Features
             echo "--- npm install ---"
             cd backend && npm install --production
             echo "--- pm2 restart ---"
-            pm2 restart smart-college-backend
+            $PM2 restart smart-college-backend
             echo "--- app logs (10s) ---"
-            sleep 10 && pm2 logs smart-college-backend --lines 30 --nostream
+            sleep 10 && $PM2 logs smart-college-backend --lines 30 --nostream
             echo "✅ Deploy complete"
