@@ -365,13 +365,14 @@ documentPaths[docType] = normalizePath(filePath);
       },
       "Registration successful. Await college approval.",
     );
-} catch (error) {
-     logger.logError("Student registration failed", {
-       controller: "student.controller",
-       action: "registerStudent",
-     });
-     next(error);
-   }
+  } catch (error) {
+    logger.logError("Student registration failed", {
+      controller: "student.controller",
+      action: "registerStudent",
+      error: error.message,
+    });
+    next(error);
+  }
 };
 
 /**
