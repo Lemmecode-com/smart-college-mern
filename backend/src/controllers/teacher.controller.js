@@ -1,3 +1,4 @@
+const crypto = require("crypto"); 
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
