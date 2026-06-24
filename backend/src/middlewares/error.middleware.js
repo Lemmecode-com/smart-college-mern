@@ -16,7 +16,6 @@ const errorHandler = (err, req, res, next) => {
   if (!isOperational || statusCode >= 500) {
     console.error("=".repeat(60));
     console.error("❌ [Error Handler]");
-    console.error("   - Message:", err.message);
     console.error("   - Code:", err.code || "UNKNOWN");
     console.error("   - StatusCode:", statusCode);
     console.error("   - Name:", err.name);

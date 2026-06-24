@@ -116,9 +116,9 @@ exports.sendLowAttendanceAlerts = async () => {
                 collegeId: student.college_id?._id || student.college_id,
               });
               alertCount++;
-            } catch (error) {
-              console.error(`Failed to send alert to ${student.email}:`, error.message);
-            }
+} catch (error) {
+               console.error("Failed to send low attendance alert email");
+             }
           }
         }
       }
@@ -126,12 +126,12 @@ exports.sendLowAttendanceAlerts = async () => {
       skip += BATCH_SIZE;
     } while (batch.length === BATCH_SIZE);
 
-    console.log(`✅ Low attendance alerts sent to ${alertCount} student(s)`);
-    return alertCount;
-  } catch (error) {
-    console.error("❌ Error in low attendance alert job:", error.message);
-    throw error;
-  }
+console.log(`Low attendance alerts sent to ${alertCount} student(s)`);
+     return alertCount;
+   } catch (error) {
+     console.error("Error in low attendance alert job");
+     throw error;
+   }
 };
 
 /**
