@@ -84,7 +84,6 @@ class ParentCreationService {
               } catch (emailError) {
                 logger.logError("Failed to send parent account creation email", {
                   parentEmail: fatherUser.email,
-                  error: emailError.message
                 });
               }
             })();
@@ -116,7 +115,6 @@ class ParentCreationService {
           logger.logError("Failed to create father user account", {
             studentId: student._id,
             parentEmail: student.fatherEmail,
-            error: error.message
           });
           // Continue with mother creation even if father fails
         }
@@ -173,7 +171,6 @@ class ParentCreationService {
               } catch (emailError) {
                 logger.logError("Failed to send parent account creation email", {
                   parentEmail: motherUser.email,
-                  error: emailError.message
                 });
               }
             })();
@@ -192,17 +189,16 @@ class ParentCreationService {
               existingUserId: existingMother._id
             });
           }
-        } catch (error) {
-          logger.logError("Failed to create mother user account", {
-            studentId: student._id,
-            parentEmail: student.motherEmail,
-            error: error.message
-          });
-          // Continue processing even if one parent fails
-        }
+         } catch (error) {
+           logger.logError("Failed to create mother user account", {
+             studentId: student._id,
+             parentEmail: student.motherEmail,
+           });
+           // Continue processing even if one parent fails
+         }
       }
 
-// Create ParentGuardian linking records
+      // Create ParentGuardian linking records
       for (const parent of parentUsers) {
         try {
           const parentId = parent.user._id;
@@ -251,13 +247,12 @@ class ParentCreationService {
               relation: parent.relation,
             });
           }
-        } catch (error) {
-          logger.logError("Failed to create/update ParentGuardian link", {
-            parentUserId: parent.user._id,
-            studentId: student._id,
-            error: error.message,
-          });
-        }
+         } catch (error) {
+           logger.logError("Failed to create/update ParentGuardian link", {
+             parentUserId: parent.user._id,
+             studentId: student._id,
+           });
+         }
       }
 
       logger.logInfo(`Parent account creation completed for student ${student.fullName}`, {
@@ -280,7 +275,6 @@ class ParentCreationService {
     } catch (error) {
       logger.logError("Parent creation service error", {
         studentId: student._id,
-        error: error.message,
         stack: error.stack
       });
       throw error;

@@ -159,7 +159,7 @@ exports.autoCloseAttendanceSessions = async () => {
 
       } catch (err) {
         errorCount++;
-        console.error(`   ❌ Error processing session ${session._id}:`, err.message);
+        console.error(`   ❌ Error processing session ${session._id}:`, err);
       }
     }
 
@@ -173,7 +173,7 @@ exports.autoCloseAttendanceSessions = async () => {
     // console.log('🕐 [Auto-Close] Job completed\n');
 
   } catch (error) {
-    console.error('❌ [Auto-Close] Job failed:', error.message);
+    console.error('❌ [Auto-Close] Job failed:', error);
     console.error(error.stack);
   }
 };
@@ -203,6 +203,6 @@ exports.cleanupOldSessions = async () => {
     // console.log('🧹 [Cleanup] Job completed\n');
 
   } catch (error) {
-    console.error('❌ [Cleanup] Job failed:', error.message);
+    console.error('❌ [Cleanup] Job failed:', error);
   }
 };
