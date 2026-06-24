@@ -16,25 +16,21 @@ class AuditLogService {
       const log = new AuditLog(auditData);
       await log.save();
 
-      logger.logInfo(
+logger.logInfo(
         `Audit Log: ${auditData.action} ${auditData.resourceType}`,
         {
           userId: auditData.userId,
-          userEmail: auditData.userEmail,
           resourceId: auditData.resourceId,
           collegeId: auditData.collegeId,
         },
       );
 
-      return log;
+       return log;
     } catch (error) {
-      // Don't throw - audit logging failure shouldn't break the primary operation
-      logger.logError("Failed to save audit log", {
-        error: error.message,
-        auditData,
-      });
-      console.error("❌ Failed to save audit log:", error.message);
-      return null;
+       // Don't throw - audit logging failure shouldn't break the primary operation
+       logger.logError("Failed to save audit log", {});
+       console.error("Failed to save audit log");
+       return null;
     }
   }
 
@@ -123,6 +119,66 @@ class AuditLogService {
         rejectionReason: reason,
         rejectedBy: user.id,
         rejectedAt: student.rejectedAt,
+      },
+    });
+  }
+
+  /**
+   * Log student offer made
+   */
+  async logStudentOfferMade(student, user, req) {
+    return await this.logAudit({
+      collegeId: student.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "OFFER_MADE",
+      resourceType: "StudentApproval",
+      resourceId: student._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        studentId: student._id,
+        studentName: student.fullName,
+        email: student.email,
+        courseId: student.course_id,
+        status: "OFFER_MADE",
+        offerMadeBy: user.id,
+        offerMadeAt: student.offerMadeAt,
+        enrollmentNumber: student.enrollmentNumber,
+      },
+    });
+  }
+
+  /**
+   * Log student enrollment
+   */
+  async logStudentEnrollment(student, user, req) {
+    return await this.logAudit({
+      collegeId: student.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "ENROLL_CONFIRMED",
+      resourceType: "StudentApproval",
+      resourceId: student._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        studentId: student._id,
+        studentName: student.fullName,
+        email: student.email,
+        status: "APPROVED",
+        enrollmentConfirmedAt: student.enrollmentConfirmedAt,
+        enrollmentDate: student.enrollmentDate,
+        approvedBy: student.approvedBy,
+        approvedAt: student.approvedAt,
       },
     });
   }
@@ -347,6 +403,331 @@ class AuditLogService {
       category: student.category,
       status: student.status,
     };
+  }
+
+  /**
+   * Log staff account creation
+   */
+  async logStaffCreated(user, targetUser, role, departmentId, employeeId, req, staffName = "") {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "STAFF_CREATED",
+      resourceType: "User",
+      resourceId: targetUser._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 201,
+      newValues: {
+        userId: targetUser._id,
+        name: staffName || targetUser.name,
+        email: targetUser.email,
+        role: role,
+        departmentId: departmentId || null,
+        employeeId: employeeId || null,
+        collegeId: user.college_id,
+      },
+    });
+  }
+
+  /**
+   * Log staff role change
+   */
+  async logStaffRoleChange(user, targetUserId, targetUserName, oldRole, newRole, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "STAFF_ROLE_CHANGED",
+      resourceType: "User",
+      resourceId: targetUserId,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        userId: targetUserId,
+        name: targetUserName,
+        role: oldRole,
+      },
+      newValues: {
+        userId: targetUserId,
+        name: targetUserName,
+        role: newRole,
+      },
+    });
+  }
+
+  /**
+   * Log staff profile update
+   */
+  async logStaffUpdated(user, targetUserId, targetUserName, changes, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "STAFF_UPDATED",
+      resourceType: "User",
+      resourceId: targetUserId,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: changes.oldValues || null,
+      newValues: changes.newValues || null,
+      metadata: {
+        changedFields: changes.changedFields || [],
+      },
+    });
+  }
+
+  /**
+   * Log staff password reset
+   */
+  async logStaffPasswordReset(user, targetUser, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "STAFF_PASSWORD_RESET",
+      resourceType: "User",
+      resourceId: targetUser._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        userId: targetUser._id,
+        email: targetUser.email,
+        role: targetUser.role,
+        mustChangePassword: true,
+      },
+    });
+  }
+
+  /**
+   * Log department creation
+   */
+  async logDepartmentCreated(user, department, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "DEPARTMENT_CREATED",
+      resourceType: "Department",
+      resourceId: department._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 201,
+      newValues: {
+        departmentId: department._id,
+        name: department.name,
+        code: department.code,
+        type: department.type,
+        hodId: department.hod_id || null,
+      },
+    });
+  }
+
+  /**
+   * Log department update
+   */
+  async logDepartmentUpdated(user, departmentId, departmentName, oldValues, newValues, req) {
+    const trackedFields = ["name", "code", "type", "status", "programsOffered", "sanctionedFacultyCount", "sanctionedStudentIntake"];
+    const oldFiltered = {};
+    const newFiltered = {};
+    const changedFields = [];
+
+    trackedFields.forEach((field) => {
+      if (oldValues[field] !== newValues[field]) {
+        changedFields.push(field);
+        oldFiltered[field] = oldValues[field];
+        newFiltered[field] = newValues[field];
+      }
+    });
+
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "DEPARTMENT_UPDATED",
+      resourceType: "Department",
+      resourceId: departmentId,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: Object.keys(oldFiltered).length > 0 ? oldFiltered : null,
+      newValues: Object.keys(newFiltered).length > 0 ? newFiltered : null,
+      metadata: {
+        changedFields,
+      },
+    });
+  }
+
+  /**
+   * Log department deletion
+   */
+  async logDepartmentDeleted(user, department, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "DEPARTMENT_DELETED",
+      resourceType: "Department",
+      resourceId: department._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        departmentId: department._id,
+        name: department.name,
+        code: department.code,
+        type: department.type,
+        hodId: department.hod_id || null,
+        createdAt: department.createdAt,
+      },
+    });
+  }
+
+  /**
+   * Log HOD assignment
+   */
+  async logHODAssigned(user, departmentId, departmentName, teacherId, teacherName, previousHodId, previousUserRole, newHodId, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "HOD_ASSIGNED",
+      resourceType: "Department",
+      resourceId: departmentId,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        hodId: previousHodId || null,
+        teacherUserRole: previousUserRole || null,
+      },
+      newValues: {
+        hodId: newHodId,
+        teacherId: teacherId,
+        teacherName: teacherName,
+        teacherUserRole: "HOD",
+      },
+      metadata: {
+        departmentName,
+      },
+    });
+  }
+
+  /**
+   * Log HOD removal
+   */
+  async logHODRemoved(user, departmentId, departmentName, previousHodId, previousHodName, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "HOD_ASSIGNED",
+      resourceType: "Department",
+      resourceId: departmentId,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        hodId: previousHodId,
+        teacherName: previousHodName,
+      },
+      newValues: {
+        hodId: null,
+        teacherUserRole: this._inferRoleFromTeacher(previousHodId),
+      },
+      metadata: {
+        departmentName,
+        note: "HOD unassigned from department",
+      },
+    });
+  }
+
+  async logCollegeDeactivated(user, college, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COLLEGE_DEACTIVATED",
+      resourceType: "College",
+      resourceId: college._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        collegeId: college._id,
+        collegeName: college.name,
+        collegeCode: college.code,
+        isActive: false,
+      },
+      metadata: {
+        note: "College deactivated by super admin",
+      },
+    });
+  }
+
+  async logCollegeRestored(user, college, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COLLEGE_RESTORED",
+      resourceType: "College",
+      resourceId: college._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      newValues: {
+        collegeId: college._id,
+        collegeName: college.name,
+        collegeCode: college.code,
+        isActive: true,
+      },
+      metadata: {
+        note: "College restored by super admin",
+      },
+    });
+  }
+
+  _inferRoleFromTeacher(teacherId) {
+    // Best-effort: we don't have teacher role info here; return null
+    return null;
   }
 
   /**

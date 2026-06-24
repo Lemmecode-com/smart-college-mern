@@ -55,14 +55,21 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => generateRateLimitKey(req),
-  handler: (req, res, next, options) => {
+  handler: (req, res) => {
     const identifier = req.user?.id ? `User:${req.user.id}` : `IP:${req.ip}`;
     logger.logWarning(`RATE LIMIT HIT - Global from ${identifier}`, {
-      identifier: req.user?.id || req.ip,
+      identifier,
       type: req.user?.id ? "user" : "ip",
       endpoint: req.originalUrl,
     });
-    res.status(options.statusCode).json(options.message);
+    res.status(429).json({
+      success: false,
+      message:
+        process.env.NODE_ENV === "development"
+          ? "Too many requests, please slow down (Development Mode)"
+          : "Too many requests, please try again after 5 minutes",
+      code: "RATE_LIMIT_EXCEEDED",
+    });
   },
 });
 
@@ -70,7 +77,8 @@ const globalLimiter = rateLimit({
  * Strict Rate Limiter - For authentication routes
  * For development: 30 requests per minute (easier testing)
  * For production: 5 requests per 15 minutes (security)
- * Always tracks by IP (users are not authenticated yet)
+ * Tracks by email when available, otherwise falls back to IP.
+ * This prevents distributed botnet/proxy attacks from bypassing account lockout.
  */
 const authLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
@@ -86,15 +94,28 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
-  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
-  handler: (req, res, next, options) => {
-    logger.logWarning(`RATE LIMIT HIT - Auth endpoint from IP: ${req.ip}`, {
-      ip: req.ip,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
+  keyGenerator: (req) => {
+    const email = req.body?.email?.trim().toLowerCase();
+    if (email) {
+      return `email:${email}`;
+    }
+    return `ip:${normalizeIp(req)}`;
+  },
+  handler: (req, res, next) => {
+    const email = req.body?.email?.trim().toLowerCase();
+    const identifier = email || req.ip;
+    const identifierType = email ? "email" : "ip";
+    const options = req.rateLimit;
+    const windowMs = typeof options?.windowMs === 'number' ? options.windowMs : (15 * 60 * 1000);
+    const max = typeof options?.max === 'number' ? options.max : 5;
+    logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
+      identifier,
+      type: identifierType,
+      window: `${windowMs / 60000} minutes`,
+      max,
       endpoint: "auth",
     });
-    res.status(options.statusCode).json({
+    res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
@@ -284,20 +305,58 @@ const webhookLimiter = rateLimit({
     }
     return `ip:${normalizeIp(req)}`;
   },
-  handler: (req, res, next, options) => {
-    logger.logWarning(`RATE LIMIT HIT - Webhook endpoint from IP: ${req.ip}`, {
+  handler: (req, res, next) => {
+    const options = req.rateLimit;
+    const windowMs = typeof options?.windowMs === 'number' ? options.windowMs : (60 * 60 * 1000);
+    const max = typeof options?.max === 'number' ? options.max : 3;
+    const identifier = req.user?.id ? `User:${req.user.id}` : `IP:${req.ip}`;
+    logger.logWarning(`RATE LIMIT HIT - Password Reset from ${identifier}`, {
       ip: req.ip,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
-      endpoint: "webhook",
-      stripeSignature: req.headers["stripe-signature"] ? "Present" : "Missing",
+      window: `${windowMs / 60000} minutes`,
+      max,
+      endpoint: "password-reset",
     });
-    res.status(options.statusCode).json({
+    res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
-          ? "Too many webhook requests, please wait 1 minute (Development Mode)"
-          : "Too many webhook requests, please try again after 5 minutes",
+          ? "Too many password reset requests, please wait 1 minute (Development Mode)"
+          : "Too many password reset requests, please try again after 1 hour",
+      code: "RATE_LIMIT_EXCEEDED",
+    });
+  },
+});
+
+/**
+ * Session/Auth Endpoint Rate Limiter
+ * For refresh tokens and change-password endpoints
+ * Higher than authLimiter because these fire on every page-load (refresh)
+ * and after first-login (change-password).
+ *
+ * For development: 500 requests per 5 minutes
+ * For production: 100 requests per 5 minutes
+ * Always tracks by IP.
+ */
+const sessionLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 500 : 100,
+  message: {
+    success: false,
+    message: "Too many auth requests, please try again after 5 minutes",
+    code: "RATE_LIMIT_EXCEEDED",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
+  handler: (req, res, next, options) => {
+    logger.logWarning(`RATE LIMIT HIT - Session endpoint from IP: ${req.ip}`, {
+      ip: req.ip,
+      endpoint: req.originalUrl,
+    });
+    res.status(options.statusCode).json({
+      success: false,
+      message: "Too many auth requests, please try again after 5 minutes",
       code: "RATE_LIMIT_EXCEEDED",
     });
   },
@@ -313,4 +372,5 @@ module.exports = {
   apiLimiter,
   publicLimiter,
   webhookLimiter,
+  sessionLimiter,
 };

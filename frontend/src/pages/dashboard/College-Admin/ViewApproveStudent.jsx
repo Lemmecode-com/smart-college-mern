@@ -8,6 +8,7 @@ import PropTypes from "prop-types";
 import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import useRole from "../../../hooks/useRole";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -257,15 +258,19 @@ DetailRow.defaultProps = {
 
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
   const fileName = getFileName(path);
-  // Use secure API endpoint for document access (authorization enforced)
-  const secureDocUrl = path
-    ? `${baseUrl}/students/documents/${getFileName(path)}`
-    : null;
+
+  const handleViewDocument = async (filename) => {
+    try {
+      const response = await api.get(`/students/documents/${filename}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Failed to load document");
+    }
+  };
 
   return (
     <tr className="detail-row">
@@ -277,16 +282,15 @@ function DocumentRow({ label, path, icon }) {
       </td>
       <td className="detail-value">
         {path ? (
-          <a
-            href={secureDocUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="document-link"
-            aria-label={`View ${label} (opens in new tab)`}
+          <button
+            onClick={() => handleViewDocument(fileName)}
+            className="document-link btn btn-link p-0"
+            aria-label={`View ${label}`}
+            type="button"
           >
             <FaExternalLinkAlt className="link-icon" aria-hidden="true" />
             {fileName || "View Document"}
-          </a>
+          </button>
         ) : (
           <span
             className="document-not-uploaded"
@@ -375,7 +379,7 @@ FeeCard.defaultProps = {
 };
 
 /* ---- InstallmentTable Component ---- */
-function InstallmentTable({ installments, studentId, onMarkPaid }) {
+function InstallmentTable({ installments, studentId, onMarkPaid, canMarkPaid }) {
   if (!installments || installments.length === 0) {
     return (
       <EmptyState
@@ -400,7 +404,7 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
             <th scope="col">Status</th>
-            <th scope="col">Action</th>
+            {onMarkPaid && <th scope="col">Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -416,21 +420,21 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
                   type={inst.status.toLowerCase()}
                 />
               </td>
-              <td>
-                {inst.status === "PENDING" ? (
-                  <button
-                    className="mark-paid-btn"
-                    onClick={() => onMarkPaid(inst)}
-                    aria-label={`Mark ${inst.name} as paid`}
-                    title="Mark as Paid (Offline)"
-                  >
-                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
-                    Mark Paid
-                  </button>
-                ) : (
-                  <span className="no-action-text">-</span>
-                )}
-              </td>
+               <td>
+                 {inst.status === "PENDING" && canMarkPaid ? (
+                   <button
+                     className="mark-paid-btn"
+                     onClick={() => onMarkPaid(inst)}
+                     aria-label={`Mark ${inst.name} as paid`}
+                     title="Mark as Paid (Offline)"
+                   >
+                     <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                     Mark Paid
+                   </button>
+                 ) : (
+                   <span className="no-action-text">-</span>
+                 )}
+               </td>
             </tr>
           ))}
         </tbody>
@@ -451,6 +455,7 @@ InstallmentTable.propTypes = {
   ).isRequired,
   studentId: PropTypes.string.isRequired,
   onMarkPaid: PropTypes.func.isRequired,
+  canMarkPaid: PropTypes.bool,
 };
 
 /* ---- Skeleton Components ---- */
@@ -1109,8 +1114,9 @@ function LoadingDisplay() {
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
   const { user } = useContext(AuthContext);
-  const { id } = useParams();
+  const { id: studentId } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1126,7 +1132,7 @@ export default function ViewApproveStudent() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(id));
+      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(studentId));
 
       // API returns: { student: {...}, fee: {...} }
       const studentData =
@@ -1150,13 +1156,13 @@ export default function ViewApproveStudent() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [studentId]);
 
-  useEffect(() => {
-    if (user?.role === "COLLEGE_ADMIN") {
-      fetchStudent();
-    }
-  }, [fetchStudent, user]);
+    useEffect(() => {
+      if ((user?.role === "COLLEGE_ADMIN" || user?.role === "ACCOUNTANT" || user?.role === "ADMISSION_OFFICER" || user?.role === "PRINCIPAL") && studentId) {
+        fetchStudent();
+      }
+    }, [fetchStudent, user, studentId]);
 
   /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
   // Open Mark Paid modal
@@ -1202,10 +1208,14 @@ export default function ViewApproveStudent() {
     setSelectedInstallment(null);
   }, []);
 
-  /* ================= SECURITY CHECK ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" replace />;
+    /* ================= SECURITY CHECK ================= */
+    if (!user) return <Navigate to="/login" replace />;
+    // Allow COLLEGE_ADMIN, ACCOUNTANT, ADMISSION_OFFICER, PRINCIPAL
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "ADMISSION_OFFICER" && user.role !== "PRINCIPAL")
+      return <Navigate to="/dashboard" replace />;
+
+   // Admission Officers can view but cannot mark payments as paid
+   const canMarkPaid = user?.role !== "ADMISSION_OFFICER";
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1408,9 +1418,9 @@ export default function ViewApproveStudent() {
                 <FaBookOpen className="meta-icon" aria-hidden="true" />
                 {student.course_id?.name || "N/A"}
               </span>
-              <span className="status-badge status-approved">
+              <span className={`status-badge status-${student.status?.toLowerCase() || 'approved'}`}>
                 <FaCheckCircle className="status-icon" aria-hidden="true" />
-                APPROVED
+                {student.status || "APPROVED"}
               </span>
             </div>
           </div>
@@ -1788,6 +1798,7 @@ export default function ViewApproveStudent() {
                 installments={feeData?.installments || []}
                 studentId={student._id}
                 onMarkPaid={handleMarkPaid}
+                canMarkPaid={canEdit('fee-structure')}
               />
             </div>
           </InfoCard>

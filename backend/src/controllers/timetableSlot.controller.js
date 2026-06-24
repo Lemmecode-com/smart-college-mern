@@ -4,6 +4,7 @@ const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
+const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -21,6 +22,7 @@ exports.addSlot = async (req, res, next) => {
       teacher_id,
       room,
       slotType,
+      division,
     } = req.body;
 
     const collegeId = req.college_id;
@@ -50,6 +52,8 @@ exports.addSlot = async (req, res, next) => {
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
+
+    assertTimetableMutable(timetable, "slot");
 
     /* ================= SUBJECT VALIDATION ================= */
     const subject = await Subject.findOne({
@@ -84,6 +88,15 @@ exports.addSlot = async (req, res, next) => {
     }
 
     console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${subject.name}`);
+
+    /* ================= DIVISION CONSISTENCY CHECK ================= */
+    if (division && timetable.division && division !== timetable.division) {
+      throw new AppError(
+        `Slot division "${division}" does not match timetable division "${timetable.division}"`,
+        400,
+        "DIVISION_MISMATCH",
+      );
+    }
 
     /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
@@ -137,6 +150,7 @@ exports.addSlot = async (req, res, next) => {
       endTime,
       room,
       slotType,
+      division: division || null,
     });
 
     res.status(201).json({
@@ -144,7 +158,11 @@ exports.addSlot = async (req, res, next) => {
       slot,
     });
   } catch (error) {
-    next(error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
+    console.error("Add Slot Error:", error);
+    res.status(500).json({ message: "Failed to add slot" });
   }
 };
 
@@ -161,19 +179,21 @@ exports.updateSlot = async (req, res, next) => {
     }
 
     /* STEP 1: Find slot */
-    const slot = await TimetableSlot.findById(slotId);
+    const slot = await TimetableSlot.findOne({ _id: slotId, college_id: req.college_id });
     if (!slot) {
       throw new AppError("Slot not found", 404, "SLOT_NOT_FOUND");
     }
 
     /* STEP 2: Find timetable */
-    const timetable = await Timetable.findById(slot.timetable_id);
+    const timetable = await Timetable.findOne({ _id: slot.timetable_id, college_id: req.college_id });
     if (!timetable) {
       throw new AppError("Timetable not found", 404, "TIMETABLE_NOT_FOUND");
     }
 
+    assertTimetableMutable(timetable, "slot");
+
     /* STEP 3: Verify Teacher */
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    const teacher = await Teacher.findOne({ user_id: req.user.id, college_id: req.college_id });
     if (!teacher) {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
@@ -182,20 +202,35 @@ exports.updateSlot = async (req, res, next) => {
     const department = await Department.findOne({
       _id: timetable.department_id,
       hod_id: teacher._id,
+      college_id: req.college_id,
     });
 
     if (!department) {
       throw new AppError("Access denied: Only HOD can update timetable slots", 403, "HOD_ONLY");
     }
 
-    /* STEP 5: If teacher_id is being updated, validate it matches subject's teacher */
+    /* STEP 5: If division is being updated, validate it matches timetable's division */
+    if (req.body.division !== undefined && timetable.division) {
+      if (req.body.division && req.body.division !== timetable.division) {
+        throw new AppError(
+          `Slot division "${req.body.division}" does not match timetable division "${timetable.division}"`,
+          400,
+          "DIVISION_MISMATCH",
+        );
+      }
+    }
+
+    /* STEP 6: If teacher_id is being updated, validate it matches subject's teacher */
     if (req.body.teacher_id) {
-      const newTeacher = await Teacher.findById(req.body.teacher_id);
+      const newTeacher = await Teacher.findOne({ _id: req.body.teacher_id, college_id: req.college_id });
       if (!newTeacher) {
         throw new AppError("New teacher not found", 404, "TEACHER_NOT_FOUND");
       }
 
-      const subject = await Subject.findById(slot.subject_id);
+      const subject = await Subject.findOne({
+        _id: slot.subject_id,
+        college_id: req.college_id,
+      });
       if (!subject) {
         throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
       }
@@ -212,8 +247,8 @@ exports.updateSlot = async (req, res, next) => {
     }
 
     /* STEP 5: Update slot (NO publish restriction now) */
-    const updatedSlot = await TimetableSlot.findByIdAndUpdate(
-      slotId,
+    const updatedSlot = await TimetableSlot.findOneAndUpdate(
+      { _id: slotId, college_id: req.college_id },
       req.body,
       { new: true }
     );
@@ -224,6 +259,9 @@ exports.updateSlot = async (req, res, next) => {
     });
 
   } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
     console.error("Update Slot Error:", error);
     res.status(500).json({ message: "Failed to update slot" });
   }
@@ -241,19 +279,21 @@ exports.deleteTimetableSlot = async (req, res) => {
     }
 
     /* STEP 1: Find slot */
-    const slot = await TimetableSlot.findById(slotId);
+    const slot = await TimetableSlot.findOne({ _id: slotId, college_id: req.college_id });
     if (!slot) {
       return res.status(404).json({ message: "Slot not found" });
     }
 
     /* STEP 2: Find timetable */
-    const timetable = await Timetable.findById(slot.timetable_id);
+    const timetable = await Timetable.findOne({ _id: slot.timetable_id, college_id: req.college_id });
     if (!timetable) {
       return res.status(404).json({ message: "Timetable not found" });
     }
 
+    assertTimetableMutable(timetable, "slot");
+
     /* STEP 3: Verify Teacher */
-    const teacher = await Teacher.findOne({ user_id: req.user.id });
+    const teacher = await Teacher.findOne({ user_id: req.user.id, college_id: req.college_id });
     if (!teacher) {
       return res.status(403).json({
         message: "Teacher profile not found",
@@ -264,6 +304,7 @@ exports.deleteTimetableSlot = async (req, res) => {
     const department = await Department.findOne({
       _id: timetable.department_id,
       hod_id: teacher._id,
+      college_id: req.college_id,
     });
 
     if (!department) {
@@ -280,6 +321,9 @@ exports.deleteTimetableSlot = async (req, res) => {
     });
 
   } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
     console.error("Delete Slot Error:", error);
     res.status(500).json({ message: "Failed to delete timetable slot" });
   }

@@ -12,6 +12,7 @@ const {
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
+const { randomUUID } = require("crypto");
 
 /**
  * Create Stripe checkout session using college-specific Stripe configuration
@@ -95,6 +96,21 @@ exports.createCheckoutSession = async (req, res, next) => {
       );
     }
 
+    // Validate installment order: Previous installments must be paid
+    const installmentOrder = installment.order || 0;
+    if (installmentOrder > 1) {
+      const unpaidPrevious = studentFee.installments.some(
+        (i) => i.order < installmentOrder && i.status !== "PAID",
+      );
+      if (unpaidPrevious) {
+        throw new AppError(
+          "Cannot pay this installment. Previous installments are still pending.",
+          400,
+          "PREVIOUS_INSTALLMENTS_PENDING",
+        );
+      }
+    }
+
     // 🔒 RECOVERY: Check if there's already an active session for this installment
     // NOTE: Stripe doesn't return the checkout URL when retrieving existing sessions,
     // so we always create a new session instead of trying to reuse old ones.
@@ -143,10 +159,9 @@ exports.createCheckoutSession = async (req, res, next) => {
     }
 
     // 🔒 IDEMPOTENCY: Generate unique key to prevent duplicate sessions
-    // Format: stripe_checkout_{studentId}_{installmentId}_{hourTimestamp}
-    // Hour-based timestamp ensures new session each hour while preventing duplicates within same hour
-    const hourTimestamp = Math.floor(Date.now() / (60 * 60 * 1000));
-    const idempotencyKey = `stripe_checkout_${student._id}_${installment._id}_${hourTimestamp}`;
+    // Format: stripe_checkout_{studentId}_{installmentId}_{uniqueId}
+    // Using UUID ensures unique idempotency key for every checkout session creation
+    const idempotencyKey = `stripe_checkout_${student._id}_${installment._id}_${randomUUID()}`;
 
     logger.logInfo("🔒 Generated idempotency key for Stripe session", {
       studentId: student._id,
@@ -248,14 +263,12 @@ exports.confirmStripePayment = async (req, res, next) => {
     const collegeId = req.college_id;
     const { sessionId } = req.body;
 
-    if (!sessionId) {
-      throw new AppError("Session ID is required", 400, "SESSION_ID_REQUIRED");
-    }
-
+    const confirmStartTime = Date.now();
     logger.logInfo("🔵 Confirming Stripe payment", {
       userId,
       collegeId,
       sessionId,
+      confirmStartTime,
     });
 
     // Get college-specific Stripe instance
@@ -276,6 +289,7 @@ exports.confirmStripePayment = async (req, res, next) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(
       session.payment_intent,
     );
+
     if (paymentIntent.status !== "succeeded") {
       logger.logWarning("⚠️ PaymentIntent not succeeded", {
         sessionId,
@@ -352,14 +366,17 @@ exports.confirmStripePayment = async (req, res, next) => {
     }
 
     // 🆕 Step 5: ATOMIC UPDATE (prevent race conditions with webhook)
-    // Only update if status is still PENDING
+    // Only update if status is still PENDING (primary idempotency guard)
+    // Note: stripeSessionId was set during createCheckoutSession, so $ne check is INVALID
+
+    const updateQuery = {
+      _id: studentFee._id,
+      "installments._id": installment._id,
+      "installments.status": "PENDING",
+    };
+
     const updateResult = await StudentFee.updateOne(
-      {
-        _id: studentFee._id,
-        "installments._id": installment._id,
-        "installments.status": "PENDING",
-        "installments.stripeSessionId": { $ne: sessionId },
-      },
+      updateQuery,
       {
         $set: {
           "installments.$.status": "PAID",
@@ -370,13 +387,6 @@ exports.confirmStripePayment = async (req, res, next) => {
         },
       },
     );
-
-    logger.logInfo("🔒 Atomic confirm-payment update completed", {
-      studentId: student._id,
-      matchedCount: updateResult.matchedCount,
-      modifiedCount: updateResult.modifiedCount,
-      sessionId,
-    });
 
     // If no documents matched, webhook already processed this
     if (updateResult.matchedCount === 0) {

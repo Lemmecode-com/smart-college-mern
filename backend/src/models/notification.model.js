@@ -10,7 +10,7 @@ const notificationSchema = new mongoose.Schema(
 
     createdByRole: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "TEACHER"],
+      enum: ["COLLEGE_ADMIN", "TEACHER", "HOD"],
       required: true,
     },
 
@@ -116,5 +116,26 @@ notificationSchema.index({ college_id: 1, target_semester: 1 }); // Semester tar
 // Optimized compound index for dashboard queries
 notificationSchema.index({ college_id: 1, target: 1, isActive: 1 }); // Exact match for dashboard
 notificationSchema.index({ college_id: 1, isActive: 1, createdAt: -1 }); // Active notifications sorted
+// Index for INDIVIDUAL targeting
+notificationSchema.index({ college_id: 1, target_users: 1 }); // Individual user targeting
+// Unique index to prevent duplicate notifications for same workflow action
+notificationSchema.index(
+  {
+    college_id: 1,
+    createdByRole: 1,
+    target: 1,
+    target_users: 1,
+    title: 1,
+    createdAt: 1
+  },
+  {
+    name: "idx_notification_dedupe",
+    unique: true,
+    partialFilterExpression: {
+      target: "INDIVIDUAL",
+      isActive: true
+    }
+  }
+);
 
 module.exports = mongoose.model("Notification", notificationSchema);

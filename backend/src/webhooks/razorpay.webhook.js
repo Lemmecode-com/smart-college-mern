@@ -164,25 +164,24 @@ exports.handleRazorpayWebhook = async (req, res) => {
 
     res.status(200).json({ received: true });
   } catch (error) {
-    logger.logError("Webhook processing error", {
-      error: error.message,
-      stack: error.stack,
-      collegeId,
-    });
+logger.logError("Webhook processing error", {
+       stack: error.stack,
+       collegeId,
+     });
 
-    // Check if it's a config error (college may have deleted Razorpay)
-    if (error.message.includes("config not found")) {
-      logger.logWarning(
-        "Razorpay config not found for college - webhook ignored",
-        {
-          collegeId,
-        },
-      );
-      return res.status(200).json({ received: true });
-    }
+     // Check if it's a config error (college may have deleted Razorpay)
+     if (error.message && error.message.includes("config not found")) {
+       logger.logWarning(
+         "Razorpay config not found for college - webhook ignored",
+         {
+           collegeId,
+         },
+       );
+       return res.status(200).json({ received: true });
+     }
 
-    res.status(500).json({ error: error.message });
-  }
+     res.status(500).json({ error: "Internal server error" });
+   }
 };
 
 /**
@@ -259,6 +258,7 @@ async function handlePaymentCaptured(payload, collegeId) {
             totalFee: studentFee.totalFee,
             paidAmount: studentFee.paidAmount,
             remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+            collegeId,
           });
 
           // Mark email as sent
@@ -386,6 +386,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeId,
       });
 
       // Mark email as sent in database
@@ -554,6 +555,7 @@ async function handleOrderPaid(payload, collegeId) {
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        collegeId,
       });
       logger.logInfo("Receipt email sent successfully (order.paid)", {
         to: student.email,
@@ -642,6 +644,7 @@ async function handlePaymentFailed(payload, collegeId) {
           errorCode: payment.entity.error_code,
           errorDescription: payment.entity.error_description,
         },
+        collegeId,
       });
       logger.logInfo("Payment failure notification sent", {
         to: student.email,

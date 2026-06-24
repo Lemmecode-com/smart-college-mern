@@ -827,3 +827,40 @@
     transform: none;
   }
 }
+
+/* ================= REGISTRATION LINK CARD ================= */
+.registration-link-card {
+  position: relative;
+  cursor: pointer;
+  transition: all var(--transition-slow);
+}
+
+.registration-link-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.copy-link-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a4b6d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.copy-link-btn:hover {
+  background: #1a4b6d;
+  color: white;
+  transform: scale(1.05);
+}

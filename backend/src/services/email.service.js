@@ -1,35 +1,16 @@
 const nodemailer = require("nodemailer");
 const logger = require("../utils/logger");
+const { getCollegeTransporter, getGlobalTransporter } = require("./collegeEmail.service");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed certificates
-  },
-});
-
-// ✅ Test email connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    logger.logError("❌ Email transporter verification failed", {
-      error: error.message,
-    });
-    logger.logError("❌ Check EMAIL_USER and EMAIL_PASS in .env file");
-  } else {
-    logger.logInfo("✅ Email transporter ready and connected");
+exports.sendPaymentReminderEmail = async ({ to, studentName, installment, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
   }
-});
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
 
-exports.sendPaymentReminderEmail = async ({ to, studentName, installment }) => {
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: "Fee Payment Reminder",
     html: `
@@ -39,7 +20,7 @@ exports.sendPaymentReminderEmail = async ({ to, studentName, installment }) => {
       <b>${installment.dueDate.toDateString()}</b>.</p>
       <p>Please log in to the portal and complete the payment.</p>
       <br/>
-      <p>Regards,<br/>College ERP Team</p>
+      <p>Regards,<br/>${fromName}</p>
     `,
   };
 
@@ -56,9 +37,17 @@ exports.sendPaymentReceiptEmail = async ({
   totalFee,
   paidAmount,
   remainingAmount,
+  collegeId,
+  attachments = [],
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: "Payment Receipt - College Fee",
     html: `
@@ -113,9 +102,10 @@ exports.sendPaymentReceiptEmail = async ({
         </p>
         
         <br/>
-        <p>Regards,<br/><b>College ERP Team</b></p>
+        <p>Regards,<br/><b>${fromName}</b></p>
       </div>
     `,
+    attachments: Array.isArray(attachments) ? attachments : [],
   };
 
   await transporter.sendMail(mailOptions);
@@ -130,9 +120,16 @@ exports.sendRegistrationSuccessEmail = async ({
   collegeName,
   courseName,
   admissionYear,
+  collegeId,
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `📝 Registration Successful - ${collegeName}`,
     html: `
@@ -195,12 +192,12 @@ exports.sendRegistrationSuccessEmail = async ({
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Registration success email sent", {
+logger.logInfo("Registration success email sent", {
       recipient: to.split("@")[0] + "@***",
     });
   } catch (error) {
-    logger.logError("❌ Failed to send registration email", {
-      error: error.message,
+    logger.logError("Failed to send registration email", {
+      code: error.code,
     });
   }
 };
@@ -217,9 +214,16 @@ exports.sendAdmissionApprovalEmail = async ({
   enrollmentNumber,
   loginUrl,
   email,
+  collegeId,
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `🎉 Admission Approved - ${collegeName}`,
     html: `
@@ -346,10 +350,130 @@ exports.sendAdmissionApprovalEmail = async ({
     });
     return true;
   } catch (error) {
-    logger.logError("❌ Failed to send admission approval email", {
-      error: error.message,
+    logger.logError("Failed to send admission approval email", {
+      code: error.code,
     });
-    throw error;
+     throw error;
+  }
+};
+
+/**
+ * Send Admission Offer Email
+ * Sent when student status changes to OFFER_MADE
+ */
+exports.sendAdmissionOfferEmail = async ({
+  to,
+  studentName,
+  courseName,
+  collegeName,
+  admissionYear,
+  enrollmentNumber,
+  loginUrl,
+  email,
+  collegeId,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `🎫 Admission Offer - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎫 Admission Offer</h1>
+          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your seat is reserved</p>
+        </div>
+
+        <div style="padding: 30px; background: #ffffff; border: 1px solid #e0e0e0;">
+          <p style="font-size: 16px; color: #333;">Dear <strong>${studentName}</strong>,</p>
+          
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            We are pleased to offer you admission to <strong>${courseName}</strong> for the academic year <strong>${admissionYear}</strong>.
+          </p>
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <h3 style="margin-top: 0; color: #1f6f8b; font-size: 18px;">📋 Offer Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>College:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Course:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${courseName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6;"><strong>Enrollment Number:</strong></td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #dee2e6; text-align: right;"><strong>${enrollmentNumber}</strong></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0;"><strong>Status:</strong></td>
+                <td style="padding: 10px 0; text-align: right;"><span style="color: #ffc107; font-weight: bold;">OFFER MADE</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="margin-top: 0; color: #856404;">⚠️ Next Steps</h4>
+            <ol style="margin: 10px 0; padding-left: 20px; color: #495057;">
+              <li>Log in to the student portal using your credentials</li>
+              <li>Review and confirm your enrollment</li>
+              <li>Complete fee payment to finalize admission</li>
+              <li>Complete your profile and upload any pending documents</li>
+            </ol>
+          </div>
+
+          <div style="text-align: center; margin: 25px 0;">
+            <a href="${loginUrl}"
+               style="background: linear-gradient(135deg, #1f6f8b 0%, #134952 100%); 
+                      color: white; 
+                      padding: 15px 40px; 
+                      text-decoration: none; 
+                      border-radius: 8px; 
+                      font-weight: 600; 
+                      font-size: 16px;
+                      display: inline-block;">
+              🚀 Login to Student Portal
+            </a>
+          </div>
+
+          <p style="color: #666; font-size: 14px;">
+            Please complete your enrollment within 7 days by logging in and confirming your acceptance.
+          </p>
+
+          <p style="color: #333; margin-top: 30px;">
+            Regards,<br/>
+            <strong>Admissions Team</strong><br/>
+            ${collegeName}
+          </p>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0; border-top: none;">
+          <p style="color: #999; font-size: 12px; margin: 0;">
+            This is an automated message. Please do not reply to this email.<br/>
+            © ${new Date().getFullYear()} ${collegeName}. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+logger.logInfo("Admission offer email sent", {
+      recipient: to.split("@")[0] + "@***",
+    });
+     return true;
+  } catch (error) {
+    logger.logError("Failed to send admission offer email", {
+      code: error.code,
+    });
+     throw error;
   }
 };
 
@@ -361,7 +485,14 @@ exports.sendAdmissionRejectionEmail = async ({
   studentName,
   collegeName,
   reason,
+  collegeId,
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   logger.logInfo("📧 [EMAIL SERVICE] sendAdmissionRejectionEmail called", {
     recipient: to.split("@")[0] + "@***",
   });
@@ -418,14 +549,13 @@ exports.sendAdmissionRejectionEmail = async ({
     logger.logInfo("📧 [EMAIL SERVICE] Email sent successfully", {
       messageId: info.messageId,
     });
-    logger.logInfo("✅ Admission rejection email sent", {
+logger.logInfo("Admission rejection email sent", {
       recipient: to.split("@")[0] + "@***",
     });
-  } catch (error) {
-    logger.logError("❌ [EMAIL SERVICE] Failed to send email", {
-      error: error.message,
+   } catch (error) {
+    logger.logError("Failed to send admission rejection email", {
+      code: error.code,
     });
-    logger.logError("❌ [EMAIL SERVICE] Error stack", { error: error.stack });
     throw error; // Re-throw so the caller knows it failed
   }
 };
@@ -440,9 +570,16 @@ exports.sendLowAttendanceAlertEmail = async ({
   courseName,
   collegeName,
   minimumRequired = 75,
+  collegeId,
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `⚠️ Low Attendance Alert - ${collegeName}`,
     html: `
@@ -503,12 +640,12 @@ exports.sendLowAttendanceAlertEmail = async ({
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Low attendance alert sent", {
+    logger.logInfo("Low attendance alert sent", {
       recipient: to.split("@")[0] + "@***",
     });
   } catch (error) {
-    logger.logError("❌ Failed to send low attendance alert", {
-      error: error.message,
+    logger.logError("Failed to send low attendance alert", {
+      code: error.code,
     });
   }
 };
@@ -524,9 +661,16 @@ exports.sendLowAttendanceAlertToParents = async ({
   courseName,
   collegeName,
   minimumRequired = 75,
+  collegeId,
 }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `⚠️ Low Attendance Alert - ${studentName} - ${collegeName}`,
     html: `
@@ -594,9 +738,15 @@ exports.sendLowAttendanceAlertToParents = async ({
 /**
  * Send OTP Email for Password Reset
  */
-exports.sendOTPEmail = async ({ to, otp, userType, expiresIn }) => {
+exports.sendOTPEmail = async ({ to, otp, userType, expiresIn, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+  
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: `Password Reset OTP - College ERP`,
     html: `
@@ -648,80 +798,225 @@ exports.sendEmailToCollegeAdmin = async ({
   collegeName,
   subject,
   message,
+  collegeId,
 }) => {
+  const { transporter, fromEmail } = await getGlobalTransporter();
+
   const mailOptions = {
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: `"NOVAA" <${fromEmail}>`,
     to,
-    subject: subject || `Regarding ${collegeName} - Smart College Management`,
+    subject: subject || `Welcome to NOVAA`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">📧 Message from Super Admin</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">Smart College Management System</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #1a4b6d; text-align: center;">Welcome to NOVAA</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1a4b6d;">
+          <p style="margin: 0; color: #333; white-space: pre-wrap; font-size: 15px; line-height: 1.6;">${message}</p>
         </div>
-
-        <!-- Body -->
-        <div style="padding: 30px; background: #ffffff; border: 1px solid #e0e0e0;">
-          <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Dear College Admin,</p>
-
-          <p style="font-size: 15px; color: #555; line-height: 1.6;">
-            You have received the following message regarding <strong>${collegeName}</strong>:
-          </p>
-
-          <!-- Message Box -->
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #1a4b6d;">
-            <p style="margin: 0; color: #333; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${message}</p>
-          </div>
-
-          <!-- Action Required -->
-          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h4 style="margin-top: 0; color: #1565c0; font-size: 16px;">📌 Action Required</h4>
-            <p style="color: #555; font-size: 14px; margin-bottom: 0;">
-              Please review the message above and take appropriate action. If you need any assistance, 
-              feel free to reach out to the support team.
-            </p>
-          </div>
-
-          <!-- Support -->
-          <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800;">
-            <p style="margin: 0; color: #e65100; font-size: 14px;">
-              <strong>💡 Need Help?</strong> Contact support at 
-              <a href="mailto:${process.env.SUPPORT_EMAIL || "support@smartcollege.com"}" style="color: #e65100;">
-                ${process.env.SUPPORT_EMAIL || "support@smartcollege.com"}
-              </a>
-            </p>
-          </div>
-
-          <p style="color: #666; font-size: 14px; margin-top: 25px;">
-            Best regards,<br/>
-            <strong>Super Admin Team</strong><br/>
-            Smart College Management System
-          </p>
-        </div>
-
-        <!-- Footer -->
-        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0; border-top: none;">
-          <p style="color: #999; font-size: 12px; margin: 0;">
-            This is an automated message from Smart College Management System.<br/>
-            © ${new Date().getFullYear()} All rights reserved.
-          </p>
-        </div>
+        <p style="color: #6c757d; font-size: 12px; text-align: center; margin-top: 20px;">Best Regards,<br/><strong>NOVAA (SUPERADMIN)</strong></p>
       </div>
     `,
   };
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    logger.logInfo("✅ Email sent to college admin", {
+    logger.logInfo("Email sent to college admin", {
       recipient: to.split("@")[0] + "@***",
       messageId: info.messageId,
     });
     return true;
   } catch (error) {
-    logger.logError("❌ Failed to send email to college admin", {
+    logger.logError("Failed to send email to college admin", {
       error: error.message,
     });
     throw error;
+  }
+};
+
+
+/**
+ * Send Account Status Change Email (Deactivation/Reactivation Notification)
+ */
+exports.sendAccountStatusEmail = async ({
+  to,
+  studentName,
+  collegeName,
+  status,
+  reason,
+  collegeId,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const isDeactivated = status === "DEACTIVATED";
+  const statusText = isDeactivated ? "Deactivated" : "Reactivated";
+  const statusColor = isDeactivated ? "#dc3545" : "#28a745";
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `Account ${statusText} - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: ${statusColor};">Account ${statusText}</h2>
+        <p>Dear <b>${studentName}</b>,</p>
+        <p>Your account has been <b style="color: ${statusColor};">${statusText}</b> at <b>${collegeName}</b>.</p>
+        ${reason ? `<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;"><h4>Reason</h4><p>${reason}</p></div>` : ""}
+        ${isDeactivated ? `<p>Contact the college administrator for reactivation.</p>` : `<p><b>Your account is now active!</b> You can log in to the student portal.</p>`}
+        <p style="color: #6c757d; font-size: 12px;">This is an automated message.</p>
+      </div>
+    `,
+  };
+
+  logger.logInfo("📧 Attempting to send email", { to, from: mailOptions.from, host: transporter.options.host });
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Account status email sent", { recipient: to.split("@")[0] + "@***", status, messageId: info.messageId });
+  } catch (error) {
+    logger.logError("❌ Failed to send account status email", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
+  }
+};
+
+/**
+ * Send Staff/Teacher Credentials Email
+ */
+exports.sendStaffCredentialsEmail = async ({ to, name, temporaryPassword, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: "Your Account Has Been Created - Action Required",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #1a4b6d; text-align: center;">Welcome to the College Management System</h2>
+
+        <p>Dear ${name},</p>
+
+        <p>Your account has been created by the college administration. You can now log in to the portal using the credentials below.</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #1a4b6d;">Your Account Details:</h3>
+          <p><strong>Email:</strong> ${to}</p>
+          <p><strong>Role:</strong> Staff/Teacher</p>
+          <p><strong>Temporary Password:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: monospace;">${temporaryPassword}</code></p>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #856404;">⚠️ Important: Change Your Password</h4>
+          <p>For security reasons, you must change your temporary password on your first login.</p>
+          <p>Please log in to the portal and update your password immediately.</p>
+        </div>
+
+        <h3>What you can do in the portal:</h3>
+        <ul>
+          <li>View and manage your profile information</li>
+          <li>Mark and review attendance</li>
+          <li>Access your timetable and schedule</li>
+          <li>View attendance reports</li>
+          <li>Receive important notifications and announcements</li>
+        </ul>
+
+        <p>If you have any questions or need assistance, please contact the college administration.</p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="text-align: center; color: #666; font-size: 14px;">
+          This is an automated message from ${fromName}. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Staff credentials email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+     return { success: true };
+  } catch (error) {
+     logger.logError("Failed to send staff credentials email", { code: error.code, errno: error.errno, syscall: error.syscall });
+     return { success: false, error: "Email delivery failed" };
+  }
+};
+
+/**
+ * Send Parent Account Creation Email
+ */
+exports.sendParentAccountCreatedEmail = async ({
+  to,
+  parentName,
+  studentName,
+  loginUrl,
+  tempPassword,
+  collegeId,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: "Parent Portal Account Created - Action Required",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #286079; text-align: center;">Welcome to Parent Portal</h2>
+
+        <p>Dear ${parentName},</p>
+
+        <p>A parent account has been created for you in our College Management System to help you stay connected with your child's academic progress.</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #286079;">Your Account Details:</h3>
+          <p><strong>Student:</strong> ${studentName}</p>
+          <p><strong>Email:</strong> ${to}</p>
+          <p><strong>Role:</strong> Parent/Guardian</p>
+          <p><strong>Temporary Password:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px; font-family: monospace;">${tempPassword}</code></p>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #856404;">⚠️ Important: Change Your Password</h4>
+          <p>For security reasons, you must change your temporary password on first login.</p>
+          <p><strong>Please click the link below to login and set a new password:</strong></p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${loginUrl}" style="background: #286079; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Login to Parent Portal</a>
+          </p>
+        </div>
+
+        <h3>What you can do in the Parent Portal:</h3>
+        <ul>
+          <li>View your child's academic profile and progress</li>
+          <li>Monitor attendance records</li>
+          <li>Check fee payment status and history</li>
+          <li>Receive important notifications and announcements</li>
+          <li>Stay updated with college events and activities</li>
+        </ul>
+
+        <p>If you have any questions or need assistance, please contact the college administration.</p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="text-align: center; color: #666; font-size: 14px;">
+          This is an automated message from ${fromName}. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  };
+
+  logger.logInfo("📧 Attempting to send parent account creation email", { to, from: mailOptions.from, host: transporter.options.host });
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("Parent account creation email sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+    return { success: true };
+  } catch (error) {
+    logger.logError("Failed to send parent account creation email", { code: error.code, errno: error.errno, syscall: error.syscall });
+    return { success: false, error: "Email delivery failed" };
   }
 };

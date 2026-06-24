@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import {
@@ -12,16 +11,13 @@ import {
   FaCheckCircle,
   FaTrash,
   FaPlus,
-  FaUpload,
   FaInfoCircle,
-  FaFileUpload,
   FaImages,
   FaFilePdf,
   FaFileWord,
 } from "react-icons/fa";
 
 export default function DocumentSettings() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [documents, setDocuments] = useState([]);
@@ -81,14 +77,7 @@ export default function DocumentSettings() {
     },
   ];
 
-  const [availableFormats] = useState([
-    "pdf",
-    "jpg",
-    "jpeg",
-    "png",
-    "doc",
-    "docx",
-  ]);
+  const availableFormats = ["pdf", "jpg", "jpeg", "png", "doc", "docx"];
 
   useEffect(() => {
     loadDocumentConfig();
@@ -179,7 +168,7 @@ export default function DocumentSettings() {
   };
 
   const removeDocument = (index) => {
-    if (documents[index].type.includes("custom_")) {
+    if (documents[index].type.startsWith("custom_") && documents[index].type !== "custom_document") {
       const updated = documents.filter((_, i) => i !== index);
       setDocuments(updated);
       setIsModified(true);
