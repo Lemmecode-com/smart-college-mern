@@ -37,7 +37,7 @@ exports.getDocumentConfig = async (req, res) => {
       isDefault: false
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -70,7 +70,7 @@ exports.getDocumentConfigForAdmin = async (req, res) => {
 
     res.json({ config });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -180,7 +180,7 @@ exports.upsertDocumentConfig = async (req, res) => {
       config
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -213,7 +213,7 @@ exports.resetToEmpty = async (req, res) => {
       config
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -260,6 +260,6 @@ exports.validateDocuments = async (req, res) => {
       message: "All required documents uploaded"
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };

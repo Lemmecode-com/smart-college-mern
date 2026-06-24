@@ -1,6 +1,8 @@
 const collegeEmailService = require('../services/collegeEmail.service');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
+const { decrypt, getMasterKey } = require('../utils/encryption.util');
+const CollegeEmailConfig = require('../models/collegeEmailConfig.model');
 
 /**
  * Get email configuration for the current college
@@ -95,27 +97,37 @@ exports.verifyEmailConfig = async (req, res, next) => {
   try {
     const collegeId = req.college_id;
     const { smtp, credentials, fromName, fromEmail, testEmail } = req.body;
-    
-    if (!smtp?.host || !smtp?.port || !credentials?.user || !credentials?.pass) {
-      throw new AppError('SMTP host, port, username, and password are required', 400, 'VALIDATION_ERROR');
+
+    if (!smtp?.host || !smtp?.port || !credentials?.user) {
+      throw new AppError('SMTP host, port, and username are required', 400, 'VALIDATION_ERROR');
     }
-    
+
     if (!fromName || !fromEmail) {
       throw new AppError('From name and email are required', 400, 'VALIDATION_ERROR');
     }
-    
+
     if (!testEmail) {
       throw new AppError('Test email address is required for verification', 400, 'VALIDATION_ERROR');
     }
-    
-    const result = await collegeEmailService.verifyCollegeEmailConfig({
-      smtp,
-      credentials,
-      fromName,
-      fromEmail,
-      testEmail,
-    });
-    
+
+    let verifyData = { smtp, credentials, fromName, fromEmail, testEmail };
+
+    if (!credentials?.pass) {
+      const existingConfig = await CollegeEmailConfig.findOne({ collegeId, isActive: true }).select('+credentials.pass');
+      if (existingConfig?.credentials?.pass) {
+        const masterKey = getMasterKey();
+        const decryptedPass = decrypt(existingConfig.credentials.pass, masterKey);
+        verifyData = {
+          ...verifyData,
+          credentials: { ...credentials, pass: decryptedPass },
+        };
+      } else {
+        throw new AppError('Password is required. Please save the configuration first or enter the password.', 400, 'VALIDATION_ERROR');
+      }
+    }
+
+    const result = await collegeEmailService.verifyCollegeEmailConfig(verifyData);
+
     if (result.success) {
       await collegeEmailService.markConfigVerified(collegeId, req.user._id);
       res.status(200).json({ success: true, message: result.message, verified: true });
