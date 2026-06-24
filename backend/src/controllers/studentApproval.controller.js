@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
@@ -37,30 +36,36 @@ exports.approveStudent = async (req, res, next) => {
     }
 
     // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
-if (!student.user_id) {
-       console.log("Student missing user_id. Creating User account...");
+    if (!student.user_id) {
+      console.log(
+        `⚠️  Student ${student.email} missing user_id. Creating User account...`,
+      );
 
-       const existingUser = await User.findOne({ email: student.email });
+      // Check if User already exists with this email
+      const existingUser = await User.findOne({ email: student.email });
 
-       if (existingUser) {
-         student.user_id = existingUser._id;
-         await student.save();
-         console.log("Linked existing User to student");
-       } else {
-         tempPassword = "TempPass" + crypto.randomBytes(6).toString("hex").slice(0, 8);
+      if (existingUser) {
+        // Link existing User to student
+        student.user_id = existingUser._id;
+        await student.save();
+        console.log(`✅ Linked existing User ${existingUser._id} to student`);
+      } else {
+        // Create new User account
+        // Generate a temporary password (student will reset via forgot password)
+        tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
 
-         const newUser = await User.create({
-           name: student.fullName,
-           email: student.email,
-           password: tempPassword,
-           role: "STUDENT",
-           college_id: student.college_id,
-         });
+        const newUser = await User.create({
+          name: student.fullName,
+          email: student.email,
+          password: tempPassword,
+          role: "STUDENT",
+          college_id: student.college_id,
+        });
 
-         student.user_id = newUser._id;
-         await student.save();
-         console.log("Created new User for student");
-       }
+        student.user_id = newUser._id;
+        await student.save();
+        console.log(`✅ Created new User ${newUser._id} for student`);
+      }
     }
 
     // 2️⃣ Validate course
@@ -200,11 +205,11 @@ if (!student.user_id) {
         loginUrl,
         email: student.email,
         collegeId: student.college_id,
-});
-      console.log("Admission offer email sent");
-     } catch (e) {
-       console.error("Admission offer email failed");
-     }
+      });
+      console.log(`📧 Admission offer email sent to ${student.email}`);
+    } catch (e) {
+      console.error("❌ Admission offer email failed:", e.message);
+    }
 
     const message = emailResult.success
       ? "Admission offer made successfully"
@@ -284,9 +289,9 @@ exports.bulkApproveStudents = async (req, res, next) => {
           if (existingUser) {
             student.user_id = existingUser._id;
             await student.save();
-} else {
-             const tempPassword =
-               "TempPass" + crypto.randomBytes(6).toString("hex").slice(0, 8);
+          } else {
+            const tempPassword =
+              "TempPass" + Math.random().toString(36).slice(-8);
             const newUser = await User.create({
               name: student.fullName,
               email: student.email,
@@ -427,13 +432,13 @@ exports.bulkApproveStudents = async (req, res, next) => {
         (async () => {
           try {
             bulkParentResult = await parentCreationService.createParentUsers(student);
-if (bulkParentResult.count > 0) {
-               console.log(`Bulk: Created ${bulkParentResult.count} parent accounts`);
-             }
-           } catch (error) {
-             console.error("Bulk: Failed to create parent accounts");
-             bulkParentResult = { count: 0, parents: [], error: "Parent creation failed" };
-           }
+            if (bulkParentResult.count > 0) {
+              console.log(`✅ Bulk: Created ${bulkParentResult.count} parent accounts for ${student.fullName}`);
+            }
+          } catch (error) {
+            console.error(`❌ Bulk: Failed to create parent accounts for ${student.fullName}:`, error.message);
+            bulkParentResult = { count: 0, parents: [], error: error.message };
+          }
         })();
 
         // ── 11. Send offer email (non-blocking) ──
@@ -457,9 +462,9 @@ if (bulkParentResult.count > 0) {
               collegeId: student.college_id,
             });
           } catch (e) {
-console.error("Bulk offer email failed");
-           }
-         })();
+            console.error("❌ Bulk offer email failed:", e.message);
+          }
+        })();
 
         results.approved.push({
           studentId: student._id,
@@ -470,9 +475,9 @@ console.error("Bulk offer email failed");
             parents: bulkParentResult.parents
           } : null,
         });
-} catch (err) {
-         results.failed.push({ studentId, reason: "Processing failed" });
-       }
+      } catch (err) {
+        results.failed.push({ studentId, reason: err.message || "Unknown" });
+      }
     }
 
     // 📝 Audit log - Bulk student approval
@@ -555,13 +560,14 @@ exports.rejectStudent = async (req, res, next) => {
           canReapply: student.canReapply,
           collegeId: student.college_id,
         });
-console.log("Admission rejection email sent");
-       } catch (emailError) {
-         console.error(
-           "Failed to send admission rejection email",
-         );
-       }
-     })();
+        console.log(`✅ Admission rejection email sent to ${student.email}`);
+      } catch (emailError) {
+        console.error(
+          "❌ Failed to send admission rejection email:",
+          emailError.message,
+        );
+      }
+    })();
 
     // 🔔 Create in-app notification (if User exists)
     try {
@@ -579,12 +585,15 @@ console.log("Admission rejection email sent");
         actionUrl: allowReapply ? `/register/${student.college_id}` : undefined,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
       });
-console.log("In-app notification created");
-     } catch (notifError) {
-       console.error(
-         "Failed to create in-app notification",
-       );
-     }
+      console.log(
+        `🔔 In-app notification created for student ${student.email}`,
+      );
+    } catch (notifError) {
+      console.error(
+        "❌ Failed to create in-app notification:",
+        notifError.message,
+      );
+    }
 
     res.json({
       message: "Student rejected successfully",
@@ -648,13 +657,16 @@ exports.confirmEnrollment = async (req, res, next) => {
     let parentCreationResult = null;
     try {
       parentCreationResult = await parentCreationService.createParentUsers(student);
-if (parentCreationResult.count > 0) {
-         console.log("Created parent accounts");
-       }
-     } catch (error) {
-       console.error("Failed to create parent accounts");
-       parentCreationResult = { count: 0, parents: [], error: "Parent creation failed" };
-     }
+      if (parentCreationResult.count > 0) {
+        console.log(`✅ Created ${parentCreationResult.count} parent accounts for ${student.fullName}`);
+      }
+    } catch (error) {
+      console.error(
+        "❌ Failed to create parent accounts:",
+        error.message,
+      );
+      parentCreationResult = { count: 0, parents: [], error: error.message };
+    }
 
     // 📝 Audit log - Enrollment confirmed
     auditLogService
@@ -681,11 +693,11 @@ if (parentCreationResult.count > 0) {
           email: student.email,
           collegeId: student.college_id,
         });
-console.log("Enrollment confirmation email sent");
-       } catch (e) {
-         console.error("Enrollment email failed");
-       }
-     })();
+        console.log(`📧 Enrollment confirmation email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Enrollment email failed:", e.message);
+      }
+    })();
 
     res.json({
       message: "Enrollment confirmed successfully",

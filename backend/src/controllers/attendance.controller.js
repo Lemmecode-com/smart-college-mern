@@ -396,7 +396,7 @@ exports.getAttendanceSessionById = async (req, res) => {
 
     res.json(session);
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -496,9 +496,9 @@ exports.getStudentsForAttendance = async (req, res) => {
       status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id fullName email");
 
-res.status(200).json(students);
+    res.status(200).json(students);
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message });
   }
 };
 

@@ -16,21 +16,25 @@ class AuditLogService {
       const log = new AuditLog(auditData);
       await log.save();
 
-logger.logInfo(
+      logger.logInfo(
         `Audit Log: ${auditData.action} ${auditData.resourceType}`,
         {
           userId: auditData.userId,
+          userEmail: auditData.userEmail,
           resourceId: auditData.resourceId,
           collegeId: auditData.collegeId,
         },
       );
 
-       return log;
+      return log;
     } catch (error) {
-       // Don't throw - audit logging failure shouldn't break the primary operation
-       logger.logError("Failed to save audit log", {});
-       console.error("Failed to save audit log");
-       return null;
+      // Don't throw - audit logging failure shouldn't break the primary operation
+      logger.logError("Failed to save audit log", {
+        error: error.message,
+        auditData,
+      });
+      console.error("❌ Failed to save audit log:", error.message);
+      return null;
     }
   }
 
