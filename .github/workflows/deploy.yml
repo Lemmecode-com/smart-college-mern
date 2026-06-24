@@ -26,4 +26,6 @@ jobs:
             cd backend && npm install --production
             echo "--- pm2 restart ---"
             pm2 restart smart-college-backend
+            echo "--- app logs (10s) ---"
+            sleep 10 && pm2 logs smart-college-backend --lines 30 --nostream
             echo "✅ Deploy complete"
