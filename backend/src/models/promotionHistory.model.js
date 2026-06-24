@@ -54,6 +54,30 @@ const promotionHistorySchema = new mongoose.Schema({
     default: 0,
   },
 
+  attendancePercentage: {
+    type: Number,
+    default: 0,
+  },
+  attendanceStatus: {
+    type: String,
+    enum: ["ELIGIBLE", "NOT_ELIGIBLE", "ATTENDANCE_NOT_AVAILABLE"],
+    required: true,
+    default: "ATTENDANCE_NOT_AVAILABLE",
+  },
+  attendanceCheckedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  attendanceOverridden: {
+    type: Boolean,
+    default: false,
+  },
+  attendanceOverrideReason: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+
   // Promotion decision
   promotedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -84,6 +108,26 @@ const promotionHistorySchema = new mongoose.Schema({
   isFinalSemesterPromotion: {
     type: Boolean,
     default: false,
+  },
+
+  // Fee assignment tracking after promotion
+  newFeeAssigned: {
+    type: Boolean,
+    default: false,
+  },
+  newFeeStructureId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "FeeStructure",
+    default: null,
+  },
+  newStudentFeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "StudentFee",
+    default: null,
+  },
+  feeAssignmentWarning: {
+    type: String,
+    default: null,
   },
 }, { timestamps: true });
 

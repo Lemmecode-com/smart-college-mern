@@ -79,11 +79,11 @@ exports.autoCloseAttendanceSessions = async () => {
           continue;
         }
 
-        // ✅ Step 4: Get all students for this course
+        // ✅ Step 4: Get all students for this course (include APPROVED and ENROLLED)
         const students = await Student.find({
           college_id: session.college_id,
           course_id: session.course_id,
-          status: 'APPROVED'
+          status: { $in: ['APPROVED', 'ENROLLED'] }
         });
 
         // console.log(`   📚 Total students: ${students.length}`);
@@ -159,7 +159,7 @@ exports.autoCloseAttendanceSessions = async () => {
 
       } catch (err) {
         errorCount++;
-        console.error(`   ❌ Error processing session ${session._id}:`, err.message);
+        console.error(`   ❌ Error processing session ${session._id}:`, err);
       }
     }
 
@@ -173,7 +173,7 @@ exports.autoCloseAttendanceSessions = async () => {
     // console.log('🕐 [Auto-Close] Job completed\n');
 
   } catch (error) {
-    console.error('❌ [Auto-Close] Job failed:', error.message);
+    console.error('❌ [Auto-Close] Job failed:', error);
     console.error(error.stack);
   }
 };
@@ -203,6 +203,6 @@ exports.cleanupOldSessions = async () => {
     // console.log('🧹 [Cleanup] Job completed\n');
 
   } catch (error) {
-    console.error('❌ [Cleanup] Job failed:', error.message);
+    console.error('❌ [Cleanup] Job failed:', error);
   }
 };
