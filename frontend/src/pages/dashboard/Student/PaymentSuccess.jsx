@@ -10,12 +10,9 @@ import "react-toastify/dist/ReactToastify.css";
 import {
   FaCheckCircle,
   FaTimesCircle,
-  FaSpinner,
-  FaMoneyBillWave,
   FaArrowLeft,
   FaExclamationTriangle,
   FaCreditCard,
-  FaInfoCircle,
 } from "react-icons/fa";
 
 export default function PaymentSuccess() {
@@ -24,28 +21,15 @@ export default function PaymentSuccess() {
   const navigate = useNavigate();
 
   const sessionId = searchParams.get("session_id");
-  const paymentId = searchParams.get("payment_id");
   const paymentGateway = searchParams.get("gateway") || "stripe";
 
   const [loading, setLoading] = useState(true);
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
 
-  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
-  // Wait for auth to finish loading before any redirects
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT")
-    return <Navigate to="/student/dashboard" replace />;
-
-  /* ================= POLL FOR PAYMENT STATUS (STRIPE WEBHOOK FLOW) ================= */
+  /* ================= CONFIRM STRIPE PAYMENT (IMMEDIATE VERIFICATION) ================= */
   useEffect(() => {
-    // Only run for Stripe payments (Razorpay has its own useEffect below)
     if (!sessionId || paymentGateway === "razorpay") {
-      // Don't set error for Razorpay - it has its own flow
       if (paymentGateway !== "razorpay") {
         setError("No session ID provided");
         setLoading(false);
@@ -53,11 +37,38 @@ export default function PaymentSuccess() {
       return;
     }
 
-    const pollPaymentStatus = async () => {
-      const maxAttempts = 15; // 30 seconds total (2s intervals)
-      let attempts = 0;
+    let attempts = 0;
+    let statusInterval;
 
-      const interval = setInterval(async () => {
+    const confirmAndPollPaymentStatus = async () => {
+      const maxAttempts = 15;
+
+      // Step 1: Immediately confirm payment with Stripe (PRIMARY)
+      try {
+        const confirmRes = await api.post("/stripe/confirm-payment", { sessionId });
+
+        if (confirmRes.data?.installment?.status === "PAID") {
+          setPayment({
+            ...confirmRes.data.installment,
+            paymentGateway: confirmRes.data.installment.paymentGateway || "STRIPE",
+            totalFee: confirmRes.data.totalFee,
+            paidAmount: confirmRes.data.paidAmount,
+            remainingAmount: confirmRes.data.remainingAmount,
+          });
+          toast.success("Payment confirmed successfully!", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaCheckCircle />,
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (confirmErr) {
+        // Confirm endpoint failed - fall through to webhook polling
+      }
+
+      // Step 2: Poll for webhook status (FALLBACK)
+      statusInterval = setInterval(async () => {
         attempts++;
 
         try {
@@ -66,7 +77,7 @@ export default function PaymentSuccess() {
           );
 
           if (res.data.status === "PAID") {
-            clearInterval(interval);
+            clearInterval(statusInterval);
             setPayment({
               ...res.data,
               paymentGateway: res.data.paymentGateway || "STRIPE",
@@ -78,7 +89,7 @@ export default function PaymentSuccess() {
             });
             setLoading(false);
           } else if (attempts >= maxAttempts) {
-            clearInterval(interval);
+            clearInterval(statusInterval);
             setError(
               "Payment is still processing. Please check back in a few moments.",
             );
@@ -86,7 +97,7 @@ export default function PaymentSuccess() {
           }
         } catch (err) {
           if (attempts >= maxAttempts) {
-            clearInterval(interval);
+            clearInterval(statusInterval);
             const errorMsg =
               err.response?.data?.message || "Payment confirmation timeout";
             setError(errorMsg);
@@ -98,19 +109,18 @@ export default function PaymentSuccess() {
             setLoading(false);
           }
         }
-      }, 2000); // Poll every 2 seconds
-
-      return () => clearInterval(interval);
+      }, 2000);
     };
 
-    pollPaymentStatus();
+    confirmAndPollPaymentStatus();
+
+    return () => clearInterval(statusInterval);
   }, [sessionId]);
 
   /* ================= POLL FOR PAYMENT STATUS (RAZORPAY WEBHOOK FLOW) ================= */
   useEffect(() => {
     if (paymentGateway !== "razorpay") return;
 
-    // orderId is saved on the installment at createRazorpayOrder time
     const orderId = searchParams.get("order_id");
     if (!orderId) {
       setError("No order ID provided");
@@ -119,7 +129,7 @@ export default function PaymentSuccess() {
     }
 
     const pollRazorpayPaymentStatus = async () => {
-      const maxAttempts = 30; // 60 seconds total (2s intervals)
+      const maxAttempts = 30;
       let attempts = 0;
 
       const interval = setInterval(async () => {
@@ -170,6 +180,15 @@ export default function PaymentSuccess() {
 
     pollRazorpayPaymentStatus();
   }, [paymentGateway, searchParams]);
+
+  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
+  if (authLoading) {
+    return <Loading fullScreen text="Verifying your session..." />;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "STUDENT")
+    return <Navigate to="/student/dashboard" replace />;
 
   /* ================= LOADING UI ================= */
   if (loading) {
@@ -275,7 +294,6 @@ export default function PaymentSuccess() {
     <div className="payment-success-wrapper">
       <ToastContainer position="top-right" />
       <div className="success-card">
-        {/* SUCCESS ICON */}
         <div className="success-icon-wrapper">
           <FaCheckCircle className="success-icon" />
         </div>
@@ -285,7 +303,6 @@ export default function PaymentSuccess() {
           Your payment has been processed securely.
         </p>
 
-        {/* PAYMENT GATEWAY BADGE */}
         {paymentGateway && (
           <div className="gateway-badge-wrapper">
             <span className={`gateway-badge ${paymentGateway.toLowerCase()}`}>
@@ -304,25 +321,24 @@ export default function PaymentSuccess() {
           </div>
         )}
 
-        {/* INSTALLMENT INFO */}
         <div className="payment-info">
           <div className="info-row">
             <span>Installment</span>
-            <strong>{payment?.installment?.name}</strong>
+            <strong>{payment?.installmentName}</strong>
           </div>
 
           <div className="info-row">
             <span>Amount Paid</span>
             <strong className="text-success">
-              ₹{payment?.installment?.amount?.toLocaleString()}
+              ₹{payment?.amount?.toLocaleString()}
             </strong>
           </div>
 
           <div className="info-row">
             <span>Paid On</span>
             <strong>
-              {payment?.installment?.paidAt
-                ? new Date(payment.installment.paidAt).toLocaleString("en-IN")
+              {payment?.paidAt
+                ? new Date(payment.paidAt).toLocaleString("en-IN")
                 : "N/A"}
             </strong>
           </div>
@@ -330,7 +346,7 @@ export default function PaymentSuccess() {
           <div className="info-row">
             <span>Transaction ID</span>
             <strong className="transaction-id">
-              {payment?.installment?.transactionId || "N/A"}
+              {payment?.transactionId || "N/A"}
             </strong>
             {paymentGateway === "RAZORPAY" && payment?.paymentId && (
               <div className="razorpay-payment-id">
@@ -340,7 +356,6 @@ export default function PaymentSuccess() {
           </div>
         </div>
 
-        {/* SUMMARY BOX */}
         <div className="summary-grid">
           <div className="summary-box total">
             <h4>₹{payment?.totalFee?.toLocaleString()}</h4>
@@ -358,7 +373,6 @@ export default function PaymentSuccess() {
           </div>
         </div>
 
-        {/* ACTION BUTTONS */}
         <div className="action-buttons">
           <button
             className="btn-outline"
@@ -370,11 +384,8 @@ export default function PaymentSuccess() {
           <button
             className="btn-primary"
             onClick={() => {
-              const installmentId =
-                payment?.installment?._id ||
-                window.history.state?.usr?.paymentData?.installment?._id;
-              if (installmentId) {
-                navigate(`/student/fee-receipt/${installmentId}`);
+              if (payment?.installmentId) {
+                navigate(`/student/fee-receipt/${payment.installmentId}`);
               } else {
                 toast.error(
                   "Receipt ID not found. Please go back and try again.",

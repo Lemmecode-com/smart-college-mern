@@ -4,18 +4,23 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { ROLE } = require("../utils/constants");
 const {
   createAdminNotification,
   createTeacherNotification,
   getStudentNotifications,
   getTeacherNotifications,
+  getHodNotifications,
   getAdminNotifications,
+  getNotificationById,
   updateNotification,
   deleteNotification,
   getAdminNotificationCount,
   getTeacherNotificationCount,
+  getHodNotificationCount,
   getStudentNotificationCount,
   markAsRead,
+  markAllAsRead,
   getUnreadForBell,
   sendPromotionNotification,
 } = require("../controllers/notification.controller");
@@ -39,7 +44,7 @@ router.post(
 router.get(
   "/admin/read",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotifications,
 );
@@ -50,6 +55,14 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getTeacherNotifications,
+);
+
+router.get(
+  "/hod/read",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotifications,
 );
 
 router.get(
@@ -64,7 +77,7 @@ router.get(
 router.get(
   "/count/admin",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotificationCount,
 );
@@ -78,6 +91,15 @@ router.get(
   getTeacherNotificationCount,
 );
 
+// HOD
+router.get(
+  "/count/hod",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotificationCount,
+);
+
 // Student
 router.get(
   "/count/student",
@@ -89,7 +111,11 @@ router.get(
 
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
 
-router.post("/:notificationId/mark-read", auth, markAsRead);
+router.get("/:notificationId", auth, collegeMiddleware, getNotificationById);
+
+router.post("/:notificationId/mark-read", auth, collegeMiddleware, markAsRead);
+
+router.post("/mark-all-read", auth, collegeMiddleware, markAllAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);

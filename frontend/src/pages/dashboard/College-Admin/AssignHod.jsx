@@ -133,10 +133,13 @@ export default function AssignHod() {
               </div>
               <div className="col-md-6">
                 <p><strong>Status:</strong> {department.status}</p>
-                <p>
-                  <strong>Current HOD:</strong>{" "}
-                  {department.hod_id ? "Assigned" : "Not Assigned"}
-                </p>
+<p>
+                   <strong>Current HOD:</strong>{" "}
+                   {department.hod_id ? (
+                     typeof department.hod_id === 'object' 
+                       ? `${department.hod_id.name} (${department.hod_id.email})` 
+                       : "Assigned") : "Not Assigned"}
+                 </p>
               </div>
             </div>
 

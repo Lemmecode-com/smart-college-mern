@@ -21,13 +21,13 @@ const { STUDENT_STATUS, CATEGORY, GENDER } = require("../utils/constants");
 const studentSchema = new mongoose.Schema(
   {
     // 🔗 User Reference (Links to User collection)
-    // FIX: Issue #1 - Make user_id required to ensure consistent authentication
+    // NOTE: Not required - existing students may lack user_id during migration
+    // The approval flow creates Users for students missing user_id
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Student must have a linked User account"],
       unique: true,
-      sparse: true // Allows documents without user_id during migration
+      sparse: true, // Allows documents without user_id during migration
     },
 
     // 🔗 College Mapping
@@ -138,6 +138,12 @@ const studentSchema = new mongoose.Schema(
       default: 1
     },
 
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     previousQualification: String,
     previousInstitute: String,
 
@@ -160,8 +166,10 @@ const studentSchema = new mongoose.Schema(
     // 👨‍👩‍👧 Parent/Guardian Details
     fatherName: String,
     fatherMobile: String,
+    fatherEmail: String,
     motherName: String,
     motherMobile: String,
+    motherEmail: String,
 
     // 📚 10th (SSC) Academic Details
     sscSchoolName: String,
@@ -260,8 +268,14 @@ const studentSchema = new mongoose.Schema(
     // 🔐 System
     status: {
       type: String,
-      enum: Object.values(STUDENT_STATUS),
+      enum: [...Object.values(STUDENT_STATUS), "INACTIVE"],
       default: STUDENT_STATUS.PENDING,
+    },
+
+    // Tracks pre-suspension status so restore returns student to correct state
+    suspendedFromStatus: {
+      type: String,
+      default: null,
     },
 
     // 🎓 Alumni Information
@@ -282,12 +296,39 @@ const studentSchema = new mongoose.Schema(
       default: "SELF",
     },
 
+    enrollmentNumber: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows existing docs without it during migration
+    },
+
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
 
     approvedAt: {
+      type: Date,
+    },
+
+    offerMadeAt: {
+      type: Date,
+    },
+
+    offerMadeBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    seatConfirmedAt: {
+      type: Date,
+    },
+
+    enrollmentConfirmedAt: {
+      type: Date,
+    },
+
+    enrollmentDate: {
       type: Date,
     },
 
@@ -353,12 +394,13 @@ studentSchema.pre('save', async function(next) {
 studentSchema.index({ college_id: 1, email: 1 }, { unique: true });
 
 // ⚡ PERFORMANCE: Indexes for common queries
-studentSchema.index({ college_id: 1, status: 1 }); // Filter by college and status
-studentSchema.index({ college_id: 1, department_id: 1 }); // Department-wise students
-studentSchema.index({ college_id: 1, course_id: 1 }); // Course-wise students
-studentSchema.index({ user_id: 1 }); // Student lookup by user_id
-studentSchema.index({ college_id: 1, currentSemester: 1 }); // Semester-wise students
-studentSchema.index({ college_id: 1, currentYear: 1 }); // Year-wise students
-studentSchema.index({ status: 1, admissionYear: 1 }); // Admission year filtering
+studentSchema.index({ college_id: 1, status: 1 });
+studentSchema.index({ college_id: 1, department_id: 1 });
+studentSchema.index({ college_id: 1, course_id: 1 });
+studentSchema.index({ user_id: 1 });
+studentSchema.index({ college_id: 1, currentSemester: 1 });
+studentSchema.index({ college_id: 1, currentYear: 1 });
+studentSchema.index({ status: 1, admissionYear: 1 });
+studentSchema.index({ college_id: 1, course_id: 1, currentSemester: 1, division: 1 });
 
 module.exports = mongoose.model("Student", studentSchema);

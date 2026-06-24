@@ -6,6 +6,7 @@ import { exportToPDF, exportToExcel } from "../../../utils/exportHelpers";
 import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import useRole from "../../../hooks/useRole";
 import {
   FaMoneyBillWave,
   FaLayerGroup,
@@ -308,7 +309,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
               const isOverdue = relativeTime.type === 'overdue';
               
               return (
-                <tr key={installment._id || index} className={isOverdue ? 'row-overdue' : ''}>
+                <tr key={installment._id || installment.name || `installment-${index}`} className={isOverdue ? 'row-overdue' : ''}>
                   <td className="cell-index">{index + 1}</td>
                   <td className="cell-name">{installment.name}</td>
                   <td className="cell-amount text-end">{formatCurrency(installment.amount)}</td>
@@ -351,7 +352,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
           const isOverdue = getRelativeTime(installment.dueDate).type === 'overdue';
           return (
             <InstallmentCard
-              key={installment._id || index}
+              key={installment._id || installment.name || `installment-card-${index}`}
               installment={installment}
               index={index}
               isOverdue={isOverdue}
@@ -421,9 +422,9 @@ export default function ViewFeeStructure() {
   const [exporting, setExporting] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
 
-  /* ================= SECURITY & VALIDATION ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN) return <Navigate to="/dashboard" replace />;
+   /* ================= SECURITY & VALIDATION ================= */
+   if (!user) return <Navigate to="/login" replace />;
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   const isIdValid = useMemo(() => {
     if (!id) return false;

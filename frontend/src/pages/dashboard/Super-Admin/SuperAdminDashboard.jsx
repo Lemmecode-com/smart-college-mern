@@ -433,6 +433,30 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => navigate("/super-admin/platform-support-config")}
+            role="button"
+            tabIndex={0}
+            aria-label="Platform Support Configuration"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/super-admin/platform-support-config");
+              }
+            }}
+          >
+            <div className="quick-action-icon support">
+              <FaCog />
+            </div>
+            <div className="quick-action-content">
+              <div className="quick-action-title">Platform Support Config</div>
+              <div className="quick-action-description">
+                Manage support dashboard features
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1543,6 +1567,12 @@ export default function SuperAdminDashboard() {
           background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: #ffffff;
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .quick-action-icon.support {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
         .quick-action-content {
