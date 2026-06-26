@@ -17,6 +17,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           request_pty: true
+          timeout: 60s
           command_timeout: 10m
           script: |
             set -e
@@ -25,6 +26,11 @@ jobs:
             export PM2=/home/deploy/.nvm/versions/node/v20.20.2/bin/pm2
 
             cd /var/www/edu-novaa/repo
+
+            echo "--- syncing secrets to .env ---"
+            grep -q "^GLITCHTIP_DSN=" backend/.env && sed -i "s|^GLITCHTIP_DSN=.*|GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}|" backend/.env || echo "GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}" >> backend/.env
+            grep -q "^GLITCHTIP_ENABLED=" backend/.env && sed -i "s|^GLITCHTIP_ENABLED=.*|GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}|" backend/.env || echo "GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}" >> backend/.env
+            grep -q "^VITE_GLITCHTIP_DSN=" frontend/.env.production && sed -i "s|^VITE_GLITCHTIP_DSN=.*|VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}|" frontend/.env.production || echo "VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}" >> frontend/.env.production
 
             echo "--- git pull ---"
             git pull origin Features
