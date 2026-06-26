@@ -292,10 +292,19 @@ exports.handleStripeWebhook = async (req, res) => {
           return res.send("Already processed (race condition prevented)");
         }
 
+        // 🔒 Recalculate paidAmount from all PAID installments (source of truth)
+        const updatedFee = await StudentFee.findById(studentFee._id);
+        updatedFee.paidAmount = updatedFee.installments
+          .filter((i) => i.status === "PAID")
+          .reduce((sum, i) => sum + i.amount, 0);
+        await updatedFee.save();
+
         logger.logInfo("✅ Payment recorded atomically via webhook", {
           studentId,
           sessionId: session.id,
           paymentIntent: session.payment_intent,
+          paidAmount: updatedFee.paidAmount,
+          remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
         });
 
         // 📧 WEBHOOK PRIMARY: Send receipt email (source of truth)
@@ -314,23 +323,16 @@ exports.handleStripeWebhook = async (req, res) => {
                 paidAt: new Date(),
                 transactionId: session.payment_intent,
               },
-              totalFee: studentFee.totalFee,
-              paidAmount: studentFee.paidAmount,
-              remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+              totalFee: updatedFee.totalFee,
+              paidAmount: updatedFee.paidAmount,
+              remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
               collegeId: student.college_id?._id || student.college_id,
             });
 
             // Mark email as sent in database (tracks that webhook sent it)
             await StudentFee.updateOne(
-              {
-                _id: studentFee._id,
-                "installments._id": installment._id,
-              },
-              {
-                $set: {
-                  "installments.$.receiptEmailSentAt": new Date(),
-                },
-              },
+              { _id: studentFee._id, "installments._id": installment._id },
+              { $set: { "installments.$.receiptEmailSentAt": new Date() } },
             );
 
             logger.logInfo("✅ Receipt email sent by webhook (primary)", {

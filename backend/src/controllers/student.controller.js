@@ -602,6 +602,8 @@ exports.getMyFullProfile = async (req, res, next) => {
       bloodGroup: student.bloodGroup,
       admissionYear: student.admissionYear,
       currentSemester: student.currentSemester,
+      currentAcademicYear: student.currentAcademicYear,
+      enrollmentNumber: student.enrollmentNumber,
       status: student.status,
       createdAt: student.createdAt,
       updatedAt: student.updatedAt,
