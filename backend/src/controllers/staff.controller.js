@@ -191,7 +191,7 @@ const generateTempPassword = (length = 10) => {
             {
               college_id: req.user.college_id,
               user_id: user[0]._id,
-              department_id,
+              department_id: departmentId,
               name,
               email,
               employeeId,
