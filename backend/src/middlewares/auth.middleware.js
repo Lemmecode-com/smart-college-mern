@@ -39,6 +39,16 @@ module.exports = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Check tokenVersion — invalidate if password was changed
+    if (decoded.tokenVersion !== undefined) {
+      const userRecord = await User.findById(decoded.id).select('tokenVersion');
+      if (userRecord && decoded.tokenVersion < userRecord.tokenVersion) {
+        return next(
+          new AppError("Token invalidated by password change. Please login again.", 401, "TOKEN_INVALIDATED")
+        );
+      }
+    }
+
     // Fetch user from database to check isActive status
     const user = await User.findById(decoded.id).select(
       "isActive role college_id",
