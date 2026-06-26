@@ -40,6 +40,33 @@ const errorHandler = (err, req, res, next) => {
     userId: req.user?._id || req.user?.id,
   });
 
+  try {
+    const { Sentry, isEnabled } = require("../utils/glitchtip");
+    if (isEnabled()) {
+      Sentry.captureException(err, {
+        contexts: {
+          user: {
+            id: req.user?._id || req.user?.id,
+            role: req.user?.role,
+          },
+          request: {
+            url: req.originalUrl,
+            method: req.method,
+            ip: req.ip,
+            collegeId: req.user?.collegeId || req.collegeId,
+          },
+          app: {
+            code: err.code,
+            statusCode,
+            name: err.name,
+          },
+        },
+      });
+    }
+  } catch (sentryErr) {
+    console.warn("Failed to capture exception in GlitchTip:", sentryErr.message);
+  }
+
   let error = { ...err };
   error.message = err.message || "Internal server error";
 
