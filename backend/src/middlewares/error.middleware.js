@@ -42,7 +42,7 @@ const errorHandler = (err, req, res, next) => {
 
   try {
     const { Sentry, isEnabled } = require("../utils/glitchtip");
-    if (isEnabled) {
+    if (isEnabled()) {
       Sentry.captureException(err, {
         contexts: {
           user: {
