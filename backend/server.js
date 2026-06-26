@@ -1,6 +1,7 @@
 require("dotenv").config();
-const { initGlitchtip } = require("./src/utils/glitchtip");
+const { initGlitchtip, isEnabled } = require("./src/utils/glitchtip");
 initGlitchtip();
+console.log("🔍 GlitchTip isEnabled:", isEnabled());
 require("./src/cron/paymentReminder.cron");
 require("./src/cron/lowAttendanceAlert.cron");
 require("./src/cron/paymentCleanup.cron");
