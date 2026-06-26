@@ -346,13 +346,18 @@ exports.confirmStripePayment = async (req, res, next) => {
         },
       );
 
+      // Recalculate paidAmount to ensure consistency (in case webhook didn't update it)
+      studentFee.paidAmount = studentFee.installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amount, 0);
+
       return res.json({
         success: true,
         alreadyProcessed: true,
         processedBy: installment.receiptEmailSentAt ? "webhook" : "unknown",
         installment: {
           _id: installment._id,
-          name: installment.name,
+          installmentName: installment.name,
           amount: installment.amount,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
@@ -401,13 +406,18 @@ exports.confirmStripePayment = async (req, res, next) => {
       const latestFee = await StudentFee.findById(studentFee._id);
       const latestInstallment = latestFee.installments.id(installment._id);
 
+      // Recalculate paidAmount to ensure consistency
+      latestFee.paidAmount = latestFee.installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amount, 0);
+
       return res.json({
         success: true,
         alreadyProcessed: true,
         processedBy: "webhook",
         installment: {
           _id: latestInstallment._id,
-          name: latestInstallment.name,
+          installmentName: latestInstallment.name,
           amount: latestInstallment.amount,
           paidAt: latestInstallment.paidAt,
           transactionId: latestInstallment.transactionId,
@@ -439,16 +449,20 @@ exports.confirmStripePayment = async (req, res, next) => {
       studentId: student._id,
     });
 
-    // Fetch updated data for response
+    // Fetch updated data for response and recalculate paidAmount
     const updatedFee = await StudentFee.findById(studentFee._id);
     const updatedInstallment = updatedFee.installments.id(installment._id);
+    updatedFee.paidAmount = updatedFee.installments
+      .filter((i) => i.status === "PAID")
+      .reduce((sum, i) => sum + i.amount, 0);
+    await updatedFee.save();
 
     return res.json({
       success: true,
       processedBy: "confirm-endpoint",
       installment: {
         _id: updatedInstallment._id,
-        name: updatedInstallment.name,
+        installmentName: updatedInstallment.name,
         amount: updatedInstallment.amount,
         paidAt: updatedInstallment.paidAt,
         transactionId: updatedInstallment.transactionId,
