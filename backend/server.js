@@ -1,4 +1,6 @@
 require("dotenv").config();
+const { initGlitchtip } = require("./src/utils/glitchtip");
+initGlitchtip();
 require("./src/cron/paymentReminder.cron");
 require("./src/cron/lowAttendanceAlert.cron");
 require("./src/cron/paymentCleanup.cron");
