@@ -10,6 +10,10 @@ const initGlitchtip = () => {
 
   isEnabled = true;
 
+  console.log(
+    `✅ GlitchTip initialized: env=${process.env.NODE_ENV || "development"}, dsn=${process.env.GLITCHTIP_DSN ? "set" : "missing"}`,
+  );
+
   Sentry.init({
     dsn: process.env.GLITCHTIP_DSN,
     enabled: process.env.GLITCHTIP_ENABLED === "true",
@@ -45,4 +49,4 @@ const initGlitchtip = () => {
   });
 };
 
-module.exports = { initGlitchtip, Sentry, isEnabled };
+module.exports = { initGlitchtip, Sentry, isEnabled: () => isEnabled };
