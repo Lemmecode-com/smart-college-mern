@@ -51,6 +51,15 @@ class SecurityAuditService {
   }
 
   /**
+   * Redact endpoint to show only path, no query parameters
+   * "/api/auth/login?redirect=/dashboard" -> "/api/auth/login"
+   */
+  static redactEndpoint(endpoint) {
+    if (!endpoint || typeof endpoint !== 'string') return endpoint;
+    return endpoint.split('?')[0];
+  }
+
+  /**
    * Log any security event
    */
   async logEvent(eventData) {
@@ -68,7 +77,13 @@ class SecurityAuditService {
 
       logger.logInfo(`Security Event: ${eventData.eventType}`, safeMeta);
 
-      const audit = new SecurityAudit(eventData);
+      // Redact data before saving to MongoDB
+      const dbPayload = SecurityAuditService.redactObject({
+        ...eventData,
+        endpoint: SecurityAuditService.redactEndpoint(eventData.endpoint),
+      });
+
+      const audit = new SecurityAudit(dbPayload);
       const saved = await audit.save();
 
       logger.logInfo(`Security audit saved: ${saved._id}`, {
