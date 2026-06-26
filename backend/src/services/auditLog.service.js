@@ -13,7 +13,14 @@ class AuditLogService {
    */
   async logAudit(auditData) {
     try {
-      const log = new AuditLog(auditData);
+      // Redact endpoint before storing — strip query strings
+      const redactedData = {
+        ...auditData,
+        endpoint: auditData.endpoint 
+          ? String(auditData.endpoint).split('?')[0] 
+          : auditData.endpoint,
+      };
+      const log = new AuditLog(redactedData);
       await log.save();
 
       logger.logInfo(
