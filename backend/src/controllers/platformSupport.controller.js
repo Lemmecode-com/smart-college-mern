@@ -110,11 +110,21 @@ exports.getSystemMetrics = async (req, res) => {
 
 exports.getAuditLogs = async (req, res) => {
   try {
+    const collegeId = req.query.collegeId;
+    if (!collegeId) {
+      return ApiResponse.error(
+        res,
+        "collegeId query parameter is required",
+        "COLLEGE_ID_REQUIRED",
+        400
+      );
+    }
+
     const filters = {
       action: req.query.action || undefined,
       resourceType: req.query.resourceType || undefined,
       userId: req.query.userId || undefined,
-      collegeId: req.query.collegeId || undefined,
+      collegeId: collegeId,
       startDate: req.query.startDate || undefined,
       endDate: req.query.endDate || undefined,
       page: parseInt(req.query.page) || 1,
