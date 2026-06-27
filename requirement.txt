@@ -55,12 +55,12 @@ Core backend:
 - cors 2.8.5
 - cookie-parser 1.4.7
 
-Security and authentication:
+Security and monitoring:
 - bcryptjs 3.0.3
 - jsonwebtoken 9.0.3
 - helmet 8.1.0
 - express-rate-limit 8.2.1
-- uuid 14.0.0
+- @sentry/node 10.62.0
 
 Validation and middleware:
 - express-validator 7.3.1
