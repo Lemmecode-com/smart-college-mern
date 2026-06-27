@@ -13,6 +13,8 @@ const securityAuditSchema = new mongoose.Schema({
       'LOGOUT',
       'PASSWORD_RESET_REQUEST',
       'PASSWORD_RESET_SUCCESS',
+      'PASSWORD_CHANGE_SUCCESS',
+      'PASSWORD_CHANGE_FAILED',
       'PASSWORD_CHANGE',
       'TOKEN_REFRESH',
       'TOKEN_BLACKLISTED',
