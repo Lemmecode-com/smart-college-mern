@@ -1,3 +1,6 @@
+const { initGlitchtip, Sentry } = require('./src/utils/glitchtip');
+initGlitchtip();
+
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
@@ -195,6 +198,7 @@ app.use((req, res, next) => {
 
 /* ================= GLOBAL ERROR HANDLER ================= */
 // Must be last - handles all errors from above routes
+app.use(Sentry.expressErrorHandler());
 app.use(require("./src/middlewares/error.middleware"));
 
 module.exports = app;

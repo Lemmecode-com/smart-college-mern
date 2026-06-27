@@ -8,6 +8,7 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
 const { sendStaffCredentialsEmail } = require("../services/email.service");
+const logger = require("../utils/logger");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
@@ -144,7 +145,7 @@ exports.createTeacher = async (req, res, next) => {
       name,
       temporaryPassword: tempPassword,
       collegeId: req.college_id,
-    }).catch((err) => console.error("Failed to send teacher credentials email:", err.message));
+    }).catch((err) => logger.logError("Failed to send teacher credentials email", { error: err.message }));
   } catch (error) {
     next(error);
   }
@@ -328,8 +329,8 @@ exports.getTeachers = async (req, res) => {
 ========================================================= */
 exports.getTeacherById = async (req, res) => {
   try {
-    console.log("[getTeacherById] Request ID:", req.params.id);
-    console.log("[getTeacherById] College ID:", req.college_id);
+    logger.logInfo("[Teacher] Fetch by ID", { teacherId: req.params.id });
+    logger.logInfo("[Teacher] College ID", { collegeId: req.college_id });
 
     const teacher = await Teacher.findOne({
       _id: req.params.id,
@@ -340,9 +341,9 @@ exports.getTeacherById = async (req, res) => {
       .populate("subjects", "name code semester")
       .select("-__v");
 
-    console.log(
-      "[getTeacherById] Found teacher:",
-      teacher ? teacher.name : "NULL",
+    logger.logInfo(
+      "[Teacher] Found",
+      { teacherId: req.params.id, name: teacher?.name }
     );
     console.log("[getTeacherById] Teacher data:", teacher);
 
@@ -358,7 +359,7 @@ exports.getTeacherById = async (req, res) => {
       "Teacher fetched successfully",
     );
   } catch (error) {
-    console.error("[getTeacherById] Error:", error);
+    logger.logError("[Teacher] Fetch by ID failed", { error: error.message });
     next(error);
   }
 };
@@ -679,9 +680,9 @@ exports.getAvailableTeachersForReassignment = async (req, res, next) => {
     );
 
     // DEBUG: Log teacher department info
-    console.log("[AVAILABLE TEACHERS] Total:", teachers.length);
-    console.log(
-      "[AVAILABLE TEACHERS]",
+    logger.logInfo("[Teacher] Available teachers count", { count: teachers.length });
+    logger.logInfo(
+      "[Teacher] Available teachers list",
       teachers.map((t) => ({
         name: t.name,
         deptId: t.department_id,
@@ -696,6 +697,7 @@ exports.getAvailableTeachersForReassignment = async (req, res, next) => {
       "Available teachers fetched successfully",
     );
   } catch (error) {
+    logger.logError("[Teacher] Available teachers fetch failed", { error: error.message });
     next(error);
   }
 };

@@ -1,6 +1,8 @@
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 /**
  * Global Error Handler Middleware for Express 5
  *
@@ -14,21 +16,27 @@ const errorHandler = (err, req, res, next) => {
   // Only log full stack for unexpected errors (5xx)
   // For operational errors (4xx), log a single line to avoid log spam
   if (!isOperational || statusCode >= 500) {
-    console.error("=".repeat(60));
-    console.error("❌ [Error Handler]");
-    console.error("   - Message:", err.message);
-    console.error("   - Code:", err.code || "UNKNOWN");
-    console.error("   - StatusCode:", statusCode);
-    console.error("   - Name:", err.name);
-    console.error("   - Stack:", err.stack);
-    console.error("   - URL:", req.originalUrl);
-    console.error("   - Method:", req.method);
-    console.error("   - Error object keys:", Object.keys(err));
-    console.error("   - Full error:", err);
-    console.error("=".repeat(60));
+    if (!isProduction) {
+      console.error("=".repeat(60));
+      console.error("❌ [Error Handler]");
+      console.error("   - Message:", err.message);
+      console.error("   - Code:", err.code || "UNKNOWN");
+      console.error("   - StatusCode:", statusCode);
+      console.error("   - Name:", err.name);
+      console.error("   - Stack:", err.stack);
+      console.error("   - URL:", req.originalUrl);
+      console.error("   - Method:", req.method);
+      console.error("   - Error object keys:", Object.keys(err));
+      console.error("=".repeat(60));
+    } else {
+      console.error(`[Error] ${err.code || 'ERROR'} ${statusCode} - ${req.method} ${req.originalUrl}`);
+    }
   } else {
-    // Single line for operational errors (401, 403, 400, etc.)
-    console.warn(`[Operational Error] ${err.code || "ERROR"} ${statusCode} - ${err.message} - ${req.method} ${req.originalUrl}`);
+    if (!isProduction) {
+      console.warn(`[Operational Error] ${err.code || "ERROR"} ${statusCode} - ${err.message} - ${req.method} ${req.originalUrl}`);
+    } else {
+      console.warn(`[Operational] ${err.code || 'ERROR'} ${statusCode} - ${req.method} ${req.originalUrl}`);
+    }
   }
 
   // Log to file
@@ -191,9 +199,11 @@ const errorHandler = (err, req, res, next) => {
   const code = error.code || "INTERNAL_ERROR";
   const responseStatusCode = error.statusCode || statusCode;
 
-  console.log(
-    `🔴 [Error Handler] Sending response: status=${responseStatusCode}, code=${code}, message=${message}`,
-  );
+  if (!isProduction) {
+    console.log(
+      `🔴 [Error Handler] Sending response: status=${responseStatusCode}, code=${code}, message=${message}`,
+    );
+  }
 
   // Send standardized error response
   res.status(responseStatusCode).json({
