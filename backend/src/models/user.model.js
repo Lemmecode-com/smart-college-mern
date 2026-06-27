@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema({
   lockedUntil: {
     type: Date,
   },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+    index: true,
+  },
 });
 
 /* ✅ FIXED PRE-SAVE HOOK */
