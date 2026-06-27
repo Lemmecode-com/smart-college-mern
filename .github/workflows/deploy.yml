@@ -32,17 +32,18 @@ jobs:
             grep -q "^GLITCHTIP_ENABLED=" backend/.env && sed -i "s|^GLITCHTIP_ENABLED=.*|GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}|" backend/.env || echo "GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}" >> backend/.env
             grep -q "^VITE_GLITCHTIP_DSN=" frontend/.env.production && sed -i "s|^VITE_GLITCHTIP_DSN=.*|VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}|" frontend/.env.production || echo "VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}" >> frontend/.env.production
 
-            echo "--- git pull ---"
-            git pull origin Features
+            echo "--- git sync ---"
+            git fetch origin Features
+            git reset --hard origin/Features
 
             echo "--- backend install ---"
-            cd backend && npm install --production && cd ..
+            cd backend && npm ci --omit=dev && cd ..
 
             echo "--- frontend install & build ---"
-            cd frontend && npm install && npm run build && cd ..
+            cd frontend && npm ci && npm run build && cd ..
 
-            echo "--- pm2 restart ---"
-            $PM2 restart smart-college-backend
+            echo "--- pm2 reload ---"
+            $PM2 reload smart-college-backend
 
             echo "--- app logs (10s) ---"
             sleep 10 && $PM2 logs smart-college-backend --lines 30 --nostream
