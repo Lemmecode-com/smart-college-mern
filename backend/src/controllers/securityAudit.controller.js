@@ -116,8 +116,13 @@ exports.exportAuditLogs = async (req, res, next) => {
 
     const result = await securityAuditService.getAuditLogs({ ...filters, limit: 1000 });
     
+    // Redact PII before CSV conversion
+    const redactedLogs = result.logs.map(log => 
+      SecurityAuditService.redactObject(log.toObject ? log.toObject() : log)
+    );
+    
     // Convert to CSV format
-    const csv = convertToCSV(result.logs);
+    const csv = convertToCSV(redactedLogs);
     
     res.header('Content-Type', 'text/csv');
     res.header('Content-Disposition', 'attachment; filename="security-audit-logs.csv"');
@@ -152,8 +157,8 @@ function convertToCSV(logs) {
     log.userEmail || 'N/A',
     log.userRole || 'N/A',
     log.collegeId?.name || 'N/A',
-    log.ipAddress,
-    log.endpoint || 'N/A',
+    log.ipAddress || 'N/A',
+    '[REDACTED]',
     log.method || 'N/A',
     log.statusCode || 'N/A',
     log.reviewed ? 'Yes' : 'No'

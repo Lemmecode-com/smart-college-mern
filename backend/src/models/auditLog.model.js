@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { encrypt, decrypt } = require("../utils/encryption.util");
 
 const auditLogSchema = new mongoose.Schema(
   {
@@ -162,6 +163,74 @@ auditLogSchema.index({ createdAt: -1 });
 // Log an audit event
 auditLogSchema.statics.logAudit = async function (auditData) {
   return await this.create(auditData);
+};
+
+// ==================== ENCRYPTION HOOKS ===================
+
+const SENSITIVE_FIELDS = ['endpoint', 'ipAddress', 'userAgent', 'userEmail'];
+
+function encryptField(value) {
+  if (!value || typeof value !== 'string') return value;
+  if (String(value).startsWith('ENC:')) return value;
+  return 'ENC:' + encrypt(String(value));
+}
+
+function decryptField(value) {
+  if (!value || typeof value !== 'string') return value;
+  if (!value.startsWith('ENC:')) return value;
+  try {
+    return decrypt(value.substring(4));
+  } catch (e) {
+    return '[DECRYPTION_ERROR]';
+  }
+}
+
+function decryptDoc(doc) {
+  if (!doc) return;
+  for (const field of SENSITIVE_FIELDS) {
+    if (doc[field] !== undefined) {
+      doc[field] = decryptField(doc[field]);
+    }
+  }
+}
+
+auditLogSchema.pre('save', function(next) {
+  for (const field of SENSITIVE_FIELDS) {
+    this[field] = encryptField(this[field]);
+  }
+  next();
+});
+
+auditLogSchema.pre('findOneAndUpdate', async function() {
+  const update = this.getUpdate();
+  const paths = update.$set || update;
+  for (const field of SENSITIVE_FIELDS) {
+    if (paths[field] !== undefined) {
+      paths[field] = encryptField(paths[field]);
+    }
+  }
+});
+
+auditLogSchema.post('find', function(docs) {
+  docs.forEach(decryptDoc);
+});
+
+auditLogSchema.post('findOne', function(doc) {
+  decryptDoc(doc);
+});
+
+auditLogSchema.statics.findDecrypted = function(query) {
+  return this.find(query).then(docs => {
+    docs.forEach(decryptDoc);
+    return docs;
+  });
+};
+
+auditLogSchema.statics.findByIdDecrypted = function(id) {
+  return this.findById(id).then(doc => {
+    if (doc) decryptDoc(doc);
+    return doc;
+  });
 };
 
 module.exports = mongoose.model("AuditLog", auditLogSchema);
