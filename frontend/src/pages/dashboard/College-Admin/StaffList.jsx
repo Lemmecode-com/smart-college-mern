@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Loading from "../../../components/Loading";
 import "./Dashboard.css";
+import "../Parent/ParentPortal.css";
 import {
   FaUser,
   FaKey,
