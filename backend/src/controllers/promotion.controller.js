@@ -196,19 +196,11 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
   try {
     const { course_id, currentSemester } = req.query;
 
-    console.log('============ [PROMOTION] DEBUG INFO ============');
-    console.log('[PROMOTION] Request received:', {
-      college_id: req.college_id?.toString(),
-      user: req.user?.email,
-      role: req.user?.role,
-      query: req.query
-    });
-
-    // Build filter - show ALL APPROVED students (for display purposes)
+    // Build filter - show all eligible students (for display purposes)
     // Promotion eligibility is shown in UI via fee status
     const filter = {
       college_id: req.college_id,
-      status: "APPROVED"
+      status: { $in: ["APPROVED", "ENROLLED"] }
     };
 
     if (course_id) {
@@ -219,27 +211,11 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       filter.currentSemester = parseInt(currentSemester);
     }
 
-    console.log('[PROMOTION] Filter:', JSON.stringify(filter));
-
-    // Debug: Check total students in college regardless of status
-    const totalStudentsInCollege = await Student.countDocuments({
-      college_id: req.college_id
-    });
-    const studentsByStatus = await Student.aggregate([
-      { $match: { college_id: req.college_id } },
-      { $group: { _id: "$status", count: { $sum: 1 } } }
-    ]);
-    console.log('[PROMOTION] Total students in college:', totalStudentsInCollege);
-    console.log('[PROMOTION] Students by status:', studentsByStatus);
-
     // Get all eligible students
     const students = await Student.find(filter)
       .populate("course_id", "name code durationSemesters durationYears")
       .populate("department_id", "name code")
       .sort({ currentSemester: 1, fullName: 1 });
-
-    console.log('[PROMOTION] Found students with APPROVED status:', students.length);
-    console.log('============ [PROMOTION] END DEBUG ============');
 
     const threshold = await getPromotionThreshold(req.college_id);
     const attendanceData = await getAttendanceDataForStudents(students, req.college_id);
@@ -265,7 +241,6 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
 
           if (fee.paidAmount >= fee.totalFee) {
             feeStatus = "FULLY_PAID";
-            allInstallmentsPaid = true;
           } else if (fee.paidAmount > 0) {
             feeStatus = "PARTIALLY_PAID";
           }
@@ -275,6 +250,8 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
             allInstallmentsPaid = fee.installments.every(
               (inst) => inst.status === "PAID"
             );
+          } else if (fee.paidAmount >= fee.totalFee) {
+            allInstallmentsPaid = true;
           }
         }
 
@@ -339,7 +316,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     })
       .populate("course_id", "name code")
       .populate("department_id", "name code");
@@ -374,7 +351,6 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
 
       if (fee.paidAmount >= fee.totalFee) {
         feeStatus = "FULLY_PAID";
-        allInstallmentsPaid = true;
       } else if (fee.paidAmount > 0) {
         feeStatus = "PARTIALLY_PAID";
       }
@@ -383,6 +359,8 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
         allInstallmentsPaid = fee.installments.every(
           (inst) => inst.status === "PAID"
         );
+      } else if (fee.paidAmount >= fee.totalFee) {
+        allInstallmentsPaid = true;
       }
     }
 
@@ -438,7 +416,7 @@ exports.promoteStudent = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     })
       .populate("course_id", "name code semester")
       .populate("department_id", "name code");
@@ -477,7 +455,6 @@ exports.promoteStudent = async (req, res, next) => {
 
       if (fee.paidAmount >= fee.totalFee) {
         feeStatus = "FULLY_PAID";
-        allInstallmentsPaid = true;
       } else if (fee.paidAmount > 0) {
         feeStatus = "PARTIALLY_PAID";
       }
@@ -486,6 +463,8 @@ exports.promoteStudent = async (req, res, next) => {
         allInstallmentsPaid = fee.installments.every(
           (inst) => inst.status === "PAID"
         );
+      } else if (fee.paidAmount >= fee.totalFee) {
+        allInstallmentsPaid = true;
       }
     }
 
@@ -651,7 +630,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         const student = await Student.findOne({
           _id: studentId,
           college_id: req.college_id,
-          status: "APPROVED",
+          status: { $in: ["APPROVED", "ENROLLED"] },
         }).populate("course_id", "name code durationSemesters durationYears");
 
         if (!student) {
@@ -689,7 +668,6 @@ exports.bulkPromoteStudents = async (req, res, next) => {
 
           if (fee.paidAmount >= fee.totalFee) {
             feeStatus = "FULLY_PAID";
-            allInstallmentsPaid = true;
           } else if (fee.paidAmount > 0) {
             feeStatus = "PARTIALLY_PAID";
           }
@@ -698,6 +676,8 @@ exports.bulkPromoteStudents = async (req, res, next) => {
             allInstallmentsPaid = fee.installments.every(
               (inst) => inst.status === "PAID"
             );
+          } else if (fee.paidAmount >= fee.totalFee) {
+            allInstallmentsPaid = true;
           }
         }
 
