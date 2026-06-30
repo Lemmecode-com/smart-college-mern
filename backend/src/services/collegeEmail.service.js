@@ -108,13 +108,23 @@ async function getCollegeTransporter(collegeId) {
   }
 
   if (!transporter) {
-    logger.logError("No college-specific email configuration available", {
-      collegeId,
-      hint: "Configure SMTP in System Settings for this college.",
-    });
-    throw new Error(
-      "Email is not configured for this college. Please configure SMTP settings in System Settings."
-    );
+    try {
+      const global = await getGlobalTransporter();
+      transporter = global.transporter;
+      fromName = global.fromName;
+      fromEmail = global.fromEmail;
+      isCollegeConfig = false;
+      logger.logInfo("Falling back to global SMTP transporter", { collegeId });
+    } catch (err) {
+      logger.logError("No college-specific or global email configuration available", {
+        collegeId,
+        error: err.message,
+        hint: "Configure SMTP in System Settings for this college or set global SMTP in .env.",
+      });
+      throw new Error(
+        "Email is not configured for this college. Please configure SMTP settings in System Settings."
+      );
+    }
   }
 
   const cacheData = { transporter, fromName, fromEmail, isCollegeConfig, collegeId: collegeId ? collegeId.toString() : null, timestamp: Date.now() };

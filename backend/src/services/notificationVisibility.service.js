@@ -40,11 +40,24 @@ const getStudentTargetCondition = ({ userId, studentProfile }) => ({
   ],
 });
 
+const getTeacherTargetCondition = ({ teacherProfile }) => ({
+  $or: [
+    { target: "ALL" },
+    { target: "TEACHERS" },
+    {
+      target: "DEPARTMENT",
+      target_department: teacherProfile.department_id,
+    },
+    { target: "INDIVIDUAL", target_users: teacherProfile.user_id },
+  ],
+});
+
 const getNotificationVisibilityQuery = ({
   collegeId,
   role,
   userId,
   studentProfile = null,
+  teacherProfile = null,
 }) => {
   const userObjectId = toObjectId(userId, "User ID");
   const normalizedRole = String(role || "").toUpperCase();
@@ -65,16 +78,28 @@ const getNotificationVisibilityQuery = ({
         getExpiryCondition(),
         getStudentTargetCondition({ userId, studentProfile }),
       ],
-    };
+    }
   }
 
   if (normalizedRole === "TEACHER") {
+    const teacherConditions = [
+      { createdByRole: "COLLEGE_ADMIN" },
+      { createdByRole: "HOD" },
+    ];
+
+    if (teacherProfile) {
+      teacherConditions.push(
+        getTeacherTargetCondition({ teacherProfile })
+      );
+    } else {
+      teacherConditions.push({ target: "INDIVIDUAL", target_users: userObjectId });
+    }
+
     return {
       ...baseQuery,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
-        { createdByRole: "HOD" },
-        { target: "INDIVIDUAL", target_users: userObjectId },
+      $and: [
+        getExpiryCondition(),
+        { $or: teacherConditions },
       ],
     };
   }
@@ -82,14 +107,19 @@ const getNotificationVisibilityQuery = ({
   if (normalizedRole === "HOD") {
     return {
       ...baseQuery,
-      $or: [
-        { createdByRole: "COLLEGE_ADMIN" },
+      $and: [
+        getExpiryCondition(),
         {
-          createdByRole: "TEACHER",
-          target: "INDIVIDUAL",
-          target_users: userObjectId,
+          $or: [
+            { createdByRole: "COLLEGE_ADMIN" },
+            {
+              createdByRole: "TEACHER",
+              target: "INDIVIDUAL",
+              target_users: userObjectId,
+            },
+            { createdByRole: "HOD", createdBy: userObjectId },
+          ],
         },
-        { createdByRole: "HOD", createdBy: userObjectId },
       ],
     };
   }
