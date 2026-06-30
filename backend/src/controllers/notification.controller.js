@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
 const {
   getNotificationVisibilityQuery,
   getReadNotificationIds,
@@ -93,12 +94,12 @@ exports.createAdminNotification = async (req, res, next) => {
 exports.createTeacherNotification = async (req, res, next) => {
   try {
     const { title, message, type, target, actionUrl, expiresAt, priority,
-            target_department, target_course, target_semester, target_users } = req.body;
+            target_department, target_users } = req.body;
 
-    // Teachers can only target STUDENTS, DEPARTMENT, COURSE, or SEMESTER
-    const validTeacherTargets = ["STUDENTS", "DEPARTMENT", "COURSE", "SEMESTER"];
+    // Teachers can only target STUDENTS or DEPARTMENT
+    const validTeacherTargets = ["STUDENTS", "DEPARTMENT"];
     const effectiveTarget = target || "STUDENTS";
-    
+
     if (!validTeacherTargets.includes(effectiveTarget)) {
       throw new AppError(`Teachers can only target: ${validTeacherTargets.join(", ")}`, 400, "INVALID_TEACHER_TARGET");
     }
@@ -122,14 +123,6 @@ exports.createTeacherNotification = async (req, res, next) => {
       throw new AppError("target_department is required when target is DEPARTMENT", 400, "MISSING_TARGET_DEPARTMENT");
     }
 
-    if (effectiveTarget === "COURSE" && !target_course) {
-      throw new AppError("target_course is required when target is COURSE", 400, "MISSING_TARGET_COURSE");
-    }
-
-    if (effectiveTarget === "SEMESTER" && (!target_semester || target_semester < 1 || target_semester > 8)) {
-      throw new AppError("target_semester (1-8) is required when target is SEMESTER", 400, "MISSING_TARGET_SEMESTER");
-    }
-
     const notification = await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
@@ -142,8 +135,6 @@ exports.createTeacherNotification = async (req, res, next) => {
       actionUrl,
       expiresAt,
       target_department,
-      target_course,
-      target_semester,
       target_users
     });
 
@@ -217,10 +208,20 @@ exports.getStudentNotifications = async (req, res, next) => {
  */
 exports.getHodNotifications = async (req, res, next) => {
   try {
+    let teacherProfile = null;
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
+      teacherProfile,
     });
 
     const notifications = await Notification.find(visibilityQuery)
@@ -258,10 +259,20 @@ exports.getHodNotifications = async (req, res, next) => {
  */
 exports.getTeacherNotifications = async (req, res, next) => {
   try {
+    let teacherProfile = null;
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
+      teacherProfile,
     });
 
     const notifications = await Notification.find(visibilityQuery)
@@ -335,6 +346,7 @@ exports.getNotificationById = async (req, res, next) => {
   try {
     const notificationId = toObjectId(req.params.notificationId, "Notification ID");
     let studentProfile = null;
+    let teacherProfile = null;
 
     if (req.user.role === "STUDENT") {
       studentProfile = await Student.findOne({
@@ -351,11 +363,20 @@ exports.getNotificationById = async (req, res, next) => {
       }
     }
 
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
       studentProfile,
+      teacherProfile,
     });
 
     const notification = await Notification.findOne({
@@ -522,11 +543,21 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
+    let teacherProfile = null;
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const readIds = await getReadNotificationIds(userId);
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId,
+      teacherProfile,
     });
 
     const adminCount = await Notification.countDocuments({
@@ -569,11 +600,21 @@ exports.getHodNotificationCount = async (req, res, next) => {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
+    let teacherProfile = null;
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const readIds = await getReadNotificationIds(userId);
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId,
+      teacherProfile,
     });
 
     const adminCount = await Notification.countDocuments({
@@ -655,6 +696,7 @@ exports.getUnreadForBell = async (req, res, next) => {
 
     const readIds = await getReadNotificationIds(req.user.id);
     let studentProfile = null;
+    let teacherProfile = null;
 
     if (req.user.role === "STUDENT") {
       studentProfile = await Student.findOne({
@@ -668,11 +710,20 @@ exports.getUnreadForBell = async (req, res, next) => {
       }
     }
 
+    if (req.user.role === "TEACHER" || req.user.role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
       studentProfile,
+      teacherProfile,
     });
 
     const unread = await Notification.find({
@@ -703,6 +754,7 @@ exports.markAllAsRead = async (req, res, next) => {
 
     const readIds = await getReadNotificationIds(userId);
     let studentProfile = null;
+    let teacherProfile = null;
 
     if (userRole === "STUDENT") {
       studentProfile = await Student.findOne({
@@ -720,11 +772,20 @@ exports.markAllAsRead = async (req, res, next) => {
       }
     }
 
+    if (userRole === "TEACHER" || userRole === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: userRole,
       userId,
       studentProfile,
+      teacherProfile,
     });
 
     const unreadNotifications = await Notification.find({
@@ -776,6 +837,7 @@ exports.markAsRead = async (req, res, next) => {
     const { id: userId, role } = req.user;
     const safeNotificationId = toObjectId(notificationId, "Notification ID");
     let studentProfile = null;
+    let teacherProfile = null;
 
     if (role === "STUDENT") {
       studentProfile = await Student.findOne({
@@ -792,11 +854,20 @@ exports.markAsRead = async (req, res, next) => {
       }
     }
 
+    if (role === "TEACHER" || role === "HOD") {
+      teacherProfile = await Teacher.findOne({
+        user_id: userId,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      }).select("_id user_id department_id");
+    }
+
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role,
       userId,
       studentProfile,
+      teacherProfile,
     });
 
     const notification = await Notification.findOne({
