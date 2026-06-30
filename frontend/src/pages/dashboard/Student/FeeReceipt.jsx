@@ -230,11 +230,12 @@ export default function FeeReceipt() {
         });
       } finally {
         setLoading(false);
+        toast.dismiss(toastId);
       }
     };
 
     fetchReceipt();
-  }, [paymentId, navigate, user]);
+  }, [paymentId, navigate]);
 
   // Handle retry action
   const handleRetry = async () => {
