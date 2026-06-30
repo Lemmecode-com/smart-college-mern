@@ -171,7 +171,8 @@ export default function SecurityAudit() {
 
   const handleExport = () => {
     const params = new URLSearchParams(filters);
-    window.open(`/api/security-audit/export/download?${params}`, "_blank");
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    window.open(`${baseUrl}/security-audit/export/download?${params}`, "_blank");
   };
 
   const getSeverityBadgeClass = (severity) => {
