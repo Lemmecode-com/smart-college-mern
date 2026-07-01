@@ -5,7 +5,7 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense, lazy } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -45,6 +45,7 @@ import { AuthContext } from "./auth/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
+import Loading from "./components/Loading";
 
 /* ================= LANDING PAGE ================= */
 import LandingPage from "./pages/LandingPage";
@@ -56,204 +57,152 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyOTP from "./pages/auth/VerifyOTP";
 import ChangePassword from "./pages/auth/ChangePassword";
 
-/* ================= DASHBOARDS ================= */
-import SuperAdminDashboard from "./pages/dashboard/Super-Admin/SuperAdminDashboard";
-import CreateNewCollege from "./pages/dashboard/Super-Admin/CreateNewCollege";
-import CollegeAdminDashboard from "./pages/dashboard/College-Admin/CollegeAdminDashboard";
-import TeacherDashboard from "./pages/dashboard/Teacher/TeacherDashboard";
-import StudentDashboard from "./pages/dashboard/Student/StudentDashboard";
-import DocumentSettings from "./pages/dashboard/College-Admin/SystemSetting/DocumentSettings";
-
-/* ================= SUPER ADMIN SYSTEM SETTINGS ================= */
-import GeneralSuperSett from "./pages/dashboard/Super-Admin/System-Settings/GeneralSuperSett";
-import UserManagementSett from "./pages/dashboard/Super-Admin/System-Settings/UserManagementSett";
-
-/* ================= SUPER ADMIN COLLEGES ================= */
-import CollegeList from "./pages/dashboard/Super-Admin/CollegeList";
-import ViewCollegeDetails from "./pages/dashboard/Super-Admin/ViewCollegeDetails";
-// import EditCollegeDetails from "./pages/dashboard/Super-Admin/EditCollegeDetails";
-
-/* ================= DEPARTMENTS ================= */
-import DepartmentList from "./pages/dashboard/College-Admin/DepartmentList";
-import AddDepartment from "./pages/dashboard/College-Admin/AddDepartment";
-import EditDepartment from "./pages/dashboard/College-Admin/EditDepartment";
-import AssignHod from "./pages/dashboard/College-Admin/AssignHod";
-import ViewDepartment from "./pages/dashboard/College-Admin/ViewDepartment";
-import StripeConfiguration from "./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration";
-import RazorpayConfiguration from "./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration";
-import EditCollege from "./pages/dashboard/Super-Admin/EditCollege";
-import SuperAdminReports from "./pages/dashboard/Super-Admin/SuperAdminReports";
-import SecurityAudit from "./pages/dashboard/Super-Admin/SecurityAudit";
-import PlatformSupportConfig from "./pages/dashboard/Super-Admin/PlatformSupportConfig";
-import CollegeProfile from "./pages/dashboard/College-Admin/CollegeProfile";
-import EditCollegeProfile from "./pages/dashboard/College-Admin/EditCollegeProfile";
+/* ================= SHARED CROSS-ROLE COMPONENTS (EAGER) ================= */
+import NotificationForm from "./components/NotificationForm";
+import NotificationListPage from "./components/NotificationListPage";
+import NotificationDetails from "./components/NotificationDetails";
 import ViewStudent from "./pages/dashboard/College-Admin/ViewStudent";
 import ApproveStudents from "./pages/dashboard/College-Admin/ApproveStudents";
 import DeactivatedStudents from "./pages/dashboard/College-Admin/DeactivatedStudents";
 import PendingApprovals from "./pages/dashboard/College-Admin/PendingApprovals";
 import ViewApproveStudent from "./pages/dashboard/College-Admin/ViewApproveStudent";
-import CreateFeeStructure from "./pages/dashboard/College-Admin/CreateFeeStructure";
-import ViewFeeStructure from "./pages/dashboard/College-Admin/ViewFeeStructure";
-import FeeStructureList from "./pages/dashboard/College-Admin/FeeStructureList";
-import EditFeeStructure from "./pages/dashboard/College-Admin/EditFeeStructure";
-import NotificationForm from "./components/NotificationForm";
-import NotificationListPage from "./components/NotificationListPage";
-import NotificationDetails from "./components/NotificationDetails";
-import ReportDashboard from "./pages/dashboard/College-Admin/Reports/ReportDashboard";
-import AdminReports from "./pages/dashboard/College-Admin/Reports/AdminReports";
-import AttendanceSummary from "./pages/dashboard/College-Admin/Reports/AttendanceSummary";
-import PaymentReports from "./pages/dashboard/College-Admin/Reports/PaymentReports";
-
-// ================= ACCOUNTANT =================
- import AccountantDashboard from "./pages/dashboard/Accountant/AccountantDashboard";
- import RecordOfflinePayment from "./pages/dashboard/Accountant/RecordOfflinePayment";
- import DefaulterList from "./pages/dashboard/Accountant/DefaulterList";
- import PaymentHistory from "./pages/dashboard/College-Admin/PaymentHistory";
-import StudentPaymentReport from "./pages/dashboard/College-Admin/StudentPaymentReport";
-import StudentReports from "./pages/dashboard/College-Admin/StudentReports";
-import PaymentTrends from "./pages/dashboard/College-Admin/PaymentTrends";
-
-// ================= ADMISSION OFFICER =================
-import AdmissionDashboard from "./pages/dashboard/Admission/AdmissionDashboard";
-
-
-// ================= PARENT GUARDIAN =================
-import ParentDashboard from "./pages/dashboard/Parent/ParentDashboard";
-import ChildProfile from "./pages/dashboard/Parent/ChildProfile";
-import ChildAttendance from "./pages/dashboard/Parent/ChildAttendance";
-import ChildFees from "./pages/dashboard/Parent/ChildFees";
-
-// ================= PRINCIPAL =================
-import PrincipalDashboard from "./pages/dashboard/Principal/PrincipalDashboard";
-
-// ================= PLATFORM SUPPORT =================
-import PlatformSupportDashboard from "./pages/dashboard/PlatformSupport/PlatformSupportDashboard";
-import SystemHealth from "./pages/dashboard/PlatformSupport/SystemHealth";
-import AuditLogsViewer from "./pages/dashboard/PlatformSupport/AuditLogsViewer";
-import SystemLogs from "./pages/dashboard/PlatformSupport/SystemLogs";
-import IntegrationMonitoring from "./pages/dashboard/PlatformSupport/IntegrationMonitoring";
-import SupportTickets from "./pages/dashboard/PlatformSupport/SupportTickets";
-import ErrorAnalytics from "./pages/dashboard/PlatformSupport/ErrorAnalytics";
-import CollegeHealthOverview from "./pages/dashboard/PlatformSupport/CollegeHealthOverview";
-import DatabaseDiagnostics from "./pages/dashboard/PlatformSupport/DatabaseDiagnostics";
-import ConfigurationViewer from "./pages/dashboard/PlatformSupport/ConfigurationViewer";
-
-// ================= EXAM COORDINATOR =================
-import ExamDashboard from "./pages/dashboard/ExamCoordinator/ExamDashboard";
-
-// ================= HOD =================
-import HodDashboard from "./pages/dashboard/HOD/HodDashboard";
-import HodTeachers from "./pages/dashboard/HOD/HodTeachers";
-import HodDepartment from "./pages/dashboard/HOD/HodDepartment";
-import HodProfile from "./pages/dashboard/HOD/HodProfile";
-import HodExceptionApprovals from "./pages/dashboard/HOD/HodExceptionApprovals";
-import HodReports from "./pages/dashboard/HOD/HodReports";
-
-// ================= STUDENT =================
-import StudentProfile from "./pages/dashboard/Student/StudentProfile";
-import EditStudentProfile from "./pages/dashboard/Student/EditStudentProfile";
-import StudentTimetable from "./pages/dashboard/Student/StudentTimetable";
-import StudentFees from "./pages/dashboard/Student/StudentFees";
-import MakePayments from "./pages/dashboard/Student/MakePayments";
-import FeeReceipt from "./pages/dashboard/Student/FeeReceipt";
-import PaymentSuccess from "./pages/dashboard/Student/PaymentSuccess";
-import PaymentCancel from "./pages/dashboard/Student/PaymentCancel";
-import MyAttendance from "./pages/dashboard/Student/MyAttendance";
-
-// ================= COURSES =================
-import CourseList from "./pages/dashboard/College-Admin/CourseList";
-import AddCourse from "./pages/dashboard/College-Admin/AddCourse";
-import EditCourse from "./pages/dashboard/College-Admin/EditCourse";
-import ViewCourse from "./pages/dashboard/College-Admin/ViewCourse";
-
-// ================= STUDENT LIFECYCLE =================
-import StudentPromotion from "./pages/dashboard/College-Admin/StudentPromotion";
-import AlumniList from "./pages/dashboard/College-Admin/AlumniList";
-
-// ================= TEACHER - ATTENDANCE SESSIONS =================
-import AttendanceSessionsList from "./pages/dashboard/Teacher/AttendanceSessionsList";
-import SessionDetails from "./pages/dashboard/Teacher/SessionDetails";
-import MarkAttendanceModal from "./pages/dashboard/Teacher/MarkAttendanceModal";
-import EditAttendanceModal from "./pages/dashboard/Teacher/EditAttendanceModal";
-
-// ================= TEACHER - ATTENDANCE REPORT =================
-import AttendanceReport from "./pages/dashboard/Teacher/Attendance/AttendanceReport";
-import MySessions from "./pages/dashboard/Teacher/Attendance/MySessions";
-
-// ================= SUBJECTS =================
-import SubjectList from "./pages/dashboard/College-Admin/SubjectList";
-import AddSubject from "./pages/dashboard/College-Admin/AddSubject";
-import ViewSubject from "./pages/dashboard/College-Admin/ViewSubject";
-import EditSubject from "./pages/dashboard/College-Admin/EditSubject";
-
-// ================= SYSTEM SETTINGS =================
-import FeeSetting from "./pages/dashboard/College-Admin/SystemSetting/FeeSetting";
-import GeneralSetting from "./pages/dashboard/College-Admin/SystemSetting/GeneralSetting";
-import AcademicSetting from "./pages/dashboard/College-Admin/SystemSetting/AcademicSetting";
-import NotificationSetting from "./pages/dashboard/College-Admin/SystemSetting/NotificationSetting";
-import PromotionSetting from "./pages/dashboard/College-Admin/SystemSetting/PromotionSetting";
-import EmailConfigurations from "./pages/dashboard/College-Admin/SystemSetting/EmailConfigurations";
-
-// ================= TEACHERS MANAGEMENT =================
-import TeachersList from "./pages/dashboard/College-Admin/TeachersList";
-import ViewTeacher from "./pages/dashboard/College-Admin/ViewTeacher";
-import AddTeacher from "./pages/dashboard/College-Admin/AddTeacher";
-import EditTeacher from "./pages/dashboard/College-Admin/EditTeacher";
-import AssignTeacherSubjects from "./pages/dashboard/College-Admin/AssignTeacherSubjects";
-
-// ================= STAFF MANAGEMENT =================
-import CreateStaff from "./pages/dashboard/College-Admin/CreateStaff";
-import StaffList from "./pages/dashboard/College-Admin/StaffList";
-import CollegeSetupWizard from "./pages/dashboard/College-Admin/CollegeSetupWizard";
+import AuditLogs from "./pages/dashboard/College-Admin/AuditLogs";
 import ViewStaffProfile from "./pages/dashboard/College-Admin/ViewStaffProfile";
 import EditStaffProfile from "./pages/dashboard/College-Admin/EditStaffProfile";
 
-// ================= REPORTS =================
-// ReportDashboard imported earlier in the file
+/* ================= SUPER ADMIN (LAZY) ================= */
+const SuperAdminDashboard = lazy(() => import("./pages/dashboard/Super-Admin/SuperAdminDashboard"));
+const CreateNewCollege = lazy(() => import("./pages/dashboard/Super-Admin/CreateNewCollege"));
+const CollegeList = lazy(() => import("./pages/dashboard/Super-Admin/CollegeList"));
+const ViewCollegeDetails = lazy(() => import("./pages/dashboard/Super-Admin/ViewCollegeDetails"));
+const EditCollege = lazy(() => import("./pages/dashboard/Super-Admin/EditCollege"));
+const SuperAdminReports = lazy(() => import("./pages/dashboard/Super-Admin/SuperAdminReports"));
+const SecurityAudit = lazy(() => import("./pages/dashboard/Super-Admin/SecurityAudit"));
+const PlatformSupportConfig = lazy(() => import("./pages/dashboard/Super-Admin/PlatformSupportConfig"));
+const GeneralSuperSett = lazy(() => import("./pages/dashboard/Super-Admin/System-Settings/GeneralSuperSett"));
+const UserManagementSett = lazy(() => import("./pages/dashboard/Super-Admin/System-Settings/UserManagementSett"));
 
-// ================= ACCOUNTANT =================
-// AccountantDashboard imported earlier in the file
+/* ================= COLLEGE ADMIN (LAZY) ================= */
+const CollegeAdminDashboard = lazy(() => import("./pages/dashboard/College-Admin/CollegeAdminDashboard"));
+const CollegeProfile = lazy(() => import("./pages/dashboard/College-Admin/CollegeProfile"));
+const EditCollegeProfile = lazy(() => import("./pages/dashboard/College-Admin/EditCollegeProfile"));
+const CollegeSetupWizard = lazy(() => import("./pages/dashboard/College-Admin/CollegeSetupWizard"));
+const DocumentSettings = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/DocumentSettings"));
+const CreateFeeStructure = lazy(() => import("./pages/dashboard/College-Admin/CreateFeeStructure"));
+const ViewFeeStructure = lazy(() => import("./pages/dashboard/College-Admin/ViewFeeStructure"));
+const FeeStructureList = lazy(() => import("./pages/dashboard/College-Admin/FeeStructureList"));
+const EditFeeStructure = lazy(() => import("./pages/dashboard/College-Admin/EditFeeStructure"));
+const ReportDashboard = lazy(() => import("./pages/dashboard/College-Admin/Reports/ReportDashboard"));
+const AdminReports = lazy(() => import("./pages/dashboard/College-Admin/Reports/AdminReports"));
+const AttendanceSummary = lazy(() => import("./pages/dashboard/College-Admin/Reports/AttendanceSummary"));
+const PaymentReports = lazy(() => import("./pages/dashboard/College-Admin/Reports/PaymentReports"));
+const PaymentHistory = lazy(() => import("./pages/dashboard/College-Admin/PaymentHistory"));
+const StudentPaymentReport = lazy(() => import("./pages/dashboard/College-Admin/StudentPaymentReport"));
+const StudentReports = lazy(() => import("./pages/dashboard/College-Admin/StudentReports"));
+const PaymentTrends = lazy(() => import("./pages/dashboard/College-Admin/PaymentTrends"));
+const DepartmentList = lazy(() => import("./pages/dashboard/College-Admin/DepartmentList"));
+const AddDepartment = lazy(() => import("./pages/dashboard/College-Admin/AddDepartment"));
+const EditDepartment = lazy(() => import("./pages/dashboard/College-Admin/EditDepartment"));
+const AssignHod = lazy(() => import("./pages/dashboard/College-Admin/AssignHod"));
+const ViewDepartment = lazy(() => import("./pages/dashboard/College-Admin/ViewDepartment"));
+const CourseList = lazy(() => import("./pages/dashboard/College-Admin/CourseList"));
+const AddCourse = lazy(() => import("./pages/dashboard/College-Admin/AddCourse"));
+const EditCourse = lazy(() => import("./pages/dashboard/College-Admin/EditCourse"));
+const ViewCourse = lazy(() => import("./pages/dashboard/College-Admin/ViewCourse"));
+const SubjectList = lazy(() => import("./pages/dashboard/College-Admin/SubjectList"));
+const AddSubject = lazy(() => import("./pages/dashboard/College-Admin/AddSubject"));
+const ViewSubject = lazy(() => import("./pages/dashboard/College-Admin/ViewSubject"));
+const EditSubject = lazy(() => import("./pages/dashboard/College-Admin/EditSubject"));
+const TeachersList = lazy(() => import("./pages/dashboard/College-Admin/TeachersList"));
+const ViewTeacher = lazy(() => import("./pages/dashboard/College-Admin/ViewTeacher"));
+const AddTeacher = lazy(() => import("./pages/dashboard/College-Admin/AddTeacher"));
+const EditTeacher = lazy(() => import("./pages/dashboard/College-Admin/EditTeacher"));
+const AssignTeacherSubjects = lazy(() => import("./pages/dashboard/College-Admin/AssignTeacherSubjects"));
+const CreateStaff = lazy(() => import("./pages/dashboard/College-Admin/CreateStaff"));
+const StaffList = lazy(() => import("./pages/dashboard/College-Admin/StaffList"));
+const FeeSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/FeeSetting"));
+const GeneralSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/GeneralSetting"));
+const AcademicSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/AcademicSetting"));
+const NotificationSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/NotificationSetting"));
+const PromotionSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/PromotionSetting"));
+const EmailConfigurations = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/EmailConfigurations"));
+const StripeConfiguration = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/StripeConfiguration"));
+const RazorpayConfiguration = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/RazorpayConfiguration"));
+const StudentPromotion = lazy(() => import("./pages/dashboard/College-Admin/StudentPromotion"));
+const AlumniList = lazy(() => import("./pages/dashboard/College-Admin/AlumniList"));
 
-// ================= ADMISSION =================
-// AdmissionDashboard and ApplicationDetail imported earlier in the file
+/* ================= ACCOUNTANT (LAZY) ================= */
+const AccountantDashboard = lazy(() => import("./pages/dashboard/Accountant/AccountantDashboard"));
+const RecordOfflinePayment = lazy(() => import("./pages/dashboard/Accountant/RecordOfflinePayment"));
+const DefaulterList = lazy(() => import("./pages/dashboard/Accountant/DefaulterList"));
 
-// ================= PARENT PORTAL =================
-// ParentDashboard imported earlier in the file
-import ChildrenList from "./pages/dashboard/Parent/ChildrenList";
-import ChildDetail from "./pages/dashboard/Parent/ChildDetail";
-// ChildProfile, ChildAttendance, and ChildFees imported earlier in the file
+/* ================= ADMISSION OFFICER (LAZY) ================= */
+const AdmissionDashboard = lazy(() => import("./pages/dashboard/Admission/AdmissionDashboard"));
 
-// ================= PRINCIPAL =================
-// PrincipalDashboard imported earlier in the file
+/* ================= PARENT / GUARDIAN (LAZY) ================= */
+const ParentDashboard = lazy(() => import("./pages/dashboard/Parent/ParentDashboard"));
+const ChildrenList = lazy(() => import("./pages/dashboard/Parent/ChildrenList"));
+const ChildDetail = lazy(() => import("./pages/dashboard/Parent/ChildDetail"));
+const ChildProfile = lazy(() => import("./pages/dashboard/Parent/ChildProfile"));
+const ChildAttendance = lazy(() => import("./pages/dashboard/Parent/ChildAttendance"));
+const ChildFees = lazy(() => import("./pages/dashboard/Parent/ChildFees"));
 
-// ================= PLATFORM SUPPORT =================
-// PlatformSupportDashboard imported earlier in the file
+/* ================= PRINCIPAL (LAZY) ================= */
+const PrincipalDashboard = lazy(() => import("./pages/dashboard/Principal/PrincipalDashboard"));
 
-// ================= EXAM COORDINATOR =================
-// ExamDashboard imported earlier in the file
+/* ================= PLATFORM SUPPORT (LAZY) ================= */
+const PlatformSupportDashboard = lazy(() => import("./pages/dashboard/PlatformSupport/PlatformSupportDashboard"));
+const SystemHealth = lazy(() => import("./pages/dashboard/PlatformSupport/SystemHealth"));
+const AuditLogsViewer = lazy(() => import("./pages/dashboard/PlatformSupport/AuditLogsViewer"));
+const SystemLogs = lazy(() => import("./pages/dashboard/PlatformSupport/SystemLogs"));
+const IntegrationMonitoring = lazy(() => import("./pages/dashboard/PlatformSupport/IntegrationMonitoring"));
+const SupportTickets = lazy(() => import("./pages/dashboard/PlatformSupport/SupportTickets"));
+const ErrorAnalytics = lazy(() => import("./pages/dashboard/PlatformSupport/ErrorAnalytics"));
+const CollegeHealthOverview = lazy(() => import("./pages/dashboard/PlatformSupport/CollegeHealthOverview"));
+const DatabaseDiagnostics = lazy(() => import("./pages/dashboard/PlatformSupport/DatabaseDiagnostics"));
+const ConfigurationViewer = lazy(() => import("./pages/dashboard/PlatformSupport/ConfigurationViewer"));
 
-// ================= DEPARTMENT MANAGEMENT =================
-// EditDepartment and AssignHod imported earlier in the file
+/* ================= EXAM COORDINATOR (LAZY) ================= */
+const ExamDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamDashboard"));
 
-// ================= SYSTEM SETTINGS =================
-// StripeConfiguration and RazorpayConfiguration imported earlier in the file
+/* ================= HOD (LAZY) ================= */
+const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
+const HodTeachers = lazy(() => import("./pages/dashboard/HOD/HodTeachers"));
+const HodDepartment = lazy(() => import("./pages/dashboard/HOD/HodDepartment"));
+const HodProfile = lazy(() => import("./pages/dashboard/HOD/HodProfile"));
+const HodExceptionApprovals = lazy(() => import("./pages/dashboard/HOD/HodExceptionApprovals"));
+const HodReports = lazy(() => import("./pages/dashboard/HOD/HodReports"));
 
-// ================= AUDIT =================
-import AuditLogs from "./pages/dashboard/College-Admin/AuditLogs";
+/* ================= TEACHER (LAZY) ================= */
+const TeacherDashboard = lazy(() => import("./pages/dashboard/Teacher/TeacherDashboard"));
+const AttendanceSessionsList = lazy(() => import("./pages/dashboard/Teacher/AttendanceSessionsList"));
+const SessionDetails = lazy(() => import("./pages/dashboard/Teacher/SessionDetails"));
+const MarkAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/MarkAttendanceModal"));
+const EditAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/EditAttendanceModal"));
+const AttendanceReport = lazy(() => import("./pages/dashboard/Teacher/Attendance/AttendanceReport"));
+const MySessions = lazy(() => import("./pages/dashboard/Teacher/Attendance/MySessions"));
+const MyProfile = lazy(() => import("./pages/dashboard/Teacher/MyProfile"));
+const EditTeacherProfile = lazy(() => import("./pages/dashboard/Teacher/EditTeacherProfile"));
+const TimetableList = lazy(() => import("./pages/dashboard/Teacher/Timetable/TimetableList"));
+const AddTimetableSlot = lazy(() => import("./pages/dashboard/Teacher/Timetable/AddTimetableSlot"));
+const MySchedule = lazy(() => import("./pages/dashboard/Teacher/Timetable/MySchedule"));
+const WeeklyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/WeeklyTimetable"));
+const MyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/MyTimetable"));
+const CreateException = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateException"));
+const ExceptionManagement = lazy(() => import("./pages/dashboard/Teacher/Timetable/ExceptionManagement"));
+const CreateTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateTimetable"));
 
-// ================= TEACHER - TIMETABLE =================
-import TimetableList from "./pages/dashboard/Teacher/Timetable/TimetableList";
-import AddTimetableSlot from "./pages/dashboard/Teacher/Timetable/AddTimetableSlot";
-import MySchedule from "./pages/dashboard/Teacher/Timetable/MySchedule";
-import WeeklyTimetable from "./pages/dashboard/Teacher/Timetable/WeeklyTimetable";
-import MyTimetable from "./pages/dashboard/Teacher/Timetable/MyTimetable";
-import CreateException from "./pages/dashboard/Teacher/Timetable/CreateException";
-import ExceptionManagement from "./pages/dashboard/Teacher/Timetable/ExceptionManagement";
-import CreateTimetable from "./pages/dashboard/Teacher/Timetable/CreateTimetable";
-
-// ================= TEACHER - PROFILE =================
-import MyProfile from "./pages/dashboard/Teacher/MyProfile";
-import EditTeacherProfile from "./pages/dashboard/Teacher/EditTeacherProfile";
+/* ================= STUDENT (LAZY) ================= */
+const StudentDashboard = lazy(() => import("./pages/dashboard/Student/StudentDashboard"));
+const StudentProfile = lazy(() => import("./pages/dashboard/Student/StudentProfile"));
+const EditStudentProfile = lazy(() => import("./pages/dashboard/Student/EditStudentProfile"));
+const StudentTimetable = lazy(() => import("./pages/dashboard/Student/StudentTimetable"));
+const StudentFees = lazy(() => import("./pages/dashboard/Student/StudentFees"));
+const MakePayments = lazy(() => import("./pages/dashboard/Student/MakePayments"));
+const FeeReceipt = lazy(() => import("./pages/dashboard/Student/FeeReceipt"));
+const PaymentSuccess = lazy(() => import("./pages/dashboard/Student/PaymentSuccess"));
+const PaymentCancel = lazy(() => import("./pages/dashboard/Student/PaymentCancel"));
+const MyAttendance = lazy(() => import("./pages/dashboard/Student/MyAttendance"));
 
 export default function App() {
   const { user } = useContext(AuthContext);
