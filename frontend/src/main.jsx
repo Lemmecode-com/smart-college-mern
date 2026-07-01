@@ -4,11 +4,9 @@ import * as Sentry from "@sentry/react";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthContext";
 import "bootstrap/dist/css/bootstrap.min.css";
-
 Sentry.init({
-  dsn: "https://307cf5e6f3bb4876a249d0d81073e8ae@errors.restromonitor.com/7",
-  tracesSampleRate: 0,
-  autoSessionTracking: false,
+  dsn: import.meta.env.VITE_GLITCHTIP_DSN,
+  enabled: import.meta.env.VITE_GLITCHTIP_ENABLED === "true",
 });
 
 ReactDOM.createRoot(document.getElementById("root")).render(
