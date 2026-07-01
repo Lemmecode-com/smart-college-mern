@@ -27,14 +27,14 @@ jobs:
 
             cd /var/www/edu-novaa/repo
 
+            echo "--- git sync ---"
+            git fetch origin Features
+            git reset --hard origin/Features
+
             echo "--- syncing secrets to .env ---"
             grep -q "^GLITCHTIP_DSN=" backend/.env && sed -i "s|^GLITCHTIP_DSN=.*|GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}|" backend/.env || echo "GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}" >> backend/.env
             grep -q "^GLITCHTIP_ENABLED=" backend/.env && sed -i "s|^GLITCHTIP_ENABLED=.*|GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}|" backend/.env || echo "GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}" >> backend/.env
             grep -q "^VITE_GLITCHTIP_DSN=" frontend/.env.production && sed -i "s|^VITE_GLITCHTIP_DSN=.*|VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}|" frontend/.env.production || echo "VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}" >> frontend/.env.production
-
-            echo "--- git sync ---"
-            git fetch origin Features
-            git reset --hard origin/Features
 
             echo "--- backend install ---"
             cd backend && npm ci --omit=dev && cd ..
