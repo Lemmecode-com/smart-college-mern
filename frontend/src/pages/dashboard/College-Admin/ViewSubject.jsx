@@ -110,6 +110,7 @@ export default function ViewSubject() {
             className="erp-btn erp-btn-outline"
             onClick={() => navigate("/subjects")}
           >
+
             <FaArrowLeft /> <span>Back to Subjects</span>
           </button>
 
@@ -121,13 +122,6 @@ export default function ViewSubject() {
               <FaEdit /> <span>Edit Subject</span>
             </button>
           )}
-
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-          >
-            <FaEdit /> <span>Edit Subject</span>
-          </button>
         </div>
       </div>
 

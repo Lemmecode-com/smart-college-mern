@@ -174,6 +174,7 @@ app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 // Only serve college QR codes publicly (safe — just college code)
 // Student documents are served via secure API endpoint /api/students/documents/:filename
 app.use("/uploads/college-qrs", express.static("uploads/college-qrs"));
+app.use("/uploads/payment-proofs", express.static("uploads/payment-proofs"));
 // NOTE: /uploads/students/ is NOT served statically — it's protected by the secure API endpoint
 
 /* ================= HEALTH CHECK ROUTE ================= */

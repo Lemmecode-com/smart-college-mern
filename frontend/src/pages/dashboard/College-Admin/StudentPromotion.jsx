@@ -439,7 +439,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           </p>
         </div>
         <div className="header-actions">
-          <button onClick={viewHistory} className="btn btn-outline-primary">
+          <button onClick={viewHistory} className="btn btn-outline-secondary">
             <FaHistory /> View History
           </button>
         </div>
