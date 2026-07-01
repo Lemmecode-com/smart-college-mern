@@ -117,6 +117,9 @@ export default function ReportDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [attendanceCourseFilter, setAttendanceCourseFilter] = useState("");
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState("admission");
+
   // Pagination States
   const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
   const [currentLowAttendancePage, setCurrentLowAttendancePage] = useState(1);
@@ -609,10 +612,33 @@ export default function ReportDashboard() {
         </div>
       </div>
 
-      {/* ================= MAIN CONTENT GRID ================= */}
-      <div className="reports-grid">
+      {/* ================= TAB NAVIGATION ================= */}
+      <div className="report-tabs">
+        {[
+          { id: "admission", label: "Admission Summary" },
+          { id: "payment", label: "Payment Summary" },
+          { id: "payment-status", label: "Payment Status" },
+          { id: "attendance", label: "Attendance Summary" },
+          { id: "low-attendance", label: "Low Attendance" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id === "payment-status") setCurrentPaymentPage(1);
+              if (tab.id === "low-attendance") setCurrentLowAttendancePage(1);
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ================= MAIN CONTENT ================= */}
+      <div className="tab-content fade-in">
         {/* ================= ADMISSION SUMMARY ================= */}
-        <div className="report-card admission-card fade-in-up">
+        {activeTab === "admission" && <div className="report-card admission-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaGraduationCap className="card-icon" />
@@ -729,8 +755,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= PAYMENT SUMMARY ================= */}
-        <div className="report-card payment-card fade-in-up">
+        {activeTab === "payment" && <div className="report-card payment-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaWallet className="card-icon" />
@@ -839,8 +867,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= STUDENT PAYMENT STATUS ================= */}
-        <div className="report-card payment-table-card fade-in-up">
+        {activeTab === "payment-status" && <div className="report-card payment-table-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaTable className="card-icon" />
@@ -966,8 +996,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= ATTENDANCE SUMMARY ================= */}
-        <div className="report-card attendance-card fade-in-up">
+        {activeTab === "attendance" && <div className="report-card attendance-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaCalendarCheck className="card-icon" />
@@ -1051,8 +1083,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= LOW ATTENDANCE STUDENTS ================= */}
-        <div className="report-card low-attendance-card fade-in-up">
+        {activeTab === "low-attendance" && <div className="report-card low-attendance-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaExclamationTriangle className="card-icon" />
@@ -1177,6 +1211,7 @@ export default function ReportDashboard() {
             )}
           </div>
         </div>
+        }
       </div>
 
       {/* ================= STYLES ================= */}
@@ -1434,6 +1469,60 @@ export default function ReportDashboard() {
           color: var(--text-secondary);
           font-weight: var(--font-weight-medium);
           font-family: var(--font-family-base);
+        }
+
+        /* ================= TAB NAVIGATION ================= */
+        .report-tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          background: white;
+          padding: 0.75rem;
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn {
+          padding: 0.6rem 1.25rem;
+          border: 2px solid transparent;
+          border-radius: var(--radius-md);
+          background: transparent;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+          background: rgba(15, 58, 74, 0.06);
+          color: var(--primary);
+          border-color: rgba(15, 58, 74, 0.15);
+        }
+
+        .tab-btn--active {
+          background: var(--primary);
+          color: white;
+          border-color: var(--primary);
+        }
+
+        .tab-btn--active:hover {
+          background: var(--primary-dark);
+          border-color: var(--primary-dark);
+          color: white;
+        }
+
+        .tab-content {
+          min-height: 400px;
+        }
+
+        @media (max-width: 480px) {
+          .tab-btn {
+            flex: 1 1 100%;
+            text-align: center;
+          }
         }
 
         /* ================= REPORTS GRID ================= */
