@@ -17,7 +17,8 @@ export default defineConfig({
           'ui-vendor': ['bootstrap', 'react-bootstrap', 'framer-motion'],
           'charts-vendor': ['recharts'],
           'pdf-vendor': ['jspdf', 'jspdf-autotable', 'html2canvas'],
-          'utils-vendor': ['axios', 'moment', 'jszip', 'file-saver']
+          'excel-vendor': ['exceljs'],
+          'utils-vendor': ['axios', 'jszip', 'file-saver']
         }
       }
     },

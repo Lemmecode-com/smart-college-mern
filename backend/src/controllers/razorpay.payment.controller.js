@@ -34,12 +34,16 @@ async function processPaymentVerification(
         studentFeeId: studentFee._id,
         installmentId: installment._id,
       });
+      // Recalculate paidAmount to ensure consistency
+      studentFee.paidAmount = studentFee.installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amount, 0);
       return res.json({
         valid: true,
         alreadyPaid: true,
         installment: {
           _id: installment._id,
-          name: installment.name,
+          installmentName: installment.name,
           amount: installment.amount,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
@@ -57,12 +61,16 @@ async function processPaymentVerification(
         installmentId: installment._id,
         razorpayPaymentId: razorpay_payment_id,
       });
+      // Recalculate paidAmount
+      studentFee.paidAmount = studentFee.installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amount, 0);
       return res.json({
         valid: true,
         alreadyPaid: true,
         installment: {
           _id: installment._id,
-          name: installment.name,
+          installmentName: installment.name,
           amount: installment.amount,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
@@ -107,7 +115,7 @@ async function processPaymentVerification(
       modifiedCount: updateResult.modifiedCount,
     });
 
-    // Check if update was successful
+// Check if update was successful
     if (updateResult.matchedCount === 0) {
       // Installment was already paid or not found (race condition prevented)
       logger.logWarning(
@@ -125,26 +133,32 @@ async function processPaymentVerification(
         installment._id,
       );
 
+      // Recalculate paidAmount for consistency
+      const paidAmount = latestStudentFee.installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amount, 0);
+
       return res.json({
         valid: true,
         alreadyPaid: true,
         installment: {
           _id: latestInstallment._id,
-          name: latestInstallment.name,
+          installmentName: latestInstallment.name,
           amount: latestInstallment.amount,
           paidAt: latestInstallment.paidAt,
           transactionId: latestInstallment.transactionId,
           status: latestInstallment.status,
         },
         totalFee: latestStudentFee.totalFee,
-        paidAmount: latestStudentFee.paidAmount,
+        paidAmount: paidAmount,
         remainingAmount:
-          latestStudentFee.totalFee - latestStudentFee.paidAmount,
+          latestStudentFee.totalFee - paidAmount,
       });
     }
 
     /* =========================
        Recalculate paid amount (only after successful update)
+       Save the updated paidAmount to database
     ========================== */
 
     // Fetch updated data for accurate calculation
@@ -152,6 +166,10 @@ async function processPaymentVerification(
     const paidAmount = updatedStudentFee.installments
       .filter((i) => i.status === "PAID")
       .reduce((sum, i) => sum + i.amount, 0);
+
+    // Save the recalculated paidAmount
+    updatedStudentFee.paidAmount = paidAmount;
+    await updatedStudentFee.save();
 
     logger.logInfo("✅ Payment verified and recorded atomically", {
       studentId: student._id,
@@ -201,11 +219,12 @@ async function processPaymentVerification(
       orderId: razorpay_order_id,
       installment: {
         _id: installment._id,
-        name: installment.name,
+        installmentName: installment.name,
         amount: installment.amount,
         paidAt: new Date(),
         transactionId: razorpay_payment_id,
         status: "PAID",
+        paymentGateway: "RAZORPAY",
       },
       totalFee: updatedStudentFee.totalFee,
       paidAmount: paidAmount,

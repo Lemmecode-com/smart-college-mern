@@ -382,12 +382,12 @@ export default function CollegeAdminDashboard() {
                   </Col>
                   <Col xs={12} sm={6} lg={3} className="info-item">
                     <FaShieldAlt className="info-icon info-icon-success" />
-                    <Badge className="info-badge badge-success">
+                    <Badge className="info-badge badge-success" bg={null}>
                       Active Institution
                     </Badge>
                   </Col>
                   <Col xs={12} sm={6} lg={3} className="info-item justify-content-sm-end">
-                    <Badge className="info-badge badge-primary">
+                    <Badge className="info-badge badge-primary" bg={null}>
                       Code: {college.code}
                     </Badge>
                   </Col>
