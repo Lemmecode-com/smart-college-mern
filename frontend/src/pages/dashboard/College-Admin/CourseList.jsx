@@ -83,7 +83,7 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
       <table className="modern-table">
         <thead>
           <tr>
-            <th className="col-index">#</th>
+            <th className="col-index">Sr.No.</th>
             <th className="col-course sortable" onClick={() => onSort('name')}>
               <div className="th-content">
                 <FaGraduationCap className="th-icon" />

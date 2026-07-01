@@ -156,7 +156,7 @@ exports.attendanceSummary = async (college_id) => {
 
   return {
     totalRecords: data.total,
-    averageAttendance: data.present,
+    averageAttendance: data.total > 0 ? Math.round((data.present / data.total) * 100) : 0,
   };
 };
 
