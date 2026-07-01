@@ -21,15 +21,7 @@ const { ROLE } = require("../utils/constants");
 
 /* ===============================
    COMBINED DASHBOARD REPORTS
-================================ */
-router.get(
-  "/payments/students",
-  auth,
-  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
-  collegeMiddleware,
-  studentPaymentStatus
-);
-
+=============================== */
 router.get(
   "/payments/filtered",
   auth,

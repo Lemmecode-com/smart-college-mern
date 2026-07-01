@@ -299,39 +299,6 @@ export default function ReportDashboard() {
         setLowAttendanceStudents([]);
       }
 
-      setAdmissionData(admissionRes.value.data);
-      setPaymentData(paymentRes.value.data);
-
-      if (attendanceRes.status === "fulfilled") {
-        const data = attendanceRes.value.data;
-        const attendanceData = Array.isArray(data) ? data[0] || {} : data;
-        setAttendanceData(attendanceData);
-      } else {
-        console.error("Attendance summary failed:", attendanceRes.reason);
-      }
-
-      if (studentPaymentsRes.status === "fulfilled") {
-        setStudentPayments(
-          Array.isArray(studentPaymentsRes.value.data)
-            ? studentPaymentsRes.value.data
-            : [],
-        );
-      } else {
-        console.error("Student payments failed:", studentPaymentsRes.reason);
-        setStudentPayments([]);
-      }
-
-      if (lowAttendanceRes.status === "fulfilled") {
-        setLowAttendanceStudents(
-          lowAttendanceRes.value.data && Array.isArray(lowAttendanceRes.value.data)
-            ? lowAttendanceRes.value.data
-            : [],
-        );
-      } else {
-        console.error("Low attendance failed:", lowAttendanceRes.reason);
-        setLowAttendanceStudents([]);
-      }
-
       toast.success("Reports loaded successfully!", {
         ...CONFIG.TOAST,
         toastId: "reports-loaded-success",
@@ -817,7 +784,9 @@ export default function ReportDashboard() {
                 <span className="payment-label">Total Pending</span>
                 <span className="payment-value">
                   {formatCurrency(
-                    paymentData?.pending ||
+                    (paymentData?.totalPending ??
+                      paymentData?.pending ??
+                      0) ||
                       studentPayments.reduce(
                         (sum, student) => sum + (Number(student.totalFee) || 0),
                         0,
