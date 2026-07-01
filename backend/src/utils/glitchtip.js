@@ -18,7 +18,7 @@ const initGlitchtip = () => {
     dsn: process.env.GLITCHTIP_DSN,
     enabled: process.env.GLITCHTIP_ENABLED === "true",
     environment: process.env.NODE_ENV || "development",
-    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 0,
+    tracesSampleRate: 0,
     debug: false,
     autoSessionTracking: false,
 
