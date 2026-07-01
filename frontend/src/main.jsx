@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthContext";
 import * as Sentry from "@sentry/react";
