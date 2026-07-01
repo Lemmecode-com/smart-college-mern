@@ -199,7 +199,7 @@ app.use((req, res, next) => {
 
 /* ================= GLOBAL ERROR HANDLER ================= */
 // Must be last - handles all errors from above routes
-app.use(Sentry.expressErrorHandler());
+// Note: Sentry v7+ doesn't use expressErrorHandler() - error capture is handled in error.middleware.js
 app.use(require("./src/middlewares/error.middleware"));
 
 module.exports = app;
