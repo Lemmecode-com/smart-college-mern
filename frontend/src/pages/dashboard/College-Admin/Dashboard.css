@@ -170,17 +170,23 @@
   font-weight: 600;
   font-size: 0.85rem;
   padding: 0.35rem 0.75rem;
-  border-radius: 20px;
+  border-radius: 999px;
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .badge-success {
-  background: rgba(40, 167, 69, 0.15);
-  color: var(--brand-success);
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+  box-shadow: 0 1px 3px rgba(40, 167, 69, 0.08);
 }
 
 .badge-primary {
-  background: rgba(26, 75, 109, 0.15);
-  color: var(--brand-primary);
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #90caf9;
+  box-shadow: 0 1px 3px rgba(26, 75, 109, 0.08);
 }
 
 /* ================= DASHBOARD SECTIONS ================= */
