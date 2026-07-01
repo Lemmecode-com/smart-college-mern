@@ -6,6 +6,7 @@ const {
 const { sendPaymentReceiptEmail } = require("../services/email.service");
 const { generatePaymentReceiptPdf } = require("../utils/pdfReceipt");
 const AppError = require("../utils/AppError");
+const path = require("path");
 
 /**
  * COLLEGE ADMIN: Payment report with date filtering support
@@ -145,6 +146,20 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
     const adminUserId = req.user.id;
     const collegeId = req.college_id;
 
+    let proofUrl = null;
+    let proofFileName = null;
+    let proofFileType = null;
+    let proofFileSize = null;
+    let proofUploadedAt = null;
+
+    if (req.file) {
+      proofUrl = `uploads/payment-proofs/${req.file.filename}`;
+      proofFileName = req.file.originalname;
+      proofFileType = req.file.mimetype;
+      proofFileSize = req.file.size;
+      proofUploadedAt = new Date();
+    }
+
     // Validate required fields
     if (!studentId || !installmentId || !paymentMode) {
       throw new AppError(
@@ -248,6 +263,14 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
     installment.paidAt = new Date();
     installment.markedByAdmin = adminUserId;
 
+    if (proofUrl) {
+      installment.proofUrl = proofUrl;
+      installment.proofFileName = proofFileName;
+      installment.proofFileType = proofFileType;
+      installment.proofFileSize = proofFileSize;
+      installment.proofUploadedAt = proofUploadedAt;
+    }
+
     // Update total paid amount
     studentFee.paidAmount += installment.amount;
 
@@ -311,6 +334,11 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
         paidAt: installment.paidAt,
         totalPaid: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        proofUrl: installment.proofUrl,
+        proofFileName: installment.proofFileName,
+        proofFileType: installment.proofFileType,
+        proofFileSize: installment.proofFileSize,
+        proofUploadedAt: installment.proofUploadedAt,
       },
     });
   } catch (error) {
@@ -437,6 +465,74 @@ exports.getDefaulters = async (req, res, next) => {
       success: true,
       defaulters,
       summary,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 🏦 ADMIN/ACCOUNTANT/PRINCIPAL: Serve payment proof document securely
+ * GET /api/admin/payments/proof/:installmentId
+ *
+ * Validates:
+ * - User has access (COLLEGE_ADMIN, ACCOUNTANT, PRINCIPAL)
+ * - College isolation (proof belongs to user's college)
+ * - File exists on disk
+ * - Path traversal prevention
+ */
+exports.servePaymentProof = async (req, res, next) => {
+  try {
+    const { installmentId } = req.params;
+    const collegeId = req.college_id;
+
+    const studentFee = await StudentFee.findOne({
+      "installments._id": installmentId,
+      college_id: collegeId,
+    });
+
+    if (!studentFee) {
+      return next(
+        new AppError("Payment proof not found or access denied", 404, "PROOF_NOT_FOUND"),
+      );
+    }
+
+    const installment = studentFee.installments.id(installmentId);
+
+    if (!installment || !installment.proofUrl) {
+      return next(
+        new AppError("No proof document uploaded for this installment", 404, "NO_PROOF_UPLOADED"),
+      );
+    }
+
+    const proofPath = installment.proofUrl;
+    const cleanFilename = path.basename(proofPath);
+
+    const uploadsBase = path.resolve(__dirname, "../../uploads/payment-proofs");
+    const requestedPath = path.resolve(__dirname, "../../", proofPath);
+
+    if (!requestedPath.startsWith(uploadsBase)) {
+      return next(
+        new AppError("Invalid file path", 403, "INVALID_FILE_PATH"),
+      );
+    }
+
+    const ext = path.extname(cleanFilename).toLowerCase();
+    const contentTypes = {
+      ".pdf": "application/pdf",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png"
+    };
+    res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
+    res.setHeader("Content-Disposition", `inline; filename="${installment.proofFileName || cleanFilename}"`);
+
+    res.sendFile(requestedPath, (err) => {
+      if (err) {
+        return next(
+          new AppError("Payment proof file not found on server", 404, "FILE_NOT_FOUND"),
+        );
+      }
     });
   } catch (error) {
     next(error);
