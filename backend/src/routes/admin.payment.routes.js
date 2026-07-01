@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const { uploadPaymentProof } = require("../middlewares/paymentProof.middleware");
 
 const {
   getCollegePaymentReport,
@@ -11,6 +12,7 @@ const {
   triggerPaymentReminders,
   markInstallmentAsPaid,
   getDefaulters,
+  servePaymentProof,
 } = require("../controllers/admin.payment.controller");
 
 const {
@@ -102,6 +104,7 @@ router.post(
   auth,
   role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT),
   collegeMiddleware,
+  uploadPaymentProof.single("proof"),
   markInstallmentAsPaid,
 );
 
@@ -112,6 +115,15 @@ router.get(
   role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
   collegeMiddleware,
   getDefaulters,
+);
+
+// 🏦 ADMIN/ACCOUNTANT/PRINCIPAL: View payment proof document
+router.get(
+  "/proof/:installmentId",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  servePaymentProof,
 );
 
 module.exports = router;
