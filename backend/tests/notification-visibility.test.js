@@ -10,6 +10,13 @@
  * 6. Notification list visibility for teachers and HODs
  */
 
+// Register Mongoose schemas before using mongoose.model(...)
+const College = require("../src/models/college.model");
+const Timetable = require("../src/models/timetable.model");
+const TimetableException = require("../src/models/timetableException.model");
+const Teacher = require("../src/models/teacher.model");
+const Department = require("../src/models/department.model");
+const Notification = require("../src/models/notification.model");
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 
