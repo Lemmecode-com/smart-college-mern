@@ -1,11 +1,12 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useContext, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../utils/toast";
 import {
   FaFileInvoiceDollar,
   FaSearch,
@@ -22,11 +23,13 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExternalLinkAlt,
+  FaUser,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
 
 export default function PaymentHistory() {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,18 +39,40 @@ export default function PaymentHistory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeDropdown, setActiveDropdown] = useState(null); // Store row index for active dropdown
 
+  // Date filtering state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showDateFilters, setShowDateFilters] = useState(false);
+  const fetchIdRef = useRef(0);
+
   // Fetch payment history from backend
   const fetchPaymentHistory = useCallback(async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/admin/payments/report");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      // Build query parameters for date filtering
+      let queryParams = {};
+      if (startDate) queryParams.startDate = startDate;
+      if (endDate) queryParams.endDate = endDate;
+
+      const queryString = new URLSearchParams(queryParams).toString();
+      const url = `/admin/payments/report${queryString ? `?${queryString}` : ''}`;
+
+      const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setPaymentData(res.data);
-      toast.success("Payment history loaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-history-success",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Payment history loaded successfully!");
     } catch (err) {
       console.error("Payment history fetch error:", err);
       const statusCode = err.response?.status;
@@ -55,15 +80,16 @@ export default function PaymentHistory() {
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
       setError({ message: errorMsg, statusCode });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        toastId: "payment-history-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchPaymentHistory();
@@ -972,12 +998,130 @@ export default function PaymentHistory() {
             min-width: 650px;
           }
         }
+
+        /* ================= DATE FILTER STYLES ================= */
+        .date-filter-controls {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .filter-toggle-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .filter-toggle-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
+        }
+
+        .filter-toggle-btn.active {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a4b6d 100%);
+        }
+
+        .date-filters-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 1rem;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 12px;
+          border: 1px solid #e9ecef;
+        }
+
+        .date-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .date-label {
+          font-weight: 600;
+          color: #1a4b6d;
+          font-size: 0.875rem;
+        }
+
+        .date-input {
+          padding: 0.75rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          transition: border-color 0.3s ease;
+        }
+
+        .date-input:focus {
+          border-color: #1a4b6d;
+          outline: none;
+        }
+
+        .date-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .apply-filter-btn,
+        .clear-filter-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .apply-filter-btn {
+          background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+          color: white;
+        }
+
+        .apply-filter-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .clear-filter-btn {
+          background: #6c757d;
+          color: white;
+        }
+
+        .clear-filter-btn:hover {
+          background: #5a6268;
+          transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+          .date-filters-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .date-actions {
+            justify-content: center;
+            margin-top: 1rem;
+          }
+        }
       `}</style>
 
       {/* ================= BREADCRUMB ================= */}
       <Breadcrumb
         items={[
-          { label: "Dashboard", path: "/dashboard" },
+          {
+            label: "Dashboard",
+            path: user?.role === "ACCOUNTANT" ? "/dashboard/accountant" : "/dashboard"
+          },
           { label: "Payment History" },
         ]}
       />
@@ -1089,7 +1233,115 @@ export default function PaymentHistory() {
               <option value="DUE">❌ Due</option>
             </select>
           </div>
+
+          <div className="date-filter-controls">
+            <button
+              className={`filter-toggle-btn ${showDateFilters ? 'active' : ''}`}
+              onClick={() => setShowDateFilters(!showDateFilters)}
+            >
+              <FaFilter />
+              {showDateFilters ? 'Hide Date Filters' : 'Show Date Filters'}
+            </button>
+          </div>
         </div>
+
+        {/* Date Range Filters */}
+        {showDateFilters && (
+          <div
+            className="date-filters-row animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <div className="date-input-group">
+              <label className="date-label">Start Date:</label>
+              <input
+                type="date"
+                className="date-input"
+                style={{
+                  pointerEvents: 'auto',
+                  zIndex: 10
+                }}
+                value={startDate}
+                onChange={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setStartDate(e.target.value);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onFocus={(e) => {
+                  e.stopPropagation();
+                }}
+                onBlur={(e) => {
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            </div>
+            <div className="date-input-group">
+              <label className="date-label">End Date:</label>
+              <input
+                type="date"
+                className="date-input"
+                style={{
+                  pointerEvents: 'auto',
+                  zIndex: 10
+                }}
+                value={endDate}
+                onChange={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setEndDate(e.target.value);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onFocus={(e) => {
+                  e.stopPropagation();
+                }}
+                onBlur={(e) => {
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            </div>
+            <div className="date-actions">
+              <button
+                className="apply-filter-btn"
+                onClick={fetchPaymentHistory}
+              >
+                <FaSyncAlt /> Apply Filters
+              </button>
+              <button
+                className="clear-filter-btn"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  fetchPaymentHistory();
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ================= TABLE ================= */}
@@ -1151,7 +1403,7 @@ export default function PaymentHistory() {
                     .join(", ");
 
                   return (
-                    <tr key={record.student_id?._id || `student-${idx}`}>
+                    <tr key={record.student_id?._id || record.student?.fullName || `student-${idx}`}>
                       <td>
                         <div className="payment-student-info">
                           <span className="payment-student-name">
@@ -1247,6 +1499,21 @@ export default function PaymentHistory() {
                           </div>
                         ) : (
                           <span className="no-receipts-text">No Receipts</span>
+                        )}
+                        {/* View Student Report Button */}
+                        {record.student_id && (
+                          <button
+                            className="payment-action-btn"
+                            onClick={() => navigate(`/college-admin/student-payment-report/${record.student_id._id}`)}
+                            title="View detailed student payment report"
+                            style={{
+                              background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
+                              marginLeft: '8px'
+                            }}
+                          >
+                            <FaUser />
+                            <span className="btn-text">Report</span>
+                          </button>
                         )}
                       </td>
                     </tr>

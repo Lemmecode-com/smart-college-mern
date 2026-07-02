@@ -13,7 +13,7 @@ const notificationReadSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "TEACHER", "STUDENT"],
+      enum: ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PRINCIPAL"],
       required: true,
     },
     readAt: {

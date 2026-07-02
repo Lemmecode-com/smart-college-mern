@@ -1,3 +1,4 @@
+const crypto = require("crypto"); 
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
@@ -6,11 +7,22 @@ const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const { sendStaffCredentialsEmail } = require("../services/email.service");
+const logger = require("../utils/logger");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
+
+const generateTempPassword = (length = 10) => {
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+};
 
 /* =========================================================
    CREATE TEACHER (College Admin)
@@ -29,7 +41,6 @@ exports.createTeacher = async (req, res, next) => {
       department_id,
       course_id,
       courses = [],
-      password,
       // New fields for complete profile
       gender,
       bloodGroup,
@@ -74,6 +85,9 @@ exports.createTeacher = async (req, res, next) => {
       }
     }
 
+    /* ================= Generate Temp Password ================= */
+    const tempPassword = generateTempPassword(12);
+
     /* ================= Duplicate User ================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -84,9 +98,11 @@ exports.createTeacher = async (req, res, next) => {
     const user = await User.create({
       name,
       email,
-      password,
+      password: tempPassword,
       role: "TEACHER",
       college_id: req.college_id,
+      isActive: true,
+      mustChangePassword: true,
     });
 
     /* ================= Create Teacher ================= */
@@ -119,9 +135,17 @@ exports.createTeacher = async (req, res, next) => {
       res,
       {
         teacher,
+        temporaryPassword: tempPassword,
       },
       "Teacher created successfully",
     );
+
+    sendStaffCredentialsEmail({
+      to: email,
+      name,
+      temporaryPassword: tempPassword,
+      collegeId: req.college_id,
+    }).catch((err) => logger.logError("Failed to send teacher credentials email", { error: err.message }));
   } catch (error) {
     next(error);
   }
@@ -305,8 +329,8 @@ exports.getTeachers = async (req, res) => {
 ========================================================= */
 exports.getTeacherById = async (req, res) => {
   try {
-    console.log("[getTeacherById] Request ID:", req.params.id);
-    console.log("[getTeacherById] College ID:", req.college_id);
+    logger.logInfo("[Teacher] Fetch by ID", { teacherId: req.params.id });
+    logger.logInfo("[Teacher] College ID", { collegeId: req.college_id });
 
     const teacher = await Teacher.findOne({
       _id: req.params.id,
@@ -317,9 +341,9 @@ exports.getTeacherById = async (req, res) => {
       .populate("subjects", "name code semester")
       .select("-__v");
 
-    console.log(
-      "[getTeacherById] Found teacher:",
-      teacher ? teacher.name : "NULL",
+    logger.logInfo(
+      "[Teacher] Found",
+      { teacherId: req.params.id, name: teacher?.name }
     );
     console.log("[getTeacherById] Teacher data:", teacher);
 
@@ -335,7 +359,7 @@ exports.getTeacherById = async (req, res) => {
       "Teacher fetched successfully",
     );
   } catch (error) {
-    console.error("[getTeacherById] Error:", error);
+    logger.logError("[Teacher] Fetch by ID failed", { error: error.message });
     next(error);
   }
 };
@@ -480,14 +504,16 @@ exports.updateTeacher = async (req, res, next) => {
 };
 
 /* =========================================================
-   DELETE TEACHER (Admin only)
-   DELETE /teachers/:id
+    DELETE TEACHER (Admin only)
+    DELETE /teachers/:id
+    ✅ FIX: Check for references before deletion to prevent orphaned data
 ========================================================= */
 exports.deleteTeacher = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const teacher = await Teacher.findOneAndDelete({
+    // Fetch teacher first (before deletion) for validation
+    const teacher = await Teacher.findOne({
       _id: id,
       college_id: req.college_id,
     });
@@ -495,6 +521,63 @@ exports.deleteTeacher = async (req, res, next) => {
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
+
+    // ✅ Check 1: Subject assignments
+    const Subject = require("../models/subject.model");
+    const assignedSubjects = await Subject.countDocuments({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+      status: "ACTIVE",
+    });
+
+    if (assignedSubjects > 0) {
+      throw new AppError(
+        `Cannot delete teacher: ${assignedSubjects} active subject(s) still assigned. Please reassign subjects to another teacher before deletion.`,
+        400,
+        "SUBJECTS_STILL_ASSIGNED"
+      );
+    }
+
+    // ✅ Check 2: TimetableSlot assignments
+    const TimetableSlot = require("../models/timetableSlot.model");
+    const assignedSlots = await TimetableSlot.countDocuments({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+    });
+
+    if (assignedSlots > 0) {
+      throw new AppError(
+        `Cannot delete teacher: ${assignedSlots} timetable slot(s) still assigned. Please remove slots from timetable before deletion.`,
+        400,
+        "TIMETABLE_SLOTS_ASSIGNED"
+      );
+    }
+
+    // ✅ Check 3: Attendance sessions
+    const AttendanceSession = require("../models/attendanceSession.model");
+    const activeSessions = await AttendanceSession.countDocuments({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+      status: "OPEN",
+    });
+    const closedSessions = await AttendanceSession.countDocuments({
+      teacher_id: teacher._id,
+      college_id: req.college_id,
+    });
+
+    if (closedSessions > 0) {
+      throw new AppError(
+        `Cannot delete teacher: ${closedSessions} attendance session(s) exist. Teacher records are needed for attendance history.`,
+        400,
+        "ATTENDANCE_SESSIONS_EXIST"
+      );
+    }
+
+    // ✅ All checks passed - proceed with deletion
+    await Teacher.findOneAndDelete({
+      _id: id,
+      college_id: req.college_id,
+    });
 
     // Optionally delete the associated user
     await User.deleteOne({ _id: teacher.user_id });
@@ -597,9 +680,9 @@ exports.getAvailableTeachersForReassignment = async (req, res, next) => {
     );
 
     // DEBUG: Log teacher department info
-    console.log("[AVAILABLE TEACHERS] Total:", teachers.length);
-    console.log(
-      "[AVAILABLE TEACHERS]",
+    logger.logInfo("[Teacher] Available teachers count", { count: teachers.length });
+    logger.logInfo(
+      "[Teacher] Available teachers list",
       teachers.map((t) => ({
         name: t.name,
         deptId: t.department_id,
@@ -614,6 +697,7 @@ exports.getAvailableTeachersForReassignment = async (req, res, next) => {
       "Available teachers fetched successfully",
     );
   } catch (error) {
+    logger.logError("[Teacher] Available teachers fetch failed", { error: error.message });
     next(error);
   }
 };

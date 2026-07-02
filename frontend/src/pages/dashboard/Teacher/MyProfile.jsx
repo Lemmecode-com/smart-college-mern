@@ -153,8 +153,8 @@ export default function MyProfile() {
         setLoading(true);
         const res = await api.get("/teachers/my-profile");
 
-        // Backend returns { teacher: {...} }, axios keeps it nested
-        const profileData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+        // Backend returns { data: { teacher: {...} } }, axios interceptor unwraps it
+        const profileData = res.data?.teacher || res.data?.data?.teacher || null;
         setProfile(profileData);
       } catch (err) {
         setError("Failed to load profile data. Please try again.");
@@ -994,10 +994,9 @@ function EmptySection({ icon, title, message }) {
         {title}
       </h4>
       <p style={{ 
-        margin: 0, 
+        margin: '0 auto', 
         fontSize: '1rem',
         maxWidth: '600px',
-        margin: '0 auto',
         lineHeight: 1.6
       }}>
         {message}

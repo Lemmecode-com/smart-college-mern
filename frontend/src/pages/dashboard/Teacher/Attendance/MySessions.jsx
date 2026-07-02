@@ -126,7 +126,7 @@ export default function MySessions() {
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() =>
-                          navigate(`/attendance/mark?sessionId=${s._id}`)
+                          navigate(`/attendance/session/${s._id}`)
                         }
                         title="Mark Attendance"
                       >

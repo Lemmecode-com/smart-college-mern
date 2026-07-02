@@ -31,6 +31,10 @@ const studentFeeSchema = new mongoose.Schema({
     {
       name: String,
       amount: Number,
+      order: {
+        type: Number,
+        default: 0,
+      },
 
       dueDate: {
         type: Date,
@@ -76,6 +80,29 @@ const studentFeeSchema = new mongoose.Schema({
       markedByAdmin: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+      },
+
+      proofUrl: {
+        type: String,
+        trim: true,
+      },
+
+      proofFileName: {
+        type: String,
+        trim: true,
+      },
+
+      proofFileType: {
+        type: String,
+        trim: true,
+      },
+
+      proofFileSize: {
+        type: Number,
+      },
+
+      proofUploadedAt: {
+        type: Date,
       },
 
       stripeSessionId: {
@@ -173,5 +200,6 @@ studentFeeSchema.index({ "installments.razorpayOrderId": 1 }); // Razorpay order
 studentFeeSchema.index({ "installments.razorpayPaymentId": 1 }); // Razorpay payment lookup (polling)
 studentFeeSchema.index({ "installments.transactionId": 1 }); // Transaction ID lookup (fallback)
 studentFeeSchema.index({ "installments.stripeSessionId": 1 }); // Stripe session lookup
+studentFeeSchema.index({ "installments.proofUrl": 1 }); // Payment proof lookup
 
 module.exports = mongoose.model("StudentFee", studentFeeSchema);

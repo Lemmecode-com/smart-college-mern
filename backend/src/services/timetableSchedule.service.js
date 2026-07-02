@@ -7,6 +7,7 @@ const {
   parseLocalDateSafe,
 } = require("../utils/date.utils");
 const { cache: scheduleCache } = require("./scheduleCache.service");
+const { getYearLabelForSemester } = require("../utils/yearLabels");
 
 /**
  * TIMETABLE SCHEDULE SERVICE
@@ -289,6 +290,7 @@ function generateExtraSlots(extraExceptions) {
  * @param {Date} startDate - Start date for schedule
  * @param {Date} endDate - End date for schedule
  * @param {Object} options - Optional configuration
+ * @param {string} collegeId - College ID for tenant isolation
  * @returns {Object} Complete schedule grouped by date
  */
 exports.generateSchedule = async (
@@ -296,12 +298,13 @@ exports.generateSchedule = async (
   startDate,
   endDate,
   options = {},
+  collegeId = null,
 ) => {
   try {
     // Generate cache key
     const startStr = formatDate(startDate);
     const endStr = formatDate(endDate);
-    const cacheKey = scheduleCache.generateKey(timetableId, startStr, endStr);
+    const cacheKey = scheduleCache.generateKey(timetableId, startStr, endStr, collegeId || "global");
 
     // Check cache first
     let cachedSchedule;
@@ -315,10 +318,13 @@ exports.generateSchedule = async (
       return cachedSchedule;
     }
 
-    // 1️⃣ Load timetable template
-    const timetable = await Timetable.findById(timetableId)
+    // 1️⃣ Load timetable template (with college_id scope if provided)
+    const timetableQuery = collegeId
+      ? { _id: timetableId, college_id: collegeId }
+      : { _id: timetableId };
+    const timetable = await Timetable.findOne(timetableQuery)
       .populate("department_id", "name")
-      .populate("course_id", "name code");
+      .populate("course_id", "name code yearLabels");
 
     if (!timetable) {
       throw new Error(`Timetable not found: ${timetableId}`);
@@ -373,6 +379,7 @@ exports.generateSchedule = async (
     // 2️⃣ Load all slots for this timetable
     const allSlots = await TimetableSlot.find({
       timetable_id: timetableId,
+      ...(collegeId && { college_id: collegeId }),
     })
       .populate("subject_id", "name code")
       .populate("teacher_id", "name email")
@@ -408,10 +415,12 @@ exports.generateSchedule = async (
 
     const exceptions = await TimetableException.find({
       timetable_id: timetableId,
+      ...(collegeId && { college_id: collegeId }),
       exceptionDate: {
         $gte: queryStart,
         $lt: queryEnd,
       },
+      status: { $in: ["APPROVED", "COMPLETED"] },
       isActive: true,
     })
       .populate("slot_id", "day startTime endTime subject_id teacher_id room")
@@ -550,8 +559,12 @@ exports.generateSchedule = async (
     }
 
     // 7️⃣ Cache and return final schedule
+    const courseYearLabels = timetable.course_id?.yearLabels;
+    const yearLabel = courseYearLabels?.length && timetable.semester !== undefined ? getYearLabelForSemester(timetable.semester, courseYearLabels) : null;
+
     const schedule = {
       timetable,
+      yearLabel,
       schedule: scheduleArray,
       summary: {
         totalDays: dates.length,
@@ -585,13 +598,13 @@ exports.generateSchedule = async (
  * @param {string} timetableId - Timetable ID
  * @returns {Object} Today's schedule
  */
-exports.getTodaySchedule = async (timetableId) => {
+exports.getTodaySchedule = async (timetableId, collegeId = null) => {
   try {
     const today = parseLocalDateSafe(new Date());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const result = await this.generateSchedule(timetableId, today, tomorrow);
+    const result = await this.generateSchedule(timetableId, today, tomorrow, {}, collegeId);
 
     if (!result || result.schedule.length === 0) {
       return {

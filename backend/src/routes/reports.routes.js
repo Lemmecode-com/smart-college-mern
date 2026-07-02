@@ -1,4 +1,4 @@
-  const express = require("express");
+   const express = require("express");
 const router = express.Router();
 
 const auth = require("../middlewares/auth.middleware");
@@ -12,33 +12,53 @@ const {
   courseWiseAdmissions,
   allDashboardReports,
   lowAttendanceStudents,
+  getPaymentSummaryWithFilters,
+  getStudentPaymentHistory,
+  getPaymentTrends,
 } = require("../controllers/reports.controller");
 
+const { ROLE } = require("../utils/constants");
 
 /* ===============================
    COMBINED DASHBOARD REPORTS
-================================ */
+=============================== */
 router.get(
-  "/dashboard/all",
+  "/payments/filtered",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
   collegeMiddleware,
-  allDashboardReports,
+  getPaymentSummaryWithFilters
 );
 
-/* ===============================
-   ADMISSIONS
-================================ */
+router.get(
+  "/payments/student/:studentId",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getStudentPaymentHistory
+);
+
+router.get(
+  "/payments/trends",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getPaymentTrends
+);
+
+// /* ===============================
+/*    ATTENDANCE
+   ================================ */
 router.get(
   "/admissions/super-summary",
   auth,
-  role("SUPER_ADMIN"),
+  role(ROLE.SUPER_ADMIN),
   admissionSummary,
 );
 router.get(
   "/admissions/college-admin-summary",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   admissionSummary,
 );
@@ -46,7 +66,7 @@ router.get(
 router.get(
   "/admissions/course-wise",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   courseWiseAdmissions,
 );
@@ -57,16 +77,17 @@ router.get(
 router.get(
   "/payments/summary",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
   collegeMiddleware,
-  paymentSummary,
+  paymentSummary
 );
+
 router.get(
   "/payments/students",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ACCOUNTANT, ROLE.PRINCIPAL),
   collegeMiddleware,
-  studentPaymentStatus,
+  studentPaymentStatus
 );
 
 // /* ===============================
@@ -75,17 +96,17 @@ router.get(
 router.get(
   "/attendance/summary",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
-  attendanceSummary,
+  attendanceSummary
 );
 
 router.get(
   "/attendance/low-attendance",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
-  lowAttendanceStudents,
+  lowAttendanceStudents
 );
 
 module.exports = router;

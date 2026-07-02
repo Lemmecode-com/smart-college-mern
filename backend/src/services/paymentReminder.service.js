@@ -2,6 +2,7 @@ const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const { sendPaymentReminderEmail } = require("./email.service");
 const Notification = require("../models/notification.model");
+const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 
 /**
  * Calculate days overdue
@@ -78,6 +79,8 @@ exports.sendPaymentDueReminders = async () => {
       "installments.status": "PENDING"
     }).populate("student_id");
 
+    const emailConfigCache = {};
+
     for (const fee of fees) {
       const student = fee.student_id;
 
@@ -114,20 +117,10 @@ exports.sendPaymentDueReminders = async () => {
               installment.amount
             );
 
-            // Send email reminder
-            await sendPaymentReminderEmail({
-              to: student.email,
-              studentName: student.fullName,
-              installment,
-              daysOverdue,
-              escalationLevel,
-              subject: title
-            });
-
-            // Create in-app notification
+            // Create in-app notification (always)
             await Notification.create({
               college_id: student.college_id,
-              createdBy: student._id, // System notification
+              createdBy: student._id,
               createdByRole: "COLLEGE_ADMIN",
               target: "INDIVIDUAL",
               target_users: [student.user_id],
@@ -135,10 +128,35 @@ exports.sendPaymentDueReminders = async () => {
               message,
               type: "FEE",
               actionUrl: `/student/fees`,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             });
 
-            // Update installment tracking
+            // Check SMTP config for this college (cached per college)
+            const collegeKey = student.college_id.toString();
+            if (!(collegeKey in emailConfigCache)) {
+              emailConfigCache[collegeKey] = await CollegeEmailConfig.getActiveConfig(student.college_id);
+            }
+
+            // Attempt email only if SMTP is configured
+            if (emailConfigCache[collegeKey]) {
+              try {
+                await sendPaymentReminderEmail({
+                  to: student.email,
+                  studentName: student.fullName,
+                  installment,
+                  daysOverdue,
+                  escalationLevel,
+                  subject: title,
+                  collegeId: student.college_id
+                });
+              } catch (emailErr) {
+                console.warn(`Failed to send payment reminder email for ${student.email}: ${emailErr.message}`);
+              }
+            } else {
+              console.log(`Skipping email for college ${collegeKey} — SMTP not configured`);
+            }
+
+            // Update installment tracking (always)
             installment.reminderSent = true;
             installment.lastReminderDate = today;
             installment.escalationLevel = escalationLevel;

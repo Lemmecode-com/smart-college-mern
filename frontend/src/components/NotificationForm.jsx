@@ -57,9 +57,9 @@ const ROLE_CONFIG = {
     listRoute: "/teacher/notifications/list",
     canCreate: true,
     canEdit: true,
-    canTarget: false,
+    canTarget: true,
     placeholder: "students",
-    successMessage: "Notification sent successfully to all students!",
+    successMessage: "Notification sent successfully to students!",
     editSuccessMessage: "Notification updated successfully!",
   },
 };
@@ -180,10 +180,8 @@ export default function NotificationForm({
     type: "GENERAL",
     priority: mode === "edit" ? "NORMAL" : "LOW",
     expiresAt: "",
-    target: "ALL",
+    target: role === "teacher" ? "STUDENTS" : "ALL",
     target_department: "",
-    target_course: "",
-    target_semester: "",
   });
 
   const [originalForm, setOriginalForm] = useState({ ...form });
@@ -196,7 +194,6 @@ export default function NotificationForm({
   const [titleCount, setTitleCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -214,17 +211,13 @@ export default function NotificationForm({
   useEffect(() => {
     if (config.canTarget) {
       const fetchData = async () => {
-        try {
-          const [deptRes, courseRes] = await Promise.all([
-            api.get("/departments"),
-            api.get("/courses"),
-          ]);
-          setDepartments(deptRes.data || []);
-          setCourses(courseRes.data || []);
-        } catch (err) {
-          console.error("Error fetching departments/courses:", err);
-        }
-      };
+try {
+           const deptRes = await api.get("/departments");
+           setDepartments(deptRes.data || []);
+         } catch (err) {
+           console.error("Error fetching departments:", err);
+         }
+       };
       fetchData();
     }
   }, [config.canTarget]);
@@ -265,8 +258,6 @@ export default function NotificationForm({
           : "",
         target: found.target || "ALL",
         target_department: found.target_department || "",
-        target_course: found.target_course || "",
-        target_semester: found.target_semester || "",
       };
 
       setForm(formData);
@@ -334,10 +325,6 @@ export default function NotificationForm({
         priority: form.priority,
         target: form.target,
         target_department: form.target_department || undefined,
-        target_course: form.target_course || undefined,
-        target_semester: form.target_semester
-          ? parseInt(form.target_semester)
-          : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -352,10 +339,8 @@ export default function NotificationForm({
             type: "GENERAL",
             priority: "LOW",
             expiresAt: "",
-            target: "ALL",
+            target: "STUDENTS",
             target_department: "",
-            target_course: "",
-            target_semester: "",
           });
         }, 2000);
       } else {
@@ -389,10 +374,8 @@ export default function NotificationForm({
             expiresAt: new Date(new Date().setDate(new Date().getDate() + 7))
               .toISOString()
               .slice(0, 16),
-            target: "ALL",
+            target: "STUDENTS",
             target_department: "",
-            target_course: "",
-            target_semester: "",
           }
         : {
             title: "Fee Payment Deadline Extended",
@@ -405,8 +388,6 @@ export default function NotificationForm({
               .slice(0, 16),
             target: "STUDENTS",
             target_department: "",
-            target_course: "",
-            target_semester: "",
           };
 
     setForm(sample);
@@ -1047,98 +1028,127 @@ export default function NotificationForm({
                           style={{ color: BRAND_COLORS.primary.main }}
                         />
                         Notification will auto-archive after this date.
+</div>
                       </div>
-                    </div>
 
-                    {/* Target Audience (Only for college-admin) */}
-                    {config.canTarget && (
-                      <div
-                        style={{
-                          padding: "1.25rem",
-                          backgroundColor: "#f8fafc",
-                          borderRadius: "12px",
-                          marginBottom: "1.5rem",
-                        }}
-                      >
-                        <h5
+                      {/* Target Audience (Only for college-admin) */}
+                      {config.canTarget && (
+                        <div
                           style={{
-                            fontWeight: 700,
-                            marginBottom: "1rem",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.5rem",
+                            padding: "1.25rem",
+                            backgroundColor: "#f8fafc",
+                            borderRadius: "12px",
+                            marginBottom: "1.5rem",
                           }}
                         >
-                          <FaUsers
-                            style={{ color: BRAND_COLORS.primary.main }}
-                          />
-                          Target Audience
-                        </h5>
-
-                        <div style={{ marginBottom: "0.75rem" }}>
-                          <label
+                          <h5
                             style={{
+                              fontWeight: 700,
+                              marginBottom: "1rem",
                               display: "flex",
                               alignItems: "center",
                               gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                              cursor: "pointer",
                             }}
                           >
-                            <input
-                              type="radio"
-                              name="target"
-                              value="ALL"
-                              checked={form.target === "ALL"}
-                              onChange={handleChange}
+                            <FaUsers
+                              style={{ color: BRAND_COLORS.primary.main }}
                             />
-                            <FaUsers /> All Users (Students, Teachers, Admins)
-                          </label>
-                        </div>
+                            Target Audience
+                          </h5>
 
-                        <div style={{ marginBottom: "0.75rem" }}>
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="target"
-                              value="STUDENTS"
-                              checked={form.target === "STUDENTS"}
-                              onChange={handleChange}
-                            />
-                            <FaGraduationCap /> Students Only
-                          </label>
-                        </div>
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <label
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                marginBottom: "0.5rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="target"
+                                value="STUDENTS"
+                                checked={form.target === "STUDENTS"}
+                                onChange={handleChange}
+                              />
+                              <FaGraduationCap /> Students Only
+                            </label>
+                          </div>
 
-                        <div style={{ marginBottom: "0.75rem" }}>
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                              marginBottom: "0.5rem",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="target"
-                              value="TEACHERS"
-                              checked={form.target === "TEACHERS"}
-                              onChange={handleChange}
-                            />
-                            <FaChalkboardTeacher /> Teachers Only
-                          </label>
-                        </div>
+                          {/* ALL & TEACHERS: Only for college-admin */}
+{role === "college-admin" && (
+                            <>
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="ALL"
+                                    checked={form.target === "ALL"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaUsers /> All Users (Students, Teachers, Admins)
+                                </label>
+                              </div>
 
-                        {form.target === "DEPARTMENT" && (
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="TEACHERS"
+                                    checked={form.target === "TEACHERS"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaChalkboardTeacher /> Teachers Only
+                                </label>
+                              </div>
+                            </>
+                          )}
+
+{/* DEPARTMENT Option - Available for both admin and teacher */}
+                          {(role === "college-admin" || role === "teacher") && (
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="DEPARTMENT"
+                                  checked={form.target === "DEPARTMENT"}
+                                  onChange={handleChange}
+                                />
+                                <FaUsers /> Specific Department
+                              </label>
+                            </div>
+                          )}
+
+                          {form.target === "DEPARTMENT" && (
                           <div
                             style={{
                               marginLeft: "1.5rem",

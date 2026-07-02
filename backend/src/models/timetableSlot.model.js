@@ -53,20 +53,56 @@ const TimetableSlotSchema = new mongoose.Schema(
       required: true,
     },
 
-    /* semester: {
-      type: Number,
-      required: true,
-    }, */
+    /* semester field removed — semester is stored on Timetable, not per-slot */
 
     room: String,
+
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+    },
 
     slotType: {
       type: String,
       enum: ["LECTURE", "LAB"],
       default: "LECTURE",
     },
+
+    lectureDate: {
+      type: Date,
+      required: false,
+      index: true,
+    },
   },
   { timestamps: true },
+);
+
+// Composite index for Today's Schedule queries (HOD Dashboard)
+// Supports: GET /hod/today-schedule
+// Query pattern: { college_id, department_id, lectureDate, startTime }
+TimetableSlotSchema.index(
+  { college_id: 1, department_id: 1, lectureDate: 1, startTime: 1 },
+  { background: true }
+);
+
+// Composite index for Teacher Workload queries
+// Supports: GET /hod/teachers/workload
+// Query pattern: { teacher_id, timetable_id }
+TimetableSlotSchema.index(
+  { teacher_id: 1, timetable_id: 1 },
+  { background: true }
+);
+
+// Index for Timetable Health conflict detection
+TimetableSlotSchema.index(
+  { timetable_id: 1, day: 1, startTime: 1, endTime: 1, teacher_id: 1 },
+  { background: true }
+);
+
+TimetableSlotSchema.index(
+  { timetable_id: 1, day: 1, startTime: 1, endTime: 1, division: 1 },
+  { background: true }
 );
 
 module.exports = mongoose.model("TimetableSlot", TimetableSlotSchema);

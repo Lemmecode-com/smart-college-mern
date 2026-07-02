@@ -146,6 +146,7 @@ export default function AddTimetableSlot() {
     teacher_id: "",
     room: "",
     slotType: "LECTURE",
+    division: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -607,6 +608,39 @@ export default function AddTimetableSlot() {
                       />
                     </FormField>
 
+                    {/* Division (Optional) */}
+                    <FormField
+                      icon={<FaLayerGroup />}
+                      label="Division (Optional)"
+                      helperText={
+                        (timetables.find(t => t._id === form.timetable_id)?.division
+                          ? `Timetable division: ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                          : "Match timetable division or leave blank")
+                      }
+                    >
+                      <input
+                        type="text"
+                        name="division"
+                        value={form.division}
+                        onChange={handleChange}
+                        placeholder={
+                          timetables.find(t => t._id === form.timetable_id)?.division
+                            ? `Leave blank to use ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                            : "e.g., A, B, C (optional)"
+                        }
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '1rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500
+                        }}
+                      />
+                    </FormField>
+
                     {/* Slot Type */}
                     <FormField
                       icon={<FaLayerGroup />}
@@ -757,12 +791,11 @@ function FormField({ icon, label, children, required = false, error = false }) {
   return (
     <div style={{ marginBottom: '1.5rem' }}>
       <label style={{
-        display: 'block',
+        display: 'flex',
         marginBottom: '0.5rem',
         fontWeight: 600,
         color: '#1e293b',
         fontSize: '0.95rem',
-        display: 'flex',
         alignItems: 'center',
         gap: '0.5rem'
       }}>

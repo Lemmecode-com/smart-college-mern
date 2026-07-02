@@ -69,47 +69,65 @@ export default function NavbarComponent({
     }
   }, [rateLimitBackoff, backoffUntil]);
 
-  // Fetch college information when user is available
-  useEffect(() => {
-    const fetchCollegeInfo = async () => {
-      setLoading(true);
-      try {
-        let response;
+   // Fetch college information when user is available
+   useEffect(() => {
+     const fetchCollegeInfo = async () => {
+       setLoading(true);
+       try {
+         let response;
 
-        if (user.role === "COLLEGE_ADMIN") {
-          response = await api.get("/college/my-college");
-          setCollege(response.data);
-        } else if (user.role === "TEACHER") {
-          response = await api.get("/teachers/my-profile");
-          if (
-            response.data &&
-            response.data.teacher &&
-            response.data.teacher.college_id
-          ) {
-            setCollege(response.data.teacher.college_id);
-          }
-        } else if (user.role === "STUDENT") {
-          response = await api.get("/students/my-profile");
-          if (response.data && response.data.college) {
-            setCollege(response.data.college);
-          }
-        }
-      } catch (error) {
-        if (error.response?.status !== 403 && error.response?.status !== 401) {
-          logger.error("Error fetching college info:", error);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+         // If user has no college_id (e.g., SUPER_ADMIN), skip fetch
+         if (!user.college_id) {
+           setCollege(null);
+           return;
+         }
 
-    fetchCollegeInfo();
-  }, [user.college_id, user.role]);
+         // Teachers: use rich endpoint (includes dept, courses, subjects)
+         if (user.role === "TEACHER") {
+           response = await api.get("/teachers/my-profile");
+           if (response.data?.teacher?.college_id) {
+             setCollege(response.data.teacher.college_id);
+           }
+           return;
+         }
 
-  /* ================= FETCH COUNT (UNREAD ONLY) ================= */
-  const fetchCount = async (silent = false) => {
+         // Students: use rich endpoint (includes dept, course, fees, attendance)
+         if (user.role === "STUDENT") {
+           response = await api.get("/students/my-profile");
+           if (response.data?.college) {
+             setCollege(response.data.college);
+           }
+           return;
+         }
+
+         // All other staff with college_id (COLLEGE_ADMIN, PRINCIPAL, HOD, ACCOUNTANT,
+         // ADMISSION_OFFICER, EXAM_COORDINATOR, PARENT_GUARDIAN, PLATFORM_SUPPORT)
+         // Use simple college endpoint
+         response = await api.get("/college/my-college");
+         setCollege(response.data);
+
+       } catch (error) {
+         if (error.response?.status !== 403 && error.response?.status !== 401) {
+           logger.error("Error fetching college info:", error);
+         }
+       } finally {
+         setLoading(false);
+       }
+     };
+
+     fetchCollegeInfo();
+   }, [user.college_id, user.role]);
+
+/* ================= FETCH COUNT (UNREAD ONLY) ================= */
+   const fetchCount = async (silent = false) => {
     // Skip if in backoff period
     if (rateLimitBackoff && backoffUntil && Date.now() < backoffUntil) {
+      return;
+    }
+
+    // Only supported roles have notification endpoints
+    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
+    if (!supportedRoles.includes(user.role)) {
       return;
     }
 
@@ -120,6 +138,8 @@ export default function NavbarComponent({
         res = await api.get("/notifications/count/admin");
       if (user.role === "TEACHER")
         res = await api.get("/notifications/count/teacher");
+      if (user.role === "HOD")
+        res = await api.get("/notifications/count/hod");
       if (user.role === "STUDENT")
         res = await api.get("/notifications/count/student");
 
@@ -143,6 +163,12 @@ export default function NavbarComponent({
         setBackoffUntil(null);
       }
     } catch (err) {
+      // Handle auth errors (401/403) - stop polling, token is invalid/missing
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        // Don't poll again if token is missing/expired
+        logger.warn("Notification auth failed - stopping polling");
+        return;
+      }
       // Handle rate limit (429) - stop polling temporarily
       if (err.response?.status === 429) {
         const backoffMs = 30000; // 30 second backoff for notification polling
@@ -159,9 +185,15 @@ export default function NavbarComponent({
     }
   };
 
-  /* ================= FETCH UNREAD FOR BELL ================= */
-  const fetchNotes = async () => {
-    setFetchingNotes(true);
+/* ================= FETCH UNREAD FOR BELL ================= */
+   const fetchNotes = async () => {
+     // Only supported roles have notification endpoints
+      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
+     if (!supportedRoles.includes(user.role)) {
+       setNotes([]);
+       return;
+     }
+     setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
       // Backend now returns array directly: [...]
@@ -203,27 +235,15 @@ export default function NavbarComponent({
   /* ================= MARK ALL AS READ ================= */
   const markAllAsRead = async () => {
     try {
-      // Optimistic update - clear all notifications immediately
-      const previousNotes = [...notes];
+      await api.post("/notifications/mark-all-read");
       setNotes([]);
       setCount(0);
-
-      // Mark all as read in background
-      const promises = previousNotes.map((n) =>
-        api.post(`/notifications/${n._id}/read`),
-      );
-      await Promise.all(promises);
-
-      // Refresh count to ensure sync
-      fetchCount();
-
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       logger.error("Mark all read failed", err);
       setToast("❌ Failed to mark all as read");
       setTimeout(() => setToast(null), 3000);
-      // Revert optimistic update on error
       fetchNotes();
       fetchCount();
     }
@@ -236,6 +256,8 @@ export default function NavbarComponent({
       navigate("/notification/list");
     } else if (user.role === "TEACHER") {
       navigate("/teacher/notifications/list");
+    } else if (user.role === "HOD") {
+      navigate("/hod/notifications/list");
     } else if (user.role === "STUDENT") {
       navigate("/notification/student");
     }
@@ -250,6 +272,8 @@ export default function NavbarComponent({
       navigate("/profile/my-profile");
     } else if (user.role === "STUDENT") {
       navigate("/student/profile");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent/profile"); // Will implement later
     }
   };
 
@@ -263,6 +287,8 @@ export default function NavbarComponent({
       navigate("/teacher/dashboard");
     } else if (user.role === "STUDENT") {
       navigate("/student/dashboard");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent");
     }
   };
 
@@ -731,10 +757,10 @@ export default function NavbarComponent({
                     </button>
                     <button
                       className="profile-menu-item"
-                      // // onClick={() => {
-                      // //   setProfileOpen(false);
-                      // //   navigate("/settings");
-                      // }}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/system-settings/general");
+                      }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">
@@ -752,10 +778,10 @@ export default function NavbarComponent({
                     </button>
                     <button
                       className="profile-menu-item"
-                      // onClick={() => {
-                      //   setProfileOpen(false);
-                      //   navigate("/change-password");
-                      // }}
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/change-password");
+                      }}
                       role="menuitem"
                     >
                       <div className="profile-menu-item-icon">

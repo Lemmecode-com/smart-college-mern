@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../../utils/toast";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -20,15 +20,6 @@ import {
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
   MAX_RETRY: 3,
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
   THEME: {
     PRIMARY: "#0f3a4a",
     PRIMARY_DARK: "#0c2d3a",
@@ -42,7 +33,6 @@ const CONFIG = {
 };
 
 /* ================= MODULE-LEVEL FLAG (Persists across re-renders) ================= */
-let hasFetchedData = false;
 
 export default function AdminReports() {
   const [data, setData] = useState(null);
@@ -50,53 +40,54 @@ export default function AdminReports() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = useCallback(async () => {
-    // Prevent duplicate fetches - check both module flag and ref
-    if (hasFetchedData || hasLoadedRef.current) {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
+    if (hasLoadedRef.current && currentFetchId === fetchIdRef.current) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError("");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/admissions/college-admin-summary");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data);
       setRetryCount(0);
-      
-      // Show success toast with unique ID to prevent duplicates
-      toast.success("Admission reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-success",
-      });
-      
-      // Set both flags to prevent any duplicate calls
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Admission reports loaded successfully!");
     } catch (err) {
       console.error("Reports fetch error:", err);
       setError(
         err.response?.data?.message ||
           "Failed to load admission summary. Please try again.",
       );
-      // Show error toast with unique ID to prevent duplicates
-      toast.error("Failed to load admission reports.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-error",
-      });
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError("Failed to load admission reports.");
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchSummary();
-    // Cleanup function to reset flags on unmount - fixes blank page on second navigation
     return () => {
-      hasFetchedData = false;
       hasLoadedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,15 +97,10 @@ export default function AdminReports() {
   const handleRetry = useCallback(() => {
     if (retryCount < CONFIG.MAX_RETRY) {
       setRetryCount((prev) => prev + 1);
-      // Reset both flags to allow retry
-      hasFetchedData = false;
       hasLoadedRef.current = false;
       fetchSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-max-retry",
-      });
+      showError("Maximum retry attempts reached.");
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   }, [retryCount, fetchSummary]);
@@ -785,6 +771,8 @@ export default function AdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
+          height: 88%;
+          width: 90%;
         }
 
         .stat-card:hover {

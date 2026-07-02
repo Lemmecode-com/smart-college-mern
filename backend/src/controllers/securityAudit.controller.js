@@ -2,6 +2,26 @@ const SecurityAudit = require('../models/securityAudit.model');
 const securityAuditService = require('../services/securityAudit.service');
 const AppError = require('../utils/AppError');
 
+// Helper: Redact PII from log object
+function redactLog(log) {
+  const piiKeys = ['userEmail', 'email', 'ipAddress', 'ip', 'userAgent', 'password', 'token', 'otp', 'accessToken', 'refreshToken'];
+  if (!log || typeof log !== 'object') return log;
+  const copy = { ...log };
+  for (const key of piiKeys) {
+    if (copy[key] !== undefined) {
+      const str = String(copy[key]);
+      if (str.includes('@') && str.length > 2) {
+        const [local, domain] = str.split('@');
+        copy[key] = `${local.slice(0, 2)}***@${domain}`;
+      } else if (/^(\d{1,3})\.(\d{1,3})/.test(str)) {
+        const match = str.match(/^(\d{1,3})\.(\d{1,3})/);
+        copy[key] = `${match[1]}.${match[2]}.***.***`;
+      }
+    }
+  }
+  return copy;
+}
+
 /**
  * Get all audit logs (Super Admin only)
  * GET /api/security-audit
@@ -116,8 +136,13 @@ exports.exportAuditLogs = async (req, res, next) => {
 
     const result = await securityAuditService.getAuditLogs({ ...filters, limit: 1000 });
     
+    // Redact PII before CSV conversion
+    const redactedLogs = result.logs.map(log => 
+      redactLog(log.toObject ? log.toObject() : log)
+    );
+    
     // Convert to CSV format
-    const csv = convertToCSV(result.logs);
+    const csv = convertToCSV(redactedLogs);
     
     res.header('Content-Type', 'text/csv');
     res.header('Content-Disposition', 'attachment; filename="security-audit-logs.csv"');
@@ -152,8 +177,8 @@ function convertToCSV(logs) {
     log.userEmail || 'N/A',
     log.userRole || 'N/A',
     log.collegeId?.name || 'N/A',
-    log.ipAddress,
-    log.endpoint || 'N/A',
+    log.ipAddress || 'N/A',
+    '[REDACTED]',
     log.method || 'N/A',
     log.statusCode || 'N/A',
     log.reviewed ? 'Yes' : 'No'

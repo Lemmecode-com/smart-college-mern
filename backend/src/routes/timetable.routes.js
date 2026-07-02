@@ -6,13 +6,17 @@ const role = require("../middlewares/role.middleware");
 const hod = require("../middlewares/hod.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
+const { ROLE } = require("../utils/constants");
 
 const {
   createTimetable,
   publishTimetable,
+  archiveTimetable,
   getTimetableById,
   deleteTimetable,
   getTimetables,
+  getArchivedTimetables,
+  getTimetableStats,
   getWeeklyTimetableById,
   getWeeklyTimetableForTeacher,
   getStudentTimetable,
@@ -32,39 +36,64 @@ const {
   createException,
   createBulkExceptions,
   getExceptions,
+  getMyExceptions,
+  getPendingApprovals,
+  getApprovalHistory,
   updateException,
+  withdrawException,
   deleteException,
   approveException,
   rejectException,
-  getPendingApprovals,
 } = require("../controllers/timetableException.controller");
 
 /* ================= CREATE ================= */
-router.post("/", auth, role("TEACHER"), collegeMiddleware, createTimetable);
+router.post("/", auth, role(ROLE.TEACHER, ROLE.HOD), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
 // NOTE: Static routes like /weekly, /student must come BEFORE dynamic routes like /:id
 router.get(
   "/weekly",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.HOD),
   collegeMiddleware,
-  getWeeklyTimetableForTeacher,
+  getWeeklyTimetableForTeacher
 );
 
 /* ================= LIST ================= */
-router.get("/", auth, role("TEACHER"), collegeMiddleware, getTimetables);
+router.get(
+  "/",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getTimetables
+);
 
-/* ================= SLOTS ================= */
-router.post("/slot", auth, role("TEACHER"), collegeMiddleware, hod, addSlot);
+/* ================= ARCHIVED ================= */
+router.get(
+  "/archived",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getArchivedTimetables
+);
 
+/* ================= STATS ================= */
+router.get(
+  "/stats",
+  auth,
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getTimetableStats
+);
+
+/* ================= STUDENT ================= */
 router.get(
   "/student",
   auth,
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  getStudentTimetable,
+  getStudentTimetable
 );
 
 router.get(
@@ -73,96 +102,130 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
-  getStudentTodayTimetable,
+  getStudentTodayTimetable
 );
 
+/* ================= TIMETABLE BY ID ================= */
 router.get(
   "/:timetableId/weekly",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
   collegeMiddleware,
-  getWeeklyTimetableById,
+  getWeeklyTimetableById
+);
+
+/* ================= DATE-WISE SCHEDULE ================= */
+// Get date-wise schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR, HOD)
+router.get(
+  "/:id/schedule",
+  auth,
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getSchedule
+);
+
+// Get today's schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR, HOD)
+router.get(
+  "/:id/schedule/today",
+  auth,
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getTodaySchedule
+);
+
+// Get weekly schedule (TEACHER, STUDENT, PRINCIPAL, EXAM_COORDINATOR, HOD)
+router.get(
+  "/:id/schedule/week",
+  auth,
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR, ROLE.HOD),
+  collegeMiddleware,
+  getWeeklySchedule
+);
+
+/* ================= SLOTS ================= */
+router.post(
+  "/slot",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  addSlot
+);
+
+router.put(
+  "/slot/:slotId",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  updateSlot
+);
+
+router.delete(
+  "/slot/:slotId",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  deleteTimetableSlot
 );
 
 /* ================= PUBLISH ================= */
 router.put(
   "/:id/publish",
   auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   hod,
-  publishTimetable,
+  publishTimetable
 );
 
-/* ================= GET BY ID (LAST) ================= */
-router.get("/:id", auth, role("TEACHER"), collegeMiddleware, getTimetableById);
+/* ================= ARCHIVE TIMETABLE ================= */
+router.put(
+  "/:id/archive",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  archiveTimetable
+);
 
-/* ================= DELETE ================= */
+/* ================= DELETE TIMETABLE ================= */
 router.delete(
   "/:id",
   auth,
-  role("TEACHER"),
-  collegeMiddleware,
-  hod, // ✅ FIXED: Uncommented HOD middleware
-  deleteTimetable,
-);
-
-router.put(
-  "/slot/:slotId",
-  auth,
-  role("TEACHER"),
+  role(ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
   hod,
-  updateSlot,
-);
-
-router.delete(
-  "/slot/:slotId",
-  auth,
-  role("TEACHER"),
-  collegeMiddleware,
-  hod, // ✅ FIXED: Added role + HOD check
-  deleteTimetableSlot,
-);
-
-/* ================= DATE-WISE SCHEDULE ================= */
-
-// Get date-wise schedule (TEACHER and STUDENT only)
-router.get(
-  "/:id/schedule",
-  auth,
-  role("TEACHER", "STUDENT"),
-  collegeMiddleware,
-  getSchedule,
-);
-
-// Get today's schedule (TEACHER and STUDENT only)
-router.get(
-  "/:id/schedule/today",
-  auth,
-  role("TEACHER", "STUDENT"),
-  collegeMiddleware,
-  getTodaySchedule,
-);
-
-// Get weekly schedule (TEACHER and STUDENT only)
-router.get(
-  "/:id/schedule/week",
-  auth,
-  role("TEACHER", "STUDENT"),
-  collegeMiddleware,
-  getWeeklySchedule,
+  deleteTimetable
 );
 
 /* ================= EXCEPTIONS ================= */
-
 // Get pending approvals (HOD only) - MUST BE BEFORE /:id/exceptions to avoid route conflict
 router.get(
   "/exceptions/pending",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
-  getPendingApprovals,
+  getPendingApprovals
+);
+
+// Get teacher's own requests
+router.get(
+  "/exceptions/my",
+  auth,
+  role(ROLE.TEACHER),
+  collegeMiddleware,
+  getMyExceptions
+);
+
+// Get HOD approval history
+router.get(
+  "/exceptions/history",
+  auth,
+  role(ROLE.HOD),
+  collegeMiddleware,
+  getApprovalHistory
 );
 
 // Create single exception
@@ -171,7 +234,7 @@ router.post(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  createException,
+  createException
 );
 
 // Create bulk exceptions
@@ -180,52 +243,61 @@ router.post(
   auth,
   role("TEACHER"),
   collegeMiddleware,
-  createBulkExceptions,
+  createBulkExceptions
 );
 
 // Get exceptions for timetable
 router.get(
   "/:id/exceptions",
   auth,
-  role("TEACHER", "STUDENT"),
+  role(ROLE.TEACHER, ROLE.STUDENT, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
-  getExceptions,
+  getExceptions
 );
 
 // Update exception
 router.put(
   "/exceptions/:exceptionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
-  updateException,
+  updateException
 );
 
 // Delete exception
 router.delete(
   "/exceptions/:exceptionId",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
-  deleteException,
+  deleteException
+);
+
+// Withdraw exception by creator
+router.put(
+  "/exceptions/:exceptionId/withdraw",
+  auth,
+  role(ROLE.TEACHER),
+  collegeMiddleware,
+  withdrawException
 );
 
 // Approve exception
 router.put(
   "/exceptions/:exceptionId/approve",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
-  approveException,
+  approveException
 );
 
 // Reject exception
 router.put(
   "/exceptions/:exceptionId/reject",
   auth,
-  role("TEACHER"),
+  role(ROLE.HOD),
   collegeMiddleware,
-  rejectException,
+  rejectException
 );
 
 module.exports = router;

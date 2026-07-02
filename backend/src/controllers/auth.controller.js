@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
@@ -9,6 +11,7 @@ const RefreshToken = require("../models/refreshToken.model");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
 const PasswordReset = require("../models/passwordReset.model");
 const AppError = require("../utils/AppError");
+const { validatePassword, passwordValidationMessage } = require("../utils/validators");
 const {
   createAndSendOTP,
   verifyOTP,
@@ -16,6 +19,30 @@ const {
   checkRateLimit,
 } = require("../services/otp.service");
 const securityAuditService = require("../services/securityAudit.service");
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+const isAccountLocked = (record) => {
+  if (!record) return false;
+  if (!record.lockedUntil) return false;
+  return new Date() < new Date(record.lockedUntil);
+};
+
+const incrementLoginAttempts = async (Model, id) => {
+  const attempts = (await Model.findById(id).select("loginAttempts")) || {};
+  const next = (attempts.loginAttempts || 0) + 1;
+  const update =
+    next >= MAX_LOGIN_ATTEMPTS
+      ? { loginAttempts: next, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) }
+      : { loginAttempts: next };
+  await Model.findByIdAndUpdate(id, update);
+  return next;
+};
+
+const resetLoginAttempts = async (Model, id) => {
+  await Model.findByIdAndUpdate(id, { $unset: { loginAttempts: 1, lockedUntil: 1 } });
+};
 
 /**
  * COMMON LOGIN
@@ -28,14 +55,25 @@ exports.login = async (req, res, next) => {
     // 1️⃣ SUPER / COLLEGE ADMIN — check isActive
     let user = await User.findOne({ email });
     if (user) {
+      if (isAccountLocked(user)) {
+        const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+        throw new AppError(
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          423,
+          "ACCOUNT_LOCKED",
+        );
+      }
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login
+        await incrementLoginAttempts(User, user._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
+
+      await resetLoginAttempts(User, user._id);
 
       // 🔒 Check if account is deactivated
       if (user.isActive === false) {
@@ -46,29 +84,61 @@ exports.login = async (req, res, next) => {
         );
       }
 
+      // 🔒 Force password change on first login (skip for students)
+      if (user.role !== "STUDENT" && user.mustChangePassword === true) {
+        // Don't issue tokens — require password change first
+        return res.status(403).json({
+          success: false,
+          code: "MUST_CHANGE_PASSWORD",
+          message: "You must change your temporary password on first login",
+          user: { id: user._id },
+        });
+      }
+
       // 🔒 SECURITY AUDIT: Log successful login
       securityAuditService
         .logLoginSuccess(user, req)
         .catch((err) => console.error("Audit log failed:", err));
-      return sendTokens(res, user._id, user.role, user.college_id, req);
+      return sendTokens(res, user._id, user.role, user.college_id, user.tokenVersion || 0, req);
     }
 
     // 2️⃣ TEACHER
     let teacher = await Teacher.findOne({ email, status: "ACTIVE" });
     if (teacher) {
+      if (isAccountLocked(teacher)) {
+        const remaining = Math.ceil((new Date(teacher.lockedUntil) - new Date()) / 60000);
+        throw new AppError(
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          423,
+          "ACCOUNT_LOCKED",
+        );
+      }
+
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        // 🔒 SECURITY AUDIT: Log failed login
+        await incrementLoginAttempts(Teacher, teacher._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
         throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
       }
-      // 🔒 SECURITY AUDIT: Log successful login
+
+      await resetLoginAttempts(Teacher, teacher._id);
+
+      const linkedUser = await User.findOne({ email, role: "TEACHER" });
+      if (linkedUser && linkedUser.mustChangePassword === true) {
+        return res.status(403).json({
+          success: false,
+          code: "MUST_CHANGE_PASSWORD",
+          message: "You must change your temporary password on first login",
+          user: { id: linkedUser._id },
+        });
+      }
+
       securityAuditService
         .logLoginSuccess(teacher, req)
         .catch((err) => console.error("Audit log failed:", err));
-      return sendTokens(res, teacher._id, "TEACHER", teacher.college_id, req);
+      return sendTokens(res, teacher._id, "TEACHER", teacher.college_id, 0, req);
     }
 
     // 3️⃣ STUDENT - Check status first
@@ -100,44 +170,80 @@ exports.login = async (req, res, next) => {
       );
     }
 
-    // Only APPROVED students can login
-    student = await Student.findOne({ email, status: "APPROVED" });
-    if (student) {
-      // ✅ Find the User record for password verification
+    if (student && (student.status === "OFFER_MADE" || student.status === "ENROLLED")) {
       const user = await User.findOne({ email, role: "STUDENT" });
 
       if (user) {
-        // Use User.password (hashed) for verification
+        if (isAccountLocked(user)) {
+          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+          throw new AppError(
+            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+            423,
+            "ACCOUNT_LOCKED",
+          );
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          // 🔒 SECURITY AUDIT: Log failed login
+          await incrementLoginAttempts(User, user._id);
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
           throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
         }
-        // ✅ Ensure student has a linked User account
-        if (!student.user_id) {
-          throw new AppError(
-            "Student account not linked. Please contact admin.",
-            403,
-            "USER_NOT_LINKED",
-          );
-        }
-        // 🔒 SECURITY AUDIT: Log successful login
+
+        await resetLoginAttempts(User, user._id);
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
-        // Send student.user_id in token (consistent User._id for all students)
         return sendTokens(
           res,
           student.user_id,
           "STUDENT",
           student.college_id,
+          user.tokenVersion || 0,
+          req,
+        );
+      }
+    }
+
+    // APPROVED students can login
+    student = await Student.findOne({ email, status: "APPROVED" });
+    if (student) {
+      const user = await User.findOne({ email, role: "STUDENT" });
+
+      if (user) {
+        if (isAccountLocked(user)) {
+          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+          throw new AppError(
+            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+            423,
+            "ACCOUNT_LOCKED",
+          );
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          await incrementLoginAttempts(User, user._id);
+          securityAuditService
+            .logLoginFailed(email, req, "INVALID_CREDENTIALS")
+            .catch((err) => console.error("Audit log failed:", err));
+          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        }
+
+        await resetLoginAttempts(User, user._id);
+        securityAuditService
+          .logLoginSuccess(student, req)
+          .catch((err) => console.error("Audit log failed:", err));
+        return sendTokens(
+          res,
+          student.user_id,
+          "STUDENT",
+          student.college_id,
+          user.tokenVersion || 0,
           req,
         );
       } else {
-        // 🔒 SECURITY AUDIT: Log failed login
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
@@ -184,7 +290,7 @@ exports.logout = async (req, res, next) => {
           });
         }
       } catch (error) {
-        console.error("Error blacklisting access token:", error.message);
+        logger.logError("Error blacklisting access token", { error: error.message });
       }
     }
 
@@ -372,6 +478,10 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
       );
     }
 
+    if (!validatePassword(newPassword)) {
+      throw new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD");
+    }
+
     // Verify OTP
     const result = await verifyOTP(email, otp);
 
@@ -398,14 +508,8 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
     user.password = newPassword; // Will be hashed by pre-save hook
     await user.save();
 
-    // 🔒 SECURITY: Blacklist ALL tokens for this user (force re-login)
-    await TokenBlacklist.create({
-      token: "*", // Wildcard - invalidates all tokens
-      tokenType: "access",
-      user_id: user._id,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      reason: "PASSWORD_CHANGE",
-    });
+    // Invalidate all existing tokens by bumping version
+    await User.findByIdAndUpdate(user._id, { $inc: { tokenVersion: 1 } });
 
     // Also revoke all refresh tokens
     await RefreshToken.updateMany({ user_id: user._id }, { isRevoked: true });
@@ -424,9 +528,126 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 };
 
 /**
+ * CHANGE PASSWORD (First Login or Any Time)
+ * Authenticated user OR first-login user (with userId) can change password
+ * Body: { userId?, currentPassword, newPassword }
+ */
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword, userId } = req.body;
+
+    // Validate inputs
+    if (!currentPassword || !newPassword) {
+      return next(
+        new AppError("Current password and new password are required", 400, "MISSING_FIELDS")
+      );
+    }
+
+    // Determine userId: from JWT (authenticated) OR from body (first-login)
+    const effectiveUserId = req.user?.id || userId;
+
+    if (!effectiveUserId) {
+      return next(new AppError("User ID is required", 400, "MISSING_USER_ID"));
+    }
+
+    // Validate user ID format (must be a valid MongoDB ObjectId)
+    if (!mongoose.Types.ObjectId.isValid(effectiveUserId)) {
+      return next(new AppError("Invalid user ID format", 400, "INVALID_ID"));
+    }
+
+    // Validate new password strength using centralized policy
+    if (!validatePassword(newPassword)) {
+      return next(
+        new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD")
+      );
+    }
+
+    // Find user in User collection first (for staff/college admin/super admin)
+    let user = await User.findById(effectiveUserId);
+
+    if (!user) {
+      // Check Teacher collection (unlikely for first-login but allow)
+      const Teacher = require("../models/teacher.model");
+      user = await Teacher.findOne({ user_id: effectiveUserId });
+
+      if (user) {
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          // 🔒 SECURITY AUDIT: Log failed password change attempt
+          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+        }
+
+        // Update password
+        user.password = newPassword;
+        await user.save();
+
+        // 🔒 SECURITY AUDIT: Log successful password change
+        await securityAuditService.logPasswordChangeSuccess(user, req);
+
+        return res.json({
+          success: true,
+          message: "Password changed successfully. Please login with your new password.",
+        });
+      }
+
+      // Check Student collection
+      const Student = require("../models/student.model");
+      user = await Student.findOne({ user_id: effectiveUserId });
+
+      if (user) {
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+        }
+
+        user.password = newPassword;
+        await user.save();
+        await securityAuditService.logPasswordChangeSuccess(user, req);
+
+        return res.json({
+          success: true,
+          message: "Password changed successfully. Please login with your new password.",
+        });
+      }
+
+      throw new AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+
+    // User is from User collection
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
+      throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.mustChangePassword = false; // ✅ Clear flag on successful change
+    await user.save();
+
+    // 🔒 SECURITY AUDIT: Log successful password change
+    await securityAuditService.logPasswordChangeSuccess(user, req);
+
+    // Clear all existing tokens to force re-login with new password
+    await RefreshToken.updateMany({ user_id: effectiveUserId }, { isRevoked: true });
+
+    res.json({
+      success: true,
+      message: "Password changed successfully. Please login with your new password.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * JWT GENERATOR - Access Token Only (Short-lived: 15 minutes)
  */
-const sendTokens = async (res, id, role, college_id, req) => {
+const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
   // 🔒 SECURITY: Short-lived access token (15 minutes)
   const accessExpiry = process.env.JWT_ACCESS_EXPIRY;
   // 🔒 SECURITY: Long-lived refresh token (7 days)
@@ -434,14 +655,14 @@ const sendTokens = async (res, id, role, college_id, req) => {
 
   // Generate access token
   const accessToken = jwt.sign(
-    { id, role, college_id },
+    { id, role, college_id, tokenVersion: tokenVersion || 0 },
     process.env.JWT_SECRET,
     { expiresIn: accessExpiry },
   );
 
   // Generate refresh token
   const refreshToken = jwt.sign(
-    { id, role, college_id },
+    { id, role, college_id, tokenVersion: tokenVersion || 0 },
     process.env.JWT_SECRET + "_REFRESH", // Different secret for refresh tokens
     { expiresIn: refreshExpiry },
   );
@@ -476,13 +697,12 @@ const sendTokens = async (res, id, role, college_id, req) => {
     sameSite: "strict",
   });
 
-  // Send user info in the response (not the tokens)
+  // Send user info in the response (tokens are httpOnly cookies only)
   // Using standardized format with data wrapper
   res.json({
     success: true,
     message: "Login successful",
     data: {
-      accessToken,
       user: { id, role, college_id },
     },
   });

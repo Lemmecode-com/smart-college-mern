@@ -1,6 +1,8 @@
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 /**
  * Global Error Handler Middleware for Express 5
  *
@@ -8,19 +10,34 @@ const logger = require("../utils/logger");
  * In Express 5, error handlers should NOT call next() after sending response
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error details
-  console.error("=".repeat(60));
-  console.error("❌ [Error Handler]");
-  console.error("   - Message:", err.message);
-  console.error("   - Code:", err.code || "UNKNOWN");
-  console.error("   - StatusCode:", err.statusCode);
-  console.error("   - Name:", err.name);
-  console.error("   - Stack:", err.stack);
-  console.error("   - URL:", req.originalUrl);
-  console.error("   - Method:", req.method);
-  console.error("   - Error object keys:", Object.keys(err));
-  console.error("   - Full error:", err);
-  console.error("=".repeat(60));
+  const isOperational = err instanceof AppError || (err.statusCode && err.statusCode < 500);
+  const statusCode = err.statusCode || 500;
+
+  // Only log full stack for unexpected errors (5xx)
+  // For operational errors (4xx), log a single line to avoid log spam
+  if (!isOperational || statusCode >= 500) {
+    if (!isProduction) {
+      console.error("=".repeat(60));
+      console.error("❌ [Error Handler]");
+      console.error("   - Message:", err.message);
+      console.error("   - Code:", err.code || "UNKNOWN");
+      console.error("   - StatusCode:", statusCode);
+      console.error("   - Name:", err.name);
+      console.error("   - Stack:", err.stack);
+      console.error("   - URL:", req.originalUrl);
+      console.error("   - Method:", req.method);
+      console.error("   - Error object keys:", Object.keys(err));
+      console.error("=".repeat(60));
+    } else {
+      console.error(`[Error] ${err.code || 'ERROR'} ${statusCode} - ${req.method} ${req.originalUrl}`);
+    }
+  } else {
+    if (!isProduction) {
+      console.warn(`[Operational Error] ${err.code || "ERROR"} ${statusCode} - ${err.message} - ${req.method} ${req.originalUrl}`);
+    } else {
+      console.warn(`[Operational] ${err.code || 'ERROR'} ${statusCode} - ${req.method} ${req.originalUrl}`);
+    }
+  }
 
   // Log to file
   logger.logError(`[Error Handler] ${err.name || "Error"}: ${err.message}`, {
@@ -30,6 +47,33 @@ const errorHandler = (err, req, res, next) => {
     method: req.method,
     userId: req.user?._id || req.user?.id,
   });
+
+  try {
+    const { Sentry, isEnabled } = require("../utils/glitchtip");
+    if (isEnabled()) {
+      Sentry.captureException(err, {
+        contexts: {
+          user: {
+            id: req.user?._id || req.user?.id,
+            role: req.user?.role,
+          },
+          request: {
+            url: req.originalUrl,
+            method: req.method,
+            ip: req.ip,
+            collegeId: req.user?.collegeId || req.collegeId,
+          },
+          app: {
+            code: err.code,
+            statusCode,
+            name: err.name,
+          },
+        },
+      });
+    }
+  } catch (sentryErr) {
+    console.warn("Failed to capture exception in GlitchTip:", sentryErr.message);
+  }
 
   let error = { ...err };
   error.message = err.message || "Internal server error";
@@ -52,12 +96,31 @@ const errorHandler = (err, req, res, next) => {
   }
 
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const keyPattern = err.keyPattern || {};
+    const isTimetableExceptionUniqueIndex =
+      err.indexName === "idx_exception_unique_pending_approved" ||
+      (
+        keyPattern.college_id === 1 &&
+        keyPattern.timetable_id === 1 &&
+        keyPattern.slot_id === 1 &&
+        keyPattern.exceptionDate === 1 &&
+        keyPattern.type === 1
+      );
+
     error = {
       statusCode: 409,
-      message: `${field} already exists`,
-      code: "DUPLICATE_FIELD",
+      message: "Duplicate timetable exception",
+      code: "DUPLICATE_EXCEPTION",
     };
+
+    if (!isTimetableExceptionUniqueIndex) {
+      const field = Object.keys(err.keyValue || {})[0];
+      error = {
+        statusCode: 409,
+        message: `${field || "field"} already exists`,
+        code: "DUPLICATE_FIELD",
+      };
+    }
   }
 
   if (err.name === "ValidationError") {
@@ -131,17 +194,19 @@ const errorHandler = (err, req, res, next) => {
     };
   }
 
-  // Default values
-  const statusCode = error.statusCode || 500;
+  // Default values (reuse statusCode from line 12)
   const message = error.message || "Internal server error";
   const code = error.code || "INTERNAL_ERROR";
+  const responseStatusCode = error.statusCode || statusCode;
 
-  console.log(
-    `🔴 [Error Handler] Sending response: status=${statusCode}, code=${code}, message=${message}`,
-  );
+  if (!isProduction) {
+    console.log(
+      `🔴 [Error Handler] Sending response: status=${responseStatusCode}, code=${code}, message=${message}`,
+    );
+  }
 
   // Send standardized error response
-  res.status(statusCode).json({
+  res.status(responseStatusCode).json({
     success: false,
     error: {
       code,

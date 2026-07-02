@@ -8,6 +8,7 @@ import PropTypes from "prop-types";
 import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import useRole from "../../../hooks/useRole";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -257,15 +258,19 @@ DetailRow.defaultProps = {
 
 /* ---- DocumentRow Component ---- */
 function DocumentRow({ label, path, icon }) {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
   const fileName = getFileName(path);
-  // Use secure API endpoint for document access (authorization enforced)
-  const secureDocUrl = path
-    ? `${baseUrl}/students/documents/${getFileName(path)}`
-    : null;
+
+  const handleViewDocument = async (filename) => {
+    try {
+      const response = await api.get(`/students/documents/${filename}`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Failed to load document");
+    }
+  };
 
   return (
     <tr className="detail-row">
@@ -277,16 +282,15 @@ function DocumentRow({ label, path, icon }) {
       </td>
       <td className="detail-value">
         {path ? (
-          <a
-            href={secureDocUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="document-link"
-            aria-label={`View ${label} (opens in new tab)`}
+          <button
+            onClick={() => handleViewDocument(fileName)}
+            className="document-link btn btn-link p-0"
+            aria-label={`View ${label}`}
+            type="button"
           >
             <FaExternalLinkAlt className="link-icon" aria-hidden="true" />
             {fileName || "View Document"}
-          </a>
+          </button>
         ) : (
           <span
             className="document-not-uploaded"
@@ -375,7 +379,7 @@ FeeCard.defaultProps = {
 };
 
 /* ---- InstallmentTable Component ---- */
-function InstallmentTable({ installments, studentId, onMarkPaid }) {
+function InstallmentTable({ installments, studentId, onMarkPaid, canMarkPaid }) {
   if (!installments || installments.length === 0) {
     return (
       <EmptyState
@@ -400,37 +404,37 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
             <th scope="col">Status</th>
-            <th scope="col">Action</th>
+            {onMarkPaid && <th scope="col">Action</th>}
           </tr>
         </thead>
         <tbody>
           {installments.map((inst, index) => (
             <tr key={inst._id}>
-              <td>{index + 1}</td>
-              <td>{inst.name}</td>
-              <td>{formatCurrency(inst.amount)}</td>
-              <td>{formatDate(inst.dueDate)}</td>
-              <td>
+              <td data-label="#">{index + 1}</td>
+              <td data-label="Name">{inst.name}</td>
+              <td data-label="Amount">{formatCurrency(inst.amount)}</td>
+              <td data-label="Due Date">{formatDate(inst.dueDate)}</td>
+              <td data-label="Status">
                 <StatusBadge
                   status={inst.status}
                   type={inst.status.toLowerCase()}
                 />
               </td>
-              <td>
-                {inst.status === "PENDING" ? (
-                  <button
-                    className="mark-paid-btn"
-                    onClick={() => onMarkPaid(inst)}
-                    aria-label={`Mark ${inst.name} as paid`}
-                    title="Mark as Paid (Offline)"
-                  >
-                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
-                    Mark Paid
-                  </button>
-                ) : (
-                  <span className="no-action-text">-</span>
-                )}
-              </td>
+               <td data-label="Action">
+                 {inst.status === "PENDING" && canMarkPaid ? (
+                   <button
+                     className="mark-paid-btn"
+                     onClick={() => onMarkPaid(inst)}
+                     aria-label={`Mark ${inst.name} as paid`}
+                     title="Mark as Paid (Offline)"
+                   >
+                     <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                     Mark Paid
+                   </button>
+                 ) : (
+                   <span className="no-action-text">-</span>
+                 )}
+               </td>
             </tr>
           ))}
         </tbody>
@@ -451,6 +455,7 @@ InstallmentTable.propTypes = {
   ).isRequired,
   studentId: PropTypes.string.isRequired,
   onMarkPaid: PropTypes.func.isRequired,
+  canMarkPaid: PropTypes.bool,
 };
 
 /* ---- Skeleton Components ---- */
@@ -810,8 +815,9 @@ function MarkPaidModal({
           animation: fadeIn 0.2s ease;
         }
 
-        .mark-paid-modal {
-          background: white;
+         .mark-paid-modal {
+           position: relative;
+           background: white;
           border-radius: 12px;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
           max-width: 600px;
@@ -1109,8 +1115,9 @@ function LoadingDisplay() {
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
   const { user } = useContext(AuthContext);
-  const { id } = useParams();
+  const { id: studentId } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1121,12 +1128,31 @@ export default function ViewApproveStudent() {
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
 
+  // 🗂️ SECTION TABS
+  const [activeTab, setActiveTab] = useState("personal");
+
+  const SECTION_TABS = [
+    { id: "personal",   label: "Personal"   },
+    { id: "address",    label: "Address"    },
+    { id: "parent",     label: "Parent"     },
+    { id: "academic10", label: "10th"       },
+    { id: "academic12", label: "12th"       },
+    { id: "academic",   label: "College"    },
+    { id: "documents",  label: "Documents"  },
+    { id: "fee",        label: "Fee"        },
+    { id: "system",     label: "System"     },
+  ];
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+  };
+
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(id));
+      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(studentId));
 
       // API returns: { student: {...}, fee: {...} }
       const studentData =
@@ -1150,13 +1176,13 @@ export default function ViewApproveStudent() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [studentId]);
 
-  useEffect(() => {
-    if (user?.role === "COLLEGE_ADMIN") {
-      fetchStudent();
-    }
-  }, [fetchStudent, user]);
+    useEffect(() => {
+      if ((user?.role === "COLLEGE_ADMIN" || user?.role === "ACCOUNTANT" || user?.role === "ADMISSION_OFFICER" || user?.role === "PRINCIPAL") && studentId) {
+        fetchStudent();
+      }
+    }, [fetchStudent, user, studentId]);
 
   /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
   // Open Mark Paid modal
@@ -1202,10 +1228,14 @@ export default function ViewApproveStudent() {
     setSelectedInstallment(null);
   }, []);
 
-  /* ================= SECURITY CHECK ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" replace />;
+    /* ================= SECURITY CHECK ================= */
+    if (!user) return <Navigate to="/login" replace />;
+    // Allow COLLEGE_ADMIN, ACCOUNTANT, ADMISSION_OFFICER, PRINCIPAL
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "ADMISSION_OFFICER" && user.role !== "PRINCIPAL")
+      return <Navigate to="/dashboard" replace />;
+
+   // Admission Officers can view but cannot mark payments as paid
+   const canMarkPaid = user?.role !== "ADMISSION_OFFICER";
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1380,19 +1410,26 @@ export default function ViewApproveStudent() {
     return <LoadingDisplay />;
   }
 
-  /* ================= RENDER ================= */
-  return (
-    <div className="erp-container print-area">
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Approved Students", path: "/students/approve" },
-          { label: student.fullName || "Student Profile" },
-        ]}
-      />
+   /* ================= RENDER ================= */
+   const renderSection = (sectionId, content) => {
+     if (activeTab !== sectionId) return null;
+     return content;
+   };
 
-      {/* HEADER WITH STUDENT INFO */}
+   return (
+     <div className="erp-container print-area">
+       {/* BREADCRUMBS */}
+       <Breadcrumb
+         items={[
+           { label: "Dashboard", path: "/dashboard" },
+           { label: "Approved Students", path: "/students/approve" },
+           { label: student.fullName || "Student Profile" },
+         ]}
+       />
+
+      
+
+       {/* HEADER WITH STUDENT INFO */}
       <div className="erp-page-header no-print" role="banner">
         <div className="erp-header-content">
           {/* Student Avatar */}
@@ -1408,9 +1445,9 @@ export default function ViewApproveStudent() {
                 <FaBookOpen className="meta-icon" aria-hidden="true" />
                 {student.course_id?.name || "N/A"}
               </span>
-              <span className="status-badge status-approved">
+              <span className={`status-badge status-${student.status?.toLowerCase() || 'approved'}`}>
                 <FaCheckCircle className="status-icon" aria-hidden="true" />
-                APPROVED
+                {student.status || "APPROVED"}
               </span>
             </div>
           </div>
@@ -1440,392 +1477,238 @@ export default function ViewApproveStudent() {
         </div>
       </div>
 
-      {/* MAIN CONTENT GRID */}
-      <div className="main-content-grid animate-fade-in">
-        {/* LEFT COLUMN - PERSONAL & ACADEMIC DETAILS */}
-        <div className="left-column">
-          {/* PERSONAL INFORMATION */}
-          <InfoCard title="Personal Information" icon={FaUserGraduate}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Personal information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Email Address"
-                    value={student.email}
-                    icon={<FaEnvelope />}
-                    isEmail
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Mobile Number"
-                    value={student.mobileNumber}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Gender"
-                    value={student.gender}
-                    icon={<FaUserGraduate />}
-                  />
-                  <DetailRow
-                    label="Category"
-                    value={student.category}
-                    icon={<FaBookOpen />}
-                  />
-                  <DetailRow
-                    label="Date of Birth"
-                    value={formatDate(student.dateOfBirth)}
-                    icon={<FaCalendarAlt />}
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
 
-          {/* ADDRESS DETAILS */}
-          <InfoCard title="Address Details" icon={FaMapMarkerAlt}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Address details"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Address"
-                    value={student.addressLine}
-                    icon={<FaMapMarkerAlt />}
-                    isMultiline
-                  />
-                  <DetailRow
-                    label="City"
-                    value={student.city}
-                    icon={<FaMapMarkerAlt />}
-                  />
-                  <DetailRow
-                    label="State"
-                    value={student.state}
-                    icon={<FaMapMarkerAlt />}
-                  />
-                  <DetailRow
-                    label="Pincode"
-                    value={student.pincode}
-                    icon={<FaMapMarkerAlt />}
-                    isCopyable
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+ {/* SECTION TABS */}
+       <div className="section-tabs no-print" role="tablist" aria-label="Section navigation">
+         {SECTION_TABS.map((tab) => (
+           <button
+             key={tab.id}
+             className={`section-tab ${activeTab === tab.id ? "active" : ""}`}
+             onClick={() => handleTabClick(tab.id)}
+             role="tab"
+             aria-selected={activeTab === tab.id}
+             aria-controls={`section-${tab.id}`}
+             type="button"
+           >
+             {tab.label}
+           </button>
+         ))}
+       </div>
+      {/* TAB CONTENT PANEL */}
+      <div className="tab-content-panel animate-fade-in">
 
-          {/* PARENT / GUARDIAN INFORMATION */}
-          <InfoCard title="Parent / Guardian Information" icon={FaUser}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Parent guardian information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Father's Name"
-                    value={student.fatherName}
-                    icon={<FaUser />}
-                  />
-                  <DetailRow
-                    label="Father's Mobile"
-                    value={student.fatherMobile}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Mother's Name"
-                    value={student.motherName}
-                    icon={<FaUser />}
-                  />
-                  <DetailRow
-                    label="Mother's Mobile"
-                    value={student.motherMobile}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
-
-          {/* 10TH (SSC) ACADEMIC DETAILS */}
-          {has10thDetails && (
-            <InfoCard
-              title="10th (SSC) Academic Details"
-              icon={FaGraduationCap}
-            >
+        {/* PERSONAL INFORMATION */}
+        <div id="section-personal" role="tabpanel" aria-labelledby="tab-personal">
+          {renderSection("personal", (
+            <InfoCard title="Personal Information" icon={FaUserGraduate}>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="10th academic details"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Personal information">
                   <tbody>
-                    <DetailRow
-                      label="School Name"
-                      value={student.sscSchoolName}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.sscBoard}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.sscPassingYear?.toString()}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={
-                        student.sscPercentage
-                          ? `${student.sscPercentage}%`
-                          : null
-                      }
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.sscRollNumber}
-                      icon={<FaBookOpen />}
-                      isCopyable
-                    />
+                    <DetailRow label="Email Address" value={student.email} icon={<FaEnvelope />} isEmail isCopyable />
+                    <DetailRow label="Mobile Number" value={student.mobileNumber} icon={<FaPhone />} isCopyable />
+                    <DetailRow label="Gender" value={student.gender} icon={<FaUserGraduate />} />
+                    <DetailRow label="Category" value={student.category} icon={<FaBookOpen />} />
+                    <DetailRow label="Date of Birth" value={formatDate(student.dateOfBirth)} icon={<FaCalendarAlt />} />
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
+          ))}
+        </div>
 
-          {/* 12TH (HSC) ACADEMIC DETAILS */}
-          {has12thDetails && (
-            <InfoCard
-              title="12th (HSC) Academic Details"
-              icon={FaGraduationCap}
-            >
+        {/* ADDRESS DETAILS */}
+        <div id="section-address" role="tabpanel" aria-labelledby="tab-address">
+          {renderSection("address", (
+            <InfoCard title="Address Details" icon={FaMapMarkerAlt}>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="12th academic details"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Address details">
                   <tbody>
-                    <DetailRow
-                      label="School / College Name"
-                      value={student.hscSchoolName}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.hscBoard}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Stream"
-                      value={student.hscStream}
-                      icon={<FaBookOpen />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.hscPassingYear?.toString()}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={
-                        student.hscPercentage
-                          ? `${student.hscPercentage}%`
-                          : null
-                      }
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.hscRollNumber}
-                      icon={<FaBookOpen />}
-                      isCopyable
-                    />
+                    <DetailRow label="Address" value={student.addressLine} icon={<FaMapMarkerAlt />} isMultiline />
+                    <DetailRow label="City" value={student.city} icon={<FaMapMarkerAlt />} />
+                    <DetailRow label="State" value={student.state} icon={<FaMapMarkerAlt />} />
+                    <DetailRow label="Pincode" value={student.pincode} icon={<FaMapMarkerAlt />} isCopyable />
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
+          ))}
+        </div>
 
-          {/* UPLOADED DOCUMENTS */}
-          {uploadedDocuments.length > 0 && (
+        {/* PARENT / GUARDIAN INFORMATION */}
+        <div id="section-parent" role="tabpanel" aria-labelledby="tab-parent">
+          {renderSection("parent", (
+            <InfoCard title="Parent / Guardian Information" icon={FaUser}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="Parent guardian information">
+                  <tbody>
+                    <DetailRow label="Father's Name" value={student.fatherName} icon={<FaUser />} />
+                    <DetailRow label="Father's Mobile" value={student.fatherMobile} icon={<FaPhone />} isCopyable />
+                    <DetailRow label="Mother's Name" value={student.motherName} icon={<FaUser />} />
+                    <DetailRow label="Mother's Mobile" value={student.motherMobile} icon={<FaPhone />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
+        {/* 10TH (SSC) ACADEMIC DETAILS */}
+        <div id="section-academic10" role="tabpanel" aria-labelledby="tab-academic10">
+          {renderSection("academic10", has10thDetails ? (
+            <InfoCard title="10th (SSC) Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="10th academic details">
+                  <tbody>
+                    <DetailRow label="School Name" value={student.sscSchoolName} icon={<FaUniversity />} />
+                    <DetailRow label="Board" value={student.sscBoard} icon={<FaUniversity />} />
+                    <DetailRow label="Passing Year" value={student.sscPassingYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.sscPercentage ? `${student.sscPercentage}%` : null}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow label="Roll Number" value={student.sscRollNumber} icon={<FaBookOpen />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ) : (
+            <EmptyState icon={FaGraduationCap} message="No 10th details available" subMessage="10th (SSC) information has not been filled in" />
+          ))}
+        </div>
+
+        {/* 12TH (HSC) ACADEMIC DETAILS */}
+        <div id="section-academic12" role="tabpanel" aria-labelledby="tab-academic12">
+          {renderSection("academic12", has12thDetails ? (
+            <InfoCard title="12th (HSC) Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="12th academic details">
+                  <tbody>
+                    <DetailRow label="School / College Name" value={student.hscSchoolName} icon={<FaUniversity />} />
+                    <DetailRow label="Board" value={student.hscBoard} icon={<FaUniversity />} />
+                    <DetailRow label="Stream" value={student.hscStream} icon={<FaBookOpen />} />
+                    <DetailRow label="Passing Year" value={student.hscPassingYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.hscPercentage ? `${student.hscPercentage}%` : null}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow label="Roll Number" value={student.hscRollNumber} icon={<FaBookOpen />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ) : (
+            <EmptyState icon={FaGraduationCap} message="No 12th details available" subMessage="12th (HSC) information has not been filled in" />
+          ))}
+        </div>
+
+        {/* COLLEGE ACADEMIC DETAILS */}
+        <div id="section-academic" role="tabpanel" aria-labelledby="tab-academic">
+          {renderSection("academic", (
+            <InfoCard title="Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="Academic details">
+                  <tbody>
+                    <DetailRow label="College" value={student.college_id?.name} icon={<FaUniversity />} />
+                    <DetailRow label="College Code" value={student.college_id?.code} icon={<FaBuilding />} isCopyable />
+                    <DetailRow label="Department" value={student.department_id?.name} icon={<FaBuilding />} />
+                    <DetailRow label="Course" value={student.course_id?.name} icon={<FaBookOpen />} />
+                    <DetailRow label="Admission Year" value={student.admissionYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow label="Current Semester" value={student.currentSemester} icon={<FaGraduationCap />} />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
+        {/* UPLOADED DOCUMENTS */}
+        <div id="section-documents" role="tabpanel" aria-labelledby="tab-documents">
+          {renderSection("documents", uploadedDocuments.length > 0 ? (
             <InfoCard title="Uploaded Documents" icon={FaFileAlt}>
-              <p
-                className="document-count"
-                aria-label={`${uploadedDocuments.length} documents uploaded`}
-              >
+              <p className="document-count" aria-label={`${uploadedDocuments.length} documents uploaded`}>
                 <FaFileAlt className="count-icon" aria-hidden="true" />
-                {uploadedDocuments.length} document
-                {uploadedDocuments.length !== 1 ? "s" : ""} uploaded
+                {uploadedDocuments.length} document{uploadedDocuments.length !== 1 ? "s" : ""} uploaded
               </p>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="Uploaded documents"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
                   <tbody>
                     {uploadedDocuments.map((doc, index) => (
-                      <DocumentRow
-                        key={`${doc.label}-${index}`}
-                        label={doc.label}
-                        path={doc.path}
-                        icon={doc.icon}
-                      />
+                      <DocumentRow key={`${doc.label}-${index}`} label={doc.label} path={doc.path} icon={doc.icon} />
                     ))}
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
-
-          {/* ACADEMIC DETAILS */}
-          <InfoCard title="Academic Details" icon={FaGraduationCap}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Academic details"
-              >
-                <tbody>
-                  <DetailRow
-                    label="College"
-                    value={student.college_id?.name}
-                    icon={<FaUniversity />}
-                  />
-                  <DetailRow
-                    label="College Code"
-                    value={student.college_id?.code}
-                    icon={<FaBuilding />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Department"
-                    value={student.department_id?.name}
-                    icon={<FaBuilding />}
-                  />
-                  <DetailRow
-                    label="Course"
-                    value={student.course_id?.name}
-                    icon={<FaBookOpen />}
-                  />
-                  <DetailRow
-                    label="Admission Year"
-                    value={student.admissionYear?.toString()}
-                    icon={<FaCalendarAlt />}
-                  />
-                  <DetailRow
-                    label="Current Semester"
-                    value={student.currentSemester}
-                    icon={<FaGraduationCap />}
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+          ) : (
+            <EmptyState icon={FaFileAlt} message="No documents uploaded" subMessage="No documents have been uploaded yet" />
+          ))}
         </div>
 
-        {/* RIGHT COLUMN - FEE & SYSTEM INFO */}
-        <div className="right-column">
-          {/* FEE SUMMARY */}
-          <InfoCard
-            title="Fee Summary"
-            icon={FaRupeeSign}
-            className="fee-summary-card"
-          >
-            <div className="fee-summary-grid">
-              <FeeCard
-                label="Total Fee"
-                value={formatCurrency(feeData?.totalFee)}
-                subtitle="Complete program fee"
-                variant="total"
-              />
-              <FeeCard
-                label="Paid Amount"
-                value={formatCurrency(feeData?.paidAmount)}
-                subtitle="Amount received"
-                variant="paid"
-              />
-              <FeeCard
-                label="Pending Amount"
-                value={formatCurrency(feeData?.pendingAmount)}
-                subtitle={
-                  feeData?.pendingAmount > 0 ? "Payment due" : "Fully paid"
-                }
-                variant="pending"
-                highlight={feeData?.pendingAmount > 0}
-              />
-            </div>
-          </InfoCard>
-
-          {/* INSTALLMENTS TABLE */}
-          <InfoCard title="Payment Installments" icon={FaCreditCard}>
-            <span
-              className="installment-count"
-              aria-label={`${feeData?.installments?.length || 0} installments`}
-            >
-              {feeData?.installments?.length || 0}{" "}
-              {feeData?.installments?.length === 1
-                ? "Installment"
-                : "Installments"}
-            </span>
-            <div className="erp-card-body">
-              <InstallmentTable
-                installments={feeData?.installments || []}
-                studentId={student._id}
-                onMarkPaid={handleMarkPaid}
-              />
-            </div>
-          </InfoCard>
-
-          {/* SYSTEM INFORMATION */}
-          <InfoCard title="System Information" icon={FaShieldAlt}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="System information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Status"
-                    value={student.status}
-                    icon={<FaCheckCircle />}
+        {/* FEE DETAILS */}
+        <div id="section-fee" role="tabpanel" aria-labelledby="tab-fee">
+          {renderSection("fee", (
+            <>
+              <InfoCard title="Fee Summary" icon={FaRupeeSign} className="fee-summary-card">
+                <div className="fee-summary-grid">
+                  <FeeCard
+                    label="Total Fee"
+                    value={formatCurrency(feeData?.totalFee)}
+                    subtitle="Complete program fee"
+                    variant="total"
                   />
-                  <DetailRow
-                    label="Registered Via"
-                    value={student.registeredVia}
-                    icon={<FaUserGraduate />}
+                  <FeeCard
+                    label="Paid Amount"
+                    value={formatCurrency(feeData?.paidAmount)}
+                    subtitle="Amount received"
+                    variant="paid"
                   />
-                  <DetailRow
-                    label="Approved At"
-                    value={formatDate(student.approvedAt)}
-                    icon={<FaCheckCircle />}
+                  <FeeCard
+                    label="Pending Amount"
+                    value={formatCurrency(feeData?.pendingAmount)}
+                    subtitle={feeData?.pendingAmount > 0 ? "Payment due" : "Fully paid"}
+                    variant="pending"
+                    highlight={feeData?.pendingAmount > 0}
                   />
-                  <DetailRow
-                    label="Created At"
-                    value={formatDate(student.createdAt)}
-                    icon={<FaClock />}
+                </div>
+              </InfoCard>
+              <InfoCard title="Payment Installments" icon={FaCreditCard}>
+                <span className="installment-count" aria-label={`${feeData?.installments?.length || 0} installments`}>
+                  {feeData?.installments?.length || 0}{" "}
+                  {feeData?.installments?.length === 1 ? "Installment" : "Installments"}
+                </span>
+                <div className="erp-card-body">
+                  <InstallmentTable
+                    installments={feeData?.installments || []}
+                    studentId={student._id}
+                    onMarkPaid={handleMarkPaid}
+                    canMarkPaid={canEdit("fee-structure")}
                   />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+                </div>
+              </InfoCard>
+            </>
+          ))}
         </div>
+
+        {/* SYSTEM INFORMATION */}
+        <div id="section-system" role="tabpanel" aria-labelledby="tab-system">
+          {renderSection("system", (
+            <InfoCard title="System Information" icon={FaShieldAlt}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="System information">
+                  <tbody>
+                    <DetailRow label="Status" value={student.status} icon={<FaCheckCircle />} />
+                    <DetailRow label="Registered Via" value={student.registeredVia} icon={<FaUserGraduate />} />
+                    <DetailRow label="Approved At" value={formatDate(student.approvedAt)} icon={<FaCheckCircle />} />
+                    <DetailRow label="Created At" value={formatDate(student.createdAt)} icon={<FaClock />} />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
       </div>
 
       {/* STYLES */}
@@ -1859,7 +1742,8 @@ export default function ViewApproveStudent() {
         @media print {
           .no-print,
           .erp-header-actions,
-          .copy-btn {
+          .copy-btn,
+          .section-tabs {
             display: none !important;
           }
           
@@ -2035,8 +1919,8 @@ export default function ViewApproveStudent() {
 
         /* ================= MAIN CONTENT GRID ================= */
         .main-content-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
+          display: flex;
+          flex-direction: column;
           gap: 1.5rem;
         }
 
@@ -2230,12 +2114,18 @@ export default function ViewApproveStudent() {
           grid-row: span 2;
         }
 
-        .fee-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-          padding: 1.5rem;
-        }
+         .fee-summary-grid {
+           display: grid;
+           grid-template-columns: repeat(3, 1fr);
+           gap: 1.5rem;
+           padding: 1.5rem;
+         }
+
+         @media (max-width: 1024px) and (min-width: 769px) {
+           .fee-summary-grid {
+             grid-template-columns: repeat(2, 1fr);
+           }
+         }
 
         .fee-item {
           background: #f8f9fa;
@@ -2646,12 +2536,83 @@ export default function ViewApproveStudent() {
           animation: fadeIn 0.6s ease;
         }
 
-        /* ================= RESPONSIVE DESIGN ================= */
-        @media (max-width: 1024px) {
-          .main-content-grid {
-            grid-template-columns: 1fr;
-          }
+        /* ================= SECTION TABS (always visible) ================= */
+        .section-tabs {
+          display: flex;
+          gap: 0.375rem;
+          overflow-x: auto;
+          padding: 0.5rem 0.25rem;
+          margin-bottom: 1.25rem;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          background: var(--erp-card-bg);
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          border: 1px solid var(--erp-border);
+          flex-wrap: wrap;
+        }
 
+        .section-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .section-tab {
+          flex-shrink: 0;
+          padding: 0.5rem 1.125rem;
+          border: 1.5px solid transparent;
+          background: transparent;
+          color: var(--erp-text-muted);
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          position: relative;
+        }
+
+        .section-tab:hover {
+          border-color: var(--erp-accent);
+          color: var(--erp-accent);
+          background: rgba(61, 181, 230, 0.06);
+        }
+
+        .section-tab.active {
+          background: var(--erp-primary);
+          color: white;
+          border-color: var(--erp-primary);
+          box-shadow: 0 2px 8px rgba(15, 58, 74, 0.25);
+        }
+
+        .section-tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60%;
+          height: 2px;
+          background: var(--erp-accent);
+          border-radius: 2px;
+        }
+
+        /* ================= TAB CONTENT PANEL ================= */
+        .tab-content-panel {
+          display: flex;
+          flex-direction: column;
+          gap: -0.5rem;
+        }
+
+        .tab-content-panel > div[role="tabpanel"] {
+          width: 100%;
+        }
+
+        @media (max-width: 1024px) {
           .erp-page-header {
             flex-direction: column;
             align-items: flex-start;
@@ -2692,7 +2653,7 @@ export default function ViewApproveStudent() {
           }
 
           .fee-summary-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 
@@ -2738,6 +2699,10 @@ export default function ViewApproveStudent() {
             justify-content: center;
           }
 
+          .fee-summary-grid {
+            grid-template-columns: 1fr;
+          }
+
           .detail-row {
             grid-template-columns: 1fr;
             gap: 0.5rem;
@@ -2774,7 +2739,7 @@ export default function ViewApproveStudent() {
 
           .skeleton-table-header,
           .skeleton-table-row {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 

@@ -4,7 +4,9 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
+import { toast } from "react-toastify";
 import "./Dashboard.css";
+import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
 
 import {
   FaUniversity,
@@ -32,7 +34,9 @@ import {
   FaChartLine,
   FaEnvelope,
   FaPhoneAlt,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaLink,
+  FaCopy,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -142,6 +146,7 @@ export default function CollegeAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [college, setCollege] = useState(null);
+  const [setupRedirect, setSetupRedirect] = useState(false);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -234,6 +239,11 @@ export default function CollegeAdminDashboard() {
         // Set college data
         setCollege(data.college);
 
+        // Check if setup is incomplete
+        if (data.college && data.college.setupCompleted === false) {
+          setSetupRedirect(true);
+        }
+
         // Set statistics
         setStats({
           totalStudents: data.stats.totalStudents || 0,
@@ -279,6 +289,11 @@ export default function CollegeAdminDashboard() {
   /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Dashboard..." />;
+  }
+
+  // Redirect to setup wizard if college setup is incomplete
+  if (setupRedirect) {
+    return <Navigate to="/college/setup-wizard" replace />;
   }
 
   return (
@@ -367,12 +382,12 @@ export default function CollegeAdminDashboard() {
                   </Col>
                   <Col xs={12} sm={6} lg={3} className="info-item">
                     <FaShieldAlt className="info-icon info-icon-success" />
-                    <Badge className="info-badge badge-success">
+                    <Badge className="info-badge badge-success" bg={null}>
                       Active Institution
                     </Badge>
                   </Col>
                   <Col xs={12} sm={6} lg={3} className="info-item justify-content-sm-end">
-                    <Badge className="info-badge badge-primary">
+                    <Badge className="info-badge badge-primary" bg={null}>
                       Code: {college.code}
                     </Badge>
                   </Col>
@@ -439,6 +454,53 @@ export default function CollegeAdminDashboard() {
                   gradient={BRAND_COLORS.danger.gradient}
                   subtitle="Awaiting approval"
                 />
+              </Col>
+              <Col xs={12} sm={6} lg={4} xl={4}>
+                {college?.registrationUrl ? (
+                  <div className="stat-card registration-link-card">
+                    <StatCard
+                      icon={FaLink}
+                      label="Student Registration Link"
+                      value="Share Link"
+                      color={BRAND_COLORS.info.main}
+                      gradient={BRAND_COLORS.info.gradient}
+                      subtitle="Click to copy"
+                    />
+                    <button
+                      className="copy-link-btn"
+                      onClick={async () => {
+                        try {
+                          const url = getFrontendRegistrationUrl(college.registrationUrl);
+                          await navigator.clipboard.writeText(url);
+                          toast.success("Registration link copied!", {
+                            position: "top-right",
+                            autoClose: 2000,
+                          });
+                        } catch (err) {
+                          toast.error("Failed to copy link. Please try again.", {
+                            position: "top-right",
+                            autoClose: 3000,
+                          });
+                        }
+                      }}
+                      title="Copy registration link"
+                      type="button"
+                    >
+                      <FaCopy /> Copy
+                    </button>
+                  </div>
+                ) : (
+                  <div className="stat-card registration-link-card" onClick={() => navigate("/college/profile")} style={{ cursor: "pointer" }} title="Go to College Profile to set registration link">
+                    <StatCard
+                      icon={FaLink}
+                      label="Registration Link"
+                      value="Not Set"
+                      color={BRAND_COLORS.secondary.main}
+                      gradient={BRAND_COLORS.secondary.gradient}
+                      subtitle="Click to configure"
+                    />
+                  </div>
+                )}
               </Col>
             </Row>
           </motion.div>
@@ -556,7 +618,13 @@ export default function CollegeAdminDashboard() {
                           <StudentItem
                             key={student._id}
                             student={student}
-                            onClick={() => navigate(`/college/view-approved-student/${student._id}`)}
+                            onClick={() => {
+                               if (student.status === 'PENDING') {
+                                 navigate(`/college/view-student/${student._id}`);
+                               } else {
+                                 navigate(`/college/view-approved-student/${student._id}`);
+                               }
+                             }}
                           />
                         ))}
                       </div>

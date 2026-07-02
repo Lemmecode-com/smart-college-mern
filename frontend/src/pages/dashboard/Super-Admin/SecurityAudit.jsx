@@ -130,13 +130,15 @@ export default function SecurityAudit() {
 
   const fetchColleges = async () => {
     try {
-      const res = await api.get("/college/list");
+      setLoading(true);
+      const res = await api.get("/master/get/colleges");
 
-      // API returns array directly, not wrapped in { success, data }
+      // API response: { count, colleges } or { data: [...] } or raw array
       if (Array.isArray(res.data)) {
         setColleges(res.data);
+      } else if (res.data?.colleges && Array.isArray(res.data.colleges)) {
+        setColleges(res.data.colleges);
       } else if (res.data?.data && Array.isArray(res.data.data)) {
-        // Fallback for wrapped response
         setColleges(res.data.data);
       } else {
         console.warn("⚠️ [Colleges] Invalid response structure:", res.data);
@@ -169,7 +171,8 @@ export default function SecurityAudit() {
 
   const handleExport = () => {
     const params = new URLSearchParams(filters);
-    window.open(`/api/security-audit/export/download?${params}`, "_blank");
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    window.open(`${baseUrl}/security-audit/export/download?${params}`, "_blank");
   };
 
   const getSeverityBadgeClass = (severity) => {
@@ -469,7 +472,6 @@ export default function SecurityAudit() {
                     <th>College</th>
                     <th>IP Address</th>
                     <th>Severity</th>
-                    <th>Endpoint</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
@@ -517,18 +519,13 @@ export default function SecurityAudit() {
                           )}
                         </td>
                         <td>
-                          <code className="ip-address">{log.ipAddress}</code>
+                          <span className="ip-address">{log.ipAddress}</span>
                         </td>
                         <td>
                           <span
                             className={`severity-badge ${getSeverityBadgeClass(log.severity)}`}
                           >
                             {log.severity}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="endpoint-cell">
-                            {log.endpoint || "N/A"}
                           </span>
                         </td>
                         <td>
@@ -558,7 +555,7 @@ export default function SecurityAudit() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="9" className="cell-empty">
+                        <td colSpan="8" className="cell-empty">
                         <div className="empty-state">
                           <FaShieldAlt className="empty-icon" />
                           <p className="empty-text">
