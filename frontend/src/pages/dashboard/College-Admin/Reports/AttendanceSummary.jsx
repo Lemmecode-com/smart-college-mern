@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../../utils/toast";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -30,36 +30,46 @@ export default function AttendanceSummary() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ATTENDANCE SUMMARY ================= */
   const fetchAttendanceSummary = useCallback(async () => {
     hasLoadedRef.current = false;
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError("");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/attendance/summary");
       // API returns an object, not an array
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data || {});
       setRetryCount(0);
-      toast.success("Attendance summary loaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "attendance-summary-success",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Attendance summary loaded successfully!");
     } catch (err) {
       console.error("Attendance summary fetch error:", err);
       setError(
         err.response?.data?.message ||
           "Failed to load attendance summary. Please try again.",
       );
-      toast.error("Failed to load attendance summary.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "attendance-summary-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError("Failed to load attendance summary.");
     } finally {
-      setLoading(false);
-      hasLoadedRef.current = true;
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
@@ -79,11 +89,7 @@ export default function AttendanceSummary() {
       hasLoadedRef.current = false;
       fetchAttendanceSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "attendance-max-retry",
-      });
+      showError("Maximum retry attempts reached.");
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   }, [retryCount, fetchAttendanceSummary]);
