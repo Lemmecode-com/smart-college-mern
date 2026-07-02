@@ -13,7 +13,7 @@ import {
   FaMoneyBillWave,
   FaCalendarAlt,
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showSuccess, showInfo, showWarning, showError } from "../../../utils/toast";
 
 export default function StudentReports() {
   const { user } = useContext(AuthContext);
@@ -38,7 +38,7 @@ export default function StudentReports() {
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      toast.warning("Please enter a search term");
+      showWarning("Please enter a search term");
       return;
     }
 
@@ -57,7 +57,7 @@ export default function StudentReports() {
       if (currentValue) {
         performSearch(currentValue);
       } else {
-        toast.warning("Please enter a search term");
+        showWarning("Please enter a search term");
       }
     }
   };
@@ -108,13 +108,13 @@ export default function StudentReports() {
       setSearchResults(response.data.students || []);
 
       if (response.data.students?.length === 0) {
-        toast.info("No students found matching your search");
+        showInfo("No students found matching your search");
       }
     } catch (err) {
       console.error("Student search error:", err);
       const errorMsg = err.response?.data?.message || "Failed to search students";
       setError({ message: errorMsg, statusCode: err.response?.status });
-      toast.error(errorMsg);
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }

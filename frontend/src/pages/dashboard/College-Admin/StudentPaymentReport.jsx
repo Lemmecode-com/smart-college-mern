@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -15,7 +15,7 @@ import {
   FaSyncAlt,
   FaDownload
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../utils/toast";
 
 export default function StudentPaymentReport() {
   const { user } = useContext(AuthContext);
@@ -29,6 +29,7 @@ export default function StudentPaymentReport() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showDateFilters, setShowDateFilters] = useState(false);
+  const fetchIdRef = useRef(0);
 
   // Security check
   if (!user) {
@@ -43,9 +44,14 @@ export default function StudentPaymentReport() {
 
   // Fetch student payment data
   const fetchStudentPaymentData = async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Build query parameters
       let queryParams = {};
@@ -57,6 +63,8 @@ export default function StudentPaymentReport() {
 
       const res = await api.get(url);
 
+      if (currentFetchId !== fetchIdRef.current) return;
+
       if (res.data && res.data.length > 0) {
         setStudentData(res.data[0]);
         setPaymentHistory(res.data[0].installments || []);
@@ -65,22 +73,21 @@ export default function StudentPaymentReport() {
         setPaymentHistory([]);
       }
 
-      toast.success("Student payment data loaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "student-payment-success",
-      });
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Student payment data loaded successfully!");
     } catch (err) {
       console.error("Student payment fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load student payment data.";
       setError({ message: errorMsg, statusCode: err.response?.status });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        toastId: "student-payment-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
