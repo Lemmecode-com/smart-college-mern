@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -14,7 +14,7 @@ import {
   FaChartLine,
   FaInfoCircle
 } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../utils/toast";
 
 export default function PaymentTrends() {
   const { user } = useContext(AuthContext);
@@ -24,6 +24,7 @@ export default function PaymentTrends() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const fetchIdRef = useRef(0);
 
   // Security check
   if (!user) {
@@ -38,27 +39,36 @@ export default function PaymentTrends() {
 
   // Fetch trends data
   const fetchTrendsData = useCallback(async (year = selectedYear) => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
 
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const response = await api.get(`/reports/payments/trends?year=${year}`);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setTrendsData(response.data.data);
 
-      toast.success(`Payment trends loaded for ${year}`, {
-        position: "top-right",
-        autoClose: 2000,
-      });
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess(`Payment trends loaded for ${year}`);
     } catch (err) {
       console.error("Payment trends fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load payment trends";
       setError({ message: errorMsg, statusCode: err.response?.status });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [selectedYear]);
 

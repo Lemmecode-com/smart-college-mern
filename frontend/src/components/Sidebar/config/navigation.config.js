@@ -1162,17 +1162,18 @@ export const navigationConfig = {
         icon: FaChalkboardTeacher,
         label: "HOD Dashboard",
       },
+      
       sections: [
         {
-          id: "hod-notifications",
-          title: "Notifications",
-          icon: FaBell,
+          id: "hod-profile",
+          title: "My Profile",
+          icon: FaUser,
           defaultOpen: true,
           items: [
             {
-              path: "/hod/notifications/list",
-              icon: FaListOl,
-              label: "All Notifications",
+              path: "/hod/profile",
+              icon: FaUser,
+              label: "HOD Profile",
               exact: true,
             },
           ],
@@ -1244,15 +1245,15 @@ export const navigationConfig = {
           ],
         },
         {
-          id: "hod-profile",
-          title: "My Profile",
-          icon: FaUser,
+          id: "hod-notifications",
+          title: "Notifications",
+          icon: FaBell,
           defaultOpen: true,
           items: [
             {
-              path: "/hod/profile",
-              icon: FaUser,
-              label: "HOD Profile",
+              path: "/hod/notifications/list",
+              icon: FaListOl,
+              label: "All Notifications",
               exact: true,
             },
           ],
