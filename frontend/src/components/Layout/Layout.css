@@ -59,6 +59,7 @@
   min-width: 0; /* Critical: prevents flex overflow */
   margin-left: var(--sidebar-width-expanded);
   transition: margin-left var(--sidebar-transition-duration)
+    var(--sidebar-transition-timing), width var(--sidebar-transition-duration)
     var(--sidebar-transition-timing);
   width: calc(100% - var(--sidebar-width-expanded));
 }
