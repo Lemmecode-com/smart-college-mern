@@ -772,6 +772,8 @@ export default function AdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
+          height: 88%;
+          width: 90%;
         }
 
         .stat-card:hover {
