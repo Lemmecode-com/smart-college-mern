@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../../utils/toast";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -20,15 +20,6 @@ import {
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
   MAX_RETRY: 3,
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
   THEME: {
     PRIMARY: "#0f3a4a",
     PRIMARY_DARK: "#0c2d3a",
@@ -49,37 +40,48 @@ export default function AdminReports() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = useCallback(async () => {
-    if (hasLoadedRef.current) {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
+    if (hasLoadedRef.current && currentFetchId === fetchIdRef.current) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError("");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/admissions/college-admin-summary");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data);
       setRetryCount(0);
-      
-      toast.success("Admission reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-success",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Admission reports loaded successfully!");
     } catch (err) {
       console.error("Reports fetch error:", err);
       setError(
         err.response?.data?.message ||
           "Failed to load admission summary. Please try again.",
       );
-      toast.error("Failed to load admission reports.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError("Failed to load admission reports.");
     } finally {
-      setLoading(false);
-      hasLoadedRef.current = true;
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
@@ -98,10 +100,7 @@ export default function AdminReports() {
       hasLoadedRef.current = false;
       fetchSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-max-retry",
-      });
+      showError("Maximum retry attempts reached.");
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   }, [retryCount, fetchSummary]);

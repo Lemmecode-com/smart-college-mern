@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useContext } from "react";
+import { useEffect, useState, useMemo, useCallback, useContext, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -6,7 +6,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
-import { toast } from "react-toastify";
+import { showSuccess, showError } from "../../../utils/toast";
 import {
   FaFileInvoiceDollar,
   FaSearch,
@@ -43,12 +43,18 @@ export default function PaymentHistory() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showDateFilters, setShowDateFilters] = useState(false);
+  const fetchIdRef = useRef(0);
 
   // Fetch payment history from backend
   const fetchPaymentHistory = useCallback(async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Build query parameters for date filtering
       let queryParams = {};
@@ -59,12 +65,14 @@ export default function PaymentHistory() {
       const url = `/admin/payments/report${queryString ? `?${queryString}` : ''}`;
 
       const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setPaymentData(res.data);
-      toast.success("Payment history loaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-history-success",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showSuccess("Payment history loaded successfully!");
     } catch (err) {
       console.error("Payment history fetch error:", err);
       const statusCode = err.response?.status;
@@ -72,13 +80,14 @@ export default function PaymentHistory() {
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
       setError({ message: errorMsg, statusCode });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        toastId: "payment-history-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [startDate, endDate]);
 
