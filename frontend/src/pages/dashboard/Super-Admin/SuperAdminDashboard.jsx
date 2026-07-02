@@ -1490,7 +1490,7 @@ export default function SuperAdminDashboard() {
           border-radius: var(--radius-lg);
           padding: var(--spacing-lg);
           cursor: pointer;
-          transition: all var(--transition-base);
+          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
           border: 1px solid var(--border-light);
           display: flex;
           align-items: center;
@@ -1498,6 +1498,7 @@ export default function SuperAdminDashboard() {
           position: relative;
           overflow: visible;
           height: 100%;
+          z-index: 0;
         }
 
         .quick-action-card::before {
@@ -1510,16 +1511,33 @@ export default function SuperAdminDashboard() {
           background: var(--accent-gradient);
           opacity: 0;
           transition: opacity var(--transition-base);
+          z-index: 1;
+          border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        }
+
+        .quick-action-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: rgba(61, 181, 230, 0.06);
+          border-radius: var(--radius-lg);
+          opacity: 0;
+          transition: opacity var(--transition-base);
+          z-index: -1;
+          pointer-events: none;
         }
 
         .quick-action-card:hover {
           transform: translateY(-4px);
           box-shadow: var(--shadow-colored);
           border-color: var(--sidebar-accent);
-          background: var(--card-hover-gradient);
         }
 
         .quick-action-card:hover::before {
+          opacity: 1;
+        }
+
+        .quick-action-card:hover::after {
           opacity: 1;
         }
 
@@ -1537,7 +1555,7 @@ export default function SuperAdminDashboard() {
           justify-content: center;
           font-size: 1.5rem;
           flex-shrink: 0;
-          transition: all var(--transition-base);
+          transition: transform var(--transition-base);
           overflow: hidden;
         }
 
