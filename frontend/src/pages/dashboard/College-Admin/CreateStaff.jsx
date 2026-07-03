@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaSave,
@@ -287,8 +287,6 @@ export default function CreateStaff() {
         className="dashboard-wrapper"
       >
         <div className="dashboard-container-inner">
-          <ToastContainer position="top-right" />
-
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
