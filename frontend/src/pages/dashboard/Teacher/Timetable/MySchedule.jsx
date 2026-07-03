@@ -839,6 +839,8 @@ const componentStyles = `
 }
 `;
 
+const PAGE_LOAD_TOAST_ID = "teacher-my-schedule-load";
+
 export default function MySchedule() {
   const [weekly, setWeekly] = useState({});
   const [loading, setLoading] = useState(true);
@@ -930,7 +932,7 @@ export default function MySchedule() {
 
         if (!toastIds.current.success) {
           toast.success("Schedule loaded successfully!", {
-            toastId: "schedule-success",
+            toastId: PAGE_LOAD_TOAST_ID,
             position: "top-right",
             autoClose: 3000,
             icon: <FaCheckCircle />,
@@ -956,6 +958,9 @@ export default function MySchedule() {
       }
     };
     load();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, []);
 
   // Load today's slots with attendance status (NEW FUNCTION)

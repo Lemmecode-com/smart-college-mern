@@ -1,5 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { showSuccess, showError } from "../../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-admin-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -66,7 +69,10 @@ export default function AdminReports() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Admission reports loaded successfully!");
+      toast.success("Admission reports loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Reports fetch error:", err);
       setError(
@@ -89,6 +95,7 @@ export default function AdminReports() {
     fetchSummary();
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

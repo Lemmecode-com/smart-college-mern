@@ -1,5 +1,8 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { showSuccess, showError } from "../../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-attendance-summary-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -54,7 +57,10 @@ export default function AttendanceSummary() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Attendance summary loaded successfully!");
+      toast.success("Attendance summary loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Attendance summary fetch error:", err);
       setError(
@@ -78,6 +84,7 @@ export default function AttendanceSummary() {
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [fetchAttendanceSummary]);
 
