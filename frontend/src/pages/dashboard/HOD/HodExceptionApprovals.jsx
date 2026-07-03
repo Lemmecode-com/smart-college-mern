@@ -6,7 +6,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Pagination from "../../../components/Pagination";
 import CustomSelect from "../../../components/CustomSelect";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaExclamationTriangle,
@@ -733,8 +733,6 @@ export default function HodExceptionApprovals() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
-      <ToastContainer position="top-right" theme="colored" />
-
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
