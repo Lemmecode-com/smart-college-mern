@@ -8,6 +8,8 @@ import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-fees-load";
+
 import {
   FaMoneyCheckAlt,
   FaUniversity,
@@ -147,6 +149,7 @@ export default function StudentFees() {
           position: "top-right",
           autoClose: 3000,
           icon: <FaCheckCircle />,
+          toastId: PAGE_LOAD_TOAST_ID,
         });
         setToastShown({ ...toastShown, success: true });
       }
@@ -202,6 +205,9 @@ export default function StudentFees() {
 
   useEffect(() => {
     loadFees();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
