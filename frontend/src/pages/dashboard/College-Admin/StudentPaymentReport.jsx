@@ -16,6 +16,9 @@ import {
   FaDownload
 } from "react-icons/fa";
 import { showSuccess, showError } from "../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-student-payment-report-load";
 
 export default function StudentPaymentReport() {
   const { user } = useContext(AuthContext);
@@ -75,7 +78,10 @@ export default function StudentPaymentReport() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Student payment data loaded successfully!");
+      toast.success("Student payment data loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Student payment fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load student payment data.";
@@ -91,8 +97,11 @@ export default function StudentPaymentReport() {
     }
   };
 
-  useEffect(() => {
+   useEffect(() => {
     fetchStudentPaymentData();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [studentId, startDate, endDate]);
 
   // Calculate totals
