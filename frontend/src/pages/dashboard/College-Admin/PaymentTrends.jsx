@@ -15,6 +15,9 @@ import {
   FaInfoCircle
 } from "react-icons/fa";
 import { showSuccess, showError } from "../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-trends-load";
 
 export default function PaymentTrends() {
   const { user } = useContext(AuthContext);
@@ -56,7 +59,10 @@ export default function PaymentTrends() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess(`Payment trends loaded for ${year}`);
+      toast.success(`Payment trends loaded for ${year}`, {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Payment trends fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load payment trends";
@@ -72,9 +78,12 @@ export default function PaymentTrends() {
     }
   }, [selectedYear]);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchTrendsData();
-  }, [selectedYear]);
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
+   }, [selectedYear]);
 
   // Format currency
   const formatCurrency = (amount) => {
