@@ -4,7 +4,7 @@ import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import {
@@ -1198,9 +1198,6 @@ export default function WeeklyTimetable() {
       </>
 
       </AnimatePresence>
-
-      {/* ================= TOAST CONTAINER ================= */}
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="colored" />
 
       {/* ================= CONFIRM MODAL ================= */}
       <ConfirmModal
