@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -76,8 +76,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="fp-root">
-      <ToastContainer position="top-right" />
-
       {/* ── Background ── */}
       <div className="fp-bg">
         <div className="fp-bg__mesh" />

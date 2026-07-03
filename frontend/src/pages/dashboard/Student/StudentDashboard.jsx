@@ -49,6 +49,8 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
@@ -89,6 +91,9 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [retryCount]);
 
   const fetchDashboardData = async () => {
@@ -104,6 +109,7 @@ export default function StudentDashboard() {
           position: "top-right",
           autoClose: 3000,
           icon: <FaCheckCircle />,
+          toastId: PAGE_LOAD_TOAST_ID,
         });
       }
     } catch (err) {
