@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import api from "../../api/axios";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -114,8 +114,6 @@ export default function VerifyOTP() {
 
   return (
     <div className="vo-root">
-      <ToastContainer position="top-right" />
-
       {/* Background */}
       <div className="vo-bg">
         <div className="vo-bg__mesh" />

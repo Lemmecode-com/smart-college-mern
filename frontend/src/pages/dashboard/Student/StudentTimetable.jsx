@@ -26,6 +26,8 @@ import { motion } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-timetable-load";
+
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: "#1a4b6d",
@@ -222,12 +224,13 @@ export default function StudentTimetable() {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and page-load toast on unmount
   useEffect(() => {
     return () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, []);
 
@@ -442,6 +445,7 @@ export default function StudentTimetable() {
           position: "top-right",
           autoClose: 3000,
           icon: <FaCheckCircle />,
+          toastId: PAGE_LOAD_TOAST_ID,
         });
         setToastShown({ ...toastShown, success: true });
       }

@@ -6,6 +6,9 @@ import ApiError from "../../../../components/ApiError";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { showSuccess, showError } from "../../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-report-dashboard-load";
 import {
   FaGraduationCap,
   FaCheckCircle,
@@ -305,7 +308,10 @@ export default function ReportDashboard() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Reports loaded successfully!");
+      toast.success("Reports loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Unexpected error fetching reports:", err);
       const errorMessage =
@@ -339,8 +345,11 @@ export default function ReportDashboard() {
   };
 
   // Fetch data on mount only once
-  useEffect(() => {
+   useEffect(() => {
     fetchAllReports();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

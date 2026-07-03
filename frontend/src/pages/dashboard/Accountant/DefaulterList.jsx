@@ -21,6 +21,7 @@ import {
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
+const PAGE_LOAD_TOAST_ID = "accountant-defaulter-list-load";
 
 export default function DefaulterList() {
    const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function DefaulterList() {
       toast.success("Defaulter list loaded successfully!", {
         position: "top-right",
         autoClose: 3000,
-        toastId: "defaulter-success",
+        toastId: PAGE_LOAD_TOAST_ID,
       });
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to load defaulters list";
@@ -65,6 +66,9 @@ export default function DefaulterList() {
 
   useEffect(() => {
     fetchDefaulters();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [fetchDefaulters]);
 
   const filteredDefaulters = useMemo(() => {

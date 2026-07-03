@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useContext } from "react";
 import { showSuccess, showError } from "../../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -107,7 +110,10 @@ export default function PaymentReports() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Payment summary loaded successfully!");
+      toast.success("Payment summary loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Payment summary fetch error:", err);
       setError(
@@ -125,11 +131,12 @@ export default function PaymentReports() {
     }
   }, [dateFilter, startDate, endDate]);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchPaymentSummary();
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [fetchPaymentSummary]);
 

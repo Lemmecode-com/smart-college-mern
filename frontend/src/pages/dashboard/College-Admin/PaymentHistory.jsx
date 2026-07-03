@@ -7,6 +7,9 @@ import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { showSuccess, showError } from "../../../utils/toast";
+import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-history-load";
 import {
   FaFileInvoiceDollar,
   FaSearch,
@@ -72,7 +75,10 @@ export default function PaymentHistory() {
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showSuccess("Payment history loaded successfully!");
+      toast.success("Payment history loaded successfully!", {
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
+      });
     } catch (err) {
       console.error("Payment history fetch error:", err);
       const statusCode = err.response?.status;
@@ -91,8 +97,11 @@ export default function PaymentHistory() {
     }
   }, [startDate, endDate]);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchPaymentHistory();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [fetchPaymentHistory]);
 
   // Format currency

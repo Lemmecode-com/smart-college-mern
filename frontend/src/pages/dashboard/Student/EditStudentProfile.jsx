@@ -1,10 +1,10 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -18,11 +18,13 @@ import {
   FaCalendarAlt,
   FaSpinner,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaArrowLeft
 } from "react-icons/fa";
 
 export default function EditStudentProfile() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -51,6 +53,10 @@ export default function EditStudentProfile() {
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
+
+  const handleGoBack = () => {
+    navigate("/student/profile");
+  };
 
   /* ================= FETCH PROFILE ================= */
   useEffect(() => {
@@ -136,14 +142,23 @@ export default function EditStudentProfile() {
     <div className="container-fluid">
 
       {/* ================= HEADER ================= */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
-        <h3 className="fw-bold mb-1">
-          <FaUserEdit className="me-2 blink" />
-          Edit My Profile
-        </h3>
-        <p className="opacity-75 mb-0">
-          Update your personal & academic details
-        </p>
+      <div className="position-relative mb-4">
+        <div className="gradient-header p-4 rounded-4 text-white shadow-lg">
+          <h3 className="fw-bold mb-1">
+            <FaUserEdit className="me-2 blink" />
+            Edit My Profile
+          </h3>
+          <p className="opacity-75 mb-0">
+            Update your personal & academic details
+          </p>
+        </div>
+        <button
+          className="btn btn-light d-flex align-items-center gap-2 position-absolute top-0 end-0 m-3"
+          onClick={handleGoBack}
+          aria-label="Back to profile"
+        >
+          <FaArrowLeft aria-hidden="true" /> Back
+        </button>
       </div>
 
       {error && (

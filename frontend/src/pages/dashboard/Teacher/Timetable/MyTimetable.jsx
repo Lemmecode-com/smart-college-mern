@@ -4,7 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -573,7 +573,6 @@ export default function MyTimetable() {
         padding: "1.5rem",
       }}
     >
-      <ToastContainer position="top-right" theme="colored" />
       {/* ================= HEADER ================= */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
