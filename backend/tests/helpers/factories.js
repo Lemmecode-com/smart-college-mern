@@ -1,5 +1,8 @@
 const College = require('../../src/models/college.model');
 const User = require('../../src/models/user.model');
+const Teacher = require('../../src/models/teacher.model');
+const Student = require('../../src/models/student.model');
+const { CATEGORY, GENDER, STUDENT_STATUS } = require('../../src/utils/constants');
 
 // Real fields only — do NOT invent fields like "phone", "website", etc.
 const collegeDefaults = () => ({
@@ -33,13 +36,13 @@ const userDefaults = (overrides = {}) => {
 
   return {
     name: 'Test User',
-    email: `test-${Date.now()}@example.com`,
-    password: 'Test@123',
+    email: overrides.email || `test-${Date.now()}@example.com`,
+    password: overrides.password || 'Test@123',
     role,
     college_id: isSuperAdmin ? undefined : (overrides.college_id || null),
-    isActive: true,
-    mustChangePassword: false,
-    loginAttempts: 0,
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
+    mustChangePassword: overrides.mustChangePassword || false,
+    loginAttempts: overrides.loginAttempts || 0,
     lockedUntil: null,
     tokenVersion: 0,
   };
@@ -47,9 +50,17 @@ const userDefaults = (overrides = {}) => {
 
 /**
  * Create a College document with overrides merged.
+ * Generates registrationQr and registrationUrl based on code to match real format.
  */
 const createCollege = async (overrides = {}) => {
-  const payload = { ...collegeDefaults(), ...overrides, subscription: { ...collegeDefaults().subscription, ...(overrides.subscription || {}) } };
+  const code = overrides.code || 'TEST';
+  const payload = {
+    ...collegeDefaults(),
+    ...overrides,
+    registrationUrl: `http://localhost:5173/register/${code}`,
+    registrationQr: `uploads/college-qrs/${code}.png`,
+    subscription: { ...collegeDefaults().subscription, ...(overrides.subscription || {}) }
+  };
   return College.create(payload);
 };
 
@@ -72,4 +83,57 @@ const createUser = async (overrides = {}) => {
   return User.create(payload);
 };
 
-module.exports = { createCollege, createUser };
+/**
+ * Create a Teacher document with overrides merged.
+ */
+const createTeacher = async (overrides = {}) => {
+  const now = new Date();
+  const birthYear = now.getFullYear() - 30; // 30 years old
+  const payload = {
+    name: 'Test Teacher',
+    email: 'teacher@test.com',
+    college_id: null,
+    department_id: null,
+    employeeId: 'EMP-001',
+    designation: 'Teacher',
+    qualification: 'MSc',
+    experienceYears: 5,
+    status: 'ACTIVE',
+    createdBy: null,
+    gender: GENDER.MALE,
+    dateOfBirth: new Date(`${birthYear}-01-01`),
+    mobileNumber: '9999999999',
+    ...overrides,
+  };
+  return Teacher.create(payload);
+};
+
+/**
+ * Create a Student document with overrides merged.
+ */
+const createStudent = async (overrides = {}) => {
+  const now = new Date();
+  const birthYear = now.getFullYear() - 20; // 20 years old
+  const payload = {
+    fullName: 'Test Student',
+    email: 'student@test.com',
+    college_id: null,
+    department_id: null,
+    course_id: null,
+    gender: GENDER.MALE,
+    dateOfBirth: new Date(`${birthYear}-01-01`),
+    mobileNumber: '9999999999',
+    addressLine: 'Test Address',
+    city: 'Test City',
+    state: 'Test State',
+    pincode: '123456',
+    category: CATEGORY.GEN,
+    admissionYear: now.getFullYear(),
+    currentSemester: 1,
+    status: STUDENT_STATUS.APPROVED,
+    ...overrides,
+  };
+  return Student.create(payload);
+};
+
+module.exports = { createCollege, createUser, createTeacher, createStudent };
