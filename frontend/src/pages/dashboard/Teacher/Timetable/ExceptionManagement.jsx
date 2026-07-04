@@ -206,7 +206,7 @@ export default function ExceptionManagement() {
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load exceptions";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
     } finally {
       setLoading(false);
     }
@@ -303,6 +303,7 @@ export default function ExceptionManagement() {
         title="Exception Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchExceptions}
         onGoBack={() => navigate("/teacher/dashboard")}
       />

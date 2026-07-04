@@ -251,7 +251,7 @@ export default function WeeklyTimetable() {
          } catch (err) {
            const errorMessage = err.response?.data?.message || "Failed to load weekly timetable. Please try again.";
            const statusCode = err.response?.status;
-           setError({ message: errorMessage, statusCode });
+            setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
          } finally {
            setLoading(false);
          }
@@ -296,7 +296,7 @@ export default function WeeklyTimetable() {
        } catch (err) {
          const errorMessage = err.response?.data?.message || "Failed to load weekly timetable. Please try again.";
          const statusCode = err.response?.status;
-         setError({ message: errorMessage, statusCode });
+          setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
        } finally {
          setLoading(false);
        }
@@ -347,7 +347,7 @@ export default function WeeklyTimetable() {
      } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to load weekly timetable. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+       setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     } finally {
       setLoading(false);
       setIsRetrying(false);
@@ -632,6 +632,7 @@ export default function WeeklyTimetable() {
         title="Error Loading Timetable"
         message={error.message || "Failed to load timetable. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

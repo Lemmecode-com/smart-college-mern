@@ -317,7 +317,7 @@ export default function ReportDashboard() {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load reports. Please try again.";
-      setError({ message: errorMessage, statusCode: err.response?.status });
+      setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -525,6 +525,7 @@ export default function ReportDashboard() {
         title="Error Loading Reports"
         message={error.message || "Failed to load reports. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

@@ -173,7 +173,7 @@ export default function StudentFees() {
             : err.response?.data?.message ||
               "Unable to load fee dashboard. Please try again.";
 
-      setError({ message: errorMsg, statusCode });
+      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
 
       // Show error toast only once per session
       if (!toastShown.error) {
@@ -314,6 +314,7 @@ export default function StudentFees() {
           error.message || "Unable to load fee dashboard. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

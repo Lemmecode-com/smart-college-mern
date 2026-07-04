@@ -85,7 +85,7 @@ export default function PaymentHistory() {
       const errorMsg =
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
-      setError({ message: errorMsg, statusCode });
+      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -269,6 +269,7 @@ export default function PaymentHistory() {
         title="Error Loading Payment History"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchPaymentHistory}
         onGoBack={() => navigate(-1)}
         retryCount={0}

@@ -116,7 +116,7 @@ export default function StudentDashboard() {
         const errorMsg =
           err.response?.data?.message ||
           "Failed to load dashboard. Please check your connection and try again.";
-        setError({ message: errorMsg, statusCode });
+        setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
         toast.error(errorMsg, {
           position: "top-right",
           autoClose: 5000,
@@ -208,6 +208,7 @@ export default function StudentDashboard() {
         title="Dashboard Loading Error"
         message={error.message || "Failed to load dashboard. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
