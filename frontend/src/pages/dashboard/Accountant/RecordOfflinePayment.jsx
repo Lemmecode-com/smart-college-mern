@@ -113,7 +113,7 @@ export default function RecordOfflinePayment() {
       } catch (err) {
          console.error("Payment error:", err);
          const errorMsg = err.response?.data?.message || err.message || "Failed to record payment";
-         setError({ message: errorMsg, statusCode: err.response?.status });
+          setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
          toast.error(errorMsg);
       } finally {
          setLoading(false);
@@ -587,8 +587,9 @@ export default function RecordOfflinePayment() {
             <ApiError
                title="Payment Error"
                message={error.message}
-               statusCode={error.statusCode}
-               onRetry={() => setError(null)}
+                statusCode={error.statusCode}
+                errorCode={error.errorCode}
+                onRetry={() => setError(null)}
                onGoBack={() => navigate("/dashboard/accountant")}
             />
          )}

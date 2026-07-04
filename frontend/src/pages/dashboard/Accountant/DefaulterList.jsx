@@ -53,7 +53,7 @@ export default function DefaulterList() {
       });
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to load defaulters list";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
@@ -163,6 +163,7 @@ export default function DefaulterList() {
         title="Error Loading Defaulters"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchDefaulters}
         onGoBack={() => navigate("/dashboard/accountant")}
       />
