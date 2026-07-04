@@ -233,7 +233,7 @@ export default function FeeReceipt() {
           errorMessage += "Please check your connection and try again.";
         }
 
-        setError({ message: errorMessage, statusCode: err.response?.status });
+        setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
         toast.update(toastId, {
           render: errorMessage,
@@ -399,6 +399,7 @@ export default function FeeReceipt() {
         title="Unable to Load Receipt"
         message={error.message || "Unable to fetch receipt. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

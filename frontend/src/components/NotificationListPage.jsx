@@ -237,7 +237,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
           err.message ||
           "Failed to load notifications";
         const statusCode = err.response?.status;
-        setError({ message: errorMsg, statusCode });
+        setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
         toast.error("Failed to load notifications", CONFIG.TOAST);
       } finally {
         setLoading(false);
@@ -404,8 +404,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
         message={
           error.message || "Failed to load notifications. Please try again."
         }
-        statusCode={error.statusCode}
-        onRetry={handleRetry}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
         maxRetry={3}

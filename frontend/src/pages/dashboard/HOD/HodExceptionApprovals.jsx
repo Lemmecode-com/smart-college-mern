@@ -117,7 +117,7 @@ export default function HodExceptionApprovals() {
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load pending requests";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export default function HodExceptionApprovals() {
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load approval history";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
     } finally {
       setLoading(false);
     }
@@ -379,6 +379,7 @@ export default function HodExceptionApprovals() {
         title="Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={activeTab === "pending" ? fetchPending : fetchHistory}
       />
     );
