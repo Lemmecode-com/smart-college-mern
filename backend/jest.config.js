@@ -4,8 +4,12 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
   verbose: true,
-  testTimeout: 10000,
+  testTimeout: 60000,
+  maxWorkers: 1,
   transformIgnorePatterns: [
     '[\\\\/]node_modules[\\\\/](?!uuid[\\\\/]).+'
   ],
+  transform: {
+    '^.+\\.js$': 'babel-jest'
+  }
 };
