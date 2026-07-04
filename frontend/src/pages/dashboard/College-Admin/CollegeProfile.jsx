@@ -178,7 +178,7 @@ export default function CollegeProfile() {
       const errorMessage =
         err.response?.data?.message || "Failed to load college profile data";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
       setCollege(null);
     } finally {
       setLoading(false);
@@ -262,6 +262,7 @@ export default function CollegeProfile() {
           error.message || "Failed to load college profile. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

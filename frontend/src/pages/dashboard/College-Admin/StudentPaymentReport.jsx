@@ -85,7 +85,7 @@ export default function StudentPaymentReport() {
     } catch (err) {
       console.error("Student payment fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load student payment data.";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -134,6 +134,7 @@ export default function StudentPaymentReport() {
         title="Error Loading Student Payment Report"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchStudentPaymentData}
         onGoBack={() => navigate(-1)}
       />
