@@ -22,8 +22,8 @@ export default function AddDepartment() {
       alert("Department created");
       setName("");
       setCode("");
-    } catch (err) {
-      alert(err.response?.data?.message || "Error");
+    } catch {
+      alert("Something went wrong. Please try again.");
     }
     setLoading(false);
   };
