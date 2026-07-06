@@ -83,8 +83,8 @@ export default function MarkAttendance() {
       setRecords([]);
       setCourseId("");
       setDate("");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to mark attendance");
+    } catch {
+      alert("Something went wrong. Please try again.");
     }
   };
 

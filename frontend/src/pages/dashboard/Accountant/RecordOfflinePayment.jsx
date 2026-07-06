@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import {
    FaMoneyBillWave,
    FaSearch,
@@ -40,12 +41,11 @@ export default function RecordOfflinePayment() {
       const searchStudents = async () => {
          try {
             const res = await api.get(`/admin/payments/report?search=${searchTerm}`);
-            const results = res.data?.report || [];
-            console.log("Search results:", results);
-            setStudents(results);
-         } catch (err) {
-            console.error("Search error:", err);
-            setStudents([]);
+          const results = res.data?.report || [];
+             setStudents(results);
+          } catch (err) {
+             logger.warn("Search error:", err);
+             setStudents([]);
          }
       };
 
@@ -59,21 +59,17 @@ export default function RecordOfflinePayment() {
       setStudents([]);
 
       try {
-         const studentId = student?.student?._id || student?.student_id?._id;
-         console.log("Fetching fee details for studentId:", studentId);
-         const res = await api.get(`/admin/payments/report?studentId=${studentId}`);
-         console.log("Fee details response:", res.data);
-         setFeeDetails(res.data?.report?.[0]);
-      } catch (err) {
-         console.error("Fee details error:", err);
-         toast.error("Failed to load fee details");
+       const studentId = student?.student?._id || student?.student_id?._id;
+          const res = await api.get(`/admin/payments/report?studentId=${studentId}`);
+          setFeeDetails(res.data?.report?.[0]);
+       } catch (err) {
+          logger.warn("Fee details error:", err);
+          toast.error("Failed to load fee details");
       }
    };
 
    const handlePaymentSubmit = async (e) => {
       if (e) e.preventDefault();
-
-      console.log("Form submit - selectedStudent:", selectedStudent, "selectedInstallment:", selectedInstallment);
 
       if (!selectedStudent || !selectedInstallment) {
          toast.error("Please select a student and installment");
@@ -88,8 +84,6 @@ export default function RecordOfflinePayment() {
       setLoading(true);
       try {
          const studentId = selectedStudent?.student?._id || selectedStudent?.student_id?._id;
-         console.log("Submitting payment with studentId:", studentId, "installmentId:", selectedInstallment);
-
          const formData = new FormData();
          formData.append("studentId", studentId);
          formData.append("installmentId", selectedInstallment);
@@ -110,11 +104,11 @@ export default function RecordOfflinePayment() {
          setSuccessData(res.data.data);
          setShowSuccess(true);
          toast.success("Payment recorded successfully!");
-      } catch (err) {
-         console.error("Payment error:", err);
-         const errorMsg = err.response?.data?.message || err.message || "Failed to record payment";
-          setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
-         toast.error(errorMsg);
+       } catch (err) {
+          logger.error("Payment error:", err);
+          const errorMsg = "Your payment could not be processed. Please try again or contact your bank.";
+           setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+          toast.error(errorMsg);
       } finally {
          setLoading(false);
       }
