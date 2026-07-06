@@ -16,6 +16,9 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import Loading from "../../../components/Loading";
 
 const BRAND = {
   primary: "#1a4b6d",
@@ -48,87 +51,47 @@ const fadeUp = {
 };
 
 const LoadingState = () => (
-  <div
-    style={{
-      minHeight: "70vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
-    }}
-  >
-    <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          width: 64,
-          height: 64,
-          margin: "0 auto 1rem",
-          border: `4px solid ${BRAND.border}`,
-          borderTopColor: BRAND.accent,
-          borderRadius: "50%",
-          animation: "novaa-spin 0.9s linear infinite",
-        }}
-      />
-      <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
-        Loading department reports…
-      </p>
-      <style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  </div>
-);
+   <div
+     style={{
+       minHeight: "70vh",
+       display: "flex",
+       alignItems: "center",
+       justifyContent: "center",
+       background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
+     }}
+   >
+     <div style={{ textAlign: "center" }}>
+       <div
+         style={{
+           width: 64,
+           height: 64,
+           margin: "0 auto 1rem",
+           border: `4px solid ${BRAND.border}`,
+           borderTopColor: BRAND.accent,
+           borderRadius: "50%",
+           animation: "novaa-spin 0.9s linear infinite",
+         }}
+       />
+       <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
+         Loading department reports…
+       </p>
+       <style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
+     </div>
+   </div>
+ );
 
-const ErrorState = ({ onRetry }) => (
-  <div
-    style={{
-      minHeight: "70vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "2rem",
-    }}
-  >
-    <div style={{ textAlign: "center", maxWidth: 420 }}>
-      <div
-        style={{
-          width: 88,
-          height: 88,
-          margin: "0 auto 1.25rem",
-          background: BRAND.dangerLight,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "2.25rem",
-          color: BRAND.danger,
-        }}
-      >
-        <FaExclamationTriangle />
-      </div>
-      <h4 style={{ color: BRAND.ink, fontWeight: 700, marginBottom: "0.5rem" }}>
-        Unable to load reports
-      </h4>
-      <p style={{ color: BRAND.muted, marginBottom: "1.5rem" }}>
-        We couldn't fetch your department reports. Please check your connection and try again.
-      </p>
-      <button
-        onClick={onRetry}
-        style={{
-          background: BRAND.primary,
-          color: "#fff",
-          border: "none",
-          padding: "0.7rem 1.5rem",
-          borderRadius: 10,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        Retry
-      </button>
-    </div>
-  </div>
-);
+ const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
-const StatCard = ({ icon: Icon, label, value, subtext, color, bg, delay = 0 }) => (
+ const StatCard = ({ icon: Icon, label, value, subtext, color, bg, delay = 0 }) => (
   <motion.div
     variants={fadeUp}
     custom={delay}
@@ -216,35 +179,65 @@ const StatCard = ({ icon: Icon, label, value, subtext, color, bg, delay = 0 }) =
 );
 
 const HodReports = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
+   const [data, setData] = useState(null);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState(null);
+   const { user } = useContext(AuthContext);
+   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchReports();
-    // eslint-disable-next-line
-  }, []);
+   useEffect(() => {
+     fetchReports();
+     // eslint-disable-next-line
+   }, []);
 
-  const fetchReports = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/hod/reports/overview");
-      setData(response.data);
-    } catch (error) {
-      console.error("HOD Reports error:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to load department reports"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchReports = async () => {
+     try {
+       setLoading(true);
+       setError(null);
+       const response = await api.get("/hod/reports/overview");
+       setData(response.data);
+     } catch (err) {
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const backendMessage = err.response?.data?.message;
+       const errorMessage = backendMessage || "Failed to load department reports";
 
-  if (loading) return <LoadingState />;
-  if (!data) return <ErrorState onRetry={fetchReports} />;
+       logger.error("HOD Reports error:", statusCode, errorCode);
 
-  const kpis = data.kpis || {};
+       setError({
+         message: errorMessage,
+         statusCode,
+         errorCode,
+       });
+
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+       if (!isAuthError) {
+         toast.error(errorMessage);
+       }
+     } finally {
+       setLoading(false);
+     }
+   };
+
+   if (loading) return <LoadingState />;
+
+   if (error) {
+     return (
+       <ApiError
+         title="Reports Loading Error"
+         message={error.message}
+         statusCode={error.statusCode}
+         errorCode={error.errorCode}
+         onRetry={fetchReports}
+         onGoBack={() => navigate("/hod/dashboard")}
+       />
+     );
+   }
+
+   const kpis = data.kpis || {};
   const department = data.department || {};
   const attendance = kpis.attendanceSummary || {};
 

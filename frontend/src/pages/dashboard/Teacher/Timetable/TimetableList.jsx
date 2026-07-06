@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import { logger } from "../../../../utils/logger";
 
 import {
   FaCalendarAlt,
@@ -83,7 +85,7 @@ export default function TimetableList() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [activeLoading, setActiveLoading] = useState(false);
   const [archivedLoading, setArchivedLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
@@ -98,13 +100,24 @@ export default function TimetableList() {
     type: "warning"
   });
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= FETCH STATS ================= */
   const fetchStats = async () => {
     try {
       const res = await api.get("/timetable/stats");
       setStats(res.data);
     } catch (err) {
-      console.error("Failed to fetch timetable stats:", err);
+      logger.error("Failed to fetch timetable stats:", err.response?.status, err.response?.data?.code);
     }
   };
 
@@ -112,13 +125,32 @@ export default function TimetableList() {
   const fetchTimetables = async () => {
     try {
       setActiveLoading(true);
+      setError(null);
       const res = await api.get("/timetable");
       const timetableData = res.data.data?.timetables || res.data.timetables || res.data || [];
       const validTimetables = timetableData.filter(timetable => timetable && timetable._id);
       setTimetables(validTimetables);
-      setError("");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load timetables. Please try again.";
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      logger.error("Failed to fetch timetables:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setActiveLoading(false);
       setInitialLoading(false);
@@ -129,13 +161,32 @@ export default function TimetableList() {
   const fetchArchivedTimetables = async () => {
     try {
       setArchivedLoading(true);
+      setError(null);
       const res = await api.get("/timetable/archived");
       const timetableData = res.data.data?.timetables || res.data.timetables || res.data || [];
       const validTimetables = timetableData.filter(timetable => timetable && timetable._id);
       setArchivedTimetables(validTimetables);
-      setError("");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load archived timetables. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load archived timetables. Please try again.";
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      logger.error("Failed to fetch archived timetables:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setArchivedLoading(false);
       setInitialLoading(false);
@@ -178,12 +229,19 @@ export default function TimetableList() {
          icon: <FaCheckCircle />
        });
      } catch (err) {
-       const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
-       toast.error(errorMsg, {
-         position: "top-right",
-         autoClose: 5000,
-         icon: <FaExclamationTriangle />
-       });
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (!isAuthError) {
+         const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
+         toast.error(errorMsg, {
+           position: "top-right",
+           autoClose: 5000,
+           icon: <FaExclamationTriangle />
+         });
+       }
      } finally {
        setPublishingId(null);
        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
@@ -224,12 +282,19 @@ export default function TimetableList() {
          icon: <FaCheckCircle />
        });
      } catch (err) {
-       const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
-       toast.error(errorMsg, {
-         position: "top-right",
-         autoClose: 5000,
-         icon: <FaExclamationTriangle />
-       });
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (!isAuthError) {
+         const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
+         toast.error(errorMsg, {
+           position: "top-right",
+           autoClose: 5000,
+           icon: <FaExclamationTriangle />
+         });
+       }
      } finally {
        setDeletingId(null);
        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
@@ -249,28 +314,60 @@ export default function TimetableList() {
           icon: <FaArchive />
         });
      } catch (err) {
-       const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
-       toast.error(errorMsg, {
-         position: "top-right",
-         autoClose: 5000,
-         icon: <FaExclamationTriangle />
-       });
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (!isAuthError) {
+         const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
+         toast.error(errorMsg, {
+           position: "top-right",
+           autoClose: 5000,
+           icon: <FaExclamationTriangle />
+         });
+       }
      } finally {
        setArchivingId(null);
        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
      }
    };
 
-   /* ================= EDIT TIMETABLE ================= */
-   const editTimetable = (id) => {
-    navigate(`/timetable/${id}/edit`);
-  };
+    /* ================= EDIT TIMETABLE ================= */
+    const editTimetable = (id) => {
+     navigate(`/timetable/${id}/edit`);
+   };
+
+   const handleGoBack = () => {
+     navigate(-1);
+   };
+
+   const handleRetry = () => {
+     if (activeTab === "active") {
+       fetchTimetables();
+     } else {
+       fetchArchivedTimetables();
+     }
+   };
 
    if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
      return <Loading fullScreen size="lg" text="Loading Timetables..." />;
    }
 
-  return (
+   if (error) {
+     return (
+       <ApiError
+         title="Unable to Load Timetable"
+         message={error.message}
+         statusCode={error.statusCode}
+         errorCode={error.errorCode}
+         onRetry={handleRetry}
+         onGoBack={handleGoBack}
+       />
+     );
+   }
+
+   return (
     <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0 }}
@@ -470,49 +567,6 @@ export default function TimetableList() {
             </div>
           </motion.div>
 
-          {/* ================= ERROR STATE ================= */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                marginBottom: '1.5rem',
-                padding: '1.25rem',
-                borderRadius: '16px',
-                backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                border: `1px solid ${BRAND_COLORS.danger.main}`,
-                color: BRAND_COLORS.danger.main,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '1.05rem',
-                fontWeight: 500
-              }}
-            >
-              <FaExclamationTriangle size={24} />
-              <div style={{ flex: 1 }}>{error}</div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={fetchTimetables}
-                style={{
-                  background: BRAND_COLORS.danger.main,
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <FaSyncAlt /> Retry
-              </motion.button>
-            </motion.div>
-          )}
-
           {/* ================= TIMETABLES CARD ================= */}
           <motion.div
             variants={fadeInVariants}
@@ -607,50 +661,6 @@ export default function TimetableList() {
                 Archived Timetables
               </motion.button>
             </div>
-
-            {/* ================= ERROR STATE ================= */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  marginBottom: '1.5rem',
-                  margin: '1.5rem',
-                  padding: '1.25rem',
-                  borderRadius: '16px',
-                  backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                  border: `1px solid ${BRAND_COLORS.danger.main}`,
-                  color: BRAND_COLORS.danger.main,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  fontSize: '1.05rem',
-                  fontWeight: 500
-                }}
-              >
-                <FaExclamationTriangle size={24} />
-                <div style={{ flex: 1 }}>{error}</div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={activeTab === "active" ? fetchTimetables : fetchArchivedTimetables}
-                  style={{
-                    background: BRAND_COLORS.danger.main,
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <FaSyncAlt /> Retry
-                </motion.button>
-              </motion.div>
-            )}
 
             {/* ================= TIMETABLES CARD ================= */}
             <motion.div

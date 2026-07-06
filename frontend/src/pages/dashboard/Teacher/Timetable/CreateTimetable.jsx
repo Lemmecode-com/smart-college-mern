@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
 import { AuthContext } from "../../../../auth/AuthContext";
+import { logger } from "../../../../utils/logger";
 import {
   FaCalendarAlt,
   FaGraduationCap,
@@ -72,6 +74,17 @@ const scaleVariants = {
   exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2 } }
 };
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function CreateTimetable() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -79,6 +92,7 @@ export default function CreateTimetable() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [authError, setAuthError] = useState(null);
 
   const [form, setForm] = useState({
     course_id: "",
@@ -128,8 +142,17 @@ export default function CreateTimetable() {
           }
         }
       } catch (err) {
-        console.error("Profile loading error:", err);
-        setError("Failed to load department information: " + (err.message || "Unknown error"));
+        logger.error("Profile loading error:", err.response?.status, err.response?.data?.code);
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthErr =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (isAuthErr) {
+          setAuthError({ statusCode, errorCode });
+          return;
+        }
+        setError("Failed to load department information. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -195,7 +218,6 @@ export default function CreateTimetable() {
     );
   }, [form, courses]);
 
-   /* SUBMIT HANDLER */
    const submitHandler = async (e) => {
      e.preventDefault();
      setError("");
@@ -213,7 +235,6 @@ export default function CreateTimetable() {
 
        setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
-// ✅ FIXED: Access timetable object from response
         const timetableId = response.data.timetable?._id;
 
        if (!timetableId) {
@@ -221,11 +242,19 @@ export default function CreateTimetable() {
          return;
        }
 
-       // Auto-redirect after 2 seconds
        setTimeout(() => {
          navigate(`/timetable/${timetableId}/weekly`);
        }, 2000);
      } catch (err) {
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (isAuthError) {
+         setAuthError({ statusCode, errorCode });
+         return;
+       }
        setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
      } finally {
        setSubmitting(false);
@@ -234,6 +263,18 @@ export default function CreateTimetable() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Department Information..." />;
+  }
+
+  if (authError) {
+    return (
+      <ApiError
+        title="Session Expired"
+        message="Your session has expired. Please sign in again to continue."
+        statusCode={authError.statusCode}
+        errorCode={authError.errorCode}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   return (

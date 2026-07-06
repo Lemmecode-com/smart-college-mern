@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -222,16 +223,14 @@ export default function FeeReceipt() {
           errorMessage =
             "Network error. Please check your internet connection and try again.";
         } else if (
-          err.name === "AbortError" ||
-          err.message?.includes("timeout")
-        ) {
-          errorMessage =
-            "Request timeout. The server took too long to respond. Please try again.";
-        } else if (err.message) {
-          errorMessage += err.message;
-        } else {
-          errorMessage += "Please check your connection and try again.";
-        }
+         err.name === "AbortError" ||
+         err.message?.includes("timeout")
+       ) {
+         errorMessage =
+           "Request timeout. The server took too long to respond. Please try again.";
+       } else {
+         errorMessage += "Please check your connection and try again.";
+       }
 
         setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
@@ -379,17 +378,14 @@ export default function FeeReceipt() {
     }
   };
 
-  // Helper function for error logging
-  const logErrorToMonitoring = (error, context) => {
-    // TODO: Integrate with Sentry/monitoring service
-    // For now, log to console for debugging
-    console.error("[FeeReceipt] Error:", {
-      error: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString(),
-    });
-  };
+   // Helper function for error logging
+   const logErrorToMonitoring = (error, context) => {
+     logger.error("[FeeReceipt] Error:", {
+       error: error.message,
+       context,
+       timestamp: new Date().toISOString(),
+     });
+   };
 
   /* ================= STATE ORDER - ERROR FIRST, THEN LOADING ================= */
   // Error state should be checked before loading state

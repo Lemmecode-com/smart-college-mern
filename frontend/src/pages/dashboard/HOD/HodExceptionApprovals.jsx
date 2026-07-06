@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useRef } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
@@ -63,8 +63,20 @@ const EXCEPTION_TYPES = {
 const MotionDiv = motion.div;
 const MotionButton = motion.button;
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function HodExceptionApprovals() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -206,13 +218,17 @@ export default function HodExceptionApprovals() {
       setApproveModal({ isOpen: false, exceptionId: null });
       fetchPending();
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to approve exception",
-        {
-          position: "top-right",
-          autoClose: 5000,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message || "Failed to approve exception",
+          { position: "top-right", autoClose: 5000 },
+        );
+      }
     } finally {
       setActionLoading(false);
     }
@@ -243,10 +259,17 @@ export default function HodExceptionApprovals() {
       setRejectModal({ isOpen: false, exceptionId: null, reason: "" });
       fetchPending();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reject exception", {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message || "Failed to reject exception",
+          { position: "top-right", autoClose: 5000 },
+        );
+      }
     } finally {
       setActionLoading(false);
     }
@@ -381,6 +404,7 @@ export default function HodExceptionApprovals() {
         statusCode={error.statusCode}
         errorCode={error.errorCode}
         onRetry={activeTab === "pending" ? fetchPending : fetchHistory}
+        onGoBack={() => navigate("/hod/dashboard")}
       />
     );
   }

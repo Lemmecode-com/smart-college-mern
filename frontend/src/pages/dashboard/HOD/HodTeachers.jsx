@@ -14,6 +14,9 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import Loading from "../../../components/Loading";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -45,7 +48,19 @@ export default function HodTeachers() {
   const navigate = useNavigate();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     fetchTeachers();
@@ -54,32 +69,60 @@ export default function HodTeachers() {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get("/hod/teachers");
       setTeachers(res.data || []);
-    } catch (error) {
-      console.error("Error fetching teachers:", error);
-      toast.error(error.response?.data?.message || "Failed to load teachers");
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load teachers";
+
+      logger.error("Error fetching teachers:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = teachers.filter(
-    (t) =>
-      t.name?.toLowerCase().includes(search.toLowerCase()) ||
-      t.email?.toLowerCase().includes(search.toLowerCase()) ||
-      t.employeeId?.toLowerCase().includes(search.toLowerCase())
-  );
-
   if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "60vh" }}>
-        <div className="spinner-border text-primary" role="status" />
-      </div>
-    );
+    return <Loading />;
   }
 
-  return (
+if (error) {
+     return (
+       <ApiError
+         title="Teachers Loading Error"
+         message={error.message}
+         statusCode={error.statusCode}
+         errorCode={error.errorCode}
+         onRetry={fetchTeachers}
+         onGoBack={() => navigate("/hod/dashboard")}
+       />
+     );
+   }
+
+   const filtered = teachers.filter(
+     (t) =>
+       t.name?.toLowerCase().includes(search.toLowerCase()) ||
+       t.email?.toLowerCase().includes(search.toLowerCase()) ||
+       t.employeeId?.toLowerCase().includes(search.toLowerCase())
+   );
+
+   return (
     <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0 }}

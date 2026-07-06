@@ -22,6 +22,8 @@ import {
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 // ============================================================
 // BRAND PALETTE (aligned with HodDashboard)
@@ -464,6 +466,18 @@ export default function HodProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     fetchProfile();
@@ -472,19 +486,55 @@ export default function HodProfile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get("/hod/profile");
-      console.log("🔍 HOD Profile Response:", JSON.stringify(res.data, null, 2));
       const teacherData = res.data?.teacher || res.data;
       setProfile(teacherData || null);
-    } catch (error) {
-      console.error("Error fetching HOD profile:", error);
-      toast.error(error.response?.data?.message || "Failed to load profile");
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load profile";
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      logger.error("Failed to fetch HOD profile:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <LoadingState />;
+
+  const handleGoBack = () => {
+    navigate("/hod/dashboard");
+  };
+
+  if (error) {
+    return (
+      <ApiError
+        title="Profile Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchProfile}
+        onGoBack={handleGoBack}
+      />
+    );
+  }
+
   if (!profile) return <EmptyState onRetry={fetchProfile} />;
 
   // ============================================================

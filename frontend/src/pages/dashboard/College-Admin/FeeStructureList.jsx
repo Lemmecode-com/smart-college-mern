@@ -166,8 +166,8 @@ export default function FeeStructureList() {
     try {
       await api.delete(`/fees/structure/${id}`);
       loadStructures();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete fee structure. Please try again.");
+    } catch {
+      alert("Failed to delete fee structure. Please try again.");
     }
   };
 

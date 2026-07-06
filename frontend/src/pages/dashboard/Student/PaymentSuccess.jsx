@@ -149,10 +149,10 @@ export default function PaymentSuccess() {
             setError("Payment is still processing. Please check back in a few moments.");
             setLoading(false);
           }
-        } catch (err) {
+        } catch {
           if (attempts >= maxAttempts) {
             clearInterval(statusInterval);
-            const errorMsg = err.response?.data?.message || "Payment confirmation timeout";
+            const errorMsg = "Your payment is still processing. Please check back in a few moments.";
             setError(errorMsg);
             toast.error(errorMsg, {
               position: "top-right",
@@ -213,10 +213,10 @@ export default function PaymentSuccess() {
             setError("Payment is still processing. Please check back in a few moments.");
             setLoading(false);
           }
-        } catch (err) {
+        } catch {
           if (attempts >= maxAttempts) {
             clearInterval(interval);
-            const errorMsg = err.response?.data?.message || "Payment confirmation timeout";
+            const errorMsg = "Your payment is still processing. Please check back in a few moments.";
             setError(errorMsg);
             toast.error(errorMsg, {
               position: "top-right",

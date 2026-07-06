@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -147,10 +148,10 @@ export default function MakePayments() {
           setDefaultGateway(response.data.defaultGateway);
           setAllowChoice(response.data.allowChoice || false);
         }
-      } catch (error) {
-        if (currentFetchId !== fetchIdRef.current) return;
-        console.error("Error fetching gateways:", error);
-        setAvailableGateways(["stripe", "razorpay"]);
+       } catch (error) {
+         if (currentFetchId !== fetchIdRef.current) return;
+         logger.error("Error fetching gateways:", error);
+         setAvailableGateways(["stripe", "razorpay"]);
         setAllowChoice(true);
       } finally {
         if (currentFetchId !== fetchIdRef.current) return;
@@ -385,23 +386,15 @@ export default function MakePayments() {
       }
 
       rzp.on("payment.failed", (response) => {
-        const errorCode = response.error.code;
-        const errorDescription = response.error.description;
+         const errorCode = response.error.code;
+         const errorDescription = response.error.description;
 
-        // TEMP DIAGNOSTIC: Capture complete Razorpay error payload for root-cause analysis.
-        // Remove after identifying BAD_REQUEST_ERROR reason.
-        console.error("[Razorpay][DIAGNOSTIC] payment.failed payload:", {
-          errorCode,
-          errorDescription,
-          errorReason: response.error.reason,
-          errorSource: response.error.source,
-          errorStep: response.error.step,
-          errorField: response.error.field,
-          errorMetadata: response.error.metadata,
-          fullError: response.error,
-        });
+         logger.error("[Razorpay] payment.failed:", {
+           errorCode,
+           errorDescription,
+         });
 
-        toast.error(`Payment failed: ${errorDescription}`, {
+         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
           autoClose: 5000,
           icon: <FaTimesCircle />,

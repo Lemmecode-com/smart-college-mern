@@ -31,6 +31,8 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 // ============================================================
 // BRAND PALETTE — Blue primary + Orange accent (per user pref)
@@ -101,6 +103,17 @@ const getCurrentAcademicYear = () => {
   return `${start}-${String(start + 1).slice(-2)}`;
 };
 
+const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
 // ============================================================
 // LOADING STATE
 // ============================================================
@@ -129,64 +142,10 @@ const LoadingState = () => (
       <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
         Preparing your command center…
       </p>
-      <style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
+<style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
-  </div>
-);
-
-// ============================================================
-// EMPTY STATE
-// ============================================================
-const EmptyState = ({ onRetry }) => (
-  <div
-    style={{
-      minHeight: "70vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "2rem",
-    }}
-  >
-    <div style={{ textAlign: "center", maxWidth: 420 }}>
-      <div
-        style={{
-          width: 88,
-          height: 88,
-          margin: "0 auto 1.25rem",
-          background: BRAND.primaryLight,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "2.25rem",
-          color: BRAND.primary,
-        }}
-      >
-        <FaUniversity />
-      </div>
-      <h4 style={{ color: BRAND.ink, fontWeight: 700, marginBottom: "0.5rem" }}>
-        Unable to load dashboard
-      </h4>
-      <p style={{ color: BRAND.muted, marginBottom: "1.5rem" }}>
-        We couldn't fetch your department data. Please check your connection and try again.
-      </p>
-      <button
-        onClick={onRetry}
-        style={{
-          background: BRAND.primary,
-          color: "#fff",
-          border: "none",
-          padding: "0.7rem 1.5rem",
-          borderRadius: 10,
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        Retry
-      </button>
     </div>
-  </div>
-);
+   );
 
 // ============================================================
 // SECTION HEADER (reusable)
@@ -237,6 +196,7 @@ const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
 const HodDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -248,20 +208,64 @@ const HodDashboard = () => {
   const fetchHodDashboard = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get("/hod/dashboard");
       setDashboardData(response.data);
-    } catch (error) {
-      console.error("HOD Dashboard error:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to load HOD dashboard"
-      );
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load HOD dashboard";
+
+      logger.error("HOD Dashboard error:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <LoadingState />;
-  if (!dashboardData) return <EmptyState onRetry={fetchHodDashboard} />;
+
+  if (error) {
+    return (
+      <ApiError
+        title="Dashboard Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchHodDashboard}
+        onGoBack={() => navigate("/hod/profile")}
+      />
+    );
+  }
+
+  const handleGoBack = () => {
+    navigate("/hod/profile");
+  };
+
+  if (!dashboardData) {
+    return (
+      <ApiError
+        title="Dashboard Loading Error"
+        message="Unable to load dashboard data"
+        onRetry={fetchHodDashboard}
+        onGoBack={handleGoBack}
+      />
+    );
+  }
 
   const stats = dashboardData.stats || {};
   const department = dashboardData.department || {};
