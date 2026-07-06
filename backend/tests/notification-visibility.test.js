@@ -10,44 +10,31 @@
  * 6. Notification list visibility for teachers and HODs
  */
 
+const { connectTestDb, clearTestDb, closeTestDb } = require("./setup/testDb");
+const { createCollege } = require("./helpers/factories");
 const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-
-let mongoServer;
+const Timetable = require("../src/models/timetable.model");
+const TimetableException = require("../src/models/timetableException.model");
+const Teacher = require("../src/models/teacher.model");
+const Department = require("../src/models/department.model");
+const Notification = require("../src/models/notification.model");
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  await connectTestDb();
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  await closeTestDb();
 });
 
 beforeEach(async () => {
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
-  }
+  await clearTestDb();
 });
 
 describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
-  let College, Timetable, TimetableException, Teacher, Department, Notification;
-
-  beforeAll(() => {
-    College = mongoose.model("College");
-    Timetable = mongoose.model("Timetable");
-    TimetableException = mongoose.model("TimetableException");
-    Teacher = mongoose.model("Teacher");
-    Department = mongoose.model("Department");
-    Notification = mongoose.model("Notification");
-  });
-
   describe("1. Create Exception -> HOD Notification", () => {
     it("should create INDIVIDUAL notification for HOD when teacher creates exception", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST" });
+      const college = await createCollege({ code: "TEST" });
       
       const hodUserId = new mongoose.Types.ObjectId();
       const hodTeacher = await Teacher.create({
@@ -56,6 +43,11 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
         email: "hod@test.edu",
         college_id: college._id,
         department_id: new mongoose.Types.ObjectId(),
+        employeeId: "HOD-001",
+        designation: "HOD",
+        qualification: "PhD",
+        experienceYears: 10,
+        createdBy: hodUserId,
       });
 
       const teacherUserId = new mongoose.Types.ObjectId();
@@ -65,15 +57,21 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
         email: "teacher@test.edu",
         college_id: college._id,
         department_id: hodTeacher.department_id,
+        employeeId: "TCH-001",
+        designation: "Teacher",
+        qualification: "MSc",
+        experienceYears: 5,
+        createdBy: teacherUserId,
       });
 
       const timetable = await Timetable.create({
         college_id: college._id,
         name: "Test Timetable",
         department_id: hodTeacher.department_id,
+        course_id: new mongoose.Types.ObjectId(),
         semester: 1,
         academicYear: "2025-2026",
-        status: "APPROVED",
+        status: "DRAFT",
       });
 
       // Simulate notification creation (what the controller does)
@@ -107,7 +105,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
   describe("2. Approve Exception -> Teacher Notification", () => {
     it("should create INDIVIDUAL notification for teacher when HOD approves exception", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST2" });
+      const college = await createCollege({ code: "TEST2" });
 
       const hodUserId = new mongoose.Types.ObjectId();
       const teacherUserId = new mongoose.Types.ObjectId();
@@ -143,7 +141,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
   describe("3. Reject Exception -> Teacher Notification", () => {
     it("should create INDIVIDUAL notification for teacher when HOD rejects exception", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST3" });
+      const college = await createCollege({ code: "TEST3" });
 
       const hodUserId = new mongoose.Types.ObjectId();
       const teacherUserId = new mongoose.Types.ObjectId();
@@ -178,7 +176,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
   describe("4. Withdraw Exception -> HOD Notification", () => {
     it("should create INDIVIDUAL notification for HOD when teacher withdraws exception", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST4" });
+      const college = await createCollege({ code: "TEST4" });
 
       const hodUserId = new mongoose.Types.ObjectId();
       const teacherUserId = new mongoose.Types.ObjectId();
@@ -213,7 +211,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
   describe("5. Notification Unread Count Accuracy", () => {
     it("should correctly count unread notifications for teachers", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST5" });
+      const college = await createCollege({ code: "TEST5" });
 
       const teacherUserId = new mongoose.Types.ObjectId();
       const hodUserId = new mongoose.Types.ObjectId();
@@ -268,7 +266,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
     });
 
     it("should correctly count unread notifications for HODs", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST6" });
+      const college = await createCollege({ code: "TEST6" });
 
       const teacherUserId = new mongoose.Types.ObjectId();
       const hodUserId = new mongoose.Types.ObjectId();
@@ -312,7 +310,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
   describe("6. Notification List Visibility", () => {
     it("should properly separate HOD and Admin notifications for teachers", async () => {
-      const college = await College.create({ name: "Test College", code: "TEST7" });
+      const college = await createCollege({ code: "TEST7" });
 
       const teacherUserId = new mongoose.Types.ObjectId();
       const hodUserId = new mongoose.Types.ObjectId();
@@ -325,6 +323,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
         createdByRole: "COLLEGE_ADMIN",
         target: "ALL",
         title: "Admin Notice",
+        message: "Test admin notification",
         type: "GENERAL",
       });
 
@@ -336,6 +335,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
         target: "INDIVIDUAL",
         target_users: [teacherUserId],
         title: "Exception Approved",
+        message: "Exception approved",
         type: "ACADEMIC",
       });
 
@@ -347,6 +347,7 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
         target: "INDIVIDUAL",
         target_users: [teacherUserId],
         title: "Exception Rejected",
+        message: "Exception rejected",
         type: "ACADEMIC",
       });
 
@@ -369,5 +370,3 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
     });
   });
 });
-
-module.exports = {};

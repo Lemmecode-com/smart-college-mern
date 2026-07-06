@@ -66,7 +66,7 @@ export default function PaymentTrends() {
     } catch (err) {
       console.error("Payment trends fetch error:", err);
       const errorMsg = err.response?.data?.message || "Failed to load payment trends";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -134,6 +134,7 @@ export default function PaymentTrends() {
         title="Error Loading Payment Trends"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={() => fetchTrendsData()}
         onGoBack={() => navigate(-1)}
       />

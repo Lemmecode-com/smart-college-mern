@@ -83,8 +83,8 @@ export default function DepartmentList() {
     try {
       await api.delete(`/departments/${id}`);
       fetchDepartments();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete department");
+    } catch {
+      alert("Failed to delete department. Please try again.");
     }
   };
 
@@ -98,8 +98,8 @@ export default function DepartmentList() {
       setShowRemoveHodModal(false);
       setSelectedDepartment(null);
       fetchDepartments();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to remove HOD");
+    } catch {
+      alert("Failed to remove HOD. Please try again.");
     } finally {
       setRemovingHod(false);
     }
