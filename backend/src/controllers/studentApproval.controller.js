@@ -174,11 +174,9 @@ exports.approveStudent = async (req, res, next) => {
     const sequence = String(existingCount + 1).padStart(4, "0");
     student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
-    // 7️⃣ Approve student (set to OFFER_MADE status initially)
-    student.status = "OFFER_MADE";
-    student.offerMadeBy = req.user.id;
-    student.offerMadeAt = new Date();
-    student.approvedAt = undefined;
+    // 7️⃣ Approve student (set to APPROVED status)
+    student.status = "APPROVED";
+    student.approvedAt = new Date();
     await student.save();
 
 
@@ -421,10 +419,9 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 9. Make admission offer ──
-        student.status = "OFFER_MADE";
-        student.offerMadeBy = req.user.id;
-        student.offerMadeAt = new Date();
+        // ── 9. Approve student ──
+        student.status = "APPROVED";
+        student.approvedAt = new Date();
         await student.save();
 
         // ── 10. Auto-create parent accounts (non-blocking) ──
@@ -613,23 +610,23 @@ exports.rejectStudent = async (req, res, next) => {
 
 /**
  * CONFIRM ENROLLMENT
- * Transitions student from OFFER_MADE → ENROLLED → APPROVED
+ * Transitions student from APPROVED/OFFER_MADE → ENROLLED
  * Called when student confirms their seat and completes enrollment
  */
 exports.confirmEnrollment = async (req, res, next) => {
   try {
     const { studentId } = req.params;
 
-    // Find student with OFFER_MADE status
+    // Find student with APPROVED or OFFER_MADE status
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "OFFER_MADE",
+      status: { $in: ["APPROVED", "OFFER_MADE"] },
     });
 
     if (!student) {
       throw new AppError(
-        "Student not found or not in OFFER_MADE status",
+        "Student not found or not in APPROVED/OFFER_MADE status",
         404,
         "STUDENT_NOT_FOUND",
       );
