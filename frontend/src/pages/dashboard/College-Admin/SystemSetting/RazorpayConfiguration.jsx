@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
+import { logger } from "../../../../utils/logger";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -76,7 +77,7 @@ const RazorpayConfiguration = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching config:", error);
+      logger.error("Error fetching config:", error);
       if (error.response?.status !== 404) {
         toast.error(
           error.response?.data?.message || "Failed to load configuration",
@@ -98,7 +99,7 @@ const RazorpayConfiguration = () => {
       setIsGatewayActive(newStatus);
       toast.success(response.data.message);
     } catch (error) {
-      console.error("Error toggling gateway:", error);
+      logger.error("Error toggling gateway:", error);
       toast.error(error.response?.data?.message || "Failed to toggle gateway");
     } finally {
       setToggling(false);
@@ -159,7 +160,7 @@ const RazorpayConfiguration = () => {
       fetchRazorpayConfig();
       setIsModified(false);
     } catch (error) {
-      console.error("Save error:", error);
+      logger.error("Save error:", error);
       toast.error(
         error.response?.data?.message || "Failed to save configuration",
       );
@@ -189,7 +190,7 @@ const RazorpayConfiguration = () => {
         });
       }
     } catch (error) {
-      console.error("Verify error:", error);
+      logger.error("Verify error:", error);
       toast.error(error.response?.data?.message || "Verification failed");
     } finally {
       setVerifying(false);
@@ -209,7 +210,7 @@ const RazorpayConfiguration = () => {
         toast.error("Connection test failed");
       }
     } catch (error) {
-      console.error("Test error:", error);
+      logger.error("Test error:", error);
       toast.error(error.response?.data?.message || "Connection test failed");
     } finally {
       setTesting(false);
@@ -241,7 +242,7 @@ const RazorpayConfiguration = () => {
         testMode: true,
       });
     } catch (error) {
-      console.error("Delete error:", error);
+      logger.error("Delete error:", error);
       toast.error(
         error.response?.data?.message || "Failed to delete configuration",
       );

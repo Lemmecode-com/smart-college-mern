@@ -253,6 +253,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -356,6 +357,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -550,6 +552,7 @@ export default function MyTimetable() {
         title="Timetable Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

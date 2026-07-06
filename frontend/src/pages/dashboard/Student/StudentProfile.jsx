@@ -154,7 +154,7 @@ export default function StudentProfile() {
           "Failed to load student profile. Please try again.";
       }
 
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
@@ -208,6 +208,7 @@ export default function StudentProfile() {
           error.message || "Failed to load student profile. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
