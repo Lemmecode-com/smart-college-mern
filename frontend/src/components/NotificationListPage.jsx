@@ -8,6 +8,17 @@ import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
 import NotificationCard from "../components/NotificationCard";
 import CustomSelect from "../components/CustomSelect";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 import {
   FaBell,
   FaUserTie,
@@ -232,13 +243,16 @@ export default function NotificationListPage({ role = "college-admin" }) {
         }
         setRetryCount(0);
       } catch (err) {
-        const errorMsg =
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to load notifications";
         const statusCode = err.response?.status;
-        setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
-        toast.error("Failed to load notifications", CONFIG.TOAST);
+        const errorCode = err.response?.data?.code;
+        const errorMsg = err.response?.data?.message || "Failed to load notifications";
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        setError({ message: errorMsg, statusCode, errorCode });
+        if (!isAuthError) {
+          toast.error("Failed to load notifications", CONFIG.TOAST);
+        }
       } finally {
         setLoading(false);
       }

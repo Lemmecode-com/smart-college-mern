@@ -7,6 +7,7 @@ import ApiError from "../../../../components/ApiError";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import { logger } from "../../../../utils/logger";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -280,7 +281,7 @@ export default function WeeklyTimetable() {
                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
                setSubjects(subRes.data || []);
              } catch (subErr) {
-               console.warn("Failed to load subjects:", subErr);
+               logger.warn("Failed to load subjects:", subErr.response?.status);
                setSubjects([]);
              }
 
@@ -288,7 +289,7 @@ export default function WeeklyTimetable() {
                const teachRes = await api.get(`/teachers/department/${res.data.timetable.department_id}`);
                setTeachers(teachRes.data || []);
              } catch (teachErr) {
-               console.warn("Failed to load teachers:", teachErr);
+               logger.warn("Failed to load teachers:", teachErr.response?.status);
                setTeachers([]);
              }
            }
@@ -391,7 +392,7 @@ export default function WeeklyTimetable() {
         }
       }
     } catch (err) {
-      console.error("Failed to refresh weekly timetable:", err);
+      logger.error("Failed to refresh weekly timetable:", err.response?.status, err.response?.data?.code);
     }
   };
 
@@ -448,7 +449,7 @@ export default function WeeklyTimetable() {
         setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
       }
     } catch (err) {
-      console.error("Schedule fetch error:", err);
+      logger.error("Schedule fetch error:", err.response?.status, err.response?.data?.code);
       await refreshWeekly();
     } finally {
       setLoading(false);
