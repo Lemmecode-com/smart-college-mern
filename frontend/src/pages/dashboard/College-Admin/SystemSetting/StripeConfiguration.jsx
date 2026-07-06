@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
+import { logger } from "../../../../utils/logger";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -76,7 +77,7 @@ const StripeConfiguration = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching config:", error);
+      logger.error("Error fetching config:", error);
       if (error.response?.status !== 404) {
         toast.error(
           error.response?.data?.message || "Failed to load configuration",
@@ -98,7 +99,7 @@ const StripeConfiguration = () => {
       setIsGatewayActive(newStatus);
       toast.success(response.data.message);
     } catch (error) {
-      console.error("Error toggling gateway:", error);
+      logger.error("Error toggling gateway:", error);
       toast.error(error.response?.data?.message || "Failed to toggle gateway");
     } finally {
       setToggling(false);
@@ -164,7 +165,7 @@ const StripeConfiguration = () => {
       fetchStripeConfig();
       setIsModified(false);
     } catch (error) {
-      console.error("Error saving config:", error);
+      logger.error("Error saving config:", error);
       toast.error(
         error.response?.data?.message || "Failed to save configuration",
       );
@@ -187,7 +188,7 @@ const StripeConfiguration = () => {
       }
       fetchStripeConfig();
     } catch (error) {
-      console.error("Error verifying config:", error);
+      logger.error("Error verifying config:", error);
       toast.error(
         error.response?.data?.message || "Failed to verify credentials",
       );
@@ -217,7 +218,7 @@ const StripeConfiguration = () => {
       });
       setIsModified(false);
     } catch (error) {
-      console.error("Error deleting config:", error);
+      logger.error("Error deleting config:", error);
       toast.error(
         error.response?.data?.message || "Failed to delete configuration",
       );
@@ -235,7 +236,7 @@ const StripeConfiguration = () => {
         } ${response.data.connection.balance.currency.toUpperCase()}`,
       );
     } catch (error) {
-      console.error("Error testing connection:", error);
+      logger.error("Error testing connection:", error);
       toast.error(
         error.response?.data?.message || "Failed to connect to Stripe",
       );

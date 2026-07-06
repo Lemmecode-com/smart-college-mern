@@ -947,7 +947,7 @@ exports.getApprovedStudents = async (req, res) => {
 };
 
 // GET INDIVIDUAL APPROVED STUDENT FOR COLLEGE ADMIN (WITH FEES)
-exports.getStudentById = async (req, res) => {
+exports.getStudentById = async (req, res, next) => {
   try {
     const student = await Student.findOne({
       _id: req.params.id,
