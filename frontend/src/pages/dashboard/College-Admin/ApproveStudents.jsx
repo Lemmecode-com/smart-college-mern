@@ -503,7 +503,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          {student.status === "OFFER_MADE" && (
+                          {(student.status === "APPROVED" || student.status === "OFFER_MADE") && (
                             <button
                               className="btn btn-action btn-confirm-enrollment"
                               onClick={() => handleConfirmEnrollment(student._id)}
