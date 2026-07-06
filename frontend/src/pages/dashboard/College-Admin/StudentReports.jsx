@@ -113,7 +113,7 @@ export default function StudentReports() {
     } catch (err) {
       console.error("Student search error:", err);
       const errorMsg = err.response?.data?.message || "Failed to search students";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
       showError(errorMsg);
     } finally {
       setLoading(false);
@@ -526,6 +526,7 @@ export default function StudentReports() {
           title="Search Error"
           message={error.message}
           statusCode={error.statusCode}
+          errorCode={error.errorCode}
           onRetry={handleSearch}
           onGoBack={() => navigate(-1)}
         />
