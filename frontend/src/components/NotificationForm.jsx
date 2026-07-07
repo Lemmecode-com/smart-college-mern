@@ -267,7 +267,7 @@ try {
       const errorMsg =
         err.response?.data?.message || "Failed to load notification";
       const statusCode = err.response?.status;
-      setError({ message: errorMsg, statusCode });
+      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
       toast.error("Failed to load notification");
     } finally {
       setLoading(false);
@@ -461,8 +461,9 @@ try {
       <ApiError
         title="Error Loading Notification"
         message={error.message}
-        statusCode={error.statusCode}
-        onRetry={handleRetry}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
         maxRetry={3}

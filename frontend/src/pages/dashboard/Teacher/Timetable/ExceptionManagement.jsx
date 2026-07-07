@@ -4,7 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -206,7 +206,7 @@ export default function ExceptionManagement() {
     } catch (err) {
       const errorMsg =
         err.response?.data?.message || "Failed to load exceptions";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
     } finally {
       setLoading(false);
     }
@@ -303,6 +303,7 @@ export default function ExceptionManagement() {
         title="Exception Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchExceptions}
         onGoBack={() => navigate("/teacher/dashboard")}
       />
@@ -317,8 +318,6 @@ export default function ExceptionManagement() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
-      <ToastContainer position="top-right" theme="colored" />
-
       {/* ================= HEADER ================= */}
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
