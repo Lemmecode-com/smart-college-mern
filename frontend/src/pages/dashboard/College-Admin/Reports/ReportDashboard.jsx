@@ -1,11 +1,14 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-report-dashboard-load";
 import {
   FaGraduationCap,
   FaCheckCircle,
@@ -84,15 +87,6 @@ const CONFIG = {
     },
   },
   PAYMENT_STATUS: ["PAID", "PARTIAL", "DUE"],
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
 };
 
 export default function ReportDashboard() {
@@ -101,6 +95,7 @@ export default function ReportDashboard() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const fetchIdRef = useRef(0);
 
   // Report Data States
   const [admissionData, setAdmissionData] = useState(null);
@@ -234,9 +229,14 @@ export default function ReportDashboard() {
 
   // ================= FETCH DATA =================
   const fetchAllReports = useCallback(async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Fetch courses for filter dropdown
       try {
@@ -248,8 +248,12 @@ export default function ReportDashboard() {
         console.error("Failed to fetch courses:", err);
         setAvailableCourses([]);
       } finally {
-        setCoursesLoading(false);
+        if (currentFetchId === fetchIdRef.current) {
+          setCoursesLoading(false);
+        }
       }
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Fetch all reports in parallel — tolerate individual failures
       const [
@@ -302,22 +306,26 @@ export default function ReportDashboard() {
         setLowAttendanceStudents([]);
       }
 
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "reports-loaded-success",
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
       });
     } catch (err) {
       console.error("Unexpected error fetching reports:", err);
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load reports. Please try again.";
-      setError({ message: errorMessage, statusCode: err.response?.status });
-      toast.error(errorMessage, {
-        ...CONFIG.TOAST,
-        toastId: "reports-load-error",
-      });
+      setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMessage);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -337,8 +345,11 @@ export default function ReportDashboard() {
   };
 
   // Fetch data on mount only once
-  useEffect(() => {
+   useEffect(() => {
     fetchAllReports();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -514,6 +525,7 @@ export default function ReportDashboard() {
         title="Error Loading Reports"
         message={error.message || "Failed to load reports. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
