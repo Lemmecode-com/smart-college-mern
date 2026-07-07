@@ -1269,14 +1269,14 @@ exports.getStudentsForTeacher = async (req, res) => {
 exports.moveToAlumni = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const { graduationYear } = req.body;
+    const { graduationYear } = req.body || {};
 
     // Find student
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
       status: "APPROVED",
-    }).populate("course_id", "name code semester");
+    }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
       throw new AppError(
