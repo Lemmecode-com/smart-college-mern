@@ -1,5 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-admin-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -20,15 +23,6 @@ import {
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
   MAX_RETRY: 3,
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
   THEME: {
     PRIMARY: "#0f3a4a",
     PRIMARY_DARK: "#0c2d3a",
@@ -49,23 +43,35 @@ export default function AdminReports() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = useCallback(async () => {
-    if (hasLoadedRef.current) {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
+    if (hasLoadedRef.current && currentFetchId === fetchIdRef.current) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError("");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/admissions/college-admin-summary");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data);
       setRetryCount(0);
-      
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Admission reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-success",
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
       });
     } catch (err) {
       console.error("Reports fetch error:", err);
@@ -73,13 +79,15 @@ export default function AdminReports() {
         err.response?.data?.message ||
           "Failed to load admission summary. Please try again.",
       );
-      toast.error("Failed to load admission reports.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError("Failed to load admission reports.");
     } finally {
-      setLoading(false);
-      hasLoadedRef.current = true;
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
@@ -87,6 +95,7 @@ export default function AdminReports() {
     fetchSummary();
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -98,10 +107,7 @@ export default function AdminReports() {
       hasLoadedRef.current = false;
       fetchSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-max-retry",
-      });
+      showError("Maximum retry attempts reached.");
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   }, [retryCount, fetchSummary]);
@@ -772,6 +778,8 @@ export default function AdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
+          height: 88%;
+          width: 90%;
         }
 
         .stat-card:hover {

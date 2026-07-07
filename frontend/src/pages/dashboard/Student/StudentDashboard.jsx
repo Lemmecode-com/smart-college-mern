@@ -49,6 +49,8 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
@@ -89,6 +91,9 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [retryCount]);
 
   const fetchDashboardData = async () => {
@@ -98,14 +103,12 @@ export default function StudentDashboard() {
       const response = await api.get("/dashboard/student");
       setDashboardData(response.data);
 
-      // Show success toast only on successful load (not initial)
-      if (dashboardData) {
-        toast.success("Dashboard loaded successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-        });
-      }
+      toast.success("Dashboard loaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />,
+        toastId: PAGE_LOAD_TOAST_ID,
+      });
     } catch (err) {
       // Silently handle auth errors
       if (err.response?.status !== 403 && err.response?.status !== 401) {
@@ -113,7 +116,7 @@ export default function StudentDashboard() {
         const errorMsg =
           err.response?.data?.message ||
           "Failed to load dashboard. Please check your connection and try again.";
-        setError({ message: errorMsg, statusCode });
+        setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
         toast.error(errorMsg, {
           position: "top-right",
           autoClose: 5000,
@@ -129,7 +132,7 @@ export default function StudentDashboard() {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
-    await fetchDashboard();
+    await fetchDashboardData();
     setIsRetrying(false);
   };
 
@@ -205,6 +208,7 @@ export default function StudentDashboard() {
         title="Dashboard Loading Error"
         message={error.message || "Failed to load dashboard. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

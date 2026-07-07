@@ -4,7 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -253,6 +253,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -356,6 +357,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -550,6 +552,7 @@ export default function MyTimetable() {
         title="Timetable Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -573,7 +576,6 @@ export default function MyTimetable() {
         padding: "1.5rem",
       }}
     >
-      <ToastContainer position="top-right" theme="colored" />
       {/* ================= HEADER ================= */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

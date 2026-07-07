@@ -21,7 +21,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Brand Colors
@@ -283,19 +283,6 @@ export default function EditTeacherProfile() {
         padding: "2rem 1rem",
       }}
     >
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         {/* Header */}
         <motion.div

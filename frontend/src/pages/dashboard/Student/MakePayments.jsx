@@ -3,10 +3,11 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -40,6 +41,7 @@ export default function MakePayments() {
   const navigate = useNavigate();
   const location = useLocation();
   const sessionTimeoutRef = useRef(null);
+  const fetchIdRef = useRef(0);
   const isRequestInProgressRef = useRef(false); // Prevent duplicate payment requests
 
   const [installmentName, setInstallmentName] = useState(
@@ -80,13 +82,13 @@ export default function MakePayments() {
 
   /* ================= SESSION TIMEOUT ================= */
   useEffect(() => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
     // Check if installment data exists
     if (!location.state?.installmentName) {
-      // Check if coming from Stripe redirect without state (normal flow)
       const searchParams = new URLSearchParams(location.search);
       const session_id = searchParams.get("session_id");
 
-      // If has session_id, redirect to payment-success page to handle it
       if (session_id) {
         navigate(`/student/payment-success?session_id=${session_id}`, {
           replace: true,
@@ -94,7 +96,7 @@ export default function MakePayments() {
         return;
       }
 
-      // No state and no session_id - show warning and redirect to fees
+      if (currentFetchId !== fetchIdRef.current) return;
       toast.warning(
         "No installment selected. Please select from fee dashboard.",
         {
@@ -107,9 +109,9 @@ export default function MakePayments() {
       return;
     }
 
-    // Set session timeout (15 minutes for payment)
     sessionTimeoutRef.current = setTimeout(
       () => {
+        if (currentFetchId !== fetchIdRef.current) return;
         toast.warning(
           "Payment session expired. Please select installment again.",
           {
@@ -133,22 +135,26 @@ export default function MakePayments() {
   /* ================= FETCH AVAILABLE GATEWAYS ================= */
   useEffect(() => {
     const fetchGateways = async () => {
+      fetchIdRef.current += 1;
+      const currentFetchId = fetchIdRef.current;
       try {
         setGatewaysLoading(true);
         const response = await api.get("/admin/payment/gateways");
-        
+
         if (response.data.success) {
+          if (currentFetchId !== fetchIdRef.current) return;
           const gateways = response.data.gateways || [];
           setAvailableGateways(gateways.map(g => g.code));
           setDefaultGateway(response.data.defaultGateway);
           setAllowChoice(response.data.allowChoice || false);
         }
-      } catch (error) {
-        console.error("Error fetching gateways:", error);
-        // Default to allow both if fetch fails
-        setAvailableGateways(["stripe", "razorpay"]);
+       } catch (error) {
+         if (currentFetchId !== fetchIdRef.current) return;
+         logger.error("Error fetching gateways:", error);
+         setAvailableGateways(["stripe", "razorpay"]);
         setAllowChoice(true);
       } finally {
+        if (currentFetchId !== fetchIdRef.current) return;
         setGatewaysLoading(false);
       }
     };
@@ -380,23 +386,15 @@ export default function MakePayments() {
       }
 
       rzp.on("payment.failed", (response) => {
-        const errorCode = response.error.code;
-        const errorDescription = response.error.description;
+         const errorCode = response.error.code;
+         const errorDescription = response.error.description;
 
-        // TEMP DIAGNOSTIC: Capture complete Razorpay error payload for root-cause analysis.
-        // Remove after identifying BAD_REQUEST_ERROR reason.
-        console.error("[Razorpay][DIAGNOSTIC] payment.failed payload:", {
-          errorCode,
-          errorDescription,
-          errorReason: response.error.reason,
-          errorSource: response.error.source,
-          errorStep: response.error.step,
-          errorField: response.error.field,
-          errorMetadata: response.error.metadata,
-          fullError: response.error,
-        });
+         logger.error("[Razorpay] payment.failed:", {
+           errorCode,
+           errorDescription,
+         });
 
-        toast.error(`Payment failed: ${errorDescription}`, {
+         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
           autoClose: 5000,
           icon: <FaTimesCircle />,
@@ -666,8 +664,6 @@ export default function MakePayments() {
       role="main"
       aria-label="Payment page"
     >
-      <ToastContainer position="top-right" autoClose={3000} />
-
       {/* Skip Link for Screen Readers */}
       <a
         href="#payment-content"

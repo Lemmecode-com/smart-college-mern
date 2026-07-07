@@ -5,7 +5,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -36,6 +37,7 @@ export default function FeeReceipt() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -51,7 +53,6 @@ export default function FeeReceipt() {
   if (!paymentId) {
     return (
       <div className="receipt-empty-wrapper">
-        <ToastContainer position="top-right" />
         <motion.div
           className="empty-card"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -151,15 +152,20 @@ export default function FeeReceipt() {
   /* ================= FETCH RECEIPT ================= */
   useEffect(() => {
     const fetchReceipt = async () => {
+      fetchIdRef.current += 1;
+      const currentFetchId = fetchIdRef.current;
       const toastId = toast.loading("Loading receipt...");
 
       try {
-        // Validate paymentId
         if (!paymentId) {
           throw new Error("Payment ID is required");
         }
 
-        // Use different endpoints based on user role
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
         const endpoint =
           (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
             ? `/admin/payments/receipt/${paymentId}`
@@ -167,12 +173,15 @@ export default function FeeReceipt() {
 
         const res = await api.get(endpoint);
 
-        // Validate response structure
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
         if (!res.data) {
           throw new Error("Invalid response from server");
         }
 
-        // Validate receipt data
         const validation = validateReceiptData(res.data);
         if (!validation.isValid) {
           throw new Error(
@@ -190,6 +199,11 @@ export default function FeeReceipt() {
           autoClose: 3000,
         });
       } catch (err) {
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
         let errorMessage = "Unable to fetch receipt. ";
 
         if (err.response?.status === 404) {
@@ -209,18 +223,16 @@ export default function FeeReceipt() {
           errorMessage =
             "Network error. Please check your internet connection and try again.";
         } else if (
-          err.name === "AbortError" ||
-          err.message?.includes("timeout")
-        ) {
-          errorMessage =
-            "Request timeout. The server took too long to respond. Please try again.";
-        } else if (err.message) {
-          errorMessage += err.message;
-        } else {
-          errorMessage += "Please check your connection and try again.";
-        }
+         err.name === "AbortError" ||
+         err.message?.includes("timeout")
+       ) {
+         errorMessage =
+           "Request timeout. The server took too long to respond. Please try again.";
+       } else {
+         errorMessage += "Please check your connection and try again.";
+       }
 
-        setError({ message: errorMessage, statusCode: err.response?.status });
+        setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
 
         toast.update(toastId, {
           render: errorMessage,
@@ -229,6 +241,7 @@ export default function FeeReceipt() {
           autoClose: 5000,
         });
       } finally {
+        if (currentFetchId !== fetchIdRef.current) return;
         setLoading(false);
         toast.dismiss(toastId);
       }
@@ -365,17 +378,14 @@ export default function FeeReceipt() {
     }
   };
 
-  // Helper function for error logging
-  const logErrorToMonitoring = (error, context) => {
-    // TODO: Integrate with Sentry/monitoring service
-    // For now, log to console for debugging
-    console.error("[FeeReceipt] Error:", {
-      error: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString(),
-    });
-  };
+   // Helper function for error logging
+   const logErrorToMonitoring = (error, context) => {
+     logger.error("[FeeReceipt] Error:", {
+       error: error.message,
+       context,
+       timestamp: new Date().toISOString(),
+     });
+   };
 
   /* ================= STATE ORDER - ERROR FIRST, THEN LOADING ================= */
   // Error state should be checked before loading state
@@ -385,6 +395,7 @@ export default function FeeReceipt() {
         title="Unable to Load Receipt"
         message={error.message || "Unable to fetch receipt. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -483,8 +494,6 @@ export default function FeeReceipt() {
 
   return (
     <div className="container py-4" role="main">
-      <ToastContainer position="top-right" />
-
       {/* BACK BUTTON */}
       <div className="mb-3">
         <button

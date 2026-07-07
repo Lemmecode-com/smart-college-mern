@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useContext } from "react";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -34,6 +37,7 @@ export default function PaymentReports() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   // Date filtering state
   const [startDate, setStartDate] = useState("");
@@ -54,9 +58,14 @@ export default function PaymentReports() {
   /* ================= FETCH PAYMENT SUMMARY ================= */
   const fetchPaymentSummary = useCallback(async () => {
     hasLoadedRef.current = false;
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError("");
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Build query parameters based on date filter
       let queryParams = {};
@@ -93,12 +102,17 @@ export default function PaymentReports() {
       const url = `/reports/payments/filtered${queryString ? `?${queryString}` : ''}`;
 
       const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data || {});
       setRetryCount(0);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Payment summary loaded successfully!", {
-        position: "top-right",
+        toastId: PAGE_LOAD_TOAST_ID,
         autoClose: 3000,
-        toastId: "payment-summary-success",
       });
     } catch (err) {
       console.error("Payment summary fetch error:", err);
@@ -106,21 +120,23 @@ export default function PaymentReports() {
         err.response?.data?.message ||
           "Failed to load payment summary. Please try again.",
       );
-      toast.error("Failed to load payment summary.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-summary-error",
-      });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError("Failed to load payment summary.");
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [dateFilter, startDate, endDate]);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchPaymentSummary();
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [fetchPaymentSummary]);
 
@@ -132,11 +148,7 @@ export default function PaymentReports() {
       hasLoadedRef.current = false;
       fetchPaymentSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-max-retry",
-      });
+      showError("Maximum retry attempts reached.");
       setError("Maximum retry attempts reached. Please check your connection.");
     }
   }, [retryCount, fetchPaymentSummary]);
@@ -1990,10 +2002,7 @@ export default function PaymentReports() {
                     const year = parseInt(e.target.value);
                     if (year !== selectedYear) {
                       setSelectedYear(year);
-                      toast.success(`Year ${year} selected for trend analysis`, {
-                        position: "top-right",
-                        autoClose: 2000,
-                      });
+                      showSuccess(`Year ${year} selected for trend analysis`);
                     }
                   }}
                   onKeyDown={(e) => {

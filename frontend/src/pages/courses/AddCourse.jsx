@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import { logger } from "../../utils/logger";
 
 export default function AddCourse() {
   const [name, setName] = useState("");
@@ -21,8 +22,8 @@ export default function AddCourse() {
         const teacherRes = await api.get("/users/teachers");
         setTeachers(teacherRes.data.data || []);
       } catch (err) {
-        console.error(err);
-        alert("Failed to load data");
+         logger.warn("Fetch data error:", err);
+         alert("Failed to load data");
       }
     };
 
@@ -60,8 +61,8 @@ export default function AddCourse() {
       setCode("");
       setDepartmentId("");
       setTeacherId("");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to create course");
+    } catch {
+      alert("Something went wrong. Please try again.");
     }
   };
 

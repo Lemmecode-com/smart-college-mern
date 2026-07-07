@@ -119,7 +119,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load session details. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -133,7 +133,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load attendance records. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -157,7 +157,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load student list. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -195,7 +195,7 @@ export default function SessionDetails() {
           err.response?.data?.message ||
           "Failed to load session data. Please try again.";
         const statusCode = err.response?.status;
-        setError({ message: errorMessage, statusCode });
+        setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
       } finally {
         setLoading(false);
       }
@@ -323,6 +323,7 @@ export default function SessionDetails() {
         title="Error Loading Session"
         message={error.message || "Failed to load session. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}

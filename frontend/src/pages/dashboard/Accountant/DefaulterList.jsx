@@ -21,6 +21,7 @@ import {
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
+const PAGE_LOAD_TOAST_ID = "accountant-defaulter-list-load";
 
 export default function DefaulterList() {
    const navigate = useNavigate();
@@ -48,11 +49,11 @@ export default function DefaulterList() {
       toast.success("Defaulter list loaded successfully!", {
         position: "top-right",
         autoClose: 3000,
-        toastId: "defaulter-success",
+        toastId: PAGE_LOAD_TOAST_ID,
       });
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to load defaulters list";
-      setError({ message: errorMsg, statusCode: err.response?.status });
+      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
@@ -65,6 +66,9 @@ export default function DefaulterList() {
 
   useEffect(() => {
     fetchDefaulters();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [fetchDefaulters]);
 
   const filteredDefaulters = useMemo(() => {
@@ -159,6 +163,7 @@ export default function DefaulterList() {
         title="Error Loading Defaulters"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchDefaulters}
         onGoBack={() => navigate("/dashboard/accountant")}
       />

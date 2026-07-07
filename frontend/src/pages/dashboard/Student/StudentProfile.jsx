@@ -50,20 +50,15 @@ export default function StudentProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [lastRefreshed] = useState(new Date());
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState("personal"); // 'personal', 'academic', 'contact', 'address', 'education', 'college'
   const [documentConfig, setDocumentConfig] = useState([]);
-
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
   /* ================= DATA VALIDATION HELPER ================= */
   const validateProfileData = (data) => {
@@ -90,12 +85,10 @@ export default function StudentProfile() {
 
   /* ================= FETCH PROFILE ================= */
   const fetchProfile = async () => {
-    // Clear any existing timeout
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
 
-    // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
       setError({
         message:
@@ -117,27 +110,23 @@ export default function StudentProfile() {
         throw new Error("Invalid profile response structure");
       }
 
-      // Validate profile data
       const validation = validateProfileData(res.data);
       if (validation.length > 0) {
         throw new Error(`Invalid profile data: ${validation.join(", ")}`);
       }
 
-      // Clear timeout on success - user is actively viewing the page
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
 
       setProfile(res.data);
 
-      // Extract document config for conditional rendering
       if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
         setDocumentConfig(res.data.documentConfig);
       } else {
         setDocumentConfig([]);
       }
     } catch (err) {
-      // Clear timeout on error
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
@@ -165,7 +154,7 @@ export default function StudentProfile() {
           "Failed to load student profile. Please try again.";
       }
 
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: 5000,
@@ -179,13 +168,17 @@ export default function StudentProfile() {
   useEffect(() => {
     fetchProfile();
 
-    // Cleanup timeout on unmount
     return () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
+
+  /* ================= SECURITY ================= */
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = async () => {
@@ -215,6 +208,7 @@ export default function StudentProfile() {
           error.message || "Failed to load student profile. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -368,60 +362,6 @@ export default function StudentProfile() {
     );
   };
 
-  // Mock educational documents data (to be replaced with real API later)
-  const educationalDocuments = [
-    {
-      id: 1,
-      type: "10th Marksheet",
-      name: "Secondary School Certificate",
-      board: "State Board",
-      year: "2018",
-      percentage: "85.4%",
-      file: "10th_marksheet.pdf",
-      icon: <FaFileAlt />, // Generic file icon
-    },
-    {
-      id: 2,
-      type: "12th Marksheet",
-      name: "Higher Secondary Certificate",
-      board: "CBSE",
-      year: "2020",
-      percentage: "78.9%",
-      file: "12th_marksheet.pdf",
-      icon: <FaFilePdf />, // ✅ CORRECTED: PDF icon instead of invalid FaFileCertificate
-    },
-    {
-      id: 3,
-      type: "Migration Certificate",
-      name: "Inter-State Migration Certificate",
-      board: "State Education Board",
-      year: "2020",
-      percentage: "",
-      file: "migration_certificate.pdf",
-      icon: <FaCertificate />, // ✅ CORRECTED: Standalone certificate icon
-    },
-    {
-      id: 4,
-      type: "Character Certificate",
-      name: "School Character Certificate",
-      board: "Delhi Public School",
-      year: "2020",
-      percentage: "",
-      file: "character_certificate.pdf",
-      icon: <FaCertificate />, // ✅ CORRECTED
-    },
-    {
-      id: 5,
-      type: "Income Certificate",
-      name: "Family Income Certificate",
-      board: "Municipal Corporation",
-      year: "2022",
-      percentage: "",
-      file: "income_certificate.pdf",
-      icon: <FaFileInvoice />,
-    },
-  ];
-
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
@@ -431,92 +371,89 @@ export default function StudentProfile() {
         Skip to profile content
       </a>
 
-      {/* ================= TOP NAVIGATION BAR ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex justify-content-end align-items-center flex-wrap w-100">
-          <button
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
-            onClick={() => navigate("/student/edit-profile")}
-            aria-label="Edit your profile"
-          >
-            <FaEdit size={16} aria-hidden="true" /> Edit Profile
-          </button>
-        </div>
-      </div>
       {/* ================= PROFILE HEADER CARD ================= */}
       <div
         className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
         style={{ animationDelay: "0.1s" }}
       >
         <div className="card-header bg-gradient-primary text-white py-4">
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-            <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
-              <div className="profile-avatar-container">
-                <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
-                  <FaUserGraduate size={64} />
-                </div>
-                <div className="profile-status-indicator">
-                  <span
-                    className={`status-dot ${
-                      student?.status === "APPROVED"
-                        ? "bg-success"
-                        : student?.status === "REJECTED"
-                          ? "bg-danger"
-                          : "bg-warning"
-                    }`}
-                  ></span>
-                </div>
-              </div>
-              <div>
-                <h2 className="h3 fw-bold mb-1">
-                  {student?.fullName || "N/A"}
-                </h2>
-                <div className="d-flex flex-wrap gap-3">
-                  <div className="d-flex align-items-center gap-1">
-                    <FaGraduationCap className="text-white opacity-75" />
-                    <span className="opacity-75">{course?.name || "N/A"}</span>
+          <div className="position-relative">
+            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+              <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
+                <div className="profile-avatar-container">
+                  <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
+                    <FaUserGraduate size={64} />
                   </div>
-                  <div className="d-flex align-items-center gap-1">
-                    <FaLayerGroup className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {department?.name || "N/A"}
+                  <div className="profile-status-indicator">
+                    <span
+                      className={`status-dot ${
+                        student?.status === "APPROVED"
+                          ? "bg-success"
+                          : student?.status === "REJECTED"
+                            ? "bg-danger"
+                            : "bg-warning"
+                      }`}
+                    ></span>
+                  </div>
+                </div>
+                <div>
+                  <h2 className="h3 fw-bold mb-1">
+                    {student?.fullName || "N/A"}
+                  </h2>
+                  <div className="d-flex flex-wrap gap-3">
+                    <div className="d-flex align-items-center gap-1">
+                      <FaGraduationCap className="text-white opacity-75" />
+                      <span className="opacity-75">{course?.name || "N/A"}</span>
+                    </div>
+                    <div className="d-flex align-items-center gap-1">
+                      <FaLayerGroup className="text-white opacity-75" />
+                      <span className="opacity-75">
+                        {department?.name || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                    <span
+                      className={`badge ${
+                        student?.status === "APPROVED"
+                          ? "bg-success"
+                          : student?.status === "REJECTED"
+                            ? "bg-danger"
+                            : "bg-warning"
+                      }`}
+                    >
+                      <FaCheckCircle className="me-1" />
+                      {student?.status || "PENDING"}
+                    </span>
+                    <span className="badge bg-light text-dark">
+                      <FaClock className="me-1" />
+                      {student?.currentYear
+                        ? `Year ${student.currentYear}`
+                        : student?.currentSemester
+                          ? `Semester ${student.currentSemester}`
+                          : "N/A"}
+                    </span>
+                    <span className="badge bg-light text-dark">
+                      <FaGraduationCap className="me-1" />
+                      {student?.currentSemester
+                        ? `Semester ${student.currentSemester}`
+                        : "N/A"}
+                    </span>
+                    <span className="badge bg-light text-dark">
+                      <FaCalendarAlt className="me-1" />
+                      Admitted: {student?.admissionYear || "N/A"}
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 d-flex flex-wrap gap-2">
-                  <span
-                    className={`badge ${
-                      student?.status === "APPROVED"
-                        ? "bg-success"
-                        : student?.status === "REJECTED"
-                          ? "bg-danger"
-                          : "bg-warning"
-                    }`}
-                  >
-                    <FaCheckCircle className="me-1" />
-                    {student?.status || "PENDING"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaClock className="me-1" />
-                    {student?.currentYear
-                      ? `Year ${student.currentYear}`
-                      : student?.currentSemester
-                        ? `Semester ${student.currentSemester}`
-                        : "N/A"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaGraduationCap className="me-1" />
-                    {student?.currentSemester
-                      ? `Semester ${student.currentSemester}`
-                      : "N/A"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaCalendarAlt className="me-1" />
-                    Admitted: {student?.admissionYear || "N/A"}
-                  </span>
-                </div>
               </div>
             </div>
+            <button
+              className="btn btn-light d-flex align-items-center gap-2 px-3 py-2 position-absolute top-0 end-0 profile-header-btn"
+              onClick={() => navigate("/student/edit-profile")}
+              aria-label="Edit your profile"
+            >
+              <FaEdit size={16} aria-hidden="true" /> Edit Profile
+            </button>
           </div>
         </div>
 
@@ -1461,13 +1398,25 @@ export default function StudentProfile() {
           height: 100px;
         }
 
-        .profile-avatar {
-          width: 100px;
-          height: 100px;
-          border-radius: 50%;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-          font-size: 2.5rem;
-        }
+         .profile-avatar {
+           width: 100px;
+           height: 100px;
+           border-radius: 50%;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+           font-size: 2.5rem;
+         }
+
+         .profile-header-btn {
+           top: 1rem;
+           right: 1rem;
+         }
+
+         @media (max-width: 991.98px) {
+           .profile-header-btn {
+             position: static;
+             margin-top: 1rem;
+           }
+         }
 
         .profile-status-indicator {
           position: absolute;
@@ -1776,7 +1725,7 @@ export default function StudentProfile() {
 }
 
 /* ================= TAB ITEM COMPONENT ================= */
-function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
+function TabItem({ icon, label, active, onClick, badge, hidden }) {
   if (hidden) return null;
 
   // Handle keyboard navigation
@@ -1812,7 +1761,7 @@ function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
 }
 
 /* ================= SECTION CONTENT COMPONENT ================= */
-function SectionContent({ title, icon, color, children }) {
+function SectionContent({ title, icon, children }) {
   return (
     <div className="section-content" role="tabpanel">
       <h2 className="section-title text-primary">
@@ -1936,7 +1885,7 @@ function DocumentCard({
           icon: <FaCheckCircle />,
         });
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to download document. Please try again.", {
         position: "top-right",
         autoClose: 5000,

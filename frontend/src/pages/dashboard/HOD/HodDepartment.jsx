@@ -14,6 +14,9 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import Loading from "../../../components/Loading";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -46,6 +49,18 @@ export default function HodDepartment() {
   const navigate = useNavigate();
   const [department, setDepartment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     fetchDepartment();
@@ -53,21 +68,50 @@ export default function HodDepartment() {
 
   const fetchDepartment = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const res = await api.get("/hod/department");
       setDepartment(res.data?.data?.department || res.data?.department || res.data || null);
-    } catch (error) {
-      console.error("Error fetching department:", error);
-      toast.error(error.response?.data?.message || "Failed to load department");
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load department";
+
+      logger.error("Error fetching department:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
+    return <Loading />;
+  }
+
+  if (error) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "60vh" }}>
-        <div className="spinner-border text-primary" role="status" />
-      </div>
+      <ApiError
+        title="Department Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchDepartment}
+        onGoBack={() => navigate("/hod/dashboard")}
+      />
     );
   }
 

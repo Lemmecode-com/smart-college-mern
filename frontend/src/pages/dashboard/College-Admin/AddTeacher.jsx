@@ -33,7 +33,7 @@ import {
   FaCopy
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Brand Color Palette
@@ -1137,8 +1137,6 @@ export default function AddTeacher() {
           </form>
         </div>
         
-        <ToastContainer position="top-right" />
-
         {result && (
           <div ref={resultRef} style={{
             background: 'white', borderRadius: '12px', padding: '2rem',

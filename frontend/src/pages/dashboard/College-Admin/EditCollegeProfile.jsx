@@ -17,7 +17,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function EditCollegeProfile() {
@@ -334,18 +334,6 @@ export default function EditCollegeProfile() {
   if (fetchError) {
     return (
       <div className="edit-college-profile-container">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
         <header className="glass-header mb-4">
           <div className="header-content">
             <div className="header-left">
@@ -416,20 +404,6 @@ export default function EditCollegeProfile() {
 
   return (
     <div className="edit-college-profile-container">
-      {/* Toast Container */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-
       {/* HEADER */}
       <header className="glass-header mb-4">
         <div className="header-content">

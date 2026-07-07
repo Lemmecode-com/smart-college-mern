@@ -88,7 +88,7 @@ export default function AccountantDashboard() {
      } catch (err) {
        console.error("Dashboard stats fetch error:", err);
        const errorMsg = err.response?.data?.message || "Failed to load dashboard stats";
-       setError({ message: errorMsg, statusCode: err.response?.status });
+        setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
      } finally {
        setLoading(false);
      }
@@ -151,6 +151,7 @@ export default function AccountantDashboard() {
         title="Dashboard Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchStats}
         onGoBack={() => navigate(-1)}
       />

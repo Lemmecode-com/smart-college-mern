@@ -5,7 +5,7 @@ import Loading from "../../../components/Loading";
 import { AuthContext } from "../../../auth/AuthContext";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -32,6 +32,7 @@ export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const receiptRef = useRef(null);
+  const fetchIdRef = useRef(0);
 
   const sessionId = searchParams.get("session_id");
   const paymentGatewayParam = searchParams.get("gateway") || "stripe";
@@ -91,6 +92,7 @@ export default function PaymentSuccess() {
     const maxAttempts = 15;
 
     const confirmAndPoll = async () => {
+      fetchIdRef.current += 1;
       try {
         const confirmRes = await api.post("/stripe/confirm-payment", { sessionId });
 
@@ -147,10 +149,10 @@ export default function PaymentSuccess() {
             setError("Payment is still processing. Please check back in a few moments.");
             setLoading(false);
           }
-        } catch (err) {
+        } catch {
           if (attempts >= maxAttempts) {
             clearInterval(statusInterval);
-            const errorMsg = err.response?.data?.message || "Payment confirmation timeout";
+            const errorMsg = "Your payment is still processing. Please check back in a few moments.";
             setError(errorMsg);
             toast.error(errorMsg, {
               position: "top-right",
@@ -182,6 +184,7 @@ export default function PaymentSuccess() {
     const maxAttempts = 30;
 
     const pollRazorpay = async () => {
+      fetchIdRef.current += 1;
       interval = setInterval(async () => {
         attempts++;
         try {
@@ -210,10 +213,10 @@ export default function PaymentSuccess() {
             setError("Payment is still processing. Please check back in a few moments.");
             setLoading(false);
           }
-        } catch (err) {
+        } catch {
           if (attempts >= maxAttempts) {
             clearInterval(interval);
-            const errorMsg = err.response?.data?.message || "Payment confirmation timeout";
+            const errorMsg = "Your payment is still processing. Please check back in a few moments.";
             setError(errorMsg);
             toast.error(errorMsg, {
               position: "top-right",
@@ -250,7 +253,6 @@ export default function PaymentSuccess() {
   if (error) {
     return (
       <div className="ps-wrapper">
-        <ToastContainer position="top-right" />
         <motion.div
           className="ps-error-card"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -367,7 +369,6 @@ export default function PaymentSuccess() {
   /* ========== SUCCESS UI ========== */
   return (
     <div className="ps-wrapper">
-      <ToastContainer position="top-right" />
       <motion.div
         className="ps-main-card"
         initial={{ opacity: 0, y: 30 }}

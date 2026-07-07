@@ -7,8 +7,26 @@ import {
   FaWifi,
   FaInfoCircle,
   FaServer,
+  FaLock,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
+
+const SESSION_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+const isSessionExpired = (errorCode, statusCode) => {
+  if (errorCode && SESSION_ERROR_CODES.has(errorCode)) return true;
+  if (statusCode === 401) return true;
+  return false;
+};
 
 /**
  * ApiError - Reusable component for API error states
@@ -17,6 +35,7 @@ import { motion } from "framer-motion";
  * @param {string} title - Error title
  * @param {string} message - Error message
  * @param {number} statusCode - HTTP status code
+ * @param {string} errorCode - Backend error code (e.g., TOKEN_EXPIRED, UNAUTHORIZED)
  * @param {function} onRetry - Retry callback function
  * @param {function} onGoBack - Go back callback function
  * @param {number} retryCount - Current retry count
@@ -27,6 +46,7 @@ export default function ApiError({
   title = "Loading Error",
   message = "Something went wrong while loading the data",
   statusCode,
+  errorCode,
   onRetry,
   onGoBack,
   retryCount = 0,
@@ -35,8 +55,24 @@ export default function ApiError({
 }) {
   const [countdown, setCountdown] = useState(null);
 
+  const sessionExpired = isSessionExpired(errorCode, statusCode);
+
+  const handleSignIn = () => {
+    window.location.href = "/login";
+  };
+
+  const handleSessionGoBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/login";
+    }
+  };
+
   // Check if error is rate limit (429)
-  const isRateLimit = statusCode === 429 || message.toLowerCase().includes("too many requests");
+  const isRateLimit =
+    statusCode === 429 ||
+    (message && message.toLowerCase().includes("too many requests"));
 
   // Extract wait time from message if available (e.g., "try again after 15 minutes")
   useEffect(() => {
@@ -83,6 +119,119 @@ export default function ApiError({
     if (statusCode >= 500) return "#ef4444";
     return "#ef4444";
   };
+
+  // Session Expired UI - render before any other state
+  if (sessionExpired) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="api-error-container"
+        style={styles.container}
+      >
+        <div style={styles.sessionCard}>
+          {/* Animated Lock Icon */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, type: "spring", damping: 12 }}
+            style={styles.sessionIconWrapper}
+          >
+            <FaLock size={72} color="#0f3a4a" />
+          </motion.div>
+
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            style={styles.sessionTitle}
+          >
+            Session Expired
+          </motion.h1>
+
+          {/* Message */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            style={styles.sessionMessage}
+          >
+            Your session has expired due to inactivity.
+            <br />
+            Please sign in again to continue using NOVAA ERP.
+          </motion.p>
+
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={styles.sessionActions}
+          >
+            <button
+              onClick={handleSignIn}
+              style={{
+                ...styles.button,
+                ...styles.buttonPrimary,
+                ...styles.buttonSignIn,
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background =
+                  "linear-gradient(135deg, #0c4a6e, #0f3a4a)";
+                e.target.style.boxShadow =
+                  "0 6px 20px rgba(15, 58, 74, 0.4)";
+                e.target.style.transform = "translateY(-2px)";
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background =
+                  "linear-gradient(135deg, #0f3a4a, #3db5e6)";
+                e.target.style.boxShadow =
+                  "0 4px 12px rgba(15, 58, 74, 0.3)";
+                e.target.style.transform = "translateY(0)";
+              }}
+            >
+              Sign In
+            </button>
+
+            <button
+              onClick={handleSessionGoBack}
+              style={{
+                ...styles.button,
+                ...styles.buttonOutline,
+              }}
+              onMouseOver={(e) => {
+                if (!isRetryLoading) {
+                  e.target.style.background = "#f1f5f9";
+                  e.target.style.transform = "translateY(-2px)";
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isRetryLoading) {
+                  e.target.style.background = "transparent";
+                  e.target.style.transform = "translateY(0)";
+                }
+              }}
+            >
+              <FaArrowLeft size={14} style={{ marginRight: "8px" }} />
+              Go Back
+            </button>
+          </motion.div>
+        </div>
+
+        <style>{`
+          .api-error-container {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
+        `}</style>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -321,6 +470,7 @@ const styles = {
     borderStyle: "solid",
     position: "relative",
     boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
+    borderColor: "#f59e0b",
   },
   ring: {
     position: "absolute",
@@ -408,5 +558,53 @@ const styles = {
     color: "#94a3b8",
     fontSize: "0.75rem",
     fontWeight: "500",
+  },
+  sessionCard: {
+    textAlign: "center",
+    maxWidth: "520px",
+    width: "100%",
+    background: "white",
+    padding: "3.5rem 2.5rem",
+    borderRadius: "24px",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.08)",
+    border: "1px solid rgba(0, 0, 0, 0.05)",
+  },
+  sessionIconWrapper: {
+    width: "120px",
+    height: "120px",
+    margin: "0 auto 1.5rem",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, #f0f9ff, #e0f2fe)",
+    border: "3px solid #e0f2fe",
+    boxShadow: "0 8px 30px rgba(15, 58, 74, 0.15)",
+  },
+  sessionTitle: {
+    fontSize: "2rem",
+    fontWeight: "700",
+    color: "#0f172a",
+    marginBottom: "0.75rem",
+    lineHeight: "1.3",
+  },
+  sessionMessage: {
+    color: "#64748b",
+    fontSize: "1.05rem",
+    lineHeight: "1.7",
+    marginBottom: "2rem",
+    maxWidth: "480px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  sessionActions: {
+    display: "flex",
+    gap: "1rem",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  buttonSignIn: {
+    minWidth: "140px",
+    justifyContent: "center",
   },
 };
