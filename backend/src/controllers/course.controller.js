@@ -47,6 +47,17 @@ exports.createCourse = async (req, res, next) => {
     console.warn(`⚠️ Creating advanced program "${name}" with ${durationSemesters} semesters`);
   }
 
+  // ✅ Check for duplicate course code in the same department
+  const duplicate = await Course.findOne({
+    college_id: req.college_id,
+    department_id,
+    code: code.toUpperCase()
+  });
+
+  if (duplicate) {
+    throw new AppError("duplicate course code", 409, "DUPLICATE_COURSE_CODE");
+  }
+
   // Create course with new duration fields
   // Note: durationYears will be auto-calculated by the model's pre-save hook
   const courseData = {
@@ -80,7 +91,7 @@ exports.createCourse = async (req, res, next) => {
   } catch (error) {
     console.error('❌ [CREATE COURSE] Error creating course:', error.message);
     console.error('❌ [CREATE COURSE] Full error:', error);
-    throw error;
+    next(error);
   }
 };
 
@@ -156,6 +167,25 @@ exports.getCourseById = async (req, res, next) => {
  */
 exports.updateCourse = async (req, res, next) => {
   try {
+    const { code, department_id } = req.body;
+
+    if (code || department_id) {
+      const targetCollegeId = req.college_id;
+      const targetDepartmentId = department_id || (await Course.findById(req.params.id).select("department_id"))?.department_id;
+      const targetCode = code ? code.toUpperCase() : (await Course.findById(req.params.id).select("code"))?.code;
+
+      const duplicate = await Course.findOne({
+        _id: { $ne: req.params.id },
+        college_id: targetCollegeId,
+        department_id: targetDepartmentId,
+        code: targetCode
+      });
+
+      if (duplicate) {
+        throw new AppError("duplicate course code", 409, "DUPLICATE_COURSE_CODE");
+      }
+    }
+
     const course = await Course.findOneAndUpdate(
       {
         _id: req.params.id,
