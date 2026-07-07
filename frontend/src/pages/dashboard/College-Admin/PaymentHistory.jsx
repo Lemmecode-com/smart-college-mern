@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useContext } from "react";
+import { useEffect, useState, useMemo, useCallback, useContext, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -6,7 +6,10 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import { showSuccess, showError } from "../../../utils/toast";
 import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-history-load";
 import {
   FaFileInvoiceDollar,
   FaSearch,
@@ -43,12 +46,18 @@ export default function PaymentHistory() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showDateFilters, setShowDateFilters] = useState(false);
+  const fetchIdRef = useRef(0);
 
   // Fetch payment history from backend
   const fetchPaymentHistory = useCallback(async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Build query parameters for date filtering
       let queryParams = {};
@@ -59,11 +68,16 @@ export default function PaymentHistory() {
       const url = `/admin/payments/report${queryString ? `?${queryString}` : ''}`;
 
       const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setPaymentData(res.data);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Payment history loaded successfully!", {
-        position: "top-right",
+        toastId: PAGE_LOAD_TOAST_ID,
         autoClose: 3000,
-        toastId: "payment-history-success",
       });
     } catch (err) {
       console.error("Payment history fetch error:", err);
@@ -71,19 +85,23 @@ export default function PaymentHistory() {
       const errorMsg =
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
-      setError({ message: errorMsg, statusCode });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        toastId: "payment-history-error",
-      });
+      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      showError(errorMsg);
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [startDate, endDate]);
 
-  useEffect(() => {
+   useEffect(() => {
     fetchPaymentHistory();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [fetchPaymentHistory]);
 
   // Format currency
@@ -251,6 +269,7 @@ export default function PaymentHistory() {
         title="Error Loading Payment History"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchPaymentHistory}
         onGoBack={() => navigate(-1)}
         retryCount={0}

@@ -12,7 +12,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import SearchableSelect from "../../../../components/SearchableSelect";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   FaCalendarAlt,
@@ -281,8 +281,6 @@ const fetchTeachersForSearch = async (query) => {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
-      <ToastContainer position="top-right" theme="colored" />
-
       {/* Header */}
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}

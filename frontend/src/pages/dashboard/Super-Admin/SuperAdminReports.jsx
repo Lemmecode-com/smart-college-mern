@@ -541,7 +541,7 @@ export default function SuperAdminReports() {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
+          gap: 0.5rem;
           margin-bottom: 1.5rem;
         }
         
@@ -554,6 +554,8 @@ export default function SuperAdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
+          height: 93%;
+          width: 85%;
         }
         
         .stat-card:hover {
@@ -611,6 +613,8 @@ export default function SuperAdminReports() {
           display: flex;
           flex-direction: column;
           justify-content: center;
+          height: 80%; 
+          width: 80%;
         }
         
         .stat-value {
@@ -647,6 +651,8 @@ export default function SuperAdminReports() {
           background: #f8f9fa;
           border-top: 1px solid #e9ecef;
           font-size: 0.875rem;
+          height: 55px; 
+          width: 80%;
         }
         
         .stat-footer-item {
