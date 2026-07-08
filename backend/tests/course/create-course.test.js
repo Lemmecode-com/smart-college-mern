@@ -244,6 +244,88 @@ describe("CRS-TC-002 — Duplicate Course Code", () => {
   });
 });
 
+describe("CRS-01 — Add Course without Selecting Department", () => {
+  beforeAll(async () => {
+    await connectTestDb();
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
+  });
+
+  beforeEach(async () => {
+    await clearTestDb();
+  });
+
+  it("rejects creating a course without a department_id", async () => {
+    const college = await createCollege({ code: "CRS01", name: "No Dept Test College" });
+
+    const admin = await createUser({
+      email: "admin.nodept@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const agent = request.agent(app);
+    await agent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    const res = await agent
+      .post("/api/courses")
+      .send({
+        department_id: "",
+        name: "B.Tech CSE",
+        code: "CSE001",
+        type: "THEORY",
+        programLevel: "UG",
+        durationSemesters: 8,
+        credits: 160,
+        maxStudents: 120,
+      });
+
+    expect([400, 404]).toContain(res.status);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("rejects creating a course with an invalid department_id", async () => {
+    const college = await createCollege({ code: "CRS01B", name: "Invalid Dept Test College" });
+
+    const admin = await createUser({
+      email: "admin.invaliddept@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const agent = request.agent(app);
+    await agent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    const res = await agent
+      .post("/api/courses")
+      .send({
+        department_id: new mongoose.Types.ObjectId().toString(),
+        name: "B.Tech CSE",
+        code: "CSE002",
+        type: "THEORY",
+        programLevel: "UG",
+        durationSemesters: 8,
+        credits: 160,
+        maxStudents: 120,
+      });
+
+    expect([400, 404]).toContain(res.status);
+    expect(res.body.success).toBe(false);
+  });
+});
+
 describe("CRS-TC-003 — Update Course Duplicate Code", () => {
   beforeAll(async () => {
     await connectTestDb();
