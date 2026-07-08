@@ -5,6 +5,7 @@ const Course = require("../models/course.model");
 const FeeStructure = require("../models/feeStructure.model");
 const User = require("../models/user.model");
 const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * GET ALL COLLEGES (SUPER ADMIN ONLY)
@@ -94,16 +95,20 @@ exports.updateMyCollegeProfile = async (req, res) => {
       });
     }
 
-    res.json({
-      message: "College profile updated successfully",
-      college
-    });
+    ApiResponse.success(
+      res,
+      { college },
+      "College profile updated successfully",
+    );
 
   } catch (error) {
     console.error("Update college profile error:", error);
-    res.status(500).json({
-      message: "Internal server error"
-    });
+    ApiResponse.error(
+      res,
+      error.message || "Internal server error",
+      "INTERNAL_SERVER_ERROR",
+      500,
+    );
   }
 };
 
