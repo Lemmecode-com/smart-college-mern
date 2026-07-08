@@ -232,7 +232,7 @@ export default function AddCourse() {
 
       {/* FORM CARD */}
       <div className="form-container">
-        <form onSubmit={handleSubmit} className="form-wrapper">
+        <form onSubmit={handleSubmit} className="form-wrapper" noValidate>
           <div className="form-header">
             <h5 className="mb-0">
               <FaGraduationCap className="me-2 text-primary" />
