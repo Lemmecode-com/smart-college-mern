@@ -32,6 +32,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const [processingId, setProcessingId] = useState(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStudentId, setEnrollStudentId] = useState(null);
+  const [parentCreds, setParentCreds] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -221,10 +222,13 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
     setProcessingId(enrollStudentId);
     try {
-      await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
+      const { data } = await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
       toast.success("Enrollment confirmed successfully!", {
         position: "top-right",
       });
+      if (data?.parentAccounts?.parents?.length) {
+        setParentCreds(data.parentAccounts.parents);
+      }
       fetchApprovedStudents();
     } catch (e) {
       toast.error(e.response?.data?.message || "Failed to confirm enrollment", {
@@ -1378,6 +1382,112 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 100%);
           box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
         }
+
+        .parent-creds-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .parent-creds-modal {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 460px;
+          padding: 22px 24px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .parent-creds-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .parent-creds-header h3 {
+          margin: 0;
+          font-size: 18px;
+          color: #1f2d3d;
+        }
+
+        .parent-creds-close {
+          border: none;
+          background: transparent;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          color: #6c757d;
+        }
+
+        .parent-creds-note {
+          font-size: 13px;
+          color: #6c757d;
+          margin: 8px 0 16px;
+        }
+
+        .parent-creds-card {
+          border: 1px solid #e3e6ea;
+          border-radius: 8px;
+          padding: 12px 14px;
+          margin-bottom: 12px;
+          background: #f8f9fb;
+        }
+
+        .parent-creds-relation {
+          font-weight: 600;
+          color: #0d6efd;
+          margin-bottom: 8px;
+        }
+
+        .parent-creds-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 6px;
+          font-size: 14px;
+        }
+
+        .parent-creds-label {
+          font-weight: 600;
+          color: #495057;
+          min-width: 70px;
+        }
+
+        .parent-creds-value {
+          flex: 1;
+          word-break: break-all;
+          color: #212529;
+        }
+
+        .parent-creds-copy {
+          border: none;
+          background: #0d6efd;
+          color: #fff;
+          border-radius: 6px;
+          padding: 3px 10px;
+          cursor: pointer;
+          font-size: 12px;
+        }
+
+        .parent-creds-done {
+          width: 100%;
+          margin-top: 6px;
+          border: none;
+          background: #198754;
+          color: #fff;
+          border-radius: 8px;
+          padding: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+        }
       `}</style>
 
       {/* CONFIRM ENROLLMENT MODAL */}
@@ -1395,6 +1505,55 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         cancelText="Cancel"
         isLoading={processingId === enrollStudentId}
       />
+
+      {/* PARENT CREDENTIALS MODAL */}
+      {parentCreds && (
+        <div className="parent-creds-overlay" onClick={() => setParentCreds(null)}>
+          <div className="parent-creds-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="parent-creds-header">
+              <h3>Parent/Guardian Account Credentials</h3>
+              <button className="parent-creds-close" onClick={() => setParentCreds(null)}>
+                ×
+              </button>
+            </div>
+            <p className="parent-creds-note">
+              Share these credentials with the respective parent/guardian. They must change the password on first login.
+            </p>
+            {parentCreds.map((p, i) => (
+              <div className="parent-creds-card" key={i}>
+                <div className="parent-creds-relation">
+                  {p.relation ? p.relation.charAt(0).toUpperCase() + p.relation.slice(1) : "Parent"} — {p.name}
+                </div>
+                <div className="parent-creds-row">
+                  <span className="parent-creds-label">Email:</span>
+                  <span className="parent-creds-value">{p.email}</span>
+                  <button
+                    className="parent-creds-copy"
+                    onClick={() => navigator.clipboard.writeText(p.email)}
+                  >
+                    Copy
+                  </button>
+                </div>
+                {p.tempPassword && (
+                  <div className="parent-creds-row">
+                    <span className="parent-creds-label">Password:</span>
+                    <span className="parent-creds-value">{p.tempPassword}</span>
+                    <button
+                      className="parent-creds-copy"
+                      onClick={() => navigator.clipboard.writeText(p.tempPassword)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <button className="parent-creds-done" onClick={() => setParentCreds(null)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
