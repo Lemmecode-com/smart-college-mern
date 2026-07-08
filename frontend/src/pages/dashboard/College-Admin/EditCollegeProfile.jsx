@@ -280,17 +280,20 @@ export default function EditCollegeProfile() {
 
       const res = await api.put("/college/edit/my-college", payload);
 
-      toast.success(res.data.message || "Profile updated successfully!", {
+      setValidationErrors({});
+      setUnsavedChanges(false);
+      setHasUserModified(false);
+
+      toast.success(res.data?.message || "Profile updated successfully!", {
         position: "top-right",
         autoClose: 3000,
         icon: <FaCheckCircle />,
         progressStyle: { background: "#28a745" },
-        onClose: () => {
-          setUnsavedChanges(false);
-          setHasUserModified(false);
-          navigate("/college/profile");
-        },
       });
+
+      setTimeout(() => {
+        navigate("/college/profile");
+      }, 300);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Failed to update college profile",
@@ -709,7 +712,7 @@ export default function EditCollegeProfile() {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={saving || Object.keys(validationErrors).length > 0}
+                    disabled={saving}
                   >
                     {saving ? (
                       <>

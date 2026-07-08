@@ -176,7 +176,7 @@ export default function EditStudentProfile() {
       <div className="card shadow-lg border-0 rounded-4 glass-card">
         <div className="card-body p-4">
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
 
             {/* ========== PERSONAL ========== */}
             <h5 className="fw-bold mb-3">
@@ -192,7 +192,7 @@ export default function EditStudentProfile() {
                   name="fullName"
                   value={form.fullName}
                   onChange={handleChange}
-                  required
+                  disabled
                 />
               </div>
 
@@ -203,7 +203,7 @@ export default function EditStudentProfile() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  required
+                  disabled
                 />
               </div>
 
@@ -228,6 +228,7 @@ export default function EditStudentProfile() {
                   name="gender"
                   value={form.gender}
                   onChange={handleChange}
+                  disabled
                 >
                   <option>Male</option>
                   <option>Female</option>
@@ -246,6 +247,7 @@ export default function EditStudentProfile() {
                   name="dateOfBirth"
                   value={form.dateOfBirth}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
             </div>
@@ -331,6 +333,7 @@ export default function EditStudentProfile() {
                   name="admissionYear"
                   value={form.admissionYear}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
 
@@ -342,6 +345,7 @@ export default function EditStudentProfile() {
                   name="currentSemester"
                   value={form.currentSemester}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
             </div>
