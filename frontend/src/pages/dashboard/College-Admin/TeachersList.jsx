@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -58,6 +58,8 @@ export default function TeachersList() {
     key: "name",
     direction: "asc",
   });
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterGroupRef = useRef(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -107,6 +109,23 @@ export default function TeachersList() {
   useEffect(() => {
     fetchTeachers();
   }, []);
+
+  /* ================= CLICK OUTSIDE TO CLOSE FILTER ================= */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterGroupRef.current && !filterGroupRef.current.contains(event.target)) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    if (showFilterDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterDropdown]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
@@ -376,7 +395,7 @@ export default function TeachersList() {
       )}
 
       {/* FILTERS SECTION */}
-      <div className="erp-card animate-fade-in">
+      <div className="erp-card animate-fade-in filter-card">
         <div className="erp-card-body">
           <div className="filters-container">
             <div className="search-box">
@@ -390,15 +409,19 @@ export default function TeachersList() {
               />
             </div>
 
-            <div className="filter-group">
-              <button className="filter-btn" aria-label="Open status filter">
+            <div className="filter-group" ref={filterGroupRef}>
+              <button 
+                className="filter-btn" 
+                aria-label="Open status filter"
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              >
                 <FaFilter className="filter-icon" />
                 <span>
                   Filter: {filterStatus === "ALL" ? "All" : filterStatus}
                 </span>
                 <FaChevronDown className="filter-arrow" />
               </button>
-              <div className="filter-dropdown">
+              <div className={`filter-dropdown ${showFilterDropdown ? "show" : ""}`}>
                 <div className="filter-section">
                   <label>Status Filter</label>
                   <div className="filter-options">
@@ -409,7 +432,7 @@ export default function TeachersList() {
                           name="status"
                           value={status}
                           checked={filterStatus === status}
-                          onChange={(e) => setFilterStatus(e.target.value)}
+                          onChange={(e) => { setFilterStatus(e.target.value); setShowFilterDropdown(false); }}
                           aria-label={`Filter by ${status} teachers`}
                         />
                         <span>{status}</span>
@@ -815,6 +838,10 @@ export default function TeachersList() {
           box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
         }
         
+        .filter-card {
+          overflow: visible;
+        }
+        
         .erp-card-header {
           padding: 1.5rem 1.75rem;
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -939,7 +966,7 @@ export default function TeachersList() {
           display: none;
         }
         
-        .filter-group:hover .filter-dropdown {
+        .filter-dropdown.show {
           display: block;
         }
         
