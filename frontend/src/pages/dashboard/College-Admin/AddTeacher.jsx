@@ -192,6 +192,11 @@ export default function AddTeacher() {
       isValid = false;
     }
 
+    if (formData.dateOfBirth && new Date(formData.dateOfBirth + "T00:00:00") > new Date()) {
+      errors.dateOfBirth = 'Date of Birth cannot be in the future';
+      isValid = false;
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -644,13 +649,14 @@ export default function AddTeacher() {
                           required
                           error={validationErrors.dateOfBirth}
                         >
-                          <input
-                            type="date"
-                            name="dateOfBirth"
-                            value={formData.dateOfBirth}
-                            onChange={handleChange}
-                            className="form-control"
-                          />
+                           <input
+                             type="date"
+                             name="dateOfBirth"
+                             value={formData.dateOfBirth}
+                             onChange={handleChange}
+                             className="form-control"
+                             max={new Date().toISOString().split("T")[0]}
+                           />
                         </FormField>
                       </div>
 
