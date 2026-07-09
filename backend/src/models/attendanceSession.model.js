@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { SLOT_TYPE_VALUES } = require("../utils/constants");
 
 const attendanceSessionSchema = new mongoose.Schema(
   {
@@ -119,7 +120,7 @@ const attendanceSessionSchema = new mongoose.Schema(
       room: String,
       slotType: {
         type: String,
-        enum: ["LECTURE", "LAB"],
+        enum: SLOT_TYPE_VALUES,
         required: true,
       }
     },

@@ -143,6 +143,21 @@ exports.NOTIFICATION_TYPE = {
   URGENT: "URGENT",
 };
 
+// ==================== SLOT TYPE ====================
+
+/**
+ * Timetable slot types
+ * Shared source of truth between schemas, validation, controllers and frontend.
+ */
+exports.SLOT_TYPES = {
+  LECTURE: "LECTURE",
+  LAB: "LAB",
+  TUTORIAL: "TUTORIAL",
+  PRACTICAL: "PRACTICAL",
+};
+
+exports.SLOT_TYPE_VALUES = Object.values(exports.SLOT_TYPES);
+
 // ==================== ROLE ====================
 
 /**
@@ -182,4 +197,13 @@ exports.getStatusValues = (category) => {
 exports.isValidStatus = (category, status) => {
   const statuses = exports.getStatusValues(category);
   return statuses.includes(status);
+};
+
+/**
+ * Check if a slot type is valid
+ * @param {string} slotType - Slot type to validate
+ * @returns {boolean} True if valid
+ */
+exports.isValidSlotType = (slotType) => {
+  return exports.SLOT_TYPE_VALUES.includes(slotType);
 };

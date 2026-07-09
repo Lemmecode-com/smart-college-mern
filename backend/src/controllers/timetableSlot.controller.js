@@ -5,6 +5,7 @@ const Teacher = require("../models/teacher.model");
 const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
+const { isValidSlotType } = require("../utils/constants");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -41,6 +42,13 @@ exports.addSlot = async (req, res, next) => {
 
     if (startTime >= endTime) {
       throw new AppError("Start time must be before end time", 400, "INVALID_TIME");
+    }
+
+    /* ================= SLOT TYPE VALIDATION ================= */
+    // Explicit validation so invalid values return a clear HTTP 400
+    // instead of relying on the Mongoose enum ValidationError.
+    if (slotType && !isValidSlotType(slotType)) {
+      throw new AppError("Invalid slot type.", 400, "INVALID_SLOT_TYPE");
     }
 
     /* ================= TIMETABLE ================= */
@@ -159,10 +167,14 @@ exports.addSlot = async (req, res, next) => {
     });
   } catch (error) {
     if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+      return res.status(error.statusCode).json({ success: false, message: error.message, code: error.code });
+    }
+    // Handle Mongoose validation errors (e.g., enum) without leaking internals
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: "Validation failed. Please check your input." });
     }
     console.error("Add Slot Error:", error);
-    res.status(500).json({ message: "Failed to add slot" });
+    res.status(500).json({ success: false, message: "Failed to add slot" });
   }
 };
 
@@ -220,6 +232,13 @@ exports.updateSlot = async (req, res, next) => {
       }
     }
 
+    /* ================= SLOT TYPE VALIDATION ================= */
+    // Explicit validation so invalid values return a clear HTTP 400
+    // instead of relying on the Mongoose enum ValidationError.
+    if (req.body.slotType && !isValidSlotType(req.body.slotType)) {
+      throw new AppError("Invalid slot type.", 400, "INVALID_SLOT_TYPE");
+    }
+
     /* STEP 6: If teacher_id is being updated, validate it matches subject's teacher */
     if (req.body.teacher_id) {
       const newTeacher = await Teacher.findOne({ _id: req.body.teacher_id, college_id: req.college_id });
@@ -260,10 +279,14 @@ exports.updateSlot = async (req, res, next) => {
 
   } catch (error) {
     if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+      return res.status(error.statusCode).json({ success: false, message: error.message, code: error.code });
+    }
+    // Handle Mongoose validation errors (e.g., enum) without leaking internals
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ success: false, message: "Validation failed. Please check your input." });
     }
     console.error("Update Slot Error:", error);
-    res.status(500).json({ message: "Failed to update slot" });
+    res.status(500).json({ success: false, message: "Failed to update slot" });
   }
 };
 
