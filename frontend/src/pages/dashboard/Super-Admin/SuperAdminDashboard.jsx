@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaUsers,
@@ -33,44 +35,57 @@ import {
 } from "react-icons/fa";
 
 // Constants
-const MAX_RETRY = 3;
 const INITIAL_COLLEGES_DISPLAY = 3;
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= FETCH DASHBOARD DATA ================= */
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/dashboard/super-admin");
       setData(res.data || { stats: {}, colleges: [] });
-      setRetryCount(0);
       setLastRefresh(new Date());
     } catch (err) {
-      const errorMessages = {
-        401: "⚠️ Session expired. Please login again.",
-        403: "🚫 Access denied. Super Admin privileges required.",
-        500: "🔧 Server error. Please try again later.",
-        503: "⏳ Service temporarily unavailable.",
-      };
-
       const statusCode = err.response?.status;
-      const message =
-        err.response?.data?.message ||
-        errorMessages[statusCode] ||
-        "Failed to load dashboard data. Please check your connection.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load dashboard data. Please check your connection.";
 
-      setError(message);
-      console.error("Dashboard fetch error:", err);
+      logger.error("Dashboard fetch error:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -82,12 +97,7 @@ export default function SuperAdminDashboard() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < MAX_RETRY) {
-      setRetryCount((prev) => prev + 1);
-      fetchDashboardData();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchDashboardData();
   };
 
   /* ================= KEYBOARD SHORTCUTS ================= */
@@ -156,33 +166,14 @@ export default function SuperAdminDashboard() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon" role="alert" aria-live="assertive">
-          <FaExclamationTriangle className="shake" aria-hidden="true" />
-        </div>
-        <h3>Dashboard Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" aria-hidden="true" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= MAX_RETRY}
-            aria-disabled={retryCount >= MAX_RETRY}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" aria-hidden="true" />
-            {retryCount >= MAX_RETRY
-              ? "Max Retries"
-              : `Retry (${retryCount}/${MAX_RETRY})`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Dashboard Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
