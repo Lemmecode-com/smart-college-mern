@@ -151,9 +151,10 @@ export default function AddSubject() {
           `/courses/department/${formData.department_id}`,
         );
         // Ensure courses is always an array
-        const coursesData = Array.isArray(res.data)
+        const coursesData = (Array.isArray(res.data)
           ? res.data
-          : res.data?.courses || [];
+          : res.data?.courses || [])
+          .filter((c) => c.status === "ACTIVE");
         setCourses(coursesData);
       } catch (err) {
         setCourses([]);
