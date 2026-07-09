@@ -1148,6 +1148,13 @@ export default function AddTeacher() {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontWeight: 'bold' }}>Employee ID:</label>
+              <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px', fontFamily: 'monospace', fontWeight: 'bold', color: '#1a4b6d' }}>
+                {result?.teacher?.employeeId || 'N/A'}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
               <label style={{ fontWeight: 'bold' }}>Email:</label>
               <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px' }}>
                 {result?.teacher?.email}
