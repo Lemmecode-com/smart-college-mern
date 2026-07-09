@@ -31,7 +31,7 @@ export default function EditCourse() {
     const fetchCourse = async () => {
       try {
         const res = await api.get(`/courses/${id}`);
-        setFormData(res.data);
+        setFormData(res.data.course);
       } catch {
         setError("Course not found");
       } finally {
