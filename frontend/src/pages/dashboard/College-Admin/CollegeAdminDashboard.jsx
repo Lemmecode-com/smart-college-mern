@@ -39,6 +39,19 @@ import {
   FaCopy,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -259,10 +272,28 @@ export default function CollegeAdminDashboard() {
         // Set pending admissions
         setPendingAdmissions(data.pendingAdmissions || []);
       } catch (err) {
-        setError(
-          err.response?.data?.message ||
-            "Failed to load dashboard data. Please try again."
-        );
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage =
+          backendMessage ||
+          "Failed to load dashboard data. Please try again.";
+
+        logger.error("College admin dashboard load error:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -279,9 +310,13 @@ export default function CollegeAdminDashboard() {
   /* ================= ERROR STATE ================= */
   if (error) {
     return (
-      <ErrorDisplay 
-        message={error} 
-        onRetry={() => window.location.reload()} 
+      <ApiError
+        title="Dashboard Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={loadDashboardData}
+        onGoBack={() => navigate(-1)}
       />
     );
   }
@@ -660,87 +695,6 @@ export default function CollegeAdminDashboard() {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ================= ERROR DISPLAY ================= */
-function ErrorDisplay({ message, onRetry }) {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '1.5rem',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-        maxWidth: '500px',
-        width: '100%',
-        padding: '2.5rem',
-        textAlign: 'center'
-      }}>
-        <div style={{ 
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(220, 53, 69, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          color: BRAND_COLORS.danger.main,
-          fontSize: '3rem'
-        }}>
-          <FaExclamationTriangle />
-        </div>
-        <h3 style={{ 
-          margin: '0 0 0.5rem 0', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          fontSize: '1.75rem'
-        }}>
-          Dashboard Error
-        </h3>
-        <p style={{ 
-          color: '#64748b', 
-          marginBottom: '1.5rem',
-          lineHeight: 1.6
-        }}>
-          {message}
-        </p>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onRetry}
-          className="dashboard-btn"
-          style={{
-            backgroundColor: BRAND_COLORS.primary.main,
-            color: 'white',
-            border: 'none',
-            padding: 'clamp(0.75rem, 2vw, 0.875rem) clamp(1.5rem, 3vw, 2rem)',
-            borderRadius: '12px',
-            fontSize: '1rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            margin: '0 auto',
-            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)',
-            minHeight: '48px'
-          }}
-        >
-          <motion.div variants={spinVariants} animate="animate">
-            <FaSyncAlt />
-          </motion.div>
-          Refresh Dashboard
-        </motion.button>
-      </div>
-    </div>
   );
 }
 

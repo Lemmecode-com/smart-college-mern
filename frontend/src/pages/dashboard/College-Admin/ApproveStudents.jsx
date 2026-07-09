@@ -9,6 +9,8 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 const PAGE_SIZE = 5;
 
@@ -17,12 +19,22 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const navigate = useNavigate();
   const location = useLocation();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
@@ -48,7 +60,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const fetchApprovedStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/students/approved-students");
 
       let data;
@@ -62,12 +74,27 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
       setStudents(data);
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to load approved students. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load approved students.";
+
+      logger.error("Error fetching approved students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +104,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const fetchAllStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/students/approved");
       const data = Array.isArray(res.data)
         ? res.data
@@ -86,20 +113,31 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         : [];
       setStudents(data);
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to load students. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students.";
+
+      logger.error("Error fetching students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    principalMode ? fetchAllStudents() : fetchApprovedStudents();
-  }, []);
 
   // Refresh when navigating from approval action
   useEffect(() => {
@@ -133,12 +171,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      principalMode ? fetchAllStudents() : fetchApprovedStudents();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
   };
 
   /* ================= CALCULATE STATS ================= */
@@ -251,30 +284,14 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Approved Students Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaChevronLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Approved Students Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 

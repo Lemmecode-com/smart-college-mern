@@ -20,6 +20,9 @@ import {
   FaArrowRight
 } from "react-icons/fa";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 // Brand Color Palette - Matching Application Theme
 const BRAND_COLORS = {
@@ -104,6 +107,19 @@ const spinVariants = {
 };
 
 export default function StaffList() {
+  const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [staff, setStaff] = useState([]);
   const [filteredStaff, setFilteredStaff] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +127,6 @@ export default function StaffList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -120,7 +135,26 @@ export default function StaffList() {
         setStaff(res.data || []);
         setFilteredStaff(res.data || []);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load staff list");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load staff list";
+
+        logger.error("Error fetching staff:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -150,8 +184,20 @@ export default function StaffList() {
     setFilteredStaff(filtered);
   }, [staff, searchTerm, roleFilter, statusFilter]);
 
+  if (error && !loading) {
+    return (
+      <ApiError
+        title="Staff Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchStaff}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
   if (loading) return <Loading fullScreen size="lg" text="Loading staff data..." />;
-  if (error) return <Alert variant="danger">{error}</Alert>;
 
   return (
     <AnimatePresence mode="wait">
@@ -322,8 +368,6 @@ export default function StaffList() {
                     Loading staff data...
                   </span>
                 </div>
-              ) : error ? (
-                <ErrorDisplay message={error} />
               ) : (
                 <div className="parent-table-responsive">
                   {filteredStaff.length === 0 ? (
@@ -415,10 +459,10 @@ export default function StaffList() {
                                    whileHover={{ scale: 1.05 }}
                                    whileTap={{ scale: 0.95 }}
                                    className="parent-btn-view text-black"
-                                   onClick={() => {
-                                     console.log("[StaffList] Navigating to view profile for id:", s.id);
-                                     navigate(`/staff/profile/${s.id}`);
-                                   }}
+                                    onClick={() => {
+                                      logger.info("[StaffList] Navigating to view profile for id:", s.id);
+                                      navigate(`/staff/profile/${s.id}`);
+                                    }}
                                    title="View Profile"
                                  >
                                    <FaEye />
@@ -428,10 +472,10 @@ export default function StaffList() {
                                    whileHover={{ scale: 1.05 }}
                                    whileTap={{ scale: 0.95 }}
                                    className="parent-btn-attendance text-black"
-                                   onClick={() => {
-                                     console.log("[StaffList] Navigating to edit profile for id:", s.id);
-                                     navigate(`/staff/profile/edit/${s.id}`);
-                                   }}
+                                    onClick={() => {
+                                      logger.info("[StaffList] Navigating to edit profile for id:", s.id);
+                                      navigate(`/staff/profile/edit/${s.id}`);
+                                    }}
                                    title="Edit Profile"
                                  >
                                    <FaEdit />
@@ -451,31 +495,6 @@ export default function StaffList() {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ================= ERROR DISPLAY COMPONENT ================= */
-function ErrorDisplay({ message }) {
-  return (
-    <div
-      className="alert alert-danger d-flex align-items-center gap-3 mx-4 mt-4"
-      style={{ borderRadius: '0.75rem' }}
-    >
-      <div
-        className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
-        style={{
-          width: '40px',
-          height: '40px',
-          background: BRAND_COLORS.danger.gradient,
-          color: 'white'
-        }}
-      >
-        <FaExclamationTriangle />
-      </div>
-      <div className="flex-grow-1">
-        <strong>Error:</strong> {message}
-      </div>
-    </div>
   );
 }
 

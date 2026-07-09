@@ -5,6 +5,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
@@ -472,31 +474,22 @@ const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
   </div>
 );
 
-// Toast Notification Component
-const Toast = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className={`toast toast-${type}`}>
-      <div className="toast-icon">
-        {type === 'success' ? <FaCheckCircle /> : <FaExclamationTriangle />}
-      </div>
-      <span className="toast-message">{message}</span>
-      <button className="toast-close" onClick={onClose}>
-        <FaTimes />
-      </button>
-    </div>
-  );
-};
-
-/* ================= MAIN COMPONENT ================= */
+// Empty State Component
 export default function CourseList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useRole();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -518,7 +511,6 @@ export default function CourseList() {
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
-  const [toast, setToast] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -546,12 +538,26 @@ export default function CourseList() {
         setDepartmentsError(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setDepartmentsError("Failed to load departments");
-          // Show toast instead of blocking the page
-          setToast({ 
-            type: 'error', 
-            message: 'Unable to load departments. Please select a department manually.' 
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+          const errorMessage = backendMessage || "Failed to load departments.";
+
+          logger.error("Error fetching departments:", statusCode, errorCode);
+
+          setDepartmentsError({
+            message: errorMessage,
+            statusCode,
+            errorCode,
           });
+
+          const isAuthError =
+            statusCode === 401 ||
+            (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error(errorMessage);
+          }
         }
       } finally {
         setLoading(false);
@@ -584,8 +590,26 @@ export default function CourseList() {
         setCoursesError(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setCoursesError("Failed to load courses. Please try again.");
-          setToast({ type: 'error', message: 'Unable to load courses for this department.' });
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+          const errorMessage = backendMessage || "Failed to load courses.";
+
+          logger.error("Error fetching courses:", statusCode, errorCode);
+
+          setCoursesError({
+            message: errorMessage,
+            statusCode,
+            errorCode,
+          });
+
+          const isAuthError =
+            statusCode === 401 ||
+            (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error(errorMessage);
+          }
         }
         setCourses([]);
       } finally {
@@ -660,9 +684,9 @@ export default function CourseList() {
       setCourses(prev => prev.filter(c => c._id !== courseToDelete._id));
       setShowDeleteModal(false);
       setCourseToDelete(null);
-      setToast({ type: 'success', message: 'Course deleted successfully!' });
+      toast.success('Course deleted successfully!');
     } catch (err) {
-      setToast({ type: 'error', message: 'Failed to delete course. Please try again.' });
+      toast.error('Failed to delete course. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -671,7 +695,7 @@ export default function CourseList() {
   /* ================= EXPORT HANDLER ================= */
   const handleExport = useCallback(() => {
     if (courses.length === 0) {
-      setToast({ type: 'error', message: 'No courses to export.' });
+      toast.error('No courses to export.');
       return;
     }
 
@@ -701,7 +725,7 @@ export default function CourseList() {
     link.click();
     document.body.removeChild(link);
     
-    setToast({ type: 'success', message: 'Courses exported successfully!' });
+    toast.success('Courses exported successfully!');
   }, [courses, selectedDepartment]);
 
   /* ================= NAVIGATION HANDLERS ================= */
@@ -723,24 +747,14 @@ export default function CourseList() {
   /* ================= COURSES ERROR STATE ================= */
   if (coursesError && selectedDepartment && !loadingCourses) {
     return (
-      <div className="error-page-wrapper">
-        <div className="error-page-content">
-          <div className="error-page-icon">
-            <FaExclamationTriangle />
-          </div>
-          <h3>Something went wrong</h3>
-          <p>{coursesError}</p>
-          <div className="error-actions">
-            <button className="btn btn-primary" onClick={handleRetry}>
-              <FaSyncAlt className="btn-icon" />
-              Try Again
-            </button>
-            <button className="btn btn-secondary" onClick={() => setSelectedDepartment("")}>
-              Select Different Department
-            </button>
-          </div>
-        </div>
-      </div>
+      <ApiError
+        title="Course Loading Error"
+        message={coursesError.message}
+        statusCode={coursesError.statusCode}
+        errorCode={coursesError.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -753,15 +767,6 @@ export default function CourseList() {
 
   return (
     <div className="dashboard-container">
-      {/* TOAST NOTIFICATION */}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
-
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[

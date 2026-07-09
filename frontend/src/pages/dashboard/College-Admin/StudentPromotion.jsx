@@ -13,6 +13,8 @@ import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaGraduationCap,
@@ -80,12 +82,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
@@ -96,7 +109,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [overrideAttendanceReason, setOverrideAttendanceReason] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
-  const [retryCount, setRetryCount] = useState(0);
   const [promotedByName, setPromotedByName] = useState(user?.name || "Admin");
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniStudent, setAlumniStudent] = useState(null);
@@ -135,28 +147,35 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const fetchEligibleStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       const res = await getPromotionEligibleStudents();
-
-      // Check if students array exists and has data
-      if (!res.students || res.students.length === 0) {
-        // No students found - this is OK, not an error
-      }
 
       setStudents(res.students || []);
       if (res.promotionThreshold) {
         setPromotionThreshold(res.promotionThreshold);
       }
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to load students for promotion.",
-      );
-      toast.error(err.response?.data?.message || "Failed to load students", {
-        position: "top-right",
-        autoClose: 4000,
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students for promotion.";
+
+      logger.error("Error fetching promotion eligible students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
       });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -176,12 +195,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   }, []);
 
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchEligibleStudents();
-    } else {
-      setError("Maximum retry attempts reached.");
-    }
+    fetchEligibleStudents();
   };
 
   const filteredStudents = useMemo(() => {
@@ -398,16 +412,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
   if (error && !loading && students.length === 0) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Student Promotion Error</h3>
-        <p>{error}</p>
-        <button onClick={handleRetry} className="btn btn-primary">
-          <FaSyncAlt /> Retry
-        </button>
-      </div>
+      <ApiError
+        title="Student Promotion Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -449,13 +461,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       {successMessage && (
         <div className="alert alert-success">
           <FaCheckCircle /> {successMessage}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="alert alert-danger">
-          <FaExclamationTriangle /> {error}
         </div>
       )}
 
