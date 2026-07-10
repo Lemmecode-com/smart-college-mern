@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
   FaClock,
@@ -128,9 +131,21 @@ const spinVariants = {
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function AddTimetableSlot() {
   const [params] = useSearchParams();
   const timetableFromUrl = params.get("timetable");
+  const { user } = useContext(AuthContext);
 
   /* ================= STATE ================= */
   const [timetables, setTimetables] = useState([]);
@@ -151,21 +166,40 @@ export default function AddTimetableSlot() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(null);
+  const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState("");
 
   /* ================= LOAD TIMETABLES ================= */
+  const loadTimetables = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/timetable");
+      setTimetables(res.data.timetables || res.data);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("AddTimetableSlot: Failed to load timetables", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "AddTimetableSlot",
+        role: user?.role,
+      });
+
+      setLoadError({
+        message: backendMessage || "Failed to load timetables",
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadTimetables = async () => {
-      try {
-        const res = await api.get("/timetable");
-        setTimetables(res.data.timetables || res.data);
-      } catch {
-        setError("Failed to load timetables");
-      } finally {
-        setLoading(false);
-      }
-    };
     loadTimetables();
   }, []);
 
@@ -187,7 +221,16 @@ export default function AddTimetableSlot() {
         setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
         setTeachers(teachersRes.data.teachers || teachersRes.data || []);
       } catch (err) {
-        setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
+        logger.error("AddTimetableSlot: Failed to load subjects or teachers", {
+          statusCode: err.response?.status,
+          errorCode: err.response?.data?.code,
+          backendMessage: err.response?.data?.message,
+          page: "AddTimetableSlot",
+          role: user?.role,
+        });
+        setSubmitError(
+          "Failed to load subjects or teachers. Please check if subjects are created for this course.",
+        );
       }
     };
 
@@ -209,7 +252,7 @@ export default function AddTimetableSlot() {
 
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
-    setError("");
+    setSubmitError("");
     setSuccess("");
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -217,7 +260,7 @@ export default function AddTimetableSlot() {
   /* ================= SUBMIT ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
-    setError("");
+    setSubmitError("");
     setSuccess("");
     setSubmitting(true);
 
@@ -241,23 +284,45 @@ export default function AddTimetableSlot() {
 
       setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to add slot";
+      const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
-      
-      // ✅ Show specific validation errors
-      if (errorCode === 'TEACHER_SUBJECT_MISMATCH') {
-        setError("🔒 " + errorMsg);
-      } else if (errorCode === 'SUBJECT_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TEACHER_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TIMETABLE_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TIME_CONFLICT') {
-        setError("⏰ " + errorMsg);
-      } else {
-        setError("❌ " + errorMsg);
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("AddTimetableSlot: Failed to add timetable slot", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "AddTimetableSlot",
+        role: user?.role,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (isAuthError) {
+        setLoadError({
+          message: backendMessage || "Your session has expired",
+          statusCode,
+          errorCode,
+        });
+        return;
       }
+
+      // Friendly, non-technical validation messages
+      const friendlyMessage = {
+        TEACHER_SUBJECT_MISMATCH:
+          "The selected teacher does not match the assigned subject. Please choose a valid teacher.",
+        SUBJECT_NOT_FOUND:
+          "The selected subject could not be found. Please select a subject from the list.",
+        TEACHER_NOT_FOUND:
+          "The selected teacher could not be found. Please select a teacher from the list.",
+        TIMETABLE_NOT_FOUND:
+          "The selected timetable could not be found. Please refresh and try again.",
+        TIME_CONFLICT:
+          "This time slot conflicts with an existing slot. Please choose a different time.",
+      }[errorCode] || "Failed to add timetable slot. Please try again.";
+
+      setSubmitError(friendlyMessage);
     } finally {
       setSubmitting(false);
     }
@@ -265,6 +330,22 @@ export default function AddTimetableSlot() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading timetable slot..." />;
+  }
+
+  if (loadError) {
+    return (
+      <ApiError
+        title="Failed to Load"
+        message={loadError.message}
+        statusCode={loadError.statusCode}
+        errorCode={loadError.errorCode}
+        onRetry={() => {
+          setLoadError(null);
+          loadTimetables();
+        }}
+        onGoBack={() => window.history.back()}
+      />
+    );
   }
 
   return (
@@ -367,7 +448,7 @@ export default function AddTimetableSlot() {
                 </div>
                 
                 <div style={{ padding: '2rem' }}>
-                  {error && (
+                  {submitError && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -384,7 +465,7 @@ export default function AddTimetableSlot() {
                       }}
                     >
                       <FaTimesCircle size={20} />
-                      <span>{error}</span>
+                      <span>{submitError}</span>
                     </motion.div>
                   )}
                   

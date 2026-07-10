@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
@@ -45,6 +46,19 @@ import {
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
 } from "react-icons/fa";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function StudentProfile() {
   const { user } = useContext(AuthContext);
@@ -90,10 +104,15 @@ export default function StudentProfile() {
     }
 
     loadTimeoutRef.current = setTimeout(() => {
+      logger.warn("Student profile request timed out", {
+        page: "StudentProfile",
+        role: user?.role,
+      });
       setError({
         message:
           "Request timed out. Please check your connection and try again.",
         statusCode: 408,
+        errorCode: undefined,
       });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
@@ -132,34 +151,33 @@ export default function StudentProfile() {
       }
 
       const statusCode = err.response?.status;
-      let errorMessage = "";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-      if (statusCode === 401) {
-        errorMessage = "Session expired. Please login again.";
-        toast.error(errorMessage, {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaTimesCircle />,
-        });
-        setTimeout(() => navigate("/login"), 3000);
-      } else if (statusCode === 404) {
-        errorMessage =
-          "Student profile not found. Please contact administration.";
-      } else if (statusCode === 500) {
-        errorMessage =
-          "Server error while loading profile. Please try again later.";
-      } else {
-        errorMessage =
-          err.response?.data?.message ||
-          "Failed to load student profile. Please try again.";
-      }
-
-      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
+      logger.error("Student profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentProfile",
+        role: user?.role,
       });
+
+      setError({
+        message: "Failed to load student profile. Please try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error("Failed to load student profile. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      }
     } finally {
       setLoading(false);
     }
