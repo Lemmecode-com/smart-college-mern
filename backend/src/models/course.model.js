@@ -84,7 +84,7 @@ const courseSchema = new mongoose.Schema(
 );
 
 // ✅ NEW: Auto-calculate durationYears from durationSemesters before saving
-courseSchema.pre('save', async function(next) {
+courseSchema.pre('save', async function() {
   try {
     // Always calculate durationYears if durationSemesters is set
     if (this.durationSemesters) {

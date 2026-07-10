@@ -97,6 +97,7 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     const keyPattern = err.keyPattern || {};
+    const keyValue = err.keyValue || {};
     const isTimetableExceptionUniqueIndex =
       err.indexName === "idx_exception_unique_pending_approved" ||
       (
@@ -114,12 +115,28 @@ const errorHandler = (err, req, res, next) => {
     };
 
     if (!isTimetableExceptionUniqueIndex) {
-      const field = Object.keys(err.keyValue || {})[0];
-      error = {
-        statusCode: 409,
-        message: `${field || "field"} already exists`,
-        code: "DUPLICATE_FIELD",
-      };
+      const isCourseUniqueIndex =
+        err.indexName === "college_id_1_department_id_1_code_1" ||
+        (
+          keyPattern.college_id === 1 &&
+          keyPattern.department_id === 1 &&
+          keyPattern.code === 1
+        );
+
+      if (isCourseUniqueIndex) {
+        error = {
+          statusCode: 409,
+          message: "duplicate course code",
+          code: "DUPLICATE_COURSE_CODE",
+        };
+      } else {
+        const field = Object.keys(keyValue)[0];
+        error = {
+          statusCode: 409,
+          message: `${field || "field"} already exists`,
+          code: "DUPLICATE_FIELD",
+        };
+      }
     }
   }
 

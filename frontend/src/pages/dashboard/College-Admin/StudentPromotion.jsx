@@ -13,6 +13,8 @@ import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaGraduationCap,
@@ -80,12 +82,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
@@ -96,7 +109,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [overrideAttendanceReason, setOverrideAttendanceReason] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
-  const [retryCount, setRetryCount] = useState(0);
   const [promotedByName, setPromotedByName] = useState(user?.name || "Admin");
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniStudent, setAlumniStudent] = useState(null);
@@ -135,28 +147,35 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const fetchEligibleStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       const res = await getPromotionEligibleStudents();
-
-      // Check if students array exists and has data
-      if (!res.students || res.students.length === 0) {
-        // No students found - this is OK, not an error
-      }
 
       setStudents(res.students || []);
       if (res.promotionThreshold) {
         setPromotionThreshold(res.promotionThreshold);
       }
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to load students for promotion.",
-      );
-      toast.error(err.response?.data?.message || "Failed to load students", {
-        position: "top-right",
-        autoClose: 4000,
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students for promotion.";
+
+      logger.error("Error fetching promotion eligible students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
       });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -176,12 +195,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   }, []);
 
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchEligibleStudents();
-    } else {
-      setError("Maximum retry attempts reached.");
-    }
+    fetchEligibleStudents();
   };
 
   const filteredStudents = useMemo(() => {
@@ -398,16 +412,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
   if (error && !loading && students.length === 0) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Student Promotion Error</h3>
-        <p>{error}</p>
-        <button onClick={handleRetry} className="btn btn-primary">
-          <FaSyncAlt /> Retry
-        </button>
-      </div>
+      <ApiError
+        title="Student Promotion Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -449,13 +461,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       {successMessage && (
         <div className="alert alert-success">
           <FaCheckCircle /> {successMessage}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="alert alert-danger">
-          <FaExclamationTriangle /> {error}
         </div>
       )}
 
@@ -600,118 +605,214 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
       {/* History View */}
       {showHistory ? (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">
-              <FaGraduationCap /> Promotion History
-            </h3>
-            <button
-              onClick={() => setShowHistory(false)}
-              className="btn btn-outline-secondary"
-            >
-              ← Back to Students
-            </button>
-          </div>
-          <div className="card-body">
-            <div className="table-responsive">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Promotion</th>
-                    <th>Fee Status</th>
-                    <th>Attendance</th>
-                    <th>Override</th>
-                    <th>Date</th>
-                    <th>Promoted By</th>
-                    <th>Remarks</th>
-                  </tr>
-
-                </thead>
-                <tbody>
-                  {promotionHistory && promotionHistory.length > 0 ? (
-                    promotionHistory.map((record) => (
-                      <tr key={record._id}>
-                        <td>
-                          <div className="student-name">
-                            {record.student_id?.fullName}
-                          </div>
-                          <div className="student-email">
-                            {record.student_id?.email}
-                          </div>
-                        </td>
-                        <td>
-                          <div>
-                            <span className="text-muted">
-                              {record.fromAcademicYear ||
-                                `Sem ${record.fromSemester}`}
-                            </span>
-                            <span className="mx-2">→</span>
-                            <span className="text-primary fw-bold">
-                              {record.toAcademicYear ||
-                                `Sem ${record.toSemester}`}
-                            </span>
-                          </div>
-                          <div
-                            className="text-muted"
-                            style={{ fontSize: "11px" }}
-                          >
-                            Sem {record.fromSemester} → Sem {record.toSemester}
-                          </div>
-                          {record.isFinalSemesterPromotion && (
-                            <span className="badge badge-warning mt-1" style={{ fontSize: "10px" }}>
-                              <FaGraduationCap className="mr-1" /> Final Year
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getFeeStatusBadge(record.feeStatus)}`}
-                          >
-                            {record.feeStatus.replace("_", " ")}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getAttendanceStatusBadge(record.attendanceStatus)}`}
-                          >
-                            {formatStatus(record.attendanceStatus)}
-                          </span>
-                          <div className="text-muted" style={{ fontSize: "11px" }}>
-                            {record.attendancePercentage ?? 0}%
-                          </div>
-                          {record.attendanceCheckedAt && (
-                            <div className="text-muted" style={{ fontSize: "11px" }}>
-                              {new Date(record.attendanceCheckedAt).toLocaleString()}
-                            </div>
-                          )}
-                        </td>
-                        <td className="text-muted">
-                          {record.attendanceOverridden
-                            ? record.attendanceOverrideReason || "Attendance override recorded"
-                            : "-"}
-                        </td>
-                        <td className="text-muted">
-                          {new Date(record.promotionDate).toLocaleDateString()}
-                        </td>
-                        <td className="text-muted">
-                          {record.promotedByName || "-"}
-                        </td>
-                        <td className="text-muted">{record.remarks || "-"}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="8" className="text-center" style={{ padding: "40px" }}>
-                        No promotion history found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+        <>
+          {/* History Page Header */}
+          <div className="erp-page-header">
+            <div className="erp-header-content">
+              <div className="erp-header-icon">
+                <FaHistory />
+              </div>
+              <div className="erp-header-text">
+                <h1 className="erp-page-title">Promotion History</h1>
+                <p className="erp-page-subtitle">
+                  View all student promotion records across the college
+                </p>
+              </div>
+            </div>
+            <div className="header-actions">
+              <button
+                onClick={() => setShowHistory(false)}
+                className="history-back-btn"
+              >
+                ← Back to Students
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* History Stats */}
+          <div className="stats-grid animate-fade-in">
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%)",
+                }}
+              >
+                <FaHistory />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Total Promotions</div>
+                <div className="stat-card-value">
+                  {promotionHistory.length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #FF9800 0%, #F57C00 100%)",
+                }}
+              >
+                <FaGraduationCap />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Final Year Promotions</div>
+                <div className="stat-card-value">
+                  {promotionHistory.filter((r) => r.isFinalSemesterPromotion).length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+                }}
+              >
+                <FaCheckCircle />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Fully Paid</div>
+                <div className="stat-card-value">
+                  {promotionHistory.filter((r) => r.feeStatus === "FULLY_PAID").length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)",
+                }}
+              >
+                <FaUsers />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Unique Students</div>
+                <div className="stat-card-value">
+                  {new Set(promotionHistory.map((r) => r.student_id?._id)).size}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* History Table */}
+          <div className="erp-card animate-fade-in">
+            <div className="erp-card-header">
+              <h3>
+                <FaHistory className="erp-card-icon" />
+                Promotion History Records
+              </h3>
+              <span className="record-count">
+                {promotionHistory.length}{" "}
+                {promotionHistory.length === 1 ? "Record" : "Records"}
+              </span>
+            </div>
+            <div className="erp-card-body">
+              <div className="table-container">
+                {promotionHistory && promotionHistory.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Student</th>
+                          <th>Promotion</th>
+                          <th>Fee Status</th>
+                          <th>Attendance</th>
+                          <th>Override</th>
+                          <th>Date</th>
+                          <th>Promoted By</th>
+                          <th>Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {promotionHistory.map((record) => (
+                          <tr key={record._id}>
+                            <td>
+                              <div className="student-name">
+                                {record.student_id?.fullName}
+                              </div>
+                              <div className="student-email">
+                                {record.student_id?.email}
+                              </div>
+                            </td>
+                            <td>
+                              <div>
+                                <span className="text-muted">
+                                  {record.fromAcademicYear ||
+                                    `Sem ${record.fromSemester}`}
+                                </span>
+                                <span className="mx-2">→</span>
+                                <span className="text-primary fw-bold">
+                                  {record.toAcademicYear ||
+                                    `Sem ${record.toSemester}`}
+                                </span>
+                              </div>
+                              <div
+                                className="text-muted"
+                                style={{ fontSize: "11px" }}
+                              >
+                                Sem {record.fromSemester} → Sem {record.toSemester}
+                              </div>
+                              {record.isFinalSemesterPromotion && (
+                                <span className="badge badge-warning mt-1" style={{ fontSize: "10px" }}>
+                                  <FaGraduationCap className="mr-1" /> Final Year
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <span
+                                className={`badge ${getFeeStatusBadge(record.feeStatus)}`}
+                              >
+                                {record.feeStatus.replace("_", " ")}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`badge ${getAttendanceStatusBadge(record.attendanceStatus)}`}
+                              >
+                                {formatStatus(record.attendanceStatus)}
+                              </span>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>
+                                {record.attendancePercentage ?? 0}%
+                              </div>
+                              {record.attendanceCheckedAt && (
+                                <div className="text-muted" style={{ fontSize: "11px" }}>
+                                  {new Date(record.attendanceCheckedAt).toLocaleString()}
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-muted">
+                              {record.attendanceOverridden
+                                ? record.attendanceOverrideReason || "Attendance override recorded"
+                                : "-"}
+                            </td>
+                            <td className="text-muted">
+                              {new Date(record.promotionDate).toLocaleDateString()}
+                            </td>
+                            <td className="text-muted">
+                              {record.promotedByName || "-"}
+                            </td>
+                            <td className="text-muted">{record.remarks || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <FaHistory className="empty-icon" />
+                    <p className="empty-title">No Promotion History</p>
+                    <p className="empty-text">
+                      No promotion records have been created yet. Promote students to start building history.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       ) : (
         /* Students Table */
         <div className="card">
@@ -1277,12 +1378,197 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           font-weight: 400;
         }
 
+        .erp-page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+          margin-bottom: 24px;
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          padding: 28px 32px;
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
+          color: white;
+        }
+
         .header-actions {
           display: flex;
           gap: 12px;
         }
 
-        .btn-outline-primary {
+        .history-back-btn {
+          background: rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(10px);
+          padding: 10px 20px;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          text-decoration: none;
+          line-height: 1.4;
+        }
+
+        .history-back-btn:hover {
+          background: rgba(255, 255, 255, 0.25);
+          border-color: rgba(255, 255, 255, 0.6);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          color: #ffffff;
+        }
+
+        .erp-header-content {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .erp-header-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 26px;
+          color: white;
+          backdrop-filter: blur(10px);
+          flex-shrink: 0;
+        }
+
+        .erp-header-text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .erp-page-title {
+          font-size: 26px;
+          font-weight: 700;
+          color: white;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .erp-page-subtitle {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          margin: 0;
+          font-weight: 400;
+        }
+
+        .record-count {
+          background: rgba(61, 181, 230, 0.15);
+          color: #0f3a4a;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .table-container {
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid #e2e8f0;
+        }
+
+        .erp-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.06);
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+        }
+
+        .erp-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 18px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .erp-card-header h3 {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0f3a4a;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .erp-card-icon {
+          color: #3db5e6;
+          font-size: 20px;
+        }
+
+        .erp-card-body {
+          padding: 0;
+        }
+
+        .erp-card-body .table-responsive {
+          border-radius: 0;
+        }
+
+        .stat-card-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          flex-shrink: 0;
+          color: white;
+        }
+
+        .stat-card-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .stat-card-label {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .stat-card-value {
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f3a4a;
+          line-height: 1;
+        }
           background: rgba(255, 255, 255, 0.15);
           color: skyblue;
           border: 2px solid rgba(255, 255, 255, 0.4);

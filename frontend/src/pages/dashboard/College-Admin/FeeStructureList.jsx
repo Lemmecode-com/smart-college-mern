@@ -6,6 +6,9 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -40,10 +43,20 @@ export default function FeeStructureList() {
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useRole();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
   const [stats, setStats] = useState({
@@ -64,17 +77,34 @@ export default function FeeStructureList() {
   /* ================= FETCH ================= */
   const loadStructures = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get("/fees/structure");
       const data = res.data || [];
       setStructures(data);
 
-      // Calculate stats client-side (no API changes)
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load fee structures. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load fee structures.";
+
+      logger.error("Error fetching fee structures:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -112,12 +142,7 @@ export default function FeeStructureList() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      loadStructures();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    loadStructures();
   };
 
   /* ================= SORTING ================= */
@@ -213,30 +238,14 @@ export default function FeeStructureList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Fee Structures Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Fee Structures Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 

@@ -174,11 +174,9 @@ exports.approveStudent = async (req, res, next) => {
     const sequence = String(existingCount + 1).padStart(4, "0");
     student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
-    // 7️⃣ Approve student (set to OFFER_MADE status initially)
-    student.status = "OFFER_MADE";
-    student.offerMadeBy = req.user.id;
-    student.offerMadeAt = new Date();
-    student.approvedAt = undefined;
+    // 7️⃣ Approve student (set to APPROVED status)
+    student.status = "APPROVED";
+    student.approvedAt = new Date();
     await student.save();
 
 
@@ -187,38 +185,38 @@ exports.approveStudent = async (req, res, next) => {
       .logStudentOfferMade(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 📧 Send offer email to student and report delivery status
-    try {
-      const college = await College.findById(student.college_id).select(
-        "name email",
-      );
-      const crs = await Course.findById(student.course_id).select("name");
-      const loginUrl = buildFrontendUrl("/login");
+    // 📧 Send offer email to student (non-blocking so the response returns immediately)
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select(
+          "name email",
+        );
+        const crs = await Course.findById(student.course_id).select("name");
+        const loginUrl = buildFrontendUrl("/login");
 
-      emailResult = await sendAdmissionOfferEmail({
-        to: student.email,
-        studentName: student.fullName,
-        courseName: crs?.name || "N/A",
-        collegeName: college?.name || "Our College",
-        admissionYear: student.admissionYear,
-        enrollmentNumber: student.enrollmentNumber,
-        loginUrl,
-        email: student.email,
-        collegeId: student.college_id,
-      });
-      console.log(`📧 Admission offer email sent to ${student.email}`);
-    } catch (e) {
-      console.error("❌ Admission offer email failed:", e.message);
-    }
+        emailResult = await sendAdmissionOfferEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: crs?.name || "N/A",
+          collegeName: college?.name || "Our College",
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl,
+          email: student.email,
+          collegeId: student.college_id,
+        });
+        console.log(`📧 Admission offer email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Admission offer email failed:", e.message);
+      }
+    })();
 
-    const message = emailResult.success
-      ? "Admission offer made successfully"
-      : "Admission offer made. Email delivery failed - please share credentials manually.";
+    const message = "Student approved successfully!";
 
     res.json({
       message,
-      emailDelivered: emailResult.success,
-      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
+      emailDelivered: null,
+      emailError: null,
       temporaryPassword: tempPassword,
 
       student: {
@@ -421,27 +419,12 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 9. Make admission offer ──
-        student.status = "OFFER_MADE";
-        student.offerMadeBy = req.user.id;
-        student.offerMadeAt = new Date();
+        // ── 9. Approve student ──
+        student.status = "APPROVED";
+        student.approvedAt = new Date();
         await student.save();
 
-        // ── 10. Auto-create parent accounts (non-blocking) ──
-        let bulkParentResult = null;
-        (async () => {
-          try {
-            bulkParentResult = await parentCreationService.createParentUsers(student);
-            if (bulkParentResult.count > 0) {
-              console.log(`✅ Bulk: Created ${bulkParentResult.count} parent accounts for ${student.fullName}`);
-            }
-          } catch (error) {
-            console.error(`❌ Bulk: Failed to create parent accounts for ${student.fullName}:`, error.message);
-            bulkParentResult = { count: 0, parents: [], error: error.message };
-          }
-        })();
-
-        // ── 11. Send offer email (non-blocking) ──
+        // ── 10. Send offer email (non-blocking) ──
         (async () => {
           try {
             const college = await College.findById(student.college_id).select(
@@ -470,10 +453,6 @@ exports.bulkApproveStudents = async (req, res, next) => {
           studentId: student._id,
           fullName: student.fullName,
           email: student.email,
-          parentAccounts: bulkParentResult ? {
-            created: bulkParentResult.count,
-            parents: bulkParentResult.parents
-          } : null,
         });
       } catch (err) {
         results.failed.push({ studentId, reason: err.message || "Unknown" });
@@ -613,23 +592,23 @@ exports.rejectStudent = async (req, res, next) => {
 
 /**
  * CONFIRM ENROLLMENT
- * Transitions student from OFFER_MADE → ENROLLED → APPROVED
+ * Transitions student from APPROVED/OFFER_MADE → ENROLLED
  * Called when student confirms their seat and completes enrollment
  */
 exports.confirmEnrollment = async (req, res, next) => {
   try {
     const { studentId } = req.params;
 
-    // Find student with OFFER_MADE status
+    // Find student with APPROVED or OFFER_MADE status
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "OFFER_MADE",
+      status: { $in: ["APPROVED", "OFFER_MADE"] },
     });
 
     if (!student) {
       throw new AppError(
-        "Student not found or not in OFFER_MADE status",
+        "Student not found or not in APPROVED/OFFER_MADE status",
         404,
         "STUDENT_NOT_FOUND",
       );

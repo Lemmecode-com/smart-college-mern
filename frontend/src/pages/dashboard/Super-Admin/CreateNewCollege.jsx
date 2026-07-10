@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 import {
   FaUniversity,
@@ -74,6 +75,17 @@ export default function CreateNewCollege() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "SUPER_ADMIN")
     return <Navigate to="/super-admin/dashboard" />;
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= FORM STATE ================= */
   const [formData, setFormData] = useState({
@@ -226,10 +238,22 @@ export default function CreateNewCollege() {
         autoClose: 3000,
       });
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to create college. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to create college. Please try again.";
+
+      logger.error("Error creating college:", statusCode, errorCode);
+
+      setError(errorMessage);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

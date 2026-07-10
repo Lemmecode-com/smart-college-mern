@@ -11,6 +11,8 @@ import {
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
 import SearchableSelect from "../../../../components/SearchableSelect";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -43,6 +45,17 @@ const EXCEPTION_TYPES = {
 const MotionDiv = motion.div;
 const MotionButton = motion.button;
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function CreateException() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -52,7 +65,8 @@ export default function CreateException() {
   const [selectedTimetable, setSelectedTimetable] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(null);
+  const [submitError, setSubmitError] = useState("");
 
   // Get timetableId from URL params
   const timetableIdParam = searchParams.get("timetableId");
@@ -74,32 +88,47 @@ export default function CreateException() {
   });
 
 // Fetch timetables
-   useEffect(() => {
-    const fetchTimetables = async () => {
-      try {
-        const res = await api.get("/timetable");
-        const timetablesList = res.data.timetables || [];
-        setTimetables(timetablesList);
+  const fetchTimetables = async () => {
+    try {
+      const res = await api.get("/timetable");
+      const timetablesList = res.data.timetables || [];
+      setTimetables(timetablesList);
 
-        // If timetableId is in URL, select it
-        if (timetableIdParam) {
-          const tt = timetablesList.find((t) => t._id === timetableIdParam);
-          if (tt) {
-            setSelectedTimetable(tt);
-          } else if (timetablesList.length > 0) {
-            setSelectedTimetable(timetablesList[0]);
-          }
+      // If timetableId is in URL, select it
+      if (timetableIdParam) {
+        const tt = timetablesList.find((t) => t._id === timetableIdParam);
+        if (tt) {
+          setSelectedTimetable(tt);
         } else if (timetablesList.length > 0) {
           setSelectedTimetable(timetablesList[0]);
         }
-      } catch (err) {
-        console.error("Failed to fetch timetables:", err);
-        toast.error("Failed to load timetables");
-      } finally {
-        setLoading(false);
+      } else if (timetablesList.length > 0) {
+        setSelectedTimetable(timetablesList[0]);
       }
-    };
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
+      logger.error("CreateException: Failed to fetch timetables", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "CreateException",
+        role: user?.role,
+      });
+
+      setLoadError({
+        message: backendMessage || "Failed to load timetables",
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTimetables();
   }, [timetableIdParam]);
 
@@ -113,10 +142,16 @@ const fetchSubjectsForSearch = async (query) => {
          value: s._id,
          label: `${s.code} - ${s.name}`,
        }));
-     } catch (err) {
-       console.error("Failed to fetch subjects:", err);
-       return [];
-     }
+      } catch (err) {
+        logger.error("CreateException: Failed to fetch subjects", {
+          statusCode: err.response?.status,
+          errorCode: err.response?.data?.code,
+          backendMessage: err.response?.data?.message,
+          page: "CreateException",
+          role: user?.role,
+        });
+        return [];
+      }
    };
 
 const fetchTeachersForSearch = async (query) => {
@@ -185,7 +220,7 @@ const fetchTeachersForSearch = async (query) => {
     }
 
     setSubmitting(true);
-    setError("");
+    setSubmitError("");
 
     try {
       const payload = {
@@ -228,14 +263,33 @@ const fetchTeachersForSearch = async (query) => {
         });
       }, 1000);
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message ||
-        "Failed to submit exception request";
-      setError(errorMsg);
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("CreateException: Failed to submit exception request", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "CreateException",
+        role: user?.role,
       });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (isAuthError) {
+        setLoadError({
+          message: backendMessage || "Your session has expired",
+          statusCode,
+          errorCode,
+        });
+        return;
+      }
+
+      setSubmitError(
+        "Failed to submit the exception request. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -271,6 +325,22 @@ const fetchTeachersForSearch = async (query) => {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading..." color="primary" />;
+  }
+
+  if (loadError) {
+    return (
+      <ApiError
+        title="Failed to Load"
+        message={loadError.message}
+        statusCode={loadError.statusCode}
+        errorCode={loadError.errorCode}
+        onRetry={() => {
+          setLoadError(null);
+          fetchTimetables();
+        }}
+        onGoBack={() => navigate("/timetable/exceptions")}
+      />
+    );
   }
 
   return (
@@ -401,7 +471,7 @@ const fetchTeachersForSearch = async (query) => {
               }}
             >
               <div className="card-body p-4">
-                {error && (
+                {submitError && (
                   <MotionDiv
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -415,7 +485,7 @@ const fetchTeachersForSearch = async (query) => {
                     }}
                   >
                     <FaInfoCircle className="me-2" />
-                    {error}
+                    {submitError}
                   </MotionDiv>
                 )}
 

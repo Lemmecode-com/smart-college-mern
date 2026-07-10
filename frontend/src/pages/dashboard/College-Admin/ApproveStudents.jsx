@@ -9,6 +9,8 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 const PAGE_SIZE = 5;
 
@@ -17,12 +19,22 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const navigate = useNavigate();
   const location = useLocation();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
@@ -32,6 +44,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const [processingId, setProcessingId] = useState(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStudentId, setEnrollStudentId] = useState(null);
+  const [parentCreds, setParentCreds] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -47,8 +60,11 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const fetchApprovedStudents = async () => {
     try {
       setLoading(true);
-      setError("");
-      const res = await api.get("/students/approved-students");
+      setError(null);
+      // Fetch the full set (not just the default page of 20) so the
+      // Total Approved / Departments / Courses stat cards reflect all
+      // approved students instead of only the first paginated page.
+      const res = await api.get("/students/approved-students?limit=10000");
 
       let data;
       if (res.data.data) {
@@ -61,12 +77,27 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
       setStudents(data);
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to load approved students. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load approved students.";
+
+      logger.error("Error fetching approved students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -76,7 +107,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const fetchAllStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/students/approved");
       const data = Array.isArray(res.data)
         ? res.data
@@ -85,19 +116,36 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         : [];
       setStudents(data);
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to load students. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students.";
+
+      logger.error("Error fetching students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial data fetch on mount
   useEffect(() => {
     principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refresh when navigating from approval action
@@ -120,7 +168,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         now - lastRefreshTime > MIN_REFRESH_INTERVAL
       ) {
         lastRefreshTime = now;
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       }
     };
 
@@ -132,12 +180,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      principalMode ? fetchAllStudents() : fetchApprovedStudents();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
   };
 
   /* ================= CALCULATE STATS ================= */
@@ -183,7 +226,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         toast.success(`${student.fullName} reactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to reactivate", {
           position: "top-right",
@@ -201,7 +244,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         toast.success(`${student.fullName} deactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to deactivate", {
           position: "top-right",
@@ -221,10 +264,13 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
     setProcessingId(enrollStudentId);
     try {
-      await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
+      const { data } = await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
       toast.success("Enrollment confirmed successfully!", {
         position: "top-right",
       });
+      if (data?.parentAccounts?.parents?.length) {
+        setParentCreds(data.parentAccounts.parents);
+      }
       fetchApprovedStudents();
     } catch (e) {
       toast.error(e.response?.data?.message || "Failed to confirm enrollment", {
@@ -247,30 +293,14 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Approved Students Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaChevronLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Approved Students Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -503,7 +533,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          {student.status === "OFFER_MADE" && (
+                          {(student.status === "APPROVED" || student.status === "OFFER_MADE") && (
                             <button
                               className="btn btn-action btn-confirm-enrollment"
                               onClick={() => handleConfirmEnrollment(student._id)}
@@ -1378,6 +1408,112 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 100%);
           box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
         }
+
+        .parent-creds-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .parent-creds-modal {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 460px;
+          padding: 22px 24px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .parent-creds-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .parent-creds-header h3 {
+          margin: 0;
+          font-size: 18px;
+          color: #1f2d3d;
+        }
+
+        .parent-creds-close {
+          border: none;
+          background: transparent;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          color: #6c757d;
+        }
+
+        .parent-creds-note {
+          font-size: 13px;
+          color: #6c757d;
+          margin: 8px 0 16px;
+        }
+
+        .parent-creds-card {
+          border: 1px solid #e3e6ea;
+          border-radius: 8px;
+          padding: 12px 14px;
+          margin-bottom: 12px;
+          background: #f8f9fb;
+        }
+
+        .parent-creds-relation {
+          font-weight: 600;
+          color: #0d6efd;
+          margin-bottom: 8px;
+        }
+
+        .parent-creds-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 6px;
+          font-size: 14px;
+        }
+
+        .parent-creds-label {
+          font-weight: 600;
+          color: #495057;
+          min-width: 70px;
+        }
+
+        .parent-creds-value {
+          flex: 1;
+          word-break: break-all;
+          color: #212529;
+        }
+
+        .parent-creds-copy {
+          border: none;
+          background: #0d6efd;
+          color: #fff;
+          border-radius: 6px;
+          padding: 3px 10px;
+          cursor: pointer;
+          font-size: 12px;
+        }
+
+        .parent-creds-done {
+          width: 100%;
+          margin-top: 6px;
+          border: none;
+          background: #198754;
+          color: #fff;
+          border-radius: 8px;
+          padding: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+        }
       `}</style>
 
       {/* CONFIRM ENROLLMENT MODAL */}
@@ -1395,6 +1531,55 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         cancelText="Cancel"
         isLoading={processingId === enrollStudentId}
       />
+
+      {/* PARENT CREDENTIALS MODAL */}
+      {parentCreds && (
+        <div className="parent-creds-overlay" onClick={() => setParentCreds(null)}>
+          <div className="parent-creds-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="parent-creds-header">
+              <h3>Parent/Guardian Account Credentials</h3>
+              <button className="parent-creds-close" onClick={() => setParentCreds(null)}>
+                ×
+              </button>
+            </div>
+            <p className="parent-creds-note">
+              Share these credentials with the respective parent/guardian. They must change the password on first login.
+            </p>
+            {parentCreds.map((p, i) => (
+              <div className="parent-creds-card" key={i}>
+                <div className="parent-creds-relation">
+                  {p.relation ? p.relation.charAt(0).toUpperCase() + p.relation.slice(1) : "Parent"} — {p.name}
+                </div>
+                <div className="parent-creds-row">
+                  <span className="parent-creds-label">Email:</span>
+                  <span className="parent-creds-value">{p.email}</span>
+                  <button
+                    className="parent-creds-copy"
+                    onClick={() => navigator.clipboard.writeText(p.email)}
+                  >
+                    Copy
+                  </button>
+                </div>
+                {p.tempPassword && (
+                  <div className="parent-creds-row">
+                    <span className="parent-creds-label">Password:</span>
+                    <span className="parent-creds-value">{p.tempPassword}</span>
+                    <button
+                      className="parent-creds-copy"
+                      onClick={() => navigator.clipboard.writeText(p.tempPassword)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <button className="parent-creds-done" onClick={() => setParentCreds(null)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

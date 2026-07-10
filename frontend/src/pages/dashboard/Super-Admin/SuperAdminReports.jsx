@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import {
   FaUsers,
   FaCheckCircle,
   FaHourglassHalf,
   FaChartPie,
-  FaSyncAlt,
-  FaExclamationTriangle,
-  FaSpinner,
   FaInfoCircle,
   FaGraduationCap,
   FaUniversity,
@@ -19,21 +21,50 @@ import {
 } from "react-icons/fa";
 
 export default function SuperAdminReports() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/reports/admissions/super-summary");
       setData(res.data);
-      setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load admission summary. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load admission summary. Please try again.";
+
+      logger.error("Error fetching admission summary:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -45,12 +76,7 @@ export default function SuperAdminReports() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      fetchSummary();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchSummary();
   };
 
   /* ================= LOADING SKELETON ================= */
@@ -78,30 +104,14 @@ export default function SuperAdminReports() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Reports Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Reports Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchSummary}
+        onGoBack={() => window.history.back()}
+      />
     );
   }
 

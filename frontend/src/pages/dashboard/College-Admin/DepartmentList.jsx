@@ -30,6 +30,20 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
@@ -37,6 +51,7 @@ export default function DepartmentList() {
   const { canCreate, canEdit, canDelete } = useRole();
 
   const [departments, setDepartments] = useState([]);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
@@ -55,13 +70,34 @@ export default function DepartmentList() {
    /* ================= FETCH ================= */
    const fetchDepartments = async () => {
      try {
-       console.log('Fetching departments...');
+       logger.info('Fetching departments...');
        const res = await api.get("/departments");
-       console.log('API response:', res.data);
+       logger.info('Departments API response received');
        setDepartments(res.data || []);
      } catch (err) {
-       console.error('Fetch error:', err);
-       setDepartments([]);
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const backendMessage = err.response?.data?.message;
+       const errorMessage = backendMessage || "Failed to load departments. Please try again later.";
+
+       logger.error("Error fetching departments:", statusCode, errorCode);
+
+       setError({
+         message: errorMessage,
+         statusCode,
+         errorCode,
+       });
+
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+       if (!isAuthError) {
+         toast.error(errorMessage, {
+           position: "top-right",
+           autoClose: 5000,
+         });
+       }
      } finally {
        setLoading(false);
      }
@@ -162,6 +198,20 @@ export default function DepartmentList() {
   /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Departments..." />;
+  }
+
+  /* ================= ERROR STATE ================= */
+  if (error) {
+    return (
+      <ApiError
+        title="Department Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchDepartments}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   return (

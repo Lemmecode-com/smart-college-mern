@@ -3,8 +3,10 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
 
 import {
@@ -21,6 +23,19 @@ import {
   FaExclamationTriangle,
   FaArrowLeft
 } from "react-icons/fa";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function EditStudentProfile() {
   const { user } = useContext(AuthContext);
@@ -47,8 +62,11 @@ export default function EditStudentProfile() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -59,41 +77,77 @@ export default function EditStudentProfile() {
   };
 
   /* ================= FETCH PROFILE ================= */
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get("/students/my-profile");
+  const loadProfile = async () => {
+    try {
+      const res = await api.get("/students/my-profile");
 
-        const { student, department, course } = res.data;
+      const { student, department, course } = res.data;
 
-        setForm({
-          fullName: student.fullName,
-          email: student.email,
-          mobileNumber: student.mobileNumber,
-          gender: student.gender,
-          dateOfBirth: student.dateOfBirth?.slice(0, 10),
-          addressLine: student.addressLine || "",
-          city: student.city || "",
-          state: student.state || "",
-          pincode: student.pincode || "",
-          department_id: department?._id,
-          course_id: course?._id,
-          admissionYear: student.admissionYear,
-          currentSemester: student.currentSemester
+      setForm({
+        fullName: student.fullName,
+        email: student.email,
+        mobileNumber: student.mobileNumber,
+        gender: student.gender,
+        dateOfBirth: student.dateOfBirth?.slice(0, 10),
+        addressLine: student.addressLine || "",
+        city: student.city || "",
+        state: student.state || "",
+        pincode: student.pincode || "",
+        department_id: department?._id,
+        course_id: course?._id,
+        admissionYear: student.admissionYear,
+        currentSemester: student.currentSemester
+      });
+
+      setDepartment(department);
+      setCourse(course);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("Edit student profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "EditStudentProfile",
+        role: user?.role,
+      });
+
+      setError({
+        message: "Failed to load profile. Please try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error("Failed to load profile. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
         });
-
-        setDepartment(department);
-        setCourse(course);
-
-      } catch (err) {
-        setError("Failed to load profile");
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchProfile();
+  useEffect(() => {
+    loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ================= HANDLE RETRY ================= */
+  const handleRetry = async () => {
+    if (retryCount >= 3) return;
+    setIsRetrying(true);
+    setRetryCount((prev) => prev + 1);
+    await loadProfile();
+    setIsRetrying(false);
+  };
 
   /* ================= HANDLE CHANGE ================= */
   const handleChange = (e) => {
@@ -104,11 +158,11 @@ export default function EditStudentProfile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError("");
+    setFormError("");
     setSuccess("");
 
     try {
-      const res = await api.put(
+      await api.put(
         "/students/update-my-profile",
         form
       );
@@ -121,8 +175,20 @@ export default function EditStudentProfile() {
       });
 
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to update profile";
-      setError(errorMsg);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("Edit student profile update error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "EditStudentProfile",
+        role: user?.role,
+      });
+
+      const errorMsg = "Failed to update profile. Please try again.";
+      setFormError(errorMsg);
       toast.error(errorMsg, {
         position: "top-right",
         autoClose: 5000,
@@ -136,6 +202,22 @@ export default function EditStudentProfile() {
   /* ================= LOADING ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Profile..." />;
+  }
+
+  if (error) {
+    return (
+      <ApiError
+        title="Profile Load Error"
+        message={error.message || "Failed to load profile. Please try again."}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
+    );
   }
 
   return (
@@ -161,9 +243,9 @@ export default function EditStudentProfile() {
         </button>
       </div>
 
-      {error && (
+      {formError && (
         <div className="alert alert-danger text-center">
-          {error}
+          {formError}
         </div>
       )}
 
@@ -176,7 +258,7 @@ export default function EditStudentProfile() {
       <div className="card shadow-lg border-0 rounded-4 glass-card">
         <div className="card-body p-4">
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
 
             {/* ========== PERSONAL ========== */}
             <h5 className="fw-bold mb-3">
@@ -192,7 +274,7 @@ export default function EditStudentProfile() {
                   name="fullName"
                   value={form.fullName}
                   onChange={handleChange}
-                  required
+                  disabled
                 />
               </div>
 
@@ -203,7 +285,7 @@ export default function EditStudentProfile() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  required
+                  disabled
                 />
               </div>
 
@@ -228,6 +310,7 @@ export default function EditStudentProfile() {
                   name="gender"
                   value={form.gender}
                   onChange={handleChange}
+                  disabled
                 >
                   <option>Male</option>
                   <option>Female</option>
@@ -246,6 +329,7 @@ export default function EditStudentProfile() {
                   name="dateOfBirth"
                   value={form.dateOfBirth}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
             </div>
@@ -331,6 +415,7 @@ export default function EditStudentProfile() {
                   name="admissionYear"
                   value={form.admissionYear}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
 
@@ -342,6 +427,7 @@ export default function EditStudentProfile() {
                   name="currentSemester"
                   value={form.currentSemester}
                   onChange={handleChange}
+                  disabled
                 />
               </div>
             </div>

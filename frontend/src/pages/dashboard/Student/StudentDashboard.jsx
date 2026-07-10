@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { AuthContext } from "../../../auth/AuthContext";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaBook,
@@ -51,8 +53,22 @@ import "react-toastify/dist/ReactToastify.css";
 
 const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
 
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -102,22 +118,32 @@ export default function StudentDashboard() {
       setError(null);
       const response = await api.get("/dashboard/student");
       setDashboardData(response.data);
-
-      toast.success("Dashboard loaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-        toastId: PAGE_LOAD_TOAST_ID,
-      });
+      // Page-load success toast removed (requirement 8)
     } catch (err) {
-      // Silently handle auth errors
-      if (err.response?.status !== 403 && err.response?.status !== 401) {
-        const statusCode = err.response?.status;
-        const errorMsg =
-          err.response?.data?.message ||
-          "Failed to load dashboard. Please check your connection and try again.";
-        setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
-        toast.error(errorMsg, {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("Student dashboard load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentDashboard",
+        role: user?.role,
+      });
+
+      setError({
+        message:
+          "Failed to load dashboard. Please check your connection and try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error("Failed to load dashboard. Please try again.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaExclamationTriangle />,

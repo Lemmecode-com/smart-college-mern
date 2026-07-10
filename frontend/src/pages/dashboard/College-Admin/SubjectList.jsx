@@ -5,6 +5,9 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBook,
@@ -32,6 +35,17 @@ export default function SubjectList() {
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useRole();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -55,13 +69,31 @@ export default function SubjectList() {
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
-        // Handle different API response formats
         const departmentsData = Array.isArray(res.data) ? res.data :
                                 Array.isArray(res.data.departments) ? res.data.departments :
                                 Array.isArray(res.data.data) ? res.data.data : [];
         setDepartments(departmentsData);
       } catch (err) {
-        setError("Failed to load departments. Please try again.");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load departments.";
+
+        logger.error("Error fetching departments:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -74,7 +106,6 @@ export default function SubjectList() {
   const fetchCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      // Handle different API response formats
       const coursesData = Array.isArray(res.data) ? res.data :
                           Array.isArray(res.data.courses) ? res.data.courses :
                           Array.isArray(res.data.data) ? res.data.data : [];
@@ -82,7 +113,26 @@ export default function SubjectList() {
       setSelectedCourse("");
       setSubjects([]);
     } catch (err) {
-      setError("Failed to load courses. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load courses.";
+
+      logger.error("Error fetching courses:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
       setCourses([]);
     }
   };
@@ -93,13 +143,31 @@ export default function SubjectList() {
     setError(null);
     try {
       const res = await api.get(`/subjects/course/${courseId}`);
-      // Handle different API response formats
       const subjectsData = Array.isArray(res.data) ? res.data :
                            Array.isArray(res.data.subjects) ? res.data.subjects :
                            Array.isArray(res.data.data) ? res.data.data : [];
       setSubjects(subjectsData);
     } catch (err) {
-      setError("Failed to load subjects. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load subjects.";
+
+      logger.error("Error fetching subjects:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
       setSubjects([]);
     } finally {
       setLoadingSubjects(false);
@@ -174,20 +242,18 @@ export default function SubjectList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Oops! Something went wrong</h3>
-        <p>{error}</p>
-        <button 
-          className="erp-btn erp-btn-primary" 
-          onClick={() => window.location.reload()}
-        >
-          <FaSyncAlt className="erp-btn-icon" />
-          Refresh Page
-        </button>
-      </div>
+      <ApiError
+        title="Subject Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={() => {
+          setError(null);
+          if (selectedDepartment) fetchCourses(selectedDepartment);
+          if (selectedCourse) fetchSubjects(selectedCourse);
+        }}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 

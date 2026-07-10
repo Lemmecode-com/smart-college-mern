@@ -23,6 +23,9 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import api from "../../../api/axios";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 export default function PlatformSupportConfig() {
   const navigate = useNavigate();
@@ -32,6 +35,17 @@ export default function PlatformSupportConfig() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   // Fetch current feature flags
   const fetchFeatures = async () => {
     try {
@@ -40,8 +54,26 @@ export default function PlatformSupportConfig() {
       const response = await api.get("/platform-support/config/features");
       setFeatures(response.data?.features || []);
     } catch (err) {
-      console.error("Error fetching features:", err);
-      setError(err.response?.data?.message || "Failed to load feature configuration");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load feature configuration";
+
+      logger.error("Error fetching features:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,12 +101,43 @@ export default function PlatformSupportConfig() {
       // Refresh features
       await fetchFeatures();
     } catch (err) {
-      console.error("Error toggling feature:", err);
-      setError(err.response?.data?.message || "Failed to update feature");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to update feature";
+
+      logger.error("Error toggling feature:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  if (error && !loading) {
+    return (
+      <ApiError
+        title="Feature Configuration Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchFeatures}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading) {
     return (
