@@ -8,6 +8,8 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaSearch,
@@ -40,11 +42,22 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const { canEdit } = useRole();
   const canApprove = canEdit('students');
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -95,10 +108,26 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       setStudents(pendingStudents);
       calculateStats(pendingStudents);
     } catch (err) {
-      console.error("Pending students fetch error:", err);
-      setError(
-        err.response?.data?.message || "Failed to load pending students.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load pending students.";
+
+      logger.error("Error fetching pending students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -325,6 +354,20 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
   );
+
+  /* ================= ERROR STATE ================= */
+  if (error) {
+    return (
+      <ApiError
+        title="Pending Approvals Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchPendingStudents}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   /* ================= LOADING STATE ================= */
   if (loading) {

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { logger } from "../../../utils/logger";
 
@@ -24,6 +25,29 @@ import {
   FaShieldAlt,
   FaSync,
 } from "react-icons/fa";
+
+// Authentication / session error codes routed exclusively to ApiError.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+// Extract status/code/message from an axios error and flag auth failures.
+const getErrorInfo = (err) => {
+  const statusCode = err?.response?.status;
+  const errorCode =
+    err?.response?.data?.error?.code || err?.response?.data?.code;
+  const backendMessage = err?.response?.data?.message;
+  const isAuth =
+    statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+  return { statusCode, errorCode, backendMessage, isAuth };
+};
 
 // Razorpay script loader
 const loadRazorpayScript = () => {
@@ -58,6 +82,7 @@ export default function MakePayments() {
   const [loadingMessage, setLoadingMessage] = useState(
     "Redirecting to Secure Checkout...",
   );
+  const [authError, setAuthError] = useState(null);
   const [result, setResult] = useState(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -149,14 +174,22 @@ export default function MakePayments() {
           setAllowChoice(response.data.allowChoice || false);
         }
        } catch (error) {
-         if (currentFetchId !== fetchIdRef.current) return;
-         logger.error("Error fetching gateways:", error);
-         setAvailableGateways(["stripe", "razorpay"]);
-        setAllowChoice(true);
-      } finally {
-        if (currentFetchId !== fetchIdRef.current) return;
-        setGatewaysLoading(false);
-      }
+          if (currentFetchId !== fetchIdRef.current) return;
+          const { statusCode, errorCode, backendMessage, isAuth } =
+            getErrorInfo(error);
+          logger.error("Error fetching gateways:", {
+            statusCode,
+            errorCode,
+            backendMessage,
+            page: "MakePayments",
+          });
+          if (isAuth) {
+            setAuthError({ statusCode, errorCode });
+            return;
+          }
+          setAvailableGateways(["stripe", "razorpay"]);
+         setAllowChoice(true);
+       }
     };
 
     fetchGateways();
@@ -420,6 +453,21 @@ export default function MakePayments() {
 
       rzp.open();
     } catch (err) {
+      const { statusCode, errorCode: authErrCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Razorpay payment auth error:", {
+          statusCode,
+          errorCode: authErrCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode: authErrCode });
+        setLoading(false);
+        isRequestInProgressRef.current = false;
+        return;
+      }
+
       let errorMsg = "Payment initiation failed. Please try again.";
 
       // Extract error from standardized backend format
@@ -524,6 +572,21 @@ export default function MakePayments() {
       // After payment, Stripe will redirect to /student/payment-success
       window.location.href = checkoutUrl;
     } catch (err) {
+      const { statusCode, errorCode: authErrCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Stripe payment auth error:", {
+          statusCode,
+          errorCode: authErrCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode: authErrCode });
+        setLoading(false);
+        isRequestInProgressRef.current = false;
+        return;
+      }
+
       // Extract error message from various possible locations
       let errorMsg =
         err.response?.data?.error?.message || // Standardized error format
@@ -632,6 +695,19 @@ export default function MakePayments() {
       });
       setInstallmentName("");
     } catch (err) {
+      const { statusCode, errorCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Mock payment auth error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode });
+        setLoading(false);
+        return;
+      }
       const errorMsg =
         err.response?.data?.message || "Mock payment failed. Try again.";
       setErrorMessage(errorMsg);
@@ -657,6 +733,24 @@ export default function MakePayments() {
       icon: <FaInfoCircle />,
     });
   };
+
+  /* ================= AUTH / SESSION ERROR ================= */
+  if (authError) {
+    return (
+      <div className="container-fluid py-4 fade-in">
+        <ApiError
+          title="Payment Error"
+          message={
+            authError.message ||
+            "Your session has expired. Please sign in again to continue."
+          }
+          statusCode={authError.statusCode}
+          errorCode={authError.errorCode}
+          onGoBack={() => navigate("/student/fees")}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

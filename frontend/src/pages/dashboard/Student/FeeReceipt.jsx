@@ -9,6 +9,19 @@ import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
 
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 import {
   FaReceipt,
   FaCheckCircle,
@@ -192,30 +205,36 @@ export default function FeeReceipt() {
         setReceipt(res.data);
         setError(null);
 
-        toast.update(toastId, {
-          render: "Receipt loaded successfully!",
-          type: "success",
-          isLoading: false,
-          autoClose: 3000,
-        });
+        toast.dismiss(toastId);
       } catch (err) {
         if (currentFetchId !== fetchIdRef.current) {
           toast.dismiss(toastId);
           return;
         }
 
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Fee receipt load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "FeeReceipt",
+          role: user?.role,
+        });
+
         let errorMessage = "Unable to fetch receipt. ";
 
-        if (err.response?.status === 404) {
+        if (statusCode === 404) {
           errorMessage =
             "Receipt not found. It may have been deleted or never existed.";
-        } else if (err.response?.status === 403) {
+        } else if (statusCode === 403) {
           errorMessage = "You don't have permission to view this receipt.";
-        } else if (err.response?.status === 500) {
+        } else if (statusCode === 500) {
           errorMessage = "Server error. Please try again later.";
-        } else if (err.response?.status === 401) {
-          errorMessage = "Session expired. Redirecting to login...";
-          setTimeout(() => navigate("/login"), 2000);
+        } else if (statusCode === 401) {
+          errorMessage = "Your session has expired. Please sign in again.";
         } else if (
           err.code === "ERR_NETWORK" ||
           err.message?.includes("Network Error")
@@ -223,23 +242,30 @@ export default function FeeReceipt() {
           errorMessage =
             "Network error. Please check your internet connection and try again.";
         } else if (
-         err.name === "AbortError" ||
-         err.message?.includes("timeout")
-       ) {
-         errorMessage =
-           "Request timeout. The server took too long to respond. Please try again.";
-       } else {
-         errorMessage += "Please check your connection and try again.";
-       }
+          err.name === "AbortError" ||
+          err.message?.includes("timeout")
+        ) {
+          errorMessage =
+            "Request timeout. The server took too long to respond. Please try again.";
+        } else {
+          errorMessage += "Please check your connection and try again.";
+        }
 
-        setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+        setError({ message: errorMessage, statusCode, errorCode });
 
-        toast.update(toastId, {
-          render: errorMessage,
-          type: "error",
-          isLoading: false,
-          autoClose: 5000,
-        });
+        const isAuthError =
+          statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.update(toastId, {
+            render: errorMessage,
+            type: "error",
+            isLoading: false,
+            autoClose: 5000,
+          });
+        } else {
+          toast.dismiss(toastId);
+        }
       } finally {
         if (currentFetchId !== fetchIdRef.current) return;
         setLoading(false);

@@ -13,6 +13,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaUniversity,
@@ -44,14 +45,24 @@ export default function CollegeList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [colleges, setColleges] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [toggleData, setToggleData] = useState({
     id: null,
@@ -73,28 +84,39 @@ export default function CollegeList() {
 
   /* ================= FETCH COLLEGES ================= */
   const fetchColleges = async (forceRefresh = false) => {
-    // Prevent duplicate fetches in Strict Mode (unless force refresh)
     if (!forceRefresh && hasLoadedRef.current) return;
 
     try {
       setLoading(true);
-      setError("");
-      // Fetch all colleges including inactive ones for Super Admin
+      setError(null);
       const res = await api.get("/master/get/colleges?includeInactive=true");
 
       const collegesData = res.data.colleges || res.data || [];
       setColleges(Array.isArray(collegesData) ? collegesData : []);
-      setRetryCount(0);
       hasLoadedRef.current = true;
       setHasLoaded(true);
     } catch (err) {
-      // Only show error if not already loaded
       if (!hasLoadedRef.current) {
-        const errorMsg =
-          err.response?.data?.message ||
-          err.response?.data?.error?.message ||
-          "Failed to load colleges. Please try again.";
-        setError(errorMsg);
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load colleges. Please try again.";
+
+        logger.error("Error fetching colleges:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       }
     } finally {
       setLoading(false);
@@ -136,12 +158,8 @@ export default function CollegeList() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchColleges();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    hasLoadedRef.current = false;
+    fetchColleges(true);
   };
 
   /* ================= REFRESH HANDLER ================= */
@@ -198,9 +216,26 @@ export default function CollegeList() {
         prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || `Failed to ${action} college`;
-      setError(errorMsg);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || `Failed to ${action} college`;
+
+      logger.error(`Error ${action}ing college:`, statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     }
     setShowConfirmModal(false);
     setToggleData({ id: null, currentStatus: null });
@@ -224,14 +259,12 @@ export default function CollegeList() {
         }));
 
         if (format === "excel") {
-          // Excel export logic (you can integrate with ExcelJS)
-          console.log("Excel export coming soon!");
+          logger.warn("Excel export coming soon!");
         } else if (format === "pdf") {
-          // PDF export logic (you can integrate with jsPDF)
-          console.log("PDF export coming soon!");
+          logger.warn("PDF export coming soon!");
         }
       } catch (err) {
-        console.error("Export failed. Please try again.");
+        logger.error("Export failed. Please try again.");
       } finally {
         setExporting(false);
       }
@@ -244,12 +277,11 @@ export default function CollegeList() {
     return (
       <ApiError
         title="Colleges Loading Error"
-        message={error}
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={() => navigate("/super-admin/dashboard")}
-        retryCount={retryCount}
-        maxRetry={3}
-        isRetryLoading={loading}
       />
     );
   }
