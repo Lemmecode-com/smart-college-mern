@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
@@ -43,6 +44,19 @@ const BRAND_COLORS = {
     PRACTICAL: { bg: "#f3e5f5", text: "#6a1b9a", border: "#ce93d8" },
   },
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Animation Variants
 const fadeInVariants = {
@@ -326,15 +340,25 @@ export default function StudentTimetable() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError(
-        "Request timed out. Please check your connection and try again.",
-      );
-      setLoading(false);
-      toast.error("Request timed out. Please try again.", {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
+      logger.warn("Student timetable request timed out", {
+        page: "StudentTimetable",
+        role: user?.role,
       });
+      setError({
+        message:
+          "Request timed out. Please check your connection and try again.",
+        statusCode: undefined,
+        errorCode: undefined,
+      });
+      setLoading(false);
+      if (!toastShown.error) {
+        toast.error("Request timed out. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+        setToastShown({ ...toastShown, error: true });
+      }
     }, 30000);
 
     try {
@@ -456,14 +480,29 @@ export default function StudentTimetable() {
       }
 
       const statusCode = err.response?.status;
-      const errorMsg =
-        err.response?.data?.message ||
-        "Failed to load timetable. Please check your connection.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-      setError({ message: errorMsg, statusCode });
+      logger.error("Student timetable load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentTimetable",
+        role: user?.role,
+      });
 
-      if (!toastShown.error) {
-        toast.error(errorMsg, {
+      setError({
+        message:
+          "Failed to load timetable. Please check your connection and try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError && !toastShown.error) {
+        toast.error("Failed to load timetable. Please try again.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaExclamationTriangle />,
@@ -685,6 +724,22 @@ export default function StudentTimetable() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Your Timetable..." />;
+  }
+
+  if (error) {
+    return (
+      <ApiError
+        title="Timetable Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
+    );
   }
 
   return (
@@ -945,28 +1000,6 @@ export default function StudentTimetable() {
           </>
         )}
       </div>
-
-      {/* Error Banner */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="st-error-banner"
-          role="alert"
-          aria-live="assertive"
-        >
-          <FaExclamationTriangle className="st-error-icon" aria-hidden="true" />
-          <span>{typeof error === "object" ? error.message : error}</span>
-          <button
-            onClick={handleRetry}
-            disabled={isRetrying}
-            className="st-error-close"
-            aria-label="Retry loading timetable"
-          >
-            <FaSyncAlt /> {isRetrying ? "Loading..." : "Retry"}
-          </button>
-        </motion.div>
-      )}
 
       {/* Today's Classes - Phase 4: Improved empty state */}
       {todaySlots.length === 0 ? (
@@ -1961,37 +1994,6 @@ const componentStyles = `
   .st-stat-label {
     font-size: 0.85rem;
     color: #64748b;
-  }
-
-  /* ================= ERROR BANNER ================= */
-  .st-error-banner {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    padding: 1rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .st-error-icon {
-    font-size: 1.25rem;
-  }
-
-  .st-error-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: #dc2626;
-    cursor: pointer;
-    font-size: 1.5rem;
-    padding: 0.25rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
   }
 
   /* ================= OUTSIDE RANGE BANNER ================= */

@@ -69,7 +69,8 @@ exports.getSubjectsByCourse = async (req, res, next) => {
     const subjects = await Subject.find({
       course_id: req.params.courseId,
       college_id: req.college_id,
-    }).populate("teacher_id", "name designation");
+    }).populate("teacher_id", "name designation")
+      .populate("course_id", "name code");
 
     res.json(subjects);
   } catch (error) {
@@ -151,7 +152,8 @@ exports.getSubjectById = async (req, res) => {
       _id: req.params.id,
       college_id: req.college_id,
     }).populate("teacher_id", "name designation")
-      .populate("course_id", "name code");
+      .populate("course_id", "name code")
+      .populate("department_id", "name code");
 
     if (!subject) {
       return res.status(404).json({ message: "Subject not found" });

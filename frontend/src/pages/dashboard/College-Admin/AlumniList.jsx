@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import { getAlumni } from "../../../api/alumni";
 import api from "../../../api/axios";
@@ -7,6 +7,8 @@ import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import "./AlumniList.css";
 
 import {
@@ -375,6 +377,18 @@ function StatCard({ icon, label, value, accent }) {
 /* ================= MAIN COMPONENT ================= */
 export default function AlumniList({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [alumni, setAlumni] = useState([]);
   const [college, setCollege] = useState(null);
@@ -382,7 +396,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   const [yearFilter, setYearFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedAlumnus, setSelectedAlumnus] = useState(null);
@@ -401,11 +415,30 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   const fetchAlumni = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await getAlumni();
       setAlumni(res.alumni || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load alumni records.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load alumni records.";
+
+      logger.error("Error fetching alumni:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        showError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -627,6 +660,19 @@ export default function AlumniList({ admissionOfficerMode = false }) {
     );
   }
 
+  if (error) {
+    return (
+      <ApiError
+        title="Alumni Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchAlumni}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
   return (
     <div className="page-container alumni-page">
       {/* Page Header */}
@@ -672,19 +718,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
         />
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="alert alert-error">
-          <div className="alert-content">
-            <span className="alert-message">{error}</span>
-            <button className="btn btn-retry" onClick={fetchAlumni}>
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Filters Card */}
+      {/* Stats Cards */}
       <div className="card filters-card">
         <div className="card-body">
           <div className="filters-row">
