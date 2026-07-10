@@ -3,7 +3,9 @@ import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaCheckCircle,
@@ -98,11 +100,22 @@ export default function ViewCollegeDetails() {
   const [college, setCollege] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailData, setEmailData] = useState({ subject: "", message: "" });
   const [sendingEmail, setSendingEmail] = useState(false);
   const [copying, setCopying] = useState(false);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   // Add global styles for text wrapping and responsive design
   useEffect(() => {
@@ -162,21 +175,34 @@ export default function ViewCollegeDetails() {
   const fetchCollege = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.get(`/master/${id}`);
       setCollege(res.data.college);
       setStats(res.data.stats);
-      // No success toast on page load - it's unnecessary
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message || "Failed to fetch college details",
-        {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to fetch college details";
+
+      logger.error("Error fetching college details:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage, {
           position: "top-right",
           autoClose: 5000,
-        },
-      );
-      setError(
-        err?.response?.data?.message || "Failed to fetch college details",
-      );
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -233,11 +259,24 @@ export default function ViewCollegeDetails() {
       setShowEmailModal(false);
       setEmailData({ subject: "", message: "" });
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to send email", {
-        position: "top-right",
-        autoClose: 5000,
-      });
-      setError(err?.response?.data?.message || "Failed to send email");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to send email";
+
+      logger.error("Error sending email:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      }
+      setError(errorMessage);
     } finally {
       setSendingEmail(false);
     }
@@ -251,46 +290,14 @@ export default function ViewCollegeDetails() {
   // Error state
   if (error) {
     return (
-      <div style={{ padding: "3rem 0", textAlign: "center" }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          style={{
-            display: "inline-block",
-            padding: "1rem 1.5rem",
-            backgroundColor: "#fef2f2",
-            color: "#991b1b",
-            borderRadius: "0.5rem",
-            marginBottom: "1rem",
-            border: "2px solid #fecaca",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <h5 style={{ margin: 0, fontWeight: 500 }}>{error}</h5>
-        </motion.div>
-        <motion.button
-          whileHover={{
-            scale: 1.05,
-            boxShadow: "0 6px 15px rgba(15, 58, 74, 0.3)",
-          }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate(-1)}
-          style={{
-            background: "linear-gradient(135deg, #0f3a4a, #3db5e6)",
-            color: "white",
-            border: "none",
-            padding: "0.75rem 1.5rem",
-            borderRadius: "0.5rem",
-            fontSize: "1rem",
-            fontWeight: 500,
-            cursor: "pointer",
-            boxShadow: "0 4px 6px rgba(15, 58, 74, 0.3)",
-            transition: "all 0.3s ease",
-          }}
-        >
-          <FaArrowLeft style={{ marginRight: "0.5rem" }} /> Go Back
-        </motion.button>
-      </div>
+      <ApiError
+        title="College Details Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchCollege}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 

@@ -192,6 +192,11 @@ export default function AddTeacher() {
       isValid = false;
     }
 
+    if (formData.dateOfBirth && new Date(formData.dateOfBirth + "T00:00:00") > new Date()) {
+      errors.dateOfBirth = 'Date of Birth cannot be in the future';
+      isValid = false;
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -491,7 +496,7 @@ export default function AddTeacher() {
             </motion.div>
           )}
           
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="row g-4">
               {/* ================= BASIC INFO CARD ================= */}
               <motion.div
@@ -555,7 +560,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Dr. Rajesh Kumar"
-                            required
                           />
                         </FormField>
                       </div>
@@ -574,7 +578,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Associate Professor"
-                            required
                           />
                         </FormField>
                       </div>
@@ -593,7 +596,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Ph.D. Computer Science"
-                            required
                           />
                         </FormField>
                       </div>
@@ -615,7 +617,6 @@ export default function AddTeacher() {
                             max="50"
                             className="form-control"
                             placeholder="e.g., 12"
-                            required
                           />
                         </FormField>
                       </div>
@@ -632,7 +633,6 @@ export default function AddTeacher() {
                             value={formData.bloodGroup}
                             onChange={handleChange}
                             className="form-select"
-                            required
                           >
                             <option value="">Select blood group</option>
                             {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map(group => (
@@ -649,14 +649,14 @@ export default function AddTeacher() {
                           required
                           error={validationErrors.dateOfBirth}
                         >
-                          <input
-                            type="date"
-                            name="dateOfBirth"
-                            value={formData.dateOfBirth}
-                            onChange={handleChange}
-                            className="form-control"
-                            required
-                          />
+                           <input
+                             type="date"
+                             name="dateOfBirth"
+                             value={formData.dateOfBirth}
+                             onChange={handleChange}
+                             className="form-control"
+                             max={new Date().toISOString().split("T")[0]}
+                           />
                         </FormField>
                       </div>
 
@@ -670,9 +670,8 @@ export default function AddTeacher() {
                           name="gender"
                           value={formData.gender}
                           onChange={handleChange}
-                          style={selectStyle}
-                          required
-                        >
+                           style={selectStyle}
+                           >
                           <option value="">Select gender</option>
                           {["Male", "Female", "Other", "Prefer not to say"].map(gender => (
                             <option key={gender} value={gender}>{gender}</option>
@@ -747,7 +746,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., rajesh.kumar@college.edu"
-                            required
                           />
                         </FormField>
                       </div>
@@ -757,13 +755,12 @@ export default function AddTeacher() {
                           label="Employment Type"
                           required
                         >
-                          <select
-                            name="employmentType"
-                            value={formData.employmentType}
-                            onChange={handleChange}
-                            className="form-select"
-                            required
-                          >
+                           <select
+                             name="employmentType"
+                             value={formData.employmentType}
+                             onChange={handleChange}
+                             className="form-select"
+                           >
                             <option value="FULL_TIME">Full Time</option>
                             <option value="PART_TIME">Part Time</option>
                             <option value="VISITING">Visiting Faculty</option>
@@ -787,7 +784,6 @@ export default function AddTeacher() {
                             className="form-control"
                             placeholder="e.g., 9876543210"
                             pattern="[0-9]{10}"
-                            required
                           />
                         </FormField>
                       </div>
@@ -859,7 +855,6 @@ export default function AddTeacher() {
                             value={formData.department_id}
                             onChange={handleChange}
                             className="form-select"
-                            required
                           >
                             <option value="">Select department</option>
                             {departments.map(dept => (
@@ -885,8 +880,7 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-select"
                             disabled={!formData.department_id}
-                            required
-                          >
+                           >
                             <option value="">Select course</option>
                             {Array.isArray(courses) && courses.map(course => (
                               <option key={course._id} value={course._id}>
@@ -979,7 +973,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="Street address, building name"
-                            required
                           />
                         </FormField>
                       </div>
@@ -998,7 +991,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Mumbai"
-                            required
                           />
                         </FormField>
                       </div>
@@ -1017,7 +1009,6 @@ export default function AddTeacher() {
                             onChange={handleChange}
                             className="form-control"
                             placeholder="e.g., Maharashtra"
-                            required
                           />
                         </FormField>
                       </div>
@@ -1037,7 +1028,6 @@ export default function AddTeacher() {
                             className="form-control"
                             placeholder="e.g., 400001"
                             pattern="[0-9]{6}"
-                            required
                           />
                         </FormField>
                       </div>
@@ -1154,6 +1144,13 @@ export default function AddTeacher() {
               <label style={{ fontWeight: 'bold' }}>Teacher Name:</label>
               <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px' }}>
                 {result?.teacher?.name}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontWeight: 'bold' }}>Employee ID:</label>
+              <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px', fontFamily: 'monospace', fontWeight: 'bold', color: '#1a4b6d' }}>
+                {result?.teacher?.employeeId || 'N/A'}
               </div>
             </div>
 

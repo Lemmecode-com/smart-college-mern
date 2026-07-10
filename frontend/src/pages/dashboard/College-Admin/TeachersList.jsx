@@ -1,12 +1,15 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
+import ApiError from "../../../components/ApiError";
+import TeacherDeleteModal from "../../../components/TeacherDeleteModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
+import { logger } from "../../../utils/logger";
 
 import {
   FaChalkboardTeacher,
@@ -17,9 +20,6 @@ import {
   FaSearch,
   FaFilter,
   FaSyncAlt,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaUserGraduate,
   FaUserCheck,
   FaUserTimes,
   FaEnvelope,
@@ -27,14 +27,8 @@ import {
   FaClock,
   FaChevronDown,
   FaChevronUp,
-  FaInfoCircle,
   FaSpinner,
-  FaBuilding,
   FaIdBadge,
-  FaArrowLeft,
-  FaGraduationCap,
-  FaMapMarkerAlt,
-  FaPhone,
 } from "react-icons/fa";
 
 export default function TeachersList() {
@@ -51,37 +45,51 @@ export default function TeachersList() {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [sortConfig, setSortConfig] = useState({
     key: "name",
     direction: "asc",
   });
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterGroupRef = useRef(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     inactive: 0,
   });
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= DEACTIVATION MODAL STATE ================= */
   const [showDeactivationModal, setShowDeactivationModal] = useState(false);
   const [deactivationTeacher, setDeactivationTeacher] = useState(null);
 
+  /* ================= DELETE MODAL STATE ================= */
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTeacherTarget, setDeleteTeacherTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   /* ================= LOAD TEACHERS ================= */
   const fetchTeachers = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const res = await api.get("/teachers");
+      setLoading(true);
+      setError(null);
+      const res = await api.get("/teachers?limit=10000");
 
-      // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
-        // New format: { success: true, data: [...], pagination: {...} }
         data = res.data.data;
       } else if (Array.isArray(res.data)) {
-        // Old format: [...]
         data = res.data;
       } else {
         data = [];
@@ -89,16 +97,35 @@ export default function TeachersList() {
 
       setTeachers(data);
 
-      // Calculate stats from fetched data (client-side only)
       setStats({
         total: data.length,
         active: data.filter((t) => t.status === "ACTIVE").length,
         inactive: data.filter((t) => t.status === "INACTIVE").length,
       });
     } catch (err) {
-      setError("Failed to load teachers. Please try again.");
-      setTeachers([]);
-      setStats({ total: 0, active: 0, inactive: 0 });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load teachers";
+
+      logger.error("Error fetching teachers:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -108,14 +135,26 @@ export default function TeachersList() {
     fetchTeachers();
   }, []);
 
+  /* ================= CLICK OUTSIDE TO CLOSE FILTER ================= */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterGroupRef.current && !filterGroupRef.current.contains(event.target)) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    if (showFilterDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterDropdown]);
+
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchTeachers();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchTeachers();
   };
 
   /* ================= SORTING ================= */
@@ -156,17 +195,30 @@ export default function TeachersList() {
   };
 
   /* ================= DELETE ================= */
-  const deleteTeacher = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this teacher? This action cannot be undone.",
-    );
-    if (!confirmDelete) return;
+  const openDeleteModal = (teacher) => {
+    setDeleteTeacherTarget(teacher);
+    setShowDeleteModal(true);
+  };
 
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setShowDeleteModal(false);
+    setDeleteTeacherTarget(null);
+  };
+
+  const confirmDeleteTeacher = async () => {
+    if (!deleteTeacherTarget) return;
+
+    setDeleting(true);
     try {
-      await api.delete(`/teachers/${id}`);
+      await api.delete(`/teachers/${deleteTeacherTarget._id}`);
+      setShowDeleteModal(false);
+      setDeleteTeacherTarget(null);
       fetchTeachers();
     } catch (err) {
       alert("Failed to delete teacher. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -255,30 +307,14 @@ export default function TeachersList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Teachers Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Teachers Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -376,7 +412,7 @@ export default function TeachersList() {
       )}
 
       {/* FILTERS SECTION */}
-      <div className="erp-card animate-fade-in">
+      <div className="erp-card animate-fade-in filter-card">
         <div className="erp-card-body">
           <div className="filters-container">
             <div className="search-box">
@@ -390,15 +426,19 @@ export default function TeachersList() {
               />
             </div>
 
-            <div className="filter-group">
-              <button className="filter-btn" aria-label="Open status filter">
+            <div className="filter-group" ref={filterGroupRef}>
+              <button 
+                className="filter-btn" 
+                aria-label="Open status filter"
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              >
                 <FaFilter className="filter-icon" />
                 <span>
                   Filter: {filterStatus === "ALL" ? "All" : filterStatus}
                 </span>
                 <FaChevronDown className="filter-arrow" />
               </button>
-              <div className="filter-dropdown">
+              <div className={`filter-dropdown ${showFilterDropdown ? "show" : ""}`}>
                 <div className="filter-section">
                   <label>Status Filter</label>
                   <div className="filter-options">
@@ -409,7 +449,7 @@ export default function TeachersList() {
                           name="status"
                           value={status}
                           checked={filterStatus === status}
-                          onChange={(e) => setFilterStatus(e.target.value)}
+                          onChange={(e) => { setFilterStatus(e.target.value); setShowFilterDropdown(false); }}
                           aria-label={`Filter by ${status} teachers`}
                         />
                         <span>{status}</span>
@@ -642,16 +682,16 @@ export default function TeachersList() {
                                )}
                              </button>
                            )}
-                           {canDelete('teachers') && (
-                             <button
-                               className="action-btn delete-btn"
-                               title="Delete Teacher"
-                               onClick={() => deleteTeacher(teacher._id)}
-                               aria-label={`Delete ${teacher.name}`}
-                             >
-                               <FaTrash />
-                             </button>
-                           )}
+                            {canDelete('teachers') && (
+                              <button
+                                className="action-btn delete-btn"
+                                title="Delete Teacher"
+                                onClick={() => openDeleteModal(teacher)}
+                                aria-label={`Delete ${teacher.name}`}
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
                          </div>
                        </td>
                     </tr>
@@ -662,6 +702,15 @@ export default function TeachersList() {
           )}
         </div>
       </div>
+
+      {/* TEACHER DELETE MODAL */}
+      <TeacherDeleteModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteTeacher}
+        teacherName={deleteTeacherTarget?.name}
+        loading={deleting}
+      />
 
       {/* TEACHER DEACTIVATION MODAL */}
       <TeacherDeactivationModal
@@ -815,6 +864,10 @@ export default function TeachersList() {
           box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
         }
         
+        .filter-card {
+          overflow: visible;
+        }
+        
         .erp-card-header {
           padding: 1.5rem 1.75rem;
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -939,7 +992,7 @@ export default function TeachersList() {
           display: none;
         }
         
-        .filter-group:hover .filter-dropdown {
+        .filter-dropdown.show {
           display: block;
         }
         
