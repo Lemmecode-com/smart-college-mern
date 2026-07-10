@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaShieldAlt,
   FaChartPie,
@@ -68,9 +71,11 @@ const THEME = {
 };
 
 export default function SecurityAudit() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     eventType: "",
     severity: "",
@@ -81,6 +86,17 @@ export default function SecurityAudit() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [colleges, setColleges] = useState([]);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     fetchLogs();
@@ -98,6 +114,7 @@ export default function SecurityAudit() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
         ...filters,
         page: currentPage,
@@ -109,10 +126,27 @@ export default function SecurityAudit() {
         : res.data?.data || res.data?.logs || [];
       setLogs(Array.isArray(logsData) ? logsData : []);
       setPagination(res.data?.pagination || null);
-    } catch (error) {
-      console.error("Failed to fetch logs:", error);
-      setLogs([]);
-      toast.error("Failed to load security logs");
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load security logs";
+
+      logger.error("Error fetching security logs:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -122,8 +156,10 @@ export default function SecurityAudit() {
     try {
       const res = await api.get("/security-audit/dashboard");
       setStats(res.data?.data || null);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Error fetching security stats:", statusCode, errorCode);
       setStats(null);
     }
   };
@@ -133,7 +169,6 @@ export default function SecurityAudit() {
       setLoading(true);
       const res = await api.get("/master/get/colleges");
 
-      // API response: { count, colleges } or { data: [...] } or raw array
       if (Array.isArray(res.data)) {
         setColleges(res.data);
       } else if (res.data?.colleges && Array.isArray(res.data.colleges)) {
@@ -141,11 +176,11 @@ export default function SecurityAudit() {
       } else if (res.data?.data && Array.isArray(res.data.data)) {
         setColleges(res.data.data);
       } else {
-        console.warn("⚠️ [Colleges] Invalid response structure:", res.data);
+        logger.warn("Invalid colleges response structure:", res.data);
         setColleges([]);
       }
-    } catch (error) {
-      console.error("❌ [Colleges] Fetch failed:", error.message);
+    } catch (err) {
+      logger.error("Error fetching colleges:", err.response?.status, err.response?.data?.code);
       setColleges([]);
     }
   };
@@ -163,8 +198,8 @@ export default function SecurityAudit() {
       toast.success("Marked as reviewed");
       fetchLogs();
       fetchStats();
-    } catch (error) {
-      console.error("Failed to mark as reviewed:", error);
+    } catch (err) {
+      logger.error("Error marking as reviewed:", err.response?.status, err.response?.data?.code);
       toast.error("Failed to update status");
     }
   };
@@ -205,6 +240,19 @@ export default function SecurityAudit() {
   const getCategoryBadgeClass = (category) => {
     return category === "AUTHENTICATION" ? "category-auth" : "category-system";
   };
+
+  if (error && !loading) {
+    return (
+      <ApiError
+        title="Security Audit Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchLogs}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading && !logs.length) {
     return (

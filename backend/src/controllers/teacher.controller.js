@@ -34,7 +34,6 @@ exports.createTeacher = async (req, res, next) => {
     const {
       name,
       email,
-      employeeId,
       designation,
       qualification,
       experienceYears,
@@ -85,6 +84,14 @@ exports.createTeacher = async (req, res, next) => {
       }
     }
 
+    /* ================= Generate Employee ID ================= */
+    const departmentTeacherCount = await Teacher.countDocuments({
+      college_id: req.college_id,
+      department_id,
+    });
+    const sequenceNumber = String(departmentTeacherCount + 1).padStart(3, "0");
+    const generatedEmployeeId = `${department.code}-T-${sequenceNumber}`;
+
     /* ================= Generate Temp Password ================= */
     const tempPassword = generateTempPassword(12);
 
@@ -113,7 +120,7 @@ exports.createTeacher = async (req, res, next) => {
       courses: finalCourses,
       name,
       email,
-      employeeId,
+      employeeId: generatedEmployeeId,
       designation,
       qualification,
       experienceYears,
@@ -209,7 +216,8 @@ exports.getMyProfile = async (req, res) => {
    UPDATE MY PROFILE (Logged-in Teacher)
    PUT /teachers/my-profile
    ⚠️ Teachers can ONLY edit: name, email, experienceYears
-   ❌ Cannot edit: employeeId, designation, qualification, department_id, courses (admin only)
+   ❌ Cannot edit:       generatedEmployeeId,
+      designation, qualification, department_id, courses (admin only)
 ========================================================= */
 exports.updateMyProfile = async (req, res, next) => {
   try {
