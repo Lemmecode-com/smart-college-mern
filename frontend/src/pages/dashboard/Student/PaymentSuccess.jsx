@@ -2,7 +2,9 @@ import { useEffect, useState, useContext, useRef } from "react";
 import { useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import { AuthContext } from "../../../auth/AuthContext";
+import { logger } from "../../../utils/logger";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -27,6 +29,18 @@ import {
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+// Authentication / session error codes routed exclusively to ApiError.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function PaymentSuccess() {
   const { user, loading: authLoading } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
@@ -41,6 +55,9 @@ export default function PaymentSuccess() {
   const [loading, setLoading] = useState(true);
   const [payment, setPayment] = useState(null);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [studentProfile, setStudentProfile] = useState(null);
   const [receiptDetails, setReceiptDetails] = useState(null);
 
@@ -77,11 +94,33 @@ export default function PaymentSuccess() {
     fetchReceipt();
   }, [payment?.installmentId]);
 
+  /* ========== AUTH ERROR HELPER ========== */
+  const detectAuthError = (err) => {
+    const statusCode = err?.response?.status;
+    const errorCode =
+      err?.response?.data?.code || err?.response?.data?.error?.code;
+    return {
+      statusCode,
+      errorCode,
+      isAuth:
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode)),
+    };
+  };
+
+  /* ========== RESET RETRY LOADING ========== */
+  useEffect(() => {
+    if (!loading) setIsRetrying(false);
+  }, [loading]);
+
   /* ========== CONFIRM STRIPE PAYMENT ========== */
   useEffect(() => {
     if (!sessionId || paymentGatewayParam === "razorpay") {
       if (paymentGatewayParam !== "razorpay") {
-        setError("No session ID provided");
+        setError({
+          message:
+            "No payment session found. Please return to the fees page and try again.",
+        });
         setLoading(false);
       }
       return;
@@ -117,7 +156,24 @@ export default function PaymentSuccess() {
           setLoading(false);
           return;
         }
-      } catch {
+      } catch (err) {
+        const { statusCode, errorCode, isAuth } = detectAuthError(err);
+        logger.error("Stripe confirm-payment error:", {
+          statusCode,
+          errorCode,
+          message: err?.response?.data?.message,
+          page: "PaymentSuccess",
+        });
+        if (isAuth) {
+          setError({
+            statusCode,
+            errorCode,
+            message:
+              "Your session has expired. Please sign in again to continue.",
+          });
+          setLoading(false);
+          return;
+        }
         // Fall through to polling
       }
 
@@ -146,14 +202,34 @@ export default function PaymentSuccess() {
             setLoading(false);
           } else if (attempts >= maxAttempts) {
             clearInterval(statusInterval);
-            setError("Payment is still processing. Please check back in a few moments.");
+            setError({
+              message:
+                "Payment is still processing. Please check back in a few moments.",
+            });
             setLoading(false);
           }
-        } catch {
+        } catch (err) {
           if (attempts >= maxAttempts) {
             clearInterval(statusInterval);
+            const { statusCode, errorCode, isAuth } = detectAuthError(err);
+            logger.error("Stripe payment status poll error:", {
+              statusCode,
+              errorCode,
+              message: err?.response?.data?.message,
+              page: "PaymentSuccess",
+            });
+            if (isAuth) {
+              setError({
+                statusCode,
+                errorCode,
+                message:
+                  "Your session has expired. Please sign in again to continue.",
+              });
+              setLoading(false);
+              return;
+            }
             const errorMsg = "Your payment is still processing. Please check back in a few moments.";
-            setError(errorMsg);
+            setError({ message: errorMsg });
             toast.error(errorMsg, {
               position: "top-right",
               autoClose: 5000,
@@ -167,13 +243,16 @@ export default function PaymentSuccess() {
 
     confirmAndPoll();
     return () => clearInterval(statusInterval);
-  }, [sessionId, paymentGatewayParam]);
+  }, [sessionId, paymentGatewayParam, retryNonce]);
 
   /* ========== POLL RAZORPAY ========== */
   useEffect(() => {
     if (paymentGatewayParam !== "razorpay" || !orderId) {
       if (paymentGatewayParam === "razorpay" && !orderId) {
-        setError("No order ID provided");
+        setError({
+          message:
+            "No payment session found. Please return to the fees page and try again.",
+        });
         setLoading(false);
       }
       return;
@@ -210,14 +289,34 @@ export default function PaymentSuccess() {
             setLoading(false);
           } else if (attempts >= maxAttempts) {
             clearInterval(interval);
-            setError("Payment is still processing. Please check back in a few moments.");
+            setError({
+              message:
+                "Payment is still processing. Please check back in a few moments.",
+            });
             setLoading(false);
           }
-        } catch {
+        } catch (err) {
           if (attempts >= maxAttempts) {
             clearInterval(interval);
+            const { statusCode, errorCode, isAuth } = detectAuthError(err);
+            logger.error("Razorpay payment status poll error:", {
+              statusCode,
+              errorCode,
+              message: err?.response?.data?.message,
+              page: "PaymentSuccess",
+            });
+            if (isAuth) {
+              setError({
+                statusCode,
+                errorCode,
+                message:
+                  "Your session has expired. Please sign in again to continue.",
+              });
+              setLoading(false);
+              return;
+            }
             const errorMsg = "Your payment is still processing. Please check back in a few moments.";
-            setError(errorMsg);
+            setError({ message: errorMsg });
             toast.error(errorMsg, {
               position: "top-right",
               autoClose: 5000,
@@ -231,7 +330,7 @@ export default function PaymentSuccess() {
 
     pollRazorpay();
     return () => clearInterval(interval);
-  }, [paymentGatewayParam, orderId]);
+  }, [paymentGatewayParam, orderId, retryNonce]);
 
   /* ========== SECURITY ========== */
   if (authLoading) {
@@ -252,33 +351,17 @@ export default function PaymentSuccess() {
   /* ========== ERROR ========== */
   if (error) {
     return (
-      <div className="ps-wrapper">
-        <motion.div
-          className="ps-error-card"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="ps-error-icon-circle">
-            <FaTimesCircle className="ps-error-icon" />
-          </div>
-          <h3 className="ps-error-title">Payment Not Confirmed</h3>
-          <p className="ps-error-msg">{error}</p>
-          <button className="ps-btn-primary" onClick={handleBack}>
-            <FaArrowLeft /> Back to Fees
-          </button>
-        </motion.div>
-        <style>{`
-          .ps-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #fee2e2, #fecaca); padding: 20px; }
-          .ps-error-card { background: white; padding: 48px 40px; border-radius: 24px; box-shadow: 0 20px 60px rgba(220,53,69,0.2); max-width: 480px; width: 100%; text-align: center; }
-          .ps-error-icon-circle { width: 88px; height: 88px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-          .ps-error-icon { font-size: 44px; color: #dc3545; }
-          .ps-error-title { margin: 0 0 8px; color: #dc3545; font-weight: 700; font-size: 1.5rem; }
-          .ps-error-msg { color: #6b7280; margin: 0 0 28px; line-height: 1.6; }
-          .ps-btn-primary { padding: 12px 28px; border-radius: 12px; border: none; background: linear-gradient(135deg, #0f3a4a, #1a4b6d); color: white; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
-          .ps-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,58,74,0.4); }
-        `}</style>
-      </div>
+      <ApiError
+        title="Payment Error"
+        message={error.message || "Unable to confirm your payment. Please try again."}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={handleBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
     );
   }
 
@@ -335,6 +418,15 @@ export default function PaymentSuccess() {
         icon: <FaExclamationTriangle />,
       });
     }
+  };
+
+  const handleRetry = () => {
+    if (retryCount >= 3) return;
+    setPayment(null);
+    setError(null);
+    setLoading(true);
+    setRetryCount((c) => c + 1);
+    setRetryNonce((n) => n + 1);
   };
 
   const handleBack = () => navigate("/student/fees");
