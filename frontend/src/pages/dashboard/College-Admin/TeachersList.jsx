@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
 import ApiError from "../../../components/ApiError";
+import TeacherDeleteModal from "../../../components/TeacherDeleteModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
 import { logger } from "../../../utils/logger";
@@ -73,12 +74,17 @@ export default function TeachersList() {
   const [showDeactivationModal, setShowDeactivationModal] = useState(false);
   const [deactivationTeacher, setDeactivationTeacher] = useState(null);
 
+  /* ================= DELETE MODAL STATE ================= */
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTeacherTarget, setDeleteTeacherTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   /* ================= LOAD TEACHERS ================= */
   const fetchTeachers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/teachers");
+      const res = await api.get("/teachers?limit=10000");
 
       let data;
       if (res.data.data) {
@@ -189,17 +195,30 @@ export default function TeachersList() {
   };
 
   /* ================= DELETE ================= */
-  const deleteTeacher = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this teacher? This action cannot be undone.",
-    );
-    if (!confirmDelete) return;
+  const openDeleteModal = (teacher) => {
+    setDeleteTeacherTarget(teacher);
+    setShowDeleteModal(true);
+  };
 
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setShowDeleteModal(false);
+    setDeleteTeacherTarget(null);
+  };
+
+  const confirmDeleteTeacher = async () => {
+    if (!deleteTeacherTarget) return;
+
+    setDeleting(true);
     try {
-      await api.delete(`/teachers/${id}`);
+      await api.delete(`/teachers/${deleteTeacherTarget._id}`);
+      setShowDeleteModal(false);
+      setDeleteTeacherTarget(null);
       fetchTeachers();
     } catch (err) {
       alert("Failed to delete teacher. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -663,16 +682,16 @@ export default function TeachersList() {
                                )}
                              </button>
                            )}
-                           {canDelete('teachers') && (
-                             <button
-                               className="action-btn delete-btn"
-                               title="Delete Teacher"
-                               onClick={() => deleteTeacher(teacher._id)}
-                               aria-label={`Delete ${teacher.name}`}
-                             >
-                               <FaTrash />
-                             </button>
-                           )}
+                            {canDelete('teachers') && (
+                              <button
+                                className="action-btn delete-btn"
+                                title="Delete Teacher"
+                                onClick={() => openDeleteModal(teacher)}
+                                aria-label={`Delete ${teacher.name}`}
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
                          </div>
                        </td>
                     </tr>
@@ -683,6 +702,15 @@ export default function TeachersList() {
           )}
         </div>
       </div>
+
+      {/* TEACHER DELETE MODAL */}
+      <TeacherDeleteModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteTeacher}
+        teacherName={deleteTeacherTarget?.name}
+        loading={deleting}
+      />
 
       {/* TEACHER DEACTIVATION MODAL */}
       <TeacherDeactivationModal

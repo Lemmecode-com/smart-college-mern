@@ -61,7 +61,10 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/students/approved-students");
+      // Fetch the full set (not just the default page of 20) so the
+      // Total Approved / Departments / Courses stat cards reflect all
+      // approved students instead of only the first paginated page.
+      const res = await api.get("/students/approved-students?limit=10000");
 
       let data;
       if (res.data.data) {
@@ -139,6 +142,12 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     }
   };
 
+  // Initial data fetch on mount
+  useEffect(() => {
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Refresh when navigating from approval action
   useEffect(() => {
     if (location.state?.refresh) {
@@ -159,7 +168,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         now - lastRefreshTime > MIN_REFRESH_INTERVAL
       ) {
         lastRefreshTime = now;
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       }
     };
 
@@ -217,7 +226,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         toast.success(`${student.fullName} reactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to reactivate", {
           position: "top-right",
@@ -235,7 +244,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         toast.success(`${student.fullName} deactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to deactivate", {
           position: "top-right",
