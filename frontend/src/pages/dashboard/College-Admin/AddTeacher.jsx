@@ -192,6 +192,11 @@ export default function AddTeacher() {
       isValid = false;
     }
 
+    if (formData.dateOfBirth && new Date(formData.dateOfBirth + "T00:00:00") > new Date()) {
+      errors.dateOfBirth = 'Date of Birth cannot be in the future';
+      isValid = false;
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -644,13 +649,14 @@ export default function AddTeacher() {
                           required
                           error={validationErrors.dateOfBirth}
                         >
-                          <input
-                            type="date"
-                            name="dateOfBirth"
-                            value={formData.dateOfBirth}
-                            onChange={handleChange}
-                            className="form-control"
-                          />
+                           <input
+                             type="date"
+                             name="dateOfBirth"
+                             value={formData.dateOfBirth}
+                             onChange={handleChange}
+                             className="form-control"
+                             max={new Date().toISOString().split("T")[0]}
+                           />
                         </FormField>
                       </div>
 
@@ -1138,6 +1144,13 @@ export default function AddTeacher() {
               <label style={{ fontWeight: 'bold' }}>Teacher Name:</label>
               <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px' }}>
                 {result?.teacher?.name}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ fontWeight: 'bold' }}>Employee ID:</label>
+              <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '6px', marginTop: '4px', fontSize: '16px', fontFamily: 'monospace', fontWeight: 'bold', color: '#1a4b6d' }}>
+                {result?.teacher?.employeeId || 'N/A'}
               </div>
             </div>
 
