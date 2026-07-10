@@ -1,8 +1,10 @@
-import { useEffect, useState, useContext, useRef } from "react";
+import { useEffect, useState, useContext, useRef, useNavigate } from "react";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaClipboardList,
@@ -38,6 +40,19 @@ const BRAND_COLORS = {
   danger: { main: '#dc3545', gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' },
   secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' }
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Animation Variants
 const fadeInVariants = {
@@ -81,10 +96,11 @@ const scaleVariants = {
 
 export default function StudentAttendanceReport() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     subjectId: "",
@@ -137,7 +153,7 @@ export default function StudentAttendanceReport() {
 
   /* ================= RETRY & REFRESH HANDLERS ================= */
   const handleRetry = () => {
-    setError("");
+    setError(null);
     setLoading(true);
     addToast("Retrying...", "info");
     
@@ -195,7 +211,15 @@ export default function StudentAttendanceReport() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError("Request timed out. Please check your connection and try again.");
+      logger.warn("Student attendance request timed out", {
+        page: "MyAttendance",
+        role: user?.role,
+      });
+      setError({
+        message: "Request timed out. Please check your connection and try again.",
+        statusCode: undefined,
+        errorCode: undefined,
+      });
       setLoading(false);
       addToast("Request timed out. Please try again.", "error");
     }, 30000);
@@ -225,7 +249,7 @@ export default function StudentAttendanceReport() {
           percentage: subj.percentage
         }));
         setSubjects(subjectsFromAttendance);
-        setError("");
+        setError(null);
 
         // Show success toast only on subsequent loads (not initial)
         if (data) {
@@ -242,9 +266,31 @@ export default function StudentAttendanceReport() {
           clearTimeout(loadTimeoutRef.current);
         }
 
-        const errorMsg = err.response?.data?.message || err.message || "Failed to load attendance report. Please try again later.";
-        setError(errorMsg);
-        addToast(errorMsg, "error");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Student attendance load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "MyAttendance",
+          role: user?.role,
+        });
+
+        setError({
+          message: "Failed to load attendance report. Please try again later.",
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          addToast("Failed to load attendance report. Please try again later.", "error");
+        }
       } finally {
         setLoading(false);
       }
@@ -309,6 +355,19 @@ export default function StudentAttendanceReport() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Attendance Report..." />;
+  }
+
+  if (error) {
+    return (
+      <ApiError
+        title="Attendance Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate("/student/dashboard")}
+      />
+    );
   }
 
   const summary = data?.summary || {
@@ -692,52 +751,6 @@ export default function StudentAttendanceReport() {
               />
             </div>
           </motion.div>
-
-          {/* ================= ERROR STATE ================= */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                marginBottom: '1.5rem',
-                padding: '1.25rem',
-                borderRadius: '16px',
-                backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                border: `1px solid ${BRAND_COLORS.danger.main}`,
-                color: BRAND_COLORS.danger.main,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '1.05rem',
-                fontWeight: 500
-              }}
-              role="alert"
-              aria-live="assertive"
-            >
-              <FaExclamationTriangle size={24} aria-hidden="true" />
-              <div style={{ flex: 1 }}>{error}</div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleRetry}
-                style={{
-                  background: BRAND_COLORS.danger.main,
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-                aria-label="Retry loading attendance report"
-              >
-                <FaSyncAlt aria-hidden="true" /> Retry
-              </motion.button>
-            </motion.div>
-          )}
 
           {/* ================= TODAY'S ATTENDANCE ================= */}
           <motion.div

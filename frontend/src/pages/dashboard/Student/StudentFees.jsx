@@ -4,11 +4,25 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PAGE_LOAD_TOAST_ID = "student-fees-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 import {
   FaMoneyCheckAlt,
@@ -112,10 +126,15 @@ export default function StudentFees() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
+      logger.warn("Student fees request timed out", {
+        page: "StudentFees",
+        role: user?.role,
+      });
       setError({
         message:
           "Request timed out. Please check your connection and try again.",
         statusCode: 408,
+        errorCode: undefined,
       });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
@@ -143,16 +162,7 @@ export default function StudentFees() {
 
       setDashboard(res.data);
 
-      // Show success toast only once per session
-      if (!toastShown.success) {
-        toast.success("Fee dashboard loaded successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-          toastId: PAGE_LOAD_TOAST_ID,
-        });
-        setToastShown({ ...toastShown, success: true });
-      }
+      // Page-load success toast removed (requirement 8)
 
       // Clear timeout on success
       if (loadTimeoutRef.current) {
@@ -165,19 +175,28 @@ export default function StudentFees() {
       }
 
       const statusCode = err.response?.status;
-      const errorMsg =
-        statusCode === 401
-          ? "Session expired. Please login again."
-          : statusCode === 404
-            ? "Fee structure not found for your course. Contact administration."
-            : err.response?.data?.message ||
-              "Unable to load fee dashboard. Please try again.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
+      logger.error("Student fees load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentFees",
+        role: user?.role,
+      });
 
-      // Show error toast only once per session
-      if (!toastShown.error) {
-        toast.error(errorMsg, {
+      setError({
+        message: "Unable to load fee dashboard. Please try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError && !toastShown.error) {
+        toast.error("Unable to load fee dashboard. Please try again.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaExclamationTriangle />,
