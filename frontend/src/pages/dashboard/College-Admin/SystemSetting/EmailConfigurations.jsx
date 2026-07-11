@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
+import ApiError from "../../../../components/ApiError";
 import {
   FaEnvelope,
   FaArrowLeft,
@@ -29,7 +30,20 @@ if (!API_BASE_URL) {
 
 const EmailConfigurations = () => {
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [config, setConfig] = useState(null);
@@ -88,8 +102,14 @@ const EmailConfigurations = () => {
         });
       }
     } catch (error) {
-      logger.error("Error fetching config:", error);
-      if (error.response?.status !== 404) {
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error fetching config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        setPageError({ statusCode, errorCode });
+        return;
+      }
+      if (statusCode !== 404) {
         toast.error(error.response?.data?.message || "Failed to load configuration");
       }
     } finally {
@@ -156,7 +176,12 @@ const EmailConfigurations = () => {
       fetchEmailConfig();
       setIsModified(false);
     } catch (error) {
-      logger.error("Error saving config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error saving config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to save configuration");
     } finally {
       setSaving(false);
@@ -189,7 +214,12 @@ const EmailConfigurations = () => {
       }
       fetchEmailConfig();
     } catch (error) {
-      logger.error("Error verifying config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error verifying config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to verify configuration");
     } finally {
       setVerifying(false);
@@ -214,10 +244,26 @@ const EmailConfigurations = () => {
       });
       setIsModified(false);
     } catch (error) {
-      logger.error("Error deleting config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error deleting config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to delete configuration");
     }
   };
+
+  if (pageError) {
+    return (
+      <ApiError
+        statusCode={pageError.statusCode}
+        errorCode={pageError.errorCode}
+        onRetry={fetchEmailConfig}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading) {
     return (
