@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
+import ApiError from "../../../components/ApiError";
 import "./Wizard.css";
 import {
   FaEnvelope,
@@ -67,7 +69,18 @@ export default function CollegeSetupWizard() {
   const [completedSteps, setCompletedSteps] = useState([]);
   const [setupStatus, setSetupStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [statusError, setStatusError] = useState("");
+  const [pageError, setPageError] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     if (!user) {
@@ -80,22 +93,22 @@ export default function CollegeSetupWizard() {
     }
   }, [user, navigate]);
 
+  const fetchStatus = async () => {
+    try {
+      setStatusLoading(true);
+      const res = await api.get("/college/setup-status");
+      setSetupStatus(res.data);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Error loading setup status:", statusCode, errorCode);
+      setPageError({ statusCode, errorCode });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        setStatusLoading(true);
-        setStatusError("");
-        const res = await api.get("/college/setup-status");
-        setSetupStatus(res.data);
-      } catch (err) {
-        setStatusError(
-          err.response?.data?.message ||
-            "Failed to load setup status. Please try again.",
-        );
-      } finally {
-        setStatusLoading(false);
-      }
-    };
     fetchStatus();
   }, [navigate]);
 
@@ -125,7 +138,12 @@ export default function CollegeSetupWizard() {
       await api.post("/college/setup-complete", {});
       navigate("/dashboard");
     } catch (err) {
-      console.error("Failed to mark setup complete:", err);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Failed to mark setup complete:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         err.response?.data?.message ||
           "Setup incomplete. Please complete all required steps first.",
@@ -141,6 +159,17 @@ export default function CollegeSetupWizard() {
   };
 
   if (!user || user.role !== "COLLEGE_ADMIN") return null;
+
+  if (pageError) {
+    return (
+      <ApiError
+        statusCode={pageError.statusCode}
+        errorCode={pageError.errorCode}
+        onRetry={fetchStatus}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   return (
     <div className="setup-wizard-container">
