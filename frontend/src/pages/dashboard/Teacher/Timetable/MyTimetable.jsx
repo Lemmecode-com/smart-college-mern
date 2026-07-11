@@ -76,6 +76,17 @@ const SLOT_TYPE_COLORS = {
 // Days array for iteration
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function MyTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -489,11 +500,18 @@ export default function MyTimetable() {
       const message =
         err.response?.data?.message ||
         "Failed to create attendance session. Please try again.";
-      toast.error(message, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
-      });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(message, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      }
 
       if (
         message.toLowerCase().includes("already") ||
