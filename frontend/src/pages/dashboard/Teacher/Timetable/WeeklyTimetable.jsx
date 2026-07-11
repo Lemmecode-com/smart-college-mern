@@ -163,6 +163,17 @@ const TIMES = [
   { start: "16:00", end: "17:00" },
 ];
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function WeeklyTimetable() {
   const { user } = useContext(AuthContext);
   const { timetableId } = useParams();
@@ -574,7 +585,14 @@ export default function WeeklyTimetable() {
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Cannot modify published timetable or only HOD has access.";
       setModalError(errorMsg);
-      toast.error(errorMsg, { position: "top-right", autoClose: 5000, icon: <FaExclamationTriangle /> });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(errorMsg, { position: "top-right", autoClose: 5000, icon: <FaExclamationTriangle /> });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -598,7 +616,14 @@ export default function WeeklyTimetable() {
       setConfirmModal({ ...confirmModal, slotId: null, isOpen: false });
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Delete failed. Only HOD can delete slots or timetable may be published.";
-      toast.error(errorMsg, { position: "top-right", autoClose: 5000, icon: <FaExclamationTriangle /> });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(errorMsg, { position: "top-right", autoClose: 5000, icon: <FaExclamationTriangle /> });
+      }
     }
   };
 
