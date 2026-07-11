@@ -47,7 +47,7 @@ export default function EditSubject() {
         return;
       }
 
-      const departmentId = subject.department_id;
+      const departmentId = subject.department_id?._id || subject.department_id;
 
       const [courseRes, teacherRes] = await Promise.all([
         departmentId
