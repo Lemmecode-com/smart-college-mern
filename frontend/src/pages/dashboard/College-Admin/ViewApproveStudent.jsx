@@ -9,6 +9,8 @@ import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -1124,6 +1126,17 @@ export default function ViewApproveStudent() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   // 🏦 OFFLINE PAYMENT: Mark as Paid modal state
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
@@ -1150,7 +1163,7 @@ export default function ViewApproveStudent() {
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(studentId));
 
@@ -1167,12 +1180,25 @@ export default function ViewApproveStudent() {
       setStudent(studentData);
       setRetryCount(0);
     } catch (fetchError) {
-      const errorType = getErrorType(fetchError);
-      setError(errorType);
-      toast.error(errorType, {
-        position: "top-right",
-        autoClose: 4000,
-      });
+      const statusCode = fetchError.response?.status;
+      const errorCode = fetchError.response?.data?.code;
+      const backendMessage = fetchError.response?.data?.message;
+      const errorType = backendMessage || getErrorType(fetchError);
+
+      logger.error("Error fetching student:", statusCode, errorCode);
+
+      setError({ message: errorType, statusCode, errorCode });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorType, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -1396,11 +1422,15 @@ export default function ViewApproveStudent() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <ErrorDisplay
-        error={error}
+      <ApiError
+        title="Student Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
-        onBack={handleBack}
+        onGoBack={handleBack}
         retryCount={retryCount}
+        maxRetry={CONFIG.MAX_RETRY}
       />
     );
   }

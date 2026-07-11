@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import "../College-Admin/Dashboard.css";
 
@@ -120,6 +122,17 @@ export default function EditStaffProfile() {
     }
   }, [currentUser, actualUserId, navigate]);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -152,10 +165,10 @@ export default function EditStaffProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        console.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
+        logger.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
         setLoading(true);
         const res = await api.get(`/college/staff/profile/${actualUserId}`);
-        console.log("[EditStaffProfile] API response:", res.data);
+        logger.log("[EditStaffProfile] API response:", res.data);
         const p = res.data.data || res.data;
         if (p) {
           setFormData({
@@ -181,8 +194,19 @@ export default function EditStaffProfile() {
           });
         }
       } catch (err) {
-        console.error("[EditStaffProfile] API error:", err);
-        setError(err.response?.data?.message || "Failed to load profile");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+          ? "Authentication error occurred."
+          : backendMessage || "Failed to load profile";
+
+        logger.error("Error fetching staff profile:", statusCode, errorCode);
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -205,20 +229,44 @@ export default function EditStaffProfile() {
         ...formData,
         experienceYears: formData.experienceYears ? Number(formData.experienceYears) : 0,
       };
-      console.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
+      logger.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
       const res = await api.put(`/college/staff/profile/${actualUserId}`, payload);
-      console.log("[EditStaffProfile] Update response:", res.data);
+      logger.log("[EditStaffProfile] Update response:", res.data);
       setSuccess(true);
       setTimeout(() => navigate(`/staff/profile/${actualUserId}`), 1500);
     } catch (err) {
-      console.error("[EditStaffProfile] Update error:", err);
-      setError(err.response?.data?.message || "Update failed");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating staff profile:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        logger.error("[EditStaffProfile] Update error:", err);
+        setError(err.response?.data?.message || "Update failed");
+      }
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) return <Loading fullScreen size="lg" text="Loading staff profile..." />;
+
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Staff Profile Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchProfile}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -781,7 +829,7 @@ export default function EditStaffProfile() {
 
           {/* ================= ERROR DISPLAY ================= */}
           <AnimatePresence>
-            {error && (
+            {error && typeof error === 'string' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

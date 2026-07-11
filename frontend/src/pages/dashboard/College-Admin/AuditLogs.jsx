@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
-import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -124,12 +125,25 @@ const RESOURCE_MAP = {
   Department: { icon: FaFileAlt, label: "Department", color: "#ec4899" },
 };
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function AuditLogs() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     action: "",
     resourceType: "",
@@ -150,6 +164,7 @@ export default function AuditLogs() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
         page: currentPage,
         limit: 20,
@@ -163,17 +178,22 @@ export default function AuditLogs() {
 
       const res = await api.get(`/audit-logs?${params}`);
 
-      // API returns array directly, not wrapped in { success, data }
       const logsData = Array.isArray(res.data)
         ? res.data
         : res.data?.data || res.data?.logs || [];
 
       setLogs(Array.isArray(logsData) ? logsData : []);
       setPagination(res.data?.pagination || null);
-    } catch (error) {
-      console.error("Failed to fetch audit logs:", error);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Failed to fetch audit logs:", statusCode, errorCode);
       setLogs([]);
-      toast.error("Failed to load audit logs");
+      setError({
+        message: err.response?.data?.message || "Failed to load audit logs.",
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -183,10 +203,9 @@ export default function AuditLogs() {
   const fetchStats = async () => {
     try {
       const res = await api.get("/audit-logs/stats");
-      // API returns stats directly, not wrapped
       setStats(res.data?.data || res.data || null);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+    } catch (err) {
+      logger.error("Failed to fetch audit log stats:", err.response?.status);
     }
   };
 
@@ -679,6 +698,17 @@ export default function AuditLogs() {
       </div>
     );
   };
+
+  if (error) {
+    return (
+      <ApiError
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchLogs}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   return (
     <div
