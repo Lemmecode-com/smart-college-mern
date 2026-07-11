@@ -20,6 +20,7 @@ import {
   FaUndo,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from "../../../../utils/logger";
 
 /**
  * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
@@ -137,6 +138,17 @@ const MotionDiv = motion.div;
 const MotionSpan = motion.span;
 const MotionButton = motion.button;
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function ExceptionManagement() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -173,7 +185,7 @@ export default function ExceptionManagement() {
         setSelectedTimetable(res.data.timetables[0]);
       }
     } catch (err) {
-      console.error("Failed to fetch timetables:", err);
+      logger.error("Failed to fetch timetables:", err);
     }
   };
 
@@ -244,10 +256,17 @@ export default function ExceptionManagement() {
       setWithdrawalReason("");
       fetchExceptions();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to withdraw exception", {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(err.response?.data?.message || "Failed to withdraw exception", {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      }
     } finally {
       setWithdrawLoading(false);
     }
@@ -905,13 +924,20 @@ function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
       });
       onSuccess();
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Failed to upload bulk exceptions",
-        {
-          position: "top-right",
-          autoClose: 5000,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message || "Failed to upload bulk exceptions",
+          {
+            position: "top-right",
+            autoClose: 5000,
+          },
+        );
+      }
     } finally {
       setSubmitting(false);
     }
