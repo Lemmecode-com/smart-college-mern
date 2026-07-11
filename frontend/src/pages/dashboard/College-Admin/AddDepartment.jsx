@@ -2,6 +2,8 @@ import { useContext, useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBuilding,
@@ -29,6 +31,17 @@ import {
 export default function AddDepartment() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -172,7 +185,18 @@ export default function AddDepartment() {
         navigate("/departments");
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create department. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error creating department:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Failed to create department. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -189,6 +213,15 @@ export default function AddDepartment() {
 
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in">
+      {error && typeof error === 'object' && !loading && (
+        <ApiError
+          title="Department Creation Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onGoBack={() => navigate(-1)}
+        />
+      )}
       {/* ================= TOP NAVIGATION ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
@@ -256,7 +289,7 @@ export default function AddDepartment() {
       )}
 
       {/* ================= ALERTS ================= */}
-      {error && (
+      {error && typeof error === 'string' && (
         <div className="alert alert-danger d-flex align-items-center alert-dismissible fade show mb-3 mb-md-4 animate-slide-down" role="alert">
           <FaExclamationTriangle className="me-2 flex-shrink-0" size={20} />
           <div><strong>Error:</strong> {error}</div>

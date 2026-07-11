@@ -3,6 +3,8 @@ import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
 
 import {
@@ -41,8 +43,19 @@ export default function ViewTeacher() {
 
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -52,7 +65,7 @@ export default function ViewTeacher() {
   /* ================= FETCH TEACHER ================= */
   const fetchTeacher = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get(`/teachers/${id}`);
 
@@ -62,7 +75,18 @@ export default function ViewTeacher() {
       setTeacher(teacherData);
       setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load teacher profile. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load teacher profile. Please try again.";
+
+      logger.error("Error fetching teacher:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +102,7 @@ export default function ViewTeacher() {
       setRetryCount(prev => prev + 1);
       fetchTeacher();
     } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
+      setError((prev) => ({ ...(prev || {}), message: "Maximum retry attempts reached. Please check your connection." }));
     }
   };
 
@@ -128,32 +152,18 @@ export default function ViewTeacher() {
   );
 
   /* ================= ERROR STATE ================= */
-  if (error && !loading) {
+  if (error) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Teacher Profile Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Teacher Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+        retryCount={retryCount}
+        maxRetry={3}
+      />
     );
   }
 

@@ -3,6 +3,8 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { Container, Row, Col, Card, Badge } from "react-bootstrap";
 import {
   FaBuilding,
@@ -33,6 +35,17 @@ export default function ViewDepartment() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
@@ -45,7 +58,18 @@ export default function ViewDepartment() {
          const res = await api.get(`/departments/${id}`);
          setDepartment(res.data.department);
        } catch (err) {
-         setError("Failed to load department details.");
+         const statusCode = err.response?.status;
+         const errorCode = err.response?.data?.code;
+         const backendMessage = err.response?.data?.message;
+         const errorMessage = backendMessage || "Failed to load department details.";
+
+         logger.error("Error fetching department:", statusCode, errorCode);
+
+         setError({
+           message: errorMessage,
+           statusCode,
+           errorCode,
+         });
        } finally {
          setLoading(false);
        }
@@ -54,7 +78,17 @@ export default function ViewDepartment() {
    }, [id]);
 
   if (loading) return <Loading fullScreen size="lg" text="Loading department..." />;
-  if (error || !department) return <div className="text-center text-danger mt-4">{error || "Department not found"}</div>;
+  if (error) return (
+    <ApiError
+      title="Department Loading Error"
+      message={error.message}
+      statusCode={error.statusCode}
+      errorCode={error.errorCode}
+      onRetry={fetchDepartment}
+      onGoBack={() => navigate(-1)}
+    />
+  );
+  if (!department) return <div className="text-center text-danger mt-4">Department not found</div>;
 
   const {
     name,

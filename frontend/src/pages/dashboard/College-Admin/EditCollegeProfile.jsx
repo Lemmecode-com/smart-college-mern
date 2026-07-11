@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaSave,
@@ -19,6 +21,19 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function EditCollegeProfile() {
   const navigate = useNavigate();
@@ -42,6 +57,10 @@ export default function EditCollegeProfile() {
   const [touchedFields, setTouchedFields] = useState({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState({
+    statusCode: null,
+    errorCode: null,
+  });
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [hasUserModified, setHasUserModified] = useState(false);
 
@@ -110,22 +129,36 @@ export default function EditCollegeProfile() {
       setHasUserModified(false);
     } catch (err) {
       // Defensive: Handle different error types
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to load college profile";
+      const statusCode = err?.response?.status;
+      const errorCode = err?.response?.data?.code;
+      const backendMessage =
+        err?.response?.data?.message || err?.message;
 
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        icon: <FaExclamationTriangle />,
+      logger.error("Edit college profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "EditCollegeProfile",
       });
 
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
       setFetchError(true);
+      setErrorDetails({ statusCode, errorCode });
+
+      // Authentication failures are routed to ApiError; never surface a toast.
+      if (!isAuthError) {
+        toast.error("Failed to load college profile. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          icon: <FaExclamationTriangle />,
+        });
+      }
 
       // Set empty form state on error
       const emptyForm = {
@@ -336,72 +369,17 @@ export default function EditCollegeProfile() {
   // ================= ERROR STATE =================
   if (fetchError) {
     return (
-      <div className="edit-college-profile-container">
-        <header className="glass-header mb-4">
-          <div className="header-content">
-            <div className="header-left">
-              <button
-                className="btn-back"
-                onClick={handleBack}
-                aria-label="Go back"
-              >
-                <FaArrowLeft />
-              </button>
-              <div>
-                <h1 className="header-title">
-                  <FaUniversity className="header-icon blink" aria-hidden="true" />
-                  Edit Institute Profile
-                </h1>
-                <p className="header-subtitle">Unable to load profile data</p>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="form-wrapper">
-          <div className="row justify-content-center">
-            <div className="col-lg-8">
-              <div className="glass-card">
-                <div className="error-state">
-                  <FaExclamationTriangle className="error-icon" size={48} />
-                  <h3>Failed to Load Profile</h3>
-                  <p>Unable to fetch college profile data. This could be due to:</p>
-                  <ul className="error-reasons">
-                    <li>No college profile exists yet</li>
-                    <li>Network connectivity issues</li>
-                    <li>Server is temporarily unavailable</li>
-                  </ul>
-                  <div className="error-actions">
-                    <button
-                      className="btn btn-outline-secondary"
-                      onClick={handleBack}
-                    >
-                      <FaArrowLeft className="me-2" aria-hidden="true" />
-                      Go Back
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={fetchCollege}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <FaSpinner className="spin me-2" aria-hidden="true" />
-                          Retrying...
-                        </>
-                      ) : (
-                        <>
-                          <FaCheckCircle className="me-2" aria-hidden="true" />
-                          Try Again
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+      <ApiError
+        title="Profile Loading Error"
+        message="Failed to load college profile. Please try again."
+        statusCode={errorDetails.statusCode}
+        errorCode={errorDetails.errorCode}
+        onRetry={fetchCollege}
+        onGoBack={handleBack}
+        retryCount={0}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
