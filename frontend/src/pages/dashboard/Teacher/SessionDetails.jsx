@@ -29,6 +29,17 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: {
@@ -223,15 +234,22 @@ export default function SessionDetails() {
       });
       navigate("/attendance/sessions");
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to delete session. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to delete session. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -270,15 +288,22 @@ export default function SessionDetails() {
       fetchRecords();
       setAttendance({});
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to save attendance. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to save attendance. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -298,15 +323,22 @@ export default function SessionDetails() {
       await fetchSession();
       await fetchRecords();
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to close session. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to close session. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setClosing(false);
       setShowCloseConfirm(false);
