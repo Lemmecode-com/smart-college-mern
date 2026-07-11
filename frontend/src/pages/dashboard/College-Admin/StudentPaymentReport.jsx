@@ -16,9 +16,23 @@ import {
   FaDownload
 } from "react-icons/fa";
 import { showSuccess, showError } from "../../../utils/toast";
+import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 
 const PAGE_LOAD_TOAST_ID = "college-student-payment-report-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function StudentPaymentReport() {
   const { user } = useContext(AuthContext);
@@ -83,13 +97,19 @@ export default function StudentPaymentReport() {
         autoClose: 3000,
       });
     } catch (err) {
-      console.error("Student payment fetch error:", err);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Student payment fetch error:", statusCode, errorCode);
       const errorMsg = err.response?.data?.message || "Failed to load student payment data.";
-      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+      setError({ message: errorMsg, statusCode, errorCode });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showError(errorMsg);
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMsg);
+      }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
         setLoading(false);

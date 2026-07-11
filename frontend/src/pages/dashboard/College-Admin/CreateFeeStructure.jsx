@@ -3,6 +3,8 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -46,9 +48,20 @@ export default function CreateFeeStructure() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-   /* ================= SECURITY ================= */
+  /* ================= SECURITY ================= */
    if (!user) return <Navigate to="/login" />;
    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
+
+   const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
@@ -136,7 +149,18 @@ export default function CreateFeeStructure() {
       setCourses([]);
 
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create structure");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error creating fee structure:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Failed to create structure");
+      }
     } finally {
       setLoading(false);
     }
@@ -144,6 +168,15 @@ export default function CreateFeeStructure() {
 
   return (
     <div className="erp-container">
+      {error && typeof error === 'object' && !loading && (
+        <ApiError
+          title="Fee Structure Creation Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onGoBack={() => window.history.back()}
+        />
+      )}
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -178,7 +211,7 @@ export default function CreateFeeStructure() {
       </div>
 
       {/* ALERTS */}
-      {error && (
+      {error && typeof error === 'string' && (
         <div className="erp-alert erp-alert-danger animate-slide-in">
           <div className="erp-alert-icon">
             <FaExclamationTriangle className="shake" />

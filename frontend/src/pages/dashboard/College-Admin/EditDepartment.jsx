@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBuilding,
@@ -37,6 +39,17 @@ export default function EditDepartment() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN")
     return <Navigate to="/dashboard" />;
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= STATE ================= */
   const [formData, setFormData] = useState({
@@ -96,38 +109,45 @@ export default function EditDepartment() {
   }, [formData.name, isAutoCode]);
 
   /* ================= FETCH DEPARTMENT ================= */
+  const fetchDepartment = async () => {
+    try {
+      const res = await api.get(`/departments/${id}`);
+      const data = res.data.department || res.data;
+
+      setFormData({
+        name: data.name || "",
+        code: data.code || "",
+        type: data.type || "ACADEMIC",
+        status: data.status || "ACTIVE",
+        programsOffered: Array.isArray(data.programsOffered) ? data.programsOffered : [],
+        startYear: data.startYear?.toString() || "",
+        sanctionedFacultyCount: data.sanctionedFacultyCount?.toString() || "",
+        sanctionedStudentIntake: data.sanctionedStudentIntake?.toString() || ""
+      });
+
+      setOriginalData(data);
+      const autoCode = generateCode(data.name || "");
+      setIsAutoCode(data.code === autoCode);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load department data. Please try again.";
+
+      logger.error("Error fetching department:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDepartment = async () => {
-      try {
-        const res = await api.get(`/departments/${id}`);
-        // Handle both old format (direct object) and new format (wrapped in department key)
-        const data = res.data.department || res.data;
-
-        // Set form data
-        setFormData({
-          name: data.name || "",
-          code: data.code || "",
-          type: data.type || "ACADEMIC",
-          status: data.status || "ACTIVE",
-          programsOffered: Array.isArray(data.programsOffered) ? data.programsOffered : [],
-          startYear: data.startYear?.toString() || "",
-          sanctionedFacultyCount: data.sanctionedFacultyCount?.toString() || "",
-          sanctionedStudentIntake: data.sanctionedStudentIntake?.toString() || ""
-        });
-
-        // Save original data for reset
-        setOriginalData(data);
-
-        // Determine if current code matches auto-generated
-        const autoCode = generateCode(data.name || "");
-        setIsAutoCode(data.code === autoCode);
-      } catch (err) {
-        setError("Failed to load department data. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDepartment();
   }, [id]);
 
@@ -225,7 +245,18 @@ export default function EditDepartment() {
         navigate("/departments");
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Update failed. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating department:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Update failed. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -243,6 +274,19 @@ export default function EditDepartment() {
   /* ================= LOADING STATE ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Department Data..." />;
+  }
+
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Department Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchDepartment}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   return (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   FaGraduationCap,
@@ -12,8 +13,22 @@ import {
   getPromotionPolicy,
   updatePromotionPolicy,
 } from "../../../../api/promotion";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
 
 const PromotionSetting = () => {
+  const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
   const [formData, setFormData] = useState({
     minAttendancePercentage: "75",
     scopedSemesters: [],
@@ -24,6 +39,7 @@ const PromotionSetting = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [semesterOptions] = useState([
     { value: 1, label: "Semester 1" },
@@ -42,6 +58,7 @@ const PromotionSetting = () => {
 
   const fetchPolicy = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await getPromotionPolicy();
       if (res.data) {
@@ -56,7 +73,15 @@ const PromotionSetting = () => {
         });
       }
     } catch (err) {
-      toast.error("Failed to load promotion policy");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      logger.error("Error fetching promotion policy:", statusCode, errorCode);
+      setError({
+        message: backendMessage || "Failed to load promotion policy.",
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -106,6 +131,13 @@ const PromotionSetting = () => {
       toast.success("Promotion policy updated successfully");
       setIsModified(false);
     } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating promotion policy:", statusCode, errorCode);
+        return;
+      }
+      logger.error("Error updating promotion policy:", statusCode, errorCode);
       toast.error(err.response?.data?.message || "Failed to update policy");
     } finally {
       setIsSaving(false);

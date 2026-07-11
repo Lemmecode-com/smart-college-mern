@@ -62,11 +62,28 @@
 // src/pages/dashboard/Dashboard.jsx
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import { Card, Row, Col, Spinner, Alert } from "react-bootstrap";
+import { Card, Row, Col, Spinner } from "react-bootstrap";
+import ApiError from "../../components/ApiError";
+import { logger } from "../../utils/logger";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState({
     students: 0,
@@ -76,7 +93,7 @@ export default function Dashboard() {
 
   const [teacherCourses, setTeacherCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -102,7 +119,23 @@ export default function Dashboard() {
             0,
         });
       } catch (err) {
-        setError("Failed to load dashboard data");
+        const statusCode = err.response?.status;
+        const errorCode =
+          err.response?.data?.code || (!err.response ? "NETWORK_ERROR" : undefined);
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Dashboard (admin) load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "Dashboard",
+        });
+
+        setError({
+          message: "Failed to load dashboard data. Please try again.",
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -113,7 +146,23 @@ export default function Dashboard() {
         const res = await api.get("/courses");
         setTeacherCourses(res.data?.data || res.data || []);
       } catch (err) {
-        setError("Failed to load courses");
+        const statusCode = err.response?.status;
+        const errorCode =
+          err.response?.data?.code || (!err.response ? "NETWORK_ERROR" : undefined);
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Dashboard (teacher) load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "Dashboard",
+        });
+
+        setError({
+          message: "Failed to load dashboard data. Please try again.",
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -144,7 +193,18 @@ export default function Dashboard() {
     >
       <h3 className="text-white mb-4">Dashboard</h3>
 
-      {error && <Alert variant="danger">{error}</Alert>}
+      {error && (
+        <ApiError
+          title="Dashboard Loading Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={() => window.location.reload()}
+          onGoBack={() => navigate(-1)}
+          retryCount={0}
+          maxRetry={3}
+        />
+      )}
 
       {/* ADMIN DASHBOARD */}
       {user?.role === "admin" && (

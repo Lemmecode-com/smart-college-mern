@@ -16,6 +16,8 @@ import {
   FaArrowRight
 } from "react-icons/fa";
 import api from "../../../api/axios";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import "./Dashboard.css";
 
 const BRAND_COLORS = {
@@ -100,6 +102,17 @@ const spinVariants = {
 
 export default function CreateStaff() {
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
    const [formData, setFormData] = useState({
      name: "",
@@ -188,15 +201,14 @@ export default function CreateStaff() {
   }, [formData.role]);
 
     const fetchDepartments = async () => {
-    try {
-      const res = await api.get("/departments");
-      setDepartments(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch departments:", err);
-      // Continue without departments - form will still work
-      setDepartments([]);
-    }
-  };
+      try {
+        const res = await api.get("/departments");
+        setDepartments(res.data || []);
+      } catch (err) {
+        logger.error("Failed to fetch departments:", err);
+        setDepartments([]);
+      }
+    };
 
    const handleSubmit = async (e) => {
      e.preventDefault();
@@ -264,10 +276,21 @@ export default function CreateStaff() {
          qualification: "",
          experienceYears: 0,
        });
-     } catch (err) {
-       console.error(err);
-       setError(err.response?.data?.message || "Failed to create account");
-     } finally {
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+          logger.error("Auth error creating staff:", statusCode, errorCode);
+          setError({
+            message: "Authentication error occurred.",
+            statusCode,
+            errorCode,
+          });
+        } else {
+          logger.error(err);
+          setError(err.response?.data?.message || "Failed to create account");
+        }
+      } finally {
        setLoading(false);
      }
    };
@@ -813,7 +836,7 @@ export default function CreateStaff() {
           </AnimatePresence>
 
           <AnimatePresence>
-            {error && (
+            {error && typeof error === 'string' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -822,6 +845,15 @@ export default function CreateStaff() {
               >
                 <ErrorDisplay message={error} />
               </motion.div>
+            )}
+            {error && typeof error === 'object' && !loading && (
+              <ApiError
+                title="Staff Creation Error"
+                message={error.message}
+                statusCode={error.statusCode}
+                errorCode={error.errorCode}
+                onGoBack={() => navigate(-1)}
+              />
             )}
           </AnimatePresence>
         </div>

@@ -46,6 +46,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { logger } from "../../../../utils/logger";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
@@ -88,6 +89,19 @@ const CONFIG = {
   },
   PAYMENT_STATUS: ["PAID", "PARTIAL", "DUE"],
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function ReportDashboard() {
   // ================= STATE MANAGEMENT =================
@@ -245,7 +259,7 @@ export default function ReportDashboard() {
         const courseNames = coursesRes.data.map((course) => course.name);
         setAvailableCourses(courseNames);
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        logger.error("Failed to fetch courses:", err);
         setAvailableCourses([]);
       } finally {
         if (currentFetchId === fetchIdRef.current) {
@@ -271,17 +285,17 @@ export default function ReportDashboard() {
       ]);
 
       if (admissionRes.status === "fulfilled") setAdmissionData(admissionRes.value.data);
-      else console.error("Admission summary failed:", admissionRes.reason);
+      else logger.error("Admission summary failed:", admissionRes.reason);
 
       if (paymentRes.status === "fulfilled") setPaymentData(paymentRes.value.data);
-      else console.error("Payment summary failed:", paymentRes.reason);
+      else logger.error("Payment summary failed:", paymentRes.reason);
 
       if (attendanceRes.status === "fulfilled") {
         const data = attendanceRes.value.data;
         const attendanceData = Array.isArray(data) ? data[0] || {} : data;
         setAttendanceData(attendanceData);
       } else {
-        console.error("Attendance summary failed:", attendanceRes.reason);
+        logger.error("Attendance summary failed:", attendanceRes.reason);
       }
 
       if (studentPaymentsRes.status === "fulfilled") {
@@ -291,7 +305,7 @@ export default function ReportDashboard() {
             : [],
         );
       } else {
-        console.error("Student payments failed:", studentPaymentsRes.reason);
+        logger.error("Student payments failed:", studentPaymentsRes.reason);
         setStudentPayments([]);
       }
 
@@ -302,7 +316,7 @@ export default function ReportDashboard() {
             : [],
         );
       } else {
-        console.error("Low attendance failed:", lowAttendanceRes.reason);
+        logger.error("Low attendance failed:", lowAttendanceRes.reason);
         setLowAttendanceStudents([]);
       }
 
@@ -313,15 +327,21 @@ export default function ReportDashboard() {
         autoClose: 3000,
       });
     } catch (err) {
-      console.error("Unexpected error fetching reports:", err);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Unexpected error fetching reports:", statusCode, errorCode);
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load reports. Please try again.";
-      setError({ message: errorMessage, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+      setError({ message: errorMessage, statusCode, errorCode });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showError(errorMessage);
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMessage);
+      }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
         setLoading(false);

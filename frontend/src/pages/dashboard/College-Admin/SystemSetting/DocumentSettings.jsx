@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
 import {
   FaFileAlt,
   FaSave,
@@ -18,11 +21,24 @@ import {
 } from "react-icons/fa";
 
 export default function DocumentSettings() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isModified, setIsModified] = useState(false);
+  const [pageError, setPageError] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const defaultDocumentTypes = [
     {
@@ -86,6 +102,7 @@ export default function DocumentSettings() {
   const loadDocumentConfig = async () => {
     try {
       setLoading(true);
+      setPageError(null);
       const res = await api.get("/document-config/admin/college");
 
       if (res.data.config && res.data.config.documents) {
@@ -104,10 +121,18 @@ export default function DocumentSettings() {
         setDocuments(emptyDocs);
       }
     } catch (error) {
-      setMessage({
-        type: "error",
-        text: "Failed to load document configuration",
-      });
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error loading document config:", statusCode, errorCode);
+      const isAuthError = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (isAuthError) {
+        setPageError({ statusCode, errorCode });
+      } else {
+        setMessage({
+          type: "error",
+          text: "Failed to load document configuration",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -217,6 +242,7 @@ export default function DocumentSettings() {
       });
       setIsModified(false);
     } catch (error) {
+      logger.error("Error saving document config:", error.response?.status, error.response?.data?.code);
       setMessage({
         type: "error",
         text: error.response?.data?.message || "Failed to save configuration",
@@ -245,6 +271,7 @@ export default function DocumentSettings() {
       loadDocumentConfig();
       setIsModified(false);
     } catch (error) {
+      logger.error("Error resetting document config:", error.response?.status, error.response?.data?.code);
       setMessage({ type: "error", text: "Failed to reset configuration" });
     } finally {
       setSaving(false);
@@ -269,6 +296,17 @@ export default function DocumentSettings() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Document Settings..." />;
+  }
+
+  if (pageError) {
+    return (
+      <ApiError
+        statusCode={pageError.statusCode}
+        errorCode={pageError.errorCode}
+        onRetry={loadDocumentConfig}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   const enabledCount = documents.filter((doc) => doc.enabled).length;

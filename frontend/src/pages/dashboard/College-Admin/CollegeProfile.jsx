@@ -4,7 +4,21 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 import {
   FaUniversity,
@@ -175,10 +189,27 @@ export default function CollegeProfile() {
         activeSessions: collegeRes.data?.activeSessions || 0,
       });
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to load college profile data";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("College profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "CollegeProfile",
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      setError({
+        message: isAuthError
+          ? "Your session has expired. Please sign in again."
+          : "Failed to load college profile. Please try again.",
+        statusCode,
+        errorCode,
+      });
       setCollege(null);
     } finally {
       setLoading(false);
