@@ -158,7 +158,7 @@ export default function NotificationCard({
           ? "0 4px 12px rgba(0, 0, 0, 0.08)"
           : "0 12px 24px rgba(0, 0, 0, 0.12)",
       }}
-      className="notification-card"
+      className="notification-list-card"
       onClick={handleCardClick}
       style={{
         backgroundColor: isExpired ? "#f9fafb" : "white",
@@ -355,17 +355,28 @@ export default function NotificationCard({
 
         {/* Message (Truncated with Read More) */}
         <p
+          id={`nc-message-${note._id}`}
           style={{
             margin: "0 0 0.75rem 0",
             fontSize: "0.9rem",
             color: isExpired ? "#9ca3af" : "#64748b",
             lineHeight: 1.6,
+            ...(expanded
+              ? {
+                  overflow: "visible",
+                  maxHeight: "none",
+                  whiteSpace: "normal",
+                  wordBreak: "break-word",
+                }
+              : {}),
           }}
         >
           {truncateText(note.message)}
         </p>
         {needsTruncation && (
           <button
+            aria-expanded={expanded}
+            aria-controls={`nc-message-${note._id}`}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
@@ -389,7 +400,7 @@ export default function NotificationCard({
           >
             {expanded ? (
               <>
-                <FaChevronUp size={10} /> Show Less
+                <FaChevronUp size={10} /> Read Less
               </>
             ) : (
               <>
