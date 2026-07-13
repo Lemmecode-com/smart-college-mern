@@ -1,4 +1,6 @@
 const reportsService = require("../services/reports.service");
+const logger = require("../utils/logger");
+const AppError = require("../utils/AppError");
 
 /**
  * COMBINED DASHBOARD REPORTS (ALL IN ONE)
@@ -234,7 +236,10 @@ exports.getPaymentSummaryWithFilters = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Payment summary with filters error:", error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    logger.error("Payment summary with filters error:", error);
     res.status(500).json({ message: "Failed to fetch filtered payment summary" });
   }
 };
@@ -259,7 +264,10 @@ exports.getStudentPaymentHistory = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Student payment history error:", error);
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    logger.error("Student payment history error:", error);
     res.status(500).json({ message: "Failed to fetch student payment history" });
   }
 };
