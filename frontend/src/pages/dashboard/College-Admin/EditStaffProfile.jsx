@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -101,6 +101,16 @@ const spinVariants = {
   }
 };
 
+// Staff roles selectable by a College Admin when editing a staff profile
+const STAFF_ROLE_OPTIONS = [
+  { value: "ACCOUNTANT", label: "Accountant" },
+  { value: "ADMISSION_OFFICER", label: "Admission Officer" },
+  { value: "PRINCIPAL", label: "Principal" },
+  { value: "HOD", label: "Head of Department" },
+  { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
+  { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+];
+
 export default function EditStaffProfile() {
   const { userId } = useParams();
   const { user: currentUser } = useContext(AuthContext);
@@ -162,57 +172,63 @@ export default function EditStaffProfile() {
   const [success, setSuccess] = useState(false);
 
   // Fetch existing profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        logger.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
-        setLoading(true);
-        const res = await api.get(`/college/staff/profile/${actualUserId}`);
-        logger.log("[EditStaffProfile] API response:", res.data);
-        const p = res.data.data || res.data;
-        if (p) {
-          setFormData({
-            name: p.name || "",
-            email: p.email || "",
-            role: p.role || "",
-            mobileNumber: p.mobileNumber || "",
-            designation: p.designation || "",
-            employmentType: p.employmentType || "FULL_TIME",
-            joiningDate: p.joiningDate ? new Date(p.joiningDate).toISOString().split('T')[0] : "",
-            gender: p.gender || "",
-            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : "",
-            bloodGroup: p.bloodGroup || "",
-            address: p.address || "",
-            city: p.city || "",
-            state: p.state || "",
-            pincode: p.pincode || "",
-            emergencyContactName: p.emergencyContactName || "",
-            emergencyContactPhone: p.emergencyContactPhone || "",
-            emergencyRelation: p.emergencyRelation || "",
-            qualification: p.qualification || "",
-            experienceYears: p.experienceYears?.toString() || "",
-          });
-        }
-      } catch (err) {
-        const statusCode = err.response?.status;
-        const errorCode = err.response?.data?.code;
-        const backendMessage = err.response?.data?.message;
-        const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
-          ? "Authentication error occurred."
-          : backendMessage || "Failed to load profile";
-
-        logger.error("Error fetching staff profile:", statusCode, errorCode);
-        setError({
-          message: errorMessage,
-          statusCode,
-          errorCode,
+  const fetchProfile = useCallback(async () => {
+    try {
+      logger.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
+      setLoading(true);
+      const res = await api.get(`/college/staff/profile/${actualUserId}`);
+      logger.log("[EditStaffProfile] API response:", res.data);
+      const raw = res.data?.data ?? res.data;
+      const p = raw || {};
+      // Support both response shapes:
+      //  - flat:          { name, email, role, ... }
+      //  - populated:     { user_id: { name, email, role }, ... }  (Issue #312-class compatibility)
+      const u = p.user_id || {};
+      if (raw) {
+        setFormData({
+          name: p.name || u.name || "",
+          email: p.email || u.email || "",
+          role: p.role || u.role || "",
+          mobileNumber: p.mobileNumber || "",
+          designation: p.designation || "",
+          employmentType: p.employmentType || "FULL_TIME",
+          joiningDate: p.joiningDate ? new Date(p.joiningDate).toISOString().split('T')[0] : "",
+          gender: p.gender || "",
+          dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : "",
+          bloodGroup: p.bloodGroup || "",
+          address: p.address || "",
+          city: p.city || "",
+          state: p.state || "",
+          pincode: p.pincode || "",
+          emergencyContactName: p.emergencyContactName || "",
+          emergencyContactPhone: p.emergencyContactPhone || "",
+          emergencyRelation: p.emergencyRelation || "",
+          qualification: p.qualification || "",
+          experienceYears: p.experienceYears?.toString() || "",
         });
-      } finally {
-        setLoading(false);
       }
-    };
-    if (actualUserId) fetchProfile();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load profile";
+
+      logger.error("Error fetching staff profile:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [actualUserId]);
+
+  useEffect(() => {
+    if (actualUserId) fetchProfile();
+  }, [actualUserId, fetchProfile]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -407,14 +423,20 @@ export default function EditStaffProfile() {
                             className="form-select"
                             required
                           >
-                            <option value="">Select Role</option>
-                            <option value="ACCOUNTANT">Accountant</option>
-                            <option value="ADMISSION_OFFICER">Admission Officer</option>
-                            <option value="PRINCIPAL">Principal</option>
-                            <option value="HOD">Head of Department</option>
-                            <option value="EXAM_COORDINATOR">Exam Coordinator</option>
-                            <option value="PLATFORM_SUPPORT">Platform Support</option>
-                          </select>
+                          <option value="">Select Role</option>
+                          {STAFF_ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                          {/* Preserve a persisted role that is not in the standard list (avoids blank selection) */}
+                          {formData.role &&
+                            !STAFF_ROLE_OPTIONS.some((o) => o.value === formData.role) && (
+                              <option value={formData.role}>
+                                {formData.role.replace("_", " ")}
+                              </option>
+                            )}
+                        </select>
                         </FormField>
                       </div>
                       <div className="col-12 col-md-4">

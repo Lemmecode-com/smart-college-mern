@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Loading from "../../../components/Loading";
@@ -128,39 +128,40 @@ export default function StaffList() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const res = await api.get("/college/staff");
-        setStaff(res.data || []);
-        setFilteredStaff(res.data || []);
-      } catch (err) {
-        const statusCode = err.response?.status;
-        const errorCode = err.response?.data?.code;
-        const backendMessage = err.response?.data?.message;
-        const errorMessage = backendMessage || "Failed to load staff list";
+  const fetchStaff = useCallback(async () => {
+    try {
+      const res = await api.get("/college/staff");
+      setStaff(res.data || []);
+      setFilteredStaff(res.data || []);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load staff list";
 
-        logger.error("Error fetching staff:", statusCode, errorCode);
+      logger.error("Error fetching staff:", statusCode, errorCode);
 
-        setError({
-          message: errorMessage,
-          statusCode,
-          errorCode,
-        });
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
 
-        const isAuthError =
-          statusCode === 401 ||
-          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
-        if (!isAuthError) {
-          toast.error(errorMessage);
-        }
-      } finally {
-        setLoading(false);
+      if (!isAuthError) {
+        toast.error(errorMessage);
       }
-    };
-    fetchStaff();
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
 
   useEffect(() => {
     let filtered = staff;
