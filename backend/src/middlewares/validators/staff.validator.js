@@ -1,5 +1,5 @@
 const { body, validationResult } = require("express-validator");
-const { validateEmail, validatePassword, passwordValidationMessage } = require("../../utils/validators");
+const { validateEmail, validatePassword, passwordValidationMessage, validateJoiningDate, joiningDateValidatorMessage } = require("../../utils/validators");
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -46,6 +46,15 @@ exports.validateStaffCreation = [
   body("mobileNumber")
     .optional({ checkFalsy: true })
     .matches(/^[6-9]\d{9}$/).withMessage("Invalid 10-digit mobile number"),
+
+  body("joiningDate")
+    .optional({ checkFalsy: true })
+    .custom((value) => {
+      if (!validateJoiningDate(value)) {
+        throw new Error(joiningDateValidatorMessage);
+      }
+      return true;
+    }),
 
   handleValidationErrors,
 ];
