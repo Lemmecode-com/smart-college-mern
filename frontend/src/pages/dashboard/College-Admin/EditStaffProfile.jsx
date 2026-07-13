@@ -224,6 +224,16 @@ export default function EditStaffProfile() {
     setError(null);
     setSuccess(false);
 
+    // ─── Joining date validation ───
+    if (
+      formData.joiningDate &&
+      new Date(formData.joiningDate + "T00:00:00") > new Date()
+    ) {
+      setError("Joining Date cannot be a future date");
+      setSaving(false);
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
@@ -481,6 +491,7 @@ export default function EditStaffProfile() {
                             value={formData.joiningDate}
                             onChange={handleChange}
                             className="form-control"
+                            max={new Date().toISOString().split("T")[0]}
                           />
                         </FormField>
                       </div>

@@ -169,14 +169,21 @@ export default function CreateStaff() {
        return "Mobile number must be 10 digits";
      }
 
-     if (
-       formData.emergencyContactPhone &&
-       !/^\d{10}$/.test(formData.emergencyContactPhone)
-     ) {
-       return "Emergency phone must be 10 digits";
-     }
+      if (
+        formData.emergencyContactPhone &&
+        !/^\d{10}$/.test(formData.emergencyContactPhone)
+      ) {
+        return "Emergency phone must be 10 digits";
+      }
 
-     return null;
+      if (
+        formData.joiningDate &&
+        new Date(formData.joiningDate + "T00:00:00") > new Date()
+      ) {
+        return "Joining Date cannot be a future date";
+      }
+
+      return null;
    };
 
   const handleChange = (e) => {
@@ -518,18 +525,19 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12">
-                          <FormField
-                            label="Joining Date"
-                            icon={<FaUserPlus />}
-                          >
-                            <input
-                              type="date"
-                              name="joiningDate"
-                              value={formData.joiningDate}
-                              onChange={handleChange}
-                              className="form-control"
-                            />
-                          </FormField>
+                           <FormField
+                             label="Joining Date"
+                             icon={<FaUserPlus />}
+                           >
+                             <input
+                               type="date"
+                               name="joiningDate"
+                               value={formData.joiningDate}
+                               onChange={handleChange}
+                               className="form-control"
+                               max={new Date().toISOString().split("T")[0]}
+                             />
+                           </FormField>
                         </div>
                         <div className="col-12">
                           <FormField

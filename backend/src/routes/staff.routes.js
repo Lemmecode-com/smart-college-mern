@@ -4,6 +4,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const roleMiddleware = require("../middlewares/role.middleware");
 const { ROLE } = require("../utils/constants");
 const staffController = require("../controllers/staff.controller");
+const { validateStaffCreation } = require("../middlewares/validators/staff.validator");
 
 // All routes require authentication and COLLEGE_ADMIN role
 router.use(authMiddleware, roleMiddleware([ROLE.COLLEGE_ADMIN]));
@@ -12,7 +13,7 @@ router.use(authMiddleware, roleMiddleware([ROLE.COLLEGE_ADMIN]));
  * POST /api/college/staff
  * Create staff account (ACCOUNTANT, ADMISSION_OFFICER, etc.)
  */
-router.post("/staff", staffController.createStaff);
+router.post("/staff", validateStaffCreation, staffController.createStaff);
 
 /**
  * GET /api/college/staff

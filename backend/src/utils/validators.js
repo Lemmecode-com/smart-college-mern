@@ -135,3 +135,18 @@ exports.validatePassword = (password) => {
 };
 
 exports.passwordValidationMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character';
+
+/**
+ * 9. Joining Date Validator
+ * Validates joining date is not in the future
+ */
+exports.validateJoiningDate = (joiningDate) => {
+  if (!joiningDate) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkDate = new Date(joiningDate);
+  checkDate.setHours(0, 0, 0, 0);
+  return checkDate <= today;
+};
+
+exports.joiningDateValidatorMessage = 'Joining Date cannot be a future date';
