@@ -152,13 +152,22 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
     let proofFileSize = null;
     let proofUploadedAt = null;
 
-    if (req.file) {
-      proofUrl = `uploads/payment-proofs/${req.file.filename}`;
-      proofFileName = req.file.originalname;
-      proofFileType = req.file.mimetype;
-      proofFileSize = req.file.size;
-      proofUploadedAt = new Date();
+    // Enforce proof of payment (receipt) for all offline payments.
+    // The multer middleware (uploadPaymentProof.single("proof")) runs before
+    // this controller, so req.file is only set when a valid file is attached.
+    if (!req.file) {
+      throw new AppError(
+        "Proof of payment (receipt) is required when marking an installment as paid offline",
+        400,
+        "PROOF_REQUIRED",
+      );
     }
+
+    proofUrl = `uploads/payment-proofs/${req.file.filename}`;
+    proofFileName = req.file.originalname;
+    proofFileType = req.file.mimetype;
+    proofFileSize = req.file.size;
+    proofUploadedAt = new Date();
 
     // Validate required fields
     if (!studentId || !installmentId || !paymentMode) {
