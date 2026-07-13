@@ -53,6 +53,7 @@ const StripeConfiguration = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [isGatewayActive, setIsGatewayActive] = useState(false);
+  const [gatewayStatus, setGatewayStatus] = useState("inactive");
 
   const [formData, setFormData] = useState({
     publishableKey: "",
@@ -72,6 +73,7 @@ const StripeConfiguration = () => {
 
       const isActive = response.data.isActive || false;
       setIsGatewayActive(isActive);
+      setGatewayStatus(response.data.status || (isActive ? "not_ready" : "inactive"));
 
       if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
@@ -118,6 +120,7 @@ const StripeConfiguration = () => {
 
       setIsGatewayActive(newStatus);
       toast.success(response.data.message);
+      fetchStripeConfig();
     } catch (error) {
       const statusCode = error.response?.status;
       const errorCode = error.response?.data?.code;
@@ -479,6 +482,11 @@ const StripeConfiguration = () => {
         .status-badge.inactive {
           background: rgba(255, 255, 255, 0.2);
           color: rgba(255, 255, 255, 0.8);
+        }
+
+        .status-badge.not-ready {
+          background: linear-gradient(135deg, #f6ad55, #ed8936);
+          color: #ffffff;
         }
 
         /* Info Card */
@@ -877,6 +885,11 @@ const StripeConfiguration = () => {
           background: var(--sc-text-muted);
         }
 
+        .status-dot.not-ready {
+          background: var(--sc-warning);
+          box-shadow: 0 0 8px var(--sc-warning);
+        }
+
         .status-dot.test {
           background: var(--sc-warning);
           box-shadow: 0 0 8px var(--sc-warning);
@@ -1058,16 +1071,20 @@ const StripeConfiguration = () => {
           </div>
           <div className="header-badges">
             <button
-              className={`status-badge ${isGatewayActive ? "active" : "inactive"}`}
+              className={`status-badge ${gatewayStatus}`}
               onClick={handleToggleGateway}
               disabled={toggling}
               style={{ cursor: "pointer", border: "none" }}
             >
               {toggling ? (
                 <FaSpinner className="spin" />
-              ) : isGatewayActive ? (
+              ) : gatewayStatus === "active" ? (
                 <>
                   <FaToggleOn /> Active
+                </>
+              ) : gatewayStatus === "not_ready" ? (
+                <>
+                  <FaExclamationTriangle /> Gateway Not Ready
                 </>
               ) : (
                 <>
@@ -1250,12 +1267,16 @@ const StripeConfiguration = () => {
                     </h6>
                   </div>
                   <div className="sidebar-body">
-                    <div className="status-list">
+                     <div className="status-list">
                       <div className="status-item">
                         <span className="status-item-label">Status</span>
                         <div className="status-item-value">
-                          <span className="status-dot active" />
-                          Active
+                          <span className={`status-dot ${gatewayStatus}`} />
+                          {gatewayStatus === "active"
+                            ? "Active"
+                            : gatewayStatus === "not_ready"
+                              ? "Gateway Not Ready"
+                              : "Inactive"}
                         </div>
                       </div>
                       {config && (
@@ -1304,7 +1325,7 @@ const StripeConfiguration = () => {
       </div>
 
       {/* ================= MODIFIED INDICATOR ================= */}
-      {isModified && isGatewayActive && (
+      {isModified && (isGatewayActive || gatewayStatus === "not_ready") && (
         <div className="modified-indicator">
           <div className="indicator-content">
             <FaInfoCircle className="indicator-icon" />

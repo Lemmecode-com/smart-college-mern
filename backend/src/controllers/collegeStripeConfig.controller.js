@@ -37,11 +37,18 @@ exports.getStripeConfig = async (req, res, next) => {
     }
 
     const isTestMode = config.credentials?.keyId?.includes("pk_test_");
+    const gatewayStatus =
+      !config.isActive
+        ? "inactive"
+        : config.lastVerifiedAt
+          ? "active"
+          : "not_ready";
 
     res.status(200).json({
       success: true,
       configured: !!(config.credentials?.keyId && !config.credentials.keyId.startsWith("temp_")),
       isActive: config.isActive,
+      status: gatewayStatus,
       config: {
         id: config._id,
         gatewayCode: config.gatewayCode,
@@ -56,6 +63,7 @@ exports.getStripeConfig = async (req, res, next) => {
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
         isTestMode,
+        status: gatewayStatus,
       },
     });
   } catch (error) {
@@ -264,27 +272,89 @@ exports.saveStripeConfig = async (req, res, next) => {
     }
 
     invalidateStripeInstanceCache(collegeId.toString());
-    logger.logInfo("Stripe configuration saved", {
-      collegeId,
-      isTestMode: testMode ?? isTestKey,
-    });
 
-    res.status(201).json({
-      success: true,
-      message: "Stripe configuration saved successfully",
-      config: {
-        id: config._id,
-        gatewayCode: config.gatewayCode,
-        credentials: {
-          keyId: config.credentials.keyId,
-          hasSecret: true,
-          hasWebhookSecret: !!config.credentials.webhookSecret,
+    try {
+      const verificationResult = await verifyCollegeStripeCredentials(collegeId);
+
+      if (!verificationResult.valid) {
+        const updatedConfig = await CollegePaymentConfig.findOneAndUpdate(
+          { collegeId, gatewayCode: "stripe" },
+          { isActive: false, lastVerifiedAt: null },
+          { new: true },
+        );
+
+        invalidateStripeInstanceCache(collegeId.toString());
+
+        logger.logWarning("Stripe credential verification failed on save", {
+          collegeId,
+          message: verificationResult.message,
+        });
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "The provided Stripe API credentials are invalid. Please verify your Publishable Key and Secret Key.",
+          code: "INVALID_STRIPE_CREDENTIALS",
+          verified: false,
+        });
+      }
+
+      await CollegePaymentConfig.updateOne(
+        { collegeId, gatewayCode: "stripe" },
+        { lastVerifiedAt: new Date() },
+      );
+
+      config = await CollegePaymentConfig.findOne({
+        collegeId,
+        gatewayCode: "stripe",
+      });
+
+      invalidateStripeInstanceCache(collegeId.toString());
+
+      logger.logInfo("Stripe configuration saved and verified", {
+        collegeId,
+        isTestMode: testMode ?? isTestKey,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Stripe configuration saved successfully",
+        config: {
+          id: config._id,
+          gatewayCode: config.gatewayCode,
+          credentials: {
+            keyId: config.credentials.keyId,
+            hasSecret: true,
+            hasWebhookSecret: !!config.credentials.webhookSecret,
+          },
+          configuration: config.configuration,
+          isActive: config.isActive,
+          isTestMode: config.configuration.testMode,
+          lastVerifiedAt: config.lastVerifiedAt,
         },
-        configuration: config.configuration,
-        isActive: config.isActive,
-        isTestMode: config.configuration.testMode,
-      },
-    });
+      });
+    } catch (verificationError) {
+      logger.logError("Unexpected error during Stripe verification", {
+        collegeId,
+        error: verificationError.message,
+      });
+
+      const updatedConfig = await CollegePaymentConfig.findOneAndUpdate(
+        { collegeId, gatewayCode: "stripe" },
+        { isActive: false, lastVerifiedAt: null },
+        { new: true },
+      );
+
+      invalidateStripeInstanceCache(collegeId.toString());
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "The provided Stripe API credentials could not be verified. Please check your keys and try again.",
+        code: "STRIPE_VERIFICATION_FAILED",
+        verified: false,
+      });
+    }
   } catch (error) {
     next(error);
   }
