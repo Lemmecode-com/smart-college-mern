@@ -5,19 +5,14 @@ import {
   FaTrash,
   FaClock,
   FaExclamationTriangle,
-  FaInfoCircle,
-  FaGraduationCap,
   FaCalendarAlt,
-  FaMoneyBillWave,
-  FaUserCheck,
-  FaBullhorn,
-  FaClipboardList,
   FaEye,
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { NOTIFICATION_TYPES } from "../utils/notificationTypes";
 
 /**
  * Reusable Notification Card Component
@@ -66,57 +61,8 @@ export default function NotificationCard({
     });
   };
 
-  // Notification type configurations
-  const typeConfig = {
-    GENERAL: {
-      icon: FaInfoCircle,
-      color: "#3b82f6",
-      bg: "#dbeafe",
-      label: "General",
-    },
-    ACADEMIC: {
-      icon: FaGraduationCap,
-      color: "#8b5cf6",
-      bg: "#ede9fe",
-      label: "Academic",
-    },
-    EXAM: {
-      icon: FaCalendarAlt,
-      color: "#ec4899",
-      bg: "#fce7f3",
-      label: "Exam",
-    },
-    FEE: {
-      icon: FaMoneyBillWave,
-      color: "#f59e0b",
-      bg: "#ffedd5",
-      label: "Fee",
-    },
-    ATTENDANCE: {
-      icon: FaUserCheck,
-      color: "#10b981",
-      bg: "#dcfce7",
-      label: "Attendance",
-    },
-    EVENT: {
-      icon: FaBullhorn,
-      color: "#ef4444",
-      bg: "#fee2e2",
-      label: "Event",
-    },
-    ASSIGNMENT: {
-      icon: FaClipboardList,
-      color: "#6366f1",
-      bg: "#eef2ff",
-      label: "Assignment",
-    },
-    URGENT: {
-      icon: FaExclamationTriangle,
-      color: "#dc2626",
-      bg: "#fee2e2",
-      label: "Urgent",
-    },
-  };
+  // Notification type configurations (shared single source of truth)
+  const typeConfig = NOTIFICATION_TYPES;
 
   const priorityConfig = {
     LOW: { color: "#64748b", bg: "#f1f5f9", label: "Low" },
@@ -158,7 +104,7 @@ export default function NotificationCard({
           ? "0 4px 12px rgba(0, 0, 0, 0.08)"
           : "0 12px 24px rgba(0, 0, 0, 0.12)",
       }}
-      className="notification-card"
+      className="notification-list-card"
       onClick={handleCardClick}
       style={{
         backgroundColor: isExpired ? "#f9fafb" : "white",
@@ -355,17 +301,28 @@ export default function NotificationCard({
 
         {/* Message (Truncated with Read More) */}
         <p
+          id={`nc-message-${note._id}`}
           style={{
             margin: "0 0 0.75rem 0",
             fontSize: "0.9rem",
             color: isExpired ? "#9ca3af" : "#64748b",
             lineHeight: 1.6,
+            ...(expanded
+              ? {
+                  overflow: "visible",
+                  maxHeight: "none",
+                  whiteSpace: "normal",
+                  wordBreak: "break-word",
+                }
+              : {}),
           }}
         >
           {truncateText(note.message)}
         </p>
         {needsTruncation && (
           <button
+            aria-expanded={expanded}
+            aria-controls={`nc-message-${note._id}`}
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
@@ -389,7 +346,7 @@ export default function NotificationCard({
           >
             {expanded ? (
               <>
-                <FaChevronUp size={10} /> Show Less
+                <FaChevronUp size={10} /> Read Less
               </>
             ) : (
               <>

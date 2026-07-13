@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -89,7 +90,16 @@ const notificationSchema = new mongoose.Schema(
 
     // Optional metadata
     actionUrl: String, // frontend redirect
-    expiresAt: Date,
+    expiresAt: {
+      type: Date,
+      validate: {
+        validator: function (value) {
+          if (!value) return true;
+          return validateExpiryDate(value);
+        },
+        message: props => `${props.value} is not a valid expiry date. ${expiryDateValidatorMessage}`
+      }
+    },
 
     isActive: {
       type: Boolean,

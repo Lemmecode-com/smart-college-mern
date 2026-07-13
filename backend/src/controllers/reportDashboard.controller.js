@@ -24,34 +24,34 @@ exports.getAllReports = async (req, res, next) => {
     // ==========================================
     // 1. ADMISSION SUMMARY
     // ==========================================
-    const total = await Student.countDocuments({ college_id });
-    const approved = await Student.countDocuments({
+    const approvalCount = await Student.countDocuments({
       college_id,
-      status: "APPROVED"
+      status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
     });
     const pending = await Student.countDocuments({
       college_id,
-      status: "PENDING"
+      status: "PENDING",
     });
     const rejected = await Student.countDocuments({
       college_id,
-      status: "REJECTED"
+      status: "REJECTED",
     });
+    const total = await Student.countDocuments({ college_id });
 
-    const approvedPercentage = total > 0 ? Math.round((approved / total) * 100) : 0;
+    const approvalPercentage = total > 0 ? Math.round((approvalCount / total) * 100) : 0;
     const pendingPercentage = total > 0 ? Math.round((pending / total) * 100) : 0;
     const rejectedPercentage = total > 0 ? Math.round((rejected / total) * 100) : 0;
 
     const admissionSummary = {
       totalApplications: total,
-      approved,
+      approved: approvalCount,
       pending,
       rejected,
       approvedPercentage,
       pendingPercentage,
       rejectedPercentage,
       pieChartData: [
-        { name: "Approved", value: approved, percentage: approvedPercentage, color: "#28a745" },
+        { name: "Approved", value: approvalCount, percentage: approvalPercentage, color: "#28a745" },
         { name: "Pending", value: pending, percentage: pendingPercentage, color: "#ffc107" },
         { name: "Rejected", value: rejected, percentage: rejectedPercentage, color: "#dc3545" }
       ]
@@ -65,34 +65,18 @@ exports.getAllReports = async (req, res, next) => {
       {
         $group: {
           _id: null,
-          totalExpected: { $sum: "$totalFee" },
-          totalPaid: { $sum: "$paidAmount" },
+          totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
+          totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
           count: { $sum: 1 }
         }
       }
     ]);
 
-    let paymentData;
-    if (paymentResult.length > 0) {
-      paymentData = paymentResult[0];
-    } else {
-      // No fee records found - calculate from students
-      const allStudents = await Student.find({ college_id, status: "APPROVED" });
-      const totalExpected = allStudents.reduce((sum, student) => {
-        // You can set a default fee per student or fetch from course
-        return sum + 50000; // Default 50,000 per student (adjust as needed)
-      }, 0);
-      
-      paymentData = {
-        totalExpected: totalExpected,
-        totalPaid: 0,
-        count: allStudents.length
-      };
-    }
+    const paymentData = paymentResult[0] || { totalExpected: 0, totalPaid: 0, count: 0 };
 
     const totalPending = paymentData.totalExpected - paymentData.totalPaid;
-    const collectionRate = paymentData.totalExpected > 0 
-      ? Math.round((paymentData.totalPaid / paymentData.totalExpected) * 100) 
+    const collectionRate = paymentData.totalExpected > 0
+      ? Math.round((paymentData.totalPaid / paymentData.totalExpected) * 100)
       : 0;
 
     const paymentSummary = {

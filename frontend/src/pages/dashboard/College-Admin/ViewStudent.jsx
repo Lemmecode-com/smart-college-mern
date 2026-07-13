@@ -7,6 +7,8 @@ import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaBook,
@@ -302,7 +304,7 @@ export default function ViewStudent() {
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -310,6 +312,17 @@ export default function ViewStudent() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [parentAccountDetails, setParentAccountDetails] = useState(null);
   const [showParentDetailsModal, setShowParentDetailsModal] = useState(false);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY & VALIDATION ================= */
   if (!user) return <Navigate to="/login" replace />;
@@ -324,21 +337,30 @@ export default function ViewStudent() {
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
     if (!isIdValid) {
-      setError(ERROR_MESSAGES.INVALID_ID);
+      setError({ message: ERROR_MESSAGES.INVALID_ID, statusCode: 400 });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get(`/students/registered/${studentId}`);
       const studentData = res.data?.student || res.data;
       setStudent(studentData);
     } catch (err) {
-      const status = err.response?.status;
-      const specificError = HTTP_ERROR_MAP[status] || ERROR_MESSAGES.LOAD_FAILED;
-      setError(specificError);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const specificError = backendMessage || HTTP_ERROR_MAP[statusCode] || ERROR_MESSAGES.LOAD_FAILED;
+
+      logger.error("Error fetching student:", statusCode, errorCode);
+
+      setError({
+        message: specificError,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -492,12 +514,26 @@ export default function ViewStudent() {
     return <SkeletonLoader />;
   }
 
-  if (error && !student) {
-    return <ErrorDisplay error={error} onRetry={fetchStudent} />;
+  if (error) {
+    return (
+      <ApiError
+        title="Student Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchStudent}
+      />
+    );
   }
 
   if (!student) {
-    return <ErrorDisplay error={ERROR_MESSAGES.NOT_FOUND} />;
+    return (
+      <ApiError
+        title="Student Profile Error"
+        message={ERROR_MESSAGES.NOT_FOUND}
+        statusCode={404}
+      />
+    );
   }
 
   return (
