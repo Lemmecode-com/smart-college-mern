@@ -152,3 +152,20 @@ exports.validateJoiningDate = (joiningDate) => {
 };
 
 exports.joiningDateValidatorMessage = 'Joining Date cannot be a future date';
+
+/**
+ * 10. Expiry Date Validator
+ * Validates expiry date is not in the past (must be today or a future date)
+ */
+exports.validateExpiryDate = (expiryDate) => {
+  if (!expiryDate) return true;
+  
+  const date = new Date(expiryDate);
+  if (isNaN(date.getTime())) {
+    return false;
+  }
+  
+  return date >= new Date();
+};
+
+exports.expiryDateValidatorMessage = 'Expiry Date must be today or a future date.';

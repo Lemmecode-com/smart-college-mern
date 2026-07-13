@@ -11,6 +11,7 @@ const {
 } = require("../services/notificationVisibility.service");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
 /**
  * ================================
@@ -40,6 +41,9 @@ exports.createAdminNotification = async (req, res, next) => {
       const expiresDate = new Date(expiresAt);
       if (isNaN(expiresDate.getTime())) {
         throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
+      if (!validateExpiryDate(expiresAt)) {
+        throw new AppError(expiryDateValidatorMessage, 400, "PAST_EXPIRY_DATE");
       }
     }
 
@@ -115,6 +119,9 @@ exports.createTeacherNotification = async (req, res, next) => {
       const expiresDate = new Date(expiresAt);
       if (isNaN(expiresDate.getTime())) {
         throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
+      if (!validateExpiryDate(expiresAt)) {
+        throw new AppError(expiryDateValidatorMessage, 400, "PAST_EXPIRY_DATE");
       }
     }
 
@@ -428,6 +435,17 @@ exports.updateNotification = async (req, res, next) => {
       return res.status(403).json({
         message: "Access denied: cannot update this notification"
       });
+    }
+
+    // Validate expiresAt if provided
+    if (req.body.expiresAt) {
+      const expiresDate = new Date(req.body.expiresAt);
+      if (isNaN(expiresDate.getTime())) {
+        throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
+      if (!validateExpiryDate(req.body.expiresAt)) {
+        throw new AppError(expiryDateValidatorMessage, 400, "PAST_EXPIRY_DATE");
+      }
     }
 
     notification.title = req.body.title ?? notification.title;
