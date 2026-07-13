@@ -13,7 +13,9 @@
  */
 exports.validateEmail = (email) => {
   if (!email) return true; // Let required handle empty values
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Rejects consecutive dots in the domain (e.g. abc@gmail..com) and aligns
+  // with the backend express-validator `.isEmail()` behavior.
+  const regex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
   return regex.test(email);
 };
 

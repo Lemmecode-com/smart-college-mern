@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { validateEmail, emailValidatorMessage } = require("../utils/validators");
 
 const userSchema = new mongoose.Schema({
   college_id: {
@@ -10,7 +11,14 @@ const userSchema = new mongoose.Schema({
     },
   },
   name: String,
-  email: { type: String, unique: true },
+  email: {
+    type: String,
+    unique: true,
+    validate: {
+      validator: validateEmail,
+      message: emailValidatorMessage,
+    },
+  },
   password: String,
   role: {
     type: String,
