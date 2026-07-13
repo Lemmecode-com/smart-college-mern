@@ -8,6 +8,7 @@ import ApiError from "../components/ApiError";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmModal from "../components/ConfirmModal";
 import { AuthContext } from "../auth/AuthContext";
+import { logger } from "../utils/logger";
 import {
   FaBell,
   FaPaperPlane,
@@ -134,6 +135,8 @@ export default function NotificationForm({
     expiresAt: "",
     target: role === "teacher" ? "STUDENTS" : "ALL",
     target_department: "",
+    target_course: "",
+    target_semester: "",
   });
 
   const [originalForm, setOriginalForm] = useState({ ...form });
@@ -146,6 +149,7 @@ export default function NotificationForm({
   const [titleCount, setTitleCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -163,13 +167,16 @@ export default function NotificationForm({
   useEffect(() => {
     if (config.canTarget) {
       const fetchData = async () => {
-try {
-           const deptRes = await api.get("/departments");
-           setDepartments(deptRes.data || []);
-         } catch (err) {
-           console.error("Error fetching departments:", err);
-         }
-       };
+        try {
+          const deptRes = await api.get("/departments");
+          setDepartments(deptRes.data || []);
+
+          const courseRes = await api.get("/courses");
+          setCourses(courseRes.data || []);
+        } catch (err) {
+          logger.error("Error fetching departments/courses:", err);
+        }
+      };
       fetchData();
     }
   }, [config.canTarget]);
@@ -210,6 +217,8 @@ try {
           : "",
         target: found.target || "ALL",
         target_department: found.target_department || "",
+        target_course: found.target_course || "",
+        target_semester: found.target_semester || "",
       };
 
       setForm(formData);
@@ -267,6 +276,16 @@ try {
       return;
     }
 
+    if (form.target === "COURSE" && !form.target_course) {
+      toast.error("Please select a course");
+      return;
+    }
+
+    if (form.target === "SEMESTER" && !form.target_semester) {
+      toast.error("Please select a semester");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -277,6 +296,8 @@ try {
         priority: form.priority,
         target: form.target,
         target_department: form.target_department || undefined,
+        target_course: form.target === "COURSE" ? form.target_course || undefined : undefined,
+        target_semester: form.target === "SEMESTER" ? form.target_semester || undefined : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -293,6 +314,8 @@ try {
             expiresAt: "",
             target: "STUDENTS",
             target_department: "",
+            target_course: "",
+            target_semester: "",
           });
         }, 2000);
       } else {
@@ -1074,6 +1097,48 @@ try {
                                   <FaChalkboardTeacher /> Teachers Only
                                 </label>
                               </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="COURSE"
+                                    checked={form.target === "COURSE"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaGraduationCap /> Specific Course
+                                </label>
+                              </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="SEMESTER"
+                                    checked={form.target === "SEMESTER"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaCalendarAlt /> Specific Semester
+                                </label>
+                              </div>
                             </>
                           )}
 
@@ -1129,6 +1194,72 @@ try {
                             </select>
                           </div>
                         )}
+
+                          {form.target === "COURSE" && (
+                            <div
+                              style={{
+                                marginLeft: "1.5rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              <select
+                                name="target_course"
+                                value={form.target_course}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                  width: "100%",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #e2e8f0",
+                                }}
+                              >
+                                <option value="">Select Course</option>
+                                {courses.map((course) => (
+                                  <option key={course._id} value={course._id}>
+                                    {course.name} ({course.code})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {form.target === "SEMESTER" && (
+                            <div
+                              style={{
+                                marginLeft: "1.5rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              <select
+                                name="target_semester"
+                                value={form.target_semester}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                  width: "100%",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #e2e8f0",
+                                }}
+                              >
+                                <option value="">Select Semester</option>
+                                {Array.from(
+                                  {
+                                    length:
+                                      courses.find(
+                                        (c) => c._id === form.target_course
+                                      )?.durationSemesters || 8,
+                                  },
+                                  (_, i) => i + 1
+                                ).map((sem) => (
+                                  <option key={sem} value={sem}>
+                                    Semester {sem}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                       </div>
                     )}
 
