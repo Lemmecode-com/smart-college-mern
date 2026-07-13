@@ -3,6 +3,8 @@ const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const College = require("../models/college.model");
+const logger = require("../utils/logger");
+const AppError = require("../utils/AppError");
 
 /* =====================================================
    COLLEGE LEVEL REPORTS
@@ -12,10 +14,11 @@ const College = require("../models/college.model");
  * ADMISSION SUMMARY (COLLEGE)
  */
 exports.admissionSummary = async (college_id) => {
+  const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
   const total = await Student.countDocuments({ college_id });
   const approved = await Student.countDocuments({
     college_id,
-    status: "APPROVED",
+    status: { $in: activeStatuses },
   });
   const pending = await Student.countDocuments({
     college_id,
@@ -356,24 +359,61 @@ exports.attendanceSummaryAll = async () => {
  * PAYMENT SUMMARY WITH DATE RANGE FILTERING
  */
 exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => {
-  let matchConditions = { college_id: new mongoose.Types.ObjectId(college_id) };
+  if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    throw new AppError("Start date must be before end date", 400, "INVALID_DATE_RANGE");
+  }
+
+  const matchConditions = { college_id: new mongoose.Types.ObjectId(college_id) };
 
   if (startDate || endDate) {
-    matchConditions.installments = {};
+    const paidAt = {};
 
     if (startDate) {
-      matchConditions.installments.$elemMatch = {
-        ...matchConditions.installments.$elemMatch,
-        paidAt: { $gte: new Date(startDate) }
-      };
+      paidAt.$gte = new Date(startDate);
     }
 
     if (endDate) {
-      matchConditions.installments.$elemMatch = {
-        ...matchConditions.installments.$elemMatch,
-        paidAt: { $lte: new Date(endDate) }
-      };
+      const endDateTime = new Date(endDate);
+      endDateTime.setUTCHours(23, 59, 59, 999);
+      paidAt.$lte = endDateTime;
     }
+
+    matchConditions.installments = { $elemMatch: { paidAt } };
+
+    const result = await StudentFee.aggregate([
+      { $match: matchConditions },
+      { $unwind: "$installments" },
+      { $match: { "installments.paidAt": paidAt } },
+      {
+        $group: {
+          _id: null,
+          totalExpected: { $sum: "$installments.amount" },
+          totalPaid: {
+            $sum: {
+              $cond: [
+                { $eq: ["$installments.status", "PAID"] },
+                "$installments.amount",
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const data = result[0] || { totalExpected: 0, totalPaid: 0 };
+    const total = data.totalExpected;
+    const collected = data.totalPaid;
+    const pending = total - collected;
+    const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
+
+    return {
+      totalExpectedFee: total,
+      totalCollected: collected,
+      totalPending: pending,
+      collectionRate,
+      dateRange: { startDate, endDate }
+    };
   }
 
   const result = await StudentFee.aggregate([
@@ -406,33 +446,40 @@ exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => 
  * STUDENT SPECIFIC PAYMENT HISTORY WITH DATE FILTERING
  */
 exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate, endDate) => {
-  let matchConditions = {
+  if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    throw new AppError("Start date must be before end date", 400, "INVALID_DATE_RANGE");
+  }
+
+  const matchConditions = {
     college_id: new mongoose.Types.ObjectId(college_id),
     student_id: new mongoose.Types.ObjectId(studentId)
   };
 
   if (startDate || endDate) {
-    matchConditions.installments = {};
+    const paidAt = {};
 
     if (startDate) {
-      matchConditions.installments.$elemMatch = {
-        ...matchConditions.installments.$elemMatch,
-        paidAt: { $gte: new Date(startDate) }
-      };
+      paidAt.$gte = new Date(startDate);
     }
 
     if (endDate) {
-      matchConditions.installments.$elemMatch = {
-        ...matchConditions.installments.$elemMatch,
-        paidAt: { $lte: new Date(endDate) }
-      };
+      const endDateTime = new Date(endDate);
+      endDateTime.setUTCHours(23, 59, 59, 999);
+      paidAt.$lte = endDateTime;
     }
+
+    matchConditions.installments = { $elemMatch: { paidAt } };
   }
 
   const fees = await StudentFee.find(matchConditions)
     .populate("student_id", "fullName email")
     .populate("course_id", "name")
     .select("totalFee paidAmount paymentStatus installments");
+
+  const endDateTime = endDate ? new Date(endDate) : null;
+  if (endDateTime) {
+    endDateTime.setUTCHours(23, 59, 59, 999);
+  }
 
   return fees.map((fee) => ({
     student: fee.student_id,
@@ -447,7 +494,7 @@ exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate,
 
       const paidDate = new Date(inst.paidAt);
       if (startDate && paidDate < new Date(startDate)) return false;
-      if (endDate && paidDate > new Date(endDate)) return false;
+      if (endDate && paidDate > endDateTime) return false;
       return true;
     })
   }));

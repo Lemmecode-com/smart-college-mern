@@ -82,6 +82,10 @@ const generateTempPassword = (length = 10) => {
         )
       );
     }
+    // ─── Joining date validation ───
+    if (joiningDate && new Date(joiningDate) > new Date()) {
+      return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
+    }
 
     // ─── Conflict checks (User table + Teacher table) ───
     const existingUser = await User.findOne({ email });
@@ -540,19 +544,24 @@ exports.updateStaffProfile = async (req, res, next) => {
             403,
             "ROLE_ASSIGN_FORBIDDEN"
           ));
-        }
-      }
+         }
+       }
 
-      if (Object.keys(userFields).length > 0) {
-        await User.findByIdAndUpdate(id, userFields, { session, new: true });
-      }
+       // ─── Joining date validation ───
+       if (profileFields.joiningDate && new Date(profileFields.joiningDate) > new Date()) {
+         return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
+       }
 
-      // Update or create staff profile
-      await StaffProfile.findOneAndUpdate(
-        { user_id: id, college_id: req.user.college_id },
-        { ...profileFields, user_id: id, college_id: req.user.college_id },
-        { session, upsert: true, new: true }
-      );
+       if (Object.keys(userFields).length > 0) {
+         await User.findByIdAndUpdate(id, userFields, { session, new: true });
+       }
+
+       // Update or create staff profile
+       await StaffProfile.findOneAndUpdate(
+         { user_id: id, college_id: req.user.college_id },
+         { ...profileFields, user_id: id, college_id: req.user.college_id },
+         { session, upsert: true, new: true, runValidators: true }
+       );
 
       await session.commitTransaction();
       session.endSession();

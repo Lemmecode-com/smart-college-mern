@@ -8,6 +8,7 @@ import ApiError from "../components/ApiError";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmModal from "../components/ConfirmModal";
 import { AuthContext } from "../auth/AuthContext";
+import { logger } from "../utils/logger";
 import {
   FaBell,
   FaPaperPlane,
@@ -33,6 +34,7 @@ import {
   FaChalkboardTeacher,
   FaFileAlt,
 } from "react-icons/fa";
+import { NOTIFICATION_TYPES } from "../utils/notificationTypes";
 
 /* ================= ROLE-BASED CONFIGURATION ================= */
 const ROLE_CONFIG = {
@@ -74,56 +76,7 @@ const BRAND_COLORS = {
   info: { main: "#17a2b8" },
   warning: { main: "#ffc107" },
   danger: { main: "#dc3545" },
-  notificationTypes: {
-    GENERAL: {
-      icon: FaInfoCircle,
-      color: "#3b82f6",
-      bg: "#dbeafe",
-      label: "General",
-    },
-    ACADEMIC: {
-      icon: FaGraduationCap,
-      color: "#8b5cf6",
-      bg: "#ede9fe",
-      label: "Academic",
-    },
-    EXAM: {
-      icon: FaCalendarAlt,
-      color: "#ec4899",
-      bg: "#fce7f3",
-      label: "Exam",
-    },
-    FEE: {
-      icon: FaMoneyBillWave,
-      color: "#f59e0b",
-      bg: "#ffedd5",
-      label: "Fee",
-    },
-    ATTENDANCE: {
-      icon: FaUserCheck,
-      color: "#10b981",
-      bg: "#dcfce7",
-      label: "Attendance",
-    },
-    EVENT: {
-      icon: FaBullhorn,
-      color: "#ef4444",
-      bg: "#fee2e2",
-      label: "Event",
-    },
-    ASSIGNMENT: {
-      icon: FaClipboardList,
-      color: "#6366f1",
-      bg: "#eef2ff",
-      label: "Assignment",
-    },
-    URGENT: {
-      icon: FaExclamationTriangle,
-      color: "#dc2626",
-      bg: "#fee2e2",
-      label: "Urgent",
-    },
-  },
+  notificationTypes: NOTIFICATION_TYPES,
   priorities: {
     LOW: { color: "#64748b", bg: "#f1f5f9", label: "Low Priority" },
     NORMAL: { color: "#1e40af", bg: "#dbeafe", label: "Normal Priority" },
@@ -182,6 +135,8 @@ export default function NotificationForm({
     expiresAt: "",
     target: role === "teacher" ? "STUDENTS" : "ALL",
     target_department: "",
+    target_course: "",
+    target_semester: "",
   });
 
   const [originalForm, setOriginalForm] = useState({ ...form });
@@ -194,6 +149,7 @@ export default function NotificationForm({
   const [titleCount, setTitleCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -211,13 +167,16 @@ export default function NotificationForm({
   useEffect(() => {
     if (config.canTarget) {
       const fetchData = async () => {
-try {
-           const deptRes = await api.get("/departments");
-           setDepartments(deptRes.data || []);
-         } catch (err) {
-           console.error("Error fetching departments:", err);
-         }
-       };
+        try {
+          const deptRes = await api.get("/departments");
+          setDepartments(deptRes.data || []);
+
+          const courseRes = await api.get("/courses");
+          setCourses(courseRes.data || []);
+        } catch (err) {
+          logger.error("Error fetching departments/courses:", err);
+        }
+      };
       fetchData();
     }
   }, [config.canTarget]);
@@ -258,6 +217,8 @@ try {
           : "",
         target: found.target || "ALL",
         target_department: found.target_department || "",
+        target_course: found.target_course || "",
+        target_semester: found.target_semester || "",
       };
 
       setForm(formData);
@@ -310,8 +271,25 @@ try {
       return;
     }
 
-    if (form.expiresAt && new Date(form.expiresAt) < new Date()) {
-      toast.error("Expiry date cannot be in the past");
+    if (form.expiresAt) {
+      const [datePart, timePart] = form.expiresAt.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hours, minutes] = timePart.split(":").map(Number);
+      const selectedLocal = new Date(year, month - 1, day, hours, minutes, 0);
+      const nowLocal = new Date();
+      if (selectedLocal < nowLocal) {
+        toast.error("Expiry Date must be today or a future date.");
+        return;
+      }
+    }
+
+    if (form.target === "COURSE" && !form.target_course) {
+      toast.error("Please select a course");
+      return;
+    }
+
+    if (form.target === "SEMESTER" && !form.target_semester) {
+      toast.error("Please select a semester");
       return;
     }
 
@@ -325,6 +303,8 @@ try {
         priority: form.priority,
         target: form.target,
         target_department: form.target_department || undefined,
+        target_course: form.target === "COURSE" ? form.target_course || undefined : undefined,
+        target_semester: form.target === "SEMESTER" ? form.target_semester || undefined : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -341,6 +321,8 @@ try {
             expiresAt: "",
             target: "STUDENTS",
             target_department: "",
+            target_course: "",
+            target_semester: "",
           });
         }, 2000);
       } else {
@@ -1005,7 +987,17 @@ try {
                         name="expiresAt"
                         value={form.expiresAt}
                         onChange={handleChange}
-                        min={new Date().toISOString().slice(0, 16)}
+                        min={
+                          (() => {
+                            const now = new Date();
+                            const year = now.getFullYear();
+                            const month = String(now.getMonth() + 1).padStart(2, "0");
+                            const day = String(now.getDate()).padStart(2, "0");
+                            const hours = String(now.getHours()).padStart(2, "0");
+                            const minutes = String(now.getMinutes()).padStart(2, "0");
+                            return `${year}-${month}-${day}T${hours}:${minutes}`;
+                          })()
+                        }
                         style={{
                           width: "100%",
                           padding: "0.875rem 1.25rem",
@@ -1122,6 +1114,48 @@ try {
                                   <FaChalkboardTeacher /> Teachers Only
                                 </label>
                               </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="COURSE"
+                                    checked={form.target === "COURSE"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaGraduationCap /> Specific Course
+                                </label>
+                              </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="SEMESTER"
+                                    checked={form.target === "SEMESTER"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaCalendarAlt /> Specific Semester
+                                </label>
+                              </div>
                             </>
                           )}
 
@@ -1177,6 +1211,72 @@ try {
                             </select>
                           </div>
                         )}
+
+                          {form.target === "COURSE" && (
+                            <div
+                              style={{
+                                marginLeft: "1.5rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              <select
+                                name="target_course"
+                                value={form.target_course}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                  width: "100%",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #e2e8f0",
+                                }}
+                              >
+                                <option value="">Select Course</option>
+                                {courses.map((course) => (
+                                  <option key={course._id} value={course._id}>
+                                    {course.name} ({course.code})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {form.target === "SEMESTER" && (
+                            <div
+                              style={{
+                                marginLeft: "1.5rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              <select
+                                name="target_semester"
+                                value={form.target_semester}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                  width: "100%",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #e2e8f0",
+                                }}
+                              >
+                                <option value="">Select Semester</option>
+                                {Array.from(
+                                  {
+                                    length:
+                                      courses.find(
+                                        (c) => c._id === form.target_course
+                                      )?.durationSemesters || 8,
+                                  },
+                                  (_, i) => i + 1
+                                ).map((sem) => (
+                                  <option key={sem} value={sem}>
+                                    Semester {sem}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                       </div>
                     )}
 

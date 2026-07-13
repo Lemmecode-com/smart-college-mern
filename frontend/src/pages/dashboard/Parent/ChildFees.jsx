@@ -16,6 +16,7 @@ import {
   FaCalendarAlt
 } from "react-icons/fa";
 import api from "../../../api/axios";
+import { toast } from "react-toastify";
 
 // Brand Color Palette - Matching Application Theme
 const BRAND_COLORS = {
@@ -116,7 +117,8 @@ export default function ChildFees() {
     const fetchFees = async () => {
       try {
         const res = await api.get(`/parent/student/${childId}/fees`);
-        setFeeData(res.data);
+        const feeData = res.data?.data || res.data;
+        setFeeData(feeData);
       } catch (err) {
         console.error("ChildFees: Error:", err);
         setError(err.response?.data?.message || "Failed to load fee details");
@@ -195,6 +197,21 @@ export default function ChildFees() {
     );
   }
 
+  const handlePayInstallment = async (installmentName) => {
+    try {
+      const res = await api.post(`/parent/student/${childId}/payments/create-order`, {
+        installmentName,
+      });
+      if (res.data?.checkoutUrl) {
+        window.location.href = res.data.checkoutUrl;
+      } else {
+        toast.error("Failed to initiate payment. Please try again.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Payment initiation failed");
+    }
+  };
+
   if (!feeData) {
     return (
       <div className="parent-portal-wrapper">
@@ -223,6 +240,15 @@ export default function ChildFees() {
         className="parent-portal-wrapper"
       >
         <div className="parent-portal-container">
+          {/* ================= BREADCRUMB ================= */}
+          <Breadcrumb
+            items={[
+              { label: "Home", path: "/dashboard/parent" },
+              { label: "My Children", path: "/dashboard/parent/children" },
+              { label: "Fees", path: `/dashboard/parent/child/${childId}/fees` },
+            ]}
+          />
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -254,15 +280,6 @@ export default function ChildFees() {
                   </div>
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <Breadcrumb
-                      items={[
-                        { label: "Home", path: "/dashboard/parent" },
-                        { label: "My Children", path: "/dashboard/parent/children" },
-                        { label: "Fees", path: `/dashboard/parent/child/${childId}/fees` },
-                      ]}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -411,42 +428,50 @@ export default function ChildFees() {
                         initial="hidden"
                         animate="visible"
                       >
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                          <div>
-                            <h6 className="mb-1 fw-bold">{installment.name}</h6>
-                            <small className="text-muted">
-                              Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </small>
-                          </div>
-                          <span className={`parent-status-badge ${
-                            installment.status === 'PAID' ? 'parent-status-approved' :
-                            installment.status === 'PENDING' ? 'parent-status-pending' :
-                            'parent-status-secondary'
-                          }`}>
-                            {installment.status}
-                          </span>
-                        </div>
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div>
-                            <div className="fw-semibold text-primary">
-                              ₹{installment.amount?.toLocaleString()}
-                            </div>
-                            {installment.paidAt && (
-                              <small className="text-success">
-                                Paid on {new Date(installment.paidAt).toLocaleDateString()}
-                              </small>
-                            )}
-                          </div>
-                          {installment.mode && (
-                            <small className="text-muted">
-                              Mode: {installment.mode}
-                            </small>
-                          )}
-                        </div>
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                           <div>
+                             <h6 className="mb-1 fw-bold">{installment.name}</h6>
+                             <small className="text-muted">
+                               Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
+                                 year: 'numeric',
+                                 month: 'long',
+                                 day: 'numeric'
+                               })}
+                             </small>
+                           </div>
+                           <span className={`parent-status-badge ${
+                             installment.status === 'PAID' ? 'parent-status-approved' :
+                             installment.status === 'PENDING' ? 'parent-status-pending' :
+                             'parent-status-secondary'
+                           }`}>
+                             {installment.status}
+                           </span>
+                         </div>
+                         <div className="d-flex justify-content-between align-items-center">
+                           <div>
+                             <div className="fw-semibold text-primary">
+                               ₹{installment.amount?.toLocaleString()}
+                             </div>
+                             {installment.paidAt && (
+                               <small className="text-success">
+                                 Paid on {new Date(installment.paidAt).toLocaleDateString()}
+                               </small>
+                             )}
+                           </div>
+                           {installment.status === 'PENDING' && (
+                             <button
+                               className="btn btn-primary btn-sm"
+                               onClick={() => handlePayInstallment(installment.name)}
+                             >
+                               Pay Now
+                             </button>
+                           )}
+                           {installment.mode && (
+                             <small className="text-muted">
+                               Mode: {installment.mode}
+                             </small>
+                           )}
+                         </div>
                       </motion.div>
                     ))}
                   </div>

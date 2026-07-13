@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
+import ApiError from "../../../../components/ApiError";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -29,7 +30,20 @@ import "react-toastify/dist/ReactToastify.css";
 
 const RazorpayConfiguration = () => {
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -77,8 +91,14 @@ const RazorpayConfiguration = () => {
         });
       }
     } catch (error) {
-      logger.error("Error fetching config:", error);
-      if (error.response?.status !== 404) {
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error fetching config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        setPageError({ statusCode, errorCode });
+        return;
+      }
+      if (statusCode !== 404) {
         toast.error(
           error.response?.data?.message || "Failed to load configuration",
         );
@@ -99,7 +119,12 @@ const RazorpayConfiguration = () => {
       setIsGatewayActive(newStatus);
       toast.success(response.data.message);
     } catch (error) {
-      logger.error("Error toggling gateway:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error toggling gateway:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to toggle gateway");
     } finally {
       setToggling(false);
@@ -160,7 +185,12 @@ const RazorpayConfiguration = () => {
       fetchRazorpayConfig();
       setIsModified(false);
     } catch (error) {
-      logger.error("Save error:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Save error:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to save configuration",
       );
@@ -190,7 +220,12 @@ const RazorpayConfiguration = () => {
         });
       }
     } catch (error) {
-      logger.error("Verify error:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Verify error:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Verification failed");
     } finally {
       setVerifying(false);
@@ -210,7 +245,12 @@ const RazorpayConfiguration = () => {
         toast.error("Connection test failed");
       }
     } catch (error) {
-      logger.error("Test error:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Test error:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Connection test failed");
     } finally {
       setTesting(false);
@@ -242,7 +282,12 @@ const RazorpayConfiguration = () => {
         testMode: true,
       });
     } catch (error) {
-      logger.error("Delete error:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Delete error:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to delete configuration",
       );
@@ -250,6 +295,17 @@ const RazorpayConfiguration = () => {
       setSaving(false);
     }
   };
+
+  if (pageError) {
+    return (
+      <ApiError
+        statusCode={pageError.statusCode}
+        errorCode={pageError.errorCode}
+        onRetry={fetchRazorpayConfig}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading) {
     return (

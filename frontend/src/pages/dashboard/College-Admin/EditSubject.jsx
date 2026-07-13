@@ -3,6 +3,8 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import { FaBookOpen, FaSave, FaArrowLeft } from "react-icons/fa";
 
@@ -15,6 +17,17 @@ export default function EditSubject() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= STATE ================= */
   const [formData, setFormData] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -24,51 +37,58 @@ export default function EditSubject() {
   const [error, setError] = useState("");
 
   /* ================= LOAD DATA ================= */
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 1️⃣ Get Subject
-        const subjectRes = await api.get(`/subjects/${id}`);
-        const subject = subjectRes.data;
+  const fetchData = async () => {
+    try {
+      const subjectRes = await api.get(`/subjects/${id}`);
+      const subject = subjectRes.data;
 
-        if (!subject) {
-          setFormData(null);
-          return;
-        }
-
-        // 2️⃣ Get departmentId from subject (department_id is stored directly in subject)
-        const departmentId = subject.department_id;
-
-        // 3️⃣ Fetch courses + teachers
-        const [courseRes, teacherRes] = await Promise.all([
-          departmentId
-            ? api.get(`/courses/department/${departmentId}`)
-            : Promise.resolve({ data: [] }),
-          api.get("/teachers"),
-        ]);
-
-        // 🔧 Handle paginated response for teachers
-        const teachersData = teacherRes.data.data || teacherRes.data || [];
-
-        // 4️⃣ Set Form Data
-        setFormData({
-          course_id: subject.course_id?._id || subject.course_id,
-          name: subject.name || "",
-          code: subject.code || "",
-          semester: subject.semester || "",
-          credits: subject.credits || "",
-          teacher_id: subject.teacher_id?._id || subject.teacher_id || "",
-        });
-
-        setCourses(courseRes.data || []);
-        setTeachers(teachersData);
-      } catch (err) {
-        setError(err.response?.data?.message || "Failed to load subject data");
-      } finally {
-        setLoading(false);
+      if (!subject) {
+        setFormData(null);
+        return;
       }
-    };
 
+      const departmentId = subject.department_id?._id || subject.department_id;
+
+      const [courseRes, teacherRes] = await Promise.all([
+        departmentId
+          ? api.get(`/courses/department/${departmentId}`)
+          : Promise.resolve({ data: [] }),
+        api.get("/teachers"),
+      ]);
+
+      const teachersData = teacherRes.data.data || teacherRes.data || [];
+
+      setFormData({
+        course_id: subject.course_id?._id || subject.course_id,
+        name: subject.name || "",
+        code: subject.code || "",
+        semester: subject.semester || "",
+        credits: subject.credits || "",
+        teacher_id: subject.teacher_id?._id || subject.teacher_id || "",
+      });
+
+      setCourses(courseRes.data || []);
+      setTeachers(teachersData);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load subject data";
+
+      logger.error("Error fetching subject:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [id]);
 
@@ -95,7 +115,18 @@ export default function EditSubject() {
 
       navigate(`/subjects/view/${id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update subject");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating subject:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Failed to update subject");
+      }
     } finally {
       setSaving(false);
     }
@@ -104,6 +135,19 @@ export default function EditSubject() {
   /* ================= LOADING ================= */
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading subject details..." />;
+  }
+
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Subject Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchData}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   if (!formData) {
@@ -121,7 +165,7 @@ export default function EditSubject() {
         <p className="opacity-75 mb-0">Update subject details</p>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && typeof error === 'string' && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="card shadow-lg border-0 rounded-4">
