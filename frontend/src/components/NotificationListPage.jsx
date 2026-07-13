@@ -8,6 +8,7 @@ import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
 import NotificationCard from "../components/NotificationCard";
 import CustomSelect from "../components/CustomSelect";
+import { getNotificationTypeLabel } from "../utils/notificationTypes";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -33,12 +34,6 @@ import {
   FaInfoCircle,
   FaSearch,
   FaFilter,
-  FaGraduationCap,
-  FaCalendarAlt,
-  FaMoneyBillWave,
-  FaUserCheck,
-  FaBullhorn,
-  FaClipboardList,
   FaEye,
   FaStar,
 } from "react-icons/fa";
@@ -150,16 +145,6 @@ const BRAND_COLORS = {
   info: { main: "#17a2b8" },
   warning: { main: "#ffc107" },
   danger: { main: "#dc3545" },
-  notificationTypes: {
-    GENERAL: { icon: FaInfoCircle, color: "#3b82f6", bg: "#dbeafe" },
-    ACADEMIC: { icon: FaGraduationCap, color: "#8b5cf6", bg: "#ede9fe" },
-    EXAM: { icon: FaCalendarAlt, color: "#ec4899", bg: "#fce7f3" },
-    FEE: { icon: FaMoneyBillWave, color: "#f59e0b", bg: "#ffedd5" },
-    ATTENDANCE: { icon: FaUserCheck, color: "#10b981", bg: "#dcfce7" },
-    EVENT: { icon: FaBullhorn, color: "#ef4444", bg: "#fee2e2" },
-    ASSIGNMENT: { icon: FaClipboardList, color: "#6366f1", bg: "#eef2ff" },
-    URGENT: { icon: FaExclamationTriangle, color: "#dc2626", bg: "#fee2e2" },
-  },
   priorities: {
     LOW: { color: "#64748b", bg: "#f1f5f9", icon: FaStar },
     NORMAL: { color: "#1e40af", bg: "#dbeafe", icon: FaInfoCircle },
@@ -723,7 +708,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   { value: "", label: "All Types" },
                   ...notificationTypes.map((type) => ({
                     value: type,
-                    label: type,
+                    label: getNotificationTypeLabel(type),
                   })),
                 ]}
                 placeholder="All Types"
