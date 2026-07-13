@@ -30,6 +30,7 @@ exports.getEmailConfig = async (req, res, next) => {
       config: {
         id: config._id,
         smtp: config.smtp,
+        credentials: { user: config.credentials?.user },
         fromName: config.fromName,
         fromEmail: config.fromEmail,
         isActive: config.isActive,

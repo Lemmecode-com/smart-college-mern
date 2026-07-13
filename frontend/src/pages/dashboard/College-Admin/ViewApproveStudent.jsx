@@ -9,6 +9,8 @@ import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -611,11 +613,47 @@ function MarkPaidModal({
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // Reference number required for CHEQUE and DD
   const isReferenceRequired = paymentMode === "CHEQUE" || paymentMode === "DD";
+
+  const handleProofChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Invalid file type. Only PDF, JPG, JPEG, PNG are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
+    setError("");
+    setProofFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => setProofPreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setProofPreview(null);
+    }
+  };
+
+  const removeProof = () => {
+    setProofFile(null);
+    setProofPreview(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -627,16 +665,23 @@ function MarkPaidModal({
       return;
     }
 
+    if (!proofFile) {
+      setError("Proof of payment (receipt) is required to mark this installment as paid");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      await onSuccess({
-        studentId,
-        installmentId: installment._id,
-        paymentMode,
-        referenceNumber: isReferenceRequired ? referenceNumber.trim() : null,
-        remarks: remarks.trim() || null,
-      });
+      const formData = new FormData();
+      formData.append("studentId", studentId);
+      formData.append("installmentId", installment._id);
+      formData.append("paymentMode", paymentMode);
+      formData.append("referenceNumber", isReferenceRequired ? referenceNumber.trim() : "");
+      formData.append("remarks", remarks.trim() || "");
+      formData.append("proof", proofFile);
+
+      await onSuccess(formData);
     } catch (err) {
       setError(err.message || "Failed to mark installment as paid");
     } finally {
@@ -764,6 +809,53 @@ function MarkPaidModal({
               placeholder="Add any notes about this payment (e.g., paid at counter 3, received by Mr. Sharma)"
               rows={3}
             />
+          </div>
+
+          {/* Proof of Payment (Receipt) — Required */}
+          <div className="form-group">
+            <label htmlFor="proof" className="form-label">
+              Proof of Payment (Receipt) <span className="required">*</span>
+            </label>
+            <input
+              id="proof"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleProofChange}
+              className="form-input"
+              style={{ padding: "0.5rem" }}
+            />
+            <small className="proof-hint">
+              Upload the student's receipt/deposit slip (PDF, JPG, PNG — max 5MB)
+            </small>
+
+            {proofFile && (
+              <div className="proof-preview-box">
+                <div className="proof-preview-info">
+                  {proofPreview ? (
+                    <img
+                      src={proofPreview}
+                      alt="Proof preview"
+                      className="proof-thumb"
+                    />
+                  ) : (
+                    <div className="proof-thumb proof-thumb-pdf">PDF</div>
+                  )}
+                  <div className="proof-file-meta">
+                    <strong>{proofFile.name}</strong>
+                    <br />
+                    <small>{(proofFile.size / 1024 / 1024).toFixed(2)} MB</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="proof-remove-btn"
+                    onClick={removeProof}
+                    aria-label="Remove uploaded proof"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Modal Actions */}
@@ -1031,6 +1123,73 @@ function MarkPaidModal({
           font-family: inherit;
         }
 
+        .proof-hint {
+          display: block;
+          margin-top: 0.5rem;
+          color: #6c757d;
+          font-size: 0.8rem;
+        }
+
+        .proof-preview-box {
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          background: #f8f9fa;
+        }
+
+        .proof-preview-info {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .proof-thumb {
+          width: 56px;
+          height: 56px;
+          object-fit: cover;
+          border-radius: 6px;
+          border: 1px solid #dee2e6;
+          flex-shrink: 0;
+        }
+
+        .proof-thumb-pdf {
+          background: #dc3545;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 0.75rem;
+        }
+
+        .proof-file-meta {
+          flex: 1;
+          word-break: break-all;
+        }
+
+        .proof-remove-btn {
+          background: rgba(220, 53, 69, 0.1);
+          border: 1px solid #dc3545;
+          color: #dc3545;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          font-size: 1.25rem;
+          line-height: 1;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+
+        .proof-remove-btn:hover {
+          background: #dc3545;
+          color: white;
+        }
+
         .modal-actions {
           display: flex;
           justify-content: flex-end;
@@ -1038,6 +1197,62 @@ function MarkPaidModal({
           margin-top: 1.5rem;
           padding-top: 1.5rem;
           border-top: 1px solid #e9ecef;
+        }
+
+        .mark-paid-modal .erp-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.7rem 1.6rem;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .mark-paid-modal .erp-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Cancel button — neutral outline */
+        .mark-paid-modal .erp-btn-outline {
+          background: white;
+          border-color: #ced4da;
+          color: #495057;
+        }
+
+        .mark-paid-modal .erp-btn-outline:hover:not(:disabled) {
+          background: #f1f3f5;
+          border-color: #adb5bd;
+          color: #212529;
+        }
+
+        .mark-paid-modal .erp-btn-outline:active:not(:disabled) {
+          background: #e9ecef;
+        }
+
+        /* Mark as Paid button — solid green (matches modal header) */
+        .mark-paid-modal .erp-btn-success {
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          border-color: transparent;
+          color: white;
+          box-shadow: 0 4px 14px rgba(40, 167, 69, 0.3);
+        }
+
+        .mark-paid-modal .erp-btn-success:hover:not(:disabled) {
+          background: linear-gradient(135deg, #218838 0%, #199b7a 100%);
+          box-shadow: 0 6px 18px rgba(40, 167, 69, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .mark-paid-modal .erp-btn-success:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.35);
         }
 
         .spin-icon {
@@ -1124,6 +1339,17 @@ export default function ViewApproveStudent() {
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   // 🏦 OFFLINE PAYMENT: Mark as Paid modal state
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
@@ -1150,7 +1376,7 @@ export default function ViewApproveStudent() {
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(studentId));
 
@@ -1167,12 +1393,25 @@ export default function ViewApproveStudent() {
       setStudent(studentData);
       setRetryCount(0);
     } catch (fetchError) {
-      const errorType = getErrorType(fetchError);
-      setError(errorType);
-      toast.error(errorType, {
-        position: "top-right",
-        autoClose: 4000,
-      });
+      const statusCode = fetchError.response?.status;
+      const errorCode = fetchError.response?.data?.code;
+      const backendMessage = fetchError.response?.data?.message;
+      const errorType = backendMessage || getErrorType(fetchError);
+
+      logger.error("Error fetching student:", statusCode, errorCode);
+
+      setError({ message: errorType, statusCode, errorCode });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorType, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -1191,13 +1430,16 @@ export default function ViewApproveStudent() {
     setShowMarkPaidModal(true);
   }, []);
 
-  // Submit offline payment
+  // Submit offline payment (paymentData is a FormData instance built by MarkPaidModal)
   const handleMarkPaidSubmit = useCallback(
     async (paymentData) => {
       try {
         const response = await api.post(
           "/admin/payments/mark-paid",
           paymentData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
         );
 
         if (response.data.success) {
@@ -1396,11 +1638,15 @@ export default function ViewApproveStudent() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <ErrorDisplay
-        error={error}
+      <ApiError
+        title="Student Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
-        onBack={handleBack}
+        onGoBack={handleBack}
         retryCount={retryCount}
+        maxRetry={CONFIG.MAX_RETRY}
       />
     );
   }

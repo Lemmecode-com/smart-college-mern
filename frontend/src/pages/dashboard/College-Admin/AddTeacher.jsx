@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaChalkboardTeacher,
@@ -87,9 +89,22 @@ export default function AddTeacher() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
+  const [departmentsError, setDepartmentsError] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -125,15 +140,30 @@ export default function AddTeacher() {
   }, [result]);
 
   /* ================= LOAD DEPARTMENTS ================= */
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get("/departments");
+      setDepartments(res.data);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load departments. Please try again later.";
+
+      logger.error("Error fetching departments:", statusCode, errorCode);
+      setDepartmentsError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const res = await api.get("/departments");
-        setDepartments(res.data);
-      } catch (err) {
-        setError("Failed to load departments. Please try again later.");
-      }
-    };
     fetchDepartments();
   }, []);
 
@@ -180,7 +210,7 @@ export default function AddTeacher() {
     });
 
     // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email && !/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(formData.email)) {
       errors.email = 'Invalid email format';
       isValid = false;
     }
@@ -194,6 +224,11 @@ export default function AddTeacher() {
 
     if (formData.dateOfBirth && new Date(formData.dateOfBirth + "T00:00:00") > new Date()) {
       errors.dateOfBirth = 'Date of Birth cannot be in the future';
+      isValid = false;
+    }
+
+    if (formData.joiningDate && new Date(formData.joiningDate + "T00:00:00") > new Date()) {
+      errors.joiningDate = 'Joining Date cannot be in the future';
       isValid = false;
     }
 
@@ -286,23 +321,34 @@ export default function AddTeacher() {
       });
       setValidationErrors({});
     } catch (err) {
-      let errorMessage = "Failed to create teacher. Please try again.";
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error creating teacher:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        let errorMessage = "Failed to create teacher. Please try again.";
 
-      if (err.response) {
-        if (err.response.status === 500) {
-          errorMessage = "Server error. Please contact system administrator.";
-        } else if (err.response.status === 400) {
-          errorMessage = err.response.data?.message || "Invalid data submitted. Please check all fields.";
-        } else if (err.response.status === 409) {
-          errorMessage = "Teacher with this email already exists.";
-        } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message;
+        if (err.response) {
+          if (err.response.status === 500) {
+            errorMessage = "Server error. Please contact system administrator.";
+          } else if (err.response.status === 400) {
+            errorMessage = err.response.data?.message || "Invalid data submitted. Please check all fields.";
+          } else if (err.response.status === 409) {
+            errorMessage = "Teacher with this email already exists.";
+          } else if (err.response.data?.message) {
+            errorMessage = err.response.data.message;
+          }
+        } else if (err.request) {
+          errorMessage = "Network error. Please check your internet connection.";
         }
-      } else if (err.request) {
-        errorMessage = "Network error. Please check your internet connection.";
-      }
 
-      setError(errorMessage);
+        setError(errorMessage);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
@@ -317,7 +363,7 @@ export default function AddTeacher() {
   };
 
   /* ================= LOADING STATE ================= */
-  if (!departments.length) {
+  if (departmentsLoading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -348,6 +394,31 @@ export default function AddTeacher() {
           </p>
         </div>
       </div>
+    );
+  }
+
+  if (departmentsError) {
+    return (
+      <ApiError
+        title="Departments Loading Error"
+        message={departmentsError.message}
+        statusCode={departmentsError.statusCode}
+        errorCode={departmentsError.errorCode}
+        onRetry={fetchDepartments}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
+  if (error && typeof error === 'object' && !loading) {
+    return (
+      <ApiError
+        title="Teacher Creation Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -801,6 +872,7 @@ export default function AddTeacher() {
                             value={formData.joiningDate}
                             onChange={handleChange}
                             className="form-control"
+                            max={new Date().toISOString().split("T")[0]}
                           />
                         </FormField>
                       </div>
@@ -1313,7 +1385,7 @@ const inputStyle = {
 };
 
 function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigate }) {
-  console.error("SUCCESS MODAL RENDERING!", result);
+  logger.error("SUCCESS MODAL RENDERING!", result);
   return (
     <motion.div
       initial={{ opacity: 0 }}

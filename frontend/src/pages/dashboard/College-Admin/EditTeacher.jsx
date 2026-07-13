@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaChalkboardTeacher,
@@ -18,6 +20,17 @@ export default function EditTeacher() {
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
@@ -41,36 +54,47 @@ export default function EditTeacher() {
   const [error, setError] = useState("");
 
   /* ================= LOAD TEACHER + DEPARTMENTS ================= */
+  const loadData = async () => {
+    try {
+      const [teacherRes, deptRes] = await Promise.all([
+        api.get(`/teachers/${id}`),
+        api.get("/departments")
+      ]);
+
+      const t = teacherRes.data?.teacher || teacherRes.data;
+
+      setFormData({
+        name: t.name || "",
+        email: t.email || "",
+        employeeId: t.employeeId || "",
+        designation: t.designation || "",
+        qualification: t.qualification || "",
+        experienceYears: t.experienceYears || "",
+        department_id: t.department_id?._id || t.department_id || ""
+      });
+
+      setAssignedCourses(Array.isArray(t.courses) ? t.courses : []);
+      setDepartments(Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.departments || []);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load teacher data";
+
+      logger.error("Error fetching teacher:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [teacherRes, deptRes] = await Promise.all([
-          api.get(`/teachers/${id}`),
-          api.get("/departments")
-        ]);
-
-        // API returns { teacher: {...} }, axios keeps it nested
-        const t = teacherRes.data?.teacher || teacherRes.data;
-
-        setFormData({
-          name: t.name || "",
-          email: t.email || "",
-          employeeId: t.employeeId || "",
-          designation: t.designation || "",
-          qualification: t.qualification || "",
-          experienceYears: t.experienceYears || "",
-          department_id: t.department_id?._id || t.department_id || ""
-        });
-
-        setAssignedCourses(Array.isArray(t.courses) ? t.courses : []);
-        setDepartments(Array.isArray(deptRes.data) ? deptRes.data : deptRes.data.departments || []);
-      } catch (err) {
-        setError("Failed to load teacher data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, [id]);
 
@@ -122,7 +146,18 @@ export default function EditTeacher() {
 
       navigate("/teachers");
     } catch (err) {
-      setError(err.response?.data?.message || "Update failed");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating teacher:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Update failed");
+      }
     } finally {
       setSaving(false);
     }
@@ -133,9 +168,21 @@ export default function EditTeacher() {
     return <Loading fullScreen size="lg" text="Loading teacher details..." />;
   }
 
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Teacher Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={loadData}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
   return (
     <div className="container-fluid">
-
       {/* ================= HEADER ================= */}
       <div className="gradient-header mb-4 p-4 rounded-4 text-white">
         <h3 className="fw-bold mb-1">
@@ -147,7 +194,7 @@ export default function EditTeacher() {
         </p>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && typeof error === 'string' && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="card shadow-lg border-0 rounded-4 glass-card">

@@ -7,6 +7,8 @@ import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaMoneyBillWave,
   FaLayerGroup,
@@ -418,9 +420,20 @@ export default function ViewFeeStructure() {
 
   const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
    /* ================= SECURITY & VALIDATION ================= */
    if (!user) return <Navigate to="/login" replace />;
@@ -434,14 +447,14 @@ export default function ViewFeeStructure() {
   /* ================= LOAD STRUCTURE ================= */
   const loadFeeStructure = useCallback(async () => {
     if (!isIdValid) {
-      setError(ERROR_MESSAGES.INVALID_ID);
+      setError({ message: ERROR_MESSAGES.INVALID_ID, statusCode: 400 });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get(`/fees/structure/${id}`);
       const feeData = res.data.feeStructure || res.data;
       setFee(feeData);
@@ -462,9 +475,18 @@ export default function ViewFeeStructure() {
         }
       }
     } catch (err) {
-      const status = err.response?.status;
-      const specificError = HTTP_ERROR_MAP[status] || ERROR_MESSAGES.LOAD_FAILED;
-      setError(specificError);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const specificError = backendMessage || HTTP_ERROR_MAP[statusCode] || ERROR_MESSAGES.LOAD_FAILED;
+
+      logger.error("Error loading fee structure:", statusCode, errorCode);
+
+      setError({
+        message: specificError,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -573,7 +595,15 @@ export default function ViewFeeStructure() {
   }
 
   if (error && !fee) {
-    return <ErrorDisplay error={error} onRetry={loadFeeStructure} />;
+    return (
+      <ApiError
+        title="Fee Structure Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={loadFeeStructure}
+      />
+    );
   }
 
   if (!fee) {

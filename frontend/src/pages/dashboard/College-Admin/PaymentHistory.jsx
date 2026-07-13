@@ -7,9 +7,8 @@ import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { showSuccess, showError } from "../../../utils/toast";
+import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
-
-const PAGE_LOAD_TOAST_ID = "college-payment-history-load";
 import {
   FaFileInvoiceDollar,
   FaSearch,
@@ -28,6 +27,21 @@ import {
   FaExternalLinkAlt,
   FaUser,
 } from "react-icons/fa";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-history-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 const PAGE_SIZE = 10;
 
@@ -80,16 +94,21 @@ export default function PaymentHistory() {
         autoClose: 3000,
       });
     } catch (err) {
-      console.error("Payment history fetch error:", err);
       const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Payment history fetch error:", statusCode, errorCode);
       const errorMsg =
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
-      setError({ message: errorMsg, statusCode, errorCode: err.response?.data?.code });
+      setError({ message: errorMsg, statusCode, errorCode });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showError(errorMsg);
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMsg);
+      }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
         setLoading(false);

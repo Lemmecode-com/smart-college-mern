@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
+import ApiError from "../../../../components/ApiError";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -29,7 +30,20 @@ import "react-toastify/dist/ReactToastify.css";
 
 const StripeConfiguration = () => {
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -39,6 +53,7 @@ const StripeConfiguration = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [isGatewayActive, setIsGatewayActive] = useState(false);
+  const [gatewayStatus, setGatewayStatus] = useState("inactive");
 
   const [formData, setFormData] = useState({
     publishableKey: "",
@@ -58,6 +73,7 @@ const StripeConfiguration = () => {
 
       const isActive = response.data.isActive || false;
       setIsGatewayActive(isActive);
+      setGatewayStatus(response.data.status || (isActive ? "not_ready" : "inactive"));
 
       if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
@@ -77,8 +93,14 @@ const StripeConfiguration = () => {
         });
       }
     } catch (error) {
-      logger.error("Error fetching config:", error);
-      if (error.response?.status !== 404) {
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error fetching config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        setPageError({ statusCode, errorCode });
+        return;
+      }
+      if (statusCode !== 404) {
         toast.error(
           error.response?.data?.message || "Failed to load configuration",
         );
@@ -98,8 +120,14 @@ const StripeConfiguration = () => {
 
       setIsGatewayActive(newStatus);
       toast.success(response.data.message);
+      fetchStripeConfig();
     } catch (error) {
-      logger.error("Error toggling gateway:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error toggling gateway:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(error.response?.data?.message || "Failed to toggle gateway");
     } finally {
       setToggling(false);
@@ -165,7 +193,12 @@ const StripeConfiguration = () => {
       fetchStripeConfig();
       setIsModified(false);
     } catch (error) {
-      logger.error("Error saving config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error saving config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to save configuration",
       );
@@ -188,7 +221,12 @@ const StripeConfiguration = () => {
       }
       fetchStripeConfig();
     } catch (error) {
-      logger.error("Error verifying config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error verifying config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to verify credentials",
       );
@@ -218,7 +256,12 @@ const StripeConfiguration = () => {
       });
       setIsModified(false);
     } catch (error) {
-      logger.error("Error deleting config:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error deleting config:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to delete configuration",
       );
@@ -236,7 +279,12 @@ const StripeConfiguration = () => {
         } ${response.data.connection.balance.currency.toUpperCase()}`,
       );
     } catch (error) {
-      logger.error("Error testing connection:", error);
+      const statusCode = error.response?.status;
+      const errorCode = error.response?.data?.code;
+      logger.error("Error testing connection:", statusCode, errorCode);
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        return;
+      }
       toast.error(
         error.response?.data?.message || "Failed to connect to Stripe",
       );
@@ -244,6 +292,17 @@ const StripeConfiguration = () => {
       setTesting(false);
     }
   };
+
+  if (pageError) {
+    return (
+      <ApiError
+        statusCode={pageError.statusCode}
+        errorCode={pageError.errorCode}
+        onRetry={fetchStripeConfig}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -423,6 +482,11 @@ const StripeConfiguration = () => {
         .status-badge.inactive {
           background: rgba(255, 255, 255, 0.2);
           color: rgba(255, 255, 255, 0.8);
+        }
+
+        .status-badge.not-ready {
+          background: linear-gradient(135deg, #f6ad55, #ed8936);
+          color: #ffffff;
         }
 
         /* Info Card */
@@ -821,6 +885,11 @@ const StripeConfiguration = () => {
           background: var(--sc-text-muted);
         }
 
+        .status-dot.not-ready {
+          background: var(--sc-warning);
+          box-shadow: 0 0 8px var(--sc-warning);
+        }
+
         .status-dot.test {
           background: var(--sc-warning);
           box-shadow: 0 0 8px var(--sc-warning);
@@ -1002,16 +1071,20 @@ const StripeConfiguration = () => {
           </div>
           <div className="header-badges">
             <button
-              className={`status-badge ${isGatewayActive ? "active" : "inactive"}`}
+              className={`status-badge ${gatewayStatus}`}
               onClick={handleToggleGateway}
               disabled={toggling}
               style={{ cursor: "pointer", border: "none" }}
             >
               {toggling ? (
                 <FaSpinner className="spin" />
-              ) : isGatewayActive ? (
+              ) : gatewayStatus === "active" ? (
                 <>
                   <FaToggleOn /> Active
+                </>
+              ) : gatewayStatus === "not_ready" ? (
+                <>
+                  <FaExclamationTriangle /> Gateway Not Ready
                 </>
               ) : (
                 <>
@@ -1194,12 +1267,16 @@ const StripeConfiguration = () => {
                     </h6>
                   </div>
                   <div className="sidebar-body">
-                    <div className="status-list">
+                     <div className="status-list">
                       <div className="status-item">
                         <span className="status-item-label">Status</span>
                         <div className="status-item-value">
-                          <span className="status-dot active" />
-                          Active
+                          <span className={`status-dot ${gatewayStatus}`} />
+                          {gatewayStatus === "active"
+                            ? "Active"
+                            : gatewayStatus === "not_ready"
+                              ? "Gateway Not Ready"
+                              : "Inactive"}
                         </div>
                       </div>
                       {config && (
@@ -1248,7 +1325,7 @@ const StripeConfiguration = () => {
       </div>
 
       {/* ================= MODIFIED INDICATOR ================= */}
-      {isModified && isGatewayActive && (
+      {isModified && (isGatewayActive || gatewayStatus === "not_ready") && (
         <div className="modified-indicator">
           <div className="indicator-content">
             <FaInfoCircle className="indicator-icon" />

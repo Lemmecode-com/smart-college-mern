@@ -3,7 +3,9 @@ const {
   validateEmail,
   emailValidatorMessage,
   validateIndianMobile,
-  mobileValidatorMessage
+  mobileValidatorMessage,
+  validateJoiningDate,
+  joiningDateValidatorMessage,
 } = require("../utils/validators");
 
 const teacherSchema = new mongoose.Schema(
@@ -124,6 +126,10 @@ const teacherSchema = new mongoose.Schema(
 
     joiningDate: {
       type: Date,
+      validate: {
+        validator: validateJoiningDate,
+        message: joiningDateValidatorMessage,
+      },
     },
 
     subjects: [
