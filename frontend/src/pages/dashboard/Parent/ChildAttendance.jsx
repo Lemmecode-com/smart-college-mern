@@ -122,7 +122,7 @@ export default function ChildAttendance() {
     const fetchAttendance = async () => {
       try {
         const res = await api.get(`/parent/student/${childId}/attendance`);
-        const attendanceData = res.data.data || [];
+        const attendanceData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setRecords(attendanceData);
 
         // Calculate attendance statistics
@@ -223,6 +223,15 @@ export default function ChildAttendance() {
         className="parent-portal-wrapper"
       >
         <div className="parent-portal-container">
+          {/* ================= BREADCRUMB ================= */}
+          <Breadcrumb
+            items={[
+              { label: "Home", path: "/dashboard/parent" },
+              { label: "My Children", path: "/dashboard/parent/children" },
+              { label: "Attendance", path: `/dashboard/parent/child/${childId}/attendance` },
+            ]}
+          />
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -255,13 +264,6 @@ export default function ChildAttendance() {
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <Breadcrumb
-                      items={[
-                        { label: "Home", path: "/dashboard/parent" },
-                        { label: "My Children", path: "/dashboard/parent/children" },
-                        { label: "Attendance", path: `/dashboard/parent/child/${childId}/attendance` },
-                      ]}
-                    />
                   </div>
                 </div>
               </div>
@@ -355,63 +357,63 @@ export default function ChildAttendance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {records.map((rec, idx) => (
-                        <motion.tr
-                          key={rec._id}
-                          variants={fadeInVariants}
-                          custom={idx}
-                          initial="hidden"
-                          animate="visible"
-                        >
-                          <td>
-                            <div className="d-flex flex-column">
-                              <span className="fw-semibold">
-                                {new Date(rec.session_id?.date).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
+                        {records.map((rec, idx) => (
+                          <motion.tr
+                            key={rec._id}
+                            variants={fadeInVariants}
+                            custom={idx}
+                            initial="hidden"
+                            animate="visible"
+                          >
+                            <td>
+                              <div className="d-flex flex-column">
+                                <span className="fw-semibold">
+                                  {new Date(rec.date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                                <small className="text-muted">
+                                  {new Date(rec.date).getFullYear()}
+                                </small>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="parent-student-avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
+                                  {rec.subject?.charAt(0) || '?'}
+                                </div>
+                                <div>
+                                  <div className="fw-semibold">{rec.subject || "N/A"}</div>
+                                  <small className="text-muted">{rec.subjectCode || ""}</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`parent-status-badge ${
+                                rec.status === 'PRESENT' ? 'parent-status-approved' : 'parent-status-rejected'
+                              }`}>
+                                {rec.status === 'PRESENT' ? (
+                                  <><FaCheckCircle /> Present</>
+                                ) : (
+                                  <><FaTimesCircle /> Absent</>
+                                )}
                               </span>
-                              <small className="text-muted">
-                                {new Date(rec.session_id?.date).getFullYear()}
-                              </small>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="d-flex align-items-center gap-2">
-                              <div className="parent-student-avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
-                                {rec.subject_id?.name?.charAt(0) || '?'}
-                              </div>
-                              <div>
-                                <div className="fw-semibold">{rec.subject_id?.name || "N/A"}</div>
-                                <small className="text-muted">{rec.course_id?.name}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`parent-status-badge ${
-                              rec.status === 'PRESENT' ? 'parent-status-approved' : 'parent-status-rejected'
-                            }`}>
-                              {rec.status === 'PRESENT' ? (
-                                <><FaCheckCircle /> Present</>
-                              ) : (
-                                <><FaTimesCircle /> Absent</>
-                              )}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="badge bg-light text-dark">
-                              <FaClock className="me-1" />
-                              {rec.session_type || "Regular"}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="fw-semibold">
-                              {rec.session_id?.slotNumber || "N/A"}
-                            </span>
-                          </td>
-                        </motion.tr>
-                      ))}
+                            </td>
+                            <td>
+                              <span className="badge bg-light text-dark">
+                                <FaClock className="me-1" />
+                                {rec.sessionType || "Regular"}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="fw-semibold">
+                                {rec.slotNumber || "N/A"}
+                              </span>
+                            </td>
+                          </motion.tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

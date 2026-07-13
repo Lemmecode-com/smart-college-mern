@@ -14,6 +14,20 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { showSuccess, showInfo, showWarning, showError } from "../../../utils/toast";
+import { logger } from "../../../utils/logger";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function StudentReports() {
   const { user } = useContext(AuthContext);
@@ -111,10 +125,16 @@ export default function StudentReports() {
         showInfo("No students found matching your search");
       }
     } catch (err) {
-      console.error("Student search error:", err);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Student search error:", statusCode, errorCode);
       const errorMsg = err.response?.data?.message || "Failed to search students";
-      setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
-      showError(errorMsg);
+      setError({ message: errorMsg, statusCode, errorCode });
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }

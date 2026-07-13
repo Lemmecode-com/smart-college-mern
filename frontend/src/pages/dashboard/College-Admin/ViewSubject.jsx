@@ -4,6 +4,8 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
 
 import {
@@ -30,6 +32,17 @@ export default function ViewSubject() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
@@ -42,7 +55,18 @@ export default function ViewSubject() {
         const res = await api.get(`/subjects/${id}`);
         setSubject(res.data);
       } catch (err) {
-        setError("Failed to load subject details.");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load subject details.";
+
+        logger.error("Error fetching subject:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -57,20 +81,27 @@ export default function ViewSubject() {
   }
 
   /* ================= ERROR ================= */
-  if (error || !subject) {
+  if (error) {
     return (
-      <div className="erp-error-container">
-        <div className="error-icon">
-          <FaInfoCircle />
-        </div>
-        <h3>{error || "Subject not found"}</h3>
-        <button 
-          className="erp-btn erp-btn-primary" 
-          onClick={() => navigate('/subjects/course/' + (subject?.course_id?._id || subject?.course_id))}
-        >
-          <FaArrowLeft /> Go Back
-        </button>
-      </div>
+      <ApiError
+        title="Subject Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchSubject}
+        onGoBack={() => navigate('/subjects')}
+      />
+    );
+  }
+
+  if (!subject) {
+    return (
+      <ApiError
+        title="Subject Loading Error"
+        message="Subject not found"
+        statusCode={404}
+        onGoBack={() => navigate('/subjects')}
+      />
     );
   }
 

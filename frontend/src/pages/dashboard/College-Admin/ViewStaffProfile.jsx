@@ -271,6 +271,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
 import {
   FaUser,
@@ -305,6 +307,17 @@ export default function ViewStaffProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const canEdit = useMemo(() => {
     if (!currentUser || !profile) return false;
     const isSelf = currentUser.id === profile.user_id?._id?.toString();
@@ -319,7 +332,18 @@ export default function ViewStaffProfile() {
         const res = await api.get(`/staff/profile/${actualUserId}`);
         setProfile(res.data.data || res.data);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load profile");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load profile";
+
+        logger.error("Error fetching staff profile:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -328,7 +352,16 @@ export default function ViewStaffProfile() {
   }, [actualUserId]);
 
   if (loading) return <Loading />;
-  if (error) return <div className="text-center text-danger p-4">{error}</div>;
+  if (error) return (
+    <ApiError
+      title="Staff Profile Loading Error"
+      message={error.message}
+      statusCode={error.statusCode}
+      errorCode={error.errorCode}
+      onRetry={fetchProfile}
+      onGoBack={() => navigate(-1)}
+    />
+  );
   if (!profile) return <div className="text-center p-4">Profile not found</div>;
 
   const personalFields = [

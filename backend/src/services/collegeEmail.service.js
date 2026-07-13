@@ -188,6 +188,7 @@ async function getCollegeEmailConfig(collegeId) {
     _id: config._id,
     collegeId: config.collegeId,
     smtp: config.smtp,
+    credentials: { user: config.credentials?.user },
     fromName: config.fromName,
     fromEmail: config.fromEmail,
     isActive: config.isActive,

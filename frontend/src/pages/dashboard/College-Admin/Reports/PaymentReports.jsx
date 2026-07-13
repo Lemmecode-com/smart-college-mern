@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useContext } from "react";
 import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
 
 const PAGE_LOAD_TOAST_ID = "college-payment-reports-load";
 import api from "../../../../api/axios";
@@ -13,7 +15,6 @@ import {
   FaMoneyBillWave,
   FaChartPie,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaSpinner,
   FaInfoCircle,
   FaDownload,
@@ -25,16 +26,28 @@ import {
   FaPercentage,
   FaFileInvoice,
   FaWallet,
-  FaArrowLeft,
   FaFilter,
   FaChartLine,
 } from "react-icons/fa";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function PaymentReports() {
   const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
   const fetchIdRef = useRef(0);
@@ -63,7 +76,7 @@ export default function PaymentReports() {
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -115,15 +128,21 @@ export default function PaymentReports() {
         autoClose: 3000,
       });
     } catch (err) {
-      console.error("Payment summary fetch error:", err);
-      setError(
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Payment summary fetch error:", statusCode, errorCode);
+      const errorMessage =
         err.response?.data?.message ||
-          "Failed to load payment summary. Please try again.",
-      );
+        "Failed to load payment summary. Please try again.";
+      setError({ message: errorMessage, statusCode, errorCode });
 
       if (currentFetchId !== fetchIdRef.current) return;
 
-      showError("Failed to load payment summary.");
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError("Failed to load payment summary.");
+      }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
         setLoading(false);
@@ -149,7 +168,7 @@ export default function PaymentReports() {
       fetchPaymentSummary();
     } else {
       showError("Maximum retry attempts reached.");
-      setError("Maximum retry attempts reached. Please check your connection.");
+      setError({ message: "Maximum retry attempts reached. Please check your connection." });
     }
   }, [retryCount, fetchPaymentSummary]);
 
@@ -228,30 +247,17 @@ export default function PaymentReports() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Payment Reports Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Payment Reports Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => window.history.back()}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
