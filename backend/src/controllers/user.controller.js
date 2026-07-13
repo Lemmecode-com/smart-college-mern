@@ -77,9 +77,17 @@ exports.deactivateUser = async (req, res, next) => {
     // If the user is a STUDENT, also update the Student model
     let studentData = null;
     if (user.role === "STUDENT") {
+      studentData = await Student.findOne({
+        user_id: user._id,
+        college_id: req.college_id,
+      });
+      const previousStatus = studentData?.status || null;
       studentData = await Student.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "DEACTIVATED" },
+        {
+          status: "DEACTIVATED",
+          suspendedFromStatus: previousStatus,
+        },
         { new: true },
       );
     }
@@ -183,9 +191,17 @@ exports.reactivateUser = async (req, res, next) => {
     // If the user is a STUDENT, also update the Student model
     let studentData = null;
     if (user.role === "STUDENT") {
+      const student = await Student.findOne({
+        user_id: user._id,
+        college_id: req.college_id,
+      });
+      const restoreStatus = student?.suspendedFromStatus || "APPROVED";
       studentData = await Student.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
-        { status: "APPROVED" },
+        {
+          status: restoreStatus,
+          suspendedFromStatus: null,
+        },
         { new: true },
       );
     }

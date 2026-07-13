@@ -114,65 +114,62 @@ exports.approveStudent = async (req, res, next) => {
     }
 
     // 4️⃣ Prevent duplicate fee record
-    const existingFee = await StudentFee.findOne({
+    let studentFee = await StudentFee.findOne({
       student_id: student._id,
     });
 
-    if (existingFee) {
-      throw new AppError(
-        "Student fee record already exists",
-        409,
-        "DUPLICATE_FEE_RECORD",
-      );
+    if (!studentFee) {
+      // 5️⃣ Find fee structure (with OTHER category fallback to GEN)
+      let feeCategory = student.category;
+      if (feeCategory === "OTHER") {
+        feeCategory = "GEN";
+      }
+
+      const feeStructure = await FeeStructure.findOne({
+        college_id: student.college_id,
+        course_id: student.course_id,
+        category: feeCategory,
+      });
+
+      if (!feeStructure) {
+        throw new AppError(
+          `No fee structure found for ${course.name} (${student.category} category). Please go to Fee Management → Create Fee Structure before approving this student.`,
+          404,
+          "FEE_STRUCTURE_NOT_FOUND",
+        );
+      }
+
+      const installments = feeStructure.installments.map((inst) => ({
+        name: inst.name,
+        amount: inst.amount,
+        dueDate: inst.dueDate,
+        status: "PENDING",
+      }));
+
+      studentFee = await StudentFee.create({
+        student_id: student._id,
+        college_id: student.college_id,
+        course_id: student.course_id,
+        totalFee: feeStructure.totalFee,
+        paidAmount: 0,
+        installments,
+      });
     }
 
-    // 5️⃣ Find fee structure (with OTHER category fallback to GEN)
-    let feeCategory = student.category;
-    if (feeCategory === "OTHER") {
-      feeCategory = "GEN"; // Map OTHER to General category for fee lookup
-    }
-
-    const feeStructure = await FeeStructure.findOne({
-      college_id: student.college_id,
-      course_id: student.course_id,
-      category: feeCategory,
-    });
-
-    if (!feeStructure) {
-      throw new AppError(
-        `No fee structure found for ${course.name} (${student.category} category). Please go to Fee Management → Create Fee Structure before approving this student.`,
-        404,
-        "FEE_STRUCTURE_NOT_FOUND",
-      );
-    }
-
-    // ✅ Create student fee
-    const installments = feeStructure.installments.map((inst) => ({
-      name: inst.name,
-      amount: inst.amount,
-      dueDate: inst.dueDate,
-      status: "PENDING",
-    }));
-
-    const studentFee = await StudentFee.create({
-      student_id: student._id,
-      college_id: student.college_id,
-      course_id: student.course_id,
-      totalFee: feeStructure.totalFee,
-      paidAmount: 0,
-      installments,
-    });
-
-// 6️⃣ Generate enrollment number
+// 6️⃣ Generate enrollment number (ensure uniqueness)
     const collegeData = await College.findById(student.college_id).select("code");
     const courseData = await Course.findById(student.course_id).select("code");
-    const existingCount = await Student.countDocuments({
-      course_id: student.course_id,
-      admissionYear: student.admissionYear,
-      status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "SEAT_CONFIRMED", "OFFER_MADE"] },
-    });
-    const sequence = String(existingCount + 1).padStart(4, "0");
-    student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
+    
+    const basePrefix = `${collegeData.code}-${courseData.code}${student.admissionYear}-`;
+    let sequence = 1;
+    let enrollmentNumber = `${basePrefix}${String(sequence).padStart(4, "0")}`;
+    
+    while (await Student.findOne({ enrollmentNumber })) {
+      sequence += 1;
+      enrollmentNumber = `${basePrefix}${String(sequence).padStart(4, "0")}`;
+    }
+    
+    student.enrollmentNumber = enrollmentNumber;
 
     // 7️⃣ Approve student (set to APPROVED status)
     student.status = "APPROVED";
