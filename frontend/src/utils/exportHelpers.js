@@ -1,10 +1,72 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { logger } from './logger';
 
 /**
- * EXPORT TO PDF - Using jsPDF + autoTable
+ * Draw a simple table manually in jsPDF without jspdf-autotable.
+ * This avoids the jspdf v4 + jspdf-autotable v5 incompatibility.
+ */
+const drawPdfTable = (doc, columns, rows, startY, pageWidth) => {
+  const margin = 14;
+  const usableWidth = pageWidth - margin * 2;
+  const colWidth = usableWidth / columns.length;
+  const rowHeight = 10;
+  const headerHeight = 10;
+  const fontSize = 11;
+  const smallFontSize = 10;
+
+  doc.setFontSize(fontSize);
+
+  // Header background
+  doc.setFillColor(26, 75, 109);
+  doc.rect(margin, startY, usableWidth, headerHeight, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(smallFontSize);
+  doc.setFont(undefined, 'bold');
+
+  columns.forEach((col, index) => {
+    const text = String(col.header || '');
+    const x = margin + index * colWidth;
+    const y = startY + headerHeight / 2;
+    const cellText = doc.splitTextToSize(text, colWidth - 4);
+    doc.text(cellText, x + 2, y, { baseline: 'middle', maxWidth: colWidth - 4 });
+  });
+
+  // Rows
+  let currentY = startY + headerHeight;
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, 'normal');
+
+  rows.forEach((row, rowIndex) => {
+    if (currentY + rowHeight > doc.internal.pageSize.getHeight() - margin) {
+      doc.addPage();
+      currentY = margin;
+    }
+
+    // Alternate row background
+    if (rowIndex % 2 === 0) {
+      doc.setFillColor(245, 247, 250);
+      doc.rect(margin, currentY, usableWidth, rowHeight, 'F');
+    }
+
+    columns.forEach((col, index) => {
+      const value = row[col.dataKey] ?? row[col.key] ?? '';
+      const text = value === null || value === undefined ? '' : String(value);
+      const x = margin + index * colWidth;
+      const y = currentY + rowHeight / 2;
+      const cellText = doc.splitTextToSize(text, colWidth - 4);
+      doc.text(cellText, x + 2, y, { baseline: 'middle', maxWidth: colWidth - 4 });
+    });
+
+    currentY += rowHeight;
+  });
+
+  return currentY;
+};
+
+/**
+ * EXPORT TO PDF - Using jsPDF (manual table drawing, no jspdf-autotable)
  * @param {string} title - Report title
  * @param {Array} columns - Table columns [{header: 'Name', dataKey: 'name'}]
  * @param {Array} rows - Table data [{name: 'John', value: 100}]
@@ -15,51 +77,36 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf')
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
     });
 
-    // Add title
-    doc.setFontSize(18);
-    doc.setTextColor(26, 75, 109); // #1a4b6d
-    doc.text(title, 14, 20);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const usableWidth = pageWidth - margin * 2;
 
-    // Add timestamp
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(26, 75, 109);
+    doc.setFont(undefined, 'bold');
+    const titleLines = doc.splitTextToSize(String(title || 'Report'), usableWidth);
+    doc.text(titleLines, margin, 16);
+
+    // Timestamp
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 22);
 
-    // Convert rows to autoTable format
-    const tableColumnDefs = columns.map(col => col.header);
-    const tableRows = rows.map(row =>
-      columns.map(col => {
-        const value = row[col.dataKey] ?? row[col.key] ?? '';
-        // Handle 0 and false values explicitly
-        return value === null || value === undefined ? '' : String(value);
-      })
-    );
+    // Table
+    const startY = 26;
+    drawPdfTable(doc, columns, rows, startY, pageWidth);
 
-    // Generate table
-    autoTable(doc, {
-      head: [tableColumnDefs],
-      body: tableRows,
-      startY: 35,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [26, 75, 109], // #1a4b6d
-        textColor: 255,
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [245, 247, 250]
-      },
-      margin: { top: 35 }
-    });
-
-    // Save the PDF
+    // Save
     doc.save(filename);
 
     return { success: true, message: 'PDF exported successfully!' };
   } catch (error) {
+    logger.error('PDF export failed:', error);
     return { success: false, message: 'Failed to export PDF', error };
   }
 };
@@ -77,69 +124,69 @@ export const exportToExcel = async (title, columns, rows, filename = 'report.xls
     const worksheet = workbook.addWorksheet('Report');
 
     // Set column widths
-    worksheet.columns = columns.map(col => ({
+    worksheet.columns = columns.map((col) => ({
       header: col.header,
       key: col.key || col.dataKey,
-      width: 20
+      width: 20,
     }));
 
-    // Style header row
-    const headerRow = worksheet.getRow(1);
+    // Add title at top first
+    worksheet.insertRow(1, [title]);
+    const titleRow = worksheet.getRow(1);
+    titleRow.font = { bold: true, size: 16 };
+    titleRow.alignment = { horizontal: 'center' };
+    worksheet.mergeCells(`A1:${String.fromCharCode(65 + columns.length - 1)}1`);
+
+    // Add timestamp second
+    worksheet.insertRow(2, [`Generated on: ${new Date().toLocaleString()}`]);
+    const timestampRow = worksheet.getRow(2);
+    timestampRow.font = { italic: true, size: 10 };
+    worksheet.mergeCells(`A2:${String.fromCharCode(65 + columns.length - 1)}2`);
+
+    // Style header row at row 3
+    const headerRow = worksheet.getRow(3);
     headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF1A4B6D' } // #1a4b6d
+        fgColor: { argb: 'FF1A4B6D' },
       };
       cell.border = {
         top: { style: 'thin' },
         left: { style: 'thin' },
         bottom: { style: 'thin' },
-        right: { style: 'thin' }
+        right: { style: 'thin' },
       };
     });
 
-    // Add data rows
+    // Add data rows starting at row 4
     rows.forEach((row, index) => {
-      const worksheetRow = worksheet.getRow(index + 2);
-      columns.forEach(col => {
+      const worksheetRow = worksheet.getRow(index + 4);
+      columns.forEach((col) => {
         const cell = worksheetRow.getCell(col.key || col.dataKey);
         const value = row[col.key || col.dataKey];
-        // Handle 0 and false values explicitly - don't convert to empty string
         cell.value = value === null || value === undefined ? '' : value;
 
-        // Add borders
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
           bottom: { style: 'thin' },
-          right: { style: 'thin' }
+          right: { style: 'thin' },
         };
       });
     });
 
-    // Add title at top
-    worksheet.insertRow(1, [title]);
-    worksheet.getRow(1).font = { bold: true, size: 16 };
-    worksheet.getRow(1).alignment = { horizontal: 'center' };
-    worksheet.mergeCells(`A1:${String.fromCharCode(65 + columns.length - 1)}1`);
-
-    // Add timestamp
-    const timestampRow = worksheet.insertRow(3, [`Generated on: ${new Date().toLocaleString()}`]);
-    timestampRow.font = { italic: true, size: 10 };
-    worksheet.mergeCells(`A3:${String.fromCharCode(65 + columns.length - 1)}3`);
-
     // Generate buffer and save
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
     saveAs(blob, filename);
 
     return { success: true, message: 'Excel exported successfully!' };
   } catch (error) {
-    console.error('Excel export error:', error);
+    logger.error('Excel export failed:', error);
     return { success: false, message: 'Failed to export Excel', error };
   }
 };
@@ -153,14 +200,14 @@ export const exportChartAsImage = async (elementId, filename = 'chart.png') => {
   try {
     const html2canvas = (await import('html2canvas')).default;
     const element = document.getElementById(elementId);
-    
+
     if (!element) {
       return { success: false, message: 'Chart element not found' };
     }
 
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
-      scale: 2 // Higher quality
+      scale: 2,
     });
 
     canvas.toBlob((blob) => {
@@ -171,7 +218,7 @@ export const exportChartAsImage = async (elementId, filename = 'chart.png') => {
 
     return { success: true, message: 'Chart exported successfully!' };
   } catch (error) {
-    console.error('Chart export error:', error);
+    logger.error('Chart export failed:', error);
     return { success: false, message: 'Failed to export chart', error };
   }
 };
@@ -183,7 +230,7 @@ export const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
@@ -206,7 +253,7 @@ export const getStatusColor = (status) => {
     PENDING: '#ffc107',
     REJECTED: '#dc3545',
     PRESENT: '#28a745',
-    ABSENT: '#dc3545'
+    ABSENT: '#dc3545',
   };
   return colors[status] || '#6c757d';
 };
