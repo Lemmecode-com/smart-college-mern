@@ -137,7 +137,7 @@ export default function ParentDashboard() {
       setChildren(childrenData);
 
       const activeChildren = childrenData.filter(child =>
-        child.status === "APPROVED"
+        ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(child.status)
       ).length;
 
       let totalFees = 0;
@@ -145,8 +145,10 @@ export default function ParentDashboard() {
       let totalAttendancePercentage = 0;
       let childrenWithAttendance = 0;
 
+      const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+
       for (const child of childrenData) {
-        if (child.status === "APPROVED") {
+        if (activeStatuses.includes(child.status)) {
           try {
             const feeResponse = await api.get(`/parent/student/${child._id}/fees`);
             const feeData = feeResponse.data;
@@ -160,7 +162,7 @@ export default function ParentDashboard() {
 
           try {
             const attResponse = await api.get(`/parent/student/${child._id}/attendance`);
-            const attData = attResponse.data.data || [];
+            const attData = Array.isArray(attResponse.data) ? attResponse.data : (attResponse.data?.data || []);
             const present = attData.filter(rec => rec.status === 'PRESENT').length;
             const total = attData.length;
             if (total > 0) {

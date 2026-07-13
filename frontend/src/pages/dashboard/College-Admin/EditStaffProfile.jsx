@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import "../College-Admin/Dashboard.css";
 
@@ -99,6 +101,16 @@ const spinVariants = {
   }
 };
 
+// Staff roles selectable by a College Admin when editing a staff profile
+const STAFF_ROLE_OPTIONS = [
+  { value: "ACCOUNTANT", label: "Accountant" },
+  { value: "ADMISSION_OFFICER", label: "Admission Officer" },
+  { value: "PRINCIPAL", label: "Principal" },
+  { value: "HOD", label: "Head of Department" },
+  { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
+  { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+];
+
 export default function EditStaffProfile() {
   const { userId } = useParams();
   const { user: currentUser } = useContext(AuthContext);
@@ -119,6 +131,17 @@ export default function EditStaffProfile() {
       navigate("/dashboard");
     }
   }, [currentUser, actualUserId, navigate]);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -149,46 +172,63 @@ export default function EditStaffProfile() {
   const [success, setSuccess] = useState(false);
 
   // Fetch existing profile
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        console.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
-        setLoading(true);
-        const res = await api.get(`/college/staff/profile/${actualUserId}`);
-        console.log("[EditStaffProfile] API response:", res.data);
-        const p = res.data.data || res.data;
-        if (p) {
-          setFormData({
-            name: p.name || "",
-            email: p.email || "",
-            role: p.role || "",
-            mobileNumber: p.mobileNumber || "",
-            designation: p.designation || "",
-            employmentType: p.employmentType || "FULL_TIME",
-            joiningDate: p.joiningDate ? new Date(p.joiningDate).toISOString().split('T')[0] : "",
-            gender: p.gender || "",
-            dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : "",
-            bloodGroup: p.bloodGroup || "",
-            address: p.address || "",
-            city: p.city || "",
-            state: p.state || "",
-            pincode: p.pincode || "",
-            emergencyContactName: p.emergencyContactName || "",
-            emergencyContactPhone: p.emergencyContactPhone || "",
-            emergencyRelation: p.emergencyRelation || "",
-            qualification: p.qualification || "",
-            experienceYears: p.experienceYears?.toString() || "",
-          });
-        }
-      } catch (err) {
-        console.error("[EditStaffProfile] API error:", err);
-        setError(err.response?.data?.message || "Failed to load profile");
-      } finally {
-        setLoading(false);
+  const fetchProfile = useCallback(async () => {
+    try {
+      logger.log("[EditStaffProfile] Fetching profile for userId:", actualUserId);
+      setLoading(true);
+      const res = await api.get(`/college/staff/profile/${actualUserId}`);
+      logger.log("[EditStaffProfile] API response:", res.data);
+      const raw = res.data?.data ?? res.data;
+      const p = raw || {};
+      // Support both response shapes:
+      //  - flat:          { name, email, role, ... }
+      //  - populated:     { user_id: { name, email, role }, ... }  (Issue #312-class compatibility)
+      const u = p.user_id || {};
+      if (raw) {
+        setFormData({
+          name: p.name || u.name || "",
+          email: p.email || u.email || "",
+          role: p.role || u.role || "",
+          mobileNumber: p.mobileNumber || "",
+          designation: p.designation || "",
+          employmentType: p.employmentType || "FULL_TIME",
+          joiningDate: p.joiningDate ? new Date(p.joiningDate).toISOString().split('T')[0] : "",
+          gender: p.gender || "",
+          dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth).toISOString().split('T')[0] : "",
+          bloodGroup: p.bloodGroup || "",
+          address: p.address || "",
+          city: p.city || "",
+          state: p.state || "",
+          pincode: p.pincode || "",
+          emergencyContactName: p.emergencyContactName || "",
+          emergencyContactPhone: p.emergencyContactPhone || "",
+          emergencyRelation: p.emergencyRelation || "",
+          qualification: p.qualification || "",
+          experienceYears: p.experienceYears?.toString() || "",
+        });
       }
-    };
-    if (actualUserId) fetchProfile();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load profile";
+
+      logger.error("Error fetching staff profile:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [actualUserId]);
+
+  useEffect(() => {
+    if (actualUserId) fetchProfile();
+  }, [actualUserId, fetchProfile]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -200,25 +240,59 @@ export default function EditStaffProfile() {
     setError(null);
     setSuccess(false);
 
+    // ─── Joining date validation ───
+    if (
+      formData.joiningDate &&
+      new Date(formData.joiningDate + "T00:00:00") > new Date()
+    ) {
+      setError("Joining Date cannot be a future date");
+      setSaving(false);
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
         experienceYears: formData.experienceYears ? Number(formData.experienceYears) : 0,
       };
-      console.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
+      logger.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
       const res = await api.put(`/college/staff/profile/${actualUserId}`, payload);
-      console.log("[EditStaffProfile] Update response:", res.data);
+      logger.log("[EditStaffProfile] Update response:", res.data);
       setSuccess(true);
       setTimeout(() => navigate(`/staff/profile/${actualUserId}`), 1500);
     } catch (err) {
-      console.error("[EditStaffProfile] Update error:", err);
-      setError(err.response?.data?.message || "Update failed");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating staff profile:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        logger.error("[EditStaffProfile] Update error:", err);
+        setError(err.response?.data?.message || "Update failed");
+      }
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) return <Loading fullScreen size="lg" text="Loading staff profile..." />;
+
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Staff Profile Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchProfile}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -349,14 +423,20 @@ export default function EditStaffProfile() {
                             className="form-select"
                             required
                           >
-                            <option value="">Select Role</option>
-                            <option value="ACCOUNTANT">Accountant</option>
-                            <option value="ADMISSION_OFFICER">Admission Officer</option>
-                            <option value="PRINCIPAL">Principal</option>
-                            <option value="HOD">Head of Department</option>
-                            <option value="EXAM_COORDINATOR">Exam Coordinator</option>
-                            <option value="PLATFORM_SUPPORT">Platform Support</option>
-                          </select>
+                          <option value="">Select Role</option>
+                          {STAFF_ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                          {/* Preserve a persisted role that is not in the standard list (avoids blank selection) */}
+                          {formData.role &&
+                            !STAFF_ROLE_OPTIONS.some((o) => o.value === formData.role) && (
+                              <option value={formData.role}>
+                                {formData.role.replace("_", " ")}
+                              </option>
+                            )}
+                        </select>
                         </FormField>
                       </div>
                       <div className="col-12 col-md-4">
@@ -433,6 +513,7 @@ export default function EditStaffProfile() {
                             value={formData.joiningDate}
                             onChange={handleChange}
                             className="form-control"
+                            max={new Date().toISOString().split("T")[0]}
                           />
                         </FormField>
                       </div>
@@ -781,7 +862,7 @@ export default function EditStaffProfile() {
 
           {/* ================= ERROR DISPLAY ================= */}
           <AnimatePresence>
-            {error && (
+            {error && typeof error === 'string' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
