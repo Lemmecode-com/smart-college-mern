@@ -219,7 +219,7 @@ export default function ChildProfile() {
     pincode,
     department_id,
     course_id,
-    enrollmentNo,
+    enrollmentNumber,
     status,
     currentSemester,
     admissionYear,
@@ -301,7 +301,7 @@ export default function ChildProfile() {
                   </div>
                   <div className="parent-stat-card-content">
                     <div className="parent-card-label">Enrollment Number</div>
-                    <div className="parent-card-value">{enrollmentNo || "N/A"}</div>
+                     <div className="parent-card-value">{enrollmentNumber || "N/A"}</div>
                     <div className="parent-card-subtitle">Student ID</div>
                   </div>
                 </div>
