@@ -84,6 +84,11 @@ exports.createTeacher = async (req, res, next) => {
       }
     }
 
+    /* ================= Joining Date Validation ================= */
+    if (joiningDate && new Date(joiningDate) > new Date()) {
+      throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
+    }
+
     /* ================= Generate Employee ID ================= */
     const departmentTeacherCount = await Teacher.countDocuments({
       college_id: req.college_id,
@@ -244,13 +249,18 @@ exports.updateMyProfile = async (req, res, next) => {
       ...(joiningDate !== undefined && { joiningDate }),
     };
 
+    // ─── Joining date validation ───
+    if (updateFields.joiningDate && new Date(updateFields.joiningDate) > new Date()) {
+      throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
+    }
+
     const updatedTeacher = await Teacher.findOneAndUpdate(
       {
         _id: teacher._id,
         college_id: req.college_id,
       },
       updateFields,
-      { new: true },
+      { new: true, runValidators: true },
     )
       .populate("department_id", "name")
       .populate("courses", "name code");
