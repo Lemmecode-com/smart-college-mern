@@ -351,18 +351,21 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     }
 
     // 🔥 OPTIMIZED: Use countDocuments() instead of loading all records
+    const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
     const [
       totalStudents,
       totalTeachers,
       totalDepartments,
       totalCourses,
       pendingAdmissionsCount,
+      activeStudentsCount,
     ] = await Promise.all([
       Student.countDocuments({ college_id: collegeId }),
       Teacher.countDocuments({ college_id: collegeId }),
       Department.countDocuments({ college_id: collegeId }),
       Course.countDocuments({ college_id: collegeId }),
       Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+      Student.countDocuments({ college_id: collegeId, status: { $in: activeStudentStatuses } }),
     ]);
 
     // 🔥 OPTIMIZED: Fetch only last 5 students instead of all
@@ -399,6 +402,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           totalDepartments,
           totalCourses,
           pendingAdmissions: pendingAdmissionsCount,
+          activeStudents: activeStudentsCount,
         },
 
         recentStudents,
@@ -456,18 +460,21 @@ exports.principalDashboard = async (req, res, next) => {
       throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
     }
 
+    const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
     const [
       totalStudents,
       totalTeachers,
       totalDepartments,
       totalCourses,
       pendingAdmissions,
+      activeStudentsCount,
     ] = await Promise.all([
       Student.countDocuments({ college_id: collegeId }),
       Teacher.countDocuments({ college_id: collegeId }),
       Department.countDocuments({ college_id: collegeId }),
       Course.countDocuments({ college_id: collegeId }),
       Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+      Student.countDocuments({ college_id: collegeId, status: { $in: activeStudentStatuses } }),
     ]);
 
     const recentStudents = await Student.find({ college_id: collegeId })
@@ -492,6 +499,7 @@ exports.principalDashboard = async (req, res, next) => {
           totalDepartments,
           totalCourses,
           pendingAdmissions,
+          activeStudents: activeStudentsCount,
         },
         recentStudents,
       },
