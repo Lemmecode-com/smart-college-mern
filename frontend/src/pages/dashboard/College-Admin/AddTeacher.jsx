@@ -227,6 +227,11 @@ export default function AddTeacher() {
       isValid = false;
     }
 
+    if (formData.joiningDate && new Date(formData.joiningDate + "T00:00:00") > new Date()) {
+      errors.joiningDate = 'Joining Date cannot be in the future';
+      isValid = false;
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -867,6 +872,7 @@ export default function AddTeacher() {
                             value={formData.joiningDate}
                             onChange={handleChange}
                             className="form-control"
+                            max={new Date().toISOString().split("T")[0]}
                           />
                         </FormField>
                       </div>
