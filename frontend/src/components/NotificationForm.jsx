@@ -271,9 +271,16 @@ export default function NotificationForm({
       return;
     }
 
-    if (form.expiresAt && new Date(form.expiresAt) < new Date()) {
-      toast.error("Expiry date cannot be in the past");
-      return;
+    if (form.expiresAt) {
+      const [datePart, timePart] = form.expiresAt.split("T");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hours, minutes] = timePart.split(":").map(Number);
+      const selectedLocal = new Date(year, month - 1, day, hours, minutes, 0);
+      const nowLocal = new Date();
+      if (selectedLocal < nowLocal) {
+        toast.error("Expiry Date must be today or a future date.");
+        return;
+      }
     }
 
     if (form.target === "COURSE" && !form.target_course) {
@@ -980,7 +987,17 @@ export default function NotificationForm({
                         name="expiresAt"
                         value={form.expiresAt}
                         onChange={handleChange}
-                        min={new Date().toISOString().slice(0, 16)}
+                        min={
+                          (() => {
+                            const now = new Date();
+                            const year = now.getFullYear();
+                            const month = String(now.getMonth() + 1).padStart(2, "0");
+                            const day = String(now.getDate()).padStart(2, "0");
+                            const hours = String(now.getHours()).padStart(2, "0");
+                            const minutes = String(now.getMinutes()).padStart(2, "0");
+                            return `${year}-${month}-${day}T${hours}:${minutes}`;
+                          })()
+                        }
                         style={{
                           width: "100%",
                           padding: "0.875rem 1.25rem",
