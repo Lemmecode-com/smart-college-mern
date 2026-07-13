@@ -1491,25 +1491,14 @@ function AppContent({
                  </ProtectedRoute>
                }
              />
-             <Route
-               path="/staff/profile/edit/:userId"
-               element={
-                 <ProtectedRoute
-                   allowedRoles={[
-                     "COLLEGE_ADMIN",
-                     "ACCOUNTANT",
-                     "PRINCIPAL",
-                     "HOD",
-                     "ADMISSION_OFFICER",
-                     "EXAM_COORDINATOR",
-                     "PARENT_GUARDIAN",
-                     "PLATFORM_SUPPORT",
-                   ]}
-                 >
-                   <EditStaffProfile />
-                 </ProtectedRoute>
-               }
-             />
+              <Route
+                path="/staff/profile/edit/:userId"
+                element={
+                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                    <EditStaffProfile />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* TIMETABLE */}
 
