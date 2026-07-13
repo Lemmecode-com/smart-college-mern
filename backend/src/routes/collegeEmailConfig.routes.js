@@ -4,6 +4,10 @@ const auth = require("../middlewares/auth.middleware");
 const { checkCollegeAccess } = require("../middlewares/collegeAccess.middleware");
 const asyncHandler = require("../utils/asyncHandler");
 const controller = require("../controllers/collegeEmailConfig.controller");
+const {
+  validateSaveEmailConfig,
+  validateVerifyEmailConfig,
+} = require("../middlewares/validators/collegeEmailConfig.validator");
 
 /**
  * Email Configuration Routes
@@ -32,6 +36,7 @@ router.get(
 router.post(
   "/config",
   checkCollegeAccess,
+  validateSaveEmailConfig,
   asyncHandler(controller.saveEmailConfig),
 );
 
@@ -43,6 +48,7 @@ router.post(
 router.post(
   "/verify",
   checkCollegeAccess,
+  validateVerifyEmailConfig,
   asyncHandler(controller.verifyEmailConfig),
 );
 
