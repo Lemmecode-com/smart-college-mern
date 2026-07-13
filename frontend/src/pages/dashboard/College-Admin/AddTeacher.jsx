@@ -210,7 +210,7 @@ export default function AddTeacher() {
     });
 
     // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email && !/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(formData.email)) {
       errors.email = 'Invalid email format';
       isValid = false;
     }
