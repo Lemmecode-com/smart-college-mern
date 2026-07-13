@@ -85,7 +85,7 @@ const EmailConfigurations = () => {
             secure: response.data.config.smtp?.secure || false,
           },
           credentials: {
-            user: response.data.config.smtp?.user || "",
+            user: response.data.config.credentials?.user || "",
             pass: "",
           },
           fromName: response.data.config.fromName || "",
