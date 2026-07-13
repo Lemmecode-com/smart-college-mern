@@ -155,8 +155,8 @@ export default function CreateStaff() {
      if (!formData.name.trim()) return "Full name is required";
      if (!formData.email.trim()) return "Email is required";
 
-     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-     if (!emailRegex.test(formData.email)) return "Invalid email format";
+      const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+      if (!emailRegex.test(formData.email)) return "Invalid email format. Please enter a valid email address.";
 
      if (!formData.role) return "Role is required";
 
@@ -294,8 +294,13 @@ export default function CreateStaff() {
             errorCode,
           });
         } else {
-          logger.error(err);
-          setError(err.response?.data?.message || "Failed to create account");
+          const data = err.response?.data;
+          const backendMessage =
+            (Array.isArray(data?.errors) && data.errors[0]?.message) ||
+            data?.message ||
+            "Failed to create account";
+          logger.error("Failed to create staff:", statusCode, errorCode, backendMessage);
+          setError(backendMessage);
         }
       } finally {
        setLoading(false);
