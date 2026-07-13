@@ -154,7 +154,11 @@ export default function ChildrenList() {
     }
 
     // Apply status filter
-    if (statusFilter !== "ALL") {
+    if (statusFilter === "ACTIVE") {
+      filtered = filtered.filter(child =>
+        ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(child.status)
+      );
+    } else if (statusFilter !== "ALL") {
       filtered = filtered.filter(child => child.status === statusFilter);
     }
 
@@ -164,6 +168,9 @@ export default function ChildrenList() {
   const getStatusClass = (status) => {
     const statusClasses = {
       APPROVED: "parent-status-approved",
+      ENROLLED: "parent-status-approved",
+      OFFER_MADE: "parent-status-approved",
+      SEAT_CONFIRMED: "parent-status-approved",
       PENDING: "parent-status-pending",
       REJECTED: "parent-status-rejected",
       DEACTIVATED: "parent-status-deactivated",
@@ -174,6 +181,9 @@ export default function ChildrenList() {
   const getStatusLabel = (status) => {
     const statusLabels = {
       APPROVED: "Active Student",
+      ENROLLED: "Enrolled",
+      OFFER_MADE: "Offer Made",
+      SEAT_CONFIRMED: "Seat Confirmed",
       PENDING: "Application Pending",
       REJECTED: "Application Rejected",
       DEACTIVATED: "Account Inactive",
@@ -266,10 +276,9 @@ export default function ChildrenList() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
                   <option value="ALL">All Status</option>
-                  <option value="APPROVED">Active</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="REJECTED">Rejected</option>
-                  <option value="DEACTIVATED">Inactive</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="ENROLLED">Enrolled</option>
                 </select>
               </div>
               <div className="col-12 col-md-3">
@@ -374,7 +383,7 @@ export default function ChildrenList() {
                                 <FaEye />
                                 View
                               </motion.button>
-                              {child.status === "APPROVED" && (
+                              {["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(child.status) && (
                                 <>
                                   <motion.button
                                     whileHover={{ scale: 1.05 }}
