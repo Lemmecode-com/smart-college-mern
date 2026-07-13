@@ -166,7 +166,8 @@ export default function ChildDetail() {
   const fetchAttendance = async () => {
     try {
       const response = await api.get(`/parent/student/${childId}/attendance`);
-      setAttendance(response.data.attendance || []);
+      const records = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setAttendance(records);
     } catch (error) {
       toast.error("Failed to load attendance data");
       console.error("Error fetching attendance:", error);
@@ -268,6 +269,18 @@ export default function ChildDetail() {
         className="parent-portal-wrapper"
       >
         <div className="parent-portal-container">
+          {/* ================= BREADCRUMB ================= */}
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard/parent" },
+              { label: "My Children", path: "/dashboard/parent/children" },
+              {
+                label: child.fullName,
+                path: `/dashboard/parent/child/${childId}`,
+              },
+            ]}
+          />
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -299,18 +312,6 @@ export default function ChildDetail() {
                   </div>
                 </div>
                 <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <Breadcrumb
-                      items={[
-                        { label: "Dashboard", path: "/dashboard/parent" },
-                        { label: "My Children", path: "/dashboard/parent/children" },
-                        {
-                          label: child.fullName,
-                          path: `/dashboard/parent/child/${childId}`,
-                        },
-                      ]}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -622,30 +623,63 @@ export default function ChildDetail() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {attendance.map((record, idx) => (
-                                  <motion.tr
-                                    key={idx}
-                                    variants={fadeInVariants}
-                                    custom={idx}
-                                    initial="hidden"
-                                    animate="visible"
-                                  >
-                                    <td>{new Date(record.date).toLocaleDateString()}</td>
-                                    <td>{record.subject_id?.name || "N/A"}</td>
-                                    <td>
-                                      <span className={`parent-status-badge ${
-                                        record.status === 'PRESENT' ? 'parent-status-approved' : 'parent-status-rejected'
-                                      }`}>
-                                        {record.status === 'PRESENT' ? (
-                                          <><FaCheckCircle /> Present</>
-                                        ) : (
-                                          <><FaTimesCircle /> Absent</>
-                                        )}
-                                      </span>
-                                    </td>
-                                    <td>{record.session_type || "Regular"}</td>
-                                  </motion.tr>
-                                ))}
+                        {attendance.map((record, idx) => (
+                          <motion.tr
+                            key={idx}
+                            variants={fadeInVariants}
+                            custom={idx}
+                            initial="hidden"
+                            animate="visible"
+                          >
+                            <td>
+                              <div className="d-flex flex-column">
+                                <span className="fw-semibold">
+                                  {new Date(record.date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                                <small className="text-muted">
+                                  {new Date(record.date).getFullYear()}
+                                </small>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="parent-student-avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
+                                  {record.subject?.charAt(0) || '?'}
+                                </div>
+                                <div>
+                                  <div className="fw-semibold">{record.subject || "N/A"}</div>
+                                  <small className="text-muted">{record.subjectCode || ""}</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`parent-status-badge ${
+                                record.status === 'PRESENT' ? 'parent-status-approved' : 'parent-status-rejected'
+                              }`}>
+                                {record.status === 'PRESENT' ? (
+                                  <><FaCheckCircle /> Present</>
+                                ) : (
+                                  <><FaTimesCircle /> Absent</>
+                                )}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="badge bg-light text-dark">
+                                <FaClock className="me-1" />
+                                {record.sessionType || "Regular"}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="fw-semibold">
+                                {record.slotNumber || "N/A"}
+                              </span>
+                            </td>
+                          </motion.tr>
+                        ))}
                               </tbody>
                             </table>
                           </div>

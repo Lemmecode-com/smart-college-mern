@@ -14,10 +14,11 @@ const AppError = require("../utils/AppError");
  * ADMISSION SUMMARY (COLLEGE)
  */
 exports.admissionSummary = async (college_id) => {
+  const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
   const total = await Student.countDocuments({ college_id });
   const approved = await Student.countDocuments({
     college_id,
-    status: "APPROVED",
+    status: { $in: activeStatuses },
   });
   const pending = await Student.countDocuments({
     college_id,
