@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { validateJoiningDate, joiningDateValidatorMessage } = require("../utils/validators");
 
 const staffProfileSchema = new mongoose.Schema({
   user_id: {
@@ -20,7 +21,13 @@ const staffProfileSchema = new mongoose.Schema({
     enum: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"],
     default: "FULL_TIME",
   },
-  joiningDate: Date,
+  joiningDate: {
+    type: Date,
+    validate: {
+      validator: validateJoiningDate,
+      message: joiningDateValidatorMessage,
+    },
+  },
   // Personal details (optional)
   gender: { type: String, enum: ["", "Male", "Female", "Other"], default: "" },
   dateOfBirth: Date,
