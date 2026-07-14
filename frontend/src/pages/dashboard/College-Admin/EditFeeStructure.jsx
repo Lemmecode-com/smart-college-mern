@@ -138,6 +138,21 @@ export default function EditFeeStructure() {
       return;
     }
 
+    for (let idx = 0; idx < installments.length; idx++) {
+      const inst = installments[idx];
+      if (!inst.dueDate) {
+        setError(`Please enter the Due Date for Installment ${idx + 1}`);
+        return;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(inst.dueDate + "T00:00:00");
+      if (selected < today) {
+        setError(`Installment ${idx + 1} Due Date cannot be earlier than today`);
+        return;
+      }
+    }
+
     if (installmentSum !== Number(totalFee)) {
       setError(`Installment total (₹${installmentSum}) must exactly match Total Fee (₹${totalFee})`);
       return;
@@ -427,6 +442,7 @@ export default function EditFeeStructure() {
                                 type="date"
                                 className="form-control form-control-sm shadow-none border"
                                 value={inst.dueDate?.substring(0, 10)}
+                                min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => handleInstallmentChange(idx, "dueDate", e.target.value)}
                               />
                             </td>

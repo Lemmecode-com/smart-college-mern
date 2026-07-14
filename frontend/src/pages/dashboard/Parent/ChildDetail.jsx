@@ -150,11 +150,9 @@ export default function ChildDetail() {
       );
       setChild(profileResponse.data);
 
-      // Fetch attendance and fees (fees are important, so always fetch)
-      if (activeTab === "attendance") {
-        await fetchAttendance();
-      }
-      await fetchFees(); // Always fetch fees as it's important information
+      // Fetch attendance and fees (both are important)
+      await fetchAttendance();
+      await fetchFees();
     } catch (error) {
       toast.error("Failed to load child information");
       console.error("Error fetching child data:", error);
@@ -620,6 +618,7 @@ export default function ChildDetail() {
                                   <th>Subject</th>
                                   <th>Status</th>
                                   <th>Session Type</th>
+                                  <th>Slot</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -675,7 +674,11 @@ export default function ChildDetail() {
                             </td>
                             <td>
                               <span className="fw-semibold">
-                                {record.slotNumber || "N/A"}
+                                {record.slotStartTime && record.slotEndTime
+                                  ? `${record.slotStartTime} - ${record.slotEndTime}`
+                                  : record.lectureNumber
+                                    ? `Lecture #${record.lectureNumber}`
+                                    : "N/A"}
                               </span>
                             </td>
                           </motion.tr>

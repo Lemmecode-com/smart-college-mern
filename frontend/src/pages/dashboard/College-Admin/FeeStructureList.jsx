@@ -190,9 +190,14 @@ export default function FeeStructureList() {
 
     try {
       await api.delete(`/fees/structure/${id}`);
-      loadStructures();
-    } catch {
-      alert("Failed to delete fee structure. Please try again.");
+      setStructures((prev) => prev.filter((s) => s._id !== id));
+      toast.success("Fee structure deleted successfully");
+      calculateStats(structures.filter((s) => s._id !== id));
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.message ||
+        "Failed to delete fee structure. Please try again.";
+      toast.error(backendMessage);
     }
   };
 
