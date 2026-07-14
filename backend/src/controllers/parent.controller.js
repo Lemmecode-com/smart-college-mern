@@ -67,6 +67,63 @@ exports.getChildren = async (req, res, next) => {
 };
 
 /**
+ * GET /api/parent/students/search
+ * Search students in the same college for parent linking
+ * Query: ?q=searchTerm
+ */
+exports.searchStudentsForLinking = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    const collegeId = req.college_id;
+
+    if (!q || typeof q !== "string" || q.trim().length < 2) {
+      return res.json({
+        success: true,
+        students: [],
+        message: "Enter at least 2 characters to search",
+      });
+    }
+
+    const searchTerm = q.trim();
+    const linkedIds = req.linkedStudentIds || [];
+
+    const students = await Student.find({
+      college_id: collegeId,
+      $or: [
+        { fullName: { $regex: searchTerm, $options: "i" } },
+        { email: { $regex: searchTerm, $options: "i" } },
+        { enrollmentNumber: { $regex: searchTerm, $options: "i" } },
+        { mobileNumber: { $regex: searchTerm, $options: "i" } },
+      ],
+    })
+      .select("fullName email mobileNumber enrollmentNumber status course_id currentSemester")
+      .populate("course_id", "name code")
+      .limit(20)
+      .sort({ fullName: 1 });
+
+    const results = students.map((s) => ({
+      _id: s._id,
+      fullName: s.fullName,
+      email: s.email,
+      mobileNumber: s.mobileNumber,
+      enrollmentNumber: s.enrollmentNumber,
+      status: s.status,
+      courseName: s.course_id?.name,
+      courseCode: s.course_id?.code,
+      currentSemester: s.currentSemester,
+      alreadyLinked: linkedIds.includes(s._id.toString()),
+    }));
+
+    res.json({
+      success: true,
+      students: results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/parent/student/:studentId/profile
  * Get a specific student's profile (must be linked)
  */
