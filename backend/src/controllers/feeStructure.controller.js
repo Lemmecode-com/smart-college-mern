@@ -1,5 +1,6 @@
 const FeeStructure = require("../../src/models/feeStructure.model");
 const Course = require("../../src/models/course.model");
+const Student = require("../../src/models/student.model");
 const StudentFee = require("../../src/models/studentFee.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -173,18 +174,35 @@ exports.deleteFeeStructure = async (req, res, next) => {
       );
     }
 
-    // Safety check: prevent deletion of fee structure assigned to students
-    const inUse = await StudentFee.exists({
+    // Safety check: prevent deletion of a fee structure still assigned to students.
+    // Fee structures are matched to students by course + category (students with
+    // category OTHER use the GEN structure during approval), so we only block
+    // deletion when a student of the matching category actually holds fees in this
+    // course. This replaces the previous course-only check that wrongly blocked
+    // deletion of unused category-specific structures.
+    const studentIds = await StudentFee.distinct("student_id", {
       college_id: req.college_id,
       course_id: feeStructure.course_id,
     });
 
-    if (inUse) {
-      throw new AppError(
-        "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
-        400,
-        "FEE_STRUCTURE_IN_USE",
-      );
+    if (studentIds.length > 0) {
+      const matchingCategories =
+        feeStructure.category === "GEN"
+          ? ["GEN", "OTHER"]
+          : [feeStructure.category];
+
+      const inUse = await Student.exists({
+        _id: { $in: studentIds },
+        category: { $in: matchingCategories },
+      });
+
+      if (inUse) {
+        throw new AppError(
+          "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
+          400,
+          "FEE_STRUCTURE_IN_USE",
+        );
+      }
     }
 
     // 📝 Audit log - Fee structure deletion
