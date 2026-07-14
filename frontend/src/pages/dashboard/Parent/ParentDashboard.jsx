@@ -208,6 +208,13 @@ export default function ParentDashboard() {
         className="dashboard-wrapper"
       >
         <div className="dashboard-container-inner">
+          {/* ================= BREADCRUMB ================= */}
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard/parent" },
+            ]}
+          />
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
