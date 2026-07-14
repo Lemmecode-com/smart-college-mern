@@ -150,7 +150,11 @@ exports.getChildAttendance = async (req, res, next) => {
           subject: "$subject.name",
           subjectCode: "$subject.code",
           sessionType: { $ifNull: ["$session.slotSnapshot.slotType", "Regular"] },
-          slotNumber: { $ifNull: ["$session.slotSnapshot.slotNumber", "N/A"] },
+          slotDay: { $ifNull: ["$session.slotSnapshot.day", ""] },
+          slotStartTime: { $ifNull: ["$session.slotSnapshot.startTime", ""] },
+          slotEndTime: { $ifNull: ["$session.slotSnapshot.endTime", ""] },
+          room: { $ifNull: ["$session.slotSnapshot.room", ""] },
+          lectureNumber: "$session.lectureNumber",
         },
       },
     ]);
@@ -475,6 +479,56 @@ exports.getParentPaymentStatus = async (req, res, next) => {
       totalFee: studentFee.totalFee,
       paidAmount: studentFee.paidAmount,
       remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/parent/student/:studentId/link
+ * Manually link a student to the logged-in parent
+ */
+exports.linkStudentToParent = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+    const userId = req.user.id;
+    const collegeId = req.college_id;
+
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: collegeId,
+    });
+
+    if (!student) {
+      return next(new AppError("Student not found in your college", 404, "STUDENT_NOT_FOUND"));
+    }
+
+    const ParentGuardian = require("../models/parentGuardian.model");
+    let link = await ParentGuardian.findOne({ user_id: userId });
+
+    if (!link) {
+      link = await ParentGuardian.create({
+        user_id: userId,
+        college_id: collegeId,
+        student_ids: [studentId],
+        relation: "parent",
+      });
+    } else {
+      if (!link.student_ids.includes(studentId)) {
+        link.student_ids = [...link.student_ids, studentId];
+        await link.save();
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Student linked to parent account successfully",
+      data: {
+        studentId: student._id,
+        studentName: student.fullName,
+        linkedStudentIds: link.student_ids,
+      },
     });
   } catch (error) {
     next(error);

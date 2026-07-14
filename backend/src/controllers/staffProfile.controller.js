@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const StaffProfile = require("../models/staffProfile.model");
 const User = require("../models/user.model");
+const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
 
 /**
@@ -65,9 +66,36 @@ exports.getStaffProfile = async (req, res, next) => {
       return next(new AppError("Access denied: staff belongs to different college", 403, "FORBIDDEN"));
     }
 
+    let profileData = profile.toObject();
+
+    if (profileData.user_id?.role === "TEACHER") {
+      const teacher = await Teacher.findOne({
+        user_id: new mongoose.Types.ObjectId(userId),
+        college_id: req.college_id,
+      });
+      if (teacher) {
+        profileData = {
+          ...profileData,
+          mobileNumber: teacher.mobileNumber || profileData.mobileNumber,
+          designation: teacher.designation || profileData.designation,
+          employmentType: teacher.employmentType || profileData.employmentType,
+          joiningDate: teacher.joiningDate || profileData.joiningDate,
+          gender: teacher.gender || profileData.gender,
+          dateOfBirth: teacher.dateOfBirth || profileData.dateOfBirth,
+          bloodGroup: teacher.bloodGroup || profileData.bloodGroup,
+          address: teacher.address || profileData.address,
+          city: teacher.city || profileData.city,
+          state: teacher.state || profileData.state,
+          pincode: teacher.pincode || profileData.pincode,
+          qualification: teacher.qualification || profileData.qualification,
+          experienceYears: teacher.experienceYears || profileData.experienceYears,
+        };
+      }
+    }
+
     res.json({
       success: true,
-      data: profile,
+      data: profileData,
     });
   } catch (error) {
     next(error);

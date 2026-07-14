@@ -24,6 +24,8 @@ router.get("/student/:studentId/attendance", parentController.getChildAttendance
 // GET /api/parent/student/:studentId/fees — child fees
 router.get("/student/:studentId/fees", parentController.getChildFees);
 
+router.post("/student/:studentId/link", parentController.linkStudentToParent);
+
 router.post("/student/:studentId/payments/create-order", parentController.createParentPaymentOrder);
 
 router.post("/payments/confirm", parentController.confirmParentPayment);

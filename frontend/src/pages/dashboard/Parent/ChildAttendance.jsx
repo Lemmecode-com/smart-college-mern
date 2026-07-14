@@ -409,7 +409,11 @@ export default function ChildAttendance() {
                             </td>
                             <td>
                               <span className="fw-semibold">
-                                {rec.slotNumber || "N/A"}
+                                {rec.slotStartTime && rec.slotEndTime
+                                  ? `${rec.slotStartTime} - ${rec.slotEndTime}`
+                                  : rec.lectureNumber
+                                    ? `Lecture #${rec.lectureNumber}`
+                                    : "N/A"}
                               </span>
                             </td>
                           </motion.tr>

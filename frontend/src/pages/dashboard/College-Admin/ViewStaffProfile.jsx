@@ -266,7 +266,7 @@
 // }
 
 
-import React, { useState, useEffect, useMemo, useContext } from "react";
+import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -325,31 +325,35 @@ export default function ViewStaffProfile() {
     return isSelf || isCollegeAdmin;
   }, [currentUser, profile]);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get(`/staff/profile/${actualUserId}`);
-        setProfile(res.data.data || res.data);
-      } catch (err) {
-        const statusCode = err.response?.status;
-        const errorCode = err.response?.data?.code;
-        const backendMessage = err.response?.data?.message;
-        const errorMessage = backendMessage || "Failed to load profile";
+  const fetchProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/staff/profile/${actualUserId}`);
+      const raw = res.data?.data || res.data;
+      logger.log("[ViewStaffProfile] raw profile keys:", raw ? Object.keys(raw) : "null/undefined");
+      logger.log("[ViewStaffProfile] profile data:", raw);
+      setProfile(raw || {});
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load profile";
 
-        logger.error("Error fetching staff profile:", statusCode, errorCode);
+      logger.error("Error fetching staff profile:", statusCode, errorCode);
 
-        setError({
-          message: errorMessage,
-          statusCode,
-          errorCode,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (actualUserId) fetchProfile();
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [actualUserId]);
+
+  useEffect(() => {
+    if (actualUserId) fetchProfile();
+  }, [actualUserId, fetchProfile]);
 
   if (loading) return <Loading />;
   if (error) return (
@@ -492,20 +496,22 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
 
-          {/* Emergency */}
-          <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-              <Card.Body>
-                <div style={{ display: "flex", gap: "1rem" }}>
-                  <FaUsers size={20} />
-                  <div>
-                    <div>{emergencyFields[0].value}{emergencyFields[0].sub}</div>
-                    <div>{emergencyFields[1].value}</div>
+          {/* Emergency — hidden for TEACHER because Teacher model has no emergency contact fields */}
+          {profile.user_id?.role !== "TEACHER" && (
+            <Col md={6} lg={4}>
+              <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+                <Card.Body>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <FaUsers size={20} />
+                    <div>
+                      <div>{emergencyFields[0].value}{emergencyFields[0].sub}</div>
+                      <div>{emergencyFields[1].value}</div>
+                    </div>
                   </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
+                </Card.Body>
+              </Card>
+            </Col>
+          )}
 
           {/* ✅ FIXED COLLEGE CARD */}
           <Col md={6} lg={4}>
