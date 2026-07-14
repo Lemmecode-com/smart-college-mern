@@ -15,6 +15,9 @@ router.use(auth, role(ROLE.PARENT_GUARDIAN), collegeMiddleware, parentMiddleware
 // GET /api/parent/children — list linked students
 router.get("/children", parentController.getChildren);
 
+// GET /api/parent/students/search — search students for linking
+router.get("/students/search", parentController.searchStudentsForLinking);
+
 // GET /api/parent/student/:studentId/profile — child profile
 router.get("/student/:studentId/profile", parentController.getChildProfile);
 
