@@ -5,6 +5,7 @@ const StudentFee = require("../../src/models/studentFee.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
 /**
  * CREATE Fee Structure
@@ -54,6 +55,16 @@ exports.createFeeStructure = async (req, res, next) => {
         400,
         "INVALID_INSTALLMENTS",
       );
+    }
+
+    for (const inst of installments) {
+      if (!validateExpiryDate(inst.dueDate)) {
+        throw new AppError(
+          "Installment due date cannot be earlier than today",
+          400,
+          "PAST_DUE_DATE",
+        );
+      }
     }
 
     // Auto-assign order based on index if not provided
@@ -132,6 +143,16 @@ exports.updateFeeStructure = async (req, res, next) => {
         400,
         "INVALID_INSTALLMENTS",
       );
+    }
+
+    for (const inst of installments) {
+      if (!validateExpiryDate(inst.dueDate)) {
+        throw new AppError(
+          "Installment due date cannot be earlier than today",
+          400,
+          "PAST_DUE_DATE",
+        );
+      }
     }
 
     feeStructure.totalFee = totalFee;
