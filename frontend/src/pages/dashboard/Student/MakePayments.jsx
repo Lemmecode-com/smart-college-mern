@@ -91,8 +91,6 @@ export default function MakePayments() {
   
   // Gateway configuration from college admin
   const [availableGateways, setAvailableGateways] = useState([]);
-  const [defaultGateway, setDefaultGateway] = useState(null);
-  const [allowChoice, setAllowChoice] = useState(false);
   const [gatewaysLoading, setGatewaysLoading] = useState(true);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
@@ -170,9 +168,8 @@ export default function MakePayments() {
           if (currentFetchId !== fetchIdRef.current) return;
           const gateways = response.data.gateways || [];
           setAvailableGateways(gateways.map(g => g.code));
-          setDefaultGateway(response.data.defaultGateway);
-          setAllowChoice(response.data.allowChoice || false);
         }
+        setGatewaysLoading(false);
        } catch (error) {
           if (currentFetchId !== fetchIdRef.current) return;
           const { statusCode, errorCode, backendMessage, isAuth } =
@@ -189,36 +186,16 @@ export default function MakePayments() {
           }
           setAvailableGateways(["stripe", "razorpay"]);
          setAllowChoice(true);
+         setGatewaysLoading(false);
        }
     };
 
     fetchGateways();
   }, []);
 
-  /* ================= AUTO-TRIGGER PAYMENT WHEN SINGLE GATEWAY ================= */
-  const autoTriggeredRef = useRef(false);
-  
-  useEffect(() => {
-    // Skip if still loading gateways, payment already in progress, or already triggered
-    if (gatewaysLoading || loading || result || showError || autoTriggeredRef.current) {
-      return;
-    }
-    
-    // If only one gateway is active, auto-trigger payment
-    if (!allowChoice && defaultGateway && availableGateways.length > 0) {
-      autoTriggeredRef.current = true;
-      
-      if (defaultGateway === "stripe") {
-        handleStripePayment();
-      } else if (defaultGateway === "razorpay") {
-        handleRazorpayPayment();
-      }
-    }
-  }, [gatewaysLoading, allowChoice, defaultGateway, loading, result, showError, availableGateways]);
-
   /* ======================================================
-     🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
-     ====================================================== */
+      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
+      ====================================================== */
   const handleStripePayment = () => {
     // Prevent duplicate requests
     if (isRequestInProgressRef.current) {
@@ -941,16 +918,8 @@ export default function MakePayments() {
               <FaSpinner className="spin fa-2x text-primary" />
               <p className="text-muted mt-2">Loading payment options...</p>
             </div>
-          ) : !allowChoice && defaultGateway && autoTriggeredRef.current ? (
-            // Show only loading when auto-redirect triggered (no buttons)
-            <div className="text-center py-4">
-              <FaSpinner className="spin fa-2x text-primary" />
-              <p className="text-muted mt-2">
-                Redirecting to {defaultGateway === "stripe" ? "Stripe" : "Razorpay"} payment...
-              </p>
-            </div>
-          ) : allowChoice ? (
-            // Show both buttons only when student has choice (both gateways active)
+          ) : availableGateways.length > 0 ? (
+            // Show a Pay button for each available gateway (single or multiple)
             <>
               <div className="row w-100 g-3 mb-3">
                 {/* ====== STRIPE ====== */}
