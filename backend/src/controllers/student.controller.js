@@ -1467,28 +1467,19 @@ exports.getStudentDocument = async (req, res, next) => {
       );
     }
 
-    // Also check dynamic documents Map field (safe type conversion)
-    const dynamicDocs = ownerStudent.documents
-      ? ownerStudent.documents.toObject()
-      : {};
-    const foundInDynamic = Object.values(dynamicDocs).some((docPath) => {
-      if (!docPath) return false;
-      return String(docPath).includes(cleanFilename);
-    });
-
     // Authorization check:
     // 1. Document owner: compare User ID (not Student ID — they're different collections)
     const isOwner =
       ownerStudent.user_id &&
       ownerStudent.user_id.toString() === user.id.toString();
-    // 2. College admin from same college
-    const isCollegeAdmin =
-      user.role === "COLLEGE_ADMIN" &&
+    // 2. College staff (admin / admission officer / principal) from same college
+    const isCollegeStaff =
+      ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL"].includes(user.role) &&
       user.college_id &&
       ownerStudent.college_id &&
       user.college_id.toString() === ownerStudent.college_id.toString();
 
-    if (!isOwner && !isCollegeAdmin) {
+    if (!isOwner && !isCollegeStaff) {
       return next(
         new AppError(
           "Not authorized to access this document",
