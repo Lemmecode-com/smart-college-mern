@@ -62,6 +62,9 @@ export default function DepartmentList() {
   const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [removingHod, setRemovingHod] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
+  const [deletingDepartment, setDeletingDepartment] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -108,19 +111,32 @@ export default function DepartmentList() {
   }, []);
 
   /* ================= DELETE ================= */
-  const handleDelete = async (id) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this department? This action cannot be undone.",
-      )
-    )
-      return;
+  const handleDeleteClick = (department) => {
+    setDepartmentToDelete(department);
+    setShowDeleteModal(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!departmentToDelete) return;
+
+    setDeletingDepartment(true);
     try {
-      await api.delete(`/departments/${id}`);
+      await api.delete(`/departments/${departmentToDelete._id}`);
+      toast.success(
+        `Department "${departmentToDelete.name}" deleted successfully.`,
+        { position: "top-right", autoClose: 5000 },
+      );
+      setShowDeleteModal(false);
+      setDepartmentToDelete(null);
       fetchDepartments();
-    } catch {
-      alert("Failed to delete department. Please try again.");
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        "Failed to delete department. Please try again.";
+      logger.error("Error deleting department:", err.response?.status, err.response?.data?.code);
+      toast.error(errorMessage, { position: "top-right", autoClose: 5000 });
+    } finally {
+      setDeletingDepartment(false);
     }
   };
 
@@ -592,7 +608,7 @@ export default function DepartmentList() {
                               <button
                                 className="btn btn-sm btn-outline-danger hover-lift"
                                 title="Delete Department"
-                                onClick={() => handleDelete(d._id)}
+                                onClick={() => handleDeleteClick(d)}
                               >
                                 <FaTrash size={14} />
                               </button>
@@ -836,6 +852,25 @@ export default function DepartmentList() {
         confirmText="Remove HOD"
         cancelText="Cancel"
         isLoading={removingHod}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDepartmentToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Department"
+        message={
+          departmentToDelete
+            ? `Are you sure you want to delete "${departmentToDelete.name}"? This action cannot be undone.`
+            : ""
+        }
+        type="danger"
+        confirmText="Delete Department"
+        cancelText="Cancel"
+        isLoading={deletingDepartment}
       />
     </div>
   );
