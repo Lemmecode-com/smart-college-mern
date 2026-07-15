@@ -197,6 +197,21 @@ app.use((req, res, next) => {
   next(error);
 });
 
+/* ================= MULTER ERROR HANDLER ================= */
+// Convert upload rejections (disallowed file type / size) into clean 400s
+// instead of generic 500s, so the frontend can show a helpful message.
+app.use((err, req, res, next) => {
+  if (err && err.name === "MulterError") {
+    return res
+      .status(400)
+      .json({ success: false, message: err.message || "File upload failed" });
+  }
+  if (err && /file (type|extension)/i.test(err.message || "")) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  next(err);
+});
+
 /* ================= GLOBAL ERROR HANDLER ================= */
 // Must be last - handles all errors from above routes
 // Note: Sentry v7+ doesn't use expressErrorHandler() - error capture is handled in error.middleware.js
