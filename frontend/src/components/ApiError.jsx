@@ -25,7 +25,7 @@ import { motion as Motion } from "framer-motion";
  * Mongo/JWT/Axios errors, stack traces) are NEVER shown to end users.
  * Developers keep full technical details via logger.js in the pages.
  */
-const SESSION_BUTTONS = ["signIn", "goBack"];
+const SESSION_BUTTONS = ["signIn"];
 
 const ERROR_CONFIG = {
   // ----- Authentication / Session error codes -----
