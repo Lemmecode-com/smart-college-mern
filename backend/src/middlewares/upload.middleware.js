@@ -9,12 +9,12 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Allowed file extensions mapping
+// Allowed file extensions mapping (arrays to accept variant extensions like .jpg/.jpeg)
 const allowedExtensions = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/jpg": ".jpg",
-  "application/pdf": ".pdf"
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/jpg": [".jpg", ".jpeg"],
+  "application/pdf": [".pdf"],
 };
 
 // Storage configuration for student documents
@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
     // 🔒 SECURITY: Generate completely random filename
     // Don't use original filename to prevent path traversal attacks
     const randomString = crypto.randomBytes(16).toString('hex');
-    const ext = allowedExtensions[file.mimetype] || '.bin';
+    const ext = (allowedExtensions[file.mimetype] || [".bin"])[0];
     const fieldName = file.fieldname.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
     
     // Format: fieldname-timestamp-randomstring.ext
@@ -48,12 +48,17 @@ const fileFilter = (req, file, cb) => {
     return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
   }
 
-  // 🔒 SECURITY: Validate file extension matches MIME type
+  // 🔒 SECURITY: Validate file extension is among the allowed variants for its MIME type
   const ext = path.extname(file.originalname).toLowerCase();
-  const expectedExt = allowedExtensions[file.mimetype];
-  
-  if (ext && ext !== expectedExt) {
-    return cb(new Error(`File extension ${ext} does not match content type ${file.mimetype}`), false);
+  const allowedExts = allowedExtensions[file.mimetype];
+
+  if (ext && allowedExts && !allowedExts.includes(ext)) {
+    return cb(
+      new Error(
+        `File type not allowed for ${file.fieldname}. Allowed: ${allowedExts.join(", ")}`,
+      ),
+      false,
+    );
   }
 
   cb(null, true);

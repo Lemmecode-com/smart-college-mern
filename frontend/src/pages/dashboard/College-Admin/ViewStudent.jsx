@@ -425,17 +425,20 @@ export default function ViewStudent() {
   }, [student]);
 
   /* ================= ACTION HANDLERS ================= */
-  const handleViewDocument = useCallback(async (path) => {
-    try {
-      const fileName = getFileName(path);
-      const response = await api.get(`/students/documents/${fileName}`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      window.open(url, "_blank");
-    } catch {
-      toast.error("Failed to load document");
+  const handleViewDocument = useCallback((path) => {
+    const fileName = getFileName(path);
+    if (!fileName) {
+      toast.error("Document not available for viewing");
+      return;
     }
+    // Open via the secure API endpoint directly (cookie-auth) — same reliable
+    // approach used by the student profile page for inline PDF rendering.
+    // Avoids the axios→blob→window.open pattern that opens a non-rendering
+    // blob: URL in a new tab.
+    window.open(
+      `${api.defaults.baseURL}/students/documents/${fileName}`,
+      "_blank",
+    );
   }, []);
 
   const handleApproveClick = useCallback(() => {
