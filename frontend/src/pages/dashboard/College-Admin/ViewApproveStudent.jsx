@@ -262,16 +262,17 @@ DetailRow.defaultProps = {
 function DocumentRow({ label, path, icon }) {
   const fileName = getFileName(path);
 
-  const handleViewDocument = async (filename) => {
-    try {
-      const response = await api.get(`/students/documents/${filename}`, {
-        responseType: "blob",
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      window.open(url, "_blank");
-    } catch {
-      toast.error("Failed to load document");
+  const handleViewDocument = (filename) => {
+    if (!filename) {
+      toast.error("Document not available for viewing");
+      return;
     }
+    // Open via the secure API endpoint directly (cookie-auth) — same reliable
+    // approach used by the student profile page for inline PDF rendering.
+    window.open(
+      `${api.defaults.baseURL}/students/documents/${filename}`,
+      "_blank",
+    );
   };
 
   return (
