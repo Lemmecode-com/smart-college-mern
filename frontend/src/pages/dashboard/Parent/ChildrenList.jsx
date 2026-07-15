@@ -165,56 +165,6 @@ export default function ChildrenList() {
     setFilteredChildren(filtered);
   };
 
-  const [showLinkModal, setShowLinkModal] = useState(false);
-  const [linkSearchTerm, setLinkSearchTerm] = useState("");
-  const [linkSearchResults, setLinkSearchResults] = useState([]);
-  const [linkLoading, setLinkLoading] = useState(false);
-
-  const openLinkModal = () => {
-    setShowLinkModal(true);
-    setLinkSearchTerm("");
-    setLinkSearchResults([]);
-  };
-
-  const closeLinkModal = () => {
-    setShowLinkModal(false);
-    setLinkSearchTerm("");
-    setLinkSearchResults([]);
-  };
-
-  const handleLinkSearch = async () => {
-    if (!linkSearchTerm || linkSearchTerm.trim().length < 2) {
-      toast.warning("Please enter at least 2 characters to search");
-      return;
-    }
-
-    try {
-      setLinkLoading(true);
-      const res = await api.get(`/parent/students/search?q=${encodeURIComponent(linkSearchTerm.trim())}`);
-      setLinkSearchResults(res.data.students || []);
-    } catch (error) {
-      console.error("Error searching students:", error);
-      toast.error("Failed to search students");
-    } finally {
-      setLinkLoading(false);
-    }
-  };
-
-  const handleLinkStudent = async (studentId) => {
-    try {
-      setLinkLoading(true);
-      await api.post(`/parent/student/${studentId}/link`);
-      toast.success("Student linked successfully!");
-      closeLinkModal();
-      fetchChildren();
-    } catch (error) {
-      console.error("Error linking student:", error);
-      toast.error(error.response?.data?.message || "Failed to link student");
-    } finally {
-      setLinkLoading(false);
-    }
-  };
-
   const getStatusClass = (status) => {
     const statusClasses = {
       APPROVED: "parent-status-approved",
@@ -254,6 +204,14 @@ export default function ChildrenList() {
         className="dashboard-wrapper"
       >
         <div className="dashboard-container-inner">
+          {/* ================= BREADCRUMB ================= */}
+          <Breadcrumb
+            items={[
+              { label: "Home", path: "/dashboard/parent" },
+              { label: "My Children", path: "/dashboard/parent/children" },
+            ]}
+          />
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -282,25 +240,6 @@ export default function ChildrenList() {
                         View and manage all your children's academic information.
                       </p>
                     </div>
-                  </div>
-                </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-primary"
-                      onClick={openLinkModal}
-                    >
-                      <FaChild className="me-2" />
-                      Link Child
-                    </motion.button>
-                    <Breadcrumb
-                      items={[
-                        { label: "Home", path: "/dashboard/parent" },
-                        { label: "My Children", path: "/dashboard/parent/children" },
-                      ]}
-                    />
                   </div>
                 </div>
               </div>
@@ -478,115 +417,6 @@ export default function ChildrenList() {
           </motion.div>
         </div>
       </motion.div>
-
-      {/* ================= LINK CHILD MODAL ================= */}
-      <AnimatePresence>
-        {showLinkModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="parent-modal-overlay"
-            onClick={closeLinkModal}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="parent-modal-container"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="parent-modal-header">
-                <h3 className="parent-modal-title">
-                  <FaChild className="me-2" />
-                  Link Child to Your Account
-                </h3>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="parent-modal-close"
-                  onClick={closeLinkModal}
-                >
-                  ×
-                </motion.button>
-              </div>
-
-              <div className="parent-modal-body">
-                <p className="text-muted mb-3">
-                  Search for your child by name, email, enrollment number, or mobile number to link them to your account.
-                </p>
-
-                <div className="input-group mb-3">
-                  <span className="input-group-text">
-                    <FaSearch />
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search by name, email, enrollment no..."
-                    value={linkSearchTerm}
-                    onChange={(e) => setLinkSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleLinkSearch()}
-                  />
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleLinkSearch}
-                    disabled={linkLoading}
-                  >
-                    {linkLoading ? "Searching..." : "Search"}
-                  </button>
-                </div>
-
-                {linkSearchResults.length > 0 && (
-                  <div className="parent-link-results">
-                    <h6 className="mb-3">Search Results</h6>
-                    <div className="list-group">
-                      {linkSearchResults.map((student) => (
-                        <div
-                          key={student._id}
-                          className="list-group-item d-flex justify-content-between align-items-center"
-                        >
-                          <div>
-                            <div className="fw-semibold">{student.fullName}</div>
-                            <small className="text-muted">
-                              {student.enrollmentNumber} • {student.courseName} • Semester {student.currentSemester}
-                            </small>
-                            <div>
-                              {student.alreadyLinked ? (
-                                <span className="badge bg-success mt-1">Already Linked</span>
-                              ) : (
-                                <span className="badge bg-info mt-1">{getStatusLabel(student.status)}</span>
-                              )}
-                            </div>
-                          </div>
-                          {!student.alreadyLinked && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className="btn btn-sm btn-success"
-                              onClick={() => handleLinkStudent(student._id)}
-                              disabled={linkLoading}
-                            >
-                              Link
-                            </motion.button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {linkSearchTerm && linkSearchResults.length === 0 && !linkLoading && (
-                  <div className="text-center py-4 text-muted">
-                    <FaSearch size={32} className="mb-2 opacity-50" />
-                    <p>No students found matching "{linkSearchTerm}"</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </AnimatePresence>
   );
 }
