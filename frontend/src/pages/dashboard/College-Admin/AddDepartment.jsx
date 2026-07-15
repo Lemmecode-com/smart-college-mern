@@ -180,6 +180,7 @@ export default function AddDepartment() {
         sanctionedStudentIntake: ""
       });
       setIsAutoCode(true);
+      setTouched({}); // Clear touched so validation errors don't appear on the reset form
       
       setTimeout(() => {
         navigate("/departments");
@@ -510,10 +511,11 @@ export default function AddDepartment() {
                         type="checkbox"
                         className="form-check-input"
                         checked={formData.programsOffered.includes(program)}
-                        onChange={() => {}} // Handled by parent div click
+                        onChange={() => {}} // Toggle handled by parent card onClick (single source of truth)
                         id={`program-${program}`}
+                        aria-label={program}
                       />
-                      <label className="form-check-label fw-semibold mb-0" htmlFor={`program-${program}`}>
+                      <label className="form-check-label fw-semibold mb-0">
                         {program}
                       </label>
                     </div>

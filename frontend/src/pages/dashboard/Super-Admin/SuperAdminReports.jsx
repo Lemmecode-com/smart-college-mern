@@ -18,6 +18,8 @@ import {
   FaDownload,
   FaArrowUp,
   FaClock,
+  FaSyncAlt,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export default function SuperAdminReports() {
