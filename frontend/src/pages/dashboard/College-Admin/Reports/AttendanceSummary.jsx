@@ -125,9 +125,9 @@ export default function AttendanceSummary() {
     if (!data || data.totalRecords === undefined) return [];
     return [
       { metric: "Total Attendance Records", value: data.totalRecords || 0 },
-      { metric: "Total Sessions Conducted", value: Math.round((data.totalRecords || 0) / 50) || 0 },
-      { metric: "Average Present Students", value: data.averageAttendance || 0 },
-      { metric: "Average Absent Students", value: 50 - (data.averageAttendance || 0) },
+      { metric: "Total Sessions Conducted", value: totalSessions },
+      { metric: "Average Present Students", value: presentPerSession },
+      { metric: "Average Absent Students", value: absentPerSession },
       { metric: "Attendance Rate", value: parseFloat(attendanceRate.toFixed(1)) },
       { metric: "Status", value: attendanceStatus },
     ];
@@ -141,13 +141,29 @@ export default function AttendanceSummary() {
   }, [data]);
 
   /* ================= CALCULATED METRICS ================= */
+  // NOTE: `averageAttendance` from the API is already a PERCENTAGE (0-100),
+  // not a count of students. `totalSessions` is the real session count.
+  const ESTIMATED_CLASS_SIZE = 50;
+
   const attendanceRate = useMemo(() => {
-    // Assuming averageAttendance is the average count of present students
-    // We'll calculate a realistic rate based on typical class size (max 50 students)
-    const maxClassSize = 50;
-    const rate = (summary.averageAttendance / maxClassSize) * 100;
-    return Math.min(Math.max(rate, 0), 100); // Clamp between 0-100%
+    const pct = Number(summary.averageAttendance) || 0;
+    return Math.min(Math.max(pct, 0), 100); // Clamp between 0-100%
   }, [summary]);
+
+  // Estimated present/absent students per session, derived from the percentage
+  // and the documented estimated class size of 50.
+  const presentPerSession = useMemo(() => {
+    const pct = Number(summary.averageAttendance) || 0;
+    return Math.round((pct / 100) * ESTIMATED_CLASS_SIZE);
+  }, [summary]);
+
+  const absentPerSession = useMemo(() => {
+    // Always non-negative: a percentage can never imply more absent than the
+    // class size.
+    return Math.max(0, ESTIMATED_CLASS_SIZE - presentPerSession);
+  }, [presentPerSession]);
+
+  const totalSessions = Number(summary.totalSessions) || 0;
 
   const attendanceStatus = useMemo(() => {
     if (attendanceRate >= 85) return "excellent";
@@ -286,7 +302,7 @@ export default function AttendanceSummary() {
           </div>
           <div className="stat-card-body">
             <div className="stat-value attendance">
-              {summary.averageAttendance?.toLocaleString() || "0"}
+              {summary.averageAttendance?.toLocaleString() || "0"}%
             </div>
             <div className={`stat-trend ${attendanceStatus}`}>
               <FaUserCheck className="trend-icon" />
@@ -335,8 +351,8 @@ export default function AttendanceSummary() {
                 <div className="legend-item present">
                   <span className="legend-color present"></span>
                   <span>
-                    Present:{" "}
-                    {summary.averageAttendance?.toLocaleString() || "0"}{" "}
+                     Present:{" "}
+                    {presentPerSession?.toLocaleString() || "0"}{" "}
                     students
                   </span>
                 </div>
@@ -344,7 +360,7 @@ export default function AttendanceSummary() {
                   <span className="legend-color absent"></span>
                   <span>
                     Absent:{" "}
-                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}{" "}
+                    {absentPerSession?.toLocaleString() || "0"}{" "}
                     students*
                   </span>
                 </div>
@@ -365,7 +381,7 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Average Present</div>
                   <div className="metric-value">
-                    {summary.averageAttendance?.toLocaleString() || "0"}
+                    {presentPerSession?.toLocaleString() || "0"}
                   </div>
                   <div className="metric-description">Students per session</div>
                 </div>
@@ -378,7 +394,7 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Estimated Absent</div>
                   <div className="metric-value">
-                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}
+                    {absentPerSession?.toLocaleString() || "0"}
                   </div>
                   <div className="metric-description">Students per session</div>
                 </div>
@@ -391,9 +407,9 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Total Sessions</div>
                   <div className="metric-value">
-                    {Math.round(summary.totalRecords / 50) || "0"}
+                    {totalSessions?.toLocaleString() || "0"}
                   </div>
-                  <div className="metric-description">Estimated sessions*</div>
+                  <div className="metric-description">Sessions conducted</div>
                 </div>
               </div>
 
