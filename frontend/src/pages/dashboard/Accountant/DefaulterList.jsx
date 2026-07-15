@@ -142,15 +142,15 @@ export default function DefaulterList() {
   };
 
   const exportColumns = [
-    { header: "Student Name", key: "Student Name" },
-    { header: "Email", key: "Email" },
-    { header: "Enrollment", key: "Enrollment" },
-    { header: "Course", key: "Course" },
-    { header: "Installment", key: "Installment" },
-    { header: "Amount", key: "Amount" },
-    { header: "Due Date", key: "Due Date" },
-    { header: "Days Overdue", key: "Days Overdue" },
-    { header: "Escalation Level", key: "Escalation Level" },
+    { header: "Student Name", key: "Student Name", width: 14, align: "left" },
+    { header: "Email", key: "Email", width: 16, align: "left" },
+    { header: "Enrollment", key: "Enrollment", width: 14, align: "left" },
+    { header: "Course", key: "Course", width: 14, align: "left" },
+    { header: "Installment", key: "Installment", width: 14, align: "left" },
+    { header: "Amount", key: "Amount", width: 12, align: "right" },
+    { header: "Due Date", key: "Due Date", width: 12, align: "center" },
+    { header: "Days Overdue", key: "Days Overdue", width: 10, align: "center" },
+    { header: "Escalation Level", key: "Escalation Level", width: 14, align: "center" },
   ];
 
   if (loading) {
