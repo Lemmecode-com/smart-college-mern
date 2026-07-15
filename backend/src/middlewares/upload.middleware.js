@@ -73,27 +73,28 @@ const upload = multer({
   }
 });
 
-// Middleware for handling student registration document uploads
-const uploadStudentDocuments = upload.fields([
-  { name: "sscMarksheet", maxCount: 1 },           // 10th Marksheet
-  { name: "hscMarksheet", maxCount: 1 },           // 12th Marksheet
-  { name: "passportPhoto", maxCount: 1 },          // Passport Photo
-  { name: "categoryCertificate", maxCount: 1 },    // Category Certificate (OBC/SC/ST/EWS) - COMMONLY USED
-  { name: "casteCertificate", maxCount: 1 },       // Caste Certificate (alternative name, same as category) - RARELY USED
-  { name: "incomeCertificate", maxCount: 1 },      // Income Certificate
-  { name: "characterCertificate", maxCount: 1 },   // Character Certificate
-  { name: "transferCertificate", maxCount: 1 },    // Transfer Certificate (TC)
-  { name: "aadharCard", maxCount: 1 },             // Aadhar Card
-  { name: "entranceExamScore", maxCount: 1 },      // Entrance Exam Score
-  { name: "migrationCertificate", maxCount: 1 },   // Migration Certificate
-  { name: "domicileCertificate", maxCount: 1 },    // Domicile Certificate
-  { name: "nonCreamyLayerCertificate", maxCount: 1 }, // Non-Creamy Layer (for OBC)
-  { name: "physicallyChallengedCertificate", maxCount: 1 }, // PC Certificate
-  { name: "sportsQuotaCertificate", maxCount: 1 }, // Sports Quota
-  { name: "nriSponsorCertificate", maxCount: 1 },  // NRI Sponsor
-  { name: "gapCertificate", maxCount: 1 },         // Gap Certificate
-  { name: "affidavit", maxCount: 1 }               // Affidavit
-]);
+// Middleware for handling student registration document uploads.
+// Uses upload.any() so documents configured by the college admin (which may
+// use custom `type` values not present in a fixed field allowlist) are
+// accepted. `any()` returns req.files as an ARRAY; we normalize it back into
+// the object-keyed shape ({ fieldname: [file, ...] }) that the student
+// controller already expects, so no controller changes are required.
+const uploadStudentDocuments = (req, res, next) => {
+  upload.any()(req, res, (err) => {
+    if (err) return next(err);
+
+    if (Array.isArray(req.files)) {
+      const normalized = {};
+      for (const file of req.files) {
+        if (!normalized[file.fieldname]) normalized[file.fieldname] = [];
+        normalized[file.fieldname].push(file);
+      }
+      req.files = normalized;
+    }
+
+    next();
+  });
+};
 
 module.exports = {
   upload,
