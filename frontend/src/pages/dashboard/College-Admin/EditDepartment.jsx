@@ -595,10 +595,11 @@ export default function EditDepartment() {
                         type="checkbox"
                         className="form-check-input"
                         checked={formData.programsOffered.includes(program)}
-                        onChange={() => {}} 
+                        onChange={() => {}} // Toggle handled by parent card onClick (single source of truth)
                         id={`program-${program}`}
+                        aria-label={program}
                       />
-                      <label className="form-check-label fw-semibold mb-0" htmlFor={`program-${program}`}>
+                      <label className="form-check-label fw-semibold mb-0">
                         {program}
                       </label>
                     </div>
