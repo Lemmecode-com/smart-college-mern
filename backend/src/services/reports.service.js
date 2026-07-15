@@ -157,9 +157,17 @@ exports.attendanceSummary = async (college_id) => {
 
   const data = result[0] || { total: 0, present: 0 };
 
+  // Real number of sessions conducted (distinct session ids for the college).
+  // Do NOT divide totalRecords by a guessed class size, as that undercounts
+  // and shows 0 for small colleges.
+  const sessionIds = await AttendanceRecord.distinct("session_id", {
+    college_id: new mongoose.Types.ObjectId(college_id),
+  });
+
   return {
     totalRecords: data.total,
     averageAttendance: data.total > 0 ? Math.round((data.present / data.total) * 100) : 0,
+    totalSessions: sessionIds.length,
   };
 };
 
