@@ -137,163 +137,162 @@ const generateTempPassword = (length = 10) => {
       return empId;
     };
 
-// Start transaction — create User, StaffProfile, and (for HOD) Teacher together
+    // Start transaction — create User, StaffProfile, and (for HOD) Teacher together.
+    // Use session.withTransaction() so MongoDB automatically retries the whole
+    // transaction on transient errors such as WriteConflict (code 112), which the
+    // manual startTransaction/commitTransaction pattern does not handle.
     const session = await User.startSession();
-    session.startTransaction();
-
+    let txResult;
     try {
-      // Create user - Mongoose pre-save hook will hash the password automatically
-      const user = await User.create(
-        [
-          {
-            name,
-            email,
-            password: tempPassword,
-            role,
-            college_id: req.user.college_id, // scoped to college admin's college
-            isActive: true,
-            mustChangePassword: true,
-          },
-        ],
-        { session }
-      );
-
-      // Create staff profile with extended fields
-      const staffProfile = await StaffProfile.create(
-        [
-          {
-            user_id: user[0]._id,
-            college_id: req.user.college_id,
-            mobileNumber: mobileNumber || "",
-            designation: designation || "",
-            employmentType: employmentType || "FULL_TIME",
-            joiningDate: joiningDate || null,
-            gender: gender || "",
-            dateOfBirth: dateOfBirth || null,
-            bloodGroup: bloodGroup || "",
-            address: address || "",
-            city: city || "",
-            state: state || "",
-            pincode: pincode || "",
-            emergencyContactName: emergencyContactName || "",
-            emergencyContactPhone: emergencyContactPhone || "",
-            emergencyRelation: emergencyRelation || "",
-            qualification: qualification || "",
-            experienceYears: parseInt(experienceYears) || 0,
-          },
-        ],
-        { session }
-      );
-
-      let teacher = null;
-
-      // If role is HOD, create Teacher record required by hodMiddleware
-      if (role === "HOD") {
-        const employeeId = await generateEmployeeId(req.user.college_id);
-        teacher = await Teacher.create(
+      txResult = await session.withTransaction(async () => {
+        // Create user - Mongoose pre-save hook will hash the password automatically
+        const user = await User.create(
           [
             {
-              college_id: req.user.college_id,
-              user_id: user[0]._id,
-              department_id: departmentId,
               name,
               email,
-              employeeId,
-              designation: designation || "Head of Department",
-              qualification: qualification || "",
-              experienceYears: parseInt(experienceYears) || 0,
-              createdBy: req.user.id,
-              // Personal details
-              gender: gender || "",
-              bloodGroup: bloodGroup || "",
-              dateOfBirth: dateOfBirth || null,
-              address: address || "",
-              city: city || "",
-              state: state || "",
-              pincode: pincode || "",
-              employmentType: employmentType || "FULL_TIME",
-              mobileNumber: mobileNumber || "",
-              joiningDate: joiningDate || null,
+              password: tempPassword,
+              role,
+              college_id: req.user.college_id, // scoped to college admin's college
+              isActive: true,
+              mustChangePassword: true,
             },
           ],
           { session }
         );
 
-        // Assign teacher's _id as HOD of the department (Teacher._id, NOT User._id)
-        await Department.findByIdAndUpdate(
-          departmentId,
-          { hod_id: teacher[0]._id },
-          { session, new: true }
+        // Create staff profile with extended fields
+        const staffProfile = await StaffProfile.create(
+          [
+            {
+              user_id: user[0]._id,
+              college_id: req.user.college_id,
+              mobileNumber: mobileNumber || "",
+              designation: designation || "",
+              employmentType: employmentType || "FULL_TIME",
+              joiningDate: joiningDate || null,
+              gender: gender || "",
+              dateOfBirth: dateOfBirth || null,
+              bloodGroup: bloodGroup || "",
+              address: address || "",
+              city: city || "",
+              state: state || "",
+              pincode: pincode || "",
+              emergencyContactName: emergencyContactName || "",
+              emergencyContactPhone: emergencyContactPhone || "",
+              emergencyRelation: emergencyRelation || "",
+              qualification: qualification || "",
+              experienceYears: parseInt(experienceYears) || 0,
+            },
+          ],
+          { session }
         );
-      }
 
-      await session.commitTransaction();
-      session.endSession();
+        let teacher = null;
 
-      const staffName = name;
-      let employeeIdForAudit = null;
-      let departmentIdForAudit = null;
+        // If role is HOD, create Teacher record required by hodMiddleware
+        if (role === "HOD") {
+          const employeeId = await generateEmployeeId(req.user.college_id);
+          teacher = await Teacher.create(
+            [
+              {
+                college_id: req.user.college_id,
+                user_id: user[0]._id,
+                department_id: departmentId,
+                name,
+                email,
+                employeeId,
+                designation: designation || "Head of Department",
+                qualification: qualification || "",
+                experienceYears: parseInt(experienceYears) || 0,
+                createdBy: req.user.id,
+                // Personal details
+                gender: gender || "",
+                bloodGroup: bloodGroup || "",
+                dateOfBirth: dateOfBirth || null,
+                address: address || "",
+                city: city || "",
+                state: state || "",
+                pincode: pincode || "",
+                employmentType: employmentType || "FULL_TIME",
+                mobileNumber: mobileNumber || "",
+                joiningDate: joiningDate || null,
+              },
+            ],
+            { session }
+          );
 
-      if (role === "HOD") {
-        departmentIdForAudit = departmentId;
-        employeeIdForAudit = teacher[0].employeeId;
-      }
+          // Assign teacher's _id as HOD of the department (Teacher._id, NOT User._id)
+          await Department.findByIdAndUpdate(
+            departmentId,
+            { hod_id: teacher[0]._id },
+            { session, new: true }
+          );
+        }
 
-      AuditService.logStaffCreated(
-        req.user,
-        user[0],
-        role,
-        departmentIdForAudit,
-        employeeIdForAudit,
-        req,
-        staffName
-      ).catch((err) => console.error("Audit log failed:", err.message));
-
-      // Send credentials email and report delivery status (outside transaction)
-      let emailResult = { success: false };
-      try {
-        emailResult = await sendStaffCredentialsEmail({
-          to: email,
-          name,
-          temporaryPassword: tempPassword,
-          collegeId: req.user.college_id,
-        });
-      } catch (err) {
-        console.error("Failed to send staff credentials email:", err.message);
-      }
-
-      const message = emailResult.success
-        ? "Staff account created. Credentials sent via email."
-        : "Staff account created. Email delivery failed - please share the temporary password manually.";
-
-      res.status(201).json({
-        success: true,
-        message,
-        emailDelivered: emailResult.success,
-        emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
-        data: {
-          user: {
-            id: user[0]._id,
-            name: user[0].name,
-            email: user[0].email,
-            role: user[0].role,
-            college_id: user[0].college_id,
-          },
-          teacher: teacher ? { id: teacher[0]._id, employeeId: teacher[0].employeeId } : null,
-          temporaryPassword: tempPassword, // shown only once
-        },
+        return { user, teacher };
       });
     } catch (err) {
-      // Only abort if transaction hasn't been committed yet
-      try {
-        if (session.inTransaction()) {
-          await session.abortTransaction();
-        }
-      } finally {
-        session.endSession();
-      }
-      throw err;
+      return next(err);
+    } finally {
+      session.endSession();
     }
+
+    const { user, teacher } = txResult;
+
+    const staffName = name;
+    let employeeIdForAudit = null;
+    let departmentIdForAudit = null;
+
+    if (role === "HOD") {
+      departmentIdForAudit = departmentId;
+      employeeIdForAudit = teacher[0].employeeId;
+    }
+
+    AuditService.logStaffCreated(
+      req.user,
+      user[0],
+      role,
+      departmentIdForAudit,
+      employeeIdForAudit,
+      req,
+      staffName
+    ).catch((err) => console.error("Audit log failed:", err.message));
+
+    // Send credentials email and report delivery status (outside transaction)
+    let emailResult = { success: false };
+    try {
+      emailResult = await sendStaffCredentialsEmail({
+        to: email,
+        name,
+        temporaryPassword: tempPassword,
+        collegeId: req.user.college_id,
+      });
+    } catch (err) {
+      console.error("Failed to send staff credentials email:", err.message);
+    }
+
+    const message = emailResult.success
+      ? "Staff account created. Credentials sent via email."
+      : "Staff account created. Email delivery failed - please share the temporary password manually.";
+
+    res.status(201).json({
+      success: true,
+      message,
+      emailDelivered: emailResult.success,
+      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
+      data: {
+        user: {
+          id: user[0]._id,
+          name: user[0].name,
+          email: user[0].email,
+          role: user[0].role,
+          college_id: user[0].college_id,
+        },
+        teacher: teacher ? { id: teacher[0]._id, employeeId: teacher[0].employeeId } : null,
+        temporaryPassword: tempPassword, // shown only once
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -264,16 +264,16 @@ export default function PaymentHistory() {
   };
 
   const exportColumns = [
-    { header: "Student Name", key: "Student Name" },
-    { header: "Email", key: "Email" },
-    { header: "Course", key: "Course" },
-    { header: "Total Fee", key: "Total Fee" },
-    { header: "Paid Amount", key: "Paid Amount" },
-    { header: "Pending Amount", key: "Pending Amount" },
-    { header: "Status", key: "Status" },
-    { header: "Paid Installments", key: "Paid Installments" },
-    { header: "Transaction IDs", key: "Transaction IDs" },
-    { header: "Payment Dates", key: "Payment Dates" },
+    { header: "Student Name", key: "Student Name", width: 14, align: "left" },
+    { header: "Email", key: "Email", width: 14, align: "left" },
+    { header: "Course", key: "Course", width: 16, align: "left" },
+    { header: "Total Fee", key: "Total Fee", width: 12, align: "right" },
+    { header: "Paid Amount", key: "Paid Amount", width: 12, align: "right" },
+    { header: "Pending Amount", key: "Pending Amount", width: 12, align: "right" },
+    { header: "Status", key: "Status", width: 8, align: "center" },
+    { header: "Paid Installments", key: "Paid Installments", width: 16, align: "left" },
+    { header: "Transaction IDs", key: "Transaction IDs", width: 18, align: "left" },
+    { header: "Payment Dates", key: "Payment Dates", width: 12, align: "center" },
   ];
 
   // Loading state
@@ -1181,7 +1181,7 @@ export default function PaymentHistory() {
             data={getExportData()}
             filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
             showCSV
-            showPDF
+            showPDF={false}
             showExcel
           />
         </div>
