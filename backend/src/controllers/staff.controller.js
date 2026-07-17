@@ -259,6 +259,31 @@ const generateTempPassword = (length = 10) => {
       staffName
     ).catch((err) => console.error("Audit log failed:", err.message));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_ACCESS",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: req.user.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/college/create-staff",
+        method: "POST",
+        statusCode: 201,
+        metadata: {
+          action: "CREATE_STAFF",
+          newUserId: user[0]._id,
+          newUserEmail: user[0].email,
+          newUserRole: role,
+          departmentId: departmentIdForAudit,
+          employeeId: employeeIdForAudit,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     // Send credentials email and report delivery status (outside transaction)
     let emailResult = { success: false };
     try {
@@ -440,6 +465,29 @@ exports.resetStaffPassword = async (req, res, next) => {
     AuditService.logStaffPasswordReset(req.user, user, req)
       .catch((err) => console.error("Audit log failed:", err.message));
 
+    securityAuditService
+      .logEvent({
+        eventType: "PASSWORD_CHANGE",
+        category: "AUTHENTICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: req.user.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/college/staff/${id}/reset-password`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "RESET_STAFF_PASSWORD",
+          targetUserId: user._id,
+          targetUserEmail: user.email,
+          targetUserRole: user.role,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     // Send credentials email and report delivery status
     let emailResult = { success: false };
     try {
@@ -574,6 +622,30 @@ exports.updateStaffProfile = async (req, res, next) => {
           userFields.role,
           req
         ).catch((err) => console.error("Audit log failed:", err.message));
+
+        securityAuditService
+          .logEvent({
+            eventType: "ROLE_CHANGE",
+            category: "AUTHORIZATION",
+            severity: "HIGH",
+            userId: req.user.id,
+            userEmail: req.user.email,
+            userRole: req.user.role,
+            collegeId: req.user.college_id,
+            ipAddress: req.ip,
+            userAgent: req.get("user-agent"),
+            endpoint: `/api/college/staff/${id}`,
+            method: "PUT",
+            statusCode: 200,
+            metadata: {
+              action: "STAFF_ROLE_CHANGE",
+              targetUserId: id,
+              targetUserName: user.name,
+              previousRole,
+              newRole: userFields.role,
+            },
+          })
+          .catch((err) => console.error("Security audit log failed:", err.message));
       }
 
       const changedFields = [];
@@ -589,6 +661,29 @@ exports.updateStaffProfile = async (req, res, next) => {
           newValues: { ...userFields },
           changedFields,
         }, req).catch((err) => console.error("Audit log failed:", err.message));
+
+        securityAuditService
+          .logEvent({
+            eventType: "DATA_MODIFICATION",
+            category: "DATA_ACCESS",
+            severity: "MEDIUM",
+            userId: req.user.id,
+            userEmail: req.user.email,
+            userRole: req.user.role,
+            collegeId: req.user.college_id,
+            ipAddress: req.ip,
+            userAgent: req.get("user-agent"),
+            endpoint: `/api/college/staff/${id}`,
+            method: "PUT",
+            statusCode: 200,
+            metadata: {
+              action: "STAFF_UPDATE",
+              targetUserId: id,
+              targetUserName: user.name,
+              changedFields,
+            },
+          })
+          .catch((err) => console.error("Security audit log failed:", err.message));
       }
 
       res.json({
