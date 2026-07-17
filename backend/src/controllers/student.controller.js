@@ -560,31 +560,39 @@ exports.getMyFullProfile = async (req, res, next) => {
 
     // 5️⃣ Today's Timetable (filtered by student's semester via timetable relationship)
     const today = new Date();
-    const dayName = today
-      .toLocaleDateString("en-US", { weekday: "short" })
-      .toUpperCase();
+    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][today.getDay()];
 
     let todaysTimetable = [];
     try {
-      // Step 1: Find published timetables for student's current semester
-      const timetables = await Timetable.find({
+      const semester = Number(student.currentSemester);
+
+      const timetableFilters = {
         college_id: student.college_id,
-        semester: student.currentSemester,
-        status: "PUBLISHED",
-      }).select("_id");
+        status: { $in: ["PUBLISHED", "DRAFT"] },
+        semester,
+      };
+
+      if (student.course_id) {
+        timetableFilters.course_id = student.course_id;
+      }
+
+      const timetables = await Timetable.find(timetableFilters)
+        .select("_id semester")
+        .limit(20);
 
       const timetableIds = timetables.map((t) => t._id);
 
-      // Step 2: Find slots for today belonging to those timetables
-      todaysTimetable = await TimetableSlot.find({
-        college_id: student.college_id,
-        day: dayName,
-        timetable_id: { $in: timetableIds },
-      })
-        .populate("subject_id", "name code")
-        .populate("teacher_id", "name")
-        .sort({ startTime: 1 })
-        .limit(10);
+      if (timetableIds.length > 0) {
+        todaysTimetable = await TimetableSlot.find({
+          college_id: student.college_id,
+          day: dayName,
+          timetable_id: { $in: timetableIds },
+        })
+          .populate("subject_id", "name code")
+          .populate("teacher_id", "name")
+          .sort({ startTime: 1 })
+          .limit(10);
+      }
     } catch (timetableError) {
       todaysTimetable = [];
     }

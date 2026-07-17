@@ -112,38 +112,53 @@ exports.studentDashboard = async (req, res, next) => {
        4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER)
     ===================================================== */
 
-    const todayName = new Date()
-      .toLocaleDateString("en-US", { weekday: "short" })
-      .toUpperCase(); // MON, TUE etc
+    const todayDate = new Date();
+    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][todayDate.getDay()];
 
-    // Step 1: Find all published timetables for student's current semester
-    const timetables = await Timetable.find({
-      college_id: collegeId,
-      semester: student.currentSemester,
-      status: "PUBLISHED",
-    }).select("_id");
+    let todaysTimetable = [];
+    try {
+      const semester = Number(student.currentSemester);
 
-    const timetableIds = timetables.map((t) => t._id);
+      const timetableFilters = {
+        college_id: collegeId,
+        status: { $in: ["PUBLISHED", "DRAFT"] },
+        semester,
+      };
 
-    // Step 2: Find slots belonging to those timetables for today
-    const todaySlots = await TimetableSlot.find({
-      college_id: collegeId,
-      day: todayName,
-      timetable_id: { $in: timetableIds },
-    })
-      .populate("subject_id", "name code")
-      .populate("teacher_id", "name")
-      .sort({ startTime: 1 });
+      if (student.course_id) {
+        timetableFilters.course_id = student.course_id;
+      }
 
-    const todayTimetable = todaySlots.map((slot) => ({
-      subject: slot.subject_id?.name || "No Subject",
-      code: slot.subject_id?.code || "N/A",
-      teacher: slot.teacher_id?.name || "TBA",
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      room: slot.room || "TBA",
-      slotType: slot.slotType || "Regular",
-    }));
+      const timetables = await Timetable.find(timetableFilters)
+        .select("_id semester")
+        .limit(20);
+
+      const timetableIds = timetables.map((t) => t._id);
+
+      if (timetableIds.length > 0) {
+        const todaySlots = await TimetableSlot.find({
+          college_id: collegeId,
+          day: dayName,
+          timetable_id: { $in: timetableIds },
+        })
+          .populate("subject_id", "name code")
+          .populate("teacher_id", "name")
+          .sort({ startTime: 1 })
+          .limit(20);
+
+        todaysTimetable = todaySlots.map((slot) => ({
+          subject: slot.subject_id?.name || "No Subject",
+          code: slot.subject_id?.code || "N/A",
+          teacher: slot.teacher_id?.name || "TBA",
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          room: slot.room || "TBA",
+          slotType: slot.slotType || "Regular",
+        }));
+      }
+    } catch (timetableError) {
+      todaysTimetable = [];
+    }
 
     /* =====================================================
        5️⃣ FEE SUMMARY
