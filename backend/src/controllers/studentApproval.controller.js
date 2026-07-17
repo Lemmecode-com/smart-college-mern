@@ -182,6 +182,31 @@ exports.approveStudent = async (req, res, next) => {
       .logStudentOfferMade(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/approve`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "APPROVE_STUDENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          courseId: student.course_id,
+          enrollmentNumber: student.enrollmentNumber,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     // 📧 Send offer email to student (non-blocking so the response returns immediately)
     (async () => {
       try {
@@ -467,6 +492,29 @@ exports.bulkApproveStudents = async (req, res, next) => {
       )
       .catch((err) => console.error("Audit log failed:", err));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: req.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/students/bulk-approve",
+        method: "POST",
+        statusCode: 200,
+        metadata: {
+          action: "BULK_APPROVE_STUDENTS",
+          approvedCount: results.approved.length,
+          failedCount: results.failed.length,
+          approvedStudentIds: results.approved.map((s) => s.studentId),
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     res.json({
       message: `Bulk approval done: ${results.approved.length} approved, ${results.failed.length} failed`,
       approved: results.approved,
@@ -517,6 +565,31 @@ exports.rejectStudent = async (req, res, next) => {
     auditLogService
       .logStudentRejection(student, req.user, req, reason)
       .catch((err) => console.error("Audit log failed:", err));
+
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/reject`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "REJECT_STUDENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          reason: reason || "Not specified",
+          allowReapply: student.canReapply,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
 
     // 📧 Send rejection email (non-blocking)
     (async () => {
@@ -648,6 +721,30 @@ exports.confirmEnrollment = async (req, res, next) => {
     auditLogService
       .logStudentEnrollment(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
+
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/confirm-enrollment`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "CONFIRM_ENROLLMENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          enrollmentNumber: student.enrollmentNumber,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
 
     // 📧 Send enrollment confirmation email
     (async () => {

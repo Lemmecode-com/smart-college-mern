@@ -119,6 +119,30 @@ NOVAA (SUPERADMIN)`,
         email: collegeAdmin.email,
       },
     });
+
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_ACCESS",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: college._id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/master/create/college",
+        method: "POST",
+        statusCode: 201,
+        metadata: {
+          action: "CREATE_COLLEGE",
+          collegeId: college._id,
+          collegeCode: college.code,
+          collegeName: college.name,
+          adminEmail: collegeAdmin.email,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
   } catch (error) {
     next(error);
   }
@@ -179,6 +203,29 @@ exports.deleteCollege = async (req, res, next) => {
     AuditService.logCollegeDeactivated(req.user, college, req)
       .catch((err) => console.error("Audit log failed:", err.message));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: college._id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/master/:collegeId",
+        method: "DELETE",
+        statusCode: 200,
+        metadata: {
+          action: "DELETE_COLLEGE",
+          collegeId: college._id,
+          collegeCode: college.code,
+          collegeName: college.name,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     res.json({
       message:
         "College deactivated successfully. All related departments, courses, students, and staff have been deactivated.",
@@ -226,6 +273,29 @@ exports.restoreCollege = async (req, res, next) => {
     AuditService.logCollegeRestored(req.user, college, req)
       .catch((err) => console.error("Audit log failed:", err.message));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: college._id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/master/:collegeId/restore",
+        method: "PATCH",
+        statusCode: 200,
+        metadata: {
+          action: "RESTORE_COLLEGE",
+          collegeId: college._id,
+          collegeCode: college.code,
+          collegeName: college.name,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     res.json({
       message:
         "College restored successfully. All related departments, courses, students, and staff have been reactivated.",
@@ -271,6 +341,29 @@ exports.hardDeleteCollege = async (req, res, next) => {
 
     // 4️⃣ Hard delete (this triggers the pre('findOneAndDelete') hook for cascade hard delete)
     await College.findOneAndDelete({ _id: collegeId });
+
+    securityAuditService
+      .logEvent({
+        eventType: "DATA_DELETION",
+        category: "DATA_ACCESS",
+        severity: "CRITICAL",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: college._id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/master/:collegeId/hard-delete",
+        method: "POST",
+        statusCode: 200,
+        metadata: {
+          action: "HARD_DELETE_COLLEGE",
+          collegeId: college._id,
+          collegeCode: college.code,
+          collegeName: college.name,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
 
     res.json({
       message:

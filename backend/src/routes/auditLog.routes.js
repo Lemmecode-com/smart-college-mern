@@ -11,11 +11,11 @@ const {
   getAuditStats,
 } = require("../controllers/auditLog.controller");
 
-// All routes require authentication and (COLLEGE_ADMIN, PRINCIPAL, or PLATFORM_SUPPORT) role
+// All routes require authentication and (COLLEGE_ADMIN, PRINCIPAL, PLATFORM_SUPPORT, or SUPER_ADMIN) role
 router.use(authMiddleware);
-router.use(role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.PLATFORM_SUPPORT));
+router.use(role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL, ROLE.PLATFORM_SUPPORT, ROLE.SUPER_ADMIN));
 
-// Apply college middleware to ensure req.college_id is set
+// Apply college middleware to ensure req.college_id is set (bypasses for SUPER_ADMIN)
 router.use(collegeMiddleware);
 
 // Stats - must come before /:id to avoid route conflict

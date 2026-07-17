@@ -1014,116 +1014,180 @@ exports.getStudentAttendanceReport = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    const sessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-    }).populate("subject_id", "name code");
+    const [reportData, todayData] = await Promise.all([
+      AttendanceRecord.aggregate([
+        {
+          $match: {
+            student_id: student._id,
+            college_id: req.college_id,
+          },
+        },
+        {
+          $lookup: {
+            from: "attendancesessions",
+            localField: "session_id",
+            foreignField: "_id",
+            as: "session",
+          },
+        },
+        { $unwind: "$session" },
+        {
+          $lookup: {
+            from: "subjects",
+            localField: "session.subject_id",
+            foreignField: "_id",
+            as: "subject",
+          },
+        },
+        { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: "$session._id",
+            subjectId: { $first: "$subject._id" },
+            subjectName: { $first: "$subject.name" },
+            subjectCode: { $first: "$subject.code" },
+            date: { $first: "$session.lectureDate" },
+            lectureNumber: { $first: "$session.lectureNumber" },
+            startTime: { $first: "$session.slotSnapshot.startTime" },
+            endTime: { $first: "$session.slotSnapshot.endTime" },
+            room: { $first: "$session.slotSnapshot.room" },
+            teacher: { $first: "$session.slotSnapshot.teacher_name" },
+            status: { $first: "$status" },
+          },
+        },
+        { $sort: { date: -1 } },
+      ]),
+      AttendanceRecord.aggregate([
+        {
+          $match: {
+            student_id: student._id,
+            college_id: req.college_id,
+          },
+        },
+        {
+          $lookup: {
+            from: "attendancesessions",
+            localField: "session_id",
+            foreignField: "_id",
+            as: "session",
+          },
+        },
+        { $unwind: "$session" },
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$session.college_id", req.college_id] },
+                { $eq: ["$session.department_id", student.department_id] },
+                { $eq: ["$session.course_id", student.course_id] },
+                {
+                  $gte: [
+                    "$session.lectureDate",
+                    { $dateTrunc: { date: new Date(), unit: "day" } },
+                  ],
+                },
+                {
+                  $lt: [
+                    "$session.lectureDate",
+                    {
+                      $dateAdd: {
+                        startDate: { $dateTrunc: { date: new Date(), unit: "day" } },
+                        unit: "day",
+                        amount: 1,
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "subjects",
+            localField: "session.subject_id",
+            foreignField: "_id",
+            as: "subject",
+          },
+        },
+        { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: "$session._id",
+            subjectId: { $first: "$subject._id" },
+            subjectName: { $first: "$subject.name" },
+            subjectCode: { $first: "$subject.code" },
+            lectureNumber: { $first: "$session.lectureNumber" },
+            startTime: { $first: "$session.slotSnapshot.startTime" },
+            endTime: { $first: "$session.slotSnapshot.endTime" },
+            room: { $first: "$session.slotSnapshot.room" },
+            teacher: { $first: "$session.slotSnapshot.teacher_name" },
+            status: { $first: "$status" },
+          },
+        },
+      ]),
+    ]);
 
+    const sessionReport = reportData.map((item) => ({
+      date: item.date,
+      subject: item.subjectName || "Unknown",
+      subjectCode: item.subjectCode || "N/A",
+      lectureNumber: item.lectureNumber,
+      startTime: item.startTime || "N/A",
+      endTime: item.endTime || "N/A",
+      room: item.room || "N/A",
+      teacher: item.teacher || "N/A",
+      status: item.status,
+    }));
+
+    const subjectMap = {};
     let total = 0;
     let present = 0;
     let absent = 0;
 
-    const sessionReport = [];
-    const subjectMap = {}; // 🔥 For subject-wise breakdown
-
-    for (const session of sessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      if (!record) continue;
-
+    for (const item of reportData) {
       total++;
+      if (item.status === "PRESENT") present++;
+      if (item.status === "ABSENT") absent++;
 
-      if (record.status === "PRESENT") present++;
-      if (record.status === "ABSENT") absent++;
+      const sid = (item.subjectId || "").toString();
+      if (!sid) continue;
 
-      // Session-wise
-      sessionReport.push({
-        date: session.lectureDate,
-        subject: session.subject_id.name,
-        subjectCode: session.subject_id.code,
-        lectureNumber: session.lectureNumber,
-        startTime: session.slotSnapshot?.startTime || "N/A",
-        endTime: session.slotSnapshot?.endTime || "N/A",
-        room: session.slotSnapshot?.room || "N/A",
-        teacher: session.slotSnapshot?.teacher_name || "N/A",
-        status: record.status,
-      });
-
-      // 🔥 Subject-wise aggregation
-      const subjectId = session.subject_id._id.toString();
-
-      if (!subjectMap[subjectId]) {
-        subjectMap[subjectId] = {
-          subject: session.subject_id.name,
-          code: session.subject_id.code,
+      if (!subjectMap[sid]) {
+        subjectMap[sid] = {
+          subject: item.subjectName || "Unknown",
+          code: item.subjectCode || "N/A",
           total: 0,
           present: 0,
-          absent: 0, // ✅ Initialize absent count
+          absent: 0,
         };
       }
 
-      subjectMap[subjectId].total++;
-
-      if (record.status === "PRESENT") {
-        subjectMap[subjectId].present++;
-      } else if (record.status === "ABSENT") {
-        subjectMap[subjectId].absent++; // ✅ Increment absent count
-      }
+      subjectMap[sid].total++;
+      if (item.status === "PRESENT") subjectMap[sid].present++;
+      if (item.status === "ABSENT") subjectMap[sid].absent++;
     }
 
-    // 🔥 Convert subjectMap to array
     const subjectBreakdown = Object.values(subjectMap).map((sub) => {
-      const percentage =
-        sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
-
+      const percentage = sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
       return {
         ...sub,
         percentage,
-        warning: percentage < 75, // ⚠ below 75%
+        warning: percentage < 75,
       };
     });
 
-    // 🔥 Get today's sessions
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    const tomorrowDate = new Date(todayDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-
-    const todaySessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-      lectureDate: {
-        $gte: todayDate,
-        $lt: tomorrowDate,
-      },
-    }).populate("subject_id", "name code");
-
-    const todayReport = [];
-    for (const session of todaySessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      if (record) {
-        todayReport.push({
-          date: session.lectureDate,
-          subject: session.subject_id.name,
-          subjectCode: session.subject_id.code,
-          lectureNumber: session.lectureNumber,
-          startTime: session.slotSnapshot?.startTime || "N/A",
-          endTime: session.slotSnapshot?.endTime || "N/A",
-          room: session.slotSnapshot?.room || "Room not assigned",
-          teacher: session.slotSnapshot?.teacher_name || "N/A",
-          status: record.status,
-        });
-      }
-    }
+    const todayReport = todayData.map((item) => ({
+      date: item.date,
+      subject: item.subjectName || "Unknown",
+      subjectCode: item.subjectCode || "N/A",
+      lectureNumber: item.lectureNumber,
+      startTime: item.startTime || "N/A",
+      endTime: item.endTime || "N/A",
+      room: item.room || "Room not assigned",
+      teacher: item.teacher || "N/A",
+      status: item.status,
+    }));
 
     res.json({
       summary: {
