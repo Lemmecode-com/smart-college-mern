@@ -170,6 +170,7 @@ documentPaths[docType] = normalizePath(filePath);
        // category is extracted earlier for validation
        nationality,
        bloodGroup,
+       religion,
        alternateMobile,
        // Parent/Guardian Details
        fatherName,
@@ -268,6 +269,7 @@ documentPaths[docType] = normalizePath(filePath);
          category,
          nationality,
          bloodGroup,
+         religion,
          alternateMobile,
          // Parent/Guardian Details
          fatherName,
@@ -780,6 +782,15 @@ exports.updateMyProfile = async (req, res, next) => {
       "state",
       "pincode",
       "alternateMobile",
+      "bloodGroup",
+      "religion",
+      "nationality",
+      "fatherName",
+      "fatherMobile",
+      "fatherEmail",
+      "motherName",
+      "motherMobile",
+      "motherEmail",
     ];
 
     allowedFields.forEach((field) => {
