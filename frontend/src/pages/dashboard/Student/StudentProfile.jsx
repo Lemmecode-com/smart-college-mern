@@ -45,6 +45,7 @@ import {
   FaFileMedical, // VALID
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
+  FaWheelchair,
 } from "react-icons/fa";
 
 // Authentication / session error codes that must NOT surface a toast.
@@ -631,6 +632,31 @@ export default function StudentProfile() {
                       value={student?.bloodGroup || "N/A"}
                       icon={<FaHeartbeat />}
                     />
+                    <InfoItem
+                      label="Disability"
+                      value={
+                        student?.hasDisability ? "Yes" : "No"
+                      }
+                      icon={<FaWheelchair />}
+                    />
+                    {student?.hasDisability && (
+                      <>
+                        <InfoItem
+                          label="Disability Type"
+                          value={student?.disabilityType || "N/A"}
+                          icon={<FaWheelchair />}
+                        />
+                        <InfoItem
+                          label="Disability Percentage"
+                          value={
+                            student?.pwdDisability
+                              ? `${student.pwdDisability}%`
+                              : "N/A"
+                          }
+                          icon={<FaWheelchair />}
+                        />
+                      </>
+                    )}
                   </div>
                 </SectionContent>
               )}
