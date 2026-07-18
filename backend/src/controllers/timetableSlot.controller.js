@@ -6,6 +6,7 @@ const Subject = require("../models/subject.model");
 const AppError = require("../utils/AppError");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 const { isValidSlotType } = require("../utils/constants");
+const { cache: scheduleCache } = require("../services/scheduleCache.service");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -161,6 +162,10 @@ exports.addSlot = async (req, res, next) => {
       division: division || null,
     });
 
+    // Invalidate schedule cache so the next student request rebuilds from MongoDB.
+    // Called after DB write succeeds — never before.
+    scheduleCache.invalidateTimetable(timetable_id);
+
     res.status(201).json({
       message: "Slot added successfully",
       slot,
@@ -272,6 +277,10 @@ exports.updateSlot = async (req, res, next) => {
       { new: true }
     );
 
+    // Invalidate schedule cache so the next student request rebuilds from MongoDB.
+    // Called after DB write succeeds — never before.
+    scheduleCache.invalidateTimetable(slot.timetable_id);
+
     res.json({
       message: "Slot updated successfully",
       slot: updatedSlot,
@@ -337,7 +346,13 @@ exports.deleteTimetableSlot = async (req, res) => {
     }
 
     /* STEP 5: Delete slot */
+    // Capture timetable_id before deletion — slot document is gone after deleteOne().
+    const timetableIdForCache = slot.timetable_id;
     await slot.deleteOne();
+
+    // Invalidate schedule cache so the next student request rebuilds from MongoDB.
+    // Called after DB write succeeds — never before.
+    scheduleCache.invalidateTimetable(timetableIdForCache);
 
     res.json({
       message: "Timetable slot deleted successfully",
