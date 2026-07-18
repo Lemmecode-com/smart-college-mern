@@ -93,17 +93,7 @@ export default function StudentDashboard() {
     semester: 1,
   };
 
-  // Defensive: Safe access to pie chart data
-  const attendanceData = [
-    {
-      name: "Present",
-      value: attendanceSummary.present || 0,
-    },
-    {
-      name: "Absent",
-      value: attendanceSummary.absent || 0,
-    },
-  ];
+  // Defensive: Safe access to pie chart data (handled via attendancePieData below)
 
   useEffect(() => {
     fetchDashboardData();
