@@ -1683,6 +1683,12 @@ export default function StudentRegister() {
     gender: "",
     dateOfBirth: "",
     category: "GEN",
+    bloodGroup: "",
+    religion: "",
+    nationality: "Indian",
+    hasDisability: "no",
+    disabilityType: "",
+    pwdDisability: "",
     fatherName: "",
     fatherMobile: "",
     fatherEmail: "",
@@ -2031,6 +2037,15 @@ export default function StudentRegister() {
       formData.append("gender", form.gender);
       formData.append("dateOfBirth", form.dateOfBirth);
       formData.append("category", form.category);
+      formData.append("bloodGroup", form.bloodGroup);
+      formData.append("religion", form.religion);
+      formData.append("nationality", form.nationality || "Indian");
+      formData.append("hasDisability", form.hasDisability === "yes" ? "true" : "false");
+      if (form.hasDisability === "yes") {
+        formData.append("disabilityType", form.disabilityType);
+        if (form.pwdDisability) formData.append("pwdDisability", form.pwdDisability);
+        if (form.disabilityCertificate) formData.append("physicallyChallengedCertificate", form.disabilityCertificate);
+      }
       formData.append("addressLine", form.addressLine);
       formData.append("city", form.city);
       formData.append("state", form.state);
@@ -2111,6 +2126,12 @@ export default function StudentRegister() {
           gender: "",
           dateOfBirth: "",
           category: "GEN",
+          bloodGroup: "",
+          religion: "",
+          nationality: "Indian",
+          hasDisability: "no",
+          disabilityType: "",
+          pwdDisability: "",
           fatherName: "",
           fatherMobile: "",
           fatherEmail: "",
@@ -2299,6 +2320,121 @@ export default function StudentRegister() {
             <option value="OTHER">Other</option>
           </select>
         </div>
+        <div className="sr-field">
+          <label className="sr-label">Blood Group</label>
+          <select
+            className="sr-select"
+            name="bloodGroup"
+            value={form.bloodGroup}
+            onChange={handleChange}
+          >
+            <option value="">Select Blood Group</option>
+            {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => (
+              <option key={bg} value={bg}>{bg}</option>
+            ))}
+          </select>
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Religion</label>
+          <input
+            className="sr-input"
+            name="religion"
+            placeholder="e.g. Hindu, Muslim, Christian"
+            value={form.religion}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Nationality</label>
+          <input
+            className="sr-input"
+            name="nationality"
+            placeholder="e.g. Indian"
+            value={form.nationality || "Indian"}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Disability</label>
+          <select
+            className="sr-select"
+            name="hasDisability"
+            value={form.hasDisability}
+            onChange={handleChange}
+          >
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        {form.hasDisability === "yes" && (
+          <>
+            <div className="sr-field">
+              <label className="sr-label">Disability Type <span className="sr-req">*</span></label>
+              <select
+                className="sr-select"
+                name="disabilityType"
+                value={form.disabilityType}
+                onChange={handleChange}
+                required
+              >
+                <option value="">— Select Type —</option>
+                <option value="Visual">Visual Impairment</option>
+                <option value="Hearing">Hearing Impairment</option>
+                <option value="Locomotor">Locomotor Disability</option>
+                <option value="Intellectual">Intellectual Disability</option>
+                <option value="Mental">Mental Illness</option>
+                <option value="Multiple">Multiple Disabilities</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="sr-field">
+              <label className="sr-label">Disability Percentage (%)</label>
+              <input
+                className="sr-input"
+                name="pwdDisability"
+                placeholder="e.g. 40"
+                value={form.pwdDisability}
+                onChange={handleChange}
+                type="number"
+                min="1"
+                max="100"
+              />
+            </div>
+            <div className="sr-field sr-field--full">
+              <label className="sr-label">Disability Certificate <span className="sr-req">*</span></label>
+              <div className={`sr-upload-box ${form.disabilityCertificate ? "sr-upload-box--filled" : ""}`}>
+                <input
+                  type="file"
+                  name="disabilityCertificate"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="sr-upload-input"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const maxSize = 5 * 1024 * 1024;
+                    if (file.size > maxSize) {
+                      alert("Disability certificate must be less than 5MB");
+                      e.target.value = "";
+                      return;
+                    }
+                    setForm((p) => ({ ...p, disabilityCertificate: file }));
+                  }}
+                  required
+                />
+                <div className="sr-upload-overlay">
+                  <FaUpload className="sr-upload-icon" />
+                  <span className="sr-upload-hint">PDF, JPG, PNG — max 5MB</span>
+                </div>
+                {form.disabilityCertificate && (
+                  <div className="sr-upload-preview">
+                    <FaCheckCircle />
+                    <span>{form.disabilityCertificate.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
