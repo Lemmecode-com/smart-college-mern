@@ -250,11 +250,15 @@ export default function StudentDashboard() {
   // No need to destructure again - attendanceSummary, studentData already defined
 
   const {
-    subjectWiseAttendance,
-    todayTimetable,
+    subjectWiseAttendance = [],
+    todaysTimetable = [],
     feeSummary,
-    latestNotifications,
+    latestNotifications = [],
   } = dashboardData || {};
+
+  // Keep external references in sync. The backend response key is
+  // `todaysTimetable`; the rest of the component renders `todayTimetable`.
+  const todayTimetable = todaysTimetable;
 
   // Set default values for feeSummary if not available
   const safeFeeSummary = feeSummary || {
@@ -694,14 +698,20 @@ export default function StudentDashboard() {
               </div>
 
               {/* Enhanced Subject List with Teacher Info and Trends */}
-              <div
-                className="subject-list"
-                role="list"
-                aria-label="Subject-wise attendance list"
-              >
-                {subjectWiseAttendance
-                  .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
-                  .map((subject, index) => {
+              {subjectWiseAttendance.length === 0 ? (
+                <div className="no-data">
+                  <FaChartBar className="no-data-icon" />
+                  <p>No subject attendance data available</p>
+                </div>
+              ) : (
+                <div
+                  className="subject-list"
+                  role="list"
+                  aria-label="Subject-wise attendance list"
+                >
+                  {(subjectWiseAttendance || [])
+                    .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
+                    .map((subject, index) => {
                     const attendanceColor = getAttendanceWarningColor(
                       subject.percentage,
                     );
@@ -772,7 +782,8 @@ export default function StudentDashboard() {
                       </div>
                     );
                   })}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -928,7 +939,7 @@ export default function StudentDashboard() {
             </div>
 
             <div className="card-body">
-              {latestNotifications.length === 0 ? (
+              {latestNotifications?.length === 0 ? (
                 <div className="no-data">
                   <FaBell className="no-data-icon" />
                   <p>No new notifications</p>
