@@ -171,6 +171,9 @@ documentPaths[docType] = normalizePath(filePath);
        nationality,
        bloodGroup,
        religion,
+       hasDisability,
+       disabilityType,
+       pwdDisability,
        alternateMobile,
        // Parent/Guardian Details
        fatherName,
@@ -270,6 +273,9 @@ documentPaths[docType] = normalizePath(filePath);
          nationality,
          bloodGroup,
          religion,
+         hasDisability: hasDisability === "true" || hasDisability === true,
+         disabilityType: hasDisability === "true" || hasDisability === true ? disabilityType : undefined,
+         pwdDisability: hasDisability === "true" || hasDisability === true ? pwdDisability : undefined,
          alternateMobile,
          // Parent/Guardian Details
          fatherName,
@@ -735,17 +741,18 @@ exports.getMyFullProfile = async (req, res, next) => {
             .replace(/\\/g, "/")
             .replace(/^(?:.*[\\/])?uploads[\\/]/, "uploads/")
         : null,
-      // Additional profile fields
-      addressLine2: student.addressLine2 || null,
-      country: student.country || "India",
-      religion: student.religion || null,
-      alternateMobileNumber: student.alternateMobileNumber || null,
-      emergencyContactName: student.emergencyContactName || null,
+       // Additional profile fields
+       addressLine2: student.addressLine2 || null,
+       country: student.country || "India",
+       religion: student.religion || null,
+       hasDisability: student.hasDisability || false,
+       disabilityType: student.disabilityType || null,
+       pwdDisability: student.pwdDisability || null,
+       emergencyContactName: student.emergencyContactName || null,
       emergencyContactNumber: student.emergencyContactNumber || null,
       parentGuardianOccupation: student.parentGuardianOccupation || null,
       parentGuardianIncome: student.parentGuardianIncome || null,
       minorityType: student.minorityType || null,
-      pwdDisability: student.pwdDisability || null,
       hostelRequired: student.hostelRequired || false,
       libraryRequired:
         student.libraryRequired !== undefined ? student.libraryRequired : true,
@@ -785,6 +792,9 @@ exports.updateMyProfile = async (req, res, next) => {
       "bloodGroup",
       "religion",
       "nationality",
+      "hasDisability",
+      "disabilityType",
+      "pwdDisability",
       "fatherName",
       "fatherMobile",
       "fatherEmail",
@@ -795,9 +805,25 @@ exports.updateMyProfile = async (req, res, next) => {
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        student[field] = req.body[field];
+        if (field === "hasDisability") {
+          student[field] =
+            req.body[field] === "true" ||
+            req.body[field] === true ||
+            req.body[field] === "yes";
+        } else {
+          student[field] = req.body[field];
+        }
       }
     });
+
+    if (
+      req.body.hasDisability === "false" ||
+      req.body.hasDisability === false ||
+      req.body.hasDisability === "no"
+    ) {
+      student.disabilityType = undefined;
+      student.pwdDisability = undefined;
+    }
 
     await student.save();
 
