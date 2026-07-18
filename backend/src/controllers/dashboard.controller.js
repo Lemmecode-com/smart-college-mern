@@ -235,7 +235,7 @@ exports.studentDashboard = async (req, res, next) => {
         },
 
         subjectWiseAttendance,
-        todayTimetable,
+        todaysTimetable,
         feeSummary,
         latestNotifications: latestNotifications || [],
       },
