@@ -58,6 +58,9 @@ export default function EditStudentProfile() {
     bloodGroup: "",
     religion: "",
     nationality: "",
+    hasDisability: "no",
+    disabilityType: "",
+    pwdDisability: "",
     fatherName: "",
     fatherMobile: "",
     fatherEmail: "",
@@ -109,6 +112,9 @@ export default function EditStudentProfile() {
         bloodGroup: student.bloodGroup || "",
         religion: student.religion || "",
         nationality: student.nationality || "",
+        hasDisability: student.hasDisability ? "yes" : "no",
+        disabilityType: student.disabilityType || "",
+        pwdDisability: student.pwdDisability || "",
         fatherName: student.fatherName || "",
         fatherMobile: student.fatherMobile || "",
         fatherEmail: student.fatherEmail || "",
@@ -387,6 +393,56 @@ export default function EditStudentProfile() {
                   onChange={handleChange}
                 />
               </div>
+
+              <div className="col-md-4">
+                <label>Disability</label>
+                <select
+                  className="form-select"
+                  name="hasDisability"
+                  value={form.hasDisability}
+                  onChange={handleChange}
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+
+              {form.hasDisability === "yes" && (
+                <>
+                  <div className="col-md-4">
+                    <label>Disability Type</label>
+                    <select
+                      className="form-select"
+                      name="disabilityType"
+                      value={form.disabilityType}
+                      onChange={handleChange}
+                    >
+                      <option value="">— Select Type —</option>
+                      <option value="Visual">Visual Impairment</option>
+                      <option value="Hearing">Hearing Impairment</option>
+                      <option value="Locomotor">Locomotor Disability</option>
+                      <option value="Intellectual">Intellectual Disability</option>
+                      <option value="Mental">Mental Illness</option>
+                      <option value="Multiple">Multiple Disabilities</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-4">
+                    <label>Disability Percentage (%)</label>
+                    <input
+                      className="form-control"
+                      name="pwdDisability"
+                      placeholder="e.g. 40"
+                      value={form.pwdDisability}
+                      onChange={handleChange}
+                      type="number"
+                      min="1"
+                      max="100"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ========== PARENT / GUARDIAN ========== */}
