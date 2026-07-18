@@ -7,6 +7,7 @@ const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const { ROLE } = require("../utils/constants");
 const AuditService = require("../services/auditLog.service");
+const securityAuditService = require("../services/securityAudit.service");
 const { sendStaffCredentialsEmail } = require("../services/email.service");
 
 /**
