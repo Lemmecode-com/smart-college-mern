@@ -255,6 +255,11 @@ const studentSchema = new mongoose.Schema(
     parentGuardianOccupation: String,
     parentGuardianIncome: String,
     minorityType: String, // For minority category students
+    hasDisability: {
+      type: Boolean,
+      default: false,
+    },
+    disabilityType: String, // e.g. Visual, Hearing, Locomotor, etc.
     pwdDisability: String, // Percentage of disability if applicable
     hostelRequired: {
       type: Boolean,
