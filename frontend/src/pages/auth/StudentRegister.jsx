@@ -1683,6 +1683,9 @@ export default function StudentRegister() {
     gender: "",
     dateOfBirth: "",
     category: "GEN",
+    bloodGroup: "",
+    religion: "",
+    nationality: "Indian",
     fatherName: "",
     fatherMobile: "",
     fatherEmail: "",
@@ -2031,6 +2034,9 @@ export default function StudentRegister() {
       formData.append("gender", form.gender);
       formData.append("dateOfBirth", form.dateOfBirth);
       formData.append("category", form.category);
+      formData.append("bloodGroup", form.bloodGroup);
+      formData.append("religion", form.religion);
+      formData.append("nationality", form.nationality || "Indian");
       formData.append("addressLine", form.addressLine);
       formData.append("city", form.city);
       formData.append("state", form.state);
@@ -2111,6 +2117,9 @@ export default function StudentRegister() {
           gender: "",
           dateOfBirth: "",
           category: "GEN",
+          bloodGroup: "",
+          religion: "",
+          nationality: "Indian",
           fatherName: "",
           fatherMobile: "",
           fatherEmail: "",
@@ -2298,6 +2307,40 @@ export default function StudentRegister() {
             <option value="ST">Scheduled Tribe (ST)</option>
             <option value="OTHER">Other</option>
           </select>
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Blood Group</label>
+          <select
+            className="sr-select"
+            name="bloodGroup"
+            value={form.bloodGroup}
+            onChange={handleChange}
+          >
+            <option value="">Select Blood Group</option>
+            {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => (
+              <option key={bg} value={bg}>{bg}</option>
+            ))}
+          </select>
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Religion</label>
+          <input
+            className="sr-input"
+            name="religion"
+            placeholder="e.g. Hindu, Muslim, Christian"
+            value={form.religion}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="sr-field">
+          <label className="sr-label">Nationality</label>
+          <input
+            className="sr-input"
+            name="nationality"
+            placeholder="e.g. Indian"
+            value={form.nationality || "Indian"}
+            onChange={handleChange}
+          />
         </div>
       </div>
     </div>

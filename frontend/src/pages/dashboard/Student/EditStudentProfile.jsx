@@ -54,7 +54,16 @@ export default function EditStudentProfile() {
     department_id: "",
     course_id: "",
     admissionYear: "",
-    currentSemester: ""
+    currentSemester: "",
+    bloodGroup: "",
+    religion: "",
+    nationality: "",
+    fatherName: "",
+    fatherMobile: "",
+    fatherEmail: "",
+    motherName: "",
+    motherMobile: "",
+    motherEmail: "",
   });
 
   const [department, setDepartment] = useState(null);
@@ -96,7 +105,16 @@ export default function EditStudentProfile() {
         department_id: department?._id,
         course_id: course?._id,
         admissionYear: student.admissionYear,
-        currentSemester: student.currentSemester
+        currentSemester: student.currentSemester,
+        bloodGroup: student.bloodGroup || "",
+        religion: student.religion || "",
+        nationality: student.nationality || "",
+        fatherName: student.fatherName || "",
+        fatherMobile: student.fatherMobile || "",
+        fatherEmail: student.fatherEmail || "",
+        motherName: student.motherName || "",
+        motherMobile: student.motherMobile || "",
+        motherEmail: student.motherEmail || "",
       });
 
       setDepartment(department);
@@ -330,6 +348,121 @@ export default function EditStudentProfile() {
                   value={form.dateOfBirth}
                   onChange={handleChange}
                   disabled
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label>Blood Group</label>
+                <select
+                  className="form-select"
+                  name="bloodGroup"
+                  value={form.bloodGroup}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Blood Group</option>
+                  {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-md-4">
+                <label>Religion</label>
+                <input
+                  className="form-control"
+                  name="religion"
+                  placeholder="e.g. Hindu, Muslim, Christian"
+                  value={form.religion}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-4">
+                <label>Nationality</label>
+                <input
+                  className="form-control"
+                  name="nationality"
+                  placeholder="e.g. Indian"
+                  value={form.nationality}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* ========== PARENT / GUARDIAN ========== */}
+            <h5 className="fw-bold mb-3">
+              <FaUser className="me-2" />
+              Parent / Guardian Details
+            </h5>
+
+            <div className="row g-3 mb-4">
+              <div className="col-md-6">
+                <label>Father's Name</label>
+                <input
+                  className="form-control"
+                  name="fatherName"
+                  placeholder="Father's full name"
+                  value={form.fatherName}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label>Father's Mobile</label>
+                <input
+                  className="form-control"
+                  name="fatherMobile"
+                  placeholder="10-digit mobile"
+                  value={form.fatherMobile}
+                  onChange={handleChange}
+                  maxLength="10"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label>Father's Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  name="fatherEmail"
+                  placeholder="father@example.com"
+                  value={form.fatherEmail}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label>Mother's Name</label>
+                <input
+                  className="form-control"
+                  name="motherName"
+                  placeholder="Mother's full name"
+                  value={form.motherName}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label>Mother's Mobile</label>
+                <input
+                  className="form-control"
+                  name="motherMobile"
+                  placeholder="10-digit mobile"
+                  value={form.motherMobile}
+                  onChange={handleChange}
+                  maxLength="10"
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label>Mother's Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  name="motherEmail"
+                  placeholder="mother@example.com"
+                  value={form.motherEmail}
+                  onChange={handleChange}
                 />
               </div>
             </div>
