@@ -39,6 +39,18 @@ exports.createCourse = async (req, res, next) => {
     throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
   }
 
+  // ✅ Validate maxStudents (must be a positive integer > 0)
+  if (
+    maxStudents === undefined ||
+    maxStudents === null ||
+    maxStudents === "" ||
+    !Number.isFinite(Number(maxStudents)) ||
+    !Number.isInteger(Number(maxStudents)) ||
+    Number(maxStudents) <= 0
+  ) {
+    throw new AppError("Maximum Students must be greater than 0", 400, "INVALID_MAX_STUDENTS");
+  }
+
   // Note: durationYears is auto-calculated by the model's pre-save hook
   // If provided, it will be validated by the model
 
@@ -167,7 +179,19 @@ exports.getCourseById = async (req, res, next) => {
  */
 exports.updateCourse = async (req, res, next) => {
   try {
-    const { code, department_id } = req.body;
+    const { code, department_id, maxStudents } = req.body;
+
+    // ✅ Validate maxStudents if it is being updated (must be a positive integer > 0)
+    if (maxStudents !== undefined && maxStudents !== null) {
+      const parsed = Number(maxStudents);
+      if (
+        !Number.isFinite(parsed) ||
+        !Number.isInteger(parsed) ||
+        parsed <= 0
+      ) {
+        throw new AppError("Maximum Students must be greater than 0", 400, "INVALID_MAX_STUDENTS");
+      }
+    }
 
     if (code || department_id) {
       const targetCollegeId = req.college_id;
