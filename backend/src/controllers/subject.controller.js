@@ -31,15 +31,28 @@ exports.createSubject = async (req, res, next) => {
     );
   }
 
-  // ✅ FIX: validate teacher WITH department
-  const teacher = await Teacher.findOne({
-    _id: teacher_id,
+  // Validate teacher only when provided
+  if (teacher_id) {
+    const teacher = await Teacher.findOne({
+      _id: teacher_id,
+      college_id: req.college_id,
+      department_id: course.department_id,
+    });
+
+    if (!teacher) {
+      throw new AppError("Teacher does not belong to this course's department", 404, "TEACHER_NOT_FOUND");
+    }
+  }
+
+  // Pre-flight duplicate check: same code within same course (scoped to college)
+  const duplicate = await Subject.findOne({
     college_id: req.college_id,
-    department_id: course.department_id, // 🔥 IMPORTANT
+    course_id,
+    code: code.trim().toUpperCase(),
   });
 
-  if (!teacher) {
-    throw new AppError("Teacher does not belong to this course's department", 404, "TEACHER_NOT_FOUND");
+  if (duplicate) {
+    throw new AppError("Code must be unique within this course.", 409, "DUPLICATE_SUBJECT_CODE");
   }
 
   const subject = await Subject.create({
@@ -122,6 +135,20 @@ exports.updateSubject = async (req, res, next) => {
 
       // Update department_id if needed (should match course department)
       req.body.department_id = courseDepartmentId;
+    }
+
+    // Pre-flight duplicate check for code update
+    if (req.body.code) {
+      const existingForCode = await Subject.findOne({
+        _id: { $ne: req.params.id },
+        college_id: req.college_id,
+        course_id: req.body.course_id || (await Subject.findById(req.params.id))?.course_id,
+        code: req.body.code.trim().toUpperCase(),
+      });
+
+      if (existingForCode) {
+        throw new AppError("Code must be unique within this course.", 409, "DUPLICATE_SUBJECT_CODE");
+      }
     }
 
     const subject = await Subject.findOneAndUpdate(
