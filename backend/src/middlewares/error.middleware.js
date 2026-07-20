@@ -98,6 +98,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === 11000) {
     const keyPattern = err.keyPattern || {};
     const keyValue = err.keyValue || {};
+
     const isTimetableExceptionUniqueIndex =
       err.indexName === "idx_exception_unique_pending_approved" ||
       (
@@ -108,35 +109,47 @@ const errorHandler = (err, req, res, next) => {
         keyPattern.type === 1
       );
 
-    error = {
-      statusCode: 409,
-      message: "Duplicate timetable exception",
-      code: "DUPLICATE_EXCEPTION",
-    };
+    const isCourseUniqueIndex =
+      err.indexName === "college_id_1_department_id_1_code_1" ||
+      (
+        keyPattern.college_id === 1 &&
+        keyPattern.department_id === 1 &&
+        keyPattern.code === 1
+      );
 
-    if (!isTimetableExceptionUniqueIndex) {
-      const isCourseUniqueIndex =
-        err.indexName === "college_id_1_department_id_1_code_1" ||
-        (
-          keyPattern.college_id === 1 &&
-          keyPattern.department_id === 1 &&
-          keyPattern.code === 1
-        );
+    const isSubjectUniqueIndex =
+      err.indexName === "college_id_1_course_id_1_code_1" ||
+      (
+        keyPattern.college_id === 1 &&
+        keyPattern.course_id === 1 &&
+        keyPattern.code === 1
+      );
 
-      if (isCourseUniqueIndex) {
-        error = {
-          statusCode: 409,
-          message: "duplicate course code",
-          code: "DUPLICATE_COURSE_CODE",
-        };
-      } else {
-        const field = Object.keys(keyValue)[0];
-        error = {
-          statusCode: 409,
-          message: `${field || "field"} already exists`,
-          code: "DUPLICATE_FIELD",
-        };
-      }
+    if (isTimetableExceptionUniqueIndex) {
+      error = {
+        statusCode: 409,
+        message: "Duplicate timetable exception",
+        code: "DUPLICATE_EXCEPTION",
+      };
+    } else if (isCourseUniqueIndex) {
+      error = {
+        statusCode: 409,
+        message: "duplicate course code",
+        code: "DUPLICATE_COURSE_CODE",
+      };
+    } else if (isSubjectUniqueIndex) {
+      error = {
+        statusCode: 409,
+        message: "Code must be unique within this course.",
+        code: "DUPLICATE_SUBJECT_CODE",
+      };
+    } else {
+      const field = Object.keys(keyValue)[0];
+      error = {
+        statusCode: 409,
+        message: `${field || "field"} already exists`,
+        code: "DUPLICATE_FIELD",
+      };
     }
   }
 

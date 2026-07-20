@@ -353,20 +353,12 @@ export default function AddSubject() {
           errorCode,
         });
       } else {
-        let errorMessage = "Failed to create subject. Please try again.";
+        const backendMessage = err.response?.data?.error?.message || err.response?.data?.message;
 
-        if (err.response) {
-          if (err.response.status === 500) {
-            errorMessage = "Server error. Please contact system administrator.";
-          } else if (err.response.status === 400) {
-            errorMessage =
-              err.response.data?.message ||
-              "Invalid data submitted. Please check all fields.";
-          } else if (err.response.status === 409) {
-            errorMessage = "Subject with this code already exists.";
-          } else if (err.response.data?.message) {
-            errorMessage = err.response.data.message;
-          }
+        let errorMessage = backendMessage || "Failed to create subject. Please try again.";
+
+        if (!backendMessage && err.response?.status === 500) {
+          errorMessage = "Server error. Please contact system administrator.";
         }
 
         setError(errorMessage);
