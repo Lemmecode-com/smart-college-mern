@@ -66,7 +66,12 @@ const courseSchema = new mongoose.Schema(
 
     maxStudents: {
       type: Number,
-      required: true
+      required: [true, "Maximum Students is required"],
+      min: [1, "Maximum Students must be greater than 0"],
+      validate: {
+        validator: Number.isInteger,
+        message: "Maximum Students must be a whole number"
+      }
     },
 
     yearLabels: {

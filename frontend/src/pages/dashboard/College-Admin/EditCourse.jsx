@@ -81,6 +81,17 @@ export default function EditCourse() {
     setSaving(true);
     setError("");
 
+    const maxStudentsNum = Number(formData.maxStudents);
+    if (
+      formData.maxStudents === "" ||
+      !Number.isInteger(maxStudentsNum) ||
+      maxStudentsNum <= 0
+    ) {
+      setError("Maximum Students must be greater than 0");
+      setSaving(false);
+      return;
+    }
+
     try {
       await api.put(`/courses/${id}`, {
         name: formData.name,
@@ -175,7 +186,7 @@ export default function EditCourse() {
 
               <Input label="Program Duration (Semesters)" type="number" name="durationSemesters" value={formData.durationSemesters} onChange={handleChange} min="1" max="8" />
               <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
-              <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} />
+              <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} min="1" step="1" />
             </div>
 
           </div>
