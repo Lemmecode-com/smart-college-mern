@@ -91,8 +91,8 @@ export default function MyTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -195,7 +195,7 @@ export default function MyTimetable() {
 
   const getAttendanceButtonState = (slot, dayCode) => {
     const isToday = dayCode === getTodayDayAbbr();
-    const isPublished = timetable?.status === "PUBLISHED";
+    const isPublished = slot.timetable_id?.status === "PUBLISHED";
 
     if (!isPublished) return "unpublished";
     if (!isToday) return "not_today";
@@ -236,7 +236,6 @@ export default function MyTimetable() {
       // First, get the teacher's weekly timetable to find the timetable ID
       const res = await api.get("/timetable/weekly");
 
-      setTimetable(res.data.timetable || null);
       setWeekly(res.data.weekly || {});
 
       // Update date range from backend if available
