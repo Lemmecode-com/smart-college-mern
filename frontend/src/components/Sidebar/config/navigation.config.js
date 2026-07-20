@@ -466,12 +466,12 @@ export const navigationConfig = {
             label: "My Timetables",
             exact: true,
           },
-          {
-            path: "/timetable/list",
-            icon: FaListOl,
-            label: "View Timetables",
-            exact: true,
-          },
+          // {
+          //   path: "/timetable/list",
+          //   icon: FaListOl,
+          //   label: "View Timetables",
+          //   exact: true,
+          // },
           // {
           //   path: "/timetable/add-slot",
           //   icon: FaPlus,
