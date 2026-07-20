@@ -91,8 +91,8 @@ export default function MyTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -116,8 +116,8 @@ export default function MyTimetable() {
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
-  const [activeSessions, setActiveSessions] = useState({});
-  const [attendanceSessions, setAttendanceSessions] = useState({});
+  const [openSessions, setOpenSessions] = useState({});
+  const [closedSessions, setClosedSessions] = useState({});
   const [creatingAttendance, setCreatingAttendance] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [attendanceConfirmModal, setAttendanceConfirmModal] = useState({
@@ -141,37 +141,40 @@ export default function MyTimetable() {
     return () => clearInterval(timer);
   }, []);
 
-  /* ================= LOAD ACTIVE ATTENDANCE SESSIONS ================= */
+  /* ================= LOAD ATTENDANCE SESSIONS ================= */
   useEffect(() => {
-    const loadActiveSessions = async () => {
+    const loadAttendanceSessions = async () => {
       if (!timetableId) return;
       try {
         const today = new Date();
         const todayStr = today.toISOString().split("T")[0];
         const res = await api.get("/attendance/sessions", {
-          params: { date: todayStr, status: "active" },
+          params: { date: todayStr, limit: 100 },
         });
-        const sessionsMap = {};
-        const attendanceMap = {};
+        const openMap = {};
+        const closedMap = {};
         if (res.data.sessions) {
           res.data.sessions.forEach((session) => {
             const slotId =
               typeof session.slot_id === "object"
                 ? session.slot_id._id
                 : session.slot_id;
-            sessionsMap[slotId] = session;
-            attendanceMap[slotId] = session;
+            if (session.status === "CLOSED") {
+              closedMap[slotId] = session;
+            } else {
+              openMap[slotId] = session;
+            }
           });
         }
-        setActiveSessions(sessionsMap);
-        setAttendanceSessions(attendanceMap);
+        setOpenSessions(openMap);
+        setClosedSessions(closedMap);
       } catch (err) {
         // Silently fail - use empty state
       }
     };
 
     if (user?.role === "TEACHER" && timetableId) {
-      loadActiveSessions();
+      loadAttendanceSessions();
     }
   }, [timetableId, user?.role]);
 
@@ -195,7 +198,7 @@ export default function MyTimetable() {
 
   const getAttendanceButtonState = (slot, dayCode) => {
     const isToday = dayCode === getTodayDayAbbr();
-    const isPublished = timetable?.status === "PUBLISHED";
+    const isPublished = slot.timetable_id?.status === "PUBLISHED";
 
     if (!isPublished) return "unpublished";
     if (!isToday) return "not_today";
@@ -209,7 +212,6 @@ export default function MyTimetable() {
     if (isHoliday) return "holiday";
     if (isRescheduled) return "rescheduled";
 
-    const slotStatus = isTimeWithinSlot(slot) ? "active" : "past";
     const [endH, endM] = slot.endTime.split(":").map(Number);
     const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
     const endMinutes = endH * 60 + endM;
@@ -218,10 +220,10 @@ export default function MyTimetable() {
     if (!isTimeWithinSlot(slot)) return "upcoming";
 
     const slotId = slot._id;
-    const hasActiveSession = !!activeSessions[slotId] || slot.hasOpenSession;
-    const hasClosedSession = !!attendanceSessions[slotId] || slot.hasClosedSession;
+    const hasOpenSession = !!openSessions[slotId] || slot.hasOpenSession;
+    const hasClosedSession = !!closedSessions[slotId] || slot.hasClosedSession;
 
-    if (hasActiveSession) return "active";
+    if (hasOpenSession) return "completed";
     if (hasClosedSession) return "ended";
 
     return "start";
@@ -236,7 +238,6 @@ export default function MyTimetable() {
       // First, get the teacher's weekly timetable to find the timetable ID
       const res = await api.get("/timetable/weekly");
 
-      setTimetable(res.data.timetable || null);
       setWeekly(res.data.weekly || {});
 
       // Update date range from backend if available
@@ -482,8 +483,7 @@ export default function MyTimetable() {
       const newSession = res.data.session;
       const slotId = slot._id;
 
-      setActiveSessions((prev) => ({ ...prev, [slotId]: newSession }));
-      setAttendanceSessions((prev) => ({ ...prev, [slotId]: newSession }));
+      setOpenSessions((prev) => ({ ...prev, [slotId]: newSession }));
 
       toast.success("Attendance session started! Redirecting...", {
         position: "top-right",
@@ -494,7 +494,7 @@ export default function MyTimetable() {
       setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
 
       setTimeout(() => {
-        navigate(`/attendance/session/${newSession._id}`);
+        navigate(`/attendance/session/${newSession._id}/mark`);
       }, 1500);
     } catch (err) {
       const message =
@@ -519,11 +519,11 @@ export default function MyTimetable() {
         message.toLowerCase().includes("duplicate")
       ) {
         const slotId = slot._id;
-        setActiveSessions((prev) => ({
+        setOpenSessions((prev) => ({
           ...prev,
           [slotId]: { _id: "existing", status: "active" },
         }));
-        setAttendanceSessions((prev) => ({
+        setClosedSessions((prev) => ({
           ...prev,
           [slotId]: { _id: "existing", status: "active" },
         }));
@@ -1112,7 +1112,6 @@ export default function MyTimetable() {
                               {/* ================= ATTENDANCE BUTTON ================= */}
                               {(() => {
                                 const btnState = getAttendanceButtonState(slot, dayCode);
-                                const slotId = slot._id;
 
                                 if (btnState === "cancelled" || btnState === "holiday" || btnState === "rescheduled") {
                                   return null;
@@ -1217,51 +1216,64 @@ export default function MyTimetable() {
                                   );
                                 }
 
-                                if (btnState === "active") {
+                                if (btnState === "completed") {
+                                  const session = openSessions[slot._id];
+                                  const sessionId = session?._id;
                                   return (
                                     <motion.div
                                       initial={{ opacity: 0, scale: 0.95 }}
                                       animate={{ opacity: 1, scale: 1 }}
+                                      onClick={() => sessionId && navigate(`/attendance/session/${sessionId}`)}
                                       style={{
                                         marginTop: "0.75rem",
                                         padding: "0.6rem 0.75rem",
                                         borderRadius: "8px",
-                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
-                                        color: "white",
+                                        background: "#dcfce7",
+                                        border: "1px solid #86efac",
                                         fontSize: "0.85rem",
+                                        color: "#166534",
                                         fontWeight: 600,
-                                        cursor: "default",
+                                        cursor: sessionId ? "pointer" : "default",
                                         display: "flex",
                                         alignItems: "center",
+                                        justifyContent: "center",
                                         gap: "0.5rem",
                                         boxShadow: "0 4px 12px rgba(40, 167, 69, 0.35)",
                                       }}
                                     >
                                       <FaCheckCircle size={14} />
-                                      <span>Attendance Active</span>
+                                      <span>Attendance Marked</span>
                                     </motion.div>
                                   );
                                 }
 
                                 if (btnState === "ended") {
+                                  const session = closedSessions[slot._id];
+                                  const sessionId = session?._id;
                                   return (
-                                    <div
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      onClick={() => sessionId && navigate(`/attendance/session/${sessionId}`)}
                                       style={{
                                         marginTop: "0.75rem",
-                                        padding: "0.5rem 0.75rem",
+                                        padding: "0.6rem 0.75rem",
                                         borderRadius: "8px",
                                         background: "#f1f5f9",
                                         border: "1px solid #e2e8f0",
-                                        fontSize: "0.75rem",
+                                        fontSize: "0.85rem",
                                         color: "#64748b",
+                                        fontWeight: 600,
+                                        cursor: sessionId ? "pointer" : "default",
                                         display: "flex",
                                         alignItems: "center",
-                                        gap: "0.375rem",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
                                       }}
                                     >
-                                      <FaTimesCircle size={12} />
-                                      <span>Session ended at {formatTime12Hour(slot.endTime)}</span>
-                                    </div>
+                                      <FaTimesCircle size={14} />
+                                      <span>Session Ended</span>
+                                    </motion.div>
                                   );
                                 }
 
