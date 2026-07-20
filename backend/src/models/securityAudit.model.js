@@ -204,11 +204,10 @@ function decryptDoc(doc) {
   }
 }
 
-securityAuditSchema.pre('save', function(next) {
+securityAuditSchema.pre('save', async function() {
   for (const field of SENSITIVE_FIELDS) {
     this[field] = encryptField(this[field]);
   }
-  next();
 });
 
 securityAuditSchema.pre('findOneAndUpdate', async function() {
