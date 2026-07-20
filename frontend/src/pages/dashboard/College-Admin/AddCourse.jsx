@@ -155,6 +155,12 @@ export default function AddCourse() {
       return;
     }
 
+    const maxStudentsNum = Number(formData.maxStudents);
+    if (!Number.isInteger(maxStudentsNum) || maxStudentsNum <= 0) {
+      setError("Maximum Students must be greater than 0");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
