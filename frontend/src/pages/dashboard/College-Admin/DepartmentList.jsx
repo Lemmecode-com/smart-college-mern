@@ -272,7 +272,7 @@ export default function DepartmentList() {
       {showHelp && (
         <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
           <div className="d-flex align-items-start gap-2">
-            <FaInfoCircle className="mt-1 flex-shrink-0" size={20} />
+            <FaInfoCircle className="mt-1 flex-shrink-0" size={20} /> 
             <div>
               <h6 className="fw-bold mb-1">Department Management Tips</h6>
               <ul className="mb-0 small ps-3">
@@ -282,10 +282,10 @@ export default function DepartmentList() {
                   Click <FaEdit className="mx-1" size={12} /> to edit department
                   details
                 </li>
-                <li>
+                {/* <li>
                   Click <FaUserTie className="mx-1" size={12} /> to assign Head
                   of Department (HOD)
-                </li>
+                </li> */}
                 <li>Only departments with no students can be deleted</li>
               </ul>
               <button
@@ -581,7 +581,7 @@ export default function DepartmentList() {
                                 <FaEdit size={14} />
                               </button>
                             )}
-                            {canEdit('departments') && (
+                            {/* {canEdit('departments') && (
                               <button
                                 className="btn btn-sm btn-outline-warning hover-lift"
                                 title="Assign HOD"
@@ -591,7 +591,7 @@ export default function DepartmentList() {
                               >
                                 <FaUserTie size={14} />
                               </button>
-                             )}
+                             )} */}
                              {canEdit('departments') && d.hod_id && (
                                <button
                                  className="btn btn-sm btn-outline-secondary hover-lift"
