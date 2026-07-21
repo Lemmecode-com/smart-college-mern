@@ -100,6 +100,7 @@ export const AuthProvider = ({ children }) => {
         errorData.error?.code ||
         null,
       user,
+      lockedUntil: errorData.error?.data?.lockedUntil,
     };
   }
   };

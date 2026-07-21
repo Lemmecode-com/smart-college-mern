@@ -65,6 +65,7 @@ exports.login = async (req, res, next) => {
           `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
           423,
           "ACCOUNT_LOCKED",
+          { lockedUntil: user.lockedUntil.toISOString() },
         );
       }
 
@@ -116,6 +117,7 @@ exports.login = async (req, res, next) => {
           `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
           423,
           "ACCOUNT_LOCKED",
+          { lockedUntil: teacher.lockedUntil.toISOString() },
         );
       }
 
@@ -185,6 +187,7 @@ exports.login = async (req, res, next) => {
             `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
             423,
             "ACCOUNT_LOCKED",
+            { lockedUntil: user.lockedUntil.toISOString() },
           );
         }
 
@@ -224,6 +227,7 @@ exports.login = async (req, res, next) => {
             `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
             423,
             "ACCOUNT_LOCKED",
+            { lockedUntil: user.lockedUntil.toISOString() },
           );
         }
 
