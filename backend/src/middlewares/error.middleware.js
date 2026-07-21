@@ -200,6 +200,7 @@ const errorHandler = (err, req, res, next) => {
       statusCode: err.statusCode,
       message: err.message,
       code: err.code,
+      data: err.data || {},
     };
   } else if (err.statusCode && err.code) {
     // Handle errors from services that have statusCode and code but aren't AppError instances
@@ -242,6 +243,7 @@ const errorHandler = (err, req, res, next) => {
       code,
       message,
       details: error.details || {},
+      data: error.data || {},
     },
   });
 

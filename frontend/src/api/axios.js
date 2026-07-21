@@ -23,6 +23,8 @@ const AUTH_ERROR_CODES = new Set([
   "UNAUTHORIZED",
 ]);
 
+let responseInterceptor401CallCount = 0;
+
 // Request interceptor - ensure credentials are always sent
 api.interceptors.request.use(
   (config) => {
@@ -99,7 +101,14 @@ api.interceptors.response.use(
 
     // Handle 401 errors globally
     if (error.response?.status === 401) {
+      responseInterceptor401CallCount++;
       const errorCode = error.response?.data?.code;
+      const now = new Date().toISOString();
+      const requestUrl = error.config?.url || "unknown";
+
+      console.log(
+        `[AxiosResponseInterceptor] Time=${now} | URL=${requestUrl} | Status=401 | ErrorCode=${errorCode || "NONE"} | CallCount=${responseInterceptor401CallCount} | SkipBroadcast=${error.config?._skipAuthBroadcast || false}`
+      );
 
       if (errorCode && AUTH_ERROR_CODES.has(errorCode) && !error.config?._skipAuthBroadcast) {
         broadcastAuthInvalidation(errorCode);
