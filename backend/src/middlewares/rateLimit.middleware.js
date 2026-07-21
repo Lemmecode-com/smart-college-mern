@@ -107,11 +107,13 @@ const authLimiter = rateLimit({
     const identifierType = email ? "email" : "ip";
     const options = req.rateLimit;
     const windowMs = typeof options?.windowMs === 'number' ? options.windowMs : (15 * 60 * 1000);
+    const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
+    const windowLabel = windowMinutes === 1 ? "minute" : "minutes";
     const max = typeof options?.max === 'number' ? options.max : 5;
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
       identifier,
       type: identifierType,
-      window: `${windowMs / 60000} minutes`,
+      window: `${windowMinutes} minutes`,
       max,
       endpoint: "auth",
     });
@@ -120,7 +122,7 @@ const authLimiter = rateLimit({
       message:
         process.env.NODE_ENV === "development"
           ? "Too many login attempts, please wait 1 minute (Development Mode)"
-          : "Too many login attempts, please try again after 15 minutes",
+          : `Too many login attempts, please try again after ${windowMinutes} ${windowLabel}`,
       code: "RATE_LIMIT_EXCEEDED",
     });
   },
