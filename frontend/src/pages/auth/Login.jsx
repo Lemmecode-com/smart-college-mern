@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,8 +21,13 @@ import {
 export default function Login() {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    searchParams.get("session") === "expired"
+      ? "Your session has expired because your account was accessed from another location. Please sign in again."
+      : ""
+  );
   const [forgotMode, setForgotMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,7 +73,9 @@ export default function Login() {
         return;
       }
 
-      if (errorMsg.includes("awaiting admin approval")) {
+      if (result.code === "ACCOUNT_LOCKED") {
+        setError(`🔒 ${errorMsg}`);
+      } else if (errorMsg.includes("awaiting admin approval")) {
         setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
       } else if (errorMsg.includes("rejected")) {
         setError("❌ Your account has been rejected. Please contact the admin for more information.");

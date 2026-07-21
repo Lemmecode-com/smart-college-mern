@@ -1,18 +1,49 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useRef, useCallback } from "react";
 import api from "../api/axios";
 import { logger } from "../utils/logger";
+import { listenForAuthInvalidation, broadcastAuthInvalidation } from "../utils/authSync";
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef(user);
+  userRef.current = user;
 
-   /* ========== LOGIN ========== */
-   const login = async (credentials) => {
-     try {
-       // Note: With httpOnly cookies, the token will be stored in the cookie automatically
-       const res = await api.post("/auth/login", credentials);
+  // Guard to prevent concurrent or duplicate session invalidation
+  const isInvalidatingRef = useRef(false);
+
+  const performSessionInvalidation = useCallback(async () => {
+    if (isInvalidatingRef.current) return;
+    isInvalidatingRef.current = true;
+
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      logger.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      sessionStorage.clear();
+      window.location.href = "/login?session=expired";
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = listenForAuthInvalidation(() => {
+      if (userRef.current) {
+        performSessionInvalidation();
+      }
+    });
+
+    return unsubscribe;
+  }, [performSessionInvalidation]);
+
+  /* ========== LOGIN ========== */
+  const login = async (credentials) => {
+      try {
+        // Note: With httpOnly cookies, the token will be stored in the cookie automatically
+        const res = await api.post("/auth/login", credentials);
 
 // Get user info from the response (interceptor unwraps it)
         const userInfo = res.data.user || {
@@ -47,11 +78,11 @@ export const AuthProvider = ({ children }) => {
           });
         }
 
-       // Return success and user data for first-login handling
-       return { 
-         success: true, 
-         user: userInfo 
-       };
+        // Return success and user data for first-login handling
+        return { 
+          success: true, 
+          user: userInfo 
+        };
       } catch (error) {
     const errorData = error?.response?.data || {};
     const userId = errorData?.user?.id;
@@ -71,7 +102,7 @@ export const AuthProvider = ({ children }) => {
       user,
     };
   }
-   };
+  };
 
   /* ========== LOGOUT ========== */
   const logout = async () => {
@@ -86,9 +117,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const logoutDueToSessionInvalidation = async () => {
+    if (isInvalidatingRef.current) return;
+    isInvalidatingRef.current = true;
+
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      logger.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      sessionStorage.clear();
+      broadcastAuthInvalidation("SESSION_INVALIDATED");
+      window.location.href = "/login?session=expired";
+    }
+  };
+
   /* ========== RESTORE SESSION ========== */
   useEffect(() => {
-    // With httpOnly cookies, we need to make an API call to verify if the user is authenticated
+    // Skip auth check on public routes to avoid unnecessary API calls and redirect loops
+    if (typeof window !== "undefined") {
+      const publicRoutes = ["/login", "/forgot-password", "/verify-otp", "/register"];
+      const isPublicRoute = publicRoutes.some((route) =>
+        window.location.pathname === route || window.location.pathname.startsWith("/register/")
+      );
+      if (isPublicRoute) {
+        setLoading(false);
+        return;
+      }
+    }
+
     const checkAuthStatus = async () => {
       try {
         const res = await api.get("/auth/me");
@@ -113,6 +171,21 @@ export const AuthProvider = ({ children }) => {
         }
         // User is not authenticated - this is normal, not an error
         setUser(null);
+
+        const errorCode = error.response?.data?.code;
+        if (errorCode === "SESSION_INVALIDATED") {
+          // Only redirect if we are not already on the login page with session=expired.
+          // Setting window.location.href to the same URL still triggers a browser reload,
+          // which would cause an infinite loop because checkAuthStatus() would run again.
+          if (typeof window !== "undefined") {
+            const alreadyOnLoginExpired =
+              window.location.pathname === "/login" &&
+              window.location.search.includes("session=expired");
+            if (!alreadyOnLoginExpired) {
+              window.location.href = "/login?session=expired";
+            }
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -128,6 +201,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         logout,
+        logoutDueToSessionInvalidation,
         isAuthenticated: Boolean(user),
       }}
     >

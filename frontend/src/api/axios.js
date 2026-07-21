@@ -1,4 +1,5 @@
 import axios from "axios";
+import { broadcastAuthInvalidation } from "../utils/authSync";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
@@ -13,9 +14,25 @@ const api = axios.create({
   withCredentials: true, // Enable sending cookies with requests
 });
 
+const AUTH_ERROR_CODES = new Set([
+  "SESSION_INVALIDATED",
+  "TOKEN_INVALIDATED",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_MISSING",
+  "INVALID_TOKEN",
+  "UNAUTHORIZED",
+]);
+
 // Request interceptor - ensure credentials are always sent
 api.interceptors.request.use(
   (config) => {
+    // Mark logout requests so the response interceptor can skip broadcasting
+    // auth errors for them. This prevents infinite broadcast loops when
+    // performSessionInvalidation calls /auth/logout on other tabs.
+    if (config.url === "/auth/logout") {
+      config._skipAuthBroadcast = true;
+    }
+
     // No need to manually add Authorization header with httpOnly cookies
     // The browser automatically sends cookies with requests
     return config;
@@ -82,8 +99,11 @@ api.interceptors.response.use(
 
     // Handle 401 errors globally
     if (error.response?.status === 401) {
-      // Optionally: Clear any local storage if you store anything there
-      // localStorage.removeItem('someKey');
+      const errorCode = error.response?.data?.code;
+
+      if (errorCode && AUTH_ERROR_CODES.has(errorCode) && !error.config?._skipAuthBroadcast) {
+        broadcastAuthInvalidation(errorCode);
+      }
     }
 
     return Promise.reject(error);

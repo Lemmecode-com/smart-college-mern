@@ -170,6 +170,9 @@ app.use("/api/public", require("./src/routes/public.department.course.routes"));
 /* ================= DOCUMENT CONFIGURATION ================= */
 app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 
+/* ================= GENERAL SETTINGS ================= */
+app.use("/api/general-settings", require("./src/routes/generalSettings.routes"));
+
 /* ================= STATIC FILES (PROTECTED) ================= */
 // Only serve college QR codes publicly (safe — just college code)
 // Student documents are served via secure API endpoint /api/students/documents/:filename
