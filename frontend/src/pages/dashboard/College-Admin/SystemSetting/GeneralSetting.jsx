@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   FaUsers,
   FaShieldAlt,
@@ -9,23 +9,18 @@ import {
   FaInfoCircle,
   FaCheck,
 } from "react-icons/fa";
+import { getGeneralSettings, updateGeneralSettings } from "../../../../api/generalSettings";
+import { showSuccess, showError } from "../../../../utils/toast";
 
 const GeneralSetting = () => {
   const [formData, setFormData] = useState({
-    // User & Access Rules
     autoDisableInactiveDays: "180",
     allowMultipleLogins: "restricted",
-
-    // Security Policies
     passwordExpiryDays: "90",
     minPasswordLength: "8",
     maxLoginAttempts: "5",
-
-    // Data & Audit
     allowDataExport: "restricted",
     backupFrequency: "daily",
-
-    // UI Defaults
     defaultTheme: "light",
     dateFormat: "DD-MM-YYYY",
     currency: "INR",
@@ -34,6 +29,39 @@ const GeneralSetting = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  const fetchSettings = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const data = await getGeneralSettings();
+      const settings = data;
+      setFormData({
+        autoDisableInactiveDays: String(settings.autoDisableInactiveDays ?? 180),
+        allowMultipleLogins: settings.allowMultipleLogins ?? "restricted",
+        passwordExpiryDays: String(settings.passwordExpiryDays ?? 90),
+        minPasswordLength: String(settings.minPasswordLength ?? 8),
+        maxLoginAttempts: String(settings.maxLoginAttempts ?? 5),
+        allowDataExport: settings.allowDataExport ?? "restricted",
+        backupFrequency: settings.backupFrequency ?? "daily",
+        defaultTheme: settings.defaultTheme ?? "light",
+        dateFormat: settings.dateFormat ?? "DD-MM-YYYY",
+        currency: settings.currency ?? "INR",
+        itemsPerPage: String(settings.itemsPerPage ?? 25),
+      });
+      setIsModified(false);
+    } catch (err) {
+      setFetchError(err?.response?.data?.error?.message || "Failed to load settings");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,12 +72,30 @@ const GeneralSetting = () => {
     setIsModified(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      const payload = {
+        allowMultipleLogins: formData.allowMultipleLogins,
+        autoDisableInactiveDays: Number(formData.autoDisableInactiveDays),
+        passwordExpiryDays: Number(formData.passwordExpiryDays),
+        minPasswordLength: Number(formData.minPasswordLength),
+        maxLoginAttempts: Number(formData.maxLoginAttempts),
+        allowDataExport: formData.allowDataExport,
+        backupFrequency: formData.backupFrequency,
+        defaultTheme: formData.defaultTheme,
+        dateFormat: formData.dateFormat,
+        currency: formData.currency,
+        itemsPerPage: Number(formData.itemsPerPage),
+      };
+      await updateGeneralSettings(payload);
+      showSuccess("Settings saved successfully");
       setIsModified(false);
-    }, 1500);
+    } catch (err) {
+      showError(err?.response?.data?.error?.message || "Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -68,6 +114,40 @@ const GeneralSetting = () => {
     });
     setIsModified(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="general-settings-page">
+        <div style={{ textAlign: "center", padding: "4rem 1rem", color: "#718096" }}>
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="general-settings-page">
+        <div style={{ textAlign: "center", padding: "4rem 1rem", color: "#e53e3e" }}>
+          {fetchError}
+          <button
+            onClick={fetchSettings}
+            style={{
+              marginLeft: "1rem",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.375rem",
+              border: "none",
+              background: "#3db5e6",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
