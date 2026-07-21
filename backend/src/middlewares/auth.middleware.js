@@ -2,7 +2,9 @@ const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
 const User = require("../models/user.model");
+const AuthSession = require("../models/authSession.model");
 const { toOpaqueId } = require("../utils/opaqueId");
+const logger = require("../utils/logger");
 
 /**
  * Authentication Middleware
@@ -75,12 +77,37 @@ module.exports = async (req, res, next) => {
       );
     }
 
+    const sessionId = decoded.sessionId || null;
+
+    if (sessionId) {
+      const session = await AuthSession.findOne({ sessionId, user_id: decoded.id }).lean();
+      if (!session || !session.isActive) {
+        return next(
+          new AppError(
+            "Your session has expired because your account was accessed from another location.",
+            401,
+            "SESSION_INVALIDATED",
+          ),
+        );
+      }
+      req.authSession = session;
+    } else {
+      logger.logWarning("JWT missing sessionId", {
+        userId: decoded.id,
+        role: decoded.role,
+        college_id: decoded.college_id,
+      });
+    }
+
+    req.sessionId = sessionId;
+
     // Attach user info to request
     req.user = {
       id: decoded.id,
       opaqueId: toOpaqueId(decoded.id),
       role: decoded.role,
       college_id: decoded.college_id || null,
+      sessionId,
     };
 
     next();

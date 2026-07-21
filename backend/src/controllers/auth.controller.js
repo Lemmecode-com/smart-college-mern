@@ -10,6 +10,8 @@ const User = require("../models/user.model");
 const RefreshToken = require("../models/refreshToken.model");
 const TokenBlacklist = require("../models/tokenBlacklist.model");
 const PasswordReset = require("../models/passwordReset.model");
+const AuthSession = require("../models/authSession.model");
+const GeneralSettings = require("../models/generalSettings.model");
 const AppError = require("../utils/AppError");
 const { validatePassword, passwordValidationMessage } = require("../utils/validators");
 const {
@@ -21,7 +23,8 @@ const {
 const securityAuditService = require("../services/securityAudit.service");
 
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const LOGIN_LOCKOUT_MINUTES = parseInt(process.env.LOGIN_LOCKOUT_MINUTES, 10) || 1;
+const LOCKOUT_DURATION_MS = LOGIN_LOCKOUT_MINUTES * 60 * 1000;
 
 const isAccountLocked = (record) => {
   if (!record) return false;
@@ -57,8 +60,9 @@ exports.login = async (req, res, next) => {
     if (user) {
       if (isAccountLocked(user)) {
         const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+        const remainingLabel = remaining === 1 ? "minute" : "minutes";
         throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
           423,
           "ACCOUNT_LOCKED",
         );
@@ -107,8 +111,9 @@ exports.login = async (req, res, next) => {
     if (teacher) {
       if (isAccountLocked(teacher)) {
         const remaining = Math.ceil((new Date(teacher.lockedUntil) - new Date()) / 60000);
+        const remainingLabel = remaining === 1 ? "minute" : "minutes";
         throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
+          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
           423,
           "ACCOUNT_LOCKED",
         );
@@ -265,10 +270,18 @@ exports.logout = async (req, res, next) => {
     const accessToken = req.cookies.token;
     const refreshToken = req.cookies.refreshToken;
 
-    // Get user email for audit logging (req.user doesn't have email)
+    let sessionId = null;
+    if (accessToken) {
+      try {
+        const decoded = jwt.decode(accessToken);
+        sessionId = decoded?.sessionId;
+      } catch (error) {
+        // ignore decode errors
+      }
+    }
+
     let userEmail = req.user.email || "unknown@user";
     if (!userEmail || userEmail === "unknown@user") {
-      // Try to get email from User collection
       const User = require("../models/user.model");
       const user = await User.findById(req.user.id).select("email").lean();
       if (user) {
@@ -276,7 +289,6 @@ exports.logout = async (req, res, next) => {
       }
     }
 
-    // 🔒 SECURITY: Blacklist access token (immediate invalidation)
     if (accessToken) {
       try {
         const decoded = jwt.decode(accessToken);
@@ -294,10 +306,22 @@ exports.logout = async (req, res, next) => {
       }
     }
 
-    // Calculate session duration (approximate)
     const sessionDuration = "Session ended";
 
-    // 🔒 SECURITY AUDIT: Log logout with user email
+    if (sessionId) {
+      await AuthSession.findOneAndUpdate(
+        { sessionId, user_id: req.user.id },
+        { $set: { isActive: false } },
+      );
+    }
+
+    logger.logInfo("Session deactivated", {
+      sessionId,
+      userId: req.user.id,
+      role: req.user.role,
+      college_id: req.user.college_id,
+    });
+
     const logoutUserData = {
       id: req.user.id,
       email: userEmail,
@@ -306,7 +330,6 @@ exports.logout = async (req, res, next) => {
     };
     await securityAuditService.logLogout(logoutUserData, req, sessionDuration);
 
-    // Clear the token cookie
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -319,7 +342,6 @@ exports.logout = async (req, res, next) => {
       sameSite: "strict",
     });
 
-    // Revoke refresh token if exists
     if (refreshToken) {
       await RefreshToken.findOneAndUpdate(
         { token: refreshToken },
@@ -348,9 +370,13 @@ exports.refreshToken = async (req, res, next) => {
       throw new AppError("Refresh token missing", 401, "REFRESH_TOKEN_MISSING");
     }
 
-    // Find and verify refresh token
+    const hashedRefreshToken = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
+
     const tokenRecord = await RefreshToken.findOne({
-      token: refreshToken,
+      token: hashedRefreshToken,
       isRevoked: false,
     });
 
@@ -362,24 +388,61 @@ exports.refreshToken = async (req, res, next) => {
       );
     }
 
-    // Check expiration
     if (new Date() > tokenRecord.expiresAt) {
       await RefreshToken.deleteOne({ _id: tokenRecord._id });
       throw new AppError("Refresh token expired", 401, "REFRESH_TOKEN_EXPIRED");
     }
 
-    // Generate new access token
+    let sessionId = null;
+    try {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET + "_REFRESH");
+      sessionId = decoded?.sessionId;
+    } catch (error) {
+      // ignore decode errors
+    }
+
+    if (sessionId) {
+      const session = await AuthSession.findOne({
+        sessionId,
+        user_id: tokenRecord.user_id,
+      });
+
+      if (!session || !session.isActive) {
+        throw new AppError(
+          "Your session has expired because your account was accessed from another location.",
+          401,
+          "SESSION_INVALIDATED",
+        );
+      }
+
+      await AuthSession.findOneAndUpdate(
+        { sessionId, user_id: tokenRecord.user_id, isActive: true },
+        { $set: { lastActivityAt: new Date() } },
+      ).catch((err) => {
+        logger.logError("Failed to update AuthSession lastActivityAt", {
+          error: err.message,
+          sessionId,
+          userId: tokenRecord.user_id,
+        });
+      });
+    }
+
+    logger.logInfo("Token refreshed", {
+      sessionId,
+      userId: tokenRecord.user_id,
+    });
+
     const newAccessToken = jwt.sign(
       {
         id: tokenRecord.user_id,
-        role: req.user.role,
-        college_id: req.user.college_id,
+        role: req.user?.role || (await User.findById(tokenRecord.user_id).select("role").lean())?.role,
+        college_id: req.user?.college_id || (await User.findById(tokenRecord.user_id).select("college_id").lean())?.college_id,
+        sessionId,
       },
       process.env.JWT_SECRET,
       { expiresIn: getAccessTokenExpiry() },
     );
 
-    // Set new access token cookie
     res.cookie("token", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -514,6 +577,17 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
     // Also revoke all refresh tokens
     await RefreshToken.updateMany({ user_id: user._id }, { isRevoked: true });
 
+    // Also deactivate all auth sessions
+    await AuthSession.updateMany(
+      { user_id: user._id },
+      { $set: { isActive: false } },
+    );
+
+    logger.logInfo("Sessions invalidated on password reset", {
+      userId: user._id,
+      reason: "PASSWORD_RESET",
+    });
+
     // Mark OTP as used
     await markOTPAsUsed(result.record._id);
 
@@ -635,6 +709,12 @@ exports.changePassword = async (req, res, next) => {
     // Clear all existing tokens to force re-login with new password
     await RefreshToken.updateMany({ user_id: effectiveUserId }, { isRevoked: true });
 
+    // Also deactivate all auth sessions
+    await AuthSession.updateMany(
+      { user_id: effectiveUserId },
+      { $set: { isActive: false } },
+    );
+
     res.json({
       success: true,
       message: "Password changed successfully. Please login with your new password.",
@@ -648,41 +728,104 @@ exports.changePassword = async (req, res, next) => {
  * JWT GENERATOR - Access Token Only (Short-lived: 15 minutes)
  */
 const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
-  // 🔒 SECURITY: Short-lived access token (15 minutes)
+  const sessionId = crypto.randomUUID();
+
+  let allowMultipleLogins = "allowed";
+  try {
+    const settings = await GeneralSettings.findOne({ college_id });
+    if (settings) {
+      allowMultipleLogins = settings.allowMultipleLogins;
+    }
+  } catch (err) {
+    logger.logError("Failed to load GeneralSettings for session enforcement", {
+      error: err.message,
+      userId: id,
+      college_id,
+    });
+  }
+
+  if (allowMultipleLogins === "restricted") {
+    const existingSessions = await AuthSession.find({
+      user_id: id,
+      isActive: true,
+    }).lean();
+
+    if (existingSessions.length > 0) {
+      const oldSessionIds = existingSessions.map((s) => s.sessionId);
+
+      logger.logInfo("Sessions invalidated due to new login", {
+        userId: id,
+        reason: "NEW_LOGIN",
+        oldSessionIds,
+        newSessionId: sessionId,
+        role,
+        college_id,
+      });
+
+      await AuthSession.updateMany(
+        { user_id: id, isActive: true },
+        { $set: { isActive: false, updatedAt: new Date() } },
+      );
+
+      await RefreshToken.updateMany(
+        { user_id: id, isRevoked: false },
+        { isRevoked: true },
+      );
+    }
+  }
+
   const accessExpiry = process.env.JWT_ACCESS_EXPIRY;
-  // 🔒 SECURITY: Long-lived refresh token (7 days)
   const refreshExpiry = process.env.JWT_REFRESH_EXPIRY;
 
-  // Generate access token
   const accessToken = jwt.sign(
-    { id, role, college_id, tokenVersion: tokenVersion || 0 },
+    { id, role, college_id, tokenVersion: tokenVersion || 0, sessionId },
     process.env.JWT_SECRET,
     { expiresIn: accessExpiry },
   );
 
-  // Generate refresh token
   const refreshToken = jwt.sign(
-    { id, role, college_id, tokenVersion: tokenVersion || 0 },
-    process.env.JWT_SECRET + "_REFRESH", // Different secret for refresh tokens
+    { id, role, college_id, tokenVersion: tokenVersion || 0, sessionId },
+    process.env.JWT_SECRET + "_REFRESH",
     { expiresIn: refreshExpiry },
   );
 
-  // Hash refresh token before storing
   const hashedRefreshToken = crypto
     .createHash("sha256")
     .update(refreshToken)
     .digest("hex");
 
-  // Store refresh token in database
+  const refreshTokenExpiryMs = 7 * 24 * 60 * 60 * 1000;
+  const sessionExpiryDate = new Date(Date.now() + refreshTokenExpiryMs);
+
   await RefreshToken.create({
     user_id: id,
     token: hashedRefreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expiresAt: sessionExpiryDate,
     userAgent: req?.headers?.["user-agent"],
     ipAddress: req?.ip,
   });
 
-  // Set httpOnly cookies
+  await AuthSession.create({
+    sessionId,
+    user_id: id,
+    college_id,
+    role,
+    refreshTokenHash: hashedRefreshToken,
+    userAgent: req?.headers?.["user-agent"],
+    ipAddress: req?.ip,
+    isActive: true,
+    expiresAt: sessionExpiryDate,
+  });
+
+  logger.logInfo("Session created", {
+    userId: id,
+    sessionId,
+    role,
+    college_id,
+    ipAddress: req?.ip,
+    userAgent: req?.headers?.["user-agent"],
+  });
+
   res.cookie("token", accessToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -697,8 +840,6 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
     sameSite: "strict",
   });
 
-  // Send user info in the response (tokens are httpOnly cookies only)
-  // Using standardized format with data wrapper
   res.json({
     success: true,
     message: "Login successful",
