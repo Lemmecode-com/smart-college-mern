@@ -14,13 +14,30 @@ export const AuthProvider = ({ children }) => {
   // Guard to prevent concurrent or duplicate session invalidation
   const isInvalidatingRef = useRef(false);
 
+  let performSessionInvalidationCallCount = 0;
+
   const performSessionInvalidation = useCallback(async () => {
-    if (isInvalidatingRef.current) return;
+    if (isInvalidatingRef.current) {
+      console.log(
+        `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
+      );
+      return;
+    }
     isInvalidatingRef.current = true;
+    performSessionInvalidationCallCount++;
+
+    const now = new Date().toISOString();
+    console.log(
+      `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current}`
+    );
 
     try {
       await api.post("/auth/logout");
     } catch (error) {
+      const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
+      console.log(
+        `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount}`
+      );
       logger.error("Logout error:", error);
     } finally {
       setUser(null);
@@ -30,7 +47,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = listenForAuthInvalidation(() => {
+    const unsubscribe = listenForAuthInvalidation((data) => {
+      const now = new Date().toISOString();
+      console.log(
+        `[listenForAuthInvalidation] Time=${now} | ReceivedBroadcast | Type=${data.type} | Reason=${data.reason} | userRef.current=${!!userRef.current}`
+      );
       if (userRef.current) {
         performSessionInvalidation();
       }
@@ -174,7 +195,11 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
 
         const errorCode = error.response?.data?.code;
+        const now = new Date().toISOString();
         if (errorCode === "SESSION_INVALIDATED") {
+          console.log(
+            `[checkAuthStatus] Time=${now} | URL=/auth/me | Status=401 | ErrorCode=${errorCode} | RedirectingToLogin`
+          );
           // Only redirect if we are not already on the login page with session=expired.
           // Setting window.location.href to the same URL still triggers a browser reload,
           // which would cause an infinite loop because checkAuthStatus() would run again.
