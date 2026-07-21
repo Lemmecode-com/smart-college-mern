@@ -17,6 +17,7 @@ import {
   FaArrowRight,
   FaShieldAlt,
 } from "react-icons/fa";
+import useCountdown from "../../hooks/useCountdown";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
@@ -33,9 +34,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
+  const [lockRemaining, setLockRemaining] = useState(0);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const { formatTime: lockTime, reset: resetLockCountdown } = useCountdown(lockRemaining, () => {
+    setError("");
+    setLockRemaining(0);
+  });
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -74,6 +81,19 @@ export default function Login() {
       }
 
       if (result.code === "ACCOUNT_LOCKED") {
+        const lockedUntil = result.lockedUntil;
+        let remaining = 0;
+        if (lockedUntil) {
+          remaining = Math.max(0, Math.ceil((new Date(lockedUntil) - new Date()) / 1000));
+        } else if (errorMsg) {
+          const match = errorMsg.match(/(\d+)\s*minute/i);
+          if (match) {
+            remaining = Math.max(0, parseInt(match[1], 10) * 60);
+          }
+        }
+        if (remaining > 0) {
+          resetLockCountdown(remaining);
+        }
         setError(`🔒 ${errorMsg}`);
       } else if (errorMsg.includes("awaiting admin approval")) {
         setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
@@ -237,14 +257,23 @@ export default function Login() {
                 key="err"
                 className="lp-alert lp-alert--error"
                 initial={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
-                animate={{ opacity: 1, y: 0, maxHeight: 120, marginBottom: "1rem", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
+                animate={{ opacity: 1, y: 0, maxHeight: 200, marginBottom: "1rem", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
                 exit={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 style={{ overflow: "hidden" }}
               >
                 <FaExclamationCircle className="lp-alert__icon" />
-                <span>{error}</span>
-                <button className="lp-alert__close" onClick={() => setError("")}><FaTimes /></button>
+                <div className="lp-alert__body">
+                  <span className="lp-alert__text">{error}</span>
+                  {lockRemaining > 0 && (
+                    <div className="lp-alert__countdown">
+                      Try again in <span className="lp-alert__time">{lockTime}</span>
+                    </div>
+                  )}
+                </div>
+                {lockRemaining <= 0 && (
+                  <button className="lp-alert__close" onClick={() => setError("")}><FaTimes /></button>
+                )}
               </motion.div>
             )}
             {successMsg && (
@@ -338,11 +367,11 @@ export default function Login() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
-              <button
-                type="submit"
-                className={`lp-submit ${loading ? "lp-submit--loading" : ""}`}
-                disabled={loading}
-              >
+               <button
+                 type="submit"
+                 className={`lp-submit ${loading ? "lp-submit--loading" : ""}`}
+                 disabled={loading || lockRemaining > 0}
+               >
                 <span className="lp-submit__bg" />
                 <span className="lp-submit__shine" />
                 <span className="lp-submit__content">
@@ -350,6 +379,11 @@ export default function Login() {
                     <>
                       <span className="lp-spinner" />
                       <span>Processing…</span>
+                    </>
+                  ) : lockRemaining > 0 ? (
+                    <>
+                      <FaLock size={14} />
+                      <span>Locked — try again in {lockTime}</span>
                     </>
                   ) : (
                     <>
@@ -660,6 +694,18 @@ export default function Login() {
         .lp-alert--error  { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); color: #dc2626; }
         .lp-alert--success{ background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.2); color: #059669; }
         .lp-alert__icon { flex-shrink: 0; font-size: .95rem; margin-top: 1px; }
+        .lp-alert__body { flex: 1; min-width: 0; }
+        .lp-alert__text { display: block; }
+        .lp-alert__countdown {
+          display: flex; align-items: center; gap: .35rem;
+          margin-top: .35rem; font-size: .72rem; font-weight: 600;
+          color: #dc2626; opacity: .9;
+        }
+        .lp-alert__time {
+          font-family: var(--mono); font-size: .85rem; font-weight: 700;
+          background: rgba(239,68,68,.12); padding: .15rem .45rem;
+          border-radius: 5px; letter-spacing: .04em;
+        }
         .lp-alert__close { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; opacity: .5; transition: opacity .2s; display: flex; align-items: center; padding: 2px; flex-shrink: 0; }
         .lp-alert__close:hover { opacity: 1; }
 
