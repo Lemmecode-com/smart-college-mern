@@ -224,7 +224,7 @@ it('lockout after 5 failed attempts ? 423 ACCOUNT_LOCKED', async () => {
       });
 
       // Directly set lockout state in DB to test lockout in isolation from rate limiter
-      const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+      const LOCKOUT_DURATION_MS = (parseInt(process.env.LOGIN_LOCKOUT_MINUTES, 10) || 1) * 60 * 1000;
       await require('../../src/models/user.model').findByIdAndUpdate(user._id, {
         loginAttempts: 5,
         lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
