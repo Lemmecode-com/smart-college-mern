@@ -1,4 +1,6 @@
 const crypto = require("crypto"); 
+const fs = require("fs");
+const path = require("path");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
@@ -22,6 +24,34 @@ const generateTempPassword = (length = 10) => {
     password += charset.charAt(Math.floor(Math.random() * charset.length));
   }
   return password;
+};
+
+const DOCUMENT_TYPE_LABELS = {
+  aadhaarCard: "Aadhaar Card",
+  panCard: "PAN Card",
+  degreeCertificate: "Degree Certificate",
+  passportPhoto: "Passport Photo",
+};
+
+const processTeacherDocuments = (files = {}) => {
+  const documents = [];
+  const allowedTypes = Object.keys(DOCUMENT_TYPE_LABELS);
+
+  for (const type of allowedTypes) {
+    const fileList = files[type];
+    if (fileList && fileList.length > 0 && fileList[0]) {
+      const file = fileList[0];
+      documents.push({
+        documentType: type,
+        filename: file.filename,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      });
+    }
+  }
+
+  return documents;
 };
 
 /* =========================================================
@@ -100,6 +130,9 @@ exports.createTeacher = async (req, res, next) => {
     /* ================= Generate Temp Password ================= */
     const tempPassword = generateTempPassword(12);
 
+    /* ================= Handle Document Uploads ================= */
+    const uploadedDocuments = processTeacherDocuments(req.files || {});
+
     /* ================= Duplicate User ================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -128,7 +161,7 @@ exports.createTeacher = async (req, res, next) => {
       employeeId: generatedEmployeeId,
       designation,
       qualification,
-      experienceYears,
+      experienceYears: Number(experienceYears),
       createdBy: req.user.id,
       // New fields
       gender,
@@ -141,6 +174,7 @@ exports.createTeacher = async (req, res, next) => {
       employmentType: employmentType || "FULL_TIME",
       mobileNumber,
       joiningDate,
+      documents: uploadedDocuments,
     });
 
     ApiResponse.created(
@@ -449,12 +483,66 @@ exports.getTeachersByCourse = async (req, res) => {
 exports.updateTeacher = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+    let updateData = { ...req.body };
 
     // Remove sensitive fields
     delete updateData.password;
     delete updateData.user_id;
     delete updateData.college_id;
+
+    // Parse JSON-encoded arrays from FormData
+    if (typeof updateData.courses === 'string') {
+      try {
+        updateData.courses = JSON.parse(updateData.courses);
+      } catch (e) {
+        updateData.courses = [];
+      }
+    }
+
+    /* ================= Handle Document Updates ================= */
+    const removedDocs = [];
+    try {
+      removedDocs.push(...JSON.parse(req.body.removedDocuments || "[]"));
+    } catch (e) {
+      // ignore invalid JSON
+    }
+
+    const existingTeacher = await Teacher.findOne({
+      _id: id,
+      college_id: req.college_id,
+    });
+
+    if (!existingTeacher) {
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+    }
+
+    const newDocuments = processTeacherDocuments(req.files || {});
+    let finalDocs = [...(existingTeacher.documents || [])];
+
+    // Remove deleted documents and clean up files
+    for (const docType of removedDocs) {
+      const doc = finalDocs.find(d => d.documentType === docType);
+      if (doc) {
+        const filePath = path.join(__dirname, "../../uploads/teachers", doc.filename);
+        fs.promises.unlink(filePath).catch(() => {});
+        finalDocs = finalDocs.filter(d => d.documentType !== docType);
+      }
+    }
+
+    // Add or replace uploaded documents
+    for (const doc of newDocuments) {
+      const existingIdx = finalDocs.findIndex(d => d.documentType === doc.documentType);
+      if (existingIdx >= 0) {
+        const oldDoc = finalDocs[existingIdx];
+        const oldPath = path.join(__dirname, "../../uploads/teachers", oldDoc.filename);
+        fs.promises.unlink(oldPath).catch(() => {});
+        finalDocs[existingIdx] = doc;
+      } else {
+        finalDocs.push(doc);
+      }
+    }
+
+    updateData.documents = finalDocs;
 
     // ✅ FIX: Edge Case 5 - Check if trying to deactivate teacher
     if (updateData.status === "INACTIVE") {
@@ -795,6 +883,64 @@ exports.deactivateTeacherWithReassignment = async (req, res, next) => {
       },
       "Teacher deactivated and resources reassigned successfully",
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET TEACHER DOCUMENT (Secure file serving)
+   GET /teachers/:id/documents/:filename
+========================================================= */
+exports.getTeacherDocument = async (req, res, next) => {
+  try {
+    const { filename, id } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return next(new AppError("Authentication required", 401, "UNAUTHORIZED"));
+    }
+
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "");
+    if (cleanFilename.startsWith(".")) {
+      return next(new AppError("Invalid filename", 400, "INVALID_FILENAME"));
+    }
+
+    const ownerTeacher = await Teacher.findOne({
+      _id: id,
+      documents: { $elemMatch: { filename: cleanFilename } },
+    }).select("_id user_id college_id");
+
+    if (!ownerTeacher) {
+      return next(new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"));
+    }
+
+    const isOwner =
+      ownerTeacher.user_id &&
+      ownerTeacher.user_id.toString() === user.id.toString();
+    const isCollegeStaff =
+      ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR"].includes(user.role) &&
+      user.college_id &&
+      ownerTeacher.college_id &&
+      user.college_id.toString() === ownerTeacher.college_id.toString();
+
+    if (!isOwner && !isCollegeStaff) {
+      return next(
+        new AppError("Not authorized to access this document", 403, "UNAUTHORIZED"),
+      );
+    }
+
+    const filePath = path.join(__dirname, "../../uploads/teachers", cleanFilename);
+
+    res.setHeader(
+      "Content-Disposition",
+      req.query.download === "true" ? "attachment" : "inline",
+    );
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        next(new AppError("Document file not found on server", 404, "FILE_NOT_FOUND"));
+      }
+    });
   } catch (error) {
     next(error);
   }
