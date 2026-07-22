@@ -1170,9 +1170,17 @@ export default function ReportDashboard() {
                 />
                 <h3>No Low Attendance Students</h3>
                 <p style={{ color: "#6c757d" }}>
-                  {lowAttendanceStudents.length === 0
-                    ? "All students have attendance above 75%. Great job!"
-                    : "No students match the current filter."}
+                  {(() => {
+                    const totalSessions =
+                      attendanceData?.totalSessions ?? attendanceData?.totalRecords ?? 0;
+                    if (totalSessions === 0) {
+                      return "No attendance data available. Attendance has not been recorded yet.";
+                    }
+                    if (lowAttendanceStudents.length === 0) {
+                      return "All students have attendance above 75%. Great job!";
+                    }
+                    return "No students match the current filter.";
+                  })()}
                 </p>
               </div>
             ) : (
