@@ -31,9 +31,18 @@ import {
   FaPhone,
   FaCalendarAlt,
   FaUsers,
-  FaInfoCircle,
-  FaBookOpen
+  FaBookOpen,
+  FaEye,
+  FaDownload,
+  FaTrash
 } from "react-icons/fa";
+
+const DOCUMENT_TYPE_LABELS = {
+  aadhaarCard: "Aadhaar Card",
+  panCard: "PAN Card",
+  degreeCertificate: "Degree Certificate",
+  passportPhoto: "Passport Photo",
+};
 
 export default function ViewTeacher() {
   const { user } = useContext(AuthContext);
@@ -406,57 +415,72 @@ export default function ViewTeacher() {
           </div>
 
           {/* DOCUMENTS SECTION */}
-          <div className="erp-card">
-            <div className="erp-card-header">
-              <h3>
-                <FaFileAlt className="erp-card-icon" />
-                Uploaded Documents
-              </h3>
-            </div>
-            <div className="erp-card-body">
-              <div className="erp-table-container">
-                <table className="erp-documents-table">
-                  <thead>
-                    <tr>
-                      <th>Document</th>
-                      <th>Type</th>
-                      <th>Size</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <DocumentRow 
-                      title="Aadhar Card" 
-                      icon={<FaFilePdf />} 
-                      type="PDF" 
-                      size="245 KB" 
-                    />
-                    <DocumentRow 
-                      title="PAN Card" 
-                      icon={<FaFilePdf />} 
-                      type="PDF" 
-                      size="189 KB" 
-                    />
-                    <DocumentRow 
-                      title="Degree Certificate" 
-                      icon={<FaFileImage />} 
-                      type="JPG" 
-                      size="1.2 MB" 
-                    />
-                    <DocumentRow 
-                      title="Passport Photo" 
-                      icon={<FaUserTie />} 
-                      type="PNG" 
-                      size="320 KB" 
-                    />
-                  </tbody>
-                </table>
+          {teacher.documents && teacher.documents.length > 0 && (
+            <div className="erp-card">
+              <div className="erp-card-header">
+                <h3>
+                  <FaFileAlt className="erp-card-icon" />
+                  Uploaded Documents
+                </h3>
               </div>
-              <div className="documents-note">
-                <FaInfoCircle className="note-icon" />
-                <span>Note: Document previews require backend integration. Contact system administrator for access.</span>
+              <div className="erp-card-body">
+                <div className="erp-table-container">
+                  <table className="erp-documents-table">
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teacher.documents.map((doc, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div className="doc-name">
+                              <span className="doc-icon">
+                                {doc.mimetype.includes('pdf') ? <FaFilePdf /> : <FaFileImage />}
+                              </span>
+                              {doc.originalName}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="doc-type">
+                              {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                            </span>
+                          </td>
+                          <td className="doc-size">
+                            {(doc.size / 1024).toFixed(1)} KB
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <a
+                                href={`${api.defaults.baseURL}/teachers/${teacher._id}/documents/${doc.filename}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-outline-primary"
+                                title="Preview"
+                              >
+                                <FaEye />
+                              </a>
+                              <a
+                                href={`${api.defaults.baseURL}/teachers/${teacher._id}/documents/${doc.filename}?download=true`}
+                                className="btn btn-sm btn-outline-success"
+                                title="Download"
+                              >
+                                <FaDownload />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -761,11 +785,6 @@ export default function ViewTeacher() {
           font-weight: 500;
         }
         
-        .doc-row {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr;
-        }
-        
         .doc-name {
           display: flex;
           align-items: center;
@@ -801,25 +820,6 @@ export default function ViewTeacher() {
         .doc-size {
           color: #6c757d;
           font-size: 0.9rem;
-        }
-        
-        .documents-note {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
-          padding: 1rem 1.75rem;
-          background: #e3f2fd;
-          border-radius: 0 0 16px 16px;
-          border-left: 4px solid #2196F3;
-          font-size: 0.9rem;
-          color: #1a4b6d;
-          margin-top: 1rem;
-        }
-        
-        .note-icon {
-          font-size: 1.25rem;
-          margin-top: 0.125rem;
-          flex-shrink: 0;
         }
         
         /* SKELETON LOADING */
@@ -1182,10 +1182,6 @@ export default function ViewTeacher() {
             font-size: 0.9rem;
           }
           
-          .doc-row {
-            grid-template-columns: 1.5fr 1fr 0.75fr;
-          }
-          
           .erp-skeleton-container {
             padding: 1rem;
           }
@@ -1222,10 +1218,6 @@ export default function ViewTeacher() {
           
           .erp-card-header .erp-card-icon {
             font-size: 1.1rem;
-          }
-          
-          .doc-row {
-            grid-template-columns: 1fr;
           }
           
           .erp-documents-table thead {
@@ -1278,21 +1270,6 @@ function DetailRow({ label, value, icon, isEmail = false, isMultiline = false })
       <td className={`detail-value ${isEmail ? 'email' : ''} ${isMultiline ? 'multiline' : ''}`}>
         {value}
       </td>
-    </tr>
-  );
-}
-
-function DocumentRow({ title, icon, type, size }) {
-  return (
-    <tr className="doc-row">
-      <td className="doc-name">
-        <span className="doc-icon">{icon}</span>
-        {title}
-      </td>
-      <td>
-        <span className="doc-type">{type}</span>
-      </td>
-      <td className="doc-size">{size}</td>
     </tr>
   );
 }
