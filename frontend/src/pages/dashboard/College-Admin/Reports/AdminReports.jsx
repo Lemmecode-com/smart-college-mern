@@ -18,6 +18,7 @@ import {
   FaInfoCircle,
   FaGraduationCap,
   FaUniversity,
+  FaTimesCircle,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
@@ -151,6 +152,12 @@ export default function AdminReports() {
           ? `${Math.round((data.pending / data.total) * 100)}%`
           : "0%",
       },
+      {
+        metric: "Rejected Rate",
+        value: data.rejected && data.total
+          ? `${Math.round((data.rejected / data.total) * 100)}%`
+          : "0%",
+      },
     ];
   };
 
@@ -163,6 +170,7 @@ export default function AdminReports() {
       ["Total Students", data.total || 0],
       ["Approved Students", data.approved || 0],
       ["Pending Approvals", data.pending || 0],
+      ["Rejected", data.rejected || 0],
       [
         "Approval Rate",
         data.approved && data.total
@@ -173,6 +181,12 @@ export default function AdminReports() {
         "Pending Rate",
         data.pending && data.total
           ? `${Math.round((data.pending / data.total) * 100)}%`
+          : "0%",
+      ],
+      [
+        "Rejected Rate",
+        data.rejected && data.total
+          ? `${Math.round((data.rejected / data.total) * 100)}%`
           : "0%",
       ],
     ];
@@ -208,6 +222,13 @@ export default function AdminReports() {
       ? Math.round((data.pending / data.total) * 100)
       : 0,
     [data?.pending, data?.total]
+  );
+
+  const rejectedRate = useMemo(() =>
+    data?.rejected && data?.total
+      ? Math.round((data.rejected / data.total) * 100)
+      : 0,
+    [data?.rejected, data?.total]
   );
 
   /* ================= ERROR STATE ================= */
@@ -358,6 +379,25 @@ export default function AdminReports() {
             </div>
           </div>
         </div>
+
+        {/* REJECTED STUDENTS */}
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-icon-wrapper rejected">
+              <FaTimesCircle className="stat-icon" />
+            </div>
+            <div className="stat-title">Rejected Applications</div>
+          </div>
+          <div className="stat-card-body">
+            <div className="stat-value rejected">
+              {data.rejected?.toLocaleString() || 0}
+            </div>
+            <div className="stat-trend negative">
+              <FaTimesCircle className="trend-icon" />
+              Rejected Rate: {rejectedRate}%
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* DETAILED METRICS SECTION */}
@@ -393,6 +433,19 @@ export default function AdminReports() {
                 <div className="metric-value">{pendingRate}%</div>
                 <div className="metric-description">
                   {data.pending || 0} applications awaiting review
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-item">
+              <div className="metric-icon rejected">
+                <FaTimesCircle />
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Rejected Rate</div>
+                <div className="metric-value">{rejectedRate}%</div>
+                <div className="metric-description">
+                  {data.rejected || 0} applications not approved
                 </div>
               </div>
             </div>
@@ -453,6 +506,20 @@ export default function AdminReports() {
               ></div>
             </div>
 
+            <div className="status-item rejected">
+              <div className="status-icon">
+                <FaTimesCircle />
+              </div>
+              <div className="status-content">
+                <div className="status-count">{data.rejected || 0}</div>
+                <div className="status-label">Rejected</div>
+              </div>
+              <div
+                className="status-bar"
+                style={{ width: `${rejectedRate}%` }}
+              ></div>
+            </div>
+
             <div className="status-item total">
               <div className="status-icon">
                 <FaUsers />
@@ -478,6 +545,10 @@ export default function AdminReports() {
               <span className="legend-item pending">
                 <span className="legend-color pending"></span>
                 Pending
+              </span>
+              <span className="legend-item rejected">
+                <span className="legend-color rejected"></span>
+                Rejected
               </span>
             </div>
           </div>
@@ -802,6 +873,9 @@ export default function AdminReports() {
         .stat-card:nth-child(3) {
           animation-delay: 0.3s;
         }
+        .stat-card:nth-child(4) {
+          animation-delay: 0.4s;
+        }
 
         .stat-card-header {
           padding: 1.25rem 1.5rem;
@@ -830,6 +904,9 @@ export default function AdminReports() {
         }
         .stat-icon-wrapper.pending {
           background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        .stat-icon-wrapper.rejected {
+          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
 
         .stat-icon {
@@ -865,6 +942,9 @@ export default function AdminReports() {
         .stat-value.pending {
           color: #ff9800;
         }
+        .stat-value.rejected {
+          color: #dc3545;
+        }
 
         .stat-trend {
           display: flex;
@@ -879,6 +959,9 @@ export default function AdminReports() {
         }
         .stat-trend.warning {
           color: #ff9800;
+        }
+        .stat-trend.negative {
+          color: #dc3545;
         }
         .stat-trend.neutral {
           color: #6c757d;
@@ -963,6 +1046,10 @@ export default function AdminReports() {
           background: rgba(255, 152, 0, 0.15);
           color: #ff9800;
         }
+        .metric-icon.rejected {
+          background: rgba(220, 53, 69, 0.15);
+          color: #dc3545;
+        }
         .metric-icon.total {
           background: rgba(102, 126, 234, 0.15);
           color: #667eea;
@@ -1027,6 +1114,9 @@ export default function AdminReports() {
         .status-item.pending::before {
           --status-color: #ff9800;
         }
+        .status-item.rejected::before {
+          --status-color: #dc3545;
+        }
         .status-item.total::before {
           --status-color: #667eea;
         }
@@ -1049,6 +1139,10 @@ export default function AdminReports() {
         .status-item.pending .status-icon {
           background: rgba(255, 152, 0, 0.15);
           color: #ff9800;
+        }
+        .status-item.rejected .status-icon {
+          background: rgba(220, 53, 69, 0.15);
+          color: #dc3545;
         }
         .status-item.total .status-icon {
           background: rgba(102, 126, 234, 0.15);
@@ -1086,6 +1180,9 @@ export default function AdminReports() {
         }
         .status-item.pending .status-bar {
           --bar-color: #ff9800;
+        }
+        .status-item.rejected .status-bar {
+          --bar-color: #dc3545;
         }
         .status-item.total .status-bar {
           --bar-color: #667eea;
@@ -1142,6 +1239,9 @@ export default function AdminReports() {
         }
         .legend-color.pending {
           background: #ff9800;
+        }
+        .legend-color.rejected {
+          background: #dc3545;
         }
 
         /* FOOTER NOTE */
