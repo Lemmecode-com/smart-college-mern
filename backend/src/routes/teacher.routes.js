@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
+const { uploadTeacherDocuments } = require("../middlewares/upload.middleware");
 const { ROLE } = require("../utils/constants");
 
 const {
@@ -20,6 +21,7 @@ const {
   getTeacherReassignmentData,
   getAvailableTeachersForReassignment,
   deactivateTeacherWithReassignment,
+  getTeacherDocument,
 } = require("../controllers/teacher.controller");
 
 /* =========================================================
@@ -44,7 +46,7 @@ router.put(
 /* =========================================================
    CRUD
 ========================================================= */
-router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createTeacher);
+router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, uploadTeacherDocuments, createTeacher);
 
 router.get(
   "/",
@@ -89,6 +91,14 @@ router.get(
    /:id ROUTES (must be AFTER specific routes above)
 ========================================================= */
 
+/* GET TEACHER DOCUMENT — SECURE FILE ACCESS */
+router.get(
+  "/:id/documents/:filename",
+  auth,
+  collegeMiddleware,
+  getTeacherDocument,
+);
+
 /* GET TEACHER BY ID — COLLEGE_ADMIN, HOD, PRINCIPAL, EXAM_COORDINATOR (read-only) */
 router.get(
   "/:id",
@@ -113,6 +123,7 @@ router.put(
   auth,
   role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
+  uploadTeacherDocuments,
   updateTeacher,
 );
 
