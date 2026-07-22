@@ -157,6 +157,37 @@ const teacherSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // 📎 Teacher Documents
+    documents: [
+      {
+        documentType: {
+          type: String,
+          enum: ["aadhaarCard", "panCard", "degreeCertificate", "passportPhoto"],
+          required: true,
+        },
+        filename: {
+          type: String,
+          required: true,
+        },
+        originalName: {
+          type: String,
+          required: true,
+        },
+        mimetype: {
+          type: String,
+          required: true,
+        },
+        size: {
+          type: Number,
+          required: true,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
     lockedUntil: {
       type: Date,
     },
