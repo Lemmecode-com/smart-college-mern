@@ -36,6 +36,7 @@ exports.admissionSummary = async (college_id) => {
     rejected,
     approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
     pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0,
+    rejectedPercentage: total > 0 ? Math.round((rejected / total) * 100) : 0,
   };
 };
 
@@ -273,6 +274,7 @@ exports.admissionSummaryAll = async () => {
     approved,
     pending,
     rejected,
+    rejectedPercentage: total > 0 ? Math.round((rejected / total) * 100) : 0,
     totalColleges,
     activeColleges,
     monthlyAdmissions,
