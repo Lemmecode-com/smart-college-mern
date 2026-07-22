@@ -32,7 +32,9 @@ import {
   FaPhoneAlt,
   FaEye,
   FaEyeSlash,
-  FaCopy
+  FaCopy,
+  FaUpload,
+  FaFileAlt
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -132,6 +134,53 @@ export default function AddTeacher() {
   const [result, setResult] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const resultRef = useRef(null);
+
+  const [documents, setDocuments] = useState({
+    aadhaarCard: null,
+    panCard: null,
+    degreeCertificate: null,
+    passportPhoto: null,
+  });
+  const [documentErrors, setDocumentErrors] = useState({});
+
+  const DOCUMENT_TYPES = [
+    { type: 'aadhaarCard', label: 'Aadhaar Card', maxSizeMB: 2 },
+    { type: 'panCard', label: 'PAN Card', maxSizeMB: 2 },
+    { type: 'degreeCertificate', label: 'Degree Certificate', maxSizeMB: 5 },
+    { type: 'passportPhoto', label: 'Passport Photo', maxSizeMB: 2 },
+  ];
+
+  const handleDocumentChange = (type, file) => {
+    const config = DOCUMENT_TYPES.find(d => d.type === type);
+    const maxSize = (config?.maxSizeMB || 2) * 1024 * 1024;
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+
+    if (!file) {
+      setDocuments(prev => ({ ...prev, [type]: null }));
+      setDocumentErrors(prev => ({ ...prev, [type]: '' }));
+      return;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      setDocumentErrors(prev => ({ ...prev, [type]: 'Only PDF, JPG, JPEG, PNG files are allowed' }));
+      setDocuments(prev => ({ ...prev, [type]: null }));
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setDocumentErrors(prev => ({ ...prev, [type]: `File size must be less than ${config?.maxSizeMB || 2}MB` }));
+      setDocuments(prev => ({ ...prev, [type]: null }));
+      return;
+    }
+
+    setDocuments(prev => ({ ...prev, [type]: file }));
+    setDocumentErrors(prev => ({ ...prev, [type]: '' }));
+  };
+
+  const removeDocument = (type) => {
+    setDocuments(prev => ({ ...prev, [type]: null }));
+    setDocumentErrors(prev => ({ ...prev, [type]: '' }));
+  };
 
   useEffect(() => {
     if (result && resultRef.current) {
@@ -270,32 +319,33 @@ export default function AddTeacher() {
     setSuccess(false);
 
     try {
-      // CRITICAL FIXES:
-      // 1. Include course_id in payload (required by backend)
-      // 2. Provide temporary employeeId that follows expected format
-      // 3. Backend will replace employeeId with proper auto-generated value
-      const payload = {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        designation: formData.designation.trim(),
-        qualification: formData.qualification.trim(),
-        experienceYears: Number(formData.experienceYears),
-        department_id: formData.department_id,
-        course_id: formData.course_id,
-        employeeId: `TEMP-${Date.now().toString().slice(-6)}`,
-        gender: formData.gender,
-        bloodGroup: formData.bloodGroup,
-        dateOfBirth: formData.dateOfBirth,
-        employmentType: formData.employmentType,
-        address: formData.address.trim(),
-        city: formData.city.trim(),
-        state: formData.state.trim(),
-        pincode: formData.pincode.trim(),
-        mobileNumber: formData.mobileNumber.trim(),
-        joiningDate: formData.joiningDate || null,
-      };
+      const fd = new FormData();
+      fd.append("name", formData.name.trim());
+      fd.append("email", formData.email.trim());
+      fd.append("designation", formData.designation.trim());
+      fd.append("qualification", formData.qualification.trim());
+      fd.append("experienceYears", String(formData.experienceYears));
+      fd.append("department_id", formData.department_id);
+      fd.append("course_id", formData.course_id);
+      fd.append("employeeId", `TEMP-${Date.now().toString().slice(-6)}`);
+      fd.append("gender", formData.gender);
+      fd.append("bloodGroup", formData.bloodGroup);
+      fd.append("dateOfBirth", formData.dateOfBirth);
+      fd.append("employmentType", formData.employmentType);
+      fd.append("address", formData.address.trim());
+      fd.append("city", formData.city.trim());
+      fd.append("state", formData.state.trim());
+      fd.append("pincode", formData.pincode.trim());
+      fd.append("mobileNumber", formData.mobileNumber.trim());
+      fd.append("joiningDate", formData.joiningDate || "");
 
-      const response = await api.post("/teachers", payload);
+      for (const [type, file] of Object.entries(documents)) {
+        if (file) {
+          fd.append(type, file);
+        }
+      }
+
+      const response = await api.post("/teachers", fd);
       setResult(response.data);
       setSuccess(true);
 
@@ -318,6 +368,12 @@ export default function AddTeacher() {
         pincode: "",
         mobileNumber: "",
         joiningDate: "",
+      });
+      setDocuments({
+        aadhaarCard: null,
+        panCard: null,
+        degreeCertificate: null,
+        passportPhoto: null,
       });
       setValidationErrors({});
     } catch (err) {
@@ -1109,6 +1165,161 @@ export default function AddTeacher() {
               </motion.div>
             </div>
             
+            {/* ================= DOCUMENT UPLOAD CARD ================= */}
+            <motion.div
+              variants={fadeInVariants}
+              custom={3.5}
+              initial="hidden"
+              animate="visible"
+              className="col-12"
+            >
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  padding: '1.75rem',
+                  background: 'linear-gradient(135deg, #f0f4ff 0%, #dbe4ff 100%)',
+                  borderBottom: '1px solid #d4dbf8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem'
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(26, 75, 109, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1a4b6d',
+                    fontSize: '1.5rem',
+                    flexShrink: 0
+                  }}>
+                    <FaFileAlt />
+                  </div>
+                  <h2 style={{ 
+                    margin: 0, 
+                    fontSize: '1.5rem', 
+                    fontWeight: 700,
+                    color: '#1e293b'
+                  }}>
+                    Upload Documents
+                  </h2>
+                </div>
+
+                <div className="p-4">
+                  <div className="row g-4">
+                    {DOCUMENT_TYPES.map((doc) => (
+                      <div className="col-12 col-md-6 col-lg-3" key={doc.type}>
+                        <div style={{ marginBottom: '1.5rem' }}>
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '0.75rem',
+                            fontWeight: 600,
+                            color: '#1e293b',
+                            fontSize: '1rem'
+                          }}>
+                            {doc.label}
+                          <span style={{
+                            color: BRAND_COLORS.danger.main,
+                            fontSize: '0.9rem'
+                          }}>*</span>
+                          </label>
+                          
+                          <div 
+                            onClick={() => document.getElementById(`upload-${doc.type}`).click()}
+                            style={{
+                              position: 'relative',
+                              border: `2px dashed ${documentErrors[doc.type] ? '#dc3545' : '#e2e8f0'}`,
+                              borderRadius: '12px',
+                              background: documents[doc.type] ? 'rgba(16, 185, 129, 0.04)' : '#f8fafc',
+                              padding: '1.5rem',
+                              textAlign: 'center',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              minHeight: '120px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem'
+                            }}
+                          >
+                            <input 
+                              id={`upload-${doc.type}`}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handleDocumentChange(doc.type, e.target.files[0] || null)}
+                              style={{ display: 'none' }}
+                            />
+                            
+                            {documents[doc.type] ? (
+                              <>
+                                <FaCheckCircle style={{ color: '#28a745', fontSize: '1.5rem' }} />
+                                <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem', wordBreak: 'break-all' }}>
+                                  {documents[doc.type].name}
+                                </span>
+                                <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                                  {(documents[doc.type].size / 1024).toFixed(1)} KB
+                                </span>
+                                <button 
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); removeDocument(doc.type); }}
+                                  style={{
+                                    marginTop: '0.5rem',
+                                    background: 'none',
+                                    border: '1px solid #dc3545',
+                                    color: '#dc3545',
+                                    borderRadius: '6px',
+                                    padding: '0.25rem 0.75rem',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <FaUpload style={{ color: '#1a4b6d', fontSize: '1.5rem', opacity: 0.6 }} />
+                                <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+                                  Click to upload
+                                </span>
+                                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+                                  PDF, JPG, PNG — max {doc.maxSizeMB}MB
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          
+                          {documentErrors[doc.type] && (
+                            <div style={{
+                              color: BRAND_COLORS.danger.main,
+                              fontSize: '0.85rem',
+                              marginTop: '0.5rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}>
+                              <FaExclamationTriangle size={14} />
+                              <span>{documentErrors[doc.type]}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* ================= SUBMIT BUTTON ================= */}
             <motion.div
               variants={fadeInVariants}
