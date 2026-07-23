@@ -22,7 +22,7 @@ exports.listParents = async (req, res, next) => {
       college_id: req.user.college_id,
       role: "PARENT_GUARDIAN",
     })
-      .select("name email isActive mustChangePassword createdAt")
+      .select("name email isActive mustChangePassword createdAt mobileNumber")
       .sort({ createdAt: -1 });
 
     const parentIds = parents.map((p) => p._id);
@@ -62,6 +62,7 @@ exports.listParents = async (req, res, next) => {
         id: parent._id,
         name: parent.name,
         email: parent.email,
+        mobileNumber: parent.mobileNumber,
         isActive: parent.isActive,
         mustChangePassword: parent.mustChangePassword,
         createdAt: parent.createdAt,
@@ -91,7 +92,7 @@ exports.getParent = async (req, res, next) => {
       _id: id,
       college_id: req.user.college_id,
       role: "PARENT_GUARDIAN",
-    }).select("name email isActive mustChangePassword createdAt");
+    }).select("name email isActive mustChangePassword createdAt mobileNumber");
 
     if (!user) {
       return next(new AppError("Parent/Guardian not found", 404, "PARENT_NOT_FOUND"));
@@ -106,6 +107,7 @@ exports.getParent = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
+          mobileNumber: user.mobileNumber,
           isActive: user.isActive,
           mustChangePassword: user.mustChangePassword,
           createdAt: user.createdAt,
@@ -146,6 +148,7 @@ exports.getParent = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        mobileNumber: user.mobileNumber,
         isActive: user.isActive,
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
