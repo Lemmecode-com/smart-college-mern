@@ -786,7 +786,7 @@ export default function PaymentReports() {
               </div>
               <div className="metric-content">
                 <div className="metric-title">Collection Target</div>
-                <div className="metric-value-large">90%</div>
+                <div className="metric-value-large">{collectionRate.toFixed(0)}%</div>
                 <div className="metric-description">
                   {collectionRate >= 90 ? (
                     <span className="target-met">✓ Target achieved</span>
@@ -2078,7 +2078,7 @@ export default function PaymentReports() {
               </div>
             ) : trendData?.trends && trendData.trends.length > 0 ? (
               <div className="trend-chart-container">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer key={selectedYear} width="100%" height={300}>
                   <BarChart data={trendData.trends}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
                     <XAxis
