@@ -365,6 +365,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "parent-guardian",
+        title: "Parent / Guardian Management",
+        icon: FaUsers,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/college/parents",
+            icon: FaUsers,
+            label: "Parent / Guardian List",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "system-settings",
         title: "System Settings",
         icon: FaCog,
