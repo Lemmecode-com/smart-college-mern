@@ -63,6 +63,11 @@ exports.saveEmailConfig = async (req, res, next) => {
       throw new AppError('From name and email are required', 400, 'VALIDATION_ERROR');
     }
     
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(fromEmail)) {
+      throw new AppError('Please provide a valid from email address', 400, 'VALIDATION_ERROR');
+    }
+    
     const savedConfig = await collegeEmailService.saveCollegeEmailConfig(collegeId, {
       smtp,
       credentials,
@@ -105,6 +110,11 @@ exports.verifyEmailConfig = async (req, res, next) => {
 
     if (!fromName || !fromEmail) {
       throw new AppError('From name and email are required', 400, 'VALIDATION_ERROR');
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(fromEmail)) {
+      throw new AppError('Please provide a valid from email address', 400, 'VALIDATION_ERROR');
     }
 
     if (!testEmail) {
