@@ -30,6 +30,16 @@ import {
   FaChartLine,
 } from "react-icons/fa";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
 // Authentication / session error codes that must NOT surface a toast.
 // These are routed exclusively to ApiError for a friendly mapped screen.
 const AUTH_ERROR_CODES = new Set([
@@ -57,8 +67,11 @@ export default function PaymentReports() {
   const [endDate, setEndDate] = useState("");
   const [dateFilter, setDateFilter] = useState("all"); // all, thisMonth, lastMonth, thisYear, custom
 
-  // Trend analysis state
+   // Trend analysis state
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [trendData, setTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const trendFetchIdRef = useRef(0);
 
   // Memoize year options to prevent unnecessary re-renders
   const yearOptions = useMemo(() => {
@@ -150,7 +163,31 @@ export default function PaymentReports() {
     }
   }, [dateFilter, startDate, endDate]);
 
+   const fetchTrendData = useCallback(async (year) => {
+     trendFetchIdRef.current += 1;
+     const currentFetchId = trendFetchIdRef.current;
+
+     try {
+       setTrendLoading(true);
+       const res = await api.get(`/reports/payments/trends?year=${year}`);
+       if (currentFetchId !== trendFetchIdRef.current) return;
+       setTrendData(res.data || null);
+     } catch (err) {
+       console.error("Payment trends fetch error:", err);
+       if (currentFetchId !== trendFetchIdRef.current) return;
+       setTrendData(null);
+     } finally {
+       if (currentFetchId === trendFetchIdRef.current) {
+         setTrendLoading(false);
+       }
+     }
+   }, []);
+
    useEffect(() => {
+     fetchTrendData(selectedYear);
+   }, [selectedYear, fetchTrendData]);
+
+    useEffect(() => {
     fetchPaymentSummary();
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
@@ -2008,18 +2045,15 @@ export default function PaymentReports() {
                     const year = parseInt(e.target.value);
                     if (year !== selectedYear) {
                       setSelectedYear(year);
-                      showSuccess(`Year ${year} selected for trend analysis`);
                     }
                   }}
                   onKeyDown={(e) => {
-                    // Prevent form submission on Enter
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       e.stopPropagation();
                     }
                   }}
                   onKeyPress={(e) => {
-                    // Prevent any key press events from bubbling
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       e.stopPropagation();
@@ -2035,34 +2069,75 @@ export default function PaymentReports() {
               </div>
             </div>
 
-            <div className="trend-chart-container">
-              <div className="trend-chart-placeholder">
-                <div className="trend-placeholder-text">
-                  <FaChartLine className="trend-placeholder-icon" />
-                  <h5>Trend Analysis Chart</h5>
-                  <p>Interactive chart showing monthly payment collection trends will be displayed here.</p>
-                  <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                    Features: Monthly collection amounts, transaction counts, year-over-year comparison
-                  </p>
+            {trendLoading ? (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#6c757d' }}>
+                  <FaSyncAlt style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.5 }} className="spin" />
+                  <p>Loading trend data...</p>
                 </div>
               </div>
-            </div>
+            ) : trendData?.trends && trendData.trends.length > 0 ? (
+              <div className="trend-chart-container">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={trendData.trends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
+                    <XAxis
+                      dataKey="monthName"
+                      tick={{ fontSize: 12, fill: '#6c757d' }}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => `₹${(value / 1000)}k`}
+                      tick={{ fontSize: 12, fill: '#6c757d' }}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Collected']}
+                      labelFormatter={(label) => `Month: ${label}`}
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e9ecef' }}
+                    />
+                    <Bar
+                      dataKey="totalCollected"
+                      fill="#1a4b6d"
+                      radius={[4, 4, 0, 0]}
+                      name="Collection"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="no-data" style={{ padding: '3rem', textAlign: 'center', color: '#6c757d' }}>
+                <FaInfoCircle style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }} />
+                <h5>No payment data available</h5>
+                <p>No payment data found for the selected year.</p>
+              </div>
+            )}
 
-            {/* Sample trend data display */}
-            <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#28a745' }}>₹2,45,000</div>
-                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Best Month Collection</div>
+            {/* Computed statistics from actual payment data */}
+            {trendData && (
+              <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#28a745' }}>
+                    {trendData.bestMonth ? `₹${trendData.bestMonth.totalCollected.toLocaleString()}` : '₹0'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Best Month Collection</div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#17a2b8' }}>
+                    {trendData.bestMonth?.monthName || 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Peak Collection Month</div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '700',
+                    color: trendData?.yoyGrowth !== undefined && trendData.yoyGrowth >= 0 ? '#28a745' : '#dc3545'
+                  }}>
+                    {trendData.yoyGrowth !== undefined ? `${trendData.yoyGrowth >= 0 ? '+' : ''}${trendData.yoyGrowth}%` : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Growth vs Last Year</div>
+                </div>
               </div>
-              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#17a2b8' }}>March</div>
-                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Peak Collection Month</div>
-              </div>
-              <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ffc107' }}>+15%</div>
-                <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Growth vs Last Year</div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
