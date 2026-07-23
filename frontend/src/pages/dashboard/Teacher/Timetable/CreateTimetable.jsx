@@ -690,7 +690,7 @@ export default function CreateTimetable() {
                       )}
                      </FormField>
 
-                    <FormField
+                    {/* <FormField
                       icon={<FaLayerGroup />}
                       label="Division (Optional)"
                       helperText="e.g., A, B, C — leave blank if not using divisions"
@@ -705,7 +705,7 @@ export default function CreateTimetable() {
                           borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
                         }}
                       />
-                    </FormField>
+                    </FormField> */}
 
                      <motion.button
                       whileHover={{ scale: 1.02 }}
