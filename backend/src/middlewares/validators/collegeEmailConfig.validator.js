@@ -21,7 +21,7 @@ exports.validateSaveEmailConfig = [
   body("fromEmail")
     .trim()
     .notEmpty().withMessage("From email is required")
-    .isEmail().withMessage("Please provide a valid from email address"),
+    .isEmail({ allow_display_name: false, require_tld: true, allow_utf8_local_part: false }).withMessage("Please provide a valid from email address"),
 
   handleValidationErrors,
 ];
@@ -30,12 +30,12 @@ exports.validateVerifyEmailConfig = [
   body("fromEmail")
     .trim()
     .notEmpty().withMessage("From email is required")
-    .isEmail().withMessage("Please provide a valid from email address"),
+    .isEmail({ allow_display_name: false, require_tld: true, allow_utf8_local_part: false }).withMessage("Please provide a valid from email address"),
 
   body("testEmail")
     .trim()
     .notEmpty().withMessage("Test email address is required")
-    .isEmail().withMessage("Please provide a valid test email address"),
+    .isEmail({ allow_display_name: false, require_tld: true, allow_utf8_local_part: false }).withMessage("Please provide a valid test email address"),
 
   handleValidationErrors,
 ];
