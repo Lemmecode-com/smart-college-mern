@@ -684,8 +684,8 @@ export default function AddSubject() {
                       <div className="col-12 col-md-6 col-lg-4">
                         <FormField
                           icon={<FaChalkboardTeacher />}
-                          label="Teacher (Optional)"
-                          helperText="Assign a teacher now or later"
+                          label="Teacher"
+                          helperText="Assign a teacher"
                         >
                           <select
                             name="teacher_id"
@@ -694,7 +694,7 @@ export default function AddSubject() {
                             className="form-control"
                             disabled={!formData.course_id}
                           >
-                            <option value="">Select teacher (optional)</option>
+                            <option value="">Select teacher</option>
                             {Array.isArray(teachers) &&
                               teachers.map((teacher) => (
                                 <option key={teacher._id} value={teacher._id}>

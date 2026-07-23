@@ -517,41 +517,73 @@ exports.paymentTrendsByMonth = async (college_id, year = new Date().getFullYear(
   const startOfYear = new Date(year, 0, 1);
   const endOfYear = new Date(year, 11, 31, 23, 59, 59);
 
-  const monthlyTrends = await StudentFee.aggregate([
-    {
-      $match: {
-        college_id: new mongoose.Types.ObjectId(college_id),
-        "installments.paidAt": {
-          $gte: startOfYear,
-          $lte: endOfYear
+  const [monthlyTrends, prevYearTrends] = await Promise.all([
+    // Current year monthly data
+    StudentFee.aggregate([
+      {
+        $match: {
+          college_id: new mongoose.Types.ObjectId(college_id),
+          "installments.paidAt": {
+            $gte: startOfYear,
+            $lte: endOfYear
+          }
         }
-      }
-    },
-    {
-      $unwind: "$installments"
-    },
-    {
-      $match: {
-        "installments.paidAt": {
-          $gte: startOfYear,
-          $lte: endOfYear
-        },
-        "installments.status": "PAID"
-      }
-    },
-    {
-      $group: {
-        _id: {
-          year: { $year: "$installments.paidAt" },
-          month: { $month: "$installments.paidAt" }
-        },
-        totalCollected: { $sum: "$installments.amount" },
-        transactionCount: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { "_id.year": 1, "_id.month": 1 }
-    }
+      },
+      { $unwind: "$installments" },
+      {
+        $match: {
+          "installments.paidAt": {
+            $gte: startOfYear,
+            $lte: endOfYear
+          },
+          "installments.status": "PAID"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$installments.paidAt" },
+            month: { $month: "$installments.paidAt" }
+          },
+          totalCollected: { $sum: "$installments.amount" },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]),
+    // Previous year monthly data for YoY comparison
+    StudentFee.aggregate([
+      {
+        $match: {
+          college_id: new mongoose.Types.ObjectId(college_id),
+          "installments.paidAt": {
+            $gte: new Date(year - 1, 0, 1),
+            $lte: new Date(year - 1, 11, 31, 23, 59, 59)
+          }
+        }
+      },
+      { $unwind: "$installments" },
+      {
+        $match: {
+          "installments.paidAt": {
+            $gte: new Date(year - 1, 0, 1),
+            $lte: new Date(year - 1, 11, 31, 23, 59, 59)
+          },
+          "installments.status": "PAID"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$installments.paidAt" },
+            month: { $month: "$installments.paidAt" }
+          },
+          totalCollected: { $sum: "$installments.amount" },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ])
   ]);
 
   // Create array for all 12 months
@@ -566,10 +598,36 @@ exports.paymentTrendsByMonth = async (college_id, year = new Date().getFullYear(
     });
   }
 
+  const currentYearTotal = trends.reduce((sum, t) => sum + t.totalCollected, 0);
+  const prevYearTotal = prevYearTrends.reduce((sum, t) => sum + t.totalCollected, 0);
+
+  // Find best month (actual computed value)
+  let bestMonth = null;
+  let maxCollection = 0;
+  for (const t of trends) {
+    if (t.totalCollected > maxCollection) {
+      maxCollection = t.totalCollected;
+      bestMonth = {
+        month: t.month,
+        monthName: t.monthName,
+        totalCollected: t.totalCollected
+      };
+    }
+  }
+
+  // Calculate YoY growth
+  let yoyGrowth = 0;
+  if (prevYearTotal > 0) {
+    yoyGrowth = Math.round(((currentYearTotal - prevYearTotal) / prevYearTotal) * 100);
+  }
+
   return {
     year,
     trends,
-    totalYearCollection: trends.reduce((sum, t) => sum + t.totalCollected, 0),
-    totalYearTransactions: trends.reduce((sum, t) => sum + t.transactionCount, 0)
+    totalYearCollection: currentYearTotal,
+    totalYearTransactions: trends.reduce((sum, t) => sum + t.transactionCount, 0),
+    bestMonth,
+    previousYearTotal: prevYearTotal,
+    yoyGrowth
   };
 };

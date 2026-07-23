@@ -297,15 +297,6 @@ export default function AdminReports() {
               showExcel={true}
             />
           </div>
-          <button
-            className="btn-refresh"
-            onClick={fetchSummary}
-            title="Refresh report data"
-            aria-label="Refresh admission reports"
-          >
-            <FaSyncAlt className="spin-icon" />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 
