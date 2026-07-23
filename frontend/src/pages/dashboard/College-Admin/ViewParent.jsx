@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
@@ -10,6 +10,7 @@ import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
 import {
   FaUser,
   FaEnvelope,
+  FaPhone,
   FaUserFriends,
   FaCheckCircle,
   FaKey,
@@ -185,19 +186,22 @@ export default function ViewParent() {
                 </Card.Header>
                 <Card.Body className="p-4">
                   <Row className="g-4">
-                    <Col xs={12} sm={6}>
-                      <InfoItem icon={<FaUser />} color={BRAND_COLORS.info} label="Full Name" value={profile.name || "-"} />
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <InfoItem icon={<FaEnvelope />} color={BRAND_COLORS.info} label="Email Address" value={profile.email || "-"} />
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <InfoItem icon={<FaUserFriends />} color={BRAND_COLORS.primary} label="Relationship" value={profile.relation?.replace("_", " ") || "-"} />
-                    </Col>
-                    <Col xs={12} sm={6}>
-                      <InfoItem icon={<FaCalendarAlt />} color={BRAND_COLORS.warning} label="Joined Date" value={profile.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "-"} />
-                    </Col>
-                  </Row>
+                     <Col xs={12} sm={6}>
+                       <InfoItem icon={<FaUser />} color={BRAND_COLORS.info} label="Full Name" value={profile.name || "-"} />
+                     </Col>
+                     <Col xs={12} sm={6}>
+                       <InfoItem icon={<FaEnvelope />} color={BRAND_COLORS.info} label="Email Address" value={profile.email || "-"} />
+                     </Col>
+                     <Col xs={12} sm={6}>
+                       <InfoItem icon={<FaPhone />} color={BRAND_COLORS.info} label="Mobile Number" value={profile.mobileNumber || "N/A"} />
+                     </Col>
+                     <Col xs={12} sm={6}>
+                       <InfoItem icon={<FaUserFriends />} color={BRAND_COLORS.primary} label="Relationship" value={profile.relation?.replace("_", " ") || "-"} />
+                     </Col>
+                     <Col xs={12} sm={6}>
+                       <InfoItem icon={<FaCalendarAlt />} color={BRAND_COLORS.warning} label="Joined Date" value={profile.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "N/A"} />
+                     </Col>
+                   </Row>
                 </Card.Body>
               </Card>
             </motion.div>
