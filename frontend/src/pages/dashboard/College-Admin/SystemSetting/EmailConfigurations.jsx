@@ -51,6 +51,8 @@ const EmailConfigurations = () => {
   const [isModified, setIsModified] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [fromEmailTouched, setFromEmailTouched] = useState(false);
 
   const [formData, setFormData] = useState({
     smtp: {
@@ -135,7 +137,27 @@ const EmailConfigurations = () => {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
+    if (name === "fromEmail" && emailError) {
+      setEmailError("");
+    }
     setIsModified(true);
+  };
+
+  const validateFromEmail = (email) => {
+    if (!email || !email.trim()) {
+      return "From email is required";
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const handleFromEmailBlur = () => {
+    setFromEmailTouched(true);
+    const error = validateFromEmail(formData.fromEmail);
+    setEmailError(error);
   };
 
   const validateForm = () => {
@@ -156,9 +178,11 @@ const EmailConfigurations = () => {
       return false;
     }
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(fromEmail)) {
-      toast.error("Valid from email is required");
+    const emailErr = validateFromEmail(fromEmail);
+    if (emailErr) {
+      setEmailError(emailErr);
+      setFromEmailTouched(true);
+      toast.error(emailErr);
       return false;
     }
     
@@ -496,6 +520,21 @@ const EmailConfigurations = () => {
         .form-input:focus {
           border-color: var(--sc-email-teal);
           box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+
+        .form-input.error {
+          border-color: var(--sc-danger);
+        }
+        .form-input.error:focus {
+          border-color: var(--sc-danger);
+          box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+        }
+
+        .error-message {
+          color: var(--sc-danger);
+          font-size: 0.8125rem;
+          margin-top: 0.375rem;
+          font-weight: 500;
         }
 
         .input-wrapper { position: relative; display: flex; align-items: center; }
@@ -851,11 +890,15 @@ const EmailConfigurations = () => {
                 <input
                   type="email"
                   name="fromEmail"
-                  className="form-input"
+                  className={`form-input${emailError && fromEmailTouched ? " error" : ""}`}
                   placeholder="admissions@college.edu"
                   value={formData.fromEmail}
                   onChange={handleInputChange}
+                  onBlur={handleFromEmailBlur}
                 />
+                {emailError && fromEmailTouched && (
+                  <div className="error-message">{emailError}</div>
+                )}
               </div>
             </div>
 

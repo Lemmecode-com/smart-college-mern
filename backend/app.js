@@ -90,6 +90,7 @@ app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff ext
 app.use("/api/master", require("./src/routes/master.routes"));
 app.use("/api/hod", require("./src/routes/hod.routes")); // HOD module
 app.use("/api/hod/reports", require("./src/routes/hodReport.routes")); // HOD Reports
+app.use("/api/college", require("./src/routes/parentManagement.routes")); // Parent/Guardian management
 
 /* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));

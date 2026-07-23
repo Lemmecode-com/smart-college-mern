@@ -120,6 +120,9 @@ const EditTeacher = lazy(() => import("./pages/dashboard/College-Admin/EditTeach
 const AssignTeacherSubjects = lazy(() => import("./pages/dashboard/College-Admin/AssignTeacherSubjects"));
 const CreateStaff = lazy(() => import("./pages/dashboard/College-Admin/CreateStaff"));
 const StaffList = lazy(() => import("./pages/dashboard/College-Admin/StaffList"));
+const ParentList = lazy(() => import("./pages/dashboard/College-Admin/ParentList"));
+const ViewParent = lazy(() => import("./pages/dashboard/College-Admin/ViewParent"));
+const EditParent = lazy(() => import("./pages/dashboard/College-Admin/EditParent"));
 const FeeSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/FeeSetting"));
 const GeneralSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/GeneralSetting"));
 const AcademicSetting = lazy(() => import("./pages/dashboard/College-Admin/SystemSetting/AcademicSetting"));
@@ -1470,25 +1473,51 @@ function AppContent({
               }
             />
 
-            {/* ================= STAFF MANAGEMENT ================= */}
-             <Route
-               path="/college/staff/create"
-               element={
-                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                   <CreateStaff />
-                 </ProtectedRoute>
-               }
-             />
-             <Route
-               path="/college/staff"
-               element={
-                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                   <StaffList />
-                 </ProtectedRoute>
-               }
-             />
+              {/* ================= STAFF MANAGEMENT ================= */}
+               <Route
+                 path="/college/staff/create"
+                 element={
+                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                     <CreateStaff />
+                   </ProtectedRoute>
+                 }
+               />
+               <Route
+                 path="/college/staff"
+                 element={
+                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                     <StaffList />
+                   </ProtectedRoute>
+                 }
+               />
 
-             {/* ================= STAFF PROFILES ================= */}
+               {/* ================= PARENT/GUARDIAN MANAGEMENT ================= */}
+               <Route
+                 path="/college/parents"
+                 element={
+                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                     <ParentList />
+                   </ProtectedRoute>
+                 }
+               />
+               <Route
+                 path="/college/parents/:userId"
+                 element={
+                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                     <ViewParent />
+                   </ProtectedRoute>
+                 }
+               />
+               <Route
+                 path="/college/parents/edit/:userId"
+                 element={
+                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                     <EditParent />
+                   </ProtectedRoute>
+                 }
+               />
+
+               {/* ================= STAFF PROFILES ================= */}
              <Route
                path="/staff/profile/:userId"
                element={
