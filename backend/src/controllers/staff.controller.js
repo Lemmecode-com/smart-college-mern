@@ -6,6 +6,15 @@ const StaffProfile = require("../models/staffProfile.model");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const { ROLE } = require("../utils/constants");
+
+const STAFF_ROLES = [
+  ROLE.PRINCIPAL,
+  ROLE.HOD,
+  ROLE.ACCOUNTANT,
+  ROLE.ADMISSION_OFFICER,
+  ROLE.EXAM_COORDINATOR,
+  ROLE.PLATFORM_SUPPORT,
+];
 const AuditService = require("../services/auditLog.service");
 const securityAuditService = require("../services/securityAudit.service");
 const { sendStaffCredentialsEmail } = require("../services/email.service");
@@ -332,7 +341,7 @@ exports.listStaff = async (req, res, next) => {
   try {
     const users = await User.find({
       college_id: req.user.college_id,
-      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+      role: { $in: STAFF_ROLES },
     })
       .select("name email role isActive mustChangePassword createdAt")
       .sort({ createdAt: -1 });
@@ -388,7 +397,7 @@ exports.getStaffProfile = async (req, res, next) => {
     const user = await User.findOne({
       _id: id,
       college_id: req.user.college_id,
-      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+      role: { $in: STAFF_ROLES },
     });
 
     if (!user) {
@@ -449,7 +458,7 @@ exports.resetStaffPassword = async (req, res, next) => {
     const user = await User.findOne({
       _id: id,
       college_id: req.user.college_id,
-      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+      role: { $in: STAFF_ROLES },
       isActive: { $ne: false },
     });
 
@@ -535,7 +544,7 @@ exports.updateStaffProfile = async (req, res, next) => {
     const user = await User.findOne({
       _id: id,
       college_id: req.user.college_id,
-      role: { $nin: ["SUPER_ADMIN", "STUDENT"] },
+      role: { $in: STAFF_ROLES },
     });
 
     if (!user) {
