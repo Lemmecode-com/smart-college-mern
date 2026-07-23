@@ -204,7 +204,7 @@ export default function ReportDashboard() {
       totalFee: student.totalFee || 0,
       paid: student.paid || 0,
       pending: student.pending || 0,
-      status: student.status,
+      status: student.calculatedStatus,
     }));
   };
 
