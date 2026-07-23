@@ -48,6 +48,7 @@ class ParentCreationService {
             const fatherUser = await User.create({
               name: student.fatherName,
               email: student.fatherEmail,
+              mobileNumber: student.fatherMobile || "",
               password: tempPassword, // Will be hashed by User model pre-save hook
               role: "PARENT_GUARDIAN",
               college_id: student.college_id,
@@ -137,6 +138,7 @@ class ParentCreationService {
             const motherUser = await User.create({
               name: student.motherName,
               email: student.motherEmail,
+              mobileNumber: student.motherMobile || "",
               password: tempPassword, // Will be hashed by User model pre-save hook
               role: "PARENT_GUARDIAN",
               college_id: student.college_id,

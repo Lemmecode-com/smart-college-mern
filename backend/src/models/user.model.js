@@ -58,7 +58,15 @@ const userSchema = new mongoose.Schema({
     default: 0,
     index: true,
   },
-});
+  mobileNumber: {
+    type: String,
+    default: "",
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, { timestamps: false });
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
