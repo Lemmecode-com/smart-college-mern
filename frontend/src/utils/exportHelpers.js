@@ -164,24 +164,26 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable) => {
     let rowHeight = maxLines * fontSize * lineHeightFactor + cellPaddingY * 2;
     rowHeight = Math.max(rowHeight, minRowHeight);
 
+    let rowY;
+
     if (currentY + rowHeight > availableHeight) {
       doc.addPage();
       currentY = margin;
-      drawPdfHeader(doc, columns, colWidths, currentY, margin, usableWidth, fontAvailable);
-      currentY += rowHeight;
+      currentY = drawPdfHeader(doc, columns, colWidths, currentY, margin, usableWidth, fontAvailable);
+      doc.setTextColor(0, 0, 0);
+      rowY = currentY;
     } else {
+      rowY = currentY;
       currentY += rowHeight;
     }
 
-    const rowY = currentY - rowHeight;
-
     if (rowIndex % 2 === 0) {
-      doc.setFillColor(245, 247, 250);
+      doc.setFillColor(235, 240, 248);
       doc.rect(margin, rowY, usableWidth, rowHeight, 'F');
     }
 
-    doc.setDrawColor(200, 210, 220);
-    doc.setLineWidth(0.2);
+    doc.setDrawColor(180, 190, 210);
+    doc.setLineWidth(0.3);
     doc.rect(margin, rowY, usableWidth, rowHeight, 'S');
 
     columns.forEach((col, index) => {
@@ -227,14 +229,14 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf')
     doc.setFontSize(18);
     doc.setTextColor(26, 75, 109);
     setPdfFont(doc, fontAvailable, 'bold');
-    doc.text(String(title || 'Report'), margin, 16, { baseline: 'top', maxWidth: usableWidth });
+    doc.text(String(title || 'Report'), margin, 14, { baseline: 'top', maxWidth: usableWidth });
 
     doc.setFontSize(10);
-    doc.setTextColor(100);
+    doc.setTextColor(80, 80, 80);
     setPdfFont(doc, fontAvailable, 'normal');
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 22);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 23);
 
-    const startY = 28;
+    const startY = 30;
     drawPdfTable(doc, columns, rows, startY, pageWidth, fontAvailable);
 
     doc.save(filename);
