@@ -24,11 +24,18 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [error, setError] = useState(
-    searchParams.get("session") === "expired"
-      ? "Your session has expired because your account was accessed from another location. Please sign in again."
-      : ""
-  );
+  const [error, setError] = useState(() => {
+    const sessionParam = searchParams.get("session");
+    const reasonParam = searchParams.get("reason");
+
+    if (sessionParam === "expired") {
+      if (reasonParam === "SESSION_INVALIDATED") {
+        return "Your session has expired because your account was accessed from another location. Please sign in again.";
+      }
+      return "Your session has expired due to inactivity. Please sign in again to continue.";
+    }
+    return "";
+  });
   const [forgotMode, setForgotMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
