@@ -201,9 +201,19 @@ async function getCollegeEmailConfig(collegeId) {
 
 async function saveCollegeEmailConfig(collegeId, configData) {
   const { smtp, credentials, fromName, fromEmail } = configData;
-  const encryptedPass = encryptEmailPassword(credentials.pass);
+  
   const existingConfig = await CollegeEmailConfig.findOne({ collegeId, isActive: true });
   let savedConfig;
+  
+  let encryptedPass;
+  if (credentials.pass && credentials.pass.trim()) {
+    encryptedPass = encryptEmailPassword(credentials.pass);
+  } else if (existingConfig) {
+    encryptedPass = existingConfig.credentials.pass;
+  } else {
+    throw new Error("Password is required for new configurations");
+  }
+  
   if (existingConfig) {
     existingConfig.smtp = smtp;
     existingConfig.credentials = { user: credentials.user, pass: encryptedPass };
