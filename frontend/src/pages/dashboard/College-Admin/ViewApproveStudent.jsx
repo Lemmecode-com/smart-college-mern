@@ -36,7 +36,6 @@ import {
   FaFileAlt,
   FaImage,
   FaCopy,
-  FaPrint,
   FaExternalLinkAlt,
 } from "react-icons/fa";
 
@@ -97,10 +96,6 @@ const copyToClipboard = async (text, label) => {
       autoClose: 3000,
     });
   }
-};
-
-const printProfile = () => {
-  window.print();
 };
 
 const getFileName = (filePath) => {
@@ -1627,15 +1622,6 @@ export default function ViewApproveStudent() {
     navigate(-1);
   }, [navigate]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handlePrint = useCallback(() => {
-    printProfile();
-    toast.info("Preparing print view...", {
-      position: "top-right",
-      autoClose: 1500,
-    });
-  }, []);
-
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
@@ -1710,16 +1696,6 @@ export default function ViewApproveStudent() {
           >
             <FaArrowLeft className="erp-btn-icon" aria-hidden="true" />
             <span>Back to Students</span>
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handlePrint}
-            type="button"
-            aria-label="Print student profile"
-            title="Print Profile"
-          >
-            <FaPrint className="erp-btn-icon" aria-hidden="true" />
-            <span>Print</span>
           </button>
         </div>
       </div>
