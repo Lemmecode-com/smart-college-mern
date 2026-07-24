@@ -55,8 +55,8 @@ exports.saveEmailConfig = async (req, res, next) => {
     const collegeId = req.college_id;
     const { smtp, credentials, fromName, fromEmail } = req.body;
     
-    if (!smtp?.host || !smtp?.port || !credentials?.user || !credentials?.pass) {
-      throw new AppError('SMTP host, port, username, and password are required', 400, 'VALIDATION_ERROR');
+    if (!smtp?.host || !smtp?.port || !credentials?.user) {
+      throw new AppError('SMTP host, port, and username are required', 400, 'VALIDATION_ERROR');
     }
     
     if (!fromName || !fromEmail) {
