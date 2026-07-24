@@ -205,11 +205,10 @@ function decryptDoc(doc) {
   }
 }
 
-auditLogSchema.pre('save', function(next) {
+auditLogSchema.pre('save', async function() {
   for (const field of SENSITIVE_FIELDS) {
     this[field] = encryptField(this[field]);
   }
-  next();
 });
 
 auditLogSchema.pre('findOneAndUpdate', async function() {

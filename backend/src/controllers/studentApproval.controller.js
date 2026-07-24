@@ -12,6 +12,7 @@ const {
 const AppError = require("../utils/AppError");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
 const auditLogService = require("../services/auditLog.service");
+const securityAuditService = require("../services/securityAudit.service");
 const parentCreationService = require("../services/parentCreation.service");
 
 exports.approveStudent = async (req, res, next) => {
