@@ -354,16 +354,44 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         overrideAttendanceCheck,
         overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
-      setSuccessMessage(
-        `${res.results.success.length} students promoted successfully!`,
-      );
+      const successCount = res.results.success.length;
+      const failCount = res.results.failed ? res.results.failed.length : 0;
       setSelectedStudents([]);
       fetchEligibleStudents();
-      setTimeout(() => setSuccessMessage(""), 5000);
-      toast.success(`${res.results.success.length} students promoted successfully!`, {
-        position: "top-right",
-        autoClose: 4000,
-      });
+      if (successCount > 0) {
+        setSuccessMessage(
+          `${successCount} student${successCount > 1 ? "s" : ""} promoted successfully${failCount > 0 ? `, ${failCount} failed` : ""}!`,
+        );
+        setTimeout(() => setSuccessMessage(""), 5000);
+        toast.success(`${successCount} student${successCount > 1 ? "s" : ""} promoted successfully!`, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      }
+      if (failCount > 0) {
+        const failureMessages = res.results.failed.map(
+          (f) => `${f.studentName || "Unknown"} — ${f.reason || "Promotion failed"}`,
+        );
+        const summaryMessage = `${failCount} student${failCount > 1 ? "s" : ""} could not be promoted.`;
+        if (failCount === 1) {
+          toast.error(summaryMessage + " " + (res.results.failed[0].reason || "Promotion failed."), {
+            position: "top-right",
+            autoClose: 8000,
+          });
+        } else {
+          toast.warn(summaryMessage + " See details below.", {
+            position: "top-right",
+            autoClose: 8000,
+          });
+          failureMessages.forEach((msg) => {
+            toast.error(msg, {
+              position: "top-right",
+              autoClose: 6000,
+            });
+          });
+        }
+        setError(summaryMessage);
+      }
       // Warn if any promoted students had missing fee structures
       const feeWarnings = res.results.success.filter(s => s.feeAssignmentWarning);
       if (feeWarnings.length > 0) {
