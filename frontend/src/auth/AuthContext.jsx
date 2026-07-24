@@ -29,64 +29,64 @@ export const AuthProvider = ({ children }) => {
      }
    }, []);
 
-   const performSessionInvalidation = useCallback(async () => {
-     if (isInvalidatingRef.current) {
-       console.log(
-         `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
-       );
-       return;
-     }
-     isInvalidatingRef.current = true;
-     performSessionInvalidationCallCount++;
+   const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED") => {
+      if (isInvalidatingRef.current) {
+        console.log(
+          `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
+        );
+        return;
+      }
+      isInvalidatingRef.current = true;
+      performSessionInvalidationCallCount++;
 
-     const now = new Date().toISOString();
-     console.log(
-       `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current}`
-     );
-
-     clearTokenExpiryTimer();
-
-     try {
-       await api.post("/auth/logout");
-     } catch (error) {
-       const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
-       console.log(
-         `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount}`
-       );
-       logger.error("Logout error:", error);
-     } finally {
-       setUser(null);
-       sessionStorage.clear();
-       window.location.href = "/login?session=expired";
-     }
-   }, [clearTokenExpiryTimer]);
-
-   const scheduleTokenExpiryCheck = useCallback(() => {
-     clearTokenExpiryTimer();
-     const expiryTime = ACCESS_TOKEN_EXPIRY_MS - TOKEN_EXPIRY_BUFFER_MS;
-     tokenExpiryTimerRef.current = setTimeout(() => {
-       if (userRef.current) {
-         performSessionInvalidation();
-       }
-     }, expiryTime);
-   }, [clearTokenExpiryTimer, performSessionInvalidation]);
-
-  useEffect(() => {
-    const unsubscribe = listenForAuthInvalidation((data) => {
       const now = new Date().toISOString();
       console.log(
-        `[listenForAuthInvalidation] Time=${now} | ReceivedBroadcast | Type=${data.type} | Reason=${data.reason} | userRef.current=${!!userRef.current}`
+        `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current} | Reason=${reason}`
       );
-      if (userRef.current) {
-        performSessionInvalidation();
-      }
-    });
 
-    return () => {
-      unsubscribe();
       clearTokenExpiryTimer();
-    };
-  }, [performSessionInvalidation, clearTokenExpiryTimer]);
+
+      try {
+        await api.post("/auth/logout");
+      } catch (error) {
+        const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
+        console.log(
+          `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount} | Reason=${reason}`
+        );
+        logger.error("Logout error:", error);
+      } finally {
+        setUser(null);
+        sessionStorage.clear();
+        window.location.href = `/login?session=expired&reason=${encodeURIComponent(reason)}`;
+      }
+    }, [clearTokenExpiryTimer]);
+
+    const scheduleTokenExpiryCheck = useCallback(() => {
+      clearTokenExpiryTimer();
+      const expiryTime = ACCESS_TOKEN_EXPIRY_MS - TOKEN_EXPIRY_BUFFER_MS;
+      tokenExpiryTimerRef.current = setTimeout(() => {
+        if (userRef.current) {
+          performSessionInvalidation("TOKEN_EXPIRED");
+        }
+      }, expiryTime);
+    }, [clearTokenExpiryTimer, performSessionInvalidation]);
+
+   useEffect(() => {
+     const unsubscribe = listenForAuthInvalidation((data) => {
+       const now = new Date().toISOString();
+       console.log(
+         `[listenForAuthInvalidation] Time=${now} | ReceivedBroadcast | Type=${data.type} | Reason=${data.reason} | userRef.current=${!!userRef.current}`
+       );
+       if (userRef.current) {
+         performSessionInvalidation(data.reason || "SESSION_INVALIDATED");
+       }
+     });
+
+     return () => {
+       unsubscribe();
+       clearTokenExpiryTimer();
+     };
+   }, [performSessionInvalidation, clearTokenExpiryTimer]);
 
   /* ========== LOGIN ========== */
   const login = async (credentials) => {
@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       sessionStorage.clear();
       broadcastAuthInvalidation("SESSION_INVALIDATED");
-      window.location.href = "/login?session=expired";
+      window.location.href = "/login?session=expired&reason=SESSION_INVALIDATED";
     }
   };
 
@@ -249,7 +249,7 @@ export const AuthProvider = ({ children }) => {
               window.location.pathname === "/login" &&
               window.location.search.includes("session=expired");
             if (!alreadyOnLoginExpired) {
-              window.location.href = "/login?session=expired";
+              window.location.href = `/login?session=expired&reason=${encodeURIComponent(errorCode)}`;
             }
           }
         }
