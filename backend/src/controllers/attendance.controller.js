@@ -1007,41 +1007,49 @@ exports.getAttendanceReport = async (req, res) => {
    GET /attendance/student
 ========================================================= */
 exports.getStudentAttendanceReport = async (req, res) => {
-  try {
-    const student = req.student;
+   try {
+     const student = req.student;
 
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
-    }
+     if (!student) {
+       return res.status(404).json({ message: "Student not found" });
+     }
 
-    const [reportData, todayData] = await Promise.all([
-      AttendanceRecord.aggregate([
-        {
-          $match: {
-            student_id: student._id,
-            college_id: req.college_id,
-          },
-        },
-        {
-          $lookup: {
-            from: "attendancesessions",
-            localField: "session_id",
-            foreignField: "_id",
-            as: "session",
-          },
-        },
-        { $unwind: "$session" },
-        {
-          $lookup: {
-            from: "subjects",
-            localField: "session.subject_id",
-            foreignField: "_id",
-            as: "subject",
-          },
-        },
-        { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
-        {
-          $group: {
+     const { startDate, endDate, subjectId } = req.query;
+
+     const [reportData, todayData] = await Promise.all([
+       AttendanceRecord.aggregate([
+         {
+           $match: {
+             student_id: student._id,
+             college_id: req.college_id,
+           },
+         },
+         {
+           $lookup: {
+             from: "attendancesessions",
+             localField: "session_id",
+             foreignField: "_id",
+             as: "session",
+           },
+         },
+         { $unwind: "$session" },
+         {
+           $lookup: {
+             from: "subjects",
+             localField: "session.subject_id",
+             foreignField: "_id",
+             as: "subject",
+           },
+         },
+         { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
+         {
+           $match: {
+             ...(startDate && endDate ? { "session.lectureDate": { $gte: new Date(startDate), $lte: new Date(endDate) } } : {}),
+             ...(subjectId ? { "session.subject_id": new mongoose.Types.ObjectId(subjectId) } : {}),
+           },
+         },
+         {
+           $group: {
             _id: "$session._id",
             subjectId: { $first: "$subject._id" },
             subjectName: { $first: "$subject.name" },
@@ -1073,35 +1081,37 @@ exports.getStudentAttendanceReport = async (req, res) => {
           },
         },
         { $unwind: "$session" },
-        {
-          $match: {
-            $expr: {
-              $and: [
-                { $eq: ["$session.college_id", req.college_id] },
-                { $eq: ["$session.department_id", student.department_id] },
-                { $eq: ["$session.course_id", student.course_id] },
-                {
-                  $gte: [
-                    "$session.lectureDate",
-                    { $dateTrunc: { date: new Date(), unit: "day" } },
-                  ],
-                },
-                {
-                  $lt: [
-                    "$session.lectureDate",
-                    {
-                      $dateAdd: {
-                        startDate: { $dateTrunc: { date: new Date(), unit: "day" } },
-                        unit: "day",
-                        amount: 1,
-                      },
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-        },
+         {
+           $match: {
+             $expr: {
+               $and: [
+                 { $eq: ["$session.college_id", req.college_id] },
+                 { $eq: ["$session.department_id", student.department_id] },
+                 { $eq: ["$session.course_id", student.course_id] },
+                 ...(startDate && endDate ? [{ $gte: ["$session.lectureDate", new Date(startDate)] }, { $lte: ["$session.lectureDate", new Date(endDate)] }] : []),
+                 ...(subjectId ? [{ $eq: ["$session.subject_id", new mongoose.Types.ObjectId(subjectId)] }] : []),
+                 {
+                   $gte: [
+                     "$session.lectureDate",
+                     { $dateTrunc: { date: new Date(), unit: "day" } },
+                   ],
+                 },
+                 {
+                   $lt: [
+                     "$session.lectureDate",
+                     {
+                       $dateAdd: {
+                         startDate: { $dateTrunc: { date: new Date(), unit: "day" } },
+                         unit: "day",
+                         amount: 1,
+                       },
+                     },
+                   ],
+                 },
+               ],
+             },
+           },
+         },
         {
           $lookup: {
             from: "subjects",

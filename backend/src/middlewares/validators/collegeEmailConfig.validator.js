@@ -40,7 +40,7 @@ const validateCredentialsPassSave = body("credentials.pass")
   .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long");
 
 const validateCredentialsPassVerify = body("credentials.pass")
-  .notEmpty().withMessage("SMTP password/app password is required")
+  .optional({ checkFalsy: true })
   .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long");
 
 const validateFromName = body("fromName")

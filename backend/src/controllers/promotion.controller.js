@@ -681,13 +681,11 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           }
         }
 
+        // Collect all rejection reasons for this student
+        const rejectionReasons = [];
+
         if (!allInstallmentsPaid && !overrideFeeCheck) {
-          results.failed.push({
-            studentId,
-            studentName: student.fullName,
-            reason: `Pending fees: ₹${pendingAmount}`,
-          });
-          continue;
+          rejectionReasons.push(`Pending fees: ₹${pendingAmount}`);
         }
 
         const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
@@ -711,21 +709,22 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         }
 
         if (attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
-          results.failed.push({
-            studentId,
-            studentName: student.fullName,
-            reason: `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`,
-            code: "ATTENDANCE_INSUFFICIENT",
-          });
-          continue;
+          rejectionReasons.push(
+            `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`
+          );
         }
 
         if (attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck) {
+          rejectionReasons.push("Attendance records are not available");
+        }
+
+        // If there are any rejection reasons, the student cannot be promoted
+        if (rejectionReasons.length > 0) {
           results.failed.push({
             studentId,
             studentName: student.fullName,
-            reason: "Attendance records are not available",
-            code: "ATTENDANCE_NOT_AVAILABLE",
+            reason: rejectionReasons[0],
+            reasons: rejectionReasons,
           });
           continue;
         }
