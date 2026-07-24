@@ -1402,41 +1402,48 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                  </div>
                </div>
 
-               {/* Failed Students Table */}
-               {bulkResultData.length > 0 && (
-                 <div className="bulk-result-failed">
-                   <h5 className="bulk-result-failed-title">
-                     <FaExclamationTriangle className="text-warning" /> Students
-                     Not Promoted
-                   </h5>
-                   <div className="table-responsive">
-                     <table className="data-table">
-                       <thead>
-                         <tr>
-                           <th>Student Name</th>
-                           <th>Reason</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         {bulkResultData.map((f, index) => (
-                           <tr key={index}>
-                             <td>
-                               <div className="student-name">
-                                 {f.studentName || "Unknown"}
-                               </div>
-                             </td>
-                             <td>
-                               <div className="text-danger">
-                                 {f.reason || "Promotion failed"}
-                               </div>
-                             </td>
-                           </tr>
-                         ))}
-                       </tbody>
-                     </table>
-                   </div>
-                 </div>
-               )}
+{/* Failed Students Table */}
+                {bulkResultData.length > 0 && (
+                  <div className="bulk-result-failed">
+                    <h5 className="bulk-result-failed-title">
+                      <FaExclamationTriangle className="text-warning" /> Students
+                      Not Promoted
+                    </h5>
+                    <div className="table-responsive">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Student Name</th>
+                            <th>Reason(s)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bulkResultData.map((f, index) => {
+                            const reasons = f.reasons || (f.reason ? [f.reason] : []);
+                            return (
+                              <tr key={index}>
+                                <td>
+                                  <div className="student-name">
+                                    {f.studentName || "Unknown"}
+                                  </div>
+                                </td>
+                                <td>
+                                  <ul className="bulk-reason-list">
+                                    {reasons.map((r, i) => (
+                                      <li key={i} className="text-danger">
+                                        {r || "Promotion failed"}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
              </div>
              <div className="modal-footer">
                <button
@@ -2700,11 +2707,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
            background: #f8fafc;
          }
 
-         .bulk-result-failed .text-danger {
-           color: #dc2626 !important;
-           font-weight: 500;
-         }
-       `}</style>
+.bulk-result-failed .text-danger {
+            color: #dc2626 !important;
+            font-weight: 500;
+          }
+
+          .bulk-reason-list {
+            margin: 0;
+            padding-left: 18px;
+            list-style-type: disc;
+          }
+
+          .bulk-reason-list li {
+            margin-bottom: 2px;
+            font-size: 12px;
+            line-height: 1.5;
+          }
+        `}</style>
     </div>
   );
 }
