@@ -95,7 +95,7 @@ const errorHandler = (err, req, res, next) => {
     };
   }
 
-  if (err.code === 11000) {
+  if (err.code === 11000 || err.code === "11000") {
     const keyPattern = err.keyPattern || {};
     const keyValue = err.keyValue || {};
 
@@ -155,11 +155,24 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.name === "ValidationError") {
     const messages = Object.values(err.errors).map((val) => val.message);
-    error = {
-      statusCode: 400,
-      message: messages.join(", "),
-      code: "VALIDATION_ERROR",
-    };
+    const allMessages = err.message && !messages.includes(err.message) ? [...messages, err.message] : messages;
+    console.error("🔍 ValidationError debug:", { name: err.name, message: err.message, messages, allMessages });
+    const duplicateMessage = allMessages.find((msg) => /E11000 duplicate key error/.test(String(msg)));
+    if (duplicateMessage) {
+      const dupKeyMatch = duplicateMessage.match(/dup key: \{ (\w+):/);
+      const field = dupKeyMatch ? dupKeyMatch[1] : "field";
+      error = {
+        statusCode: 409,
+        message: `${field} already exists`,
+        code: "DUPLICATE_FIELD",
+      };
+    } else {
+      error = {
+        statusCode: 400,
+        message: messages.join(", "),
+        code: "VALIDATION_ERROR",
+      };
+    }
   }
 
   if (err.name === "JsonWebTokenError") {
@@ -216,8 +229,8 @@ const errorHandler = (err, req, res, next) => {
       message: err.message || "Operation failed",
       code: err.code || "OPERATIONAL_ERROR",
     };
-  } else if (err.code) {
-    // Handle errors with only error code
+  } else if (err.code && err.code !== 11000 && err.code !== "11000") {
+    // Handle errors with only error code (skip 11000 — already handled above)
     error = {
       statusCode: 500,
       message: err.message || "Operation failed",
