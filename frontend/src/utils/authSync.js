@@ -2,6 +2,8 @@ const AUTH_EVENT_CHANNEL = "smart-college-auth";
 
 let broadcastCallCount = 0;
 
+let sameTabCallback = null;
+
 export function broadcastAuthInvalidation(reason = "SESSION_INVALIDATED") {
   broadcastCallCount++;
   const now = new Date().toISOString();
@@ -41,9 +43,16 @@ export function broadcastAuthInvalidation(reason = "SESSION_INVALIDATED") {
       `[broadcastAuthInvalidation] Time=${now} | localStorageError=${localStorageError.message}`
     );
   }
+
+  if (sameTabCallback) {
+    sameTabCallback(payload);
+  }
 }
 
 export function listenForAuthInvalidation(callback) {
+  const prevCallback = sameTabCallback;
+  sameTabCallback = callback;
+
   const storageHandler = (event) => {
     if (event.key === AUTH_EVENT_CHANNEL && event.newValue) {
       try {
@@ -77,6 +86,9 @@ export function listenForAuthInvalidation(callback) {
     window.removeEventListener("storage", storageHandler);
     if (channel) {
       channel.close();
+    }
+    if (sameTabCallback === callback) {
+      sameTabCallback = prevCallback;
     }
   };
 }
