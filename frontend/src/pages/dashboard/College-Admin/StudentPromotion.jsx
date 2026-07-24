@@ -115,6 +115,11 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
   const [promotionThreshold, setPromotionThreshold] = useState(75);
 
+  // Bulk Result Modal State
+  const [showBulkResultModal, setShowBulkResultModal] = useState(false);
+  const [bulkResultData, setBulkResultData] = useState(null);
+  const [bulkSuccessCount, setBulkSuccessCount] = useState(0);
+
   // Confirm Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({
@@ -369,27 +374,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         });
       }
       if (failCount > 0) {
-        const failureMessages = res.results.failed.map(
-          (f) => `${f.studentName || "Unknown"} — ${f.reason || "Promotion failed"}`,
-        );
+        setBulkSuccessCount(successCount);
+        setBulkResultData(res.results.failed);
+        setShowBulkResultModal(true);
         const summaryMessage = `${failCount} student${failCount > 1 ? "s" : ""} could not be promoted.`;
-        if (failCount === 1) {
-          toast.error(summaryMessage + " " + (res.results.failed[0].reason || "Promotion failed."), {
-            position: "top-right",
-            autoClose: 8000,
-          });
-        } else {
-          toast.warn(summaryMessage + " See details below.", {
-            position: "top-right",
-            autoClose: 8000,
-          });
-          failureMessages.forEach((msg) => {
-            toast.error(msg, {
-              position: "top-right",
-              autoClose: 6000,
-            });
-          });
-        }
+        toast.warn(summaryMessage + " Click 'View Details' to see the reasons.", {
+          position: "top-right",
+          autoClose: 6000,
+        });
         setError(summaryMessage);
       }
       // Warn if any promoted students had missing fee structures
@@ -1348,20 +1340,115 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         </div>
       )}
 
-      {/* Confirm Modal */}
-      {showConfirmModal && (
-        <ConfirmModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={() => {
-            confirmConfig.onConfirm();
-            setShowConfirmModal(false);
-          }}
-          title={confirmConfig.title}
-          message={confirmConfig.message}
-          type={confirmConfig.type}
-        />
-      )}
+{/* Confirm Modal */}
+       {showConfirmModal && (
+         <ConfirmModal
+           isOpen={showConfirmModal}
+           onClose={() => setShowConfirmModal(false)}
+           onConfirm={() => {
+             confirmConfig.onConfirm();
+             setShowConfirmModal(false);
+           }}
+           title={confirmConfig.title}
+           message={confirmConfig.message}
+           type={confirmConfig.type}
+         />
+       )}
+
+       {/* Bulk Promotion Result Modal */}
+       {showBulkResultModal && bulkResultData && (
+         <div
+           className="modal-overlay"
+           onClick={() => setShowBulkResultModal(false)}
+           role="dialog"
+           aria-modal="true"
+           aria-label="Bulk Promotion Result"
+         >
+           <div
+             className="modal-content"
+             onClick={(e) => e.stopPropagation()}
+             style={{ maxWidth: "700px", width: "calc(100% - 2rem)" }}
+           >
+             <div className="modal-header">
+               <h4 className="modal-title">
+                 <FaGraduationCap /> Bulk Promotion Result
+               </h4>
+               <button
+                 onClick={() => setShowBulkResultModal(false)}
+                 className="modal-close"
+                 aria-label="Close"
+               >
+                 <FaTimes />
+               </button>
+             </div>
+             <div className="modal-body">
+               {/* Summary */}
+               <div className="bulk-result-summary">
+                 <div className="bulk-result-stat">
+                   <span className="bulk-result-count text-success">
+                     {bulkSuccessCount}
+                   </span>
+                   <span className="bulk-result-label">
+                     Promoted Successfully
+                   </span>
+                 </div>
+                 <div className="bulk-result-stat">
+                   <span className="bulk-result-count text-danger">
+                     {bulkResultData.length}
+                   </span>
+                   <span className="bulk-result-label">
+                     Could Not Be Promoted
+                   </span>
+                 </div>
+               </div>
+
+               {/* Failed Students Table */}
+               {bulkResultData.length > 0 && (
+                 <div className="bulk-result-failed">
+                   <h5 className="bulk-result-failed-title">
+                     <FaExclamationTriangle className="text-warning" /> Students
+                     Not Promoted
+                   </h5>
+                   <div className="table-responsive">
+                     <table className="data-table">
+                       <thead>
+                         <tr>
+                           <th>Student Name</th>
+                           <th>Reason</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {bulkResultData.map((f, index) => (
+                           <tr key={index}>
+                             <td>
+                               <div className="student-name">
+                                 {f.studentName || "Unknown"}
+                               </div>
+                             </td>
+                             <td>
+                               <div className="text-danger">
+                                 {f.reason || "Promotion failed"}
+                               </div>
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
+                 </div>
+               )}
+             </div>
+             <div className="modal-footer">
+               <button
+                 onClick={() => setShowBulkResultModal(false)}
+                 className="btn btn-primary"
+               >
+                 Close
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
       {/* Custom Styles */}
       <style>{`
@@ -2495,54 +2582,129 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           }
         }
 
-        @media (max-width: 480px) {
-          .page-container {
-            padding: 16px;
-          }
+@media (max-width: 480px) {
+           .page-container {
+             padding: 16px;
+           }
 
-          .page-header {
-            padding: 20px 16px;
-          }
+           .page-header {
+             padding: 20px 16px;
+           }
 
-          .page-title {
-            font-size: 20px;
-          }
+           .page-title {
+             font-size: 20px;
+           }
 
-          .header-icon {
-            font-size: 28px;
-          }
+           .header-icon {
+             font-size: 28px;
+           }
 
-          .stats-grid {
-            gap: 16px;
-          }
+           .stats-grid {
+             gap: 16px;
+           }
 
-          .stat-card {
-            gap: 16px;
-          }
+           .stat-card {
+             gap: 16px;
+           }
 
-          .stat-label {
-            font-size: 12px;
-          }
+           .stat-label {
+             font-size: 12px;
+           }
 
-          .stat-value {
-            font-size: 24px;
-          }
+           .stat-value {
+             font-size: 24px;
+           }
 
-          .card-header {
-            padding: 16px 18px;
-          }
+           .card-header {
+             padding: 16px 18px;
+           }
 
-          .card-body {
-            padding: 16px;
-          }
+           .card-body {
+             padding: 16px;
+           }
 
-          .modal-header,
-          .modal-body,
-          .modal-footer {
-            padding: 18px 16px;
-          }
-        }
-      `}</style>
+           .modal-header,
+           .modal-body,
+           .modal-footer {
+             padding: 18px 16px;
+           }
+
+           .bulk-result-summary {
+             flex-direction: column;
+             gap: 12px;
+           }
+
+           .bulk-result-failed-title {
+             font-size: 14px;
+           }
+         }
+
+         .bulk-result-summary {
+           display: flex;
+           gap: 24px;
+           justify-content: center;
+           align-items: center;
+           padding: 20px;
+           background: #f8fafc;
+           border-radius: 12px;
+           margin-bottom: 20px;
+         }
+
+         .bulk-result-stat {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 4px;
+         }
+
+         .bulk-result-count {
+           font-size: 2rem;
+           font-weight: 700;
+           line-height: 1;
+         }
+
+         .bulk-result-label {
+           font-size: 0.85rem;
+           color: #64748b;
+           font-weight: 500;
+         }
+
+         .bulk-result-failed {
+           margin-top: 16px;
+         }
+
+         .bulk-result-failed-title {
+           font-size: 16px;
+           font-weight: 600;
+           color: #1e293b;
+           margin-bottom: 12px;
+           display: flex;
+           align-items: center;
+           gap: 8px;
+         }
+
+         .bulk-result-failed .data-table {
+           font-size: 13px;
+         }
+
+         .bulk-result-failed .data-table thead th {
+           background: #f1f5f9;
+           color: #475569;
+           font-weight: 600;
+           font-size: 12px;
+           text-transform: uppercase;
+           letter-spacing: 0.5px;
+         }
+
+         .bulk-result-failed .data-table tbody tr:hover {
+           background: #f8fafc;
+         }
+
+         .bulk-result-failed .text-danger {
+           color: #dc2626 !important;
+           font-weight: 500;
+         }
+       `}</style>
     </div>
   );
 }
