@@ -431,6 +431,25 @@ exports.getMyFullProfile = async (req, res, next) => {
       isActive: true,
     }).select("documents");
 
+    // Backward compatibility: if no DocumentConfig exists for this college,
+    // return all known document types as enabled so previously uploaded
+    // documents remain visible in the student portal.
+    let documentConfig = docConfig?.documents || [];
+    if (!documentConfig.length) {
+      documentConfig = DocumentConfig.getAvailableDocumentTemplates().map(
+        (template) => ({
+          type: template.type,
+          label: template.label,
+          enabled: true,
+          mandatory: false,
+          allowedFormats: template.allowedFormats,
+          maxFileSize: template.maxFileSize,
+          description: template.description,
+          order: template.order,
+        }),
+      );
+    }
+
     // 4️⃣ Attendance Summary - Using MongoDB Aggregation (FIX: Risk 3)
     // Build date filter
     let dateFilter = {};
@@ -766,7 +785,7 @@ exports.getMyFullProfile = async (req, res, next) => {
         department,
         course,
         attendance: attendanceSummary,
-        documentConfig: docConfig?.documents || [],
+        documentConfig,
       },
       "Profile fetched successfully",
     );
