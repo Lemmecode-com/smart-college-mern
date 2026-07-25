@@ -102,6 +102,7 @@ export default function StudentAttendanceReport() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dateRangeError, setDateRangeError] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     subjectId: "",
@@ -252,11 +253,6 @@ export default function StudentAttendanceReport() {
         setSubjects(subjectsFromAttendance);
         setError(null);
 
-        // Show success toast only on subsequent loads (not initial)
-        if (data) {
-          addToast("Attendance report updated successfully!", "success");
-        }
-
         // Clear timeout on success
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
@@ -311,10 +307,18 @@ export default function StudentAttendanceReport() {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+    if (name === "startDate" || name === "endDate") {
+      setDateRangeError("");
+    }
   };
 
   const applyFilters = () => {
-    // Data will reload automatically due to useEffect dependency
+    if (filters.startDate && filters.endDate && new Date(filters.startDate) > new Date(filters.endDate)) {
+      setDateRangeError("Start date must be before or equal to end date");
+      addToast("Invalid date range: start date must be before or equal to end date", "error");
+      return;
+    }
+    setDateRangeError("");
     addToast("Filters applied successfully!", "success");
   };
 
@@ -650,19 +654,24 @@ export default function StudentAttendanceReport() {
                     />
                   </FormField>
                   
-                  <FormField 
-                    icon={<FaCalendarAlt />} 
-                    label="End Date" 
-                  >
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={filters.endDate}
-                      onChange={handleFilterChange}
-                      style={inputStyle}
-                    />
-                  </FormField>
-                </div>
+<FormField 
+                     icon={<FaCalendarAlt />} 
+                     label="End Date" 
+                   >
+                     <input
+                       type="date"
+                       name="endDate"
+                       value={filters.endDate}
+                       onChange={handleFilterChange}
+                       style={inputStyle}
+                     />
+                   </FormField>
+                   {dateRangeError && (
+                     <div className="erp-alert erp-alert-danger">
+                       {dateRangeError}
+                     </div>
+                   )}
+                 </div>
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
