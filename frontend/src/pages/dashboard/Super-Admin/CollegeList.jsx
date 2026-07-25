@@ -14,6 +14,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import { toast } from "react-toastify";
 
 import {
   FaUniversity,
@@ -64,6 +65,7 @@ export default function CollegeList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
   const [toggleData, setToggleData] = useState({
     id: null,
     currentStatus: null,
@@ -203,42 +205,38 @@ export default function CollegeList() {
     const { id, currentStatus } = toggleData;
     const action = currentStatus ? "deactivate" : "activate";
 
+    setToggleLoading(true);
     try {
       if (currentStatus) {
-        // College is ACTIVE - Deactivate it
         await api.delete(`/master/${id}`);
       } else {
-        // College is INACTIVE - Activate it
         await api.patch(`/master/${id}/restore`);
       }
 
       setColleges((prev) =>
         prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
+      toast.success(`College ${action}d successfully`);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
       const backendMessage = err.response?.data?.message;
       const errorMessage = backendMessage || `Failed to ${action} college`;
 
-      logger.error(`Error ${action}ing college:`, statusCode, errorCode);
-
-      setError({
-        message: errorMessage,
-        statusCode,
-        errorCode,
-      });
-
       const isAuthError =
         statusCode === 401 ||
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+      logger.error(`Error ${action}ing college:`, statusCode, errorCode);
+
       if (!isAuthError) {
         toast.error(errorMessage);
       }
+    } finally {
+      setShowConfirmModal(false);
+      setToggleData({ id: null, currentStatus: null });
+      setToggleLoading(false);
     }
-    setShowConfirmModal(false);
-    setToggleData({ id: null, currentStatus: null });
   };
 
   /* ================= EXPORT FUNCTIONALITY ================= */
@@ -303,6 +301,7 @@ export default function CollegeList() {
         type="warning"
         confirmText={toggleData.currentStatus ? "Deactivate" : "Activate"}
         cancelText="Cancel"
+        isLoading={toggleLoading}
       />
 
       {/* BREADCRUMBS */}
