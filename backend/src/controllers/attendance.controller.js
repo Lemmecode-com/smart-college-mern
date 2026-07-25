@@ -1165,6 +1165,7 @@ exports.getStudentAttendanceReport = async (req, res) => {
 
       if (!subjectMap[sid]) {
         subjectMap[sid] = {
+          _id: sid,
           subject: item.subjectName || "Unknown",
           code: item.subjectCode || "N/A",
           total: 0,
