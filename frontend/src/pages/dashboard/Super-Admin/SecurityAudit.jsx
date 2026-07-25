@@ -416,18 +416,6 @@ export default function SecurityAudit() {
                 <option value="LOGIN_SUCCESS">Login Success</option>
                 <option value="LOGIN_FAILED">Login Failed</option>
                 <option value="LOGOUT">Logout</option>
-                <option value="PASSWORD_RESET_REQUEST">
-                  Password Reset Request
-                </option>
-                <option value="PASSWORD_RESET_SUCCESS">
-                  Password Reset Success
-                </option>
-                <option value="PERMISSION_DENIED">Permission Denied</option>
-                <option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
-                <option value="BRUTE_FORCE_DETECTED">
-                  Brute Force Detected
-                </option>
-                <option value="TOKEN_BLACKLISTED">Token Blacklisted</option>
               </select>
             </div>
 
