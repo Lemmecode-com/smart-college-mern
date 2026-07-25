@@ -15,6 +15,7 @@ const FeeStructure = require("../models/feeStructure.model");
 const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const { sendEmailToCollegeAdmin } = require("../services/email.service");
 const securityAuditService = require("../services/securityAudit.service");
+const AuditService = require("../services/auditLog.service");
 
 exports.createCollege = async (req, res, next) => {
   try {

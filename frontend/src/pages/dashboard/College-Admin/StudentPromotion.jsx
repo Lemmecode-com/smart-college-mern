@@ -378,7 +378,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         setBulkResultData(res.results.failed);
         setShowBulkResultModal(true);
         const summaryMessage = `${failCount} student${failCount > 1 ? "s" : ""} could not be promoted.`;
-        toast.warn(summaryMessage + " Click 'View Details' to see the reasons.", {
+        toast.warn(summaryMessage + "see the reasons.", {
           position: "top-right",
           autoClose: 6000,
         });
