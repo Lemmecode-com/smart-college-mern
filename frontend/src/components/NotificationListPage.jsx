@@ -7,8 +7,6 @@ import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
 import NotificationCard from "../components/NotificationCard";
-import CustomSelect from "../components/CustomSelect";
-import { getNotificationTypeLabel } from "../utils/notificationTypes";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -28,12 +26,10 @@ import {
   FaClock,
   FaTrash,
   FaEdit,
-  FaSyncAlt,
   FaExclamationTriangle,
   FaArrowLeft,
   FaInfoCircle,
   FaSearch,
-  FaFilter,
   FaEye,
   FaStar,
 } from "react-icons/fa";
@@ -370,13 +366,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
     setCurrentPage(1);
   }, [searchQuery, typeFilter, activeTab]);
 
-  /* ================= GET UNIQUE TYPES FOR FILTER ================= */
-  const notificationTypes = useMemo(() => {
-    const allNotes = [...primaryNotes, ...secondaryNotes];
-    const types = new Set(allNotes.map((note) => note.type).filter(Boolean));
-    return Array.from(types);
-  }, [primaryNotes, secondaryNotes]);
-
   /* ================= CALCULATE STATS ================= */
   const stats = useMemo(() => {
     const allNotes = [...primaryNotes, ...secondaryNotes];
@@ -541,31 +530,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
                     <FaBell /> Create New
                   </motion.button>
                 )}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => fetchNotes(true)}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: loading
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.2)",
-                    color: "white",
-                    border: "2px solid rgba(255, 255, 255, 0.4)",
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "12px",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    transition: "all 0.3s ease",
-                    opacity: loading ? 0.6 : 1,
-                  }}
-                >
-                  <FaSyncAlt className={loading ? "spinning" : ""} /> Refresh
-                </motion.button>
+
               </div>
             </div>
 
@@ -689,34 +654,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   display: "block",
                 }}
                 aria-label="Search notifications"
-              />
-            </div>
-
-            {/* Filter Dropdown with Icon Inside */}
-            <div
-              className="filter-wrapper"
-              style={{
-                width: "100%",
-                position: "relative",
-                overflow: "visible",
-              }}
-            >
-              <CustomSelect
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                options={[
-                  { value: "", label: "All Types" },
-                  ...notificationTypes.map((type) => ({
-                    value: type,
-                    label: getNotificationTypeLabel(type),
-                  })),
-                ]}
-                placeholder="All Types"
-                style={{
-                  width: "100%",
-                  maxWidth: "100%",
-                }}
-                aria-label="Filter by type"
               />
             </div>
 
