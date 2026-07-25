@@ -7,17 +7,6 @@ import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
 import NotificationCard from "../components/NotificationCard";
-
-const AUTH_ERROR_CODES = new Set([
-  "TOKEN_MISSING",
-  "TOKEN_EXPIRED",
-  "INVALID_TOKEN",
-  "TOKEN_BLACKLISTED",
-  "TOKEN_INVALIDATED",
-  "USER_NOT_FOUND",
-  "ACCOUNT_DEACTIVATED",
-  "UNAUTHORIZED",
-]);
 import {
   FaBell,
   FaUserTie,
@@ -35,6 +24,17 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 /* ================= ROLE-BASED CONFIGURATION ================= */
 const ROLE_CONFIG = {
