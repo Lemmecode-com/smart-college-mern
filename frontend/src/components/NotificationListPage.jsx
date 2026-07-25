@@ -955,29 +955,8 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
         {/* ================= RESPONSIVE STYLES ================= */}
         <style>{`
-          /* Mobile: Use flexbox to keep icons inside inputs */
+          /* Notification page specific mobile styles */
           @media (max-width: 767.98px) {
-            .filter-bar {
-              padding: 1rem !important;
-              width: 100% !important;
-              max-width: 100vw !important;
-              box-sizing: border-box !important;
-            }
-
-            /* Use flexbox layout on mobile to contain icons */
-            .search-wrapper,
-            .filter-wrapper {
-              width: 100% !important;
-              max-width: 100% !important;
-              display: flex !important;
-              align-items: center !important;
-              position: relative !important;
-              overflow: hidden !important;
-              background: white !important;
-              border: 2px solid #e2e8f0 !important;
-              border-radius: 10px !important;
-            }
-
             .search-icon,
             .filter-select-icon {
               position: relative !important;
@@ -988,24 +967,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
               margin-left: 1rem !important;
               margin-right: 0.5rem !important;
               z-index: 2 !important;
-            }
-
-            .search-input,
-            .filter-select {
-              flex: 1 !important;
-              width: auto !important;
-              max-width: 100% !important;
-              border: none !important;
-              border-radius: 0 !important;
-              padding: 0.75rem 1rem 0.75rem 0 !important;
-              box-sizing: border-box !important;
-              background: transparent !important;
-            }
-
-            .search-input:focus,
-            .filter-select:focus {
-              outline: none !important;
-              box-shadow: none !important;
             }
 
             .tab-group {
@@ -1021,20 +982,10 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
           /* Small mobile: Further reduce sizes */
           @media (max-width: 479.98px) {
-            .filter-bar {
-              padding: 0.75rem !important;
-            }
-
             .search-icon,
             .filter-select-icon {
               margin-left: 0.75rem !important;
               font-size: 0.85rem !important;
-            }
-
-            .search-input,
-            .filter-select {
-              font-size: 0.9rem !important;
-              padding: 0.625rem 0.75rem 0.625rem 0 !important;
             }
 
             .tab-btn {
