@@ -44,6 +44,7 @@ if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
 import { AuthContext } from "./auth/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
+import GuestRoute from "./components/GuestRoute";
 import Layout from "./components/Layout/Layout";
 import Loading from "./components/Loading";
 
@@ -312,11 +313,31 @@ function AppContent({
           />
 
           {/* ================= PUBLIC ROUTES (ALWAYS ACCESSIBLE) ================= */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-otp" element={<VerifyOTP />} />
-          <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/register/:collegeCode" element={<StudentRegister />} />
+          <Route path="/login" element={
+            <GuestRoute>
+              <Login />
+            </GuestRoute>
+          } />
+          <Route path="/forgot-password" element={
+            <GuestRoute>
+              <ForgotPassword />
+            </GuestRoute>
+          } />
+          <Route path="/verify-otp" element={
+            <GuestRoute>
+              <VerifyOTP />
+            </GuestRoute>
+          } />
+          <Route path="/change-password" element={
+            <GuestRoute>
+              <ChangePassword />
+            </GuestRoute>
+          } />
+          <Route path="/register/:collegeCode" element={
+            <GuestRoute>
+              <StudentRegister />
+            </GuestRoute>
+          } />
 
           {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}
           <Route
