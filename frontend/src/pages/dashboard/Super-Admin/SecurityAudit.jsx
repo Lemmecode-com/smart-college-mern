@@ -167,7 +167,7 @@ export default function SecurityAudit() {
   const fetchColleges = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/master/get/colleges");
+      const res = await api.get("/master/get/colleges?includeInactive=true");
 
       if (Array.isArray(res.data)) {
         setColleges(res.data);
@@ -416,18 +416,6 @@ export default function SecurityAudit() {
                 <option value="LOGIN_SUCCESS">Login Success</option>
                 <option value="LOGIN_FAILED">Login Failed</option>
                 <option value="LOGOUT">Logout</option>
-                <option value="PASSWORD_RESET_REQUEST">
-                  Password Reset Request
-                </option>
-                <option value="PASSWORD_RESET_SUCCESS">
-                  Password Reset Success
-                </option>
-                <option value="PERMISSION_DENIED">Permission Denied</option>
-                <option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
-                <option value="BRUTE_FORCE_DETECTED">
-                  Brute Force Detected
-                </option>
-                <option value="TOKEN_BLACKLISTED">Token Blacklisted</option>
               </select>
             </div>
 
@@ -552,10 +540,14 @@ export default function SecurityAudit() {
                           </div>
                         </td>
                         <td>
-                          {log.userEmail ? (
+                          {log.userId?.name || log.userRole ? (
                             <div className="user-cell">
-                              <div className="user-email">{log.userEmail}</div>
-                              <div className="user-role">{log.userRole}</div>
+                              {log.userId?.name && (
+                                <div className="user-name">{log.userId.name}</div>
+                              )}
+                              {log.userRole && (
+                                <div className="user-role">{log.userRole}</div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-muted">N/A</span>
@@ -1080,9 +1072,10 @@ export default function SecurityAudit() {
           gap: 0.25rem;
         }
 
-        .user-email {
-          font-weight: 600;
-          color: #1a4b6d;
+        .user-name {
+          font-weight: 700;
+          color: #0f172a;
+          font-size: 0.9rem;
         }
 
         .user-role {
