@@ -114,6 +114,8 @@ export default function StudentAttendanceReport() {
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const subjectsLoaded = useRef(false);
+  const subjectsInitialized = useRef(false);
 
   /* ================= DATA VALIDATION HELPER ================= */
   const validateAttendanceData = (data) => {
@@ -250,7 +252,10 @@ export default function StudentAttendanceReport() {
           absent: subj.absent,
           percentage: subj.percentage
         }));
-        setSubjects(subjectsFromAttendance);
+        if (!subjectsLoaded.current) {
+          setSubjects(subjectsFromAttendance);
+          subjectsLoaded.current = true;
+        }
         setError(null);
 
         // Clear timeout on success
@@ -328,6 +333,7 @@ export default function StudentAttendanceReport() {
       startDate: "",
       endDate: ""
     });
+    subjectsLoaded.current = false;
     addToast("Filters reset successfully!", "info");
   };
 
