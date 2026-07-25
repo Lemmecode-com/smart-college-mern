@@ -23,7 +23,6 @@ import {
   FaUniversity,
   FaLayerGroup,
   FaDownload,
-  FaPrint,
   FaQuestionCircle,
   FaLightbulb,
   FaBell,
@@ -114,8 +113,7 @@ export default function StudentAttendanceReport() {
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
-
-  /* ================= DATA VALIDATION HELPER ================= */
+/* ================= DATA VALIDATION HELPER ================= */
   const validateAttendanceData = (data) => {
     const errors = [];
     
@@ -175,7 +173,7 @@ export default function StudentAttendanceReport() {
     }));
   };
 
-  /* ================= DOWNLOAD & PRINT HANDLERS ================= */
+/* ================= DOWNLOAD HANDLER ================= */
   const handleDownloadReport = async () => {
     try {
       addToast("Generating PDF report...", "info");
@@ -199,14 +197,8 @@ export default function StudentAttendanceReport() {
     }
   };
 
-  const handlePrintReport = () => {
-    window.print();
-    addToast("Opening print dialog...", "info");
-  };
-
   /* ================= LOAD DATA ================= */
   useEffect(() => {
-    // Clear any existing timeout
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
@@ -250,7 +242,7 @@ export default function StudentAttendanceReport() {
           absent: subj.absent,
           percentage: subj.percentage
         }));
-        setSubjects(subjectsFromAttendance);
+setSubjects(subjectsFromAttendance);
         setError(null);
 
         // Clear timeout on success
@@ -328,7 +320,7 @@ export default function StudentAttendanceReport() {
       startDate: "",
       endDate: ""
     });
-    addToast("Filters reset successfully!", "info");
+addToast("Filters reset successfully!", "info");
   };
 
   /* ================= TOOLTIP HANDLERS WITH BOUNDARY CHECKS ================= */
@@ -1211,30 +1203,8 @@ export default function StudentAttendanceReport() {
                     aria-label="Download attendance report as PDF"
                   >
                     <FaDownload size={16} aria-hidden="true" /> Download Report
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handlePrintReport}
-                    style={{
-                      padding: '0.625rem 1.25rem',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: 'white',
-                      color: BRAND_COLORS.primary.main,
-                      fontSize: '0.95rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s ease'
-                    }}
-                    aria-label="Print attendance report"
-                  >
-                    <FaPrint size={16} aria-hidden="true" /> Print Report
-                  </motion.button>
-                </div>
+                   </motion.button>
+                 </div>
               </div>
             </div>
           </motion.div>
