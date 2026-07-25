@@ -463,7 +463,7 @@ class SecurityAuditService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('userId', 'email role')
+        .populate('userId', 'name role')
         .populate('collegeId', 'name code'),
       SecurityAudit.countDocuments(query)
     ]);

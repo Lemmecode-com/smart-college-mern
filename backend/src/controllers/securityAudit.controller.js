@@ -85,7 +85,7 @@ exports.getAuditLogById = async (req, res, next) => {
     const { id } = req.params;
     
     const audit = await SecurityAudit.findById(id)
-      .populate('userId', 'email role')
+      .populate('userId', 'name role')
       .populate('collegeId', 'name code');
 
     if (!audit) {
