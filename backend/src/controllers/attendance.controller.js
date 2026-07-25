@@ -1484,14 +1484,12 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .populate("department_id", "name code")
       .populate("course_id", "name code");
 
-    // Build query for sessions
     const sessionQuery = {
       college_id: student.college_id,
       department_id: student.department_id?._id || student.department_id,
       course_id: student.course_id?._id || student.course_id,
     };
 
-    // Add date filter if provided
     if (startDate && endDate) {
       sessionQuery.lectureDate = {
         $gte: new Date(startDate),
@@ -1499,9 +1497,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       };
     }
 
-    // Add subject filter if provided
     if (subjectId) {
-      sessionQuery.subject_id = new mongoose.Types.ObjectId(subjectId);
+      sessionQuery.subject_id =
+        new mongoose.Types.ObjectId(subjectId);
     }
 
     const sessions = await AttendanceSession.find(sessionQuery)
@@ -1510,27 +1508,25 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
     const sessionIds = sessions.map((s) => s._id);
 
-    // Fetch attendance records for this student
     const records = await AttendanceRecord.find({
       session_id: { $in: sessionIds },
       student_id: student._id,
     });
 
-    // Build session-wise data
     const sessionReport = sessions.map((session) => {
       const record = records.find(
         (r) => r.session_id.toString() === session._id.toString(),
       );
       return {
         date: session.lectureDate,
-        subject: session.subject_id?.name || "N/A",
+        subject: session.subject_id?.name || "Unknown",
         subjectCode: session.subject_id?.code || "N/A",
         lectureNumber: session.lectureNumber,
         startTime: session.slotSnapshot?.startTime || "N/A",
         endTime: session.slotSnapshot?.endTime || "N/A",
         room: session.slotSnapshot?.room || "N/A",
         teacher: session.slotSnapshot?.teacher_name || "N/A",
-        status: record?.status || "N/A",
+        status: record?.status || "-",
       };
     });
 
@@ -1542,18 +1538,20 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
     // Subject-wise breakdown
     const subjectMap = {};
-    sessions.forEach((session) => {
-      const record = records.find(
-        (r) => r.session_id.toString() === session._id.toString(),
+    records.forEach((record) => {
+      if (!record.status) return;
+
+      const session = sessions.find(
+        (s) => s._id.toString() === record.session_id.toString(),
       );
-      if (!record) return;
+      if (!session) return;
 
-      const subjectId = session.subject_id?._id?.toString();
-      if (!subjectId) return;
+      const sid = session.subject_id?._id?.toString();
+      if (!sid) return;
 
-      if (!subjectMap[subjectId]) {
-        subjectMap[subjectId] = {
-          subject: session.subject_id?.name || "N/A",
+      if (!subjectMap[sid]) {
+        subjectMap[sid] = {
+          subject: session.subject_id?.name || "Unknown",
           code: session.subject_id?.code || "N/A",
           total: 0,
           present: 0,
@@ -1561,12 +1559,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         };
       }
 
-      subjectMap[subjectId].total++;
-      if (record.status === "PRESENT") {
-        subjectMap[subjectId].present++;
-      } else if (record.status === "ABSENT") {
-        subjectMap[subjectId].absent++;
-      }
+      subjectMap[sid].total++;
+      if (record.status === "PRESENT") subjectMap[sid].present++;
+      if (record.status === "ABSENT") subjectMap[sid].absent++;
     });
 
     const subjectBreakdown = Object.values(subjectMap).map((sub) => {
@@ -1626,11 +1621,10 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .moveDown(0.3);
 
     doc
-      .font("Helvetica")
-      .fontSize(10)
-      .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
-      .text(`Roll Number: ${studentInfo?.rollNumber || "N/A"}`)
-      .text(`Email: ${studentInfo?.email || "N/A"}`)
+       .font("Helvetica")
+       .fontSize(10)
+       .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
+       .text(`Email: ${studentInfo?.email || "N/A"}`)
       .text(
         `Department: ${studentInfo?.department_id?.name || "N/A"} (${studentInfo?.department_id?.code || "N/A"})`,
       )
@@ -1667,13 +1661,12 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .moveDown(0.5);
 
     // Attendance Status
-    const statusColor = parseFloat(percentage) >= 75 ? "✓" : "⚠";
     const statusText =
       parseFloat(percentage) >= 75 ? "ELIGIBLE" : "NOT ELIGIBLE";
     doc
       .font("Helvetica-Bold")
       .text(
-        `${statusColor} Exam Eligibility: ${statusText} (Minimum 75% required)`,
+        `Exam Eligibility: ${statusText} (Minimum 75% required)`,
       );
     doc.moveDown(1);
 
@@ -1710,7 +1703,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
     // Table headers
     const tableTop = doc.y;
     const tableLeft = 40;
-    const colWidths = [60, 120, 50, 50, 60]; // Date, Subject, Lecture, Time, Status
+    const colWidths = [60, 100, 50, 85, 50]; // Date, Subject, Lecture, Time, Status
 
     // Header row background
     doc
@@ -1724,7 +1717,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         width: colWidths[1],
         align: "center",
       })
-      .text("Lec #", tableLeft + colWidths[0] + colWidths[1], tableTop, {
+       .text("Lecture", tableLeft + colWidths[0] + colWidths[1], tableTop, {
         width: colWidths[2],
         align: "center",
       })
@@ -1753,7 +1746,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
     let rowY = doc.y;
     sessionReport.slice(0, 100).forEach((session, index) => {
       // Limit to 100 rows to prevent extremely long PDFs
-      const yPos = rowY + index * 15;
+      const yPos = rowY + index * 18;
 
       // Alternate row colors
       if (index % 2 === 0) {
@@ -1762,9 +1755,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
             tableLeft,
             yPos,
             colWidths.reduce((a, b) => a + b, 0),
-            14,
+            16,
           )
-          .fill("#f5f5f5");
+          .fill("#e8ecf0");
       }
 
       const dateStr = new Date(session.date).toLocaleDateString();
@@ -1778,19 +1771,20 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
       doc
         .font("Helvetica")
-        .fontSize(8)
-        .text(dateStr, tableLeft, yPos + 3, {
+        .fontSize(9)
+        .fill("black")
+        .text(dateStr, tableLeft, yPos + 4, {
           width: colWidths[0],
           align: "center",
         })
-        .text(session.subject, tableLeft + colWidths[0], yPos + 3, {
+        .text(session.subject, tableLeft + colWidths[0], yPos + 4, {
           width: colWidths[1],
           align: "left",
         })
         .text(
           session.lectureNumber.toString(),
           tableLeft + colWidths[0] + colWidths[1],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[2],
             align: "center",
@@ -1799,7 +1793,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         .text(
           timeStr,
           tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[3],
             align: "center",
@@ -1808,7 +1802,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         .text(
           `${statusSymbol} ${session.status}`,
           tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[4],
             align: "center",
