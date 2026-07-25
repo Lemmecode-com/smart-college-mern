@@ -11,6 +11,7 @@ export const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionInvalidReason, setSessionInvalidReason] = useState(null);
   const userRef = useRef(user);
   userRef.current = user;
 
@@ -29,37 +30,44 @@ export const AuthProvider = ({ children }) => {
      }
    }, []);
 
-   const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED") => {
-      if (isInvalidatingRef.current) {
-        console.log(
-          `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
-        );
-        return;
-      }
-      isInvalidatingRef.current = true;
-      performSessionInvalidationCallCount++;
+   const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", currentPathname = null) => {
+       if (isInvalidatingRef.current) {
+         console.log(
+           `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
+         );
+         return;
+       }
+       isInvalidatingRef.current = true;
+       performSessionInvalidationCallCount++;
 
-      const now = new Date().toISOString();
-      console.log(
-        `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current} | Reason=${reason}`
-      );
+       const now = new Date().toISOString();
+       console.log(
+         `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current} | Reason=${reason}`
+       );
 
-      clearTokenExpiryTimer();
+       clearTokenExpiryTimer();
+       setSessionInvalidReason(reason);
 
-      try {
-        await api.post("/auth/logout");
-      } catch (error) {
-        const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
-        console.log(
-          `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount} | Reason=${reason}`
-        );
-        logger.error("Logout error:", error);
-      } finally {
-        setUser(null);
-        sessionStorage.clear();
-        window.location.href = `/login?session=expired&reason=${encodeURIComponent(reason)}`;
-      }
-    }, [clearTokenExpiryTimer]);
+       try {
+         await api.post("/auth/logout");
+       } catch (error) {
+         const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
+         console.log(
+           `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount} | Reason=${reason}`
+         );
+         logger.error("Logout error:", error);
+       } finally {
+         setUser(null);
+         sessionStorage.clear();
+         const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+         const onPublicRoute = currentPathname && publicRoutes.some(route =>
+           currentPathname === route || currentPathname.startsWith("/register/")
+         );
+         if (!onPublicRoute) {
+           window.location.href = `/login?session=expired&reason=${encodeURIComponent(reason)}`;
+         }
+       }
+     }, [clearTokenExpiryTimer]);
 
     const scheduleTokenExpiryCheck = useCallback(() => {
       clearTokenExpiryTimer();
@@ -72,21 +80,22 @@ export const AuthProvider = ({ children }) => {
     }, [clearTokenExpiryTimer, performSessionInvalidation]);
 
    useEffect(() => {
-     const unsubscribe = listenForAuthInvalidation((data) => {
-       const now = new Date().toISOString();
-       console.log(
-         `[listenForAuthInvalidation] Time=${now} | ReceivedBroadcast | Type=${data.type} | Reason=${data.reason} | userRef.current=${!!userRef.current}`
-       );
-       if (userRef.current) {
-         performSessionInvalidation(data.reason || "SESSION_INVALIDATED");
-       }
-     });
+      const unsubscribe = listenForAuthInvalidation((data) => {
+        const now = new Date().toISOString();
+        console.log(
+          `[listenForAuthInvalidation] Time=${now} | ReceivedBroadcast | Type=${data.type} | Reason=${data.reason} | userRef.current=${!!userRef.current}`
+        );
+        if (userRef.current) {
+          const currentPath = window.location.pathname;
+          performSessionInvalidation(data.reason || "SESSION_INVALIDATED", currentPath);
+        }
+      });
 
-     return () => {
-       unsubscribe();
-       clearTokenExpiryTimer();
-     };
-   }, [performSessionInvalidation, clearTokenExpiryTimer]);
+      return () => {
+        unsubscribe();
+        clearTokenExpiryTimer();
+      };
+    }, [performSessionInvalidation, clearTokenExpiryTimer]);
 
   /* ========== LOGIN ========== */
   const login = async (credentials) => {
@@ -128,10 +137,11 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Return success and user data for first-login handling
+        setSessionInvalidReason(null);
         scheduleTokenExpiryCheck();
-        return { 
-          success: true, 
-          user: userInfo 
+        return {
+          success: true,
+          user: userInfo
         };
       } catch (error) {
     const errorData = error?.response?.data || {};
@@ -174,6 +184,7 @@ export const AuthProvider = ({ children }) => {
     isInvalidatingRef.current = true;
 
     clearTokenExpiryTimer();
+    setSessionInvalidReason("SESSION_INVALIDATED");
 
     try {
       await api.post("/auth/logout");
@@ -183,47 +194,50 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       sessionStorage.clear();
       broadcastAuthInvalidation("SESSION_INVALIDATED");
-      window.location.href = "/login?session=expired&reason=SESSION_INVALIDATED";
+      const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+      const currentPath = window.location.pathname;
+      const onPublicRoute = publicRoutes.some(route =>
+        currentPath === route || currentPath.startsWith("/register/")
+      );
+      if (!onPublicRoute) {
+        window.location.href = "/login?session=expired&reason=SESSION_INVALIDATED";
+      }
     }
   };
 
-  /* ========== RESTORE SESSION ========== */
-  useEffect(() => {
-    // Skip auth check on public routes to avoid unnecessary API calls and redirect loops
-    if (typeof window !== "undefined") {
-      const publicRoutes = ["/login", "/forgot-password", "/verify-otp", "/register"];
-      const isPublicRoute = publicRoutes.some((route) =>
-        window.location.pathname === route || window.location.pathname.startsWith("/register/")
-      );
-      if (isPublicRoute) {
-        setLoading(false);
-        return;
-      }
-    }
+   /* ========== RESTORE SESSION ========== */
+   useEffect(() => {
+     if (typeof window !== "undefined") {
+       const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+       const isPublicRoute = publicRoutes.some((route) =>
+         window.location.pathname === route || window.location.pathname.startsWith("/register/")
+       );
+
+        if (isPublicRoute) {
+          setLoading(false);
+          return;
+        }
+     }
 
     const checkAuthStatus = async () => {
+      const currentPath = window.location.pathname;
       try {
         const res = await api.get("/auth/me");
-
-// Store complete user data from backend
-         setUser({
-           id: res.data.id,
-           realId: res.data.realId,
-           role: res.data.role,
-           college_id: res.data.college_id || null,
-           email: res.data.email || null,
-           name: res.data.name || null,
-         });
+        setUser({
+          id: res.data.id,
+          realId: res.data.realId,
+          role: res.data.role,
+          college_id: res.data.college_id || null,
+          email: res.data.email || null,
+          name: res.data.name || null,
+        });
       } catch (error) {
-        // 401 is expected for unauthenticated users - don't log it as error
-        // Only log if it's a different error (network issue, server error, etc.)
         if (error.response?.status !== 401) {
           logger.error(
             "Auth check error:",
             error.response?.status || error.message,
           );
         }
-        // User is not authenticated - this is normal, not an error
         setUser(null);
 
         const errorCode = error.response?.data?.code;
@@ -241,15 +255,12 @@ export const AuthProvider = ({ children }) => {
           console.log(
             `[checkAuthStatus] Time=${now} | URL=/auth/me | Status=401 | ErrorCode=${errorCode} | RedirectingToLogin`
           );
-          // Only redirect if we are not already on the login page with session=expired.
-          // Setting window.location.href to the same URL still triggers a browser reload,
-          // which would cause an infinite loop because checkAuthStatus() would run again.
           if (typeof window !== "undefined") {
             const alreadyOnLoginExpired =
-              window.location.pathname === "/login" &&
+              currentPath === "/login" &&
               window.location.search.includes("session=expired");
             if (!alreadyOnLoginExpired) {
-              window.location.href = `/login?session=expired&reason=${encodeURIComponent(errorCode)}`;
+              performSessionInvalidation(errorCode, currentPath);
             }
           }
         }
@@ -258,7 +269,11 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    checkAuthStatus();
+     checkAuthStatus();
+   }, [performSessionInvalidation]);
+
+  const clearSessionInvalidReason = useCallback(() => {
+    setSessionInvalidReason(null);
   }, []);
 
   return (
@@ -266,6 +281,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         loading,
+        sessionInvalidReason,
+        clearSessionInvalidReason,
         login,
         logout,
         logoutDueToSessionInvalidation,
