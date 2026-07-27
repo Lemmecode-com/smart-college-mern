@@ -110,6 +110,12 @@ export default function SecurityAudit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, currentPage]);
 
+  useEffect(() => {
+    const interval = setInterval(fetchLogs, 60000); // Auto-refresh logs every 60s for real-time monitoring
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
