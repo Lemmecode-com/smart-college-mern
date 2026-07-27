@@ -531,9 +531,11 @@ export default function NavbarComponent({
 
           {/* RIGHT */}
           <Nav className="nav-items-gap d-flex align-items-center flex-row">
-            {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
-            <Dropdown
-              show={notifOpen}
+            {user.role !== "SUPER_ADMIN" && (
+              <>
+                {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
+                <Dropdown
+                  show={notifOpen}
               onToggle={(isOpen) => {
                 setNotifOpen(isOpen);
                 if (isOpen) {
@@ -675,7 +677,9 @@ export default function NavbarComponent({
                   </button>
                 </div>
               </Dropdown.Menu>
-            </Dropdown>
+                </Dropdown>
+              </>
+            )}
 
             {/* User Profile Dropdown - Clickable Icon */}
             <Dropdown
