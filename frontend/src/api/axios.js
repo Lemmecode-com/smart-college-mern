@@ -4,7 +4,7 @@ import { broadcastAuthInvalidation } from "../utils/authSync";
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 if (!baseURL) {
-  throw new Error(
+  console.error(
     "VITE_API_BASE_URL is not defined. Please set it in your .env file.",
   );
 }
