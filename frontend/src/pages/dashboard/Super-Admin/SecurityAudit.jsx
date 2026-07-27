@@ -11,7 +11,6 @@ import {
   FaChartPie,
   FaSyncAlt,
   FaExclamationTriangle,
-  FaDownload,
   FaCheckCircle,
   FaUserLock,
   FaSignOutAlt,
@@ -186,7 +185,14 @@ export default function SecurityAudit() {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    const next = { ...filters, [key]: value };
+
+    if ((key === "startDate" || key === "endDate") && next.startDate && next.endDate && next.endDate < next.startDate) {
+      toast.error("End Date cannot be earlier than Start Date");
+      return;
+    }
+
+    setFilters(next);
     setCurrentPage(1);
   };
 
@@ -202,12 +208,6 @@ export default function SecurityAudit() {
       logger.error("Error marking as reviewed:", err.response?.status, err.response?.data?.code);
       toast.error("Failed to update status");
     }
-  };
-
-  const handleExport = () => {
-    const params = new URLSearchParams(filters);
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-    window.open(`${baseUrl}/security-audit/export/download?${params}`, "_blank");
   };
 
   const getSeverityBadgeClass = (severity) => {
@@ -285,10 +285,6 @@ export default function SecurityAudit() {
               </p>
             </div>
           </div>
-          <button className="btn-export" onClick={handleExport}>
-            <FaDownload className="btn-icon" />
-            Export CSV
-          </button>
         </div>
 
         {/* Statistics Cards */}
@@ -723,32 +719,6 @@ export default function SecurityAudit() {
 
         .meta-icon {
           font-size: 0.75rem;
-        }
-
-        /* Export Button */
-        .btn-export {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(26, 75, 109, 0.2);
-        }
-
-        .btn-export:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
-        }
-
-        .btn-icon {
-          font-size: 0.9rem;
         }
 
         /* Stats Grid */
@@ -1253,11 +1223,6 @@ export default function SecurityAudit() {
             flex-direction: column;
             align-items: flex-start;
             gap: 1rem;
-          }
-
-          .btn-export {
-            width: 100%;
-            justify-content: center;
           }
 
           .stats-grid {
