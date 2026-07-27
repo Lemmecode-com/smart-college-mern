@@ -82,12 +82,17 @@ module.exports = async (req, res, next) => {
     if (sessionId) {
       const session = await AuthSession.findOne({ sessionId, user_id: decoded.id }).lean();
       if (!session || !session.isActive) {
+        const reason =
+          session?.invalidationReason === "NEW_LOGIN_RESTRICTED"
+            ? "Your session was terminated because you logged in from another location. If this wasn't you, please contact your administrator."
+            : "Your session has expired. Please sign in again.";
+        const code =
+          session?.invalidationReason === "NEW_LOGIN_RESTRICTED"
+            ? "SESSION_TERMINATED"
+            : "SESSION_INVALIDATED";
+
         return next(
-          new AppError(
-            "Your session has expired because your account was accessed from another location.",
-            401,
-            "SESSION_INVALIDATED",
-          ),
+          new AppError(reason, 401, code),
         );
       }
       req.authSession = session;
