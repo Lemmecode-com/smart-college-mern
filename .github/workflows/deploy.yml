@@ -34,9 +34,9 @@ jobs:
             echo "--- syncing secrets to .env ---"
             grep -q "^GLITCHTIP_DSN=" backend/.env && sed -i "s|^GLITCHTIP_DSN=.*|GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}|" backend/.env || echo "GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}" >> backend/.env
             grep -q "^GLITCHTIP_ENABLED=" backend/.env && sed -i "s|^GLITCHTIP_ENABLED=.*|GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}|" backend/.env || echo "GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}" >> backend/.env
-            grep -q "^VITE_API_BASE_URL=" frontend/.env.production && sed -i "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}|" frontend/.env.production || echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> frontend/.env.production
             grep -q "^VITE_GLITCHTIP_DSN=" frontend/.env.production && sed -i "s|^VITE_GLITCHTIP_DSN=.*|VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}|" frontend/.env.production || echo "VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}" >> frontend/.env.production
 
+            grep -q "^VITE_API_BASE_URL=" frontend/.env.production && sed -i "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}|" frontend/.env.production || echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> frontend/.env.production
             echo "--- backend install ---"
             cd backend && npm ci --omit=dev && cd ..
 
