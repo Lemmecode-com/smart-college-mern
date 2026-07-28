@@ -918,10 +918,13 @@ export default function StudentProfile() {
                             : ""
                         }
                         file={
-                          student?.sscMarksheetPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["10th_marksheet"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.sscMarksheetPath}
+                        filePath={
+                          student?.documents?.["10th_marksheet"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -939,10 +942,13 @@ export default function StudentProfile() {
                             : ""
                         }
                         file={
-                          student?.hscMarksheetPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["12th_marksheet"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.hscMarksheetPath}
+                        filePath={
+                          student?.documents?.["12th_marksheet"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -956,10 +962,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.passportPhotoPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["passport_photo"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.passportPhotoPath}
+                        filePath={
+                          student?.documents?.["passport_photo"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -973,12 +982,14 @@ export default function StudentProfile() {
                           board="Issuing Authority"
                           year="N/A"
                           percentage=""
-                          file={
-                            student?.categoryCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.categoryCertificatePath}
+                        file={
+                          student?.documents?.["category_certificate"]
+                            ?.originalFileName || "Not uploaded"
+                        }
+                        filePath={
+                          student?.documents?.["category_certificate"]
+                            ?.downloadUrl
+                        }
                         />
                       )}
 
@@ -992,11 +1003,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.incomeCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["income_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.incomeCertificatePath}
+                        filePath={
+                          student?.documents?.["income_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1010,11 +1023,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.characterCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["character_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.characterCertificatePath}
+                        filePath={
+                          student?.documents?.["character_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1028,11 +1043,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.transferCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["transfer_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.transferCertificatePath}
+                        filePath={
+                          student?.documents?.["transfer_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1046,10 +1063,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.aadharCardPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["aadhar_card"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.aadharCardPath}
+                        filePath={
+                          student?.documents?.["aadhar_card"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1063,11 +1083,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.entranceExamScorePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["entrance_exam_score"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.entranceExamScorePath}
+                        filePath={
+                          student?.documents?.["entrance_exam_score"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1081,11 +1103,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.migrationCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["migration_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.migrationCertificatePath}
+                        filePath={
+                          student?.documents?.["migration_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1099,11 +1123,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.domicileCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["domicile_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.domicileCertificatePath}
+                        filePath={
+                          student?.documents?.["domicile_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1117,12 +1143,14 @@ export default function StudentProfile() {
                           board="Competent Authority"
                           year="N/A"
                           percentage=""
-                          file={
-                            student?.casteCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.casteCertificatePath}
+                        file={
+                          student?.documents?.["caste_certificate"]
+                            ?.originalFileName || "Not uploaded"
+                        }
+                        filePath={
+                          student?.documents?.["caste_certificate"]
+                            ?.downloadUrl
+                        }
                         />
                       )}
 
@@ -1136,12 +1164,14 @@ export default function StudentProfile() {
                           board="Competent Authority"
                           year="N/A"
                           percentage=""
-                          file={
-                            student?.nonCreamyLayerCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.nonCreamyLayerCertificatePath}
+                        file={
+                          student?.documents?.["non_creamy_layer_certificate"]
+                            ?.originalFileName || "Not uploaded"
+                        }
+                        filePath={
+                          student?.documents?.["non_creamy_layer_certificate"]
+                            ?.downloadUrl
+                        }
                         />
                       )}
 
@@ -1155,11 +1185,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage={student?.pwdDisability || ""}
                         file={
-                          student?.physicallyChallengedCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["physically_challenged_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.physicallyChallengedCertificatePath}
+                        filePath={
+                          student?.documents?.["physically_challenged_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1173,11 +1205,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.sportsQuotaCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["sports_quota_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.sportsQuotaCertificatePath}
+                        filePath={
+                          student?.documents?.["sports_quota_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1191,11 +1225,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.nriSponsorCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
+                          student?.documents?.["nri_sponsor_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.nriSponsorCertificatePath}
+                        filePath={
+                          student?.documents?.["nri_sponsor_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1209,10 +1245,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.gapCertificatePath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["gap_certificate"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.gapCertificatePath}
+                        filePath={
+                          student?.documents?.["gap_certificate"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1226,10 +1265,13 @@ export default function StudentProfile() {
                         year="N/A"
                         percentage=""
                         file={
-                          student?.affidavitPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
+                          student?.documents?.["affidavit"]
+                            ?.originalFileName || "Not uploaded"
                         }
-                        filePath={student?.affidavitPath}
+                        filePath={
+                          student?.documents?.["affidavit"]
+                            ?.downloadUrl
+                        }
                       />
                     )}
 
@@ -1880,19 +1922,25 @@ function DocumentCard({
 
   // Construct SECURE document URL using axios-configured baseURL
   // No duplication of VITE_API_BASE_URL
-  const documentUrl = filePath
-    ? (() => {
-      const fileName = filePath.split(/[\\/]/).pop();
-      return `${api.defaults.baseURL}/students/documents/${fileName}`;
-    })()
-    : null;
+  const documentUrl = (() => {
+    const source = filePath || document?.downloadUrl;
+    if (!source) return null;
+    if (source.startsWith('http')) return source;
+    if (source.startsWith('/api/')) {
+      return `${window.location.origin}${source}`;
+    }
+    const fileName = source.split(/[\\/]/).pop();
+    return `${api.defaults.baseURL}/students/documents/${fileName}`;
+  })();
 
   // Check if file actually exists (not null, not undefined, not empty string)
   const hasFile =
-    filePath &&
-    String(filePath).trim() !== "" &&
-    filePath !== "null" &&
-    filePath !== "undefined";
+    (filePath &&
+     String(filePath).trim() !== "" &&
+     filePath !== "null" &&
+     filePath !== "undefined") ||
+    !!document?.downloadUrl ||
+    !!document?.storageKey;
 
   const handleView = () => {
     if (documentUrl && hasFile) {

@@ -517,16 +517,6 @@ export default function SuperAdminDashboard() {
                   Add First College
                 </button>
               )}
-              {searchTerm && (
-                <button
-                  className="erp-btn erp-btn-secondary empty-action"
-                  onClick={() => {
-                    setSearchTerm("");
-                  }}
-                >
-                  Reset Search
-                </button>
-              )}
             </div>
           ) : (
             <div className="row g-3 g-md-4">
