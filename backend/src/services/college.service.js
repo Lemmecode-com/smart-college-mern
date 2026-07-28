@@ -17,12 +17,13 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} If college not found
  */
 exports.findCollegeByCode = async (collegeCode) => {
-  const college = await College.findOne({ code: collegeCode });
-  
+  const normalizedCode = (collegeCode || "").trim().toLowerCase();
+  const college = await College.findOne({ code: normalizedCode });
+
   if (!college) {
     throw new AppError('College not found', 404, 'COLLEGE_NOT_FOUND');
   }
-  
+
   return college;
 };
 

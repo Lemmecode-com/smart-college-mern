@@ -86,10 +86,9 @@ exports.registerStudent = async (req, res, next) => {
     // Get uploaded files
     const files = req.files || {};
 
-    // Load document configuration for this college (case-insensitive)
-    const sanitizedCode = collegeCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Load document configuration for this college
     const docConfig = await DocumentConfig.findOne({
-      collegeCode: { $regex: new RegExp(`^${sanitizedCode}$`, 'i') },
+      collegeCode,
       isActive: true,
     });
     if (docConfig) {

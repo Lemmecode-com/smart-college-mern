@@ -3,11 +3,12 @@ const router = express.Router();
 const College = require("../models/college.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const normalizeCollegeCode = require("../middlewares/normalizeCollegeCode.middleware");
 
 /**
  * GET Departments by College Code (Public)
  */
-router.get("/departments/:collegeCode", async (req, res) => {
+router.get("/departments/:collegeCode", normalizeCollegeCode, async (req, res) => {
   try {
     const { collegeCode } = req.params;
 
@@ -37,7 +38,7 @@ router.get("/departments/:collegeCode", async (req, res) => {
 /**
  * GET Courses by Department and College Code (Public)
  */
-router.get("/courses/:collegeCode/department/:departmentId", async (req, res) => {
+router.get("/courses/:collegeCode/department/:departmentId", normalizeCollegeCode, async (req, res) => {
   try {
     const { collegeCode, departmentId } = req.params;
 
