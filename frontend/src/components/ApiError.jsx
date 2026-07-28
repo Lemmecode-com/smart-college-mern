@@ -72,7 +72,16 @@ const ERROR_CONFIG = {
   SESSION_INVALIDATED: {
     title: "Session Expired",
     message:
-      "Your session has expired because your account was accessed from another location.\nPlease sign in again.",
+      "Your session has expired.\nPlease sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  SESSION_TERMINATED: {
+    title: "Session Terminated",
+    message:
+      "Your session was terminated because you logged in from another location.\nIf this wasn't you, please contact your administrator.",
     icon: FaLock,
     color: "#0f3a4a",
     variant: "session",
