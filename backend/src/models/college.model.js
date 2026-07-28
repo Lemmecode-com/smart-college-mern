@@ -58,6 +58,32 @@ const collegeSchema = new mongoose.Schema({
   logo: {
     type: String, // file path or URL
   },
+  logoDocumentId: {
+    type: String,
+  },
+  registrationQr: {
+    type: String, // file path of QR image
+  },
+  registrationQrDocumentId: {
+    type: String,
+  },
+  // 🏢 ERP Document References
+  documentRefs: [
+    {
+      documentId: {
+        type: String,
+        required: true,
+      },
+      documentType: {
+        type: String,
+        required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   isActive: {
     type: Boolean,
     default: true,

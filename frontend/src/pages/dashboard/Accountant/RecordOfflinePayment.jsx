@@ -349,14 +349,22 @@ export default function RecordOfflinePayment() {
                   Mode: <strong>{successData?.paymentMode}</strong>
                </p>
                <div>
-                  {successData?.proofUrl && (
-                     <button
-                        className="action-btn primary"
-                        onClick={() => window.open(`/uploads/payment-proofs/${successData.proofUrl.split('/').pop()}`, '_blank')}
-                     >
-                        <FaReceipt /> View Proof
-                     </button>
-                  )}
+                      {successData?.proofUrl && (
+                         <button
+                            className="action-btn primary"
+                            onClick={() => {
+                              const installmentId = successData.installmentId;
+                              if (installmentId) {
+                                window.open(
+                                  `${api.defaults.baseURL}/admin/payments/proof/${installmentId}`,
+                                  "_blank",
+                                );
+                              }
+                            }}
+                         >
+                            <FaReceipt /> View Proof
+                         </button>
+                      )}
                   <button className="action-btn primary" onClick={handleViewReceipt}>
                      <FaReceipt /> View Receipt
                   </button>
