@@ -1,5 +1,5 @@
-import { useContext, useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useContext, useState, useEffect, useCallback } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -22,6 +22,8 @@ import useCountdown from "../../hooks/useCountdown";
 export default function Login() {
   const { login, isAuthenticated, sessionInvalidReason, clearSessionInvalidReason } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryReason = searchParams.get("reason");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -35,25 +37,28 @@ export default function Login() {
     };
   }, [clearSessionInvalidReason]);
 
-  const [error, setError] = useState(() => {
-    if (sessionInvalidReason === "SESSION_INVALIDATED") {
-      return "Your session has expired because your account was accessed from another location. Please sign in again.";
+  const resolveSessionError = useCallback((reason) => {
+    if (reason === "SESSION_TERMINATED") {
+      return "Your session was terminated because you logged in from another location. If this wasn't you, please contact your administrator.";
     }
-    if (sessionInvalidReason) {
+    if (reason === "SESSION_INVALIDATED") {
+      return "Your session has expired. Please sign in again.";
+    }
+    if (reason) {
       return "Your session has expired due to inactivity. Please sign in again to continue.";
     }
     return "";
+  }, []);
+
+  const [error, setError] = useState(() => {
+    const reason = sessionInvalidReason || queryReason;
+    return resolveSessionError(reason);
   });
 
   useEffect(() => {
-    if (sessionInvalidReason === "SESSION_INVALIDATED") {
-      setError("Your session has expired because your account was accessed from another location. Please sign in again.");
-    } else if (sessionInvalidReason) {
-      setError("Your session has expired due to inactivity. Please sign in again to continue.");
-    } else {
-      setError("");
-    }
-  }, [sessionInvalidReason]);
+    const reason = sessionInvalidReason || queryReason;
+    setError(resolveSessionError(reason));
+  }, [sessionInvalidReason, queryReason, resolveSessionError]);
   const [forgotMode, setForgotMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);

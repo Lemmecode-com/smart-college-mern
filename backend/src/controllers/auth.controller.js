@@ -768,7 +768,7 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
 
       await AuthSession.updateMany(
         { user_id: id, isActive: true },
-        { $set: { isActive: false, updatedAt: new Date() } },
+        { $set: { isActive: false, updatedAt: new Date(), invalidationReason: "NEW_LOGIN_RESTRICTED" } },
       );
 
       await RefreshToken.updateMany(

@@ -47,6 +47,10 @@ const authSessionSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  invalidationReason: {
+    type: String,
+    default: null,
+  },
 }, { timestamps: true });
 
 authSessionSchema.index({ user_id: 1, isActive: 1 });

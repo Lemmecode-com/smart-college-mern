@@ -43,7 +43,6 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const AUTH_ERROR_CODES = new Set([
@@ -149,13 +148,9 @@ export default function SuperAdminDashboard() {
       const matchesSearch = college.name
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        filterStatus === "all" ||
-        !college.status ||
-        college.status.toLowerCase() === filterStatus;
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     });
-  }, [colleges, searchTerm, filterStatus]);
+  }, [colleges, searchTerm]);
 
   const collegesToDisplay = useMemo(
     () => filteredColleges.slice(0, INITIAL_COLLEGES_DISPLAY),
@@ -277,34 +272,6 @@ export default function SuperAdminDashboard() {
             </button>
           )}
         </div>
-        <div className="filter-group">
-          <div className="filter-wrapper">
-            <FaFilter className="filter-icon" aria-hidden="true" />
-            <select
-              className="filter-select"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              aria-label="Filter by status"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
-          {(searchTerm || filterStatus !== "all") && (
-            <button
-              className="filter-reset"
-              onClick={() => {
-                setSearchTerm("");
-                setFilterStatus("all");
-              }}
-              aria-label="Reset filters"
-            >
-              Reset
-            </button>
-          )}
-        </div>
         <div className="filter-results">
           Showing {filteredColleges.length} of {collegeCount} colleges
         </div>
@@ -421,33 +388,9 @@ export default function SuperAdminDashboard() {
               <div className="quick-action-title">Security Audit</div>
               <div className="quick-action-description">
                 Monitor system activity
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="quick-action-card"
-            onClick={() => navigate("/super-admin/platform-support-config")}
-            role="button"
-            tabIndex={0}
-            aria-label="Platform Support Configuration"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate("/super-admin/platform-support-config");
-              }
-            }}
-          >
-            <div className="quick-action-icon support">
-              <FaCog />
-            </div>
-            <div className="quick-action-content">
-              <div className="quick-action-title">Platform Support Config</div>
-              <div className="quick-action-description">
-                Manage support dashboard features
-              </div>
-            </div>
-          </div>
+               </div>
+           </div>
+         </div>
         </div>
       </div>
 
@@ -561,29 +504,17 @@ export default function SuperAdminDashboard() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {searchTerm || filterStatus !== "all"
-                  ? `No colleges match your search "${searchTerm}" and filter criteria. Try adjusting your filters.`
+                {searchTerm
+                  ? `No colleges match your search "${searchTerm}". Try adjusting your search.`
                   : "There are no colleges registered in the system yet. Click 'Add College' to register your first institution."}
               </p>
-              {!searchTerm && filterStatus === "all" && (
+              {!searchTerm && (
                 <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
                 >
                   <FaPlus className="erp-btn-icon" aria-hidden="true" />
                   Add First College
-                </button>
-              )}
-              {(searchTerm || filterStatus !== "all") && (
-                <button
-                  className="erp-btn erp-btn-secondary empty-action"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilterStatus("all");
-                  }}
-                >
-                  <FaFilter className="erp-btn-icon" aria-hidden="true" />
-                  Reset Filters
                 </button>
               )}
             </div>
