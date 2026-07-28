@@ -23,7 +23,8 @@
     "rollback:all": "node scripts/rollback.js --all",
     "seed": "node scripts/seed-data.js",
     "seed:minimal": "node scripts/seed-data.js --minimal",
-    "seed:users": "node scripts/seed-data.js --users"
+    "seed:users": "node scripts/seed-data.js --users",
+    "seed:ideal": "node scripts/seed-ideal-college.js"
   },
   "keywords": [],
   "author": "",
