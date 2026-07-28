@@ -15,6 +15,7 @@ import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
+import { exportToExcel, exportToPDF } from "../../../utils/exportHelpers";
 
 import {
   FaUniversity,
@@ -29,7 +30,6 @@ import {
   FaSyncAlt,
   FaInfoCircle,
   FaDownload,
-  FaFilter,
   FaChevronDown,
   FaChevronUp,
   FaChevronRight,
@@ -59,7 +59,6 @@ export default function CollegeList() {
 
   const [colleges, setColleges] = useState([]);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -179,15 +178,8 @@ export default function CollegeList() {
           college.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           college.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           college.contactNumber.includes(debouncedSearch),
-      )
-      .filter((college) =>
-        filterStatus === "ALL"
-          ? true
-          : filterStatus === "ACTIVE"
-            ? college.isActive
-            : !college.isActive,
       );
-  }, [colleges, debouncedSearch, filterStatus]);
+  }, [colleges, debouncedSearch]);
 
   const totalPages = Math.ceil(filteredColleges.length / ITEMS_PER_PAGE);
   const paginatedColleges = filteredColleges.slice(
@@ -246,7 +238,6 @@ export default function CollegeList() {
       setShowExportMenu(false);
 
       try {
-        // Prepare data for export
         const exportData = filteredColleges.map((college) => ({
           "College Name": college.name,
           Email: college.email,
@@ -256,13 +247,25 @@ export default function CollegeList() {
           Created: new Date(college.createdAt).toLocaleDateString(),
         }));
 
+        const columns = [
+          { header: "College Name", key: "College Name" },
+          { header: "Email", key: "Email" },
+          { header: "Contact", key: "Contact" },
+          { header: "Established", key: "Established" },
+          { header: "Status", key: "Status" },
+          { header: "Created", key: "Created" },
+        ];
+
         if (format === "excel") {
-          logger.warn("Excel export coming soon!");
+          await exportToExcel("Colleges List", columns, exportData, "colleges.xlsx");
+          toast.success("Excel exported successfully");
         } else if (format === "pdf") {
-          logger.warn("PDF export coming soon!");
+          await exportToPDF("Colleges List", columns, exportData, "colleges.pdf");
+          toast.success("PDF exported successfully");
         }
       } catch (err) {
-        logger.error("Export failed. Please try again.");
+        logger.error("Export failed:", err);
+        toast.error("Export failed. Please try again.");
       } finally {
         setExporting(false);
       }
@@ -404,31 +407,6 @@ export default function CollegeList() {
                 )}
               </div>
 
-              <div className="filter-dropdown">
-                <button className="filter-btn" aria-label="Open status filter">
-                  <FaFilter className="filter-icon" />
-                  <span>
-                    {filterStatus === "ALL" ? "All Statuses" : filterStatus}
-                  </span>
-                  <FaChevronDown className="filter-arrow" />
-                </button>
-                <div className="filter-menu">
-                  {["ALL", "ACTIVE", "INACTIVE"].map((status) => (
-                    <button
-                      key={status}
-                      className={`filter-option ${filterStatus === status ? "active" : ""}`}
-                      onClick={() => {
-                        setFilterStatus(status);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {status === "ALL" ? "All Statuses" : status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <div className="actions-group">
               <button
                 className="refresh-btn"
@@ -441,6 +419,7 @@ export default function CollegeList() {
             </div>
           </div>
         </div>
+       </div>
       </div>
 
       {/* COLLEGES TABLE */}
@@ -464,11 +443,11 @@ export default function CollegeList() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {search || filterStatus !== "ALL"
-                  ? "No colleges match your search criteria. Try adjusting your filters."
+                {search
+                  ? "No colleges match your search criteria. Try adjusting your search."
                   : "There are no colleges registered yet. Create your first college to get started."}
               </p>
-              {!search && filterStatus === "ALL" && (
+              {!search && (
                 <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
