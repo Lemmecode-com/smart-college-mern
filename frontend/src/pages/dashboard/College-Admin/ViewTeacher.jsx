@@ -456,7 +456,7 @@ export default function ViewTeacher() {
                           <td>
                             <div className="d-flex gap-2">
                               <a
-                                href={`${api.defaults.baseURL}/teachers/${teacher._id}/documents/${doc.filename}`}
+                                href={`${api.defaults.baseURL}/api/documents/${doc.documentId}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn btn-sm btn-outline-primary"
@@ -465,7 +465,7 @@ export default function ViewTeacher() {
                                 <FaEye />
                               </a>
                               <a
-                                href={`${api.defaults.baseURL}/teachers/${teacher._id}/documents/${doc.filename}?download=true`}
+                                href={`${api.defaults.baseURL}/api/documents/${doc.documentId}?download=true`}
                                 className="btn btn-sm btn-outline-success"
                                 title="Download"
                               >

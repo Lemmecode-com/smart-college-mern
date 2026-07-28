@@ -422,7 +422,7 @@ exports.getGlobalConfig = async (req, res) => {
       services: {
         email: { provider: process.env.EMAIL_PROVIDER || "not configured", from: process.env.EMAIL_FROM || "not configured" },
         payment: { razorpay: !!process.env.RAZORPAY_KEY_ID, stripe: !!process.env.STRIPE_SECRET_KEY },
-        storage: { aws: !!process.env.AWS_ACCESS_KEY_ID, local: true },
+        storage: { gridfs: true },
       },
       features: {
         twoFactorAuth: process.env.ENABLE_2FA === "true",

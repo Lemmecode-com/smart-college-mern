@@ -1,16 +1,19 @@
-const crypto = require("crypto"); 
-const fs = require("fs");
+const crypto = require("crypto");
 const path = require("path");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
 const User = require("../models/user.model");
 const Subject = require("../models/subject.model");
+const Document = require("../models/document.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
 const { sendStaffCredentialsEmail } = require("../services/email.service");
 const logger = require("../utils/logger");
+const { getStorageProvider } = require("../services/storage");
+const DocumentService = require("../services/document.service");
+const { processUploadsWithStorage } = require("../middlewares/upload.middleware");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
@@ -33,7 +36,8 @@ const DOCUMENT_TYPE_LABELS = {
   passportPhoto: "Passport Photo",
 };
 
-const processTeacherDocuments = (files = {}) => {
+const processTeacherDocuments = async (files = {}, teacherId = null, uploadedBy = null) => {
+  const storageService = getStorageProvider().getAdapter();
   const documents = [];
   const allowedTypes = Object.keys(DOCUMENT_TYPE_LABELS);
 
@@ -41,12 +45,50 @@ const processTeacherDocuments = (files = {}) => {
     const fileList = files[type];
     if (fileList && fileList.length > 0 && fileList[0]) {
       const file = fileList[0];
+      if (!file.buffer) continue;
+
+      const uploadResult = await storageService.uploadFile(
+        file.buffer,
+        file.originalname,
+        "teacher",
+        {
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          documentType: type,
+        }
+      );
+
+      let documentId = null;
+
+      if (teacherId && uploadedBy) {
+        try {
+          const Document = require("../models/document.model");
+          const DocumentService = require("../services/document.service");
+          const doc = await DocumentService.createDocument({
+            ownerType: "Teacher",
+            ownerId: teacherId,
+            documentType: type,
+            fileBuffer: file.buffer,
+            originalFileName: file.originalname,
+            mimeType: file.mimetype,
+            size: file.size,
+            uploadedBy: uploadedBy,
+            category: "teacher",
+            storageKey: uploadResult.storagePath,
+          });
+          documentId = doc.documentId;
+        } catch (error) {
+          console.error(`Failed to create Document record for ${type}:`, error.message);
+        }
+      }
+
       documents.push({
         documentType: type,
-        filename: file.filename,
         originalName: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
+        documentId,
       });
     }
   }
@@ -130,14 +172,15 @@ exports.createTeacher = async (req, res, next) => {
     /* ================= Generate Temp Password ================= */
     const tempPassword = generateTempPassword(12);
 
-    /* ================= Handle Document Uploads ================= */
-    const uploadedDocuments = processTeacherDocuments(req.files || {});
-
     /* ================= Duplicate User ================= */
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       throw new AppError("Email already exists", 409, "DUPLICATE_EMAIL");
     }
+
+    /* ================= Handle Document Uploads ================= */
+    // Uploads are processed after teacher creation so we can pass teacherId
+    // to the Document collection (Document collection is the single source of truth)
 
     /* ================= Create User ================= */
     const user = await User.create({
@@ -174,8 +217,27 @@ exports.createTeacher = async (req, res, next) => {
       employmentType: employmentType || "FULL_TIME",
       mobileNumber,
       joiningDate,
-      documents: uploadedDocuments,
+      // Documents array is no longer the primary storage — documentRefs is
     });
+
+    /* ================= Create Document Records ================= */
+    // Now that teacher exists, we can create Document records with teacherId
+    const uploadedDocuments = await processTeacherDocuments(
+      req.files || {},
+      teacher._id,
+      req.user.id,
+    );
+
+    const documentRefs = uploadedDocuments
+      .filter((doc) => doc.documentId)
+      .map((doc) => ({
+        documentId: doc.documentId,
+        documentType: doc.documentType,
+      }));
+
+    if (documentRefs.length > 0) {
+      await Teacher.findByIdAndUpdate(teacher._id, { documentRefs });
+    }
 
     ApiResponse.created(
       res,
@@ -235,8 +297,46 @@ exports.getMyProfile = async (req, res) => {
     }).populate("course_id", "name code");
 
     // ✅ Convert to plain object and add subjects
-    const teacherObj = teacher.toObject();
+    let teacherObj = teacher.toObject();
     teacherObj.subjects = subjects;
+
+    // Resolve documents from Document collection when legacy documents array is missing
+    if (
+      teacherObj.documentRefs &&
+      teacherObj.documentRefs.length > 0 &&
+      (!teacherObj.documents || teacherObj.documents.length === 0)
+    ) {
+      try {
+        const docIds = teacherObj.documentRefs
+          .map((dr) => dr.documentId)
+          .filter(Boolean);
+        const docs = await Document.find({
+          documentId: { $in: docIds },
+          status: "ACTIVE",
+        }).select(
+          "documentId originalFileName mimeType size storageKey documentType",
+        );
+
+        const docMap = {};
+        docs.forEach((d) => {
+          docMap[d.documentId] = d;
+        });
+
+        teacherObj.documents = teacherObj.documentRefs
+          .filter((dr) => docMap[dr.documentId])
+          .map((dr) => ({
+            documentType: dr.documentType,
+            filename: dr.documentId,
+            originalName: docMap[dr.documentId].originalFileName,
+            mimetype: docMap[dr.documentId].mimeType,
+            size: docMap[dr.documentId].size,
+            storagePath: docMap[dr.documentId].storageKey,
+            documentId: dr.documentId,
+          }));
+      } catch (err) {
+        console.error("Failed to resolve teacher documents:", err.message);
+      }
+    }
 
     ApiResponse.success(
       res,
@@ -403,6 +503,44 @@ exports.getTeacherById = async (req, res) => {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
+    // Enrich documents from Document collection when legacy documents array is empty
+    if (
+      teacher.documentRefs &&
+      teacher.documentRefs.length > 0 &&
+      (!teacher.documents || teacher.documents.length === 0)
+    ) {
+      try {
+        const docIds = teacher.documentRefs
+          .map((dr) => dr.documentId)
+          .filter(Boolean);
+        const docs = await Document.find({
+          documentId: { $in: docIds },
+          status: "ACTIVE",
+        }).select(
+          "documentId originalFileName mimeType size storageKey documentType",
+        );
+
+        const docMap = {};
+        docs.forEach((d) => {
+          docMap[d.documentId] = d;
+        });
+
+        teacher.documents = teacher.documentRefs
+          .filter((dr) => docMap[dr.documentId])
+          .map((dr) => ({
+            documentType: dr.documentType,
+            filename: dr.documentId,
+            originalName: docMap[dr.documentId].originalFileName,
+            mimetype: docMap[dr.documentId].mimeType,
+            size: docMap[dr.documentId].size,
+            storagePath: docMap[dr.documentId].storageKey,
+            documentId: dr.documentId,
+          }));
+      } catch (err) {
+        console.error("Failed to resolve teacher documents:", err.message);
+      }
+    }
+
     ApiResponse.success(
       res,
       {
@@ -516,16 +654,30 @@ exports.updateTeacher = async (req, res, next) => {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    const newDocuments = processTeacherDocuments(req.files || {});
+    const storageService = getStorageProvider().getAdapter();
+    const newDocuments = await processTeacherDocuments(req.files || {});
     let finalDocs = [...(existingTeacher.documents || [])];
+    const documentRefs = [...(existingTeacher.documentRefs || [])];
 
-    // Remove deleted documents and clean up files
+    // Remove deleted documents and archive Document records
     for (const docType of removedDocs) {
       const doc = finalDocs.find(d => d.documentType === docType);
       if (doc) {
-        const filePath = path.join(__dirname, "../../uploads/teachers", doc.filename);
-        fs.promises.unlink(filePath).catch(() => {});
+        // Delete file
+        if (doc.storagePath) {
+          await storageService.deleteFile(doc.storagePath).catch(() => {});
+        }
+        
+        // Archive Document record
+        if (doc.documentId) {
+          await Document.findOneAndUpdate(
+            { documentId: doc.documentId },
+            { status: "ARCHIVED", archivedAt: new Date() }
+          ).catch(() => {});
+        }
+        
         finalDocs = finalDocs.filter(d => d.documentType !== docType);
+        documentRefs = documentRefs.filter(dr => dr.documentType !== docType);
       }
     }
 
@@ -534,15 +686,41 @@ exports.updateTeacher = async (req, res, next) => {
       const existingIdx = finalDocs.findIndex(d => d.documentType === doc.documentType);
       if (existingIdx >= 0) {
         const oldDoc = finalDocs[existingIdx];
-        const oldPath = path.join(__dirname, "../../uploads/teachers", oldDoc.filename);
-        fs.promises.unlink(oldPath).catch(() => {});
+        
+        // Archive old Document record
+        if (oldDoc.documentId) {
+          await Document.findOneAndUpdate(
+            { documentId: oldDoc.documentId },
+            { status: "ARCHIVED", archivedAt: new Date() }
+          ).catch(() => {});
+        }
+        
+        // Delete old file
+        if (oldDoc.storagePath) {
+          await storageService.deleteFile(oldDoc.storagePath).catch(() => {});
+        }
+        
         finalDocs[existingIdx] = doc;
+        
+        // Update documentRefs
+        if (doc.documentId) {
+          const refIdx = documentRefs.findIndex(dr => dr.documentType === doc.documentType);
+          if (refIdx >= 0) {
+            documentRefs[refIdx] = { documentId: doc.documentId, documentType: doc.documentType };
+          } else {
+            documentRefs.push({ documentId: doc.documentId, documentType: doc.documentType });
+          }
+        }
       } else {
         finalDocs.push(doc);
+        if (doc.documentId) {
+          documentRefs.push({ documentId: doc.documentId, documentType: doc.documentType });
+        }
       }
     }
 
     updateData.documents = finalDocs;
+    updateData.documentRefs = documentRefs;
 
     // ✅ FIX: Edge Case 5 - Check if trying to deactivate teacher
     if (updateData.status === "INACTIVE") {
@@ -889,12 +1067,12 @@ exports.deactivateTeacherWithReassignment = async (req, res, next) => {
 };
 
 /* =========================================================
-   GET TEACHER DOCUMENT (Secure file serving)
-   GET /teachers/:id/documents/:filename
-========================================================= */
+    GET TEACHER DOCUMENT (Secure file serving)
+    GET /teachers/:id/documents/:filename
+    ========================================================= */
 exports.getTeacherDocument = async (req, res, next) => {
   try {
-    const { filename, id } = req.params;
+    const { filename } = req.params;
     const user = req.user;
 
     if (!user) {
@@ -906,15 +1084,32 @@ exports.getTeacherDocument = async (req, res, next) => {
       return next(new AppError("Invalid filename", 400, "INVALID_FILENAME"));
     }
 
-    const ownerTeacher = await Teacher.findOne({
-      _id: id,
-      documents: { $elemMatch: { filename: cleanFilename } },
-    }).select("_id user_id college_id");
+    const docRecord = await Document.findOne({
+      originalFileName: cleanFilename,
+      ownerType: "Teacher",
+      status: "ACTIVE",
+    }).select("documentId ownerId storageKey originalFileName mimeType size");
 
-    if (!ownerTeacher) {
-      return next(new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"));
+    if (!docRecord) {
+      return next(
+        new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"),
+      );
     }
 
+    const ownerTeacher = await Teacher.findById(docRecord.ownerId).select(
+      "_id user_id college_id",
+    );
+
+    if (!ownerTeacher) {
+      return next(
+        new AppError("Document owner not found", 404, "DOCUMENT_NOT_FOUND"),
+      );
+    }
+
+    const storagePath = docRecord.storageKey;
+    const originalFileName = docRecord.originalFileName || cleanFilename;
+
+    // Authorization check
     const isOwner =
       ownerTeacher.user_id &&
       ownerTeacher.user_id.toString() === user.id.toString();
@@ -930,17 +1125,44 @@ exports.getTeacherDocument = async (req, res, next) => {
       );
     }
 
-    const filePath = path.join(__dirname, "../../uploads/teachers", cleanFilename);
+    const hasAccess = await DocumentService._hasAccess(docRecord, user);
+    if (!hasAccess) {
+      return next(
+        new AppError("Not authorized to access this document", 403, "UNAUTHORIZED"),
+      );
+    }
 
+    const storageService = getStorageProvider().getAdapter();
+    const fileData = await storageService.downloadFile(storagePath);
+
+    const ext = path.extname(originalFileName).toLowerCase();
+    const contentTypes = {
+      ".pdf": "application/pdf",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+    };
+    const contentType = contentTypes[ext] || "application/octet-stream";
+
+    res.setHeader("Content-Type", contentType);
     res.setHeader(
       "Content-Disposition",
       req.query.download === "true" ? "attachment" : "inline",
     );
-    res.sendFile(filePath, (err) => {
-      if (err) {
-        next(new AppError("Document file not found on server", 404, "FILE_NOT_FOUND"));
-      }
-    });
+    if (fileData.size) {
+      res.setHeader("Content-Length", fileData.size);
+    }
+
+    const { pipeline } = require("stream");
+    const stream = fileData.buffer;
+
+    if (stream && typeof stream.pipe === "function") {
+      pipeline(stream, res, (err) => {
+        if (err) return next(err);
+      });
+    } else {
+      res.send(stream);
+    }
   } catch (error) {
     next(error);
   }

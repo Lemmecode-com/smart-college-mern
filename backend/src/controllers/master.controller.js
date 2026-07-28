@@ -16,6 +16,8 @@ const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const { sendEmailToCollegeAdmin } = require("../services/email.service");
 const securityAuditService = require("../services/securityAudit.service");
 const AuditService = require("../services/auditLog.service");
+const { getStorageProvider } = require("../services/storage");
+const DocumentService = require("../services/document.service");
 
 exports.createCollege = async (req, res, next) => {
   try {
@@ -41,10 +43,25 @@ exports.createCollege = async (req, res, next) => {
     const { registrationUrl, registrationQr } =
       await generateCollegeQR(collegeCode);
 
-    // 3️⃣ Handle logo
-    const logoPath = req.file ? req.file.path : null;
+    // 3️⃣ Upload logo to storage if provided
+    let logoPath = null;
+    let logoDocumentId = null;
+    if (req.file) {
+      const storageService = getStorageProvider().getAdapter();
+      const uploadResult = await storageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        "college-logo",
+        {
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        }
+      );
+      logoPath = uploadResult.storagePath;
+    }
 
-    // 4️⃣ Create College WITH required fields
+    // 4️⃣ Create College first so we have collegeId for Document references
     const college = await College.create({
       name: collegeName,
       code: collegeCode,
@@ -53,8 +70,50 @@ exports.createCollege = async (req, res, next) => {
       address,
       establishedYear,
       logo: logoPath,
+      logoDocumentId,
       registrationUrl,
       registrationQr,
+    });
+
+    // 5️⃣ Create Document records NOW that college exists
+    if (logoPath) {
+      const logoDocument = await DocumentService.createDocument({
+        ownerType: "College",
+        ownerId: college._id,
+        documentType: "logo",
+        fileBuffer: req.file.buffer,
+        originalFileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        uploadedBy: req.user.id,
+        category: "college-logo",
+        storageKey: logoPath,
+      });
+      logoDocumentId = logoDocument.documentId;
+    }
+
+    const qrDocument = await DocumentService.createDocument({
+      ownerType: "College",
+      ownerId: college._id,
+      documentType: "registration_qr",
+      fileBuffer: Buffer.from(registrationQr),
+      originalFileName: `${collegeCode}-qr.png`,
+      mimeType: "image/png",
+      size: Buffer.byteLength(registrationQr),
+      uploadedBy: req.user.id,
+category: "college-qr",
+      });
+
+    const documentRefs = [];
+    if (logoDocumentId) {
+      documentRefs.push({ documentId: logoDocumentId, documentType: "logo" });
+    }
+    documentRefs.push({ documentId: qrDocument.documentId, documentType: "registration_qr" });
+
+    await College.findByIdAndUpdate(college._id, {
+      logoDocumentId,
+      registrationQrDocumentId: qrDocument.documentId,
+      documentRefs,
     });
 
     const collegeAdmin = await User.create({
@@ -440,8 +499,10 @@ exports.getCollegeById = async (req, res, next) => {
         address: college.address,
         establishedYear: college.establishedYear,
         logo: college.logo,
+        logoDocumentId: college.logoDocumentId,
         registrationUrl: college.registrationUrl,
         registrationQr: college.registrationQr,
+        registrationQrDocumentId: college.registrationQrDocumentId,
         adminEmail: adminUser?.email || "",
         createdAt: college.createdAt,
       },

@@ -1,5 +1,6 @@
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
+const Document = require("../models/document.model");
 const {
   getPaymentOverdueReport,
 } = require("../services/paymentReminder.service");
@@ -7,6 +8,8 @@ const { sendPaymentReceiptEmail } = require("../services/email.service");
 const { generatePaymentReceiptPdf } = require("../utils/pdfReceipt");
 const AppError = require("../utils/AppError");
 const path = require("path");
+const { getStorageProvider } = require("../services/storage");
+const DocumentService = require("../services/document.service");
 
 /**
  * COLLEGE ADMIN: Payment report with date filtering support
@@ -163,7 +166,19 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       );
     }
 
-    proofUrl = `uploads/payment-proofs/${req.file.filename}`;
+    const storageService = getStorageProvider().getAdapter();
+    const uploadResult = await storageService.uploadFile(
+      req.file.buffer,
+      req.file.originalname,
+      "payment-proof",
+      {
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+      }
+    );
+
+    proofUrl = uploadResult.storagePath;
     proofFileName = req.file.originalname;
     proofFileType = req.file.mimetype;
     proofFileSize = req.file.size;
@@ -262,6 +277,28 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
     // Generate transaction ID for offline payment
     const transactionId = `OFF-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+    // Create Document record for payment proof
+    let paymentProofDocumentId = null;
+    if (proofUrl) {
+      try {
+        const paymentDoc = await DocumentService.createDocument({
+          ownerType: "StudentFee",
+          ownerId: studentFee._id,
+          documentType: "payment_proof",
+          fileBuffer: req.file.buffer,
+          originalFileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+          uploadedBy: adminUserId,
+          category: "payment-proof",
+          storageKey: proofUrl,
+        });
+        paymentProofDocumentId = paymentDoc.documentId;
+      } catch (docError) {
+        console.error("Failed to create Document record for payment proof:", docError.message);
+      }
+    }
+
     // Update installment as PAID
     installment.status = "PAID";
     installment.paymentGateway = "OFFLINE";
@@ -278,6 +315,7 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       installment.proofFileType = proofFileType;
       installment.proofFileSize = proofFileSize;
       installment.proofUploadedAt = proofUploadedAt;
+      installment.documentId = paymentProofDocumentId;
     }
 
     // Update total paid amount
@@ -508,41 +546,66 @@ exports.servePaymentProof = async (req, res, next) => {
 
     const installment = studentFee.installments.id(installmentId);
 
-    if (!installment || !installment.proofUrl) {
+    if (!installment) {
       return next(
         new AppError("No proof document uploaded for this installment", 404, "NO_PROOF_UPLOADED"),
       );
     }
 
-    const proofPath = installment.proofUrl;
-    const cleanFilename = path.basename(proofPath);
+    const storageService = getStorageProvider().getAdapter();
+    let fileData, originalFileName, contentType;
 
-    const uploadsBase = path.resolve(__dirname, "../../uploads/payment-proofs");
-    const requestedPath = path.resolve(__dirname, "../../", proofPath);
+    // Prefer Document collection lookup when documentId is available
+    if (installment.documentId) {
+      const docRecord = await Document.findOne({
+        documentId: installment.documentId,
+        status: "ACTIVE",
+      }).select("storageKey originalFileName mimeType size");
 
-    if (!requestedPath.startsWith(uploadsBase)) {
-      return next(
-        new AppError("Invalid file path", 403, "INVALID_FILE_PATH"),
-      );
-    }
+if (docRecord) {
+         const downloaded = await storageService.downloadFile(docRecord.storageKey);
+         fileData = downloaded.buffer;
+         originalFileName = docRecord.originalFileName;
+         contentType = downloaded.contentType;
+       } else {
+         return next(
+           new AppError("No proof document uploaded for this installment", 404, "NO_PROOF_UPLOADED"),
+         );
+       }
+     } else {
+       return next(
+         new AppError("No proof document uploaded for this installment", 404, "NO_PROOF_UPLOADED"),
+       );
+     }
 
-    const ext = path.extname(cleanFilename).toLowerCase();
+    const ext = path.extname(originalFileName).toLowerCase();
     const contentTypes = {
       ".pdf": "application/pdf",
       ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
-      ".png": "image/png"
+      ".png": "image/png",
     };
-    res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
-    res.setHeader("Content-Disposition", `inline; filename="${installment.proofFileName || cleanFilename}"`);
+    contentType = contentTypes[ext] || "application/octet-stream";
 
-    res.sendFile(requestedPath, (err) => {
-      if (err) {
-        return next(
-          new AppError("Payment proof file not found on server", 404, "FILE_NOT_FOUND"),
-        );
-      }
-    });
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${originalFileName}"`,
+    );
+    if (fileData.size) {
+      res.setHeader("Content-Length", fileData.size);
+    }
+
+    const { pipeline } = require("stream");
+    const stream = fileData;
+
+    if (stream && typeof stream.pipe === "function") {
+      pipeline(stream, res, (err) => {
+        if (err) return next(err);
+      });
+    } else {
+      res.send(stream);
+    }
   } catch (error) {
     next(error);
   }
