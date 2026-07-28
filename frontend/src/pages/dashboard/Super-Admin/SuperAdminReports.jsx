@@ -566,8 +566,6 @@ export default function SuperAdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
-          height: 93%;
-          width: 85%;
         }
         
         .stat-card:hover {
@@ -625,8 +623,6 @@ export default function SuperAdminReports() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          height: 80%; 
-          width: 80%;
         }
         
         .stat-value {
@@ -663,8 +659,6 @@ export default function SuperAdminReports() {
           background: #f8f9fa;
           border-top: 1px solid #e9ecef;
           font-size: 0.875rem;
-          height: 55px; 
-          width: 80%;
         }
         
         .stat-footer-item {
