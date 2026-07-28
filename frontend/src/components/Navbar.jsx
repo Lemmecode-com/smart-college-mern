@@ -10,7 +10,6 @@ import {
   FaUser,
   FaSignOutAlt,
   FaCog,
-  FaKey,
   FaChevronLeft,
   FaChevronRight,
   FaChevronDown,
@@ -266,14 +265,30 @@ export default function NavbarComponent({
   /* ================= PROFILE NAVIGATION ================= */
   const goToProfile = () => {
     setProfileOpen(false);
-    if (user.role === "COLLEGE_ADMIN") {
+    if (user.role === "SUPER_ADMIN") {
+      navigate("/super-admin/dashboard");
+    } else if (user.role === "COLLEGE_ADMIN") {
       navigate("/college/profile");
     } else if (user.role === "TEACHER") {
       navigate("/profile/my-profile");
     } else if (user.role === "STUDENT") {
       navigate("/student/profile");
     } else if (user.role === "PARENT_GUARDIAN") {
-      navigate("/dashboard/parent/profile"); // Will implement later
+      navigate("/dashboard/parent/profile");
+    } else if (user.role === "HOD") {
+      navigate("/hod/profile");
+    } else if (user.role === "PRINCIPAL") {
+      navigate("/dashboard/principal");
+    } else if (user.role === "ACCOUNTANT") {
+      navigate("/dashboard/accountant");
+    } else if (user.role === "ADMISSION_OFFICER") {
+      navigate("/dashboard/admission");
+    } else if (user.role === "EXAM_COORDINATOR") {
+      navigate("/dashboard/exam");
+    } else if (user.role === "PLATFORM_SUPPORT") {
+      navigate("/platform-support/dashboard");
+    } else {
+      navigate("/");
     }
   };
 
@@ -516,9 +531,11 @@ export default function NavbarComponent({
 
           {/* RIGHT */}
           <Nav className="nav-items-gap d-flex align-items-center flex-row">
-            {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
-            <Dropdown
-              show={notifOpen}
+            {user.role !== "SUPER_ADMIN" && (
+              <>
+                {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
+                <Dropdown
+                  show={notifOpen}
               onToggle={(isOpen) => {
                 setNotifOpen(isOpen);
                 if (isOpen) {
@@ -660,7 +677,9 @@ export default function NavbarComponent({
                   </button>
                 </div>
               </Dropdown.Menu>
-            </Dropdown>
+                </Dropdown>
+              </>
+            )}
 
             {/* User Profile Dropdown - Clickable Icon */}
             <Dropdown
@@ -750,7 +769,7 @@ export default function NavbarComponent({
                           My Profile
                         </span>
                         <span className="profile-menu-item-subtitle">
-                          View and edit your profile
+                          View your profile
                         </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
@@ -759,7 +778,15 @@ export default function NavbarComponent({
                       className="profile-menu-item"
                       onClick={() => {
                         setProfileOpen(false);
-                        navigate("/system-settings/general");
+                        if (user.role === "SUPER_ADMIN") {
+                          navigate("/super-admin/system-settings/general");
+                        } else if (
+                          ["COLLEGE_ADMIN", "PRINCIPAL"].includes(user.role)
+                        ) {
+                          navigate("/system-settings/general");
+                        } else {
+                          navigate("/");
+                        }
                       }}
                       role="menuitem"
                     >
@@ -772,27 +799,6 @@ export default function NavbarComponent({
                         </span>
                         <span className="profile-menu-item-subtitle">
                           Manage preferences
-                        </span>
-                      </div>
-                      <FaChevronRight className="profile-menu-item-arrow" />
-                    </button>
-                    <button
-                      className="profile-menu-item"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        navigate("/change-password");
-                      }}
-                      role="menuitem"
-                    >
-                      <div className="profile-menu-item-icon">
-                        <FaKey />
-                      </div>
-                      <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">
-                          Change Password
-                        </span>
-                        <span className="profile-menu-item-subtitle">
-                          Update your password
                         </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />

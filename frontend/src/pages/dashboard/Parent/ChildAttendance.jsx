@@ -144,6 +144,9 @@ export default function ChildAttendance() {
       }
     };
     fetchAttendance();
+
+    const interval = setInterval(fetchAttendance, 60000);
+    return () => clearInterval(interval);
   }, [childId]);
 
   if (loading) {

@@ -78,10 +78,10 @@ class SecurityAuditService {
       logger.logInfo(`Security Event: ${eventData.eventType}`, safeMeta);
 
       // Redact data before saving to MongoDB
-      const dbPayload = SecurityAuditService.redactObject({
+      const dbPayload = {
         ...eventData,
         endpoint: SecurityAuditService.redactEndpoint(eventData.endpoint),
-      });
+      };
 
       const audit = new SecurityAudit(dbPayload);
       const saved = await audit.save();
@@ -464,7 +464,8 @@ class SecurityAuditService {
         .skip(skip)
         .limit(limit)
         .populate('userId', 'name role')
-        .populate('collegeId', 'name code'),
+        .populate('collegeId', 'name code')
+        .lean(),
       SecurityAudit.countDocuments(query)
     ]);
 

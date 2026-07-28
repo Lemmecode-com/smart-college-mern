@@ -1,6 +1,7 @@
 const SecurityAudit = require('../models/securityAudit.model');
 const securityAuditService = require('../services/securityAudit.service');
 const AppError = require('../utils/AppError');
+const { decrypt } = require('../utils/encryption.util');
 
 // Helper: Redact PII from log object
 function redactLog(log) {
@@ -173,6 +174,7 @@ exports.markAsReviewed = async (req, res, next) => {
 exports.exportAuditLogs = async (req, res, next) => {
   try {
     const collegeId = resolveCollegeScope(req);
+    const isSuperAdmin = req.user?.role === "SUPER_ADMIN";
 
     const filters = {
       collegeId,
@@ -181,15 +183,26 @@ exports.exportAuditLogs = async (req, res, next) => {
     filters.collegeId = collegeId;
 
     const result = await securityAuditService.getAuditLogs({ ...filters, limit: 1000 });
-    
-    // Redact PII before CSV conversion
-    const redactedLogs = result.logs.map(log => 
-      redactLog(log.toObject ? log.toObject() : log)
-    );
-    
-    // Convert to CSV format
-    const csv = convertToCSV(redactedLogs);
-    
+
+    let logs = result.logs.map(log => log.toObject ? log.toObject() : log);
+
+    if (isSuperAdmin) {
+      logs = logs.map(log => {
+        if (log.userEmail && typeof log.userEmail === 'string' && log.userEmail.startsWith('ENC:')) {
+          try {
+            log.userEmail = decrypt(log.userEmail.substring(4));
+          } catch (e) {
+            log.userEmail = '[DECRYPTION_ERROR]';
+          }
+        }
+        return log;
+      });
+    } else {
+      logs = logs.map(log => redactLog(log));
+    }
+
+    const csv = convertToCSV(logs);
+
     res.header('Content-Type', 'text/csv');
     res.header('Content-Disposition', 'attachment; filename="security-audit-logs.csv"');
     res.send(csv);
