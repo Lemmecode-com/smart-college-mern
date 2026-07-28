@@ -105,6 +105,12 @@ const studentFeeSchema = new mongoose.Schema({
         type: Date,
       },
 
+      // 📎 ERP Document Reference - links to Document collection
+      documentId: {
+        type: String,
+        trim: true,
+      },
+
       stripeSessionId: {
         type: String,
         trim: true,

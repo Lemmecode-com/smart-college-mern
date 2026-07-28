@@ -8,9 +8,13 @@ const connectDB = require("./src/config/db");
 const seedSuperAdmin = require("./src/utils/seedSuperAdmin");
 const { initializeCronJobs } = require("./src/config/cron.config");
 const validateEncryptionConfig = require("./src/utils/validateEncryptionConfig");
+const validateStorageConfig = require("./src/utils/validateStorageConfig");
 
 // Validate encryption configuration before starting server
 validateEncryptionConfig();
+
+// Validate storage configuration before starting server
+validateStorageConfig();
 
 connectDB().then(async () => {
   await seedSuperAdmin();

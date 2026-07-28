@@ -181,12 +181,31 @@ const teacherSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+        storagePath: {
+          type: String,
+        },
         uploadedAt: {
           type: Date,
           default: Date.now,
         },
       },
     ],
+
+    // 🏢 ERP Document References
+    documentRefs: [{
+      documentId: {
+        type: String,
+        required: true,
+      },
+      documentType: {
+        type: String,
+        required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
 
     lockedUntil: {
       type: Date,
@@ -204,5 +223,7 @@ teacherSchema.index({ college_id: 1, department_id: 1 }); // Department-wise tea
 teacherSchema.index({ user_id: 1 }); // Teacher lookup by user_id
 teacherSchema.index({ email: 1 }); // Email lookup
 teacherSchema.index({ mobileNumber: 1 }); // Mobile number lookup
+teacherSchema.index({ "documentRefs.documentId": 1 });
+teacherSchema.index({ "documentRefs.documentType": 1 });
 
 module.exports = mongoose.model("Teacher", teacherSchema);
