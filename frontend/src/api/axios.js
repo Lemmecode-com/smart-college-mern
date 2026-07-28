@@ -16,6 +16,7 @@ const api = axios.create({
 
 const AUTH_ERROR_CODES = new Set([
   "SESSION_INVALIDATED",
+  "SESSION_TERMINATED",
   "TOKEN_INVALIDATED",
   "TOKEN_BLACKLISTED",
   "TOKEN_MISSING",
