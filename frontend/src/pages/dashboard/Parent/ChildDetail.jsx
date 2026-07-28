@@ -140,6 +140,15 @@ export default function ChildDetail() {
     }
   }, [childId]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === "attendance") {
+        fetchAttendance();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [activeTab, childId]);
+
   const fetchChildData = async () => {
     try {
       setLoading(true);
