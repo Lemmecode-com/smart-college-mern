@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const normalizeCollegeCode = require("../middlewares/normalizeCollegeCode.middleware");
 const {
   validateStudentRegistration,
   validateStudentUpdateByAdmin,
@@ -41,6 +42,7 @@ const { ROLE } = require("../utils/constants");
 // 🌍 PUBLIC STUDENT REGISTRATION
 router.post(
   "/register/:collegeCode",
+  normalizeCollegeCode,
   validateCollegeCode,
   uploadStudentDocuments,
   validateStudentRegistration,
