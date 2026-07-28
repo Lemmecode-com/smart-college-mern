@@ -215,7 +215,7 @@ function InfoRow({ icon, label, value, iconColor = COLORS.primary.accent }) {
 }
 
 // Document Card Component
-function DocumentCard({ label, path, icon, onView }) {
+function DocumentCard({ label, path, icon, onView, documentId }) {
   const fileName = getFileName(path);
   
   return (
@@ -232,7 +232,7 @@ function DocumentCard({ label, path, icon, onView }) {
         </div>
         <button 
           className="btn-view-document"
-          onClick={() => onView(path)}
+          onClick={() => onView(path, documentId)}
           aria-label={`View ${label}`}
         >
           <FaEye className="me-1" />
@@ -395,29 +395,31 @@ export default function ViewStudent() {
 
     const docs = [];
     const docMapping = [
-      { key: 'sscMarksheetPath', label: '10th Marksheet', icon: <FaFileAlt /> },
-      { key: 'hscMarksheetPath', label: '12th Marksheet', icon: <FaFileAlt /> },
-      { key: 'passportPhotoPath', label: 'Passport Photo', icon: <FaImage /> },
-      { key: 'categoryCertificatePath', label: 'Category Certificate', icon: <FaFileAlt /> },
-      { key: 'incomeCertificatePath', label: 'Income Certificate', icon: <FaFileAlt /> },
-      { key: 'characterCertificatePath', label: 'Character Certificate', icon: <FaFileAlt /> },
-      { key: 'transferCertificatePath', label: 'Transfer Certificate', icon: <FaFileAlt /> },
-      { key: 'aadharCardPath', label: 'Aadhar Card', icon: <FaIdCard /> },
-      { key: 'entranceExamScorePath', label: 'Entrance Exam Score', icon: <FaAward /> },
-      { key: 'migrationCertificatePath', label: 'Migration Certificate', icon: <FaFileAlt /> },
-      { key: 'domicileCertificatePath', label: 'Domicile Certificate', icon: <FaFileAlt /> },
-      { key: 'casteCertificatePath', label: 'Caste Certificate', icon: <FaFileAlt /> },
-      { key: 'nonCreamyLayerCertificatePath', label: 'Non-Creamy Layer Certificate', icon: <FaFileAlt /> },
-      { key: 'physicallyChallengedCertificatePath', label: 'Physically Challenged Certificate', icon: <FaFileAlt /> },
-      { key: 'sportsQuotaCertificatePath', label: 'Sports Quota Certificate', icon: <FaAward /> },
-      { key: 'nriSponsorCertificatePath', label: 'NRI Sponsor Certificate', icon: <FaFileAlt /> },
-      { key: 'gapCertificatePath', label: 'Gap Certificate', icon: <FaFileAlt /> },
-      { key: 'affidavitPath', label: 'Affidavit', icon: <FaFileAlt /> }
+      { key: 'sscMarksheetPath', type: '10th_marksheet', label: '10th Marksheet', icon: <FaFileAlt /> },
+      { key: 'hscMarksheetPath', type: '12th_marksheet', label: '12th Marksheet', icon: <FaFileAlt /> },
+      { key: 'passportPhotoPath', type: 'passport_photo', label: 'Passport Photo', icon: <FaImage /> },
+      { key: 'categoryCertificatePath', type: 'category_certificate', label: 'Category Certificate', icon: <FaFileAlt /> },
+      { key: 'incomeCertificatePath', type: 'income_certificate', label: 'Income Certificate', icon: <FaFileAlt /> },
+      { key: 'characterCertificatePath', type: 'character_certificate', label: 'Character Certificate', icon: <FaFileAlt /> },
+      { key: 'transferCertificatePath', type: 'transfer_certificate', label: 'Transfer Certificate', icon: <FaFileAlt /> },
+      { key: 'aadharCardPath', type: 'aadhar_card', label: 'Aadhar Card', icon: <FaIdCard /> },
+      { key: 'entranceExamScorePath', type: 'entrance_exam_score', label: 'Entrance Exam Score', icon: <FaAward /> },
+      { key: 'migrationCertificatePath', type: 'migration_certificate', label: 'Migration Certificate', icon: <FaFileAlt /> },
+      { key: 'domicileCertificatePath', type: 'domicile_certificate', label: 'Domicile Certificate', icon: <FaFileAlt /> },
+      { key: 'casteCertificatePath', type: 'caste_certificate', label: 'Caste Certificate', icon: <FaFileAlt /> },
+      { key: 'nonCreamyLayerCertificatePath', type: 'non_creamy_layer_certificate', label: 'Non-Creamy Layer Certificate', icon: <FaFileAlt /> },
+      { key: 'physicallyChallengedCertificatePath', type: 'physically_challenged_certificate', label: 'Physically Challenged Certificate', icon: <FaFileAlt /> },
+      { key: 'sportsQuotaCertificatePath', type: 'sports_quota_certificate', label: 'Sports Quota Certificate', icon: <FaAward /> },
+      { key: 'nriSponsorCertificatePath', type: 'nri_sponsor_certificate', label: 'NRI Sponsor Certificate', icon: <FaFileAlt /> },
+      { key: 'gapCertificatePath', type: 'gap_certificate', label: 'Gap Certificate', icon: <FaFileAlt /> },
+      { key: 'affidavitPath', type: 'affidavit', label: 'Affidavit', icon: <FaFileAlt /> }
     ];
 
-    docMapping.forEach(({ key, label, icon }) => {
-      if (student[key]) {
-        docs.push({ label, path: student[key], icon });
+    docMapping.forEach(({ key, type, label, icon }) => {
+      const doc = student.documents?.[type];
+      const path = doc?.downloadUrl || student[key];
+      if (path) {
+        docs.push({ label, path, icon, documentId: doc?.documentId || null });
       }
     });
 
@@ -425,20 +427,17 @@ export default function ViewStudent() {
   }, [student]);
 
   /* ================= ACTION HANDLERS ================= */
-  const handleViewDocument = useCallback((path) => {
+  const handleViewDocument = useCallback((path, documentId) => {
     const fileName = getFileName(path);
-    if (!fileName) {
+    const url = documentId
+      ? `${api.defaults.baseURL}/api/documents/${documentId}`
+      : `${api.defaults.baseURL}/students/documents/${fileName}`;
+
+    if (!url) {
       toast.error("Document not available for viewing");
       return;
     }
-    // Open via the secure API endpoint directly (cookie-auth) — same reliable
-    // approach used by the student profile page for inline PDF rendering.
-    // Avoids the axios→blob→window.open pattern that opens a non-rendering
-    // blob: URL in a new tab.
-    window.open(
-      `${api.defaults.baseURL}/students/documents/${fileName}`,
-      "_blank",
-    );
+    window.open(url, "_blank");
   }, []);
 
   const handleApproveClick = useCallback(() => {
@@ -842,6 +841,7 @@ export default function ViewStudent() {
                       label={doc.label}
                       path={doc.path}
                       icon={doc.icon}
+                      documentId={doc.documentId}
                       onView={handleViewDocument}
                     />
                   ))}

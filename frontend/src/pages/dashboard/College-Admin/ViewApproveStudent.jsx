@@ -254,20 +254,18 @@ DetailRow.defaultProps = {
 };
 
 /* ---- DocumentRow Component ---- */
-function DocumentRow({ label, path, icon }) {
+function DocumentRow({ label, path, icon, onView, documentId }) {
   const fileName = getFileName(path);
 
-  const handleViewDocument = (filename) => {
-    if (!filename) {
+  const handleViewDocument = (filename, docId) => {
+    if (!filename && !docId) {
       toast.error("Document not available for viewing");
       return;
     }
-    // Open via the secure API endpoint directly (cookie-auth) — same reliable
-    // approach used by the student profile page for inline PDF rendering.
-    window.open(
-      `${api.defaults.baseURL}/students/documents/${filename}`,
-      "_blank",
-    );
+    const url = docId
+      ? `${api.defaults.baseURL}/api/documents/${docId}/download`
+      : `${api.defaults.baseURL}/students/documents/${filename}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -281,7 +279,7 @@ function DocumentRow({ label, path, icon }) {
       <td className="detail-value">
         {path ? (
           <button
-            onClick={() => handleViewDocument(fileName)}
+            onClick={() => handleViewDocument(fileName, documentId)}
             className="document-link btn btn-link p-0"
             aria-label={`View ${label}`}
             type="button"
@@ -306,10 +304,14 @@ DocumentRow.propTypes = {
   label: PropTypes.string.isRequired,
   path: PropTypes.string,
   icon: PropTypes.node.isRequired,
+  onView: PropTypes.func,
+  documentId: PropTypes.string,
 };
 
 DocumentRow.defaultProps = {
   path: null,
+  onView: null,
+  documentId: null,
 };
 
 /* ---- InfoCard Component ---- */
@@ -1578,13 +1580,42 @@ export default function ViewApproveStudent() {
       { key: "affidavitPath", label: "Affidavit", icon: <FaFileAlt /> },
     ];
 
-    return docMap
-      .filter(({ key }) => student[key])
-      .map(({ label, ...rest }) => ({
+  const docTypeMap = {
+    "10th_marksheet": "sscMarksheetPath",
+    "12th_marksheet": "hscMarksheetPath",
+    "passport_photo": "passportPhotoPath",
+    "category_certificate": "categoryCertificatePath",
+    "income_certificate": "incomeCertificatePath",
+    "character_certificate": "characterCertificatePath",
+    "transfer_certificate": "transferCertificatePath",
+    "aadhar_card": "aadharCardPath",
+    "entrance_exam_score": "entranceExamScorePath",
+    "migration_certificate": "migrationCertificatePath",
+    "domicile_certificate": "domicileCertificatePath",
+    "caste_certificate": "casteCertificatePath",
+    "non_creamy_layer_certificate": "nonCreamyLayerCertificatePath",
+    "physically_challenged_certificate": "physicallyChallengedCertificatePath",
+    "sports_quota_certificate": "sportsQuotaCertificatePath",
+    "nri_sponsor_certificate": "nriSponsorCertificatePath",
+    "gap_certificate": "gapCertificatePath",
+    "affidavit": "affidavitPath",
+  };
+
+  const docsByType = (student.documents || {});
+
+  return docMap
+    .filter(({ key }) => student[key] || docsByType[docTypeMap[key]])
+    .map(({ key, label, ...rest }) => {
+      const docType = docTypeMap[key];
+      const doc = docsByType[docType];
+      const path = doc?.downloadUrl || student[key];
+      return {
         label,
-        path: student[docMap.find((d) => d.label === label).key],
+        path,
         ...rest,
-      }));
+        documentId: doc?.documentId || null,
+      };
+    });
   }, [student]);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1858,7 +1889,7 @@ export default function ViewApproveStudent() {
                 <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
                   <tbody>
                     {uploadedDocuments.map((doc, index) => (
-                      <DocumentRow key={`${doc.label}-${index}`} label={doc.label} path={doc.path} icon={doc.icon} />
+                      <DocumentRow key={`${doc.label}-${index}`} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} />
                     ))}
                   </tbody>
                 </table>

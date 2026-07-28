@@ -6,6 +6,8 @@ const FeeStructure = require("../models/feeStructure.model");
 const User = require("../models/user.model");
 const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const ApiResponse = require("../utils/ApiResponse");
+const { getStorageProvider } = require("../services/storage");
+const DocumentService = require("../services/document.service");
 
 /**
  * GET ALL COLLEGES (SUPER ADMIN ONLY)
@@ -38,8 +40,27 @@ exports.getMyCollege = async (req, res, next) => {
     if (!college) {
       throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
     }
+
+    const responseData = college.toObject();
+    responseData.documentRefs = {
+      logo: college.logoDocumentId ? {
+        documentId: college.logoDocumentId,
+        documentType: "logo",
+        downloadUrl: `/api/documents/${college.logoDocumentId}`,
+      } : null,
+      registrationQr: college.registrationQrDocumentId ? {
+        documentId: college.registrationQrDocumentId,
+        documentType: "registration_qr",
+        downloadUrl: `/api/documents/${college.registrationQrDocumentId}`,
+      } : null,
+    };
+
+    // Also include persistent documentRefs array
+    if (!responseData.documentRefsArray) {
+      responseData.documentRefsArray = college.documentRefs || [];
+    }
     
-    res.json(college);
+    res.json(responseData);
   } catch (error) {
     next(error);
   }
@@ -74,8 +95,61 @@ exports.updateMyCollegeProfile = async (req, res) => {
     });
 
     if (req.file) {
-      updates.logo = '/uploads/college-logos/' + req.file.filename;
-    }
+      const storageService = getStorageProvider().getAdapter();
+      const uploadResult = await storageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        "college-logo",
+        {
+          originalName: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        }
+      );
+
+      const Document = require("../models/document.model");
+      const existingDoc = await Document.findOne({
+        ownerType: "College",
+        ownerId: collegeId,
+        documentType: "logo",
+        status: "ACTIVE",
+      });
+
+      if (existingDoc) {
+        await Document.findOneAndUpdate(
+          { documentId: existingDoc.documentId },
+          { status: "ARCHIVED", archivedAt: new Date() }
+        ).catch(() => {});
+      }
+
+      const document = await DocumentService.createDocument({
+        ownerType: "College",
+        ownerId: collegeId,
+        documentType: "logo",
+        fileBuffer: req.file.buffer,
+        originalFileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        uploadedBy: req.user.id,
+        category: "college-logo",
+        storageKey: uploadResult.storagePath,
+      });
+
+       updates.logo = uploadResult.storagePath;
+       updates.logoDocumentId = document.documentId;
+       
+       // Update documentRefs array
+       const existingRefs = await College.findById(collegeId).select("documentRefs").lean();
+       const refs = existingRefs.documentRefs || [];
+       const logoRefIdx = refs.findIndex(r => r.documentType === "logo");
+       const newRef = { documentId: document.documentId, documentType: "logo" };
+       if (logoRefIdx >= 0) {
+         refs[logoRefIdx] = newRef;
+       } else {
+         refs.push(newRef);
+       }
+       updates.documentRefs = refs;
+     }
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({

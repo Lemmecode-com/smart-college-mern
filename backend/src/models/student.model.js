@@ -242,6 +242,22 @@ const studentSchema = new mongoose.Schema(
       of: String
     },
 
+    // 🏢 ERP Document References - metadata-driven document management
+    documentRefs: [{
+      documentId: {
+        type: String,
+        required: true,
+      },
+      documentType: {
+        type: String,
+        required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+
     // 📝 Additional Profile Fields (for profile completion)
     addressLine2: String,
     country: {
@@ -407,5 +423,7 @@ studentSchema.index({ college_id: 1, currentSemester: 1 });
 studentSchema.index({ college_id: 1, currentYear: 1 });
 studentSchema.index({ status: 1, admissionYear: 1 });
 studentSchema.index({ college_id: 1, course_id: 1, currentSemester: 1, division: 1 });
+studentSchema.index({ "documentRefs.documentId": 1 });
+studentSchema.index({ "documentRefs.documentType": 1 });
 
 module.exports = mongoose.model("Student", studentSchema);

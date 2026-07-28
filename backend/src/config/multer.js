@@ -1,15 +1,6 @@
 const multer = require("multer");
-const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/college-logos");
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `college-${Date.now()}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
@@ -22,5 +13,5 @@ const fileFilter = (req, file, cb) => {
 
 module.exports = multer({
   storage,
-  fileFilter
+  fileFilter,
 });

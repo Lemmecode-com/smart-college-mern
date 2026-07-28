@@ -383,7 +383,7 @@ export default function EditTeacher() {
                                 </div>
                                 <div className="d-flex gap-2">
                                   <a
-                                    href={`${api.defaults.baseURL}/teachers/${id}/documents/${existingDoc.filename}`}
+                                    href={`${api.defaults.baseURL}/api/documents/${existingDoc.documentId}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn btn-sm btn-outline-primary"
@@ -392,7 +392,7 @@ export default function EditTeacher() {
                                     Preview
                                   </a>
                                   <a
-                                    href={`${api.defaults.baseURL}/teachers/${id}/documents/${existingDoc.filename}?download=true`}
+                                    href={`${api.defaults.baseURL}/api/documents/${existingDoc.documentId}?download=true`}
                                     className="btn btn-sm btn-outline-success"
                                     title="Download"
                                   >
