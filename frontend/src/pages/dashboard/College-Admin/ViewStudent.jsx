@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -430,7 +431,7 @@ export default function ViewStudent() {
   const handleViewDocument = useCallback((path, documentId) => {
     const fileName = getFileName(path);
     const url = documentId
-      ? `${api.defaults.baseURL}/api/documents/${documentId}`
+      ? getDocumentViewUrl(documentId)
       : `${api.defaults.baseURL}/students/documents/${fileName}`;
 
     if (!url) {
