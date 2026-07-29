@@ -9,12 +9,8 @@ exports.getDocumentConfig = async (req, res) => {
   try {
     const { collegeCode } = req.params;
 
-    // Sanitize collegeCode to prevent ReDoS via user-controlled regex input
-    const sanitizedCode = collegeCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    // Case-insensitive search for college code
     const config = await DocumentConfig.findOne({
-      collegeCode: { $regex: new RegExp(`^${sanitizedCode}$`, 'i') },
+      collegeCode,
       isActive: true
     }).select("documents collegeCode");
 

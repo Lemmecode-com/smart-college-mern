@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/documentUrl";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -456,7 +457,7 @@ export default function ViewTeacher() {
                           <td>
                             <div className="d-flex gap-2">
                               <a
-                                href={`${api.defaults.baseURL}/api/documents/${doc.documentId}`}
+                                href={getDocumentViewUrl(doc.documentId)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn btn-sm btn-outline-primary"
@@ -465,7 +466,7 @@ export default function ViewTeacher() {
                                 <FaEye />
                               </a>
                               <a
-                                href={`${api.defaults.baseURL}/api/documents/${doc.documentId}?download=true`}
+                                href={getDocumentDownloadUrl(doc.documentId)}
                                 className="btn btn-sm btn-outline-success"
                                 title="Download"
                               >
