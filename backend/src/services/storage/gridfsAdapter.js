@@ -47,8 +47,9 @@ class GridFSStorageAdapter extends StorageService {
     const ext = require("path").extname(originalName) || ".bin";
     const filename = `${category}/${Date.now()}-${crypto.randomBytes(16).toString("hex")}${ext}`;
 
+    const objectId = new mongoose.Types.ObjectId();
     const uploadStream = bucket.openUploadStreamWithId(
-      crypto.randomBytes(16),
+      objectId,
       filename,
       {
         contentType: metadata.mimetype,

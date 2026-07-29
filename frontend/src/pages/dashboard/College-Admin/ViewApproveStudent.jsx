@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import PropTypes from "prop-types";
@@ -263,7 +264,7 @@ function DocumentRow({ label, path, icon, onView, documentId }) {
       return;
     }
     const url = docId
-      ? `${api.defaults.baseURL}/api/documents/${docId}/download`
+      ? getDocumentDownloadUrl(docId)
       : `${api.defaults.baseURL}/students/documents/${filename}`;
     window.open(url, "_blank");
   };
@@ -1581,24 +1582,24 @@ export default function ViewApproveStudent() {
     ];
 
   const docTypeMap = {
-    "10th_marksheet": "sscMarksheetPath",
-    "12th_marksheet": "hscMarksheetPath",
-    "passport_photo": "passportPhotoPath",
-    "category_certificate": "categoryCertificatePath",
-    "income_certificate": "incomeCertificatePath",
-    "character_certificate": "characterCertificatePath",
-    "transfer_certificate": "transferCertificatePath",
-    "aadhar_card": "aadharCardPath",
-    "entrance_exam_score": "entranceExamScorePath",
-    "migration_certificate": "migrationCertificatePath",
-    "domicile_certificate": "domicileCertificatePath",
-    "caste_certificate": "casteCertificatePath",
-    "non_creamy_layer_certificate": "nonCreamyLayerCertificatePath",
-    "physically_challenged_certificate": "physicallyChallengedCertificatePath",
-    "sports_quota_certificate": "sportsQuotaCertificatePath",
-    "nri_sponsor_certificate": "nriSponsorCertificatePath",
-    "gap_certificate": "gapCertificatePath",
-    "affidavit": "affidavitPath",
+    "sscMarksheetPath": "10th_marksheet",
+    "hscMarksheetPath": "12th_marksheet",
+    "passportPhotoPath": "passport_photo",
+    "categoryCertificatePath": "category_certificate",
+    "incomeCertificatePath": "income_certificate",
+    "characterCertificatePath": "character_certificate",
+    "transferCertificatePath": "transfer_certificate",
+    "aadharCardPath": "aadhar_card",
+    "entranceExamScorePath": "entrance_exam_score",
+    "migrationCertificatePath": "migration_certificate",
+    "domicileCertificatePath": "domicile_certificate",
+    "casteCertificatePath": "caste_certificate",
+    "nonCreamyLayerCertificatePath": "non_creamy_layer_certificate",
+    "physicallyChallengedCertificatePath": "physically_challenged_certificate",
+    "sportsQuotaCertificatePath": "sports_quota_certificate",
+    "nriSponsorCertificatePath": "nri_sponsor_certificate",
+    "gapCertificatePath": "gap_certificate",
+    "affidavitPath": "affidavit",
   };
 
   const docsByType = (student.documents || {});

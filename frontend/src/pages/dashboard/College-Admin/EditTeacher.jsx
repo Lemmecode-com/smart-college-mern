@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -383,7 +384,7 @@ export default function EditTeacher() {
                                 </div>
                                 <div className="d-flex gap-2">
                                   <a
-                                    href={`${api.defaults.baseURL}/api/documents/${existingDoc.documentId}`}
+                                    href={getDocumentViewUrl(existingDoc.documentId)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn btn-sm btn-outline-primary"
@@ -392,7 +393,7 @@ export default function EditTeacher() {
                                     Preview
                                   </a>
                                   <a
-                                    href={`${api.defaults.baseURL}/api/documents/${existingDoc.documentId}?download=true`}
+                                    href={getDocumentDownloadUrl(existingDoc.documentId)}
                                     className="btn btn-sm btn-outline-success"
                                     title="Download"
                                   >

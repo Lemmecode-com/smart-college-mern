@@ -66,7 +66,9 @@ const documentConfigSchema = new mongoose.Schema({
   // College code for easy reference
   collegeCode: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    lowercase: true
   },
   
   // List of document configurations

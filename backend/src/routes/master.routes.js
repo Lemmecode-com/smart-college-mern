@@ -2,6 +2,7 @@ const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const upload = require("../config/multer");
+const normalizeCollegeCode = require("../middlewares/normalizeCollegeCode.middleware");
 
 const {
   createCollege,
@@ -19,6 +20,7 @@ router.post(
   auth,
   role("SUPER_ADMIN"),
   upload.single("logo"),
+  normalizeCollegeCode,
   createCollege
 );
 
