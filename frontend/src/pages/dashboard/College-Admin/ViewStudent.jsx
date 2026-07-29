@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { getDocumentViewUrl } from "../../../utils/documentUrl";
+import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -216,7 +216,7 @@ function InfoRow({ icon, label, value, iconColor = COLORS.primary.accent }) {
 }
 
 // Document Card Component
-function DocumentCard({ label, path, icon, onView, documentId }) {
+function DocumentCard({ label, path, icon, onView, documentId, mandatory, isUploaded }) {
   const fileName = getFileName(path);
   
   return (
@@ -225,20 +225,27 @@ function DocumentCard({ label, path, icon, onView, documentId }) {
         <div className="document-icon" style={{ color: COLORS.primary.accent }}>
           {icon}
         </div>
-        <div className="document-label">{label}</div>
+        <div className="document-label">
+          {label}
+          <span className={`doc-badge ${mandatory ? 'doc-badge-required' : 'doc-badge-optional'}`}>
+            {mandatory ? 'Required' : 'Optional'}
+          </span>
+        </div>
       </div>
       <div className="document-card-body">
         <div className="document-filename" title={fileName}>
-          {fileName || 'Document'}
+          {isUploaded ? (fileName || 'Document') : 'Not Uploaded'}
         </div>
-        <button 
-          className="btn-view-document"
-          onClick={() => onView(path, documentId)}
-          aria-label={`View ${label}`}
-        >
-          <FaEye className="me-1" />
-          View
-        </button>
+        {isUploaded && (
+          <button 
+            className="btn-view-document"
+            onClick={() => onView(path, documentId)}
+            aria-label={`View ${label}`}
+          >
+            <FaEye className="me-1" />
+            View
+          </button>
+        )}
       </div>
     </div>
   );
@@ -313,6 +320,7 @@ export default function ViewStudent() {
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [parentAccountDetails, setParentAccountDetails] = useState(null);
   const [showParentDetailsModal, setShowParentDetailsModal] = useState(false);
+  const [documentConfig, setDocumentConfig] = useState([]);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -371,6 +379,23 @@ export default function ViewStudent() {
     fetchStudent();
   }, [fetchStudent]);
 
+  useEffect(() => {
+    const fetchDocumentConfig = async () => {
+      if (!student?.college_id?.code) return;
+      try {
+        const res = await api.get(`/document-config/${student.college_id.code}`);
+        setDocumentConfig(res.data?.documents || []);
+      } catch (err) {
+        logger.error("Error fetching document config:", err);
+        setDocumentConfig([]);
+      }
+    };
+
+    if (student) {
+      fetchDocumentConfig();
+    }
+  }, [student]);
+
   /* ================= HELPER FUNCTIONS ================= */
   const has10thDetails = useMemo(() => {
     if (!student) return false;
@@ -395,44 +420,43 @@ export default function ViewStudent() {
     if (!student) return [];
 
     const docs = [];
-    const docMapping = [
-      { key: 'sscMarksheetPath', type: '10th_marksheet', label: '10th Marksheet', icon: <FaFileAlt /> },
-      { key: 'hscMarksheetPath', type: '12th_marksheet', label: '12th Marksheet', icon: <FaFileAlt /> },
-      { key: 'passportPhotoPath', type: 'passport_photo', label: 'Passport Photo', icon: <FaImage /> },
-      { key: 'categoryCertificatePath', type: 'category_certificate', label: 'Category Certificate', icon: <FaFileAlt /> },
-      { key: 'incomeCertificatePath', type: 'income_certificate', label: 'Income Certificate', icon: <FaFileAlt /> },
-      { key: 'characterCertificatePath', type: 'character_certificate', label: 'Character Certificate', icon: <FaFileAlt /> },
-      { key: 'transferCertificatePath', type: 'transfer_certificate', label: 'Transfer Certificate', icon: <FaFileAlt /> },
-      { key: 'aadharCardPath', type: 'aadhar_card', label: 'Aadhar Card', icon: <FaIdCard /> },
-      { key: 'entranceExamScorePath', type: 'entrance_exam_score', label: 'Entrance Exam Score', icon: <FaAward /> },
-      { key: 'migrationCertificatePath', type: 'migration_certificate', label: 'Migration Certificate', icon: <FaFileAlt /> },
-      { key: 'domicileCertificatePath', type: 'domicile_certificate', label: 'Domicile Certificate', icon: <FaFileAlt /> },
-      { key: 'casteCertificatePath', type: 'caste_certificate', label: 'Caste Certificate', icon: <FaFileAlt /> },
-      { key: 'nonCreamyLayerCertificatePath', type: 'non_creamy_layer_certificate', label: 'Non-Creamy Layer Certificate', icon: <FaFileAlt /> },
-      { key: 'physicallyChallengedCertificatePath', type: 'physically_challenged_certificate', label: 'Physically Challenged Certificate', icon: <FaFileAlt /> },
-      { key: 'sportsQuotaCertificatePath', type: 'sports_quota_certificate', label: 'Sports Quota Certificate', icon: <FaAward /> },
-      { key: 'nriSponsorCertificatePath', type: 'nri_sponsor_certificate', label: 'NRI Sponsor Certificate', icon: <FaFileAlt /> },
-      { key: 'gapCertificatePath', type: 'gap_certificate', label: 'Gap Certificate', icon: <FaFileAlt /> },
-      { key: 'affidavitPath', type: 'affidavit', label: 'Affidavit', icon: <FaFileAlt /> }
-    ];
+    const configDocs = documentConfig.length > 0
+      ? documentConfig.filter(doc => doc.enabled)
+      : Object.keys(student.documents || {}).map(type => ({
+          type,
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          enabled: true,
+          mandatory: false,
+        }));
 
-    docMapping.forEach(({ key, type, label, icon }) => {
-      const doc = student.documents?.[type];
-      const path = doc?.downloadUrl || student[key];
-      if (path) {
-        docs.push({ label, path, icon, documentId: doc?.documentId || null });
-      }
+    configDocs.forEach(doc => {
+      const uploadedDoc = student.documents?.[doc.type];
+      docs.push({
+        label: doc.label,
+        path: uploadedDoc?.downloadUrl || null,
+        icon: <FaFileAlt />,
+        documentId: uploadedDoc?.documentId || null,
+        mandatory: doc.mandatory || false,
+        type: doc.type,
+        isUploaded: !!uploadedDoc,
+      });
     });
 
     return docs;
-  }, [student]);
+  }, [student, documentConfig]);
 
   /* ================= ACTION HANDLERS ================= */
   const handleViewDocument = useCallback((path, documentId) => {
-    const fileName = getFileName(path);
-    const url = documentId
-      ? getDocumentViewUrl(documentId)
-      : `${api.defaults.baseURL}/students/documents/${fileName}`;
+    let url = null;
+
+    if (documentId) {
+      url = getDocumentDownloadUrl(documentId);
+    } else if (path) {
+      const fileName = getFileName(path);
+      if (fileName) {
+        url = `${api.defaults.baseURL}/students/documents/${fileName}`;
+      }
+    }
 
     if (!url) {
       toast.error("Document not available for viewing");
@@ -836,14 +860,16 @@ export default function ViewStudent() {
               
               <div className="card-body-enterprise">
                 <div className="documents-grid">
-                  {uploadedDocuments.map((doc, index) => (
+                  {uploadedDocuments.map((doc) => (
                     <DocumentCard
-                      key={index}
+                      key={doc.type}
                       label={doc.label}
                       path={doc.path}
                       icon={doc.icon}
                       documentId={doc.documentId}
                       onView={handleViewDocument}
+                      mandatory={doc.mandatory}
+                      isUploaded={doc.isUploaded}
                     />
                   ))}
                 </div>
@@ -1356,6 +1382,27 @@ export default function ViewStudent() {
         .btn-view-document:hover {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+        }
+        
+        .doc-badge {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          padding: 0.125rem 0.5rem;
+          border-radius: 9999px;
+          margin-left: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .doc-badge-required {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+        }
+
+        .doc-badge-optional {
+          background: rgba(107, 114, 128, 0.1);
+          color: #6b7280;
         }
         
         /* Action Card */
