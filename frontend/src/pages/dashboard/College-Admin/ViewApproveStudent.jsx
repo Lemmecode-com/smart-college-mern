@@ -255,17 +255,24 @@ DetailRow.defaultProps = {
 };
 
 /* ---- DocumentRow Component ---- */
-function DocumentRow({ label, path, icon, onView, documentId }) {
+function DocumentRow({ label, path, icon, documentId, mandatory, isUploaded }) {
   const fileName = getFileName(path);
 
   const handleViewDocument = (filename, docId) => {
-    if (!filename && !docId) {
+    if (!isUploaded) {
       toast.error("Document not available for viewing");
       return;
     }
-    const url = docId
-      ? getDocumentDownloadUrl(docId)
-      : `${api.defaults.baseURL}/students/documents/${filename}`;
+    let url = null;
+    if (docId) {
+      url = getDocumentDownloadUrl(docId);
+    } else if (filename) {
+      url = `${api.defaults.baseURL}/students/documents/${filename}`;
+    }
+    if (!url) {
+      toast.error("Document not available for viewing");
+      return;
+    }
     window.open(url, "_blank");
   };
 
@@ -276,9 +283,12 @@ function DocumentRow({ label, path, icon, onView, documentId }) {
           {icon}
         </span>
         {label}
+        <span className={`doc-badge-table ${mandatory ? 'doc-badge-table-required' : 'doc-badge-table-optional'}`}>
+          {mandatory ? 'Required' : 'Optional'}
+        </span>
       </td>
       <td className="detail-value">
-        {path ? (
+        {isUploaded ? (
           <button
             onClick={() => handleViewDocument(fileName, documentId)}
             className="document-link btn btn-link p-0"
@@ -305,14 +315,16 @@ DocumentRow.propTypes = {
   label: PropTypes.string.isRequired,
   path: PropTypes.string,
   icon: PropTypes.node.isRequired,
-  onView: PropTypes.func,
   documentId: PropTypes.string,
+  mandatory: PropTypes.bool,
+  isUploaded: PropTypes.bool,
 };
 
 DocumentRow.defaultProps = {
   path: null,
-  onView: null,
   documentId: null,
+  mandatory: false,
+  isUploaded: false,
 };
 
 /* ---- InfoCard Component ---- */
@@ -1337,6 +1349,7 @@ export default function ViewApproveStudent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [documentConfig, setDocumentConfig] = useState([]);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -1421,6 +1434,23 @@ export default function ViewApproveStudent() {
         fetchStudent();
       }
     }, [fetchStudent, user, studentId]);
+
+    useEffect(() => {
+      const fetchDocumentConfig = async () => {
+        if (!student?.college_id?.code) return;
+        try {
+          const res = await api.get(`/document-config/${student.college_id.code}`);
+          setDocumentConfig(res.data?.documents || []);
+        } catch (err) {
+          logger.error("Error fetching document config:", err);
+          setDocumentConfig([]);
+        }
+      };
+
+      if (student) {
+        fetchDocumentConfig();
+      }
+    }, [student]);
 
   /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
   // Open Mark Paid modal
@@ -1508,116 +1538,31 @@ export default function ViewApproveStudent() {
   const uploadedDocuments = useMemo(() => {
     if (!student) return [];
 
-    const docMap = [
-      { key: "sscMarksheetPath", label: "10th Marksheet", icon: <FaFileAlt /> },
-      { key: "hscMarksheetPath", label: "12th Marksheet", icon: <FaFileAlt /> },
-      { key: "passportPhotoPath", label: "Passport Photo", icon: <FaImage /> },
-      {
-        key: "categoryCertificatePath",
-        label: "Category Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "incomeCertificatePath",
-        label: "Income Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "characterCertificatePath",
-        label: "Character Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "transferCertificatePath",
-        label: "Transfer Certificate",
-        icon: <FaFileAlt />,
-      },
-      { key: "aadharCardPath", label: "Aadhar Card", icon: <FaFileAlt /> },
-      {
-        key: "entranceExamScorePath",
-        label: "Entrance Exam Score",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "migrationCertificatePath",
-        label: "Migration Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "domicileCertificatePath",
-        label: "Domicile Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "casteCertificatePath",
-        label: "Caste Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "nonCreamyLayerCertificatePath",
-        label: "Non-Creamy Layer Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "physicallyChallengedCertificatePath",
-        label: "Physically Challenged Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "sportsQuotaCertificatePath",
-        label: "Sports Quota Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "nriSponsorCertificatePath",
-        label: "NRI Sponsor Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "gapCertificatePath",
-        label: "Gap Certificate",
-        icon: <FaFileAlt />,
-      },
-      { key: "affidavitPath", label: "Affidavit", icon: <FaFileAlt /> },
-    ];
+    const docs = [];
+    const configDocs = documentConfig.length > 0
+      ? documentConfig.filter(doc => doc.enabled)
+      : Object.keys(student.documents || {}).map(type => ({
+          type,
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          enabled: true,
+          mandatory: false,
+        }));
 
-  const docTypeMap = {
-    "sscMarksheetPath": "10th_marksheet",
-    "hscMarksheetPath": "12th_marksheet",
-    "passportPhotoPath": "passport_photo",
-    "categoryCertificatePath": "category_certificate",
-    "incomeCertificatePath": "income_certificate",
-    "characterCertificatePath": "character_certificate",
-    "transferCertificatePath": "transfer_certificate",
-    "aadharCardPath": "aadhar_card",
-    "entranceExamScorePath": "entrance_exam_score",
-    "migrationCertificatePath": "migration_certificate",
-    "domicileCertificatePath": "domicile_certificate",
-    "casteCertificatePath": "caste_certificate",
-    "nonCreamyLayerCertificatePath": "non_creamy_layer_certificate",
-    "physicallyChallengedCertificatePath": "physically_challenged_certificate",
-    "sportsQuotaCertificatePath": "sports_quota_certificate",
-    "nriSponsorCertificatePath": "nri_sponsor_certificate",
-    "gapCertificatePath": "gap_certificate",
-    "affidavitPath": "affidavit",
-  };
-
-  const docsByType = (student.documents || {});
-
-  return docMap
-    .filter(({ key }) => student[key] || docsByType[docTypeMap[key]])
-    .map(({ key, label, ...rest }) => {
-      const docType = docTypeMap[key];
-      const doc = docsByType[docType];
-      const path = doc?.downloadUrl || student[key];
-      return {
-        label,
-        path,
-        ...rest,
-        documentId: doc?.documentId || null,
-      };
+    configDocs.forEach(doc => {
+      const uploadedDoc = student.documents?.[doc.type];
+      docs.push({
+        label: doc.label,
+        path: uploadedDoc?.downloadUrl || null,
+        icon: <FaFileAlt />,
+        documentId: uploadedDoc?.documentId || null,
+        mandatory: doc.mandatory || false,
+        type: doc.type,
+        isUploaded: !!uploadedDoc,
+      });
     });
-  }, [student]);
+
+    return docs;
+  }, [student, documentConfig]);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const feeData = useMemo(() => {
@@ -1889,8 +1834,8 @@ export default function ViewApproveStudent() {
               <div className="erp-table-container">
                 <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
                   <tbody>
-                    {uploadedDocuments.map((doc, index) => (
-                      <DocumentRow key={`${doc.label}-${index}`} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} />
+                    {uploadedDocuments.map((doc) => (
+                      <DocumentRow key={doc.type} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} mandatory={doc.mandatory} isUploaded={doc.isUploaded} />
                     ))}
                   </tbody>
                 </table>
@@ -2348,6 +2293,27 @@ export default function ViewApproveStudent() {
           color: var(--erp-text-muted);
           font-style: italic;
           font-size: 0.9rem;
+        }
+
+        .doc-badge-table {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          padding: 0.125rem 0.5rem;
+          border-radius: 9999px;
+          margin-left: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .doc-badge-table-required {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+        }
+
+        .doc-badge-table-optional {
+          background: rgba(107, 114, 128, 0.1);
+          color: #6b7280;
         }
 
         .document-count {
