@@ -2,7 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -114,6 +115,33 @@ export default function ViewTeacher() {
     } else {
       setError((prev) => ({ ...(prev || {}), message: "Maximum retry attempts reached. Please check your connection." }));
     }
+  };
+
+  /* ================= DOCUMENT HANDLERS ================= */
+  const handleViewDocument = (documentId) => {
+    if (!documentId) {
+      toast.error("Document not available for viewing.");
+      return;
+    }
+    const url = getDocumentDownloadUrl(documentId);
+    if (!url) {
+      toast.error("Document not available for viewing.");
+      return;
+    }
+    window.open(url, "_blank");
+  };
+
+  const handleDownloadDocument = (documentId) => {
+    if (!documentId) {
+      toast.error("Document not available for downloading.");
+      return;
+    }
+    const url = getDocumentDownloadUrl(documentId);
+    if (!url) {
+      toast.error("Document not available for downloading.");
+      return;
+    }
+    window.open(url, "_blank");
   };
 
   /* ================= LOADING SKELETON ================= */
@@ -456,22 +484,22 @@ export default function ViewTeacher() {
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <a
-                                href={getDocumentViewUrl(doc.documentId)}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => handleViewDocument(doc.documentId)}
                                 className="btn btn-sm btn-outline-primary"
                                 title="Preview"
+                                type="button"
                               >
                                 <FaEye />
-                              </a>
-                              <a
-                                href={getDocumentDownloadUrl(doc.documentId)}
+                              </button>
+                              <button
+                                onClick={() => handleDownloadDocument(doc.documentId)}
                                 className="btn btn-sm btn-outline-success"
                                 title="Download"
+                                type="button"
                               >
                                 <FaDownload />
-                              </a>
+                              </button>
                             </div>
                           </td>
                         </tr>
