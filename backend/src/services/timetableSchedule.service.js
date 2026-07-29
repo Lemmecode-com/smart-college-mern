@@ -543,10 +543,13 @@ exports.generateSchedule = async (
 
       const allSlotsForDate = [...slotsWithExceptions, ...extraSlots];
 
-      // Count statistics
+      // Count statistics (exclude cancelled slots from total)
       allSlotsForDate.forEach((slot) => {
-        totalSlots++;
-        if (slot.status === SLOT_STATUS.CANCELLED) cancelledCount++;
+        if (slot.status === SLOT_STATUS.CANCELLED) {
+          cancelledCount++;
+        } else {
+          totalSlots++;
+        }
         if (slot.status === SLOT_STATUS.EXTRA) extraCount++;
       });
 
