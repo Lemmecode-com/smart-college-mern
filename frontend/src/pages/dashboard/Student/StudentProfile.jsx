@@ -272,115 +272,6 @@ export default function StudentProfile() {
 
   const { student, college, department, course } = profile;
 
-  // Helper functions to check if documents are enabled
-  const is10thEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "10th_marksheet" && doc.enabled,
-    );
-  };
-
-  const is12thEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "12th_marksheet" && doc.enabled,
-    );
-  };
-
-  const isPassportPhotoEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "passport_photo" && doc.enabled,
-    );
-  };
-
-  const isCategoryCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "category_certificate" && doc.enabled,
-    );
-  };
-
-  const isIncomeCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "income_certificate" && doc.enabled,
-    );
-  };
-
-  const isCharacterCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "character_certificate" && doc.enabled,
-    );
-  };
-
-  const isTransferCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "transfer_certificate" && doc.enabled,
-    );
-  };
-
-  const isAadharCardEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "aadhar_card" && doc.enabled,
-    );
-  };
-
-  const isEntranceExamScoreEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "entrance_exam_score" && doc.enabled,
-    );
-  };
-
-  const isMigrationCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "migration_certificate" && doc.enabled,
-    );
-  };
-
-  const isDomicileCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "domicile_certificate" && doc.enabled,
-    );
-  };
-
-  const isCasteCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "caste_certificate" && doc.enabled,
-    );
-  };
-
-  const isNonCreamyLayerEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "non_creamy_layer_certificate" && doc.enabled,
-    );
-  };
-
-  const isPhysicallyChallengedEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "physically_challenged_certificate" && doc.enabled,
-    );
-  };
-
-  const isSportsQuotaEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "sports_quota_certificate" && doc.enabled,
-    );
-  };
-
-  const isNriSponsorEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "nri_sponsor_certificate" && doc.enabled,
-    );
-  };
-
-  const isGapCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "gap_certificate" && doc.enabled,
-    );
-  };
-
-  const isAffidavitEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "affidavit" && doc.enabled,
-    );
-  };
-
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
@@ -554,14 +445,14 @@ export default function StudentProfile() {
                 label="10th Details"
                 active={activeTab === "ssc"}
                 onClick={() => setActiveTab("ssc")}
-                hidden={!is10thEnabled()}
+                hidden={!documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled)}
               />
               <TabItem
                 icon={<FaGraduationCap />}
                 label="12th Details"
                 active={activeTab === "hsc"}
                 onClick={() => setActiveTab("hsc")}
-                hidden={!is12thEnabled()}
+                hidden={!documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled)}
               />
               <TabItem
                 icon={<FaFileAlt />}
@@ -799,7 +690,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === "ssc" && is10thEnabled() && (
+              {activeTab === "ssc" && documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled) && (
                 <SectionContent
                   title="10th (SSC) Academic Details"
                   icon={<FaGraduationCap />}
@@ -840,7 +731,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === "hsc" && is12thEnabled() && (
+              {activeTab === "hsc" && documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled) && (
                 <SectionContent
                   title="12th (HSC) Academic Details"
                   icon={<FaGraduationCap />}
@@ -904,408 +795,36 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="row g-3">
-                    {/* 10th Marksheet - Only if enabled */}
-                    {is10thEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="10th Marksheet"
-                        name="Secondary School Certificate"
-                        board={student?.sscBoard || "N/A"}
-                        year={student?.sscPassingYear || "N/A"}
-                        percentage={
-                          student?.sscPercentage
-                            ? `${student.sscPercentage}%`
-                            : ""
-                        }
-                        file={
-                          student?.documents?.["10th_marksheet"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["10th_marksheet"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* 12th Marksheet - Only if enabled */}
-                    {is12thEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="12th Marksheet"
-                        name="Higher Secondary Certificate"
-                        board={student?.hscBoard || "N/A"}
-                        year={student?.hscPassingYear || "N/A"}
-                        percentage={
-                          student?.hscPercentage
-                            ? `${student.hscPercentage}%`
-                            : ""
-                        }
-                        file={
-                          student?.documents?.["12th_marksheet"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["12th_marksheet"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Passport Photo - Only if enabled */}
-                    {isPassportPhotoEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Passport Photo"
-                        name="Passport Size Photograph"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["passport_photo"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["passport_photo"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Category Certificate - Only if enabled and category is not GEN */}
-                    {isCategoryCertificateEnabled() &&
-                      student?.category !== "GEN" && (
+                    {documentConfig.filter(doc => doc.enabled).map((doc) => {
+                      const uploadedDoc = student?.documents?.[doc.type];
+                      return (
                         <DocumentCard
-                          icon={<FaCertificate />}
-                          type="Category Certificate"
-                          name={`${student?.category || "N/A"} Category Certificate`}
-                          board="Issuing Authority"
-                          year="N/A"
-                          percentage=""
-                        file={
-                          student?.documents?.["category_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["category_certificate"]
-                            ?.downloadUrl
-                        }
-                        />
-                      )}
-
-                    {/* Income Certificate - Only if enabled */}
-                    {isIncomeCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileInvoice />}
-                        type="Income Certificate"
-                        name="Family Income Certificate"
-                        board="Issuing Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["income_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["income_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Character Certificate - Only if enabled */}
-                    {isCharacterCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Character Certificate"
-                        name="Character Certificate"
-                        board={student?.sscSchoolName || "N/A"}
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["character_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["character_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Transfer Certificate - Only if enabled */}
-                    {isTransferCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Transfer Certificate"
-                        name="School Leaving Certificate"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["transfer_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["transfer_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Aadhar Card - Only if enabled */}
-                    {isAadharCardEnabled() && (
-                      <DocumentCard
-                        icon={<FaIdCard />}
-                        type="Aadhar Card"
-                        name="Aadhar Card"
-                        board="UIDAI"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["aadhar_card"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["aadhar_card"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Entrance Exam Score - Only if enabled */}
-                    {isEntranceExamScoreEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="Entrance Exam Score"
-                        name="Entrance Examination Score Card"
-                        board="Exam Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["entrance_exam_score"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["entrance_exam_score"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Migration Certificate - Only if enabled */}
-                    {isMigrationCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Migration Certificate"
-                        name="Migration Certificate"
-                        board="Board/University"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["migration_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["migration_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Domicile Certificate - Only if enabled */}
-                    {isDomicileCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Domicile Certificate"
-                        name="Domicile / Residence Certificate"
-                        board="State Government"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["domicile_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["domicile_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Caste Certificate - Only if enabled */}
-                    {isCasteCertificateEnabled() &&
-                      student?.category !== "GEN" && (
-                        <DocumentCard
-                          icon={<FaCertificate />}
-                          type="Caste Certificate"
-                          name="Caste Certificate"
-                          board="Competent Authority"
-                          year="N/A"
-                          percentage=""
-                        file={
-                          student?.documents?.["caste_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["caste_certificate"]
-                            ?.downloadUrl
-                        }
-                        />
-                      )}
-
-                    {/* Non Creamy Layer Certificate - Only if enabled */}
-                    {isNonCreamyLayerEnabled() &&
-                      student?.category === "OBC" && (
-                        <DocumentCard
+                          key={doc.type}
                           icon={<FaFileAlt />}
-                          type="Non Creamy Layer Certificate"
-                          name="Non Creamy Layer Certificate"
-                          board="Competent Authority"
-                          year="N/A"
+                          type={doc.label}
+                          name={doc.description || doc.label}
+                          board=""
+                          year=""
                           percentage=""
-                        file={
-                          student?.documents?.["non_creamy_layer_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["non_creamy_layer_certificate"]
-                            ?.downloadUrl
-                        }
+                          file={uploadedDoc?.originalFileName || "Not uploaded"}
+                          filePath={uploadedDoc?.downloadUrl}
+                          mandatory={doc.mandatory}
                         />
-                      )}
+                      );
+                    })}
 
-                    {/* Physically Challenged Certificate - Only if enabled */}
-                    {isPhysicallyChallengedEnabled() && (
-                      <DocumentCard
-                        icon={<FaHeartbeat />}
-                        type="Physically Challenged Certificate"
-                        name="Disability Certificate"
-                        board="Medical Board"
-                        year="N/A"
-                        percentage={student?.pwdDisability || ""}
-                        file={
-                          student?.documents?.["physically_challenged_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["physically_challenged_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Sports Quota Certificate - Only if enabled */}
-                    {isSportsQuotaEnabled() && (
-                      <DocumentCard
-                        icon={<FaAward />}
-                        type="Sports Quota Certificate"
-                        name="Sports Achievement Certificate"
-                        board="Sports Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["sports_quota_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["sports_quota_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* NRI Sponsor Certificate - Only if enabled */}
-                    {isNriSponsorEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="NRI Sponsor Certificate"
-                        name="NRI Sponsorship Certificate"
-                        board="Embassy/Consulate"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["nri_sponsor_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["nri_sponsor_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Gap Certificate - Only if enabled */}
-                    {isGapCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Gap Certificate"
-                        name="Gap Year Affidavit"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["gap_certificate"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["gap_certificate"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Affidavit - Only if enabled */}
-                    {isAffidavitEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileSignature />}
-                        type="Affidavit"
-                        name="Legal Affidavit"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.documents?.["affidavit"]
-                            ?.originalFileName || "Not uploaded"
-                        }
-                        filePath={
-                          student?.documents?.["affidavit"]
-                            ?.downloadUrl
-                        }
-                      />
-                    )}
-
-                    {/* Show message if no documents are configured */}
-                    {!is10thEnabled() &&
-                      !is12thEnabled() &&
-                      !isPassportPhotoEnabled() &&
-                      (!isCategoryCertificateEnabled() ||
-                        student?.category === "GEN") &&
-                      !isIncomeCertificateEnabled() &&
-                      !isCharacterCertificateEnabled() &&
-                      !isTransferCertificateEnabled() &&
-                      !isAadharCardEnabled() &&
-                      !isEntranceExamScoreEnabled() &&
-                      !isMigrationCertificateEnabled() &&
-                      !isDomicileCertificateEnabled() &&
-                      !isCasteCertificateEnabled() &&
-                      !isNonCreamyLayerEnabled() &&
-                      !isPhysicallyChallengedEnabled() &&
-                      !isSportsQuotaEnabled() &&
-                      !isNriSponsorEnabled() &&
-                      !isGapCertificateEnabled() &&
-                      !isAffidavitEnabled() && (
-                        <div className="col-12">
-                          <div className="alert alert-warning d-flex align-items-center">
-                            <FaExclamationTriangle className="me-2" size={20} />
-                            <div>
-                              <strong>No Documents Required:</strong> Your
-                              college has not configured any document
-                              requirements for your batch.
-                            </div>
+                    {documentConfig.filter(doc => doc.enabled).length === 0 && (
+                      <div className="col-12">
+                        <div className="alert alert-warning d-flex align-items-center">
+                          <FaExclamationTriangle className="me-2" size={20} />
+                          <div>
+                            <strong>No Documents Required:</strong> Your
+                            college has not configured any document
+                            requirements for your batch.
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 p-3 bg-light rounded-3">
@@ -1641,6 +1160,27 @@ export default function StudentProfile() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        
+        .doc-badge-profile {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          padding: 0.125rem 0.5rem;
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .doc-badge-profile-required {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+        }
+
+        .doc-badge-profile-optional {
+          background: rgba(107, 114, 128, 0.1);
+          color: #6b7280;
         }
         
         .document-name {
@@ -1885,6 +1425,7 @@ function DocumentCard({
   percentage,
   file,
   filePath,
+  mandatory,
 }) {
   const getDocumentColor = () => {
     switch (type) {
@@ -1920,10 +1461,9 @@ function DocumentCard({
     }
   };
 
-  // Construct SECURE document URL using axios-configured baseURL
-  // No duplication of VITE_API_BASE_URL
+  const source = filePath || null;
+
   const documentUrl = (() => {
-    const source = filePath || document?.downloadUrl;
     if (!source) return null;
     if (source.startsWith('http')) return source;
     if (source.startsWith('/api/')) {
@@ -1933,14 +1473,12 @@ function DocumentCard({
     return `${api.defaults.baseURL}/students/documents/${fileName}`;
   })();
 
-  // Check if file actually exists (not null, not undefined, not empty string)
   const hasFile =
-    (filePath &&
-     String(filePath).trim() !== "" &&
-     filePath !== "null" &&
-     filePath !== "undefined") ||
-    !!document?.downloadUrl ||
-    !!document?.storageKey;
+    (source &&
+     String(source).trim() !== "" &&
+     source !== "null" &&
+     source !== "undefined") ||
+    false;
 
   const handleView = () => {
     if (documentUrl && hasFile) {
@@ -1957,7 +1495,6 @@ function DocumentCard({
   const handleDownload = async () => {
     try {
       if (documentUrl && hasFile) {
-        // Fetch the file as a blob to trigger download
         const response = await fetch(documentUrl, { credentials: "include" });
         if (!response.ok) throw new Error("Failed to fetch document");
         const blob = await response.blob();
@@ -1965,7 +1502,7 @@ function DocumentCard({
 
         const link = document.createElement("a");
         link.href = blobUrl;
-        link.setAttribute("download", file);
+        link.setAttribute("download", file || "document");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -2000,6 +1537,9 @@ function DocumentCard({
       </div>
       <div className="document-type">
         <FaFileAlt aria-hidden="true" /> {type}
+        <span className={`doc-badge-profile ${mandatory ? 'doc-badge-profile-required' : 'doc-badge-profile-optional'}`}>
+          {mandatory ? 'Required' : 'Optional'}
+        </span>
       </div>
       <div className="document-name">{name}</div>
       <div className="document-meta">
