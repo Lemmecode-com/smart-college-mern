@@ -864,6 +864,20 @@ exports.updateStudentByAdmin = async (req, res, next) => {
       });
     }
 
+    // ✅ Check for duplicate email within the same college
+    if (req.body.email && req.body.email !== student.email) {
+      const existingStudent = await Student.findOne({
+        email: req.body.email,
+        college_id: req.college_id,
+        _id: { $ne: studentId },
+      });
+      if (existingStudent) {
+        return next(
+          new AppError("A student with this email already exists", 409, "EMAIL_EXISTS")
+        );
+      }
+    }
+
     // Store old values before update
     const oldStudent = student.toObject();
 
