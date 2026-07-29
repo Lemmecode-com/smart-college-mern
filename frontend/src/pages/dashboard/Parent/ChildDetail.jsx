@@ -455,7 +455,7 @@ export default function ChildDetail() {
                               <div className="parent-profile-content">
                                 <div className="parent-profile-label">Date of Birth</div>
                                 <div className="parent-profile-value">
-                                  {new Date(child.dateOfBirth).toLocaleDateString()}
+                                  {child.dateOfBirth ? new Date(child.dateOfBirth).toLocaleDateString() : "Not set"}
                                 </div>
                               </div>
                             </div>
@@ -642,11 +642,11 @@ export default function ChildDetail() {
                             <td>
                               <div className="d-flex flex-column">
                                 <span className="fw-semibold">
-                                  {new Date(record.date).toLocaleDateString('en-US', {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
+{record.date ? new Date(record.date).toLocaleDateString('en-US', {
+	                                    weekday: 'short',
+	                                    month: 'short',
+	                                    day: 'numeric'
+	                                  }) : "N/A"}
                                 </span>
                                 <small className="text-muted">
                                   {new Date(record.date).getFullYear()}
@@ -785,7 +785,7 @@ export default function ChildDetail() {
                                     <div className="d-flex justify-content-between text-sm">
                                       <span>₹{installment.amount?.toLocaleString()}</span>
                                       <span className="text-muted">
-                                        Due: {new Date(installment.dueDate).toLocaleDateString()}
+                                        Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString() : "N/A"}
                                       </span>
                                     </div>
                                   </motion.div>

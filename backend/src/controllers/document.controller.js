@@ -72,7 +72,7 @@ exports.getDocumentDownload = async (req, res, next) => {
     res.setHeader("Content-Type", contentType);
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="${fileData.originalName}"`
+      `attachment; filename="${fileData.originalName}"`
     );
     if (fileData.size) {
       res.setHeader("Content-Length", fileData.size);

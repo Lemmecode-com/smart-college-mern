@@ -184,6 +184,9 @@ const teacherSchema = new mongoose.Schema(
         storagePath: {
           type: String,
         },
+        documentId: {
+          type: String,
+        },
         uploadedAt: {
           type: Date,
           default: Date.now,
