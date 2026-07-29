@@ -300,12 +300,8 @@ exports.getMyProfile = async (req, res) => {
     let teacherObj = teacher.toObject();
     teacherObj.subjects = subjects;
 
-    // Resolve documents from Document collection when legacy documents array is missing
-    if (
-      teacherObj.documentRefs &&
-      teacherObj.documentRefs.length > 0 &&
-      (!teacherObj.documents || teacherObj.documents.length === 0)
-    ) {
+    // Always enrich documents from Document collection to ensure documentId is present
+    if (teacherObj.documentRefs && teacherObj.documentRefs.length > 0) {
       try {
         const docIds = teacherObj.documentRefs
           .map((dr) => dr.documentId)
@@ -335,6 +331,37 @@ exports.getMyProfile = async (req, res) => {
           }));
       } catch (err) {
         console.error("Failed to resolve teacher documents:", err.message);
+      }
+    } else if (teacherObj.documents && teacherObj.documents.length > 0) {
+      try {
+        const docs = await Document.find({
+          ownerType: "Teacher",
+          ownerId: teacher._id,
+          status: "ACTIVE",
+        }).select(
+          "documentId originalFileName mimeType size storageKey documentType",
+        );
+
+        const docMap = {};
+        docs.forEach((d) => {
+          docMap[d.documentType] = docMap[d.documentType] || [];
+          docMap[d.documentType].push(d);
+        });
+
+        teacherObj.documents = teacherObj.documents.map((doc) => {
+          const candidates = docMap[doc.documentType];
+          if (candidates && candidates.length > 0) {
+            const matched = candidates.find((c) => c.originalFileName === doc.originalName) || candidates[0];
+            return {
+              ...doc,
+              documentId: matched.documentId,
+              storagePath: matched.storageKey,
+            };
+          }
+          return doc;
+        });
+      } catch (err) {
+        console.error("Failed to resolve legacy teacher documents:", err.message);
       }
     }
 
@@ -503,12 +530,8 @@ exports.getTeacherById = async (req, res) => {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    // Enrich documents from Document collection when legacy documents array is empty
-    if (
-      teacher.documentRefs &&
-      teacher.documentRefs.length > 0 &&
-      (!teacher.documents || teacher.documents.length === 0)
-    ) {
+    // Always enrich documents from Document collection to ensure documentId is present
+    if (teacher.documentRefs && teacher.documentRefs.length > 0) {
       try {
         const docIds = teacher.documentRefs
           .map((dr) => dr.documentId)
@@ -538,6 +561,37 @@ exports.getTeacherById = async (req, res) => {
           }));
       } catch (err) {
         console.error("Failed to resolve teacher documents:", err.message);
+      }
+    } else if (teacher.documents && teacher.documents.length > 0) {
+      try {
+        const docs = await Document.find({
+          ownerType: "Teacher",
+          ownerId: teacher._id,
+          status: "ACTIVE",
+        }).select(
+          "documentId originalFileName mimeType size storageKey documentType",
+        );
+
+        const docMap = {};
+        docs.forEach((d) => {
+          docMap[d.documentType] = docMap[d.documentType] || [];
+          docMap[d.documentType].push(d);
+        });
+
+        teacher.documents = teacher.documents.map((doc) => {
+          const candidates = docMap[doc.documentType];
+          if (candidates && candidates.length > 0) {
+            const matched = candidates.find((c) => c.originalFileName === doc.originalName) || candidates[0];
+            return {
+              ...doc,
+              documentId: matched.documentId,
+              storagePath: matched.storageKey,
+            };
+          }
+          return doc;
+        });
+      } catch (err) {
+        console.error("Failed to resolve legacy teacher documents:", err.message);
       }
     }
 
