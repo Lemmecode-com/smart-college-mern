@@ -1,4 +1,5 @@
 const Document = require("../models/document.model");
+const Student = require("../models/student.model");
 const { getStorageProvider } = require("./storage");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
@@ -213,6 +214,13 @@ class DocumentService {
 
   static async _isOwner(document, user) {
     if (!user || !document) return false;
+
+    if (document.ownerType === "Student") {
+      const student = await Student.findById(document.ownerId);
+      if (!student) return false;
+      return student.user_id.toString() === user.id.toString();
+    }
+
     return document.ownerId.toString() === user.id.toString();
   }
 
@@ -220,7 +228,7 @@ class DocumentService {
     if (!user || !document) return false;
     
     if (document.ownerType === "Student") {
-      return ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR", "ACCOUNTANT"].includes(user.role);
+      return ["STUDENT", "COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR", "ACCOUNTANT"].includes(user.role);
     }
     if (document.ownerType === "Teacher") {
       return ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR"].includes(user.role);
