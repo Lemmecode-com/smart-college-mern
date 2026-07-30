@@ -7,9 +7,9 @@ import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "./Dashboard.css";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
+import LogoImage from "../../../components/common/LogoImage";
 
 import {
-  FaUniversity,
   FaUsers,
   FaChalkboardTeacher,
   FaLayerGroup,
@@ -352,16 +352,20 @@ export default function CollegeAdminDashboard() {
             <div className="dashboard-header-hero">
               <Row className="g-3 g-sm-4 align-items-center">
                 <Col xs={12} md={7} lg={8}>
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="header-icon-wrapper"
-                    >
-                      <FaUniversity />
-                    </motion.div>
-                    <div className="header-title-section">
+                   <div className="d-flex align-items-center gap-3">
+                     <motion.div
+                       variants={pulseVariants}
+                       initial="initial"
+                       animate="pulse"
+                       style={{
+                         width: 88,
+                         height: 88,
+                         flexShrink: 0,
+                       }}
+                     >
+                       <LogoImage documentId={college?.logoDocumentId} size={88} />
+                     </motion.div>
+                     <div className="header-title-section">
                       <h1 className="header-title">
                         {college?.name || 'College Dashboard'}
                       </h1>

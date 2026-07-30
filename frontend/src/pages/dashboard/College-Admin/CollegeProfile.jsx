@@ -21,7 +21,6 @@ const AUTH_ERROR_CODES = new Set([
 ]);
 
 import {
-  FaUniversity,
   FaEnvelope,
   FaPhoneAlt,
   FaMapMarkerAlt,
@@ -55,6 +54,7 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import LogoImage from "../../../components/common/LogoImage";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -375,19 +375,15 @@ export default function CollegeProfile() {
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  background: BRAND_COLORS.primary.gradient,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 30px rgba(26, 75, 109, 0.4)",
-                  flexShrink: 0,
-                }}
+                style={{ flexShrink: 0 }}
               >
-                <FaUniversity size={36} style={{ color: "white" }} />
+                <LogoImage
+                  documentId={
+                    college?.documentRefs?.logo?.documentId ||
+                    college?.logoDocumentId
+                  }
+                  size={100}
+                />
               </motion.div>
 
               <div style={{ flex: 1 }}>
@@ -892,9 +888,7 @@ function EmptyState({ onBack }) {
           textAlign: "center",
         }}
       >
-        <div
-          style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}
-        >
+        <div style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}>
           <FaUniversity />
         </div>
         <h4
