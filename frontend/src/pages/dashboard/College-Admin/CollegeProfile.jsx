@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useRef } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -190,23 +190,44 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
     };
   }, [url]);
 
+  const iconSize = Math.round(size * 0.45);
+  const padding = Math.round(size * 0.12);
+
+  const containerStyle = {
+    width: size,
+    height: size,
+    borderRadius: "var(--border-radius-md, 0.75rem)",
+    background: "#ffffff",
+    border: "1px solid rgba(0, 0, 0, 0.08)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  };
+
   if (loadError || !blobUrl) {
-    return <FaUniversity size={size} style={{ color: "white" }} />;
+    return (
+      <div style={containerStyle}>
+        <FaUniversity size={iconSize} style={{ color: "#94a3b8" }} />
+      </div>
+    );
   }
 
   return (
-    <img
-      src={blobUrl}
-      alt={alt}
-      style={{
-        width: size,
-        height: size,
-        objectFit: "contain",
-        borderRadius: "50%",
-        padding: "8px",
-        background: "transparent",
-      }}
-    />
+    <div style={containerStyle}>
+      <img
+        src={blobUrl}
+        alt={alt}
+        style={{
+          width: size - padding * 2,
+          height: size - padding * 2,
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+    </div>
   );
 }
 
@@ -435,26 +456,16 @@ export default function CollegeProfile() {
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  background: BRAND_COLORS.primary.gradient,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 30px rgba(26, 75, 109, 0.4)",
-                  flexShrink: 0,
-                }}
-                >
-                  <LogoImage
-                    documentId={
-                      college?.documentRefs?.logo?.documentId ||
-                      college?.logoDocumentId
-                    }
-                    size={36}
-                  />
-                </motion.div>
+                style={{ flexShrink: 0 }}
+              >
+                <LogoImage
+                  documentId={
+                    college?.documentRefs?.logo?.documentId ||
+                    college?.logoDocumentId
+                  }
+                  size={100}
+                />
+              </motion.div>
 
               <div style={{ flex: 1 }}>
                 <h1
