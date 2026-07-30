@@ -77,6 +77,7 @@ export default function EditCollegeProfile() {
   const [logoFile, setLogoFile] = useState(null);
   const [logoError, setLogoError] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
+  const [existingLogoDocumentId, setExistingLogoDocumentId] = useState(null);
 
   // ================= LOAD COLLEGE =================
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function EditCollegeProfile() {
           logo: null,
         };
         setForm(emptyForm);
+        setExistingLogoDocumentId(null);
         setHasUserModified(false);
         return;
       }
@@ -143,6 +145,7 @@ export default function EditCollegeProfile() {
       };
       
       setForm(formData);
+      setExistingLogoDocumentId(collegeData.logoDocumentId || null);
       setHasUserModified(false);
     } catch (err) {
       // Defensive: Handle different error types
@@ -177,18 +180,19 @@ export default function EditCollegeProfile() {
         });
       }
 
-      // Set empty form state on error
-      const emptyForm = {
-        name: "",
-        code: "",
-        email: "",
-        contactNumber: "",
-        address: "",
-        establishedYear: "",
-        logo: null,
-      };
-      setForm(emptyForm);
-      setHasUserModified(false);
+// Set empty form state on error
+       const emptyForm = {
+         name: "",
+         code: "",
+         email: "",
+         contactNumber: "",
+         address: "",
+         establishedYear: "",
+         logo: null,
+       };
+       setForm(emptyForm);
+       setExistingLogoDocumentId(null);
+       setHasUserModified(false);
     } finally {
       setLoading(false);
     }
@@ -758,10 +762,10 @@ export default function EditCollegeProfile() {
                            <FaTimes />
                          </button>
                        </div>
-                      ) : form.logo ? (
+                      ) : existingLogoDocumentId ? (
                         <div className="logo-preview-container">
                           <LogoImage
-                            documentId={form.logo}
+                            documentId={existingLogoDocumentId}
                             alt="Current logo"
                             size={80}
                           />
