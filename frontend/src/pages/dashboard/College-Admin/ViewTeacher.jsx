@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/documentUrl";
 import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
@@ -123,7 +123,7 @@ export default function ViewTeacher() {
       toast.error("Document not available for viewing.");
       return;
     }
-    const url = getDocumentDownloadUrl(documentId);
+    const url = getDocumentViewUrl(documentId);
     if (!url) {
       toast.error("Document not available for viewing.");
       return;

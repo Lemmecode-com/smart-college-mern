@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
@@ -808,6 +809,7 @@ export default function StudentProfile() {
                           percentage=""
                           file={uploadedDoc?.originalFileName || "Not uploaded"}
                           filePath={uploadedDoc?.downloadUrl}
+                          documentId={uploadedDoc?.documentId}
                           mandatory={doc.mandatory}
                         />
                       );
@@ -1418,15 +1420,16 @@ function InfoItem({ label, value, icon, col = 6 }) {
 /* ================= DOCUMENT CARD COMPONENT ================= */
 function DocumentCard({
   icon,
-  type,
-  name,
-  board,
-  year,
-  percentage,
-  file,
-  filePath,
-  mandatory,
-}) {
+   type,
+   name,
+   board,
+   year,
+   percentage,
+   file,
+   filePath,
+   documentId,
+   mandatory,
+ }) {
   const getDocumentColor = () => {
     switch (type) {
       case "10th Marksheet":
@@ -1481,8 +1484,14 @@ function DocumentCard({
     false;
 
   const handleView = () => {
-    if (documentUrl && hasFile) {
-      window.open(documentUrl, "_blank");
+    let viewUrl = null;
+    if (documentId) {
+      viewUrl = getDocumentViewUrl(documentId);
+    } else if (source) {
+      viewUrl = source;
+    }
+    if (viewUrl) {
+      window.open(viewUrl, "_blank");
     } else {
       toast.error("Document not available for viewing", {
         position: "top-right",

@@ -21,21 +21,36 @@ exports.getDocument = async (req, res, next) => {
       return next(new AppError("Not authorized to access this document", 403, "UNAUTHORIZED"));
     }
 
-    ApiResponse.success(
-      res,
-      {
-        documentId: document.documentId,
-        ownerType: document.ownerType,
-        ownerId: document.ownerId,
-        documentType: document.documentType,
-        originalFileName: document.originalFileName,
-        mimeType: document.mimeType,
-        size: document.size,
-        uploadedAt: document.uploadedAt,
-        status: document.status,
-      },
-      "Document metadata fetched successfully"
+    const fileData = await DocumentService.downloadDocument(documentId);
+
+    const ext = require("path").extname(fileData.originalName).toLowerCase();
+    const contentTypes = {
+      ".pdf": "application/pdf",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+    };
+    const contentType = contentTypes[ext] || "application/octet-stream";
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${fileData.originalName}"`
     );
+    if (fileData.size) {
+      res.setHeader("Content-Length", fileData.size);
+    }
+
+    const { pipeline } = require("stream");
+    const stream = fileData.buffer;
+
+    if (stream && typeof stream.pipe === "function") {
+      pipeline(stream, res, (err) => {
+        if (err) return next(err);
+      });
+    } else {
+      res.send(stream);
+    }
   } catch (error) {
     next(error);
   }
