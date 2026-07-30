@@ -37,7 +37,7 @@ import {
   FaFileAlt,
   FaImage,
   FaCopy,
-  FaExternalLinkAlt,
+  FaEye,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
@@ -255,8 +255,9 @@ DetailRow.defaultProps = {
 };
 
 /* ---- DocumentRow Component ---- */
-function DocumentRow({ label, path, icon, documentId, mandatory, isUploaded }) {
+function DocumentRow({ label, path, icon, documentId, isUploaded, uploadedAt }) {
   const fileName = getFileName(path);
+  const [downloading, setDownloading] = useState(false);
 
   const handleViewDocument = (filename, docId) => {
     if (!isUploaded) {
@@ -276,6 +277,73 @@ function DocumentRow({ label, path, icon, documentId, mandatory, isUploaded }) {
     window.open(url, "_blank");
   };
 
+  const handleDownloadDocument = async (filename, docId) => {
+    if (!isUploaded) {
+      toast.error("Document not available for download");
+      return;
+    }
+    let url = null;
+    if (docId) {
+      url = `${api.defaults.baseURL}/documents/${docId}/download`;
+    } else if (filename) {
+      url = `${api.defaults.baseURL}/students/documents/${filename}`;
+    }
+    if (!url) {
+      toast.error("Document not available for download");
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/pdf,image/*,*/*",
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Download failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorData?.error?.message || errorMessage;
+        } catch {
+          // response is not JSON
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition");
+      let downloadFilename = "download";
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch && filenameMatch[1]) {
+          downloadFilename = filenameMatch[1];
+        }
+      } else if (filename) {
+        downloadFilename = filename;
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      toast.error(err.message || "Failed to download document", {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <tr className="detail-row">
       <td className="detail-label">
@@ -283,29 +351,52 @@ function DocumentRow({ label, path, icon, documentId, mandatory, isUploaded }) {
           {icon}
         </span>
         {label}
-        <span className={`doc-badge-table ${mandatory ? 'doc-badge-table-required' : 'doc-badge-table-optional'}`}>
-          {mandatory ? 'Required' : 'Optional'}
-        </span>
       </td>
       <td className="detail-value">
-        {isUploaded ? (
-          <button
-            onClick={() => handleViewDocument(fileName, documentId)}
-            className="document-link btn btn-link p-0"
-            aria-label={`View ${label}`}
-            type="button"
-          >
-            <FaExternalLinkAlt className="link-icon" aria-hidden="true" />
-            {fileName || "View Document"}
-          </button>
-        ) : (
-          <span
-            className="document-not-uploaded"
-            aria-label="Document not uploaded"
-          >
-            Not uploaded
-          </span>
-        )}
+        <div className="document-actions">
+          <div className="document-meta">
+            <span className="document-filename">{fileName || "Document"}</span>
+            {uploadedAt && (
+              <span className="document-upload-date">
+                Uploaded {formatDate(uploadedAt)}
+              </span>
+            )}
+          </div>
+          {isUploaded ? (
+            <div className="document-buttons">
+              <button
+                onClick={() => handleViewDocument(fileName, documentId)}
+                className="document-action-btn document-view-btn"
+                aria-label={`View ${label}`}
+                type="button"
+              >
+                <FaEye className="action-icon" aria-hidden="true" />
+                View
+              </button>
+              <button
+                onClick={() => handleDownloadDocument(fileName, documentId)}
+                className="document-action-btn document-download-btn"
+                aria-label={`Download ${label}`}
+                type="button"
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <FaSyncAlt className="action-icon spin-icon" aria-hidden="true" />
+                ) : (
+                  <FaDownload className="action-icon" aria-hidden="true" />
+                )}
+                {downloading ? "Downloading..." : "Download"}
+              </button>
+            </div>
+          ) : (
+            <span
+              className="document-not-uploaded"
+              aria-label="Document not uploaded"
+            >
+              Not uploaded
+            </span>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -316,15 +407,15 @@ DocumentRow.propTypes = {
   path: PropTypes.string,
   icon: PropTypes.node.isRequired,
   documentId: PropTypes.string,
-  mandatory: PropTypes.bool,
   isUploaded: PropTypes.bool,
+  uploadedAt: PropTypes.string,
 };
 
 DocumentRow.defaultProps = {
   path: null,
   documentId: null,
-  mandatory: false,
   isUploaded: false,
+  uploadedAt: null,
 };
 
 /* ---- InfoCard Component ---- */
@@ -1539,27 +1630,55 @@ export default function ViewApproveStudent() {
     if (!student) return [];
 
     const docs = [];
+    const seenTypes = new Set();
+
     const configDocs = documentConfig.length > 0
       ? documentConfig.filter(doc => doc.enabled)
-      : Object.keys(student.documents || {}).map(type => ({
-          type,
-          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          enabled: true,
-          mandatory: false,
-        }));
+      : [];
 
     configDocs.forEach(doc => {
+      seenTypes.add(doc.type);
       const uploadedDoc = student.documents?.[doc.type];
       docs.push({
         label: doc.label,
         path: uploadedDoc?.downloadUrl || null,
         icon: <FaFileAlt />,
         documentId: uploadedDoc?.documentId || null,
-        mandatory: doc.mandatory || false,
         type: doc.type,
         isUploaded: !!uploadedDoc,
+        uploadedAt: uploadedDoc?.uploadedAt || null,
       });
     });
+
+    if (configDocs.length === 0 && student.documents) {
+      Object.keys(student.documents).forEach(type => {
+        const uploadedDoc = student.documents[type];
+        docs.push({
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          path: uploadedDoc?.downloadUrl || null,
+          icon: <FaFileAlt />,
+          documentId: uploadedDoc?.documentId || null,
+          type: type,
+          isUploaded: !!uploadedDoc,
+          uploadedAt: uploadedDoc?.uploadedAt || null,
+        });
+      });
+    } else {
+      Object.keys(student.documents || {}).forEach(type => {
+        if (!seenTypes.has(type)) {
+          const uploadedDoc = student.documents[type];
+          docs.push({
+            label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            path: uploadedDoc?.downloadUrl || null,
+            icon: <FaFileAlt />,
+            documentId: uploadedDoc?.documentId || null,
+            type: type,
+            isUploaded: !!uploadedDoc,
+            uploadedAt: uploadedDoc?.uploadedAt || null,
+          });
+        }
+      });
+    }
 
     return docs;
   }, [student, documentConfig]);
@@ -1835,7 +1954,7 @@ export default function ViewApproveStudent() {
                 <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
                   <tbody>
                     {uploadedDocuments.map((doc) => (
-                      <DocumentRow key={doc.type} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} mandatory={doc.mandatory} isUploaded={doc.isUploaded} />
+                      <DocumentRow key={doc.type} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} isUploaded={doc.isUploaded} uploadedAt={doc.uploadedAt} />
                     ))}
                   </tbody>
                 </table>
@@ -2269,51 +2388,82 @@ export default function ViewApproveStudent() {
           color: var(--erp-accent-light);
         }
 
-        /* ================= DOCUMENT LINK ================= */
-        .document-link {
-          color: #1976d2;
-          text-decoration: none;
-          font-weight: 600;
-          transition: all 0.2s ease;
-          display: inline-flex;
-          align-items: center;
+        /* ================= DOCUMENT ACTIONS ================= */
+        .document-actions {
+          display: flex;
+          flex-direction: column;
           gap: 0.5rem;
         }
 
-        .document-link:hover {
-          text-decoration: underline;
-          color: #1565c0;
+        .document-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
         }
 
-        .link-icon {
-          font-size: 0.75rem;
+        .document-filename {
+          font-weight: 600;
+          color: var(--erp-text);
+          font-size: 0.95rem;
+          word-break: break-all;
+        }
+
+        .document-upload-date {
+          font-size: 0.8rem;
+          color: var(--erp-text-muted);
+        }
+
+        .document-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .document-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.4rem 0.75rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .document-action-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .document-view-btn {
+          background: rgba(25, 118, 210, 0.1);
+          color: #1976d2;
+        }
+
+        .document-view-btn:hover:not(:disabled) {
+          background: rgba(25, 118, 210, 0.2);
+        }
+
+        .document-download-btn {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+
+        .document-download-btn:hover:not(:disabled) {
+          background: rgba(40, 167, 69, 0.2);
+        }
+
+        .action-icon {
+          font-size: 0.8rem;
         }
 
         .document-not-uploaded {
           color: var(--erp-text-muted);
           font-style: italic;
           font-size: 0.9rem;
-        }
-
-        .doc-badge-table {
-          display: inline-block;
-          font-size: 0.6875rem;
-          font-weight: 600;
-          padding: 0.125rem 0.5rem;
-          border-radius: 9999px;
-          margin-left: 0.5rem;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .doc-badge-table-required {
-          background: rgba(239, 68, 68, 0.1);
-          color: #dc2626;
-        }
-
-        .doc-badge-table-optional {
-          background: rgba(107, 114, 128, 0.1);
-          color: #6b7280;
         }
 
         .document-count {
