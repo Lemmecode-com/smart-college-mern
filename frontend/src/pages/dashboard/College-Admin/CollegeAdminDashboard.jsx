@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useRef } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -149,7 +149,7 @@ const spinVariants = {
 };
 
 /* ================= LOGO IMAGE ================= */
-function LogoImage({ documentId, alt = "College Logo", size = 64 }) {
+function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   const [blobUrl, setBlobUrl] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const url = getDocumentViewUrl(documentId);
@@ -187,30 +187,44 @@ function LogoImage({ documentId, alt = "College Logo", size = 64 }) {
     };
   }, [url]);
 
+  const iconSize = Math.round(size * 0.45);
+  const padding = Math.round(size * 0.12);
+
+  const containerStyle = {
+    width: size,
+    height: size,
+    borderRadius: "var(--border-radius-md, 0.75rem)",
+    background: "#ffffff",
+    border: "1px solid rgba(0, 0, 0, 0.08)",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  };
+
   if (loadError || !blobUrl) {
     return (
-      <div
-        className="header-icon-wrapper"
-        style={{ width: size, height: size }}
-      >
-        <FaUniversity />
+      <div style={containerStyle}>
+        <FaUniversity size={iconSize} style={{ color: "#94a3b8" }} />
       </div>
     );
   }
 
   return (
-    <img
-      src={blobUrl}
-      alt={alt}
-      style={{
-        width: size,
-        height: size,
-        objectFit: "contain",
-        borderRadius: "var(--border-radius-md, 0.75rem)",
-        padding: "8px",
-        background: "rgba(255, 255, 255, 0.15)",
-      }}
-    />
+    <div style={containerStyle}>
+      <img
+        src={blobUrl}
+        alt={alt}
+        style={{
+          width: size - padding * 2,
+          height: size - padding * 2,
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+    </div>
   );
 }
 
@@ -419,16 +433,20 @@ export default function CollegeAdminDashboard() {
             <div className="dashboard-header-hero">
               <Row className="g-3 g-sm-4 align-items-center">
                 <Col xs={12} md={7} lg={8}>
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="header-icon-wrapper"
-                    >
-                      <LogoImage documentId={college?.logoDocumentId} />
-                    </motion.div>
-                    <div className="header-title-section">
+                   <div className="d-flex align-items-center gap-3">
+                     <motion.div
+                       variants={pulseVariants}
+                       initial="initial"
+                       animate="pulse"
+                       style={{
+                         width: 88,
+                         height: 88,
+                         flexShrink: 0,
+                       }}
+                     >
+                       <LogoImage documentId={college?.logoDocumentId} size={88} />
+                     </motion.div>
+                     <div className="header-title-section">
                       <h1 className="header-title">
                         {college?.name || 'College Dashboard'}
                       </h1>
