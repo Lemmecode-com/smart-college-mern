@@ -137,6 +137,7 @@ export default function ConfirmModal({
                   fontSize: "1.05rem",
                   lineHeight: 1.6,
                   textAlign: "center",
+                  whiteSpace: "pre-line",
                 }}
               >
                 {message}
