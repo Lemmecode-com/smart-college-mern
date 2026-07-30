@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import LogoImage from "../../../components/common/LogoImage";
 
 // Authentication / session error codes that must NOT surface a toast.
 // These are routed exclusively to ApiError for a friendly mapped screen.
@@ -757,18 +758,18 @@ export default function EditCollegeProfile() {
                            <FaTimes />
                          </button>
                        </div>
-                     ) : form.logo ? (
-                       <div className="logo-preview-container">
-                         <img
-                           src={form.logo}
-                           alt="Current logo"
-                           className="logo-preview-img"
-                         />
-                         <span className="text-muted ms-2">
-                           Current logo (select a new file to replace)
-                         </span>
-                       </div>
-                     ) : (
+                      ) : form.logo ? (
+                        <div className="logo-preview-container">
+                          <LogoImage
+                            documentId={form.logo}
+                            alt="Current logo"
+                            size={80}
+                          />
+                          <span className="text-muted ms-2">
+                            Current logo (select a new file to replace)
+                          </span>
+                        </div>
+                      ) : (
                        <div className="logo-upload-placeholder">
                          <FaUpload className="logo-upload-icon" />
                          <span>Click to upload or drag and drop</span>
