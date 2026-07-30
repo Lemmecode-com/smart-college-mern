@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import ConfirmModal from "../../components/ConfirmModal";
 import {
   FaUniversity,
   FaUserGraduate,
@@ -52,6 +53,7 @@ export default function StudentRegister() {
   const [documentConfig, setDocumentConfig] = useState([]);
   const [configLoading, setConfigLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -399,10 +401,17 @@ export default function StudentRegister() {
     }
   };
 
-  /* ── Submit ── */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleRegisterClick = () => {
     if (!validateDocumentUpload()) return;
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = async () => {
+    setShowConfirmModal(false);
+    await executeRegistration();
+  };
+
+  const executeRegistration = async () => {
     setLoading(true);
     setError("");
 
@@ -1597,7 +1606,7 @@ export default function StudentRegister() {
           </AnimatePresence>
 
           {/* Form content */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
@@ -1633,8 +1642,9 @@ export default function StudentRegister() {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
                   className="sr-btn-submit"
+                  onClick={handleRegisterClick}
                   disabled={loading}
                 >
                   {loading ? (
@@ -1666,6 +1676,18 @@ export default function StudentRegister() {
           </div>
         </motion.div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirm}
+        title="Confirm Registration"
+        message="Are you sure you want to submit your registration?\n\nOnce submitted, your application will be sent for verification and some information may not be editable."
+        type="warning"
+        confirmText="Submit Registration"
+        cancelText="Cancel"
+        isLoading={loading}
+      />
 
       {/* ════════════════════════════════
           STYLES
