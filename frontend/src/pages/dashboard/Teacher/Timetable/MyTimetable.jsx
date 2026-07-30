@@ -494,7 +494,7 @@ export default function MyTimetable() {
       setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
 
       setTimeout(() => {
-        navigate(`/attendance/session/${newSession._id}/mark`);
+        navigate(`/attendance/session/${newSession._id}`);
       }, 1500);
     } catch (err) {
       const message =
