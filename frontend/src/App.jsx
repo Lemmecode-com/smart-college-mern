@@ -182,7 +182,6 @@ const HodReports = lazy(() => import("./pages/dashboard/HOD/HodReports"));
 const TeacherDashboard = lazy(() => import("./pages/dashboard/Teacher/TeacherDashboard"));
 const AttendanceSessionsList = lazy(() => import("./pages/dashboard/Teacher/AttendanceSessionsList"));
 const SessionDetails = lazy(() => import("./pages/dashboard/Teacher/SessionDetails"));
-const MarkAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/MarkAttendanceModal"));
 const EditAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/EditAttendanceModal"));
 const AttendanceReport = lazy(() => import("./pages/dashboard/Teacher/Attendance/AttendanceReport"));
 const MySessions = lazy(() => import("./pages/dashboard/Teacher/Attendance/MySessions"));
@@ -1292,15 +1291,6 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
-
-<Route
-               path="/attendance/session/:sessionId/mark"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
-                   <MarkAttendanceModal />
-                 </ProtectedRoute>
-               }
-             />
 
 <Route
                path="/attendance/session/:sessionId/edit"
