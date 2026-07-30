@@ -233,7 +233,7 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
 /**
  * ADMISSION SUMMARY (ALL COLLEGES)
  */
-exports.admissionSummaryAll = async () => {
+exports.admissionSummaryAll = async ({ month, year } = {}) => {
   const total = await Student.countDocuments();
   const approved = await Student.countDocuments({ status: "APPROVED" });
   const pending = await Student.countDocuments({ status: "PENDING" });
@@ -242,21 +242,23 @@ exports.admissionSummaryAll = async () => {
   const totalColleges = await College.countDocuments();
   const activeColleges = await College.countDocuments({ isActive: true });
 
-  // Calculate monthly admissions (current month)
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Calculate monthly admissions (selected or current month)
+  const targetMonth = month !== undefined ? parseInt(month) : new Date().getMonth();
+  const targetYear = year !== undefined ? parseInt(year) : new Date().getFullYear();
+
+  const startOfMonth = new Date(targetYear, targetMonth, 1, 0, 0, 0, 0);
+  const endOfMonth = new Date(targetYear, targetMonth + 1, 1, 0, 0, 0, 0);
 
   const monthlyAdmissions = await Student.countDocuments({
-    createdAt: { $gte: startOfMonth },
+    createdAt: { $gte: startOfMonth, $lt: endOfMonth },
   });
 
   // Calculate previous month admissions for growth calculation
-  const prevMonthStart = new Date(startOfMonth);
-  prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+  const prevMonthStart = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
+  const prevMonthEnd = new Date(targetYear, targetMonth, 1, 0, 0, 0, 0);
 
   const prevMonthAdmissions = await Student.countDocuments({
-    createdAt: { $gte: prevMonthStart, $lt: startOfMonth },
+    createdAt: { $gte: prevMonthStart, $lt: prevMonthEnd },
   });
 
   const monthlyGrowth =

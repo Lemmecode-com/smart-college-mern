@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sessionInvalidReason, setSessionInvalidReason] = useState(null);
+  const [authError, setAuthError] = useState(null);
   const userRef = useRef(user);
   userRef.current = user;
 
@@ -69,14 +70,14 @@ export const AuthProvider = ({ children }) => {
        }
      }, [clearTokenExpiryTimer]);
 
-    const scheduleTokenExpiryCheck = useCallback(() => {
-      clearTokenExpiryTimer();
-      const expiryTime = ACCESS_TOKEN_EXPIRY_MS - TOKEN_EXPIRY_BUFFER_MS;
-      tokenExpiryTimerRef.current = setTimeout(() => {
-        if (userRef.current) {
-          performSessionInvalidation("TOKEN_EXPIRED");
-        }
-      }, expiryTime);
+   const scheduleTokenExpiryCheck = useCallback(() => {
+     clearTokenExpiryTimer();
+     const expiryTime = ACCESS_TOKEN_EXPIRY_MS - TOKEN_EXPIRY_BUFFER_MS;
+     tokenExpiryTimerRef.current = setTimeout(() => {
+       if (userRef.current) {
+         performSessionInvalidation("TOKEN_EXPIRED");
+       }
+     }, expiryTime);
     }, [clearTokenExpiryTimer, performSessionInvalidation]);
 
    useEffect(() => {
@@ -138,6 +139,7 @@ export const AuthProvider = ({ children }) => {
 
         // Return success and user data for first-login handling
         setSessionInvalidReason(null);
+        setAuthError(null);
         scheduleTokenExpiryCheck();
         return {
           success: true,
@@ -168,13 +170,12 @@ export const AuthProvider = ({ children }) => {
   /* ========== LOGOUT ========== */
   const logout = async () => {
     clearTokenExpiryTimer();
+    setAuthError(null);
     try {
-      // Call logout endpoint to clear the httpOnly cookie on backend
       await api.post("/auth/logout");
     } catch (error) {
       logger.error("Logout error:", error);
     } finally {
-      // Clear user info from state
       setUser(null);
     }
   };
@@ -185,6 +186,7 @@ export const AuthProvider = ({ children }) => {
 
     clearTokenExpiryTimer();
     setSessionInvalidReason("SESSION_INVALIDATED");
+    setAuthError(null);
 
     try {
       await api.post("/auth/logout");
@@ -203,23 +205,9 @@ export const AuthProvider = ({ children }) => {
         window.location.href = "/login?session=expired&reason=SESSION_INVALIDATED";
       }
     }
-  };
+   };
 
-   /* ========== RESTORE SESSION ========== */
-   useEffect(() => {
-     if (typeof window !== "undefined") {
-       const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
-       const isPublicRoute = publicRoutes.some((route) =>
-         window.location.pathname === route || window.location.pathname.startsWith("/register/")
-       );
-
-        if (isPublicRoute) {
-          setLoading(false);
-          return;
-        }
-     }
-
-    const checkAuthStatus = async () => {
+    const checkAuthStatus = useCallback(async () => {
       const currentPath = window.location.pathname;
       try {
         const res = await api.get("/auth/me");
@@ -231,7 +219,23 @@ export const AuthProvider = ({ children }) => {
           email: res.data.email || null,
           name: res.data.name || null,
         });
+        setAuthError(null);
+        scheduleTokenExpiryCheck();
       } catch (error) {
+        const isNetworkError = !error.response || error.code === "ERR_NETWORK";
+        if (isNetworkError) {
+          logger.error(
+            "Auth check network error:",
+            error.message || "No response received",
+          );
+          setUser(null);
+          setAuthError({
+            code: "NETWORK_ERROR",
+            message: "Unable to connect to the server. Check your internet connection.",
+          });
+          return;
+        }
+
         if (error.response?.status !== 401) {
           logger.error(
             "Auth check error:",
@@ -239,6 +243,7 @@ export const AuthProvider = ({ children }) => {
           );
         }
         setUser(null);
+        setAuthError(null);
 
         const errorCode = error.response?.data?.code;
         const now = new Date().toISOString();
@@ -267,12 +272,31 @@ export const AuthProvider = ({ children }) => {
       } finally {
         setLoading(false);
       }
-    };
+    }, [performSessionInvalidation, scheduleTokenExpiryCheck]);
 
-     checkAuthStatus();
-   }, [performSessionInvalidation]);
+    const retryAuthCheck = useCallback(() => {
+      setAuthError(null);
+      checkAuthStatus();
+    }, [checkAuthStatus]);
 
-  const clearSessionInvalidReason = useCallback(() => {
+    /* ========== RESTORE SESSION ========== */
+    useEffect(() => {
+      if (typeof window !== "undefined") {
+        const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+        const isPublicRoute = publicRoutes.some((route) =>
+          window.location.pathname === route || window.location.pathname.startsWith("/register/")
+        );
+
+         if (isPublicRoute) {
+           setLoading(false);
+           return;
+         }
+      }
+
+      checkAuthStatus();
+    }, [checkAuthStatus]);
+
+   const clearSessionInvalidReason = useCallback(() => {
     setSessionInvalidReason(null);
   }, []);
 
@@ -282,7 +306,9 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         sessionInvalidReason,
+        authError,
         clearSessionInvalidReason,
+        retryAuthCheck,
         login,
         logout,
         logoutDueToSessionInvalidation,
