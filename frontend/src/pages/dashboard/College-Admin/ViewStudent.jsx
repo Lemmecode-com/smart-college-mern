@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -450,7 +450,7 @@ export default function ViewStudent() {
     let url = null;
 
     if (documentId) {
-      url = getDocumentDownloadUrl(documentId);
+      url = getDocumentViewUrl(documentId);
     } else if (path) {
       const fileName = getFileName(path);
       if (fileName) {
