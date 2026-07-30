@@ -46,12 +46,12 @@ exports.getMyCollege = async (req, res, next) => {
       logo: college.logoDocumentId ? {
         documentId: college.logoDocumentId,
         documentType: "logo",
-        downloadUrl: `/api/documents/${college.logoDocumentId}`,
+        downloadUrl: `/api/documents/${college.logoDocumentId}/download`,
       } : null,
       registrationQr: college.registrationQrDocumentId ? {
         documentId: college.registrationQrDocumentId,
         documentType: "registration_qr",
-        downloadUrl: `/api/documents/${college.registrationQrDocumentId}`,
+        downloadUrl: `/api/documents/${college.registrationQrDocumentId}/download`,
       } : null,
     };
 
