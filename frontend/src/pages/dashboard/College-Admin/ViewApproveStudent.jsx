@@ -1630,16 +1630,14 @@ export default function ViewApproveStudent() {
     if (!student) return [];
 
     const docs = [];
+    const seenTypes = new Set();
+
     const configDocs = documentConfig.length > 0
       ? documentConfig.filter(doc => doc.enabled)
-      : Object.keys(student.documents || {}).map(type => ({
-          type,
-          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          enabled: true,
-          mandatory: false,
-        }));
+      : [];
 
     configDocs.forEach(doc => {
+      seenTypes.add(doc.type);
       const uploadedDoc = student.documents?.[doc.type];
       docs.push({
         label: doc.label,
@@ -1651,6 +1649,36 @@ export default function ViewApproveStudent() {
         uploadedAt: uploadedDoc?.uploadedAt || null,
       });
     });
+
+    if (configDocs.length === 0 && student.documents) {
+      Object.keys(student.documents).forEach(type => {
+        const uploadedDoc = student.documents[type];
+        docs.push({
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          path: uploadedDoc?.downloadUrl || null,
+          icon: <FaFileAlt />,
+          documentId: uploadedDoc?.documentId || null,
+          type: type,
+          isUploaded: !!uploadedDoc,
+          uploadedAt: uploadedDoc?.uploadedAt || null,
+        });
+      });
+    } else {
+      Object.keys(student.documents || {}).forEach(type => {
+        if (!seenTypes.has(type)) {
+          const uploadedDoc = student.documents[type];
+          docs.push({
+            label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            path: uploadedDoc?.downloadUrl || null,
+            icon: <FaFileAlt />,
+            documentId: uploadedDoc?.documentId || null,
+            type: type,
+            isUploaded: !!uploadedDoc,
+            uploadedAt: uploadedDoc?.uploadedAt || null,
+          });
+        }
+      });
+    }
 
     return docs;
   }, [student, documentConfig]);

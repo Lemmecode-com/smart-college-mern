@@ -420,27 +420,55 @@ export default function ViewStudent() {
     if (!student) return [];
 
     const docs = [];
+    const seenTypes = new Set();
+
     const configDocs = documentConfig.length > 0
       ? documentConfig.filter(doc => doc.enabled)
-      : Object.keys(student.documents || {}).map(type => ({
-          type,
-          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          enabled: true,
-          mandatory: false,
-        }));
+      : [];
 
     configDocs.forEach(doc => {
+      seenTypes.add(doc.type);
       const uploadedDoc = student.documents?.[doc.type];
       docs.push({
         label: doc.label,
         path: uploadedDoc?.downloadUrl || null,
         icon: <FaFileAlt />,
         documentId: uploadedDoc?.documentId || null,
-        mandatory: doc.mandatory || false,
         type: doc.type,
         isUploaded: !!uploadedDoc,
+        mandatory: doc.mandatory || false,
       });
     });
+
+    if (configDocs.length === 0 && student.documents) {
+      Object.keys(student.documents).forEach(type => {
+        const uploadedDoc = student.documents[type];
+        docs.push({
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          path: uploadedDoc?.downloadUrl || null,
+          icon: <FaFileAlt />,
+          documentId: uploadedDoc?.documentId || null,
+          type: type,
+          isUploaded: !!uploadedDoc,
+          mandatory: false,
+        });
+      });
+    } else {
+      Object.keys(student.documents || {}).forEach(type => {
+        if (!seenTypes.has(type)) {
+          const uploadedDoc = student.documents[type];
+          docs.push({
+            label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            path: uploadedDoc?.downloadUrl || null,
+            icon: <FaFileAlt />,
+            documentId: uploadedDoc?.documentId || null,
+            type: type,
+            isUploaded: !!uploadedDoc,
+            mandatory: false,
+          });
+        }
+      });
+    }
 
     return docs;
   }, [student, documentConfig]);
