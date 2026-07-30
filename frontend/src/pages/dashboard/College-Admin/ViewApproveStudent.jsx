@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import PropTypes from "prop-types";
@@ -265,7 +265,7 @@ function DocumentRow({ label, path, icon, documentId, mandatory, isUploaded }) {
     }
     let url = null;
     if (docId) {
-      url = getDocumentDownloadUrl(docId);
+      url = getDocumentViewUrl(docId);
     } else if (filename) {
       url = `${api.defaults.baseURL}/students/documents/${filename}`;
     }
