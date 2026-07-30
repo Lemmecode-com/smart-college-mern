@@ -220,6 +220,7 @@ export const AuthProvider = ({ children }) => {
           name: res.data.name || null,
         });
         setAuthError(null);
+        scheduleTokenExpiryCheck();
       } catch (error) {
         const isNetworkError = !error.response || error.code === "ERR_NETWORK";
         if (isNetworkError) {
@@ -271,7 +272,7 @@ export const AuthProvider = ({ children }) => {
       } finally {
         setLoading(false);
       }
-    }, [performSessionInvalidation]);
+    }, [performSessionInvalidation, scheduleTokenExpiryCheck]);
 
     const retryAuthCheck = useCallback(() => {
       setAuthError(null);

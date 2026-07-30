@@ -451,6 +451,9 @@ class SecurityAuditService {
     if (reviewed !== undefined) query.reviewed = reviewed;
     
     if (startDate || endDate) {
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        throw new AppError("Invalid date range: End Date cannot be earlier than Start Date", 400, "INVALID_DATE_RANGE");
+      }
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
