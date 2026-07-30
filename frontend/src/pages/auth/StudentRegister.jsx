@@ -54,6 +54,7 @@ export default function StudentRegister() {
   const [configLoading, setConfigLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
     fullName: "",
@@ -139,6 +140,11 @@ export default function StudentRegister() {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (success) setSuccess("");
     if (error) setError("");
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[e.target.name];
+      return next;
+    });
   };
 
   const handleFileChange = (e) => {
@@ -227,140 +233,170 @@ export default function StudentRegister() {
     return result;
   };
 
-  /* ── Validation ── */
+  const isWhitespaceOnly = (value) => {
+    return typeof value === "string" && value.trim().length === 0 && value.length > 0;
+  };
+
+  const validateField = (name, value, rules = {}) => {
+    const { required, minLength, maxLength, pattern, patternMsg, min, max, minMsg, maxMsg, custom } = rules;
+    if (required) {
+      if (!value || value.toString().trim() === "") {
+        return `${name} is required`;
+      }
+      if (isWhitespaceOnly(value)) {
+        return `${name} cannot be empty or contain only spaces`;
+      }
+    }
+    if (minLength && value && value.length < minLength) {
+      return `${name} must be at least ${minLength} characters`;
+    }
+    if (maxLength && value && value.length > maxLength) {
+      return `${name} must be at most ${maxLength} characters`;
+    }
+    if (pattern && value && !pattern.test(value)) {
+      return patternMsg || `${name} is invalid`;
+    }
+    if (min !== undefined && value !== "") {
+      const num = parseFloat(value);
+      if (isNaN(num) || num < min) {
+        return minMsg || `${name} must be at least ${min}`;
+      }
+    }
+    if (max !== undefined && value !== "") {
+      const num = parseFloat(value);
+      if (isNaN(num) || num > max) {
+        return maxMsg || `${name} must be at most ${max}`;
+      }
+    }
+    if (custom && value) {
+      const customResult = custom(value);
+      if (customResult) return customResult;
+    }
+    return null;
+  };
+
   const validateStep = (step) => {
     const steps = getStepNumbers();
+    const stepErrors = {};
+
+    const addError = (field, message) => {
+      stepErrors[field] = message;
+    };
+
     if (step === steps.personal) {
-      if (
-        !form.fullName ||
-        !form.email ||
-        !form.password ||
-        !form.mobileNumber ||
-        !form.dateOfBirth
-      ) {
-        alert("Please fill all required fields in Personal Information");
-        return false;
+      addError("fullName", validateField("Full Name", form.fullName, { required: true, minLength: 3, maxLength: 100 }));
+      addError("email", validateField("Email", form.email, { required: true, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, patternMsg: "Please enter a valid email address" }));
+      const passwordError = validateField("Password", form.password, { required: true, minLength: 8 });
+      if (passwordError) {
+        addError("password", passwordError);
+      } else if (form.password) {
+        if (!/[A-Z]/.test(form.password)) addError("password", "Password must include at least one uppercase letter (A-Z)");
+        else if (!/[a-z]/.test(form.password)) addError("password", "Password must include at least one lowercase letter (a-z)");
+        else if (!/[0-9]/.test(form.password)) addError("password", "Password must include at least one number (0-9)");
+        else if (!/[^A-Za-z0-9]/.test(form.password)) addError("password", "Password must include at least one special character (!@#$%^&* etc.)");
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-        alert("Please enter a valid email address");
-        return false;
+      addError("mobileNumber", validateField("Mobile Number", form.mobileNumber, { required: true, pattern: /^[6-9]\d{9}$/, patternMsg: "Please provide a valid 10-digit Indian mobile number (must start with 6-9)" }));
+      addError("gender", validateField("Gender", form.gender, { required: true }));
+      addError("dateOfBirth", validateField("Date of Birth", form.dateOfBirth, { required: true, custom: (val) => {
+        const today = new Date();
+        const birthDate = new Date(val);
+        if (isNaN(birthDate.getTime())) return "Please enter a valid date";
+        const birthOnly = new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (birthOnly > todayOnly) return "Date of Birth cannot be in the future";
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+        if (age < 14 || age > 100) return "Age must be between 14 and 100 years";
+        return null;
+      }}));
+      addError("category", validateField("Category", form.category, { required: true }));
+      addError("bloodGroup", validateField("Blood Group", form.bloodGroup, { pattern: /^(A|B|AB|O)[+-]$/, patternMsg: "Please select a valid blood group" }));
+      addError("religion", validateField("Religion", form.religion, { minLength: 2, maxLength: 50 }));
+      addError("nationality", validateField("Nationality", form.nationality, { minLength: 2, maxLength: 50 }));
+      if (form.hasDisability === "yes") {
+        addError("disabilityType", validateField("Disability Type", form.disabilityType, { required: true }));
+        if (form.pwdDisability) {
+          const pwdNum = parseFloat(form.pwdDisability);
+          if (isNaN(pwdNum) || pwdNum < 1 || pwdNum > 100) {
+            addError("pwdDisability", "Disability Percentage must be between 1 and 100");
+          }
+        }
       }
-      if (!/^[6-9]\d{9}$/.test(form.mobileNumber)) {
-        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
-        return false;
-      }
-      const password = form.password;
-      if (password.length < 8) {
-        alert("Password must be at least 8 characters long and include uppercase, lowercase, number, and special character");
-        return false;
-      }
-      if (!/[A-Z]/.test(password)) {
-        alert("Password must include at least one uppercase letter (A-Z)");
-        return false;
-      }
-      if (!/[a-z]/.test(password)) {
-        alert("Password must include at least one lowercase letter (a-z)");
-        return false;
-      }
-      if (!/[0-9]/.test(password)) {
-        alert("Password must include at least one number (0-9)");
-        return false;
-      }
-      if (!/[^A-Za-z0-9]/.test(password)) {
-        alert("Password must include at least one special character (!@#$%^&* etc.)");
-        return false;
-      }
-      return true;
     }
+
     if (step === steps.parent) {
-      if (
-        !form.fatherName ||
-        !form.fatherMobile ||
-        !form.motherName ||
-        !form.motherMobile
-      ) {
-        alert("Please fill all parent details");
-        return false;
-      }
-      if (!/^[6-9]\d{9}$/.test(form.fatherMobile)) {
-        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
-        return false;
-      }
-      if (!/^[6-9]\d{9}$/.test(form.motherMobile)) {
-        alert("Please provide a valid 10-digit Indian mobile number (must start with 6-9)");
-        return false;
-      }
-      // Validate email format if provided
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (form.fatherEmail && !emailRegex.test(form.fatherEmail)) {
-        alert("Please enter a valid father's email address");
-        return false;
-      }
-      if (form.motherEmail && !emailRegex.test(form.motherEmail)) {
-        alert("Please enter a valid mother's email address");
-        return false;
-      }
-      return true;
+      addError("fatherName", validateField("Father Name", form.fatherName, { required: true, minLength: 3, maxLength: 100 }));
+      addError("fatherMobile", validateField("Father Mobile", form.fatherMobile, { required: true, pattern: /^[6-9]\d{9}$/, patternMsg: "Please provide a valid 10-digit Indian mobile number (must start with 6-9)" }));
+      addError("fatherEmail", validateField("Father Email", form.fatherEmail, { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, patternMsg: "Please enter a valid father's email address" }));
+      addError("motherName", validateField("Mother Name", form.motherName, { required: true, minLength: 3, maxLength: 100 }));
+      addError("motherMobile", validateField("Mother Mobile", form.motherMobile, { required: true, pattern: /^[6-9]\d{9}$/, patternMsg: "Please provide a valid 10-digit Indian mobile number (must start with 6-9)" }));
+      addError("motherEmail", validateField("Mother Email", form.motherEmail, { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, patternMsg: "Please enter a valid mother's email address" }));
     }
+
     if (step === steps.address) {
-      if (!form.addressLine || !form.city || !form.state || !form.pincode) {
-        alert("Please fill all address details");
-        return false;
-      }
-      if (!/^\d{6}$/.test(form.pincode)) {
-        alert("Please enter a valid 6-digit pincode");
-        return false;
-      }
-      return true;
+      addError("addressLine", validateField("Address Line", form.addressLine, { required: true, minLength: 10, maxLength: 500 }));
+      addError("city", validateField("City", form.city, { required: true, minLength: 2, maxLength: 100 }));
+      addError("state", validateField("State", form.state, { required: true, minLength: 2, maxLength: 100 }));
+      addError("pincode", validateField("Pincode", form.pincode, { required: true, pattern: /^\d{6}$/, patternMsg: "Please provide a valid 6-digit Indian pincode" }));
     }
+
     if (step === steps.ssc) {
-      if (
-        !form.sscSchoolName ||
-        !form.sscBoard ||
-        !form.sscPassingYear ||
-        !form.sscPercentage ||
-        !form.sscRollNumber
-      ) {
-        alert("Please fill all 10th academic details");
-        return false;
-      }
-      if (
-        parseFloat(form.sscPercentage) > 100 ||
-        parseFloat(form.sscPercentage) < 0
-      ) {
-        alert("Please enter a valid percentage (0-100)");
-        return false;
-      }
-      return true;
+      addError("sscSchoolName", validateField("School Name", form.sscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
+      addError("sscBoard", validateField("Board", form.sscBoard, { required: true, minLength: 2, maxLength: 50 }));
+      addError("sscPassingYear", validateField("Passing Year", form.sscPassingYear, { required: true, custom: (val) => {
+        const year = parseInt(val);
+        if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
+        const currentYear = new Date().getFullYear();
+        if (year > currentYear) return "Passing Year cannot be in the future";
+        return null;
+      }}));
+      addError("sscPercentage", validateField("Percentage", form.sscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
+      addError("sscRollNumber", validateField("Roll Number", form.sscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
     }
+
     if (step === steps.hsc) {
-      if (
-        !form.hscSchoolName ||
-        !form.hscBoard ||
-        !form.hscPassingYear ||
-        !form.hscPercentage ||
-        !form.hscRollNumber
-      ) {
-        alert("Please fill all 12th academic details");
-        return false;
-      }
-      if (
-        parseFloat(form.hscPercentage) > 100 ||
-        parseFloat(form.hscPercentage) < 0
-      ) {
-        alert("Please enter a valid percentage (0-100)");
-        return false;
-      }
-      return true;
+      addError("hscSchoolName", validateField("School Name", form.hscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
+      addError("hscBoard", validateField("Board", form.hscBoard, { required: true, minLength: 2, maxLength: 50 }));
+      addError("hscStream", validateField("Stream", form.hscStream, { required: true }));
+      addError("hscPassingYear", validateField("Passing Year", form.hscPassingYear, { required: true, custom: (val) => {
+        const year = parseInt(val);
+        if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
+        const currentYear = new Date().getFullYear();
+        if (year > currentYear) return "Passing Year cannot be in the future";
+        return null;
+      }}));
+      addError("hscPercentage", validateField("Percentage", form.hscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
+      addError("hscRollNumber", validateField("Roll Number", form.hscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
     }
+
     if (step === steps.course) {
-      if (!form.department_id || !form.course_id || !form.admissionYear) {
-        alert("Please select department, course and admission year");
-        return false;
-      }
-      return true;
+      addError("department_id", validateField("Department", form.department_id, { required: true }));
+      addError("course_id", validateField("Course", form.course_id, { required: true }));
+      addError("admissionYear", validateField("Admission Year", form.admissionYear, { required: true, custom: (val) => {
+        const year = parseInt(val);
+        const currentYear = new Date().getFullYear();
+        if (isNaN(year) || year < currentYear - 5 || year > currentYear + 1) {
+          return `Admission year must be between ${currentYear - 5} and ${currentYear + 1}`;
+        }
+        return null;
+      }}));
     }
-    return true;
+
+    const filteredErrors = Object.fromEntries(
+      Object.entries(stepErrors).filter(([, msg]) => msg !== null)
+    );
+
+    setErrors(filteredErrors);
+    return Object.keys(filteredErrors).length === 0;
+  };
+
+  const focusFirstError = () => {
+    const firstErrorField = Object.keys(errors)[0];
+    if (firstErrorField) {
+      const el = document.querySelector(`[name="${firstErrorField}"]`);
+      if (el) el.focus();
+    }
   };
 
   /* ── Document Validation (submission only) ── */
@@ -388,13 +424,21 @@ export default function StudentRegister() {
       steps.hsc,
       steps.course,
     ].filter(Boolean);
-    if (allStepNums.includes(currentStep) && !validateStep(currentStep)) return;
+    if (allStepNums.includes(currentStep)) {
+      const isValid = validateStep(currentStep);
+      if (!isValid) {
+        focusFirstError();
+        return;
+      }
+    }
+    setErrors({});
     if (currentStep >= steps.total) return;
     setCurrentStep((p) => p + 1);
     window.scrollTo(0, 0);
   };
 
   const handlePrevious = () => {
+    setErrors({});
     if (currentStep > 1) {
       setCurrentStep((p) => p - 1);
       window.scrollTo(0, 0);
@@ -402,6 +446,24 @@ export default function StudentRegister() {
   };
 
   const handleRegisterClick = () => {
+    const steps = getStepNumbers();
+    const allStepNums = [
+      steps.personal,
+      steps.parent,
+      steps.address,
+      steps.ssc,
+      steps.hsc,
+      steps.course,
+    ].filter(Boolean);
+    let hasErrors = false;
+    for (const stepNum of allStepNums) {
+      const isValid = validateStep(stepNum);
+      if (!isValid) hasErrors = true;
+    }
+    if (hasErrors) {
+      focusFirstError();
+      return;
+    }
     if (!validateDocumentUpload()) return;
     setShowConfirmModal(true);
   };
@@ -599,13 +661,14 @@ export default function StudentRegister() {
             Full Name <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.fullName ? "sr-input--error" : ""}`}
             name="fullName"
             placeholder="Enter your full name"
             value={form.fullName}
             onChange={handleChange}
             required
           />
+          {errors.fullName && <div className="sr-field-error">{errors.fullName}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -613,13 +676,14 @@ export default function StudentRegister() {
           </label>
           <input
             type="email"
-            className="sr-input"
+            className={`sr-input ${errors.email ? "sr-input--error" : ""}`}
             name="email"
             placeholder="your.email@example.com"
             value={form.email}
             onChange={handleChange}
             required
           />
+          {errors.email && <div className="sr-field-error">{errors.email}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -628,7 +692,7 @@ export default function StudentRegister() {
           <div className="sr-password-wrap">
             <input
               type={showPassword ? "text" : "password"}
-              className="sr-input sr-input--password"
+              className={`sr-input sr-input--password ${errors.password ? "sr-input--error" : ""}`}
               name="password"
               placeholder="Create a strong password"
               value={form.password}
@@ -644,13 +708,14 @@ export default function StudentRegister() {
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
           </div>
+          {errors.password && <div className="sr-field-error">{errors.password}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Mobile Number <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.mobileNumber ? "sr-input--error" : ""}`}
             name="mobileNumber"
             placeholder="10-digit mobile number"
             value={form.mobileNumber}
@@ -658,13 +723,14 @@ export default function StudentRegister() {
             maxLength="10"
             required
           />
+          {errors.mobileNumber && <div className="sr-field-error">{errors.mobileNumber}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Gender <span className="sr-req">*</span>
           </label>
           <select
-            className="sr-select"
+            className={`sr-select ${errors.gender ? "sr-select--error" : ""}`}
             name="gender"
             value={form.gender}
             onChange={handleChange}
@@ -675,6 +741,7 @@ export default function StudentRegister() {
             <option value="Male">Male</option>
             <option value="Other">Other</option>
           </select>
+          {errors.gender && <div className="sr-field-error">{errors.gender}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -682,19 +749,20 @@ export default function StudentRegister() {
           </label>
           <input
             type="date"
-            className="sr-input"
+            className={`sr-input ${errors.dateOfBirth ? "sr-input--error" : ""}`}
             name="dateOfBirth"
             value={form.dateOfBirth}
             onChange={handleChange}
             required
           />
+          {errors.dateOfBirth && <div className="sr-field-error">{errors.dateOfBirth}</div>}
         </div>
         <div className="sr-field sr-field--full">
           <label className="sr-label">
             Category <span className="sr-req">*</span>
           </label>
           <select
-            className="sr-select"
+            className={`sr-select ${errors.category ? "sr-select--error" : ""}`}
             name="category"
             value={form.category}
             onChange={handleChange}
@@ -706,11 +774,12 @@ export default function StudentRegister() {
             <option value="ST">Scheduled Tribe (ST)</option>
             <option value="OTHER">Other</option>
           </select>
+          {errors.category && <div className="sr-field-error">{errors.category}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">Blood Group</label>
           <select
-            className="sr-select"
+            className={`sr-select ${errors.bloodGroup ? "sr-select--error" : ""}`}
             name="bloodGroup"
             value={form.bloodGroup}
             onChange={handleChange}
@@ -720,26 +789,29 @@ export default function StudentRegister() {
               <option key={bg} value={bg}>{bg}</option>
             ))}
           </select>
+          {errors.bloodGroup && <div className="sr-field-error">{errors.bloodGroup}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">Religion</label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.religion ? "sr-input--error" : ""}`}
             name="religion"
             placeholder="e.g. Hindu, Muslim, Christian"
             value={form.religion}
             onChange={handleChange}
           />
+          {errors.religion && <div className="sr-field-error">{errors.religion}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">Nationality</label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.nationality ? "sr-input--error" : ""}`}
             name="nationality"
             placeholder="e.g. Indian"
             value={form.nationality || "Indian"}
             onChange={handleChange}
           />
+          {errors.nationality && <div className="sr-field-error">{errors.nationality}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">Disability</label>
@@ -758,7 +830,7 @@ export default function StudentRegister() {
             <div className="sr-field">
               <label className="sr-label">Disability Type <span className="sr-req">*</span></label>
               <select
-                className="sr-select"
+                className={`sr-select ${errors.disabilityType ? "sr-select--error" : ""}`}
                 name="disabilityType"
                 value={form.disabilityType}
                 onChange={handleChange}
@@ -773,11 +845,12 @@ export default function StudentRegister() {
                 <option value="Multiple">Multiple Disabilities</option>
                 <option value="Other">Other</option>
               </select>
+              {errors.disabilityType && <div className="sr-field-error">{errors.disabilityType}</div>}
             </div>
             <div className="sr-field">
               <label className="sr-label">Disability Percentage (%)</label>
               <input
-                className="sr-input"
+                className={`sr-input ${errors.pwdDisability ? "sr-input--error" : ""}`}
                 name="pwdDisability"
                 placeholder="e.g. 40"
                 value={form.pwdDisability}
@@ -786,6 +859,7 @@ export default function StudentRegister() {
                 min="1"
                 max="100"
               />
+              {errors.pwdDisability && <div className="sr-field-error">{errors.pwdDisability}</div>}
             </div>
             <div className="sr-field sr-field--full">
               <label className="sr-label">Disability Certificate <span className="sr-req">*</span></label>
@@ -843,20 +917,21 @@ export default function StudentRegister() {
             Father's Name <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.fatherName ? "sr-input--error" : ""}`}
             name="fatherName"
             placeholder="Enter father's full name"
             value={form.fatherName}
             onChange={handleChange}
             required
           />
+          {errors.fatherName && <div className="sr-field-error">{errors.fatherName}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Father's Mobile <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.fatherMobile ? "sr-input--error" : ""}`}
             name="fatherMobile"
             placeholder="10-digit mobile number"
             value={form.fatherMobile}
@@ -864,6 +939,7 @@ export default function StudentRegister() {
             maxLength="10"
             required
           />
+          {errors.fatherMobile && <div className="sr-field-error">{errors.fatherMobile}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -871,32 +947,34 @@ export default function StudentRegister() {
           </label>
           <input
             type="email"
-            className="sr-input"
+            className={`sr-input ${errors.fatherEmail ? "sr-input--error" : ""}`}
             name="fatherEmail"
             placeholder="father.email@example.com"
             value={form.fatherEmail}
             onChange={handleChange}
           />
+          {errors.fatherEmail && <div className="sr-field-error">{errors.fatherEmail}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Mother's Name <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.motherName ? "sr-input--error" : ""}`}
             name="motherName"
             placeholder="Enter mother's full name"
             value={form.motherName}
             onChange={handleChange}
             required
           />
+          {errors.motherName && <div className="sr-field-error">{errors.motherName}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Mother's Mobile <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.motherMobile ? "sr-input--error" : ""}`}
             name="motherMobile"
             placeholder="10-digit mobile number"
             value={form.motherMobile}
@@ -904,6 +982,7 @@ export default function StudentRegister() {
             maxLength="10"
             required
           />
+          {errors.motherMobile && <div className="sr-field-error">{errors.motherMobile}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -911,12 +990,13 @@ export default function StudentRegister() {
           </label>
           <input
             type="email"
-            className="sr-input"
+            className={`sr-input ${errors.motherEmail ? "sr-input--error" : ""}`}
             name="motherEmail"
             placeholder="mother.email@example.com"
             value={form.motherEmail}
             onChange={handleChange}
           />
+          {errors.motherEmail && <div className="sr-field-error">{errors.motherEmail}</div>}
         </div>
       </div>
     </div>
@@ -939,39 +1019,42 @@ export default function StudentRegister() {
             Address Line <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.addressLine ? "sr-input--error" : ""}`}
             name="addressLine"
             placeholder="House/Flat No., Building, Street, Landmark"
             value={form.addressLine}
             onChange={handleChange}
             required
           />
+          {errors.addressLine && <div className="sr-field-error">{errors.addressLine}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             City <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.city ? "sr-input--error" : ""}`}
             name="city"
             placeholder="Enter your city"
             value={form.city}
             onChange={handleChange}
             required
           />
+          {errors.city && <div className="sr-field-error">{errors.city}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             State <span className="sr-req">*</span>
           </label>
           <input
-            className="sr-input"
+            className={`sr-input ${errors.state ? "sr-input--error" : ""}`}
             name="state"
             placeholder="Enter your state"
             value={form.state}
             onChange={handleChange}
             required
           />
+          {errors.state && <div className="sr-field-error">{errors.state}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -979,7 +1062,7 @@ export default function StudentRegister() {
           </label>
           <input
             type="text"
-            className="sr-input"
+            className={`sr-input ${errors.pincode ? "sr-input--error" : ""}`}
             name="pincode"
             placeholder="6-digit pincode"
             value={form.pincode}
@@ -988,6 +1071,7 @@ export default function StudentRegister() {
             pattern="\d{6}"
             required
           />
+          {errors.pincode && <div className="sr-field-error">{errors.pincode}</div>}
         </div>
       </div>
     </div>
@@ -1022,26 +1106,28 @@ export default function StudentRegister() {
               School Name <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.sscSchoolName ? "sr-input--error" : ""}`}
               name="sscSchoolName"
               placeholder="Enter your 10th school name"
               value={form.sscSchoolName}
               onChange={handleChange}
               required
             />
+            {errors.sscSchoolName && <div className="sr-field-error">{errors.sscSchoolName}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
               Board <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.sscBoard ? "sr-input--error" : ""}`}
               name="sscBoard"
               placeholder="e.g., State Board, CBSE, ICSE"
               value={form.sscBoard}
               onChange={handleChange}
               required
             />
+            {errors.sscBoard && <div className="sr-field-error">{errors.sscBoard}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
@@ -1049,7 +1135,7 @@ export default function StudentRegister() {
             </label>
             <input
               type="number"
-              className="sr-input"
+              className={`sr-input ${errors.sscPassingYear ? "sr-input--error" : ""}`}
               name="sscPassingYear"
               placeholder="YYYY"
               value={form.sscPassingYear}
@@ -1058,6 +1144,7 @@ export default function StudentRegister() {
               max={new Date().getFullYear()}
               required
             />
+            {errors.sscPassingYear && <div className="sr-field-error">{errors.sscPassingYear}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
@@ -1066,7 +1153,7 @@ export default function StudentRegister() {
             <input
               type="number"
               step="0.01"
-              className="sr-input"
+              className={`sr-input ${errors.sscPercentage ? "sr-input--error" : ""}`}
               name="sscPercentage"
               placeholder="e.g., 75.50 or 8.5"
               value={form.sscPercentage}
@@ -1075,19 +1162,21 @@ export default function StudentRegister() {
               max="100"
               required
             />
+            {errors.sscPercentage && <div className="sr-field-error">{errors.sscPercentage}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
               Roll Number <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.sscRollNumber ? "sr-input--error" : ""}`}
               name="sscRollNumber"
               placeholder="Enter your 10th roll number"
               value={form.sscRollNumber}
               onChange={handleChange}
               required
             />
+            {errors.sscRollNumber && <div className="sr-field-error">{errors.sscRollNumber}</div>}
           </div>
         </div>
       </div>
@@ -1123,45 +1212,48 @@ export default function StudentRegister() {
               School / College Name <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.hscSchoolName ? "sr-input--error" : ""}`}
               name="hscSchoolName"
               placeholder="Enter your 12th school/college name"
               value={form.hscSchoolName}
               onChange={handleChange}
               required
             />
+            {errors.hscSchoolName && <div className="sr-field-error">{errors.hscSchoolName}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
               Board <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.hscBoard ? "sr-input--error" : ""}`}
               name="hscBoard"
               placeholder="e.g., State Board, CBSE, ICSE"
               value={form.hscBoard}
               onChange={handleChange}
               required
             />
+            {errors.hscBoard && <div className="sr-field-error">{errors.hscBoard}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
               Stream <span className="sr-req">*</span>
             </label>
             <select
-              className="sr-select"
+              className={`sr-select ${errors.hscStream ? "sr-select--error" : ""}`}
               name="hscStream"
               value={form.hscStream}
               onChange={handleChange}
               required
             >
-            
+              <option value="">Select Stream</option>
               <option value="Science">Science</option>
               <option value="Commerce">Commerce</option>
               <option value="Arts">Arts</option>
               <option value="Vocational">Vocational</option>
               <option value="Other">Other</option>
             </select>
+            {errors.hscStream && <div className="sr-field-error">{errors.hscStream}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
@@ -1169,7 +1261,7 @@ export default function StudentRegister() {
             </label>
             <input
               type="number"
-              className="sr-input"
+              className={`sr-input ${errors.hscPassingYear ? "sr-input--error" : ""}`}
               name="hscPassingYear"
               placeholder="YYYY"
               value={form.hscPassingYear}
@@ -1178,6 +1270,7 @@ export default function StudentRegister() {
               max={new Date().getFullYear()}
               required
             />
+            {errors.hscPassingYear && <div className="sr-field-error">{errors.hscPassingYear}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
@@ -1186,7 +1279,7 @@ export default function StudentRegister() {
             <input
               type="number"
               step="0.01"
-              className="sr-input"
+              className={`sr-input ${errors.hscPercentage ? "sr-input--error" : ""}`}
               name="hscPercentage"
               placeholder="e.g., 75.50 or 8.5"
               value={form.hscPercentage}
@@ -1195,19 +1288,21 @@ export default function StudentRegister() {
               max="100"
               required
             />
+            {errors.hscPercentage && <div className="sr-field-error">{errors.hscPercentage}</div>}
           </div>
           <div className="sr-field">
             <label className="sr-label">
               Roll Number <span className="sr-req">*</span>
             </label>
             <input
-              className="sr-input"
+              className={`sr-input ${errors.hscRollNumber ? "sr-input--error" : ""}`}
               name="hscRollNumber"
               placeholder="Enter your 12th roll number"
               value={form.hscRollNumber}
               onChange={handleChange}
               required
             />
+            {errors.hscRollNumber && <div className="sr-field-error">{errors.hscRollNumber}</div>}
           </div>
         </div>
       </div>
@@ -1231,7 +1326,7 @@ export default function StudentRegister() {
             Department <span className="sr-req">*</span>
           </label>
           <select
-            className="sr-select"
+            className={`sr-select ${errors.department_id ? "sr-select--error" : ""}`}
             name="department_id"
             value={form.department_id}
             onChange={handleChange}
@@ -1244,13 +1339,14 @@ export default function StudentRegister() {
               </option>
             ))}
           </select>
+          {errors.department_id && <div className="sr-field-error">{errors.department_id}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
             Course <span className="sr-req">*</span>
           </label>
           <select
-            className="sr-select"
+            className={`sr-select ${errors.course_id ? "sr-select--error" : ""}`}
             name="course_id"
             value={form.course_id}
             onChange={handleChange}
@@ -1268,6 +1364,7 @@ export default function StudentRegister() {
               </option>
             ))}
           </select>
+          {errors.course_id && <div className="sr-field-error">{errors.course_id}</div>}
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -1275,7 +1372,7 @@ export default function StudentRegister() {
           </label>
           <input
             type="number"
-            className="sr-input"
+            className={`sr-input ${errors.admissionYear ? "sr-input--error" : ""}`}
             name="admissionYear"
             value={form.admissionYear}
             onChange={handleChange}
@@ -1283,6 +1380,7 @@ export default function StudentRegister() {
             max="2100"
             required
           />
+          {errors.admissionYear && <div className="sr-field-error">{errors.admissionYear}</div>}
         </div>
       </div>
       {form.course_id && (
@@ -1682,7 +1780,8 @@ export default function StudentRegister() {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirm}
         title="Confirm Registration"
-        message="Are you sure you want to submit your registration?\n\nOnce submitted, your application will be sent for verification and some information may not be editable."
+        message="Are you sure you want to submit your registration?
+        Once submitted, your application will be sent for verification and some information may not be editable."
         type="warning"
         confirmText="Submit Registration"
         cancelText="Cancel"
@@ -1826,9 +1925,14 @@ export default function StudentRegister() {
         .sr-input::placeholder { color:#9abfcf; }
         .sr-input:hover { background:#e4f2fa; border-color:rgba(61,181,230,.42); }
         .sr-input:focus { background:var(--rp-input-focus-bg); border-color:var(--cyan-400); box-shadow:0 0 0 3px rgba(61,181,230,.11); }
+        .sr-input--error { border-color:var(--error) !important; background:rgba(239,68,68,.04) !important; }
+        .sr-input--error:focus { box-shadow:0 0 0 3px rgba(239,68,68,.12) !important; }
         .sr-select { width:100%; padding:.7rem 1rem; background:var(--rp-input-bg); border:1.5px solid var(--rp-input-border); border-radius:10px; font-family:var(--font); font-size:.87rem; color:var(--rp-text); outline:none; transition:all .2s ease; appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233db5e6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 1rem center; padding-right:2.5rem; }
         .sr-select:hover { background-color:#e4f2fa; border-color:rgba(61,181,230,.42); }
         .sr-select:focus { background-color:var(--rp-input-focus-bg); border-color:var(--cyan-400); box-shadow:0 0 0 3px rgba(61,181,230,.11); }
+        .sr-select--error { border-color:var(--error) !important; background:rgba(239,68,68,.04) !important; }
+        .sr-select--error:focus { box-shadow:0 0 0 3px rgba(239,68,68,.12) !important; }
+        .sr-field-error { font-size:.72rem; color:var(--error); margin-top:.3rem; font-weight:500; line-height:1.3; }
 
         /* Upload */
         .sr-upload-box { position:relative; border:2px dashed var(--rp-input-border); border-radius:10px; background:var(--rp-input-bg); transition:all .2s ease; overflow:hidden; }
