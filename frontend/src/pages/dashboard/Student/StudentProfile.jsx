@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -195,6 +195,41 @@ export default function StudentProfile() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
+
+  const mergedDocuments = useMemo(() => {
+    const enabledConfigDocs = documentConfig.filter(doc => doc.enabled);
+    const docs = [];
+    const seenTypes = new Set();
+
+    const studentDocuments = profile?.student?.documents || {};
+
+    enabledConfigDocs.forEach(doc => {
+      seenTypes.add(doc.type);
+      const uploadedDoc = studentDocuments[doc.type];
+      docs.push({
+        type: doc.type,
+        label: doc.label,
+        description: doc.description || doc.label,
+        mandatory: doc.mandatory,
+        uploadedDoc,
+      });
+    });
+
+    Object.keys(studentDocuments).forEach(type => {
+      if (!seenTypes.has(type)) {
+        const uploadedDoc = studentDocuments[type];
+        docs.push({
+          type,
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: "",
+          mandatory: false,
+          uploadedDoc,
+        });
+      }
+    });
+
+    return docs;
+  }, [documentConfig, profile]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -796,26 +831,7 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="row g-3">
-                    {documentConfig.filter(doc => doc.enabled).map((doc) => {
-                      const uploadedDoc = student?.documents?.[doc.type];
-                      return (
-                        <DocumentCard
-                          key={doc.type}
-                          icon={<FaFileAlt />}
-                          type={doc.label}
-                          name={doc.description || doc.label}
-                          board=""
-                          year=""
-                          percentage=""
-                          file={uploadedDoc?.originalFileName || "Not uploaded"}
-                          filePath={uploadedDoc?.downloadUrl}
-                          documentId={uploadedDoc?.documentId}
-                          mandatory={doc.mandatory}
-                        />
-                      );
-                    })}
-
-                    {documentConfig.filter(doc => doc.enabled).length === 0 && (
+                    {mergedDocuments.length === 0 ? (
                       <div className="col-12">
                         <div className="alert alert-warning d-flex align-items-center">
                           <FaExclamationTriangle className="me-2" size={20} />
@@ -826,6 +842,25 @@ export default function StudentProfile() {
                           </div>
                         </div>
                       </div>
+                    ) : (
+                      mergedDocuments.map((doc) => {
+                        const uploadedDoc = doc.uploadedDoc;
+                        return (
+                          <DocumentCard
+                            key={doc.type}
+                            icon={<FaFileAlt />}
+                            type={doc.label}
+                            name={doc.description || doc.label}
+                            board=""
+                            year=""
+                            percentage=""
+                            file={uploadedDoc?.originalFileName || "Not uploaded"}
+                            filePath={uploadedDoc?.downloadUrl}
+                            documentId={uploadedDoc?.documentId}
+                            mandatory={doc.mandatory}
+                          />
+                        );
+                      })
                     )}
                   </div>
 
