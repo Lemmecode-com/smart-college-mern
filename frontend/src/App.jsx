@@ -258,6 +258,22 @@ function AppContent({
   toggleSidebar,
 }) {
   const location = useLocation();
+  const [isOnline, setIsOnline] = useState(
+    typeof window !== "undefined" ? navigator.onLine : true,
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Hide layout on public/auth routes
   const hideLayout =
@@ -272,6 +288,25 @@ function AppContent({
   return (
     <ErrorBoundary>
       <div className="app-wrapper">
+        {!isOnline && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              background: "#dc2626",
+              color: "white",
+              textAlign: "center",
+              padding: "0.5rem",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+            }}
+          >
+            You are currently offline. Some features may not work.
+          </div>
+        )}
         {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
         <Routes>
           {/* ================= LANDING PAGE (ROOT) ================= */}

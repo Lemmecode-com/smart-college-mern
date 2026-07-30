@@ -27,6 +27,9 @@ export default function SuperAdminReports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -44,7 +47,10 @@ export default function SuperAdminReports() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/reports/admissions/super-summary");
+      const year = selectedYear;
+      const res = await api.get("/reports/admissions/super-summary", {
+        params: { month: selectedMonth, year },
+      });
       setData(res.data);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -75,6 +81,23 @@ export default function SuperAdminReports() {
   useEffect(() => {
     fetchSummary();
   }, []);
+
+  /* ================= FETCH MONTHLY ADMISSIONS (TARGETED) ================= */
+  const fetchMonthlyAdmissions = async (month, year) => {
+    try {
+      setMonthlyLoading(true);
+      const res = await api.get("/reports/admissions/super-summary", {
+        params: { month, year },
+      });
+      setData((prev) =>
+        prev ? { ...prev, monthlyAdmissions: res.data.monthlyAdmissions, monthlyGrowth: res.data.monthlyGrowth } : prev
+      );
+    } catch (err) {
+      logger.error("Error fetching monthly admissions:", err);
+    } finally {
+      setMonthlyLoading(false);
+    }
+  };
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
@@ -316,17 +339,55 @@ export default function SuperAdminReports() {
             <div className="stat-title">Monthly Admissions</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">{data.monthlyAdmissions?.toLocaleString() || 0}</div>
+            <div className="stat-value">
+              {monthlyLoading ? (
+                <span className="monthly-loading">Updating…</span>
+              ) : (
+                data.monthlyAdmissions?.toLocaleString() || 0
+              )}
+            </div>
             <div className="stat-trend positive">
               <FaArrowUp className="trend-icon" />
               {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '+0%'} vs last month
             </div>
           </div>
-          <div className="stat-card-footer">
+<div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Current Month</span>
-              <span className="footer-value">
-                <FaCalendarAlt /> {new Date().toLocaleString('default', { month: 'short' })}
+              <span className="footer-value monthly-footer-value">
+                <FaCalendarAlt />
+                <select
+                  className="month-selector"
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    const month = Number(e.target.value);
+                    setSelectedMonth(month);
+                    fetchMonthlyAdmissions(month, selectedYear);
+                  }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {new Date(2025, i).toLocaleString("default", {
+                        month: "short",
+                      })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="month-selector"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    const year = Number(e.target.value);
+                    setSelectedYear(year);
+                    fetchMonthlyAdmissions(selectedMonth, year);
+                  }}
+                >
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <option key={i} value={new Date().getFullYear() - 2 + i}>
+                      {new Date().getFullYear() - 2 + i}
+                    </option>
+                  ))}
+                </select>
               </span>
             </div>
           </div>
@@ -681,6 +742,34 @@ export default function SuperAdminReports() {
         .footer-value.positive { color: #4CAF50; }
         .footer-value.warning { color: #FF9800; }
         .footer-value.negative { color: #F44336; }
+        
+        .monthly-footer-value {
+          gap: 0.5rem;
+        }
+        
+        .month-selector {
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          padding: 0.15rem 0.4rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #1a4b6d;
+          cursor: pointer;
+          outline: none;
+          margin-left: 0.375rem;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          appearance: auto;
+        }
+        
+        .month-selector:hover {
+          border-color: #1a4b6d;
+        }
+        
+        .month-selector:focus {
+          border-color: #1a4b6d;
+          box-shadow: 0 0 0 2px rgba(26, 75, 109, 0.15);
+        }
         
         /* DETAILED METRICS */
         .erp-card {
@@ -1063,6 +1152,12 @@ export default function SuperAdminReports() {
         
         .spin {
           animation: spin 1s linear infinite;
+        }
+        
+        .monthly-loading {
+          font-size: 1rem;
+          color: #999;
+          font-weight: 400;
         }
         
         .animate-fade-in {
