@@ -2,12 +2,23 @@ import { Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../auth/AuthContext";
 import Loading from "./Loading";
+import ApiError from "./ApiError";
 import { getDashboardPath } from "./Sidebar/config/navigation.config";
 
 export default function ProtectedRoute({ allowedRoles, children }) {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, authError, retryAuthCheck } = useContext(AuthContext);
 
   if (loading) return <Loading fullScreen text="Authenticating..." />;
+
+  if (!user && authError) {
+    return (
+      <ApiError
+        errorCode={authError.code}
+        message={authError.message}
+        onRetry={retryAuthCheck}
+      />
+    );
+  }
 
   if (!user) return <Navigate to="/login" replace />;
 
