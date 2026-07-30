@@ -17,6 +17,8 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimes,
+  FaImage,
+  FaUpload,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -34,6 +36,14 @@ const AUTH_ERROR_CODES = new Set([
   "ACCOUNT_DEACTIVATED",
   "UNAUTHORIZED",
 ]);
+
+const LOGO_MAX_SIZE = 5 * 1024 * 1024;
+const LOGO_ALLOWED_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
 
 export default function EditCollegeProfile() {
   const navigate = useNavigate();
@@ -63,6 +73,9 @@ export default function EditCollegeProfile() {
   });
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [hasUserModified, setHasUserModified] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoError, setLogoError] = useState("");
+  const [logoPreview, setLogoPreview] = useState(null);
 
   // ================= LOAD COLLEGE =================
   useEffect(() => {
@@ -117,12 +130,15 @@ export default function EditCollegeProfile() {
         name: typeof collegeData.name === "string" ? collegeData.name : "",
         code: typeof collegeData.code === "string" ? collegeData.code : "",
         email: typeof collegeData.email === "string" ? collegeData.email : "",
-        contactNumber: typeof collegeData.contactNumber === "string" ? collegeData.contactNumber : "",
+        contactNumber:
+          typeof collegeData.contactNumber === "string"
+            ? collegeData.contactNumber
+            : "",
         address: typeof collegeData.address === "string" ? collegeData.address : "",
         establishedYear: collegeData.establishedYear != null
           ? String(collegeData.establishedYear)
           : "",
-        logo: null,
+        logo: collegeData.logo || null,
       };
       
       setForm(formData);
@@ -279,6 +295,44 @@ export default function EditCollegeProfile() {
     }
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    setLogoError("");
+    setLogoPreview(null);
+
+    if (!file) {
+      setLogoFile(null);
+      return;
+    }
+
+    if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
+      setLogoError("Only PNG, JPG, JPEG, and WEBP formats are allowed");
+      setLogoFile(null);
+      return;
+    }
+
+    if (file.size > LOGO_MAX_SIZE) {
+      setLogoError("Logo file size must be less than 5MB");
+      setLogoFile(null);
+      return;
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoError("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
   // ================= SUBMIT HANDLER =================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -301,15 +355,19 @@ export default function EditCollegeProfile() {
     setSaving(true);
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        code: form.code.trim(),
-        email: form.email.trim().toLowerCase(),
-        contactNumber: form.contactNumber.replace(/\s/g, ""),
-        address: form.address.trim(),
-        establishedYear: Number(form.establishedYear),
-        logo: null,
-      };
+      const payload = new FormData();
+      payload.append("name", form.name.trim());
+      payload.append("code", form.code.trim());
+      payload.append("email", form.email.trim().toLowerCase());
+      payload.append(
+        "contactNumber",
+        form.contactNumber.replace(/\s/g, "")
+      );
+      payload.append("address", form.address.trim());
+      payload.append("establishedYear", Number(form.establishedYear));
+      if (logoFile) {
+        payload.append("logo", logoFile);
+      }
 
       const res = await api.put("/college/edit/my-college", payload);
 
@@ -673,11 +731,72 @@ export default function EditCollegeProfile() {
                         Year college was founded (1900-{new Date().getFullYear()})
                       </small>
                     )}
-                  </div>
-                </div>
+                   </div>
+                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="form-actions">
+                 {/* COLLEGE LOGO UPLOAD */}
+                 <div className="form-group">
+                   <label htmlFor="logo" className="form-label">
+                     <FaImage className="me-2 text-primary blink" aria-hidden="true" />
+                     College Logo
+                   </label>
+                   <div className="logo-upload-area">
+                     {logoPreview ? (
+                       <div className="logo-preview-container">
+                         <img
+                           src={logoPreview}
+                           alt="New logo preview"
+                           className="logo-preview-img"
+                         />
+                         <button
+                           type="button"
+                           className="logo-remove-btn"
+                           onClick={removeLogo}
+                           aria-label="Remove logo"
+                         >
+                           <FaTimes />
+                         </button>
+                       </div>
+                     ) : form.logo ? (
+                       <div className="logo-preview-container">
+                         <img
+                           src={form.logo}
+                           alt="Current logo"
+                           className="logo-preview-img"
+                         />
+                         <span className="text-muted ms-2">
+                           Current logo (select a new file to replace)
+                         </span>
+                       </div>
+                     ) : (
+                       <div className="logo-upload-placeholder">
+                         <FaUpload className="logo-upload-icon" />
+                         <span>Click to upload or drag and drop</span>
+                         <span className="logo-upload-hint">
+                           PNG, JPG, JPEG, WEBP (max 5MB)
+                         </span>
+                       </div>
+                     )}
+                     <input
+                       type="file"
+                       id="logo"
+                       name="logo"
+                       accept=".png,.jpg,.jpeg,.webp"
+                       className="logo-file-input"
+                       onChange={handleLogoChange}
+                       aria-label="Upload college logo"
+                     />
+                   </div>
+                   {logoError && (
+                     <div className="invalid-feedback d-block mt-1">
+                       <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                       {logoError}
+                     </div>
+                   )}
+                 </div>
+
+                 {/* ACTION BUTTONS */}
+                 <div className="form-actions">
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
@@ -1274,6 +1393,91 @@ export default function EditCollegeProfile() {
           clip: rect(0, 0, 0, 0);
           white-space: nowrap;
           border: 0;
+        }
+
+        /* ================= LOGO UPLOAD ================= */
+        .logo-upload-area {
+          position: relative;
+          border: 2px dashed #e9ecef;
+          border-radius: 12px;
+          padding: 1.5rem;
+          background: #f8f9fa;
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .logo-upload-area:hover {
+          border-color: #1a4b6d;
+          background: rgba(26, 75, 109, 0.02);
+        }
+
+        .logo-file-input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
+        }
+
+        .logo-upload-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1rem;
+          pointer-events: none;
+        }
+
+        .logo-upload-icon {
+          font-size: 2rem;
+          color: #1a4b6d;
+          opacity: 0.5;
+        }
+
+        .logo-upload-placeholder span {
+          font-size: 0.9rem;
+          color: #6c757d;
+        }
+
+        .logo-upload-hint {
+          font-size: 0.8rem !important;
+          color: #adb5bd !important;
+        }
+
+        .logo-preview-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.5rem;
+        }
+
+        .logo-preview-img {
+          width: 80px;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 10px;
+          border: 2px solid #e9ecef;
+        }
+
+        .logo-remove-btn {
+          background: rgba(220, 53, 69, 0.1);
+          border: 1px solid rgba(220, 53, 69, 0.3);
+          color: #dc3545;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .logo-remove-btn:hover {
+          background: rgba(220, 53, 69, 0.2);
+          border-color: #dc3545;
+          transform: scale(1.1);
         }
       `}</style>
     </div>

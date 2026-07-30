@@ -1,4 +1,4 @@
-import { useContext, useState, useCallback } from "react";
+import { useContext, useState, useEffect, useCallback } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -29,6 +29,8 @@ import {
   FaCheck,
   FaTimes,
   FaCopy,
+  FaImage,
+  FaUpload,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS ================= */
@@ -42,6 +44,8 @@ const VALIDATION = {
   MIN_YEAR: 1800,
   MAX_YEAR: new Date().getFullYear(),
   ADDRESS_MIN_LENGTH: 20,
+  LOGO_MAX_SIZE: 5 * 1024 * 1024,
+  LOGO_ALLOWED_TYPES: ["image/png", "image/jpeg", "image/jpg", "image/webp"],
 };
 
 const MESSAGES = {
@@ -65,6 +69,8 @@ const MESSAGES = {
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters",
   PASSWORD_WEAK:
     "Password must contain uppercase, lowercase, number & special character (@$!%*?&)",
+  LOGO_INVALID_TYPE: "Only PNG, JPG, JPEG, and WEBP formats are allowed",
+  LOGO_TOO_LARGE: "Logo file size must be less than 5MB",
 };
 
 export default function CreateNewCollege() {
@@ -98,6 +104,7 @@ export default function CreateNewCollege() {
     adminName: "",
     adminEmail: "",
     adminPassword: "",
+    logo: null,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -107,6 +114,8 @@ export default function CreateNewCollege() {
   const [touched, setTouched] = useState({});
   const [showConfirm, setShowConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [logoError, setLogoError] = useState("");
+  const [logoPreview, setLogoPreview] = useState(null);
 
   /* ================= VALIDATION ================= */
   const validateField = useCallback((name, value) => {
@@ -177,6 +186,44 @@ export default function CreateNewCollege() {
     if (error) setError("");
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    setLogoError("");
+    setLogoPreview(null);
+
+    if (!file) {
+      setFormData((prev) => ({ ...prev, logo: null }));
+      return;
+    }
+
+    if (!VALIDATION.LOGO_ALLOWED_TYPES.includes(file.type)) {
+      setLogoError(MESSAGES.LOGO_INVALID_TYPE);
+      setFormData((prev) => ({ ...prev, logo: null }));
+      return;
+    }
+
+    if (file.size > VALIDATION.LOGO_MAX_SIZE) {
+      setLogoError(MESSAGES.LOGO_TOO_LARGE);
+      setFormData((prev) => ({ ...prev, logo: null }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, logo: file }));
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const removeLogo = () => {
+    setFormData((prev) => ({ ...prev, logo: null }));
+    setLogoPreview(null);
+    setLogoError("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
   const handleBlur = (e) => {
     const { name } = e.target;
     setTouched((prev) => ({ ...prev, [name]: true }));
@@ -213,11 +260,21 @@ export default function CreateNewCollege() {
     setShowConfirm(false);
 
     try {
-      const res = await api.post("/master/create/college", {
-        ...formData,
-        collegeCode: formData.collegeCode.toUpperCase(),
-        establishedYear: Number(formData.establishedYear),
-      });
+      const payload = new FormData();
+      payload.append("collegeName", formData.collegeName);
+      payload.append("collegeCode", formData.collegeCode.toUpperCase());
+      payload.append("collegeEmail", formData.collegeEmail);
+      payload.append("contactNumber", formData.contactNumber);
+      payload.append("address", formData.address);
+      payload.append("establishedYear", formData.establishedYear);
+      payload.append("adminName", formData.adminName);
+      payload.append("adminEmail", formData.adminEmail);
+      payload.append("adminPassword", formData.adminPassword);
+      if (formData.logo) {
+        payload.append("logo", formData.logo);
+      }
+
+      const res = await api.post("/master/create/college", payload);
 
       setSuccess(res.data);
       setFormData({
@@ -230,8 +287,11 @@ export default function CreateNewCollege() {
         adminName: "",
         adminEmail: "",
         adminPassword: "",
+        logo: null,
       });
       setTouched({});
+      setLogoPreview(null);
+      setLogoError("");
 
       toast.success("College created successfully!", {
         position: "top-right",
@@ -287,10 +347,13 @@ export default function CreateNewCollege() {
       adminName: "",
       adminEmail: "",
       adminPassword: "",
+      logo: null,
     });
     setTouched({});
     setError("");
     setSuccess(null);
+    setLogoPreview(null);
+    setLogoError("");
   };
 
   /* ================= PASSWORD STRENGTH ================= */
@@ -663,36 +726,86 @@ export default function CreateNewCollege() {
                 </div>
               </div>
 
-              <div className="erp-col-12">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaMapMarkerAlt className="erp-label-icon" />
-                    Address <span className="required">*</span>
-                  </label>
-                  <textarea
-                    name="address"
-                    className={`erp-textarea ${getFieldError("address") ? "erp-input-error" : ""}`}
-                    value={formData.address}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    placeholder="Building, Street, Locality, City, State, PIN Code"
-                    rows="3"
-                    autoComplete="off"
-                  />
-                  {getFieldError("address") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError("address")}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Complete physical address of the college (min 20 characters)
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+               <div className="erp-col-12">
+                 <div className="erp-form-group">
+                   <label className="erp-label">
+                     <FaMapMarkerAlt className="erp-label-icon" />
+                     Address <span className="required">*</span>
+                   </label>
+                   <textarea
+                     name="address"
+                     className={`erp-textarea ${getFieldError("address") ? "erp-input-error" : ""}`}
+                     value={formData.address}
+                     onChange={handleChange}
+                     onBlur={handleBlur}
+                     placeholder="Building, Street, Locality, City, State, PIN Code"
+                     rows="3"
+                     autoComplete="off"
+                   />
+                   {getFieldError("address") && (
+                     <div className="erp-error-text">
+                       <FaExclamationTriangle className="erp-error-icon" />
+                       {getFieldError("address")}
+                     </div>
+                   )}
+                   <div className="erp-hint-text">
+                     <FaInfoCircle className="erp-hint-icon" />
+                     Complete physical address of the college (min 20 characters)
+                   </div>
+                 </div>
+               </div>
+
+               {/* COLLEGE LOGO UPLOAD */}
+               <div className="erp-col-12">
+                 <div className="erp-form-group">
+                   <label className="erp-label">
+                     <FaImage className="erp-label-icon" />
+                     College Logo
+                   </label>
+                   <div className="logo-upload-area">
+                     {logoPreview ? (
+                       <div className="logo-preview-container">
+                         <img
+                           src={logoPreview}
+                           alt="Logo preview"
+                           className="logo-preview-img"
+                         />
+                         <button
+                           type="button"
+                           className="logo-remove-btn"
+                           onClick={removeLogo}
+                           aria-label="Remove logo"
+                         >
+                           <FaTimes />
+                         </button>
+                       </div>
+                     ) : (
+                       <div className="logo-upload-placeholder">
+                         <FaUpload className="logo-upload-icon" />
+                         <span>Click to upload or drag and drop</span>
+                         <span className="logo-upload-hint">
+                           PNG, JPG, JPEG, WEBP (max 5MB)
+                         </span>
+                       </div>
+                     )}
+                     <input
+                       type="file"
+                       accept=".png,.jpg,.jpeg,.webp"
+                       className="logo-file-input"
+                       onChange={handleLogoChange}
+                       aria-label="Upload college logo"
+                     />
+                   </div>
+                   {logoError && (
+                     <div className="erp-error-text">
+                       <FaExclamationTriangle className="erp-error-icon" />
+                       {logoError}
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
+           </div>
 
           {/* ADMIN CREDENTIALS SECTION */}
           <div className="form-section">
@@ -1656,39 +1769,125 @@ export default function CreateNewCollege() {
           }
         }
 
-        @media (max-width: 480px) {
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-
-          .erp-section-title {
-            font-size: 1.15rem;
-          }
-
-          .erp-label {
-            font-size: 0.9rem;
-          }
-
-          .erp-input,
-          .erp-textarea {
-            padding: 0.75rem 1rem;
-            font-size: 0.95rem;
-          }
-
-          .erp-btn-lg {
-            padding: 0.875rem 1.5rem;
-            font-size: 1rem;
-          }
-
-          .erp-form-title h3 {
-            font-size: 1.35rem;
-          }
-
-          .requirements-list {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+@media (max-width: 480px) {
+           .erp-page-title {
+             font-size: 1.5rem;
+           }
+ 
+           .erp-section-title {
+             font-size: 1.15rem;
+           }
+ 
+           .erp-label {
+             font-size: 0.9rem;
+           }
+ 
+           .erp-input,
+           .erp-textarea {
+             padding: 0.75rem 1rem;
+             font-size: 0.95rem;
+           }
+ 
+           .erp-btn-lg {
+             padding: 0.875rem 1.5rem;
+             font-size: 1rem;
+           }
+ 
+           .erp-form-title h3 {
+             font-size: 1.35rem;
+           }
+ 
+           .requirements-list {
+             grid-template-columns: 1fr;
+           }
+         }
+ 
+         /* ================= LOGO UPLOAD ================= */
+         .logo-upload-area {
+           position: relative;
+           border: 2px dashed #e9ecef;
+           border-radius: 12px;
+           padding: 1.5rem;
+           background: #f8f9fa;
+           transition: all 0.3s ease;
+           cursor: pointer;
+         }
+ 
+         .logo-upload-area:hover {
+           border-color: #0f3a4a;
+           background: rgba(15, 58, 74, 0.02);
+         }
+ 
+         .logo-file-input {
+           position: absolute;
+           inset: 0;
+           opacity: 0;
+           cursor: pointer;
+         }
+ 
+         .logo-upload-placeholder {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 0.5rem;
+           padding: 1rem;
+           pointer-events: none;
+         }
+ 
+         .logo-upload-icon {
+           font-size: 2rem;
+           color: #0f3a4a;
+           opacity: 0.5;
+         }
+ 
+         .logo-upload-placeholder span {
+           font-size: 0.9rem;
+           color: #6c757d;
+         }
+ 
+         .logo-upload-hint {
+           font-size: 0.8rem !important;
+           color: #adb5bd !important;
+         }
+ 
+         .logo-preview-container {
+           position: relative;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           gap: 1rem;
+           padding: 0.5rem;
+         }
+ 
+         .logo-preview-img {
+           width: 80px;
+           height: 80px;
+           object-fit: cover;
+           border-radius: 10px;
+           border: 2px solid #e9ecef;
+         }
+ 
+         .logo-remove-btn {
+           background: rgba(220, 53, 69, 0.1);
+           border: 1px solid rgba(220, 53, 69, 0.3);
+           color: #dc3545;
+           width: 32px;
+           height: 32px;
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           cursor: pointer;
+           transition: all 0.2s ease;
+           flex-shrink: 0;
+         }
+ 
+         .logo-remove-btn:hover {
+           background: rgba(220, 53, 69, 0.2);
+           border-color: #dc3545;
+           transform: scale(1.1);
+         }
+       `}</style>
     </div>
   );
 }

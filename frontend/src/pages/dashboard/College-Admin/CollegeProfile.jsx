@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -55,6 +55,7 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -149,6 +150,65 @@ const spinVariants = {
     },
   },
 };
+
+/* ================= LOGO IMAGE ================= */
+function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const url = getDocumentViewUrl(documentId);
+
+  useEffect(() => {
+    let isMounted = true;
+    let currentBlobUrl = null;
+
+    if (!url) {
+      setLoadError(true);
+      return;
+    }
+
+    const fetchLogo = async () => {
+      try {
+        setLoadError(false);
+        const response = await api.get(url, { responseType: "blob" });
+        if (!isMounted) return;
+        currentBlobUrl = URL.createObjectURL(response.data);
+        setBlobUrl(currentBlobUrl);
+      } catch {
+        if (isMounted) {
+          setLoadError(true);
+        }
+      }
+    };
+
+    fetchLogo();
+
+    return () => {
+      isMounted = false;
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+    };
+  }, [url]);
+
+  if (loadError || !blobUrl) {
+    return <FaUniversity size={size} style={{ color: "white" }} />;
+  }
+
+  return (
+    <img
+      src={blobUrl}
+      alt={alt}
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        borderRadius: "50%",
+        padding: "8px",
+        background: "transparent",
+      }}
+    />
+  );
+}
 
 export default function CollegeProfile() {
   const { user } = useContext(AuthContext);
@@ -386,9 +446,15 @@ export default function CollegeProfile() {
                   boxShadow: "0 10px 30px rgba(26, 75, 109, 0.4)",
                   flexShrink: 0,
                 }}
-              >
-                <FaUniversity size={36} style={{ color: "white" }} />
-              </motion.div>
+                >
+                  <LogoImage
+                    documentId={
+                      college?.documentRefs?.logo?.documentId ||
+                      college?.logoDocumentId
+                    }
+                    size={36}
+                  />
+                </motion.div>
 
               <div style={{ flex: 1 }}>
                 <h1
@@ -892,9 +958,7 @@ function EmptyState({ onBack }) {
           textAlign: "center",
         }}
       >
-        <div
-          style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}
-        >
+        <div style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}>
           <FaUniversity />
         </div>
         <h4

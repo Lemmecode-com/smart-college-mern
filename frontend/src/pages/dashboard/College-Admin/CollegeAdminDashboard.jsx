@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -7,6 +7,7 @@ import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "./Dashboard.css";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 
 import {
   FaUniversity,
@@ -146,6 +147,72 @@ const spinVariants = {
     }
   }
 };
+
+/* ================= LOGO IMAGE ================= */
+function LogoImage({ documentId, alt = "College Logo", size = 64 }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const url = getDocumentViewUrl(documentId);
+
+  useEffect(() => {
+    let isMounted = true;
+    let currentBlobUrl = null;
+
+    if (!url) {
+      setLoadError(true);
+      return;
+    }
+
+    const fetchLogo = async () => {
+      try {
+        setLoadError(false);
+        const response = await api.get(url, { responseType: "blob" });
+        if (!isMounted) return;
+        currentBlobUrl = URL.createObjectURL(response.data);
+        setBlobUrl(currentBlobUrl);
+      } catch {
+        if (isMounted) {
+          setLoadError(true);
+        }
+      }
+    };
+
+    fetchLogo();
+
+    return () => {
+      isMounted = false;
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+    };
+  }, [url]);
+
+  if (loadError || !blobUrl) {
+    return (
+      <div
+        className="header-icon-wrapper"
+        style={{ width: size, height: size }}
+      >
+        <FaUniversity />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={blobUrl}
+      alt={alt}
+      style={{
+        width: size,
+        height: size,
+        objectFit: "contain",
+        borderRadius: "var(--border-radius-md, 0.75rem)",
+        padding: "8px",
+        background: "rgba(255, 255, 255, 0.15)",
+      }}
+    />
+  );
+}
 
 export default function CollegeAdminDashboard() {
   const { user } = useContext(AuthContext);
@@ -359,7 +426,7 @@ export default function CollegeAdminDashboard() {
                       animate="pulse"
                       className="header-icon-wrapper"
                     >
-                      <FaUniversity />
+                      <LogoImage documentId={college?.logoDocumentId} />
                     </motion.div>
                     <div className="header-title-section">
                       <h1 className="header-title">
