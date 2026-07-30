@@ -193,6 +193,8 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   const iconSize = Math.round(size * 0.45);
   const padding = Math.round(size * 0.12);
 
+  const showPlaceholder = loadError || !blobUrl;
+
   const containerStyle = {
     width: size,
     height: size,
@@ -205,28 +207,44 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
     justifyContent: "center",
     overflow: "hidden",
     flexShrink: 0,
+    position: "relative",
   };
-
-  if (loadError || !blobUrl) {
-    return (
-      <div style={containerStyle}>
-        <FaUniversity size={iconSize} style={{ color: "#94a3b8" }} />
-      </div>
-    );
-  }
 
   return (
     <div style={containerStyle}>
-      <img
-        src={blobUrl}
-        alt={alt}
+      <div
         style={{
-          width: size - padding * 2,
-          height: size - padding * 2,
-          objectFit: "contain",
-          display: "block",
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: showPlaceholder ? 1 : 0,
+          transition: "opacity 0.4s ease-in-out",
+          pointerEvents: "none",
+          zIndex: 1,
         }}
-      />
+      >
+        <FaUniversity size={iconSize} style={{ color: "#94a3b8" }} />
+      </div>
+
+      {blobUrl && (
+        <motion.img
+          key={blobUrl}
+          src={blobUrl}
+          alt={alt}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          style={{
+            width: size - padding * 2,
+            height: size - padding * 2,
+            objectFit: "contain",
+            display: "block",
+            zIndex: 2,
+          }}
+        />
+      )}
     </div>
   );
 }
