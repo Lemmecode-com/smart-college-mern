@@ -50,11 +50,12 @@ exports.allDashboardReports = async (req, res) => {
 exports.admissionSummary = async (req, res) => {
   try {
     const { role, college_id } = req.user;
+    const { month, year } = req.query;
 
     let data;
 
     if (role === "SUPER_ADMIN") {
-      data = await reportsService.admissionSummaryAll();
+      data = await reportsService.admissionSummaryAll({ month, year });
     } 
     else if (role === "COLLEGE_ADMIN" || role === "PRINCIPAL" || role === "TEACHER") {
       data = await reportsService.admissionSummary(college_id);
