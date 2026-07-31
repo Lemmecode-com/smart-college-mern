@@ -320,9 +320,6 @@ export default function StudentDashboard() {
           <button className="btn-refresh" onClick={handleRetry}>
             <FaSync className={loading ? "spinning" : ""} /> Refresh
           </button>
-          <Link to="/student/make-payment" className="btn-primary">
-            <FaWallet /> Pay Fees
-          </Link>
         </div>
       </div>
 
