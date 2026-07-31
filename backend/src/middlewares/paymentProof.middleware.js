@@ -2,33 +2,19 @@ const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
 const { getStorageProvider } = require("../services/storage");
+const {
+  BROAD_ALLOWED_MIME_TYPES,
+  normalizeExtension,
+} = require("../utils/fileValidation");
 
 const storage = multer.memoryStorage();
 
-const allowedExtensions = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/jpg": ".jpg",
-  "application/pdf": ".pdf",
-};
-
 const fileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
-
-  if (!allowedMimes.includes(file.mimetype)) {
-    return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
-  }
-
-  const ext = path.extname(file.originalname).toLowerCase();
-  const expectedExt = allowedExtensions[file.mimetype];
-
-  if (ext && ext !== expectedExt) {
-    return cb(new Error(`File extension ${ext} does not match content type ${file.mimetype}`), false);
+  if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    return cb(
+      new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
+      false,
+    );
   }
 
   cb(null, true);
