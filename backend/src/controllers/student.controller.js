@@ -19,7 +19,11 @@ const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 
-const { processUploadsWithStorage } = require("../middlewares/upload.middleware");
+const {
+  processUploadsWithStorage,
+  validateFilesAgainstConfig,
+} = require("../middlewares/upload.middleware");
+const { expandAllowedFormats } = require("../utils/fileValidation");
 const DocumentService = require("../services/document.service");
 const Document = require("../models/document.model");
 
@@ -124,6 +128,36 @@ exports.registerStudent = async (req, res, next) => {
     const documentPaths = {};
 
     if (docConfig && docConfig.documents) {
+      // Validate uploaded files against Document Configuration (extension + MIME type)
+      const allFiles = [];
+      for (const [fieldName, fileList] of Object.entries(storageResults)) {
+        const filesArray = Array.isArray(fileList) ? fileList : [fileList];
+        for (const file of filesArray) {
+          allFiles.push({
+            fieldname: fieldName,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+          });
+        }
+      }
+
+      if (allFiles.length > 0) {
+        const validation = validateFilesAgainstConfig(
+          allFiles,
+          docConfig.documents,
+          documentFieldMap,
+        );
+
+        if (!validation.valid) {
+          const errorMessages = validation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join("; ");
+          return res.status(400).json({
+            message: `File validation failed: ${errorMessages}`,
+          });
+        }
+      }
+
       // First pass: Check mandatory documents and validate
       for (const doc of docConfig.documents) {
         // Map document type to backend field name
@@ -764,7 +798,15 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
-        documentConfig: docConfig?.documents || [],
+        documentConfig: (docConfig?.documents || []).map((doc) => {
+          const docObj = doc.toObject ? doc.toObject() : doc;
+          return {
+            ...docObj,
+            allowedFormats: docObj.allowedFormats
+              ? expandAllowedFormats(docObj.allowedFormats)
+              : docObj.allowedFormats,
+          };
+        }),
       },
       "Profile fetched successfully",
     );

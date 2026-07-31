@@ -176,7 +176,13 @@ async function verifyCollegeEmailConfig(configData) {
     }
     return { success: true, message: testEmail ? "Configuration verified and test email sent successfully" : "SMTP connection verified successfully" };
   } catch (error) {
-    logger.logError("Email configuration verification failed", { error: error.message, smtpHost: smtp.host });
+    logger.logError("Email configuration verification failed", {
+      error: error.message,
+      smtpHost: smtp.host,
+      errorCode: error.code || undefined,
+      command: error.command || undefined,
+      smtpResponse: error.response || undefined,
+    });
     return { success: false, message: `Verification failed: ${error.message}`, error: error.message };
   }
 }
@@ -193,6 +199,7 @@ async function getCollegeEmailConfig(collegeId) {
     fromEmail: config.fromEmail,
     isActive: config.isActive,
     lastVerifiedAt: config.lastVerifiedAt,
+    verifiedBy: config.verifiedBy,
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
     hasPassword: !!config.credentials?.pass,
@@ -242,6 +249,8 @@ async function saveCollegeEmailConfig(collegeId, configData) {
     fromEmail: savedConfig.fromEmail,
     isActive: savedConfig.isActive,
     hasPassword: true,
+    lastVerifiedAt: savedConfig.lastVerifiedAt,
+    verifiedBy: savedConfig.verifiedBy,
   };
 }
 
