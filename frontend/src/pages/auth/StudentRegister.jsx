@@ -31,6 +31,19 @@ import {
 /* ── Public Axios ── */
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL });
 
+publicApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.data?.error) {
+      const { error: errorObj } = error.response.data;
+      error.response.data.message = errorObj.message;
+      error.response.data.code = errorObj.code;
+      error.response.data.details = errorObj.details;
+    }
+    return Promise.reject(error);
+  },
+);
+
 /* ── API Cache ── */
 const apiCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000;
@@ -615,6 +628,8 @@ export default function StudentRegister() {
       }, 100);
     } catch (err) {
       let errorMessage = "Registration failed";
+      const status = err.response?.status;
+
       if (
         err.response?.data?.errors &&
         Array.isArray(err.response.data.errors)
@@ -623,7 +638,16 @@ export default function StudentRegister() {
         errorMessage = `${v.field}: ${v.message}`;
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error?.message) {
+        errorMessage = err.response.data.error.message;
+      } else if (status >= 500) {
+        errorMessage =
+          "Something went wrong.\nPlease try again later.";
+      } else if (!err.response) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
       }
+
       setError(errorMessage);
       alert("❌ Registration Failed:\n\n" + errorMessage);
     } finally {
