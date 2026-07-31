@@ -193,6 +193,7 @@ async function getCollegeEmailConfig(collegeId) {
     fromEmail: config.fromEmail,
     isActive: config.isActive,
     lastVerifiedAt: config.lastVerifiedAt,
+    verifiedBy: config.verifiedBy,
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
     hasPassword: !!config.credentials?.pass,
@@ -242,6 +243,8 @@ async function saveCollegeEmailConfig(collegeId, configData) {
     fromEmail: savedConfig.fromEmail,
     isActive: savedConfig.isActive,
     hasPassword: true,
+    lastVerifiedAt: savedConfig.lastVerifiedAt,
+    verifiedBy: savedConfig.verifiedBy,
   };
 }
 
