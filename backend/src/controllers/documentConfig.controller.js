@@ -1,5 +1,28 @@
 const DocumentConfig = require("../models/documentConfig.model");
 const College = require("../models/college.model");
+const { validateFile, expandAllowedFormats } = require("../utils/fileValidation");
+
+/**
+ * Normalize document configurations: expand JPG/JPEG equivalence
+ * so both extensions appear when either is configured.
+ * Handles both Mongoose subdocuments and plain objects.
+ */
+const normalizeDocuments = (documents) => {
+  if (!Array.isArray(documents)) return documents;
+  return documents.map((doc) => {
+    // Convert Mongoose subdocuments to plain objects before spreading.
+    // Spreading a Mongoose subdocument directly ({ ...doc }) only copies
+    // internal Mongoose properties (__parentArray, $__, _doc, etc.) and
+    // omits actual schema fields like type, enabled, label.
+    const docObj = doc.toObject ? doc.toObject() : doc;
+    return {
+      ...docObj,
+      allowedFormats: docObj.allowedFormats
+        ? expandAllowedFormats(docObj.allowedFormats)
+        : docObj.allowedFormats,
+    };
+  });
+};
 
 /**
  * Get document configuration for a college (public - used during student registration)
@@ -24,8 +47,10 @@ exports.getDocumentConfig = async (req, res) => {
       });
     }
 
-    // Return only enabled documents from config
-    const enabledDocuments = config.documents.filter(doc => doc.enabled);
+    // Return only enabled documents from config, with JPG/JPEG normalized
+    const enabledDocuments = normalizeDocuments(
+      config.documents.filter(doc => doc.enabled)
+    );
 
     res.json({
       collegeCode,
@@ -64,7 +89,9 @@ exports.getDocumentConfigForAdmin = async (req, res) => {
       });
     }
 
-    res.json({ config });
+    const configObj = config.toObject();
+    configObj.documents = normalizeDocuments(configObj.documents);
+    res.json({ config: configObj });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -135,6 +162,15 @@ exports.upsertDocumentConfig = async (req, res) => {
         return res.status(400).json({
           message: "Allowed formats must be an array"
         });
+      }
+    }
+
+    // Normalize allowedFormats: expand JPG/JPEG equivalence so both
+    // extensions are stored when either is configured.
+    const { expandAllowedFormats } = require("../utils/fileValidation");
+    for (const doc of documents) {
+      if (doc.allowedFormats && Array.isArray(doc.allowedFormats)) {
+        doc.allowedFormats = expandAllowedFormats(doc.allowedFormats);
       }
     }
 
@@ -216,6 +252,7 @@ exports.resetToEmpty = async (req, res) => {
 /**
  * Validate uploaded documents against config
  * This will be used during student registration
+ * Validates both mandatory documents AND file formats (extension + MIME type)
  */
 exports.validateDocuments = async (req, res) => {
   try {
@@ -244,6 +281,30 @@ exports.validateDocuments = async (req, res) => {
       }
     }
 
+    // Validate file formats (extension + MIME type) for uploaded files
+    for (const docConfig of enabledDocs) {
+      const file = uploadedFiles[docConfig.type];
+      if (!file) continue;
+
+      const originalName = file.originalname || file.name || file.fileName;
+      const mimeType = file.mimetype || file.mimeType || file.type;
+
+      if (originalName && mimeType) {
+        const result = validateFile(
+          originalName,
+          mimeType,
+          docConfig.allowedFormats || []
+        );
+        if (!result.valid) {
+          errors.push({
+            type: docConfig.type,
+            label: docConfig.label,
+            message: result.error
+          });
+        }
+      }
+    }
+
     if (errors.length > 0) {
       return res.status(400).json({
         valid: false,
@@ -253,7 +314,7 @@ exports.validateDocuments = async (req, res) => {
 
     res.json({
       valid: true,
-      message: "All required documents uploaded"
+      message: "All required documents uploaded and validated"
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
