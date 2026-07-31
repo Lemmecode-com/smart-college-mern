@@ -176,7 +176,13 @@ async function verifyCollegeEmailConfig(configData) {
     }
     return { success: true, message: testEmail ? "Configuration verified and test email sent successfully" : "SMTP connection verified successfully" };
   } catch (error) {
-    logger.logError("Email configuration verification failed", { error: error.message, smtpHost: smtp.host });
+    logger.logError("Email configuration verification failed", {
+      error: error.message,
+      smtpHost: smtp.host,
+      errorCode: error.code || undefined,
+      command: error.command || undefined,
+      smtpResponse: error.response || undefined,
+    });
     return { success: false, message: `Verification failed: ${error.message}`, error: error.message };
   }
 }
