@@ -20,6 +20,9 @@ import {
   FaToggleOn,
   FaToggleOff,
   FaPaperPlane,
+  FaUser,
+  FaShieldAlt,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -50,6 +53,9 @@ const EmailConfigurations = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [lastVerifiedAt, setLastVerifiedAt] = useState(null);
+  const [verifiedBy, setVerifiedBy] = useState(null);
   const [testEmail, setTestEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [fromEmailTouched, setFromEmailTouched] = useState(false);
@@ -85,24 +91,31 @@ const EmailConfigurations = () => {
       const response = await api.get("/admin/email/config");
 
       if (response.data.configured && response.data.config) {
-        setConfig(response.data.config);
+        const cfg = response.data.config;
+        setConfig(cfg);
         setIsConfigured(true);
+        setVerified(cfg.verified != null ? cfg.verified : cfg.lastVerifiedAt != null);
+        setLastVerifiedAt(cfg.lastVerifiedAt || null);
+        setVerifiedBy(cfg.verifiedBy || null);
         setFormData({
           smtp: {
-            host: response.data.config.smtp?.host || "",
-            port: response.data.config.smtp?.port || 587,
-            secure: response.data.config.smtp?.secure || false,
+            host: cfg.smtp?.host || "",
+            port: cfg.smtp?.port || 587,
+            secure: cfg.smtp?.secure || false,
           },
           credentials: {
-            user: response.data.config.credentials?.user || "",
+            user: cfg.credentials?.user || "",
             pass: "",
           },
-          fromName: response.data.config.fromName || "",
-          fromEmail: response.data.config.fromEmail || "",
+          fromName: cfg.fromName || "",
+          fromEmail: cfg.fromEmail || "",
         });
       } else {
         setConfig(null);
         setIsConfigured(false);
+        setVerified(false);
+        setLastVerifiedAt(null);
+        setVerifiedBy(null);
         setFormData({
           smtp: { host: "", port: 587, secure: false },
           credentials: { user: "", pass: "" },
@@ -166,7 +179,7 @@ const EmailConfigurations = () => {
 
   const validateTestEmail = (email) => {
     if (!email || !email.trim()) {
-      return "";
+      return "Test email address is required to verify SMTP configuration";
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
@@ -312,6 +325,9 @@ const EmailConfigurations = () => {
       const response = await api.post("/admin/email/config", formData);
 
       toast.success(response.data.message || "Email configuration saved successfully!");
+      setVerified(false);
+      setLastVerifiedAt(null);
+      setVerifiedBy(null);
       fetchEmailConfig();
       setIsModified(false);
     } catch (error) {
@@ -333,7 +349,6 @@ const EmailConfigurations = () => {
     setTestEmailTouched(true);
 
     if (testEmailErr) {
-      toast.error(testEmailErr);
       const el = document.getElementById("test-email");
       if (el) el.focus();
       return;
@@ -348,10 +363,17 @@ const EmailConfigurations = () => {
 
       if (response.data.verified) {
         toast.success(response.data.message || "Email configuration verified successfully!");
+        setVerified(true);
+        setLastVerifiedAt(response.data.lastVerifiedAt || new Date().toISOString());
+        setVerifiedBy(response.data.verifiedBy || null);
+        fetchEmailConfig();
       } else {
-        toast.warning(response.data.message || "Verification failed");
+        const backendMessage = response.data.message || "Verification failed";
+        const backendError = response.data.error;
+        const displayMessage = backendError ? `${backendMessage}: ${backendError}` : backendMessage;
+        toast.warning(displayMessage);
+        fetchEmailConfig();
       }
-      fetchEmailConfig();
     } catch (error) {
       const statusCode = error.response?.status;
       const errorCode = error.response?.data?.code;
@@ -359,7 +381,13 @@ const EmailConfigurations = () => {
       if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
         return;
       }
-      toast.error(error.response?.data?.message || "Failed to verify configuration");
+      const backendMessage = error.response?.data?.message;
+      const backendError = error.response?.data?.error;
+      if (backendMessage) {
+        toast.error(backendError ? `${backendMessage}: ${backendError}` : backendMessage);
+      } else {
+        toast.error("Failed to verify configuration");
+      }
     } finally {
       setVerifying(false);
     }
@@ -375,6 +403,9 @@ const EmailConfigurations = () => {
       toast.success("Email configuration deleted successfully");
       setConfig(null);
       setIsConfigured(false);
+      setVerified(false);
+      setLastVerifiedAt(null);
+      setVerifiedBy(null);
       setFormData({
         smtp: { host: "", port: 587, secure: false },
         credentials: { user: "", pass: "" },
@@ -844,14 +875,94 @@ const EmailConfigurations = () => {
           .settings-header { flex-direction: column; gap: 1rem; }
         }
 
-        @media (max-width: 768px) {
-          .email-settings-page { padding: 0.75rem; }
-          .header-title { font-size: 1.5rem; }
-          .row { flex-direction: column; }
-          .action-buttons { flex-direction: column; }
-          .btn-action { width: 100%; justify-content: center; }
-        }
-      `}</style>
+@media (max-width: 768px) {
+           .email-settings-page { padding: 0.75rem; }
+           .header-title { font-size: 1.5rem; }
+           .row { flex-direction: column; }
+           .action-buttons { flex-direction: column; }
+           .btn-action { width: 100%; justify-content: center; }
+         }
+
+         .warning-banner {
+           display: flex;
+           align-items: flex-start;
+           gap: 1rem;
+           padding: 1rem 1.25rem;
+           background: linear-gradient(135deg, #fff5f5, #fed7d7);
+           border: 1px solid #feb2b2;
+           border-radius: var(--sc-radius-lg);
+           margin-bottom: 1.5rem;
+         }
+
+         .warning-banner-icon {
+           flex-shrink: 0;
+           width: 40px;
+           height: 40px;
+           border-radius: 50%;
+           background: var(--sc-danger);
+           color: #ffffff;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 1.25rem;
+         }
+
+         .warning-banner-content {
+           flex: 1;
+         }
+
+         .warning-banner-content strong {
+           display: block;
+           color: var(--sc-danger);
+           font-size: 0.9375rem;
+           margin-bottom: 0.25rem;
+         }
+
+         .warning-banner-content p {
+           margin: 0;
+           color: var(--sc-text-secondary);
+           font-size: 0.875rem;
+           line-height: 1.5;
+         }
+
+         .verification-status-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+           gap: 1rem;
+         }
+
+         .verification-status-item {
+           display: flex;
+           flex-direction: column;
+           gap: 0.375rem;
+         }
+
+         .verification-badge {
+           display: inline-flex;
+           align-items: center;
+           gap: 0.375rem;
+           padding: 0.375rem 0.75rem;
+           border-radius: var(--sc-radius-md);
+           font-size: 0.875rem;
+           font-weight: 600;
+         }
+
+         .verification-badge.verified {
+           background: #c6f6d5;
+           color: #276749;
+         }
+
+         .verification-badge.unverified {
+           background: #fefcbf;
+           color: #975a16;
+         }
+
+         .helper-text {
+           font-size: 0.75rem;
+           color: var(--sc-text-muted);
+           margin-top: 0.25rem;
+         }
+       `}</style>
 
       <div className="email-settings-page">
         <div className="settings-header">
@@ -863,37 +974,107 @@ const EmailConfigurations = () => {
             <h1 className="header-title">Email Configuration</h1>
             <p className="header-subtitle">Configure custom SMTP for your college emails</p>
           </div>
-          <div className="header-badge">
-            {isConfigured ? (
-              <>
-                <span className="status-dot active" />
-                Configured
-              </>
-            ) : (
-              <>
-                <span className="status-dot inactive" />
-                Using Platform Email
-              </>
-            )}
-          </div>
-        </div>
+<div className="header-badge">
+             {!isConfigured ? (
+               <>
+                 <span className="status-dot inactive" />
+                 Using Platform Email
+               </>
+             ) : verified ? (
+               <>
+                 <span className="status-dot active" />
+                 Verified
+               </>
+             ) : (
+               <>
+                 <span className="status-dot" style={{ background: "var(--sc-warning)", boxShadow: "0 0 8px var(--sc-warning)" }} />
+                 Configured (Needs Verification)
+               </>
+             )}
+           </div>
 
-        <div className="info-card">
-          <div className="info-card-icon">
-            <FaInfoCircle />
-          </div>
-          <div className="info-card-content">
-            <h6>SMTP Configuration</h6>
-            <ul>
-              <li>Configure your own SMTP server to send emails from your college domain</li>
-              <li>Common ports: <strong>587</strong> (TLS) or <strong>465</strong> (SSL)</li>
-              <li>If not configured, platform email will be used as fallback</li>
-              <li>Use <strong>Verify</strong> to test your configuration before saving</li>
-            </ul>
-          </div>
-        </div>
+{isConfigured && (
+           <div className="settings-card">
+             <div className="card-header-custom">
+               <FaShieldAlt />
+               <h5>Verification Status</h5>
+             </div>
+             <div className="card-body-custom">
+               <div className="verification-status-grid">
+                 <div className="verification-status-item">
+                   <span className="status-item-label">Current Status</span>
+                   <div className="status-item-value">
+                     {verified ? (
+                       <span className="verification-badge verified">
+                         <FaCheckCircle /> Verified
+                       </span>
+                     ) : (
+                       <span className="verification-badge unverified">
+                         Needs Verification
+                       </span>
+                     )}
+                   </div>
+                 </div>
+                 <div className="verification-status-item">
+                   <span className="status-item-label">Last Verified</span>
+                   <div className="status-item-value">
+                     {lastVerifiedAt
+                       ? `${new Date(lastVerifiedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${new Date(lastVerifiedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+                       : "Never Verified"}
+                   </div>
+                 </div>
+                 <div className="verification-status-item">
+                   <span className="status-item-label">Verified By</span>
+                   <div className="status-item-value">
+                     {verifiedBy ? (
+                       <span><FaUser className="me-1" />{verifiedBy}</span>
+                     ) : (
+                       <span className="text-muted">Not available</span>
+                     )}
+                   </div>
+                 </div>
+                 <div className="verification-status-item">
+                   <span className="status-item-label">Recommendation</span>
+                   <div className="status-item-value">
+                     {verified
+                       ? "Configuration is verified and ready to send emails"
+                       : "Please verify this configuration before sending emails"}
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
+       </div>
 
-        <div className="settings-card">
+       <div className="info-card">
+         <div className="info-card-icon">
+           <FaInfoCircle />
+         </div>
+         <div className="info-card-content">
+           <h6>SMTP Configuration</h6>
+           <ul>
+             <li>Configure your own SMTP server to send emails from your college domain</li>
+             <li>Common ports: <strong>587</strong> (TLS) or <strong>465</strong> (SSL)</li>
+             <li>If not configured, platform email will be used as fallback</li>
+             <li>Use <strong>Verify</strong> to test your configuration before saving</li>
+           </ul>
+         </div>
+       </div>
+
+       {isConfigured && !verified && (
+         <div className="warning-banner">
+           <div className="warning-banner-icon">
+             <FaExclamationTriangle />
+           </div>
+           <div className="warning-banner-content">
+             <strong>SMTP configuration has not been verified.</strong>
+             <p>Emails may fail to send until this configuration is successfully verified. Click "Verify &amp; Send Test" before using this configuration.</p>
+           </div>
+         </div>
+       )}
+
+       <div className="settings-card">
           <div className="card-header-custom">
             <FaServer />
             <h5>SMTP Settings</h5>
@@ -1033,26 +1214,31 @@ const EmailConfigurations = () => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">
-                <FaPaperPlane className="text-muted" />
-                Test Email Address
-              </label>
-              <div className="input-wrapper">
-                <input
-                  type="email"
-                  id="test-email"
-                  className={`form-input${testEmailError && testEmailTouched ? " error" : ""}`}
-                  placeholder="Enter email to receive test message"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  onBlur={handleTestEmailBlur}
-                />
-              </div>
-              {testEmailError && testEmailTouched && (
-                <div className="error-message">{testEmailError}</div>
-              )}
-            </div>
+<div className="form-group">
+               <label className="form-label">
+                 <FaPaperPlane className="text-muted" />
+                 Test Email Address <span className="required-mark">*</span>
+               </label>
+               <div className="input-wrapper">
+                 <input
+                   type="email"
+                   id="test-email"
+                   className={`form-input${testEmailError && testEmailTouched ? " error" : ""}`}
+                   placeholder="Enter email to receive test message"
+                   value={testEmail}
+                   onChange={(e) => setTestEmail(e.target.value)}
+                   onBlur={handleTestEmailBlur}
+                 />
+               </div>
+               {testEmailError && testEmailTouched && (
+                 <div className="error-message">{testEmailError}</div>
+               )}
+               {!testEmailError && (
+                 <div className="helper-text">
+                   This field is required to verify SMTP configuration
+                 </div>
+               )}
+             </div>
 
             <div className="action-buttons">
               <button className="btn-action btn-primary" onClick={handleSave} disabled={saving || !isModified}>
