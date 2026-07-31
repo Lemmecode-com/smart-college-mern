@@ -35,6 +35,8 @@ exports.getEmailConfig = async (req, res, next) => {
         fromEmail: config.fromEmail,
         isActive: config.isActive,
         lastVerifiedAt: config.lastVerifiedAt,
+        verified: config.lastVerifiedAt != null,
+        verifiedBy: config.verifiedBy,
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
         hasPassword: config.hasPassword,
@@ -87,6 +89,9 @@ exports.saveEmailConfig = async (req, res, next) => {
         fromEmail: savedConfig.fromEmail,
         isActive: savedConfig.isActive,
         hasPassword: savedConfig.hasPassword,
+        lastVerifiedAt: savedConfig.lastVerifiedAt,
+        verified: savedConfig.lastVerifiedAt != null,
+        verifiedBy: savedConfig.verifiedBy,
       },
     });
   } catch (error) {
@@ -141,7 +146,14 @@ exports.verifyEmailConfig = async (req, res, next) => {
 
     if (result.success) {
       await collegeEmailService.markConfigVerified(collegeId, req.user._id);
-      res.status(200).json({ success: true, message: result.message, verified: true });
+      const updatedConfig = await CollegeEmailConfig.findOne({ collegeId, isActive: true }).select('+verifiedBy');
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        verified: true,
+        lastVerifiedAt: updatedConfig?.lastVerifiedAt,
+        verifiedBy: updatedConfig?.verifiedBy,
+      });
     } else {
       res.status(200).json({ success: false, message: result.message, verified: false, error: result.error });
     }
