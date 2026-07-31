@@ -3,6 +3,7 @@ import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { logger } from "../utils/logger";
+import { getDashboardPath } from "../components/Sidebar/config/navigation.config";
 import {
   FaBell,
   FaCheck,
@@ -774,35 +775,37 @@ export default function NavbarComponent({
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
-                    <button
-                      className="profile-menu-item"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        if (user.role === "SUPER_ADMIN") {
-                          navigate("/super-admin/system-settings/general");
-                        } else if (
-                          ["COLLEGE_ADMIN", "PRINCIPAL"].includes(user.role)
-                        ) {
-                          navigate("/system-settings/general");
-                        } else {
-                          navigate("/");
-                        }
-                      }}
-                      role="menuitem"
-                    >
-                      <div className="profile-menu-item-icon">
-                        <FaCog />
-                      </div>
-                      <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">
-                          Settings
-                        </span>
-                        <span className="profile-menu-item-subtitle">
-                          Manage preferences
-                        </span>
-                      </div>
-                      <FaChevronRight className="profile-menu-item-arrow" />
-                    </button>
+                    {user.role !== "STUDENT" && (
+                      <button
+                        className="profile-menu-item"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          if (user.role === "SUPER_ADMIN") {
+                            navigate("/super-admin/system-settings/general");
+                          } else if (
+                            ["COLLEGE_ADMIN", "PRINCIPAL"].includes(user.role)
+                          ) {
+                            navigate("/system-settings/general");
+                          } else {
+                            navigate(getDashboardPath(user.role));
+                          }
+                        }}
+                        role="menuitem"
+                      >
+                        <div className="profile-menu-item-icon">
+                          <FaCog />
+                        </div>
+                        <div className="profile-menu-item-content">
+                          <span className="profile-menu-item-title">
+                            Settings
+                          </span>
+                          <span className="profile-menu-item-subtitle">
+                            Manage preferences
+                          </span>
+                        </div>
+                        <FaChevronRight className="profile-menu-item-arrow" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="profile-menu-divider" />
