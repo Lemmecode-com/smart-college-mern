@@ -166,12 +166,25 @@ export default function DocumentSettings() {
     const updated = [...documents];
     const formats = updated[docIndex].allowedFormats;
 
-    if (formats.includes(format)) {
-      if (formats.length > 1) {
-        updated[docIndex].allowedFormats = formats.filter((f) => f !== format);
+    // JPG/JPEG equivalence: toggling one automatically toggles the other
+    // because both extensions represent the same image format (image/jpeg).
+    const isAdding = !formats.includes(format);
+
+    if (format === "jpg" || format === "jpeg") {
+      const counterpart = format === "jpg" ? "jpeg" : "jpg";
+      if (isAdding) {
+        updated[docIndex].allowedFormats = [...new Set([...formats, format, counterpart])];
+      } else {
+        updated[docIndex].allowedFormats = formats.filter((f) => f !== format && f !== counterpart);
       }
     } else {
-      updated[docIndex].allowedFormats = [...formats, format];
+      if (isAdding) {
+        updated[docIndex].allowedFormats = [...formats, format];
+      } else {
+        if (formats.length > 1) {
+          updated[docIndex].allowedFormats = formats.filter((f) => f !== format);
+        }
+      }
     }
     setDocuments(updated);
     setIsModified(true);
