@@ -2,36 +2,24 @@ const multer = require("multer");
 const path = require("path");
 const crypto = require("crypto");
 const { getStorageProvider } = require("../services/storage");
+const {
+  BROAD_ALLOWED_MIME_TYPES,
+  validateFilesAgainstConfig,
+} = require("../utils/fileValidation");
 
 const storage = multer.memoryStorage();
 
-const studentAllowedExtensions = {
-  "image/jpeg": [".jpg", ".jpeg"],
-  "image/png": [".png"],
-  "image/jpg": [".jpg", ".jpeg"],
-  "application/pdf": [".pdf"],
-};
-
+/**
+ * Broad MIME type guard used as a first-pass filter in multer.
+ * This accepts the superset of all possible document formats.
+ * Strict per-document format validation against the college's
+ * Document Configuration is performed by the controller using
+ * validateFilesAgainstConfig() from the shared fileValidation utility.
+ */
 const studentFileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
-
-  if (!allowedMimes.includes(file.mimetype)) {
-    return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
-  }
-
-  const ext = path.extname(file.originalname).toLowerCase();
-  const allowedExts = studentAllowedExtensions[file.mimetype];
-
-  if (ext && allowedExts && !allowedExts.includes(ext)) {
+  if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     return cb(
-      new Error(
-        `File type not allowed for ${file.fieldname}. Allowed: ${allowedExts.join(", ")}`,
-      ),
+      new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
       false,
     );
   }
@@ -47,33 +35,14 @@ const uploadStudent = multer({
   },
 });
 
-const teacherAllowedExtensions = {
-  "image/jpeg": [".jpg", ".jpeg"],
-  "image/png": [".png"],
-  "image/jpg": [".jpg", ".jpeg"],
-  "application/pdf": [".pdf"],
-};
-
+/**
+ * Teacher upload filter — also uses the broad MIME guard.
+ * Format-specific validation is handled by controllers.
+ */
 const teacherFileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
-
-  if (!allowedMimes.includes(file.mimetype)) {
-    return cb(new Error("Invalid file type. Only PDF, JPG, JPEG and PNG are allowed."), false);
-  }
-
-  const ext = path.extname(file.originalname).toLowerCase();
-  const allowedExts = teacherAllowedExtensions[file.mimetype];
-
-  if (ext && allowedExts && !allowedExts.includes(ext)) {
+  if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     return cb(
-      new Error(
-        `File type not allowed for ${file.fieldname}. Allowed: ${allowedExts.join(", ")}`,
-      ),
+      new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
       false,
     );
   }
@@ -154,16 +123,12 @@ const uploadTeacherDocuments = (req, res, next) => {
 };
 
 const uploadDocument = (req, res, next) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
-
   const fileFilter = (req, file, cb) => {
-    if (!allowedMimes.includes(file.mimetype)) {
-      return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
+    if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(
+        new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
+        false,
+      );
     }
     cb(null, true);
   };
@@ -202,7 +167,7 @@ async function processUploadsWithStorage(files, category = "student") {
           mimetype: file.mimetype,
           size: file.size,
           fieldname: fieldName,
-        }
+        },
       );
 
       results[fieldName].push({
@@ -227,4 +192,5 @@ module.exports = {
   uploadTeacherDocuments,
   uploadDocument,
   processUploadsWithStorage,
+  validateFilesAgainstConfig,
 };

@@ -4,6 +4,10 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfirmModal from "../../components/ConfirmModal";
 import {
+  validateFileObject,
+  getAcceptAttribute,
+} from "../../utils/fileValidation";
+import {
   FaUniversity,
   FaUserGraduate,
   FaSpinner,
@@ -173,16 +177,16 @@ export default function StudentRegister() {
       return;
     }
 
-    const fileExt = file.name.split(".").pop().toLowerCase();
     const allowedFormats = docConfig.allowedFormats || [
       "pdf",
       "jpg",
       "jpeg",
       "png",
     ];
-    if (!allowedFormats.includes(fileExt)) {
+    const validation = validateFileObject(file, allowedFormats);
+    if (!validation.valid) {
       alert(
-        `${docConfig.label} accepts only: ${allowedFormats.join(", ").toUpperCase()}`,
+        `${docConfig.label} accepts only: ${validation.error}`,
       );
       e.target.value = "";
       return;
@@ -867,14 +871,26 @@ export default function StudentRegister() {
                 <input
                   type="file"
                   name="disabilityCertificate"
-                  accept=".pdf,.jpg,.jpeg,.png"
+                  accept={getAcceptAttribute(
+                    documentConfig?.find((doc) => doc.type === "physically_challenged_certificate")?.allowedFormats || ["pdf", "jpg", "jpeg", "png"]
+                  )}
                   className="sr-upload-input"
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const maxSize = 5 * 1024 * 1024;
+                    const disabilityDocConfig = documentConfig?.find(
+                      (doc) => doc.type === "physically_challenged_certificate"
+                    );
+                    const allowedFormats = disabilityDocConfig?.allowedFormats || ["pdf", "jpg", "jpeg", "png"];
+                    const fileValidation = validateFileObject(file, allowedFormats);
+                    if (!fileValidation.valid) {
+                      alert(`Disability certificate: ${fileValidation.error}`);
+                      e.target.value = "";
+                      return;
+                    }
+                    const maxSize = ((disabilityDocConfig?.maxFileSize || 5)) * 1024 * 1024;
                     if (file.size > maxSize) {
-                      alert("Disability certificate must be less than 5MB");
+                      alert(`Disability certificate must be less than ${disabilityDocConfig?.maxFileSize || 5}MB`);
                       e.target.value = "";
                       return;
                     }
@@ -884,7 +900,11 @@ export default function StudentRegister() {
                 />
                 <div className="sr-upload-overlay">
                   <FaUpload className="sr-upload-icon" />
-                  <span className="sr-upload-hint">PDF, JPG, PNG — max 5MB</span>
+                  <span className="sr-upload-hint">
+                    {getAcceptAttribute(
+                      documentConfig?.find((doc) => doc.type === "physically_challenged_certificate")?.allowedFormats || ["pdf", "jpg", "jpeg", "png"]
+                    ).replace(/\./g, "").toUpperCase().replace(/,/g, ", ")} — max 5MB
+                  </span>
                 </div>
                 {form.disabilityCertificate && (
                   <div className="sr-upload-preview">
@@ -1451,7 +1471,7 @@ export default function StudentRegister() {
                 <input
                   type="file"
                   name={doc.type}
-                  accept={doc.allowedFormats.map((f) => `.${f}`).join(",")}
+                  accept={getAcceptAttribute(doc.allowedFormats)}
                   onChange={handleFileChange}
                   className="sr-upload-input"
                   required={
@@ -1463,7 +1483,7 @@ export default function StudentRegister() {
                 <div className="sr-upload-overlay">
                   <FaUpload className="sr-upload-icon" />
                   <span className="sr-upload-hint">
-                    {doc.allowedFormats.join(", ").toUpperCase()}
+                    {getAcceptAttribute(doc.allowedFormats).replace(/\./g, "").toUpperCase().replace(/,/g, ", ")}
                   </span>
                   {doc.description && (
                     <span className="sr-upload-desc">{doc.description}</span>
