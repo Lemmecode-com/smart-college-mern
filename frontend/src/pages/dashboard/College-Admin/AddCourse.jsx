@@ -185,6 +185,8 @@ export default function AddCourse() {
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
+      const errorMessage = err.response?.data?.message;
+      
       if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
         logger.error("Auth error creating course:", statusCode, errorCode);
         setError({
@@ -192,9 +194,11 @@ export default function AddCourse() {
           statusCode,
           errorCode,
         });
+      } else if (errorCode === "DUPLICATE_COURSE_CODE") {
+        setError("duplicate course code");
       } else {
         setError(
-          err.response?.data?.message ||
+          errorMessage ||
           "Failed to create course. Please try again."
         );
       }
