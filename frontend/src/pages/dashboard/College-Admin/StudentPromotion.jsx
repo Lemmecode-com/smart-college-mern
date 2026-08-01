@@ -341,6 +341,34 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
   const handleBulkPromote = async () => {
     try {
+      // Check if any selected students are ineligible before proceeding
+      const ineligibleStudents = selectedStudents.filter((id) => {
+        const student = students.find((s) => s._id === id);
+        if (!student) return false;
+        // Check fee eligibility
+        const feeIneligible = !student.allInstallmentsPaid && !overrideFeeCheck;
+        // Check attendance eligibility
+        const attendanceIneligible = 
+          student.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
+          (student.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck);
+        return feeIneligible || attendanceIneligible;
+      });
+
+      if (ineligibleStudents.length > 0) {
+        const ineligibleCount = ineligibleStudents.length;
+        const totalSelected = selectedStudents.length;
+        
+        toast.error(
+          `${ineligibleCount} of ${totalSelected} selected student(s) are not eligible for promotion. ` +
+          `Please deselect students with pending fees or insufficient attendance, or use override options.`,
+          {
+            position: "top-right",
+            autoClose: 8000,
+          }
+        );
+        return;
+      }
+
       setLoading(true);
       if (
         overrideAttendanceCheck &&
@@ -997,20 +1025,16 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
                               onClick={() => openPromoteModal(student)}
-                              disabled={!isStudentPromotable(student)}
                               className={`btn btn-sm ${
-                                isStudentPromotable(student)
-                                  ? "btn-primary"
-                                  : "btn-secondary disabled"
+                                student.isFinalYear
+                                  ? "btn-secondary disabled"
+                                  : "btn-primary"
                               }`}
+                              disabled={student.isFinalYear}
                               title={
-                                isStudentPromotable(student)
-                                  ? "Click to promote"
-                                  : student.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE
-                                    ? "Attendance below threshold - cannot promote"
-                                    : student.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
-                                      ? "Attendance not available - cannot promote"
-                                      : "Fees pending - cannot promote"
+                                student.isFinalYear
+                                  ? "Student in final year - use Move to Alumni"
+                                  : "Click to promote"
                               }
                             >
                               <FaArrowUp /> Promote
