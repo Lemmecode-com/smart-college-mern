@@ -122,22 +122,22 @@ if (error) {
        t.employeeId?.toLowerCase().includes(search.toLowerCase())
    );
 
-   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
-          paddingBottom: '2rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem'
-        }}
-      >
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+         initial={{ opacity: 0 }}
+         animate={{ opacity: 1 }}
+         exit={{ opacity: 0 }}
+         className="erp-page erp-viewport-min-100"
+         style={{
+           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+           paddingTop: '1.5rem',
+           paddingBottom: '2rem',
+           paddingLeft: '1rem',
+           paddingRight: '1rem'
+         }}
+       >
+         <div className="erp-page-content">
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}

@@ -337,10 +337,11 @@ export default function CollegeAdminDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper"
+        className="erp-page erp-viewport-min-100"
+        style={{ background: "var(--bg-gradient)" }}
       >
         {/* Main Container - Centered with max-width for better readability */}
-        <div className="dashboard-container-inner">
+        <div className="erp-page-content">
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
