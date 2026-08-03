@@ -328,7 +328,7 @@ export default function TeachersList() {
   const hasResults = filteredTeachers.length > 0;
 
   return (
-    <div className="erp-container">
+    <div className="erp-container erp-page erp-viewport-min-100">
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -339,18 +339,20 @@ export default function TeachersList() {
 
       {/* HEADER */}
       <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaChalkboardTeacher />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Teachers Management</h1>
-            <p className="erp-page-subtitle">
-              Manage faculty members and their academic assignments
-            </p>
+        <div className="erp-page-header-start">
+          <div className="erp-header-content">
+            <div className="erp-header-icon">
+              <FaChalkboardTeacher />
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">Teachers Management</h1>
+              <p className="erp-page-subtitle">
+                Manage faculty members and their academic assignments
+              </p>
+            </div>
           </div>
         </div>
-        <div className="erp-header-actions">
+        <div className="erp-page-header-actions">
           {canCreate('teachers') && (
             <button
               className="erp-btn erp-btn-primary"
@@ -533,7 +535,7 @@ export default function TeachersList() {
               </button>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="erp-table-responsive">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -730,7 +732,6 @@ export default function TeachersList() {
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
-          min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
         
@@ -741,9 +742,6 @@ export default function TeachersList() {
           margin-bottom: 1.5rem;
           box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
           color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           animation: slideDown 0.6s ease;
         }
         
@@ -785,7 +783,7 @@ export default function TeachersList() {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
           transition: all 0.3s ease;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 0.5rem;
         }
@@ -1051,8 +1049,7 @@ export default function TeachersList() {
         }
         
         /* TABLE */
-        .table-container {
-          overflow-x: auto;
+        .erp-table-responsive {
           border-radius: 0 0 16px 16px;
         }
         
@@ -1595,23 +1592,6 @@ export default function TeachersList() {
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
           }
           
           .stats-grid {
