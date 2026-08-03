@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { showSuccess } from "../../utils/toast";
 
 import {
   FaUser,
@@ -141,6 +142,7 @@ export default function Login() {
     setPassword("");
     setError("");
     setLoading(false);
+    showSuccess("Login successful. Welcome back!");
     navigate("/home");
   };
 
