@@ -243,9 +243,22 @@ export default function SecurityAudit() {
     return icons[eventType] || "📋";
   };
 
-  const getCategoryBadgeClass = (category) => {
-    return category === "AUTHENTICATION" ? "category-auth" : "category-system";
-  };
+const getCategoryBadgeClass = (category) => {
+     switch (category) {
+       case 'AUTHENTICATION':
+         return 'category-auth';
+       case 'AUTHORIZATION':
+         return 'category-auth';
+       case 'DATA_ACCESS':
+         return 'category-data';
+       case 'DATA_MODIFICATION':
+         return 'category-modification';
+       case 'SYSTEM':
+         return 'category-system';
+       default:
+         return 'category-system';
+     }
+   };
 
   if (error && !loading) {
     return (
@@ -1035,6 +1048,16 @@ export default function SecurityAudit() {
         .category-auth {
           background: rgba(23, 162, 184, 0.1);
           color: #17a2b8;
+        }
+
+        .category-data {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+
+        .category-modification {
+          background: rgba(255, 193, 7, 0.1);
+          color: #e0a800;
         }
 
         .category-system {
