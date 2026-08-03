@@ -171,10 +171,9 @@ export default function DefaulterList() {
   }
 
   return (
-    <div className="defaulter-list-container">
+    <div className="defaulter-list-container erp-page erp-viewport-min-100">
       <style>{`
         .defaulter-list-container {
-          min-height: 100vh;
           background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
           padding: 1.5rem;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -227,7 +226,7 @@ export default function DefaulterList() {
         .search-box {
           position: relative;
           flex: 1;
-          min-width: 280px;
+          min-width: 0;
         }
         .search-icon {
           position: absolute;
@@ -370,7 +369,7 @@ export default function DefaulterList() {
             value={escalationFilter}
             onChange={(e) => setEscalationFilter(e.target.value)}
             className="form-select"
-            style={{ width: "200px" }}
+            style={{ width: "100%", maxWidth: "200px" }}
           >
             <option value="">All Escalation Levels</option>
             <option value="DUE_TODAY">Due Today</option>

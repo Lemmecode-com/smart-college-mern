@@ -5,11 +5,8 @@
 
 /* ================= CSS VARIABLES ================= */
 :root {
-  --sidebar-width-expanded: 250px;
-  --sidebar-width-collapsed: 80px;
   --sidebar-transition-duration: 0.3s;
   --sidebar-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
-  --navbar-height: 60px;
 }
 
 /* ================= LAYOUT WRAPPER ================= */
@@ -17,7 +14,10 @@
 .layout-wrapper {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   position: relative;
 }
 
@@ -28,7 +28,8 @@
   left: 0;
   top: 0;
   height: 100vh;
-  width: var(--sidebar-width-expanded);
+  height: 100dvh;
+  width: var(--erp-sidebar-width);
   z-index: 1030;
   transition: width var(--sidebar-transition-duration)
     var(--sidebar-transition-timing);
@@ -39,7 +40,7 @@
 /* Desktop collapsed state */
 @media (min-width: 768px) {
   .layout-wrapper.layout-collapsed .sidebar-container {
-    width: var(--sidebar-width-collapsed) !important;
+    width: var(--erp-sidebar-collapsed-width) !important;
   }
 }
 
@@ -57,18 +58,19 @@
   display: flex;
   flex-direction: column;
   min-width: 0; /* Critical: prevents flex overflow */
-  margin-left: var(--sidebar-width-expanded);
+  max-width: 100%;
+  margin-left: var(--erp-sidebar-width);
   transition: margin-left var(--sidebar-transition-duration)
     var(--sidebar-transition-timing), width var(--sidebar-transition-duration)
     var(--sidebar-transition-timing);
-  width: calc(100% - var(--sidebar-width-expanded));
+  width: calc(100% - var(--erp-sidebar-width));
 }
 
 /* Collapsed state - content expands */
 @media (min-width: 768px) {
   .layout-wrapper.layout-collapsed .layout-main {
-    margin-left: var(--sidebar-width-collapsed);
-    width: calc(100% - var(--sidebar-width-collapsed));
+    margin-left: var(--erp-sidebar-collapsed-width);
+    width: calc(100% - var(--erp-sidebar-collapsed-width));
   }
 }
 
@@ -89,6 +91,7 @@
   z-index: 1020;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: var(--erp-navbar-height);
 }
 
 /* ================= CONTENT AREA ================= */
@@ -96,14 +99,17 @@
   flex: 1;
   padding: 1.5rem;
   overflow-x: hidden;
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: calc(100dvh - var(--erp-navbar-height));
+  max-width: 100%;
 }
 
 /* Mobile: Compact padding */
 @media (max-width: 767.98px) {
   .layout-content {
     padding: 1rem;
-    min-height: calc(100vh - var(--navbar-height) - 2rem);
+    padding-left: calc(1rem + var(--erp-safe-left));
+    padding-right: calc(1rem + var(--erp-safe-right));
+    min-height: calc(100dvh - var(--erp-navbar-height) - 2rem);
   }
 }
 

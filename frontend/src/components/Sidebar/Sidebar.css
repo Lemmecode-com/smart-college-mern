@@ -8,9 +8,9 @@
 
 /* ================= CSS CUSTOM PROPERTIES ================= */
 :root {
-  /* Sidebar dimensions */
-  --sidebar-width-expanded: 250px;
-  --sidebar-width-collapsed: 80px;
+  /* Sidebar dimensions — aligned to centralized --erp-* tokens */
+  --sidebar-width-expanded: var(--erp-sidebar-width);
+  --sidebar-width-collapsed: var(--erp-sidebar-collapsed-width);
 
   /* Spacing scale (8px base unit) */
   --spacing-xs: 0.25rem; /* 4px */
@@ -68,6 +68,7 @@
   top: 0;
   left: 0;
   height: 100vh;
+  height: 100dvh;
   width: var(--sidebar-width-expanded);
   background: transparent;
   z-index: 1030;
@@ -97,6 +98,7 @@
 .sidebar-content {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   background: linear-gradient(
     180deg,
     var(--sidebar-bg-gradient-start) 0%,
@@ -139,6 +141,8 @@
 /* ================= OFFCANVAS SPECIFIC ================= */
 .sidebar-offcanvas .offcanvas-body {
   padding: 0;
+  padding-top: var(--erp-safe-top);
+  padding-bottom: var(--erp-safe-bottom);
   background: linear-gradient(
     180deg,
     var(--sidebar-bg-gradient-start) 0%,
@@ -149,15 +153,19 @@
 .sidebar-offcanvas .offcanvas-header {
   background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid var(--sidebar-border);
+  padding-top: calc(var(--spacing-lg) + var(--erp-safe-top));
 }
 
 .sidebar-offcanvas {
   height: 100vh !important;
+  height: 100dvh !important;
   max-height: 100vh !important;
+  max-height: 100dvh !important;
 }
 
 .sidebar-offcanvas .offcanvas-backdrop {
   height: 100vh !important;
+  height: 100dvh !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
   opacity: 1 !important;
   transition: opacity 0.3s ease !important;
@@ -170,18 +178,21 @@
 
 .offcanvas-logo-section {
   background: rgba(255, 255, 255, 0.05);
+  padding-top: var(--erp-safe-top);
 }
 
 .offcanvas-nav-section {
   padding: var(--spacing-lg);
-  max-height: calc(100vh - 200px);
+  max-height: calc(100dvh - 200px);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 @media (max-width: 767.98px) {
   .offcanvas-nav-section {
-    max-height: calc(100vh - 180px);
+    max-height: calc(100dvh - 180px);
+    padding-top: var(--erp-safe-top);
+    padding-bottom: var(--erp-safe-bottom);
   }
 
   /* Chrome, Edge, Safari */
@@ -211,6 +222,7 @@
 
 .offcanvas-footer-section {
   background: rgba(255, 255, 255, 0.05);
+  padding-bottom: var(--erp-safe-bottom);
 }
 
 /* ================= LOGO SECTION - Enterprise SaaS Compact Style ================= */
@@ -710,6 +722,7 @@
 @media (max-width: 767.98px) {
   .sidebar-content {
     padding: var(--spacing-md);
+    padding-top: calc(var(--spacing-md) + var(--erp-safe-top));
   }
 
   .sidebar-logo {
@@ -925,16 +938,6 @@ body.sidebar-open {
   .main-content.with-sidebar {
     margin-left: var(--sidebar-width-expanded);
     padding-left: var(--spacing-lg);
-  }
-
-  @media (max-width: 1023.98px) {
-    .sidebar-container {
-      width: 260px;
-    }
-
-    .main-content.with-sidebar {
-      margin-left: 260px;
-    }
   }
 }
 

@@ -267,7 +267,7 @@ export default function SubjectList() {
   const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -412,7 +412,7 @@ export default function SubjectList() {
 
           <div className="erp-card-body">
             {/* TABLE */}
-            <div className="table-container">
+            <div className="erp-table-responsive table-container">
               {loadingSubjects ? (
                 renderSkeleton()
               ) : filteredSubjects.length === 0 ? (
@@ -623,13 +623,6 @@ export default function SubjectList() {
           --sidebar-active: rgba(61, 181, 230, 0.2);
           --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
           --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
-        }
-
-        .erp-container {
-          padding: 1.5rem;
-          background: linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%);
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
         }
 
         .erp-page-header {
@@ -1598,10 +1591,6 @@ export default function SubjectList() {
         }
         
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;

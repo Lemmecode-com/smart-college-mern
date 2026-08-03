@@ -159,10 +159,9 @@ export default function AccountantDashboard() {
   }
 
   return (
-    <div className="accountant-dashboard">
+    <div className="accountant-dashboard erp-page erp-viewport-min-100">
       <style>{`
         .accountant-dashboard {
-          min-height: 100vh;
           background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
           padding: 1.5rem;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

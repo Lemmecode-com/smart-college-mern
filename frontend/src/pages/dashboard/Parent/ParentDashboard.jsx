@@ -215,7 +215,7 @@ export default function ParentDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper"
+        className="dashboard-wrapper erp-page erp-viewport-min-100"
       >
         <div className="dashboard-container-inner">
           {/* ================= BREADCRUMB ================= */}

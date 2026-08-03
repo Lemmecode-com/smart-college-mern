@@ -107,7 +107,7 @@ export default function ViewDepartment() {
   } = department;
 
   return (
-    <Container fluid className="p-4">
+    <Container fluid className="p-4 erp-page erp-viewport-min-100">
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },

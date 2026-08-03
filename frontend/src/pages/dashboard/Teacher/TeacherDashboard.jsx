@@ -182,7 +182,7 @@ export default function TeacherDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-vh-100"
+        className="erp-page erp-viewport-min-100"
         style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}
       >
         <div className="container-fluid px-3 px-md-4 py-3 py-md-4">

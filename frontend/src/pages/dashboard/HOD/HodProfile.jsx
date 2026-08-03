@@ -622,13 +622,13 @@ export default function HodProfile() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      className="erp-page erp-viewport-min-100"
       style={{
-        minHeight: "100vh",
         background: `linear-gradient(180deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
         padding: "1.25rem 1rem 2.5rem",
       }}
     >
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+      <div className="erp-page-content" style={{ maxWidth: 1120 }}>
 
         {/* ==================================================
              1. PROFILE HEADER

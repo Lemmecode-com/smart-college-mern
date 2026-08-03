@@ -95,7 +95,7 @@ export default function ViewParent() {
   if (!profile) return <div className="text-center p-4">Profile not found</div>;
 
   return (
-    <div className="dashboard-wrapper" style={{ backgroundColor: "#f8f9fa", minHeight: "100vh" }}>
+    <div className="dashboard-wrapper erp-viewport-min-100" style={{ backgroundColor: "#f8f9fa" }}>
       <Container fluid className="py-4" style={{ maxWidth: "1200px" }}>
         
         {/* Header Section */}

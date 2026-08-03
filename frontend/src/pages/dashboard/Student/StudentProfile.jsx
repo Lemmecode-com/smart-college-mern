@@ -275,7 +275,7 @@ export default function StudentProfile() {
 
   if (!profile) {
     return (
-      <div className="container-fluid py-5" role="main">
+      <div className="erp-page erp-viewport-min-100 py-5" role="main">
         <ToastContainer position="top-right" />
         <div className="row justify-content-center">
           <div className="col-md-8">
@@ -309,7 +309,7 @@ export default function StudentProfile() {
   const { student, college, department, course } = profile;
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
+    <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
 
       {/* Skip Link for Screen Readers */}

@@ -92,8 +92,8 @@ export default function ExportButtons({
 
   return (
     <div
-      className="export-buttons"
-      style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+      className="export-buttons erp-actions-stack-mobile"
+      style={{ display: "flex", gap: "0.5rem" }}
     >
       {showPDF && (
         <button

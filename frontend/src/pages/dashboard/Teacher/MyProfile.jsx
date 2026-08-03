@@ -226,8 +226,8 @@ export default function MyProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-page erp-viewport-min-100"
         style={{
-          minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
           paddingTop: '1.5rem',
           paddingBottom: '1.5rem',

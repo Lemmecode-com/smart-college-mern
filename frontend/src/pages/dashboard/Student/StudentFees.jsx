@@ -345,7 +345,7 @@ export default function StudentFees() {
 
   if (!dashboard) {
     return (
-      <div className="fees-container">
+      <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
         <div className="empty-wrapper fade-in">
           <div className="empty-content">
             <FaMoneyCheckAlt className="empty-icon" />
@@ -368,7 +368,7 @@ export default function StudentFees() {
   }
 
   return (
-    <div className="fees-container" role="main">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -885,13 +885,6 @@ export default function StudentFees() {
 
       {/* ================= CSS ================= */}
       <style>{`
-        /* ================= CONTAINER ================= */
-        .fees-container {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-        }
-
         /* ================= LOADING ================= */
         .loading-wrapper {
           display: flex;
@@ -1855,10 +1848,6 @@ export default function StudentFees() {
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 1024px) {
-          .fees-container {
-            padding: 1rem;
-          }
-
           .fees-header {
             padding: 1.25rem;
             flex-direction: column;
@@ -1976,11 +1965,6 @@ export default function StudentFees() {
 
         /* ================= PRINT STYLES ================= */
         @media print {
-          .fees-container {
-            background: white;
-            padding: 0;
-          }
-
           .fees-header {
             background: #1a4b6d !important;
             -webkit-print-color-adjust: exact;

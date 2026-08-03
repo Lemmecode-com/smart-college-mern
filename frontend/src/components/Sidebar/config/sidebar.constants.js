@@ -46,8 +46,8 @@ export const ANIMATION_TIMING = {
  * CSS custom property names (for JS access)
  */
 export const CSS_PROPERTIES = {
-  SIDEBAR_WIDTH_EXPANDED: '--sidebar-width-expanded',
-  SIDEBAR_WIDTH_COLLAPSED: '--sidebar-width-collapsed'
+  SIDEBAR_WIDTH_EXPANDED: '--erp-sidebar-width',
+  SIDEBAR_WIDTH_COLLAPSED: '--erp-sidebar-collapsed-width'
 };
 
 /**
