@@ -47,6 +47,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import Layout from "./components/Layout/Layout";
 import Loading from "./components/Loading";
+import ScrollToTop from "./components/ScrollToTop";
 
 /* ================= LANDING PAGE ================= */
 import LandingPage from "./pages/LandingPage";
@@ -307,6 +308,7 @@ function AppContent({
             You are currently offline. Some features may not work.
           </div>
         )}
+        <ScrollToTop />
         {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
         <Routes>
           {/* ================= LANDING PAGE (ROOT) ================= */}
