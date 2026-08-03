@@ -4,7 +4,6 @@
 
 /* Wrapper */
 .principal-dashboard-wrapper {
-  min-height: 100vh;
   background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
   padding-bottom: 2rem;
 }

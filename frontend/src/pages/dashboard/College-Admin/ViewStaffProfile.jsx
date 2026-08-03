@@ -385,7 +385,7 @@ export default function ViewStaffProfile() {
   ];
 
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper erp-viewport-min-100">
       <Container fluid className="py-4">
 
         {/* Header */}
