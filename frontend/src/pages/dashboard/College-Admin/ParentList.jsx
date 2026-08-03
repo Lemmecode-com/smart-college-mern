@@ -396,7 +396,7 @@ export default function ParentList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        style={{ padding: "24px", maxWidth: "1400px", margin: "0 auto" }}
+        className="erp-page-content erp-viewport-min-100"
       >
         {/* Header Section */}
         <motion.div
