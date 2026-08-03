@@ -246,7 +246,7 @@ export default function ChildDetail() {
 
   if (!child) {
     return (
-      <div className="child-detail-page">
+      <div className="child-detail-page erp-viewport-min-100">
         <div className="erp-container">
           <div className="text-center py-5">
             <FaUser size={48} className="text-muted mb-3" />
@@ -273,7 +273,7 @@ export default function ChildDetail() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper"
+        className="parent-portal-wrapper erp-viewport-min-100"
       >
         <div className="parent-portal-container">
           {/* ================= BREADCRUMB ================= */}

@@ -33,7 +33,7 @@
   --navbar-info: #17a2b8;
 
   /* Spacing */
-  --navbar-height: 64px;
+  --navbar-height: var(--erp-navbar-height);
   --navbar-padding-x: 1.5rem;
   --navbar-item-gap: 1rem;
 
@@ -71,10 +71,14 @@
 @media (max-width: 575.98px) {
   .navbar {
     min-height: 56px;
+    padding-top: var(--erp-safe-top);
+    padding-bottom: calc(var(--erp-safe-bottom) + 0.5rem);
   }
   .navbar-fluid-container {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
+    padding-left: calc(1rem + var(--erp-safe-left));
+    padding-right: calc(1rem + var(--erp-safe-right));
   }
 }
 

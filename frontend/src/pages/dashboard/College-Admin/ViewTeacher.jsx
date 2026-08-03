@@ -224,7 +224,7 @@ export default function ViewTeacher() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -515,13 +515,6 @@ export default function ViewTeacher() {
 
       {/* STYLES */}
       <style>{`
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
-
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -1175,10 +1168,6 @@ export default function ViewTeacher() {
         }
         
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;

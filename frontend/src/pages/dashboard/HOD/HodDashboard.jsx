@@ -366,8 +366,8 @@ const HodDashboard = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-page erp-viewport-min-100"
         style={{
-          minHeight: "100vh",
           background: `linear-gradient(135deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
           padding: "1.5rem 1rem 3rem",
         }}

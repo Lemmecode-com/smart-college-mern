@@ -1396,7 +1396,7 @@ Stores security events and auth/system audit events.
 |---|---|---:|---|---|
 | `_id` | ObjectId | No | Auto |  |
 | `eventType` | String | Yes |  | See event enum below |
-| `category` | String | Yes | `AUTHENTICATION` | `AUTHENTICATION`, `AUTHORIZATION`, `DATA_ACCESS`, `SYSTEM` |
+| `category` | String | Yes | `AUTHENTICATION` | `AUTHENTICATION`, `AUTHORIZATION`, `DATA_ACCESS`, `DATA_MODIFICATION`, `SYSTEM` |
 | `severity` | String | Yes | `LOW` | `LOW`, `MEDIUM`, `HIGH`, `CRITICAL` |
 | `userId` | ObjectId ref=`User` | No |  | Indexed |
 | `userEmail` | String | No |  | Lowercase, trimmed, indexed |

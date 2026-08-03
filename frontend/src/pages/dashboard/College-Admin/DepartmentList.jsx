@@ -231,7 +231,7 @@ export default function DepartmentList() {
   }
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="container-fluid py-3 py-md-4 animate-fade-in erp-page erp-viewport-min-100">
       {/* ================= TOP BAR ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
