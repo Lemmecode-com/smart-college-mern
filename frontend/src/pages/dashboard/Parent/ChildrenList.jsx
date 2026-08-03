@@ -153,14 +153,19 @@ export default function ChildrenList() {
       );
     }
 
-    // Apply status filter
+    // Apply status filter - "ALL" shows all students including PENDING
     if (statusFilter === "ACTIVE") {
       filtered = filtered.filter(child =>
-        ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(child.status)
+        ["APPROVED", "ENROLLED"].includes(child.status)
       );
-    } else if (statusFilter !== "ALL") {
-      filtered = filtered.filter(child => child.status === statusFilter);
+    } else if (statusFilter === "PENDING") {
+      filtered = filtered.filter(child => child.status === "PENDING");
+    } else if (statusFilter === "APPROVED") {
+      filtered = filtered.filter(child => child.status === "APPROVED");
+    } else if (statusFilter === "ENROLLED") {
+      filtered = filtered.filter(child => child.status === "ENROLLED");
     }
+    // statusFilter === "ALL" shows all students (no filtering)
 
     setFilteredChildren(filtered);
   };
@@ -169,8 +174,6 @@ export default function ChildrenList() {
     const statusClasses = {
       APPROVED: "parent-status-approved",
       ENROLLED: "parent-status-approved",
-      OFFER_MADE: "parent-status-approved",
-      SEAT_CONFIRMED: "parent-status-approved",
       PENDING: "parent-status-pending",
       REJECTED: "parent-status-rejected",
       DEACTIVATED: "parent-status-deactivated",
@@ -180,13 +183,11 @@ export default function ChildrenList() {
 
   const getStatusLabel = (status) => {
     const statusLabels = {
-      APPROVED: "Active Student",
+      APPROVED: "Approved",
       ENROLLED: "Enrolled",
-      OFFER_MADE: "Offer Made",
-      SEAT_CONFIRMED: "Seat Confirmed",
-      PENDING: "Application Pending",
-      REJECTED: "Application Rejected",
-      DEACTIVATED: "Account Inactive",
+      PENDING: "Pending",
+      REJECTED: "Rejected",
+      DEACTIVATED: "Deactivated",
     };
     return statusLabels[status] || status;
   };
@@ -275,6 +276,7 @@ export default function ChildrenList() {
                 >
                   <option value="ALL">All Status</option>
                   <option value="ACTIVE">Active</option>
+                  <option value="PENDING">Pending</option>
                   <option value="APPROVED">Approved</option>
                   <option value="ENROLLED">Enrolled</option>
                 </select>
@@ -381,7 +383,7 @@ export default function ChildrenList() {
                                 <FaEye />
                                 View
                               </motion.button>
-                              {["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(child.status) && (
+                              {["APPROVED", "ENROLLED"].includes(child.status) && (
                                 <>
                                   <motion.button
                                     whileHover={{ scale: 1.05 }}
