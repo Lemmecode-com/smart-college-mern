@@ -185,7 +185,7 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "#0f172a" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb items={[{ label: "Dashboard" }]} />
 
@@ -674,14 +674,6 @@ export default function SuperAdminDashboard() {
           --transition-fast: 0.15s ease;
           --transition-base: 0.25s ease;
           --transition-slow: 0.35s ease;
-        }
-
-        /* ================= BASE CONTAINER ================= */
-        .erp-container {
-          padding: var(--spacing-xl);
-          background: var(--bg-primary);
-          min-height: 100vh;
-          animation: fadeIn 0.5s ease;
         }
 
         /* ================= PAGE HEADER ================= */
@@ -1846,10 +1838,6 @@ export default function SuperAdminDashboard() {
         }
 
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;

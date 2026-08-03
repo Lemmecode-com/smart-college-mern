@@ -57,7 +57,7 @@ export default function MyStudents() {
   const totalPages = pagination.pages || 0;
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid erp-page erp-viewport-min-100">
       {/* ================= HEADER ================= */}
       <div className="gradient-header p-4 rounded-4 text-white shadow-lg mb-4">
         <h3 className="fw-bold mb-1">
@@ -80,7 +80,8 @@ export default function MyStudents() {
       {/* ================= TABLE ================= */}
       {students.length > 0 && (
         <div className="card shadow-lg border-0 rounded-4 glass-card">
-          <div className="card-body">
+            <div className="card-body">
+            <div className="erp-table-responsive">
             <table className="table table-hover align-middle">
               <thead className="table-dark">
                 <tr>
@@ -118,6 +119,7 @@ export default function MyStudents() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* ================= PAGINATION ================= */}
             <div className="mt-4">

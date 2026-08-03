@@ -218,7 +218,7 @@ export default function PrincipalDashboard() {
   ];
 
   return (
-    <div className="principal-dashboard-wrapper">
+    <div className="principal-dashboard-wrapper erp-page erp-viewport-min-100">
       {/* Hero Header Section */}
       <div className="dashboard-hero" style={{ background: BRAND_COLORS.primary.gradient }}>
         <div className="hero-pattern"></div>
