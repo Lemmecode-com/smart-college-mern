@@ -766,7 +766,7 @@ export default function CourseList() {
   const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
 
   return (
-    <div className="dashboard-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "#0f172a" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -957,7 +957,7 @@ export default function CourseList() {
             </div>
 
             {/* TABLE */}
-            <div className="table-wrapper">
+            <div className="erp-table-responsive table-wrapper">
               {loadingCourses ? (
                 <SkeletonLoader />
               ) : filteredCourses.length === 0 ? (
@@ -1026,12 +1026,6 @@ export default function CourseList() {
         /* ================= BASE STYLES ================= */
         * {
           box-sizing: border-box;
-        }
-
-        .dashboard-container {
-          min-height: 100vh;
-          background: var(--bg-primary);
-          padding: 1.5rem;
         }
 
         /* ================= TOAST NOTIFICATIONS ================= */
@@ -2375,10 +2369,6 @@ export default function CourseList() {
         }
 
         @media (max-width: 768px) {
-          .dashboard-container {
-            padding: 1rem;
-          }
-
           .page-header {
             flex-direction: column;
             align-items: flex-start;
