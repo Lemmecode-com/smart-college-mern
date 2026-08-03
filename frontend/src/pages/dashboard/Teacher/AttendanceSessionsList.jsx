@@ -257,7 +257,7 @@ export default function AttendanceSessionsList() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* <motion.button
+                <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowModal(true)}
@@ -278,7 +278,7 @@ export default function AttendanceSessionsList() {
                   }}
                 >
                   <FaPlus /> Create Session
-                </motion.button> */}
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
