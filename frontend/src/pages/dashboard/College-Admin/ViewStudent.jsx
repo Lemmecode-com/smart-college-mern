@@ -592,7 +592,7 @@ export default function ViewStudent() {
   }
 
   return (
-    <div className="view-student-page">
+    <div className="view-student-page erp-page erp-viewport-min-100">
       {/* ================= PAGE HEADER ================= */}
       <div className="page-header-enterprise">
         <div className="header-content">
@@ -1005,7 +1005,6 @@ export default function ViewStudent() {
            ===================================================== */
         
         .view-student-page {
-          min-height: 100vh;
           background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
           padding: 2rem;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

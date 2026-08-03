@@ -4,6 +4,7 @@
 
 .dashboard-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
   padding-bottom: 2rem;
 }

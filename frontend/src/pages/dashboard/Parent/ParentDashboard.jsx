@@ -112,6 +112,8 @@ export default function ParentDashboard() {
   const navigate = useNavigate();
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [stats, setStats] = useState({
     totalChildren: 0,
     activeChildren: 0,
@@ -127,6 +129,14 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     fetchChildren();
+  }, [refreshKey]);
+
+  // Update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const fetchChildren = async () => {
@@ -205,7 +215,7 @@ export default function ParentDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper"
+        className="dashboard-wrapper erp-page erp-viewport-min-100"
       >
         <div className="dashboard-container-inner">
           {/* ================= BREADCRUMB ================= */}
@@ -249,9 +259,10 @@ export default function ParentDashboard() {
                     <div className="header-time-display">
                       <div className="time-label">Current Time</div>
                       <div className="time-value">
-                        {new Date().toLocaleTimeString('en-US', {
+                        {currentTime.toLocaleTimeString('en-US', {
                           hour: '2-digit',
                           minute: '2-digit',
+                          second: '2-digit',
                           hour12: true
                         })}
                       </div>
@@ -259,7 +270,7 @@ export default function ParentDashboard() {
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)' }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => window.location.reload()}
+                      onClick={() => setRefreshKey(prev => prev + 1)}
                       className="dashboard-btn btn-profile"
                       onFocus={(e) => {
                         e.target.style.outline = '2px solid #1a4b6d';

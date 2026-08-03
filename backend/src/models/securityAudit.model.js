@@ -43,7 +43,7 @@ const securityAuditSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['AUTHENTICATION', 'AUTHORIZATION', 'DATA_ACCESS', 'SYSTEM'],
+    enum: ['AUTHENTICATION', 'AUTHORIZATION', 'DATA_ACCESS', 'DATA_MODIFICATION', 'SYSTEM'],
     default: 'AUTHENTICATION',
     index: true
   },

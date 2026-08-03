@@ -142,8 +142,8 @@ export default function AttendanceSessionsList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-page erp-viewport-min-100"
         style={{
-          minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
           paddingTop: '1.5rem',
           paddingBottom: '2rem',
@@ -257,7 +257,7 @@ export default function AttendanceSessionsList() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* <motion.button
+                <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowModal(true)}
@@ -278,7 +278,7 @@ export default function AttendanceSessionsList() {
                   }}
                 >
                   <FaPlus /> Create Session
-                </motion.button> */}
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

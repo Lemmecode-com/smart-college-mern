@@ -44,6 +44,7 @@
 /* ================= PARENT PORTAL WRAPPER ================= */
 .parent-portal-wrapper {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-gradient);
   padding: var(--spacing-lg);
 }

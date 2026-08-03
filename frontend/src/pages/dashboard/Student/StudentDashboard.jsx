@@ -292,7 +292,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="student-dashboard-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -973,13 +973,6 @@ export default function StudentDashboard() {
 
       {/* ================= STYLES ================= */}
       <style>{`
-        /* ================= CONTAINER ================= */
-        .student-dashboard-container {
-          padding: 1.5rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-        }
-
         /* ================= LOADING STATE ================= */
         .dashboard-loading {
           display: flex;
@@ -2203,10 +2196,6 @@ export default function StudentDashboard() {
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 768px) {
-          .student-dashboard-container {
-            padding: 1rem;
-          }
-
           .dashboard-header {
             flex-direction: column;
             gap: 1rem;

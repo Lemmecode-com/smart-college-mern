@@ -51,7 +51,7 @@ export default function Pagination({ page, totalPages, setPage }) {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+    <div className="d-flex justify-content-center align-items-center gap-2 flex-wrap erp-actions erp-actions-center">
       {/* First page button */}
       <button
         className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center hover-lift"
