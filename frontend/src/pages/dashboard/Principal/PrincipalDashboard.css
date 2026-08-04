@@ -195,6 +195,12 @@
   line-height: 1;
 }
 
+.stat-value-nav {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #6c757d;
+}
+
 .stat-subtext {
   color: #9ca3af;
   font-size: 0.75rem;

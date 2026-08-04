@@ -13,7 +13,6 @@ import {
   FaCog,
   FaChevronLeft,
   FaChevronRight,
-  FaChevronDown,
 } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
@@ -43,6 +42,12 @@ export default function NavbarComponent({
   const [backoffUntil, setBackoffUntil] = useState(null);
 
   const prevCount = useRef(0);
+  const notifTriggerRef = useRef(null);
+  const profileTriggerRef = useRef(null);
+  const notifMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const [notifMenuStyle, setNotifMenuStyle] = useState({});
+  const [profileMenuStyle, setProfileMenuStyle] = useState({});
 
   // Handle window resize
   useEffect(() => {
@@ -53,6 +58,81 @@ export default function NavbarComponent({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  /* ================= DROPDOWN VIEWPORT POSITIONING ================= */
+  const positionDropdown = (triggerRef, menuRef, setMenuStyle) => {
+    if (!triggerRef.current || !menuRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuRect = menuRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const safeMargin = 8;
+
+    let left = triggerRect.left;
+    let top = triggerRect.bottom + 8;
+
+    // Ensure dropdown doesn't overflow right edge
+    if (left + menuRect.width > viewportWidth - safeMargin) {
+      left = viewportWidth - safeMargin - menuRect.width;
+    }
+
+    // Ensure dropdown doesn't overflow left edge
+    if (left < safeMargin) {
+      left = safeMargin;
+    }
+
+    // Ensure dropdown doesn't overflow bottom
+    if (top + menuRect.height > window.innerHeight - safeMargin) {
+      top = triggerRect.top - menuRect.height - 8;
+    }
+
+    setMenuStyle({
+      position: "fixed",
+      left: `${left}px`,
+      top: `${top}px`,
+      transform: "none",
+    });
+  };
+
+  useEffect(() => {
+    if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+      positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+    }
+  }, [notifOpen]);
+
+  useEffect(() => {
+    if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+      positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+    }
+  }, [profileOpen]);
+
+  useEffect(() => {
+    if (!notifOpen && !profileOpen) return;
+
+    const handleScroll = () => {
+      if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+        positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+      }
+      if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+        positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+      }
+    };
+
+    const handleResize = () => {
+      if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+        positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+      }
+      if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+        positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [notifOpen, profileOpen]);
 
   if (!user) return null;
 
@@ -453,8 +533,6 @@ export default function NavbarComponent({
         className="bg-dark-navbar"
         style={{
           zIndex: 1020,
-          width: "100%",
-          minHeight: "var(--navbar-height, 64px)",
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -464,7 +542,7 @@ export default function NavbarComponent({
           className="navbar-fluid-container d-flex justify-content-between align-items-center"
         >
           {/* LEFT - With Mobile Toggle */}
-          <div className="d-flex align-items-center gap-3">
+          <div className="d-flex align-items-center gap-3 navbar-left-group">
             {/* MOBILE HAMBURGER BUTTON - Visible only on mobile */}
             {isMobile && (
               <button
@@ -531,7 +609,7 @@ export default function NavbarComponent({
           </div>
 
           {/* RIGHT */}
-          <Nav className="nav-items-gap d-flex align-items-center flex-row">
+          <Nav className="nav-items-gap navbar-right-group d-flex align-items-center flex-row">
             {user.role !== "SUPER_ADMIN" && (
               <>
                 {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
@@ -548,6 +626,7 @@ export default function NavbarComponent({
               align="end"
             >
               <div
+                ref={notifTriggerRef}
                 className="navbar-icon-button notification-bell"
                 role="button"
                 aria-label="Notifications"
@@ -586,6 +665,8 @@ export default function NavbarComponent({
               </div>
 
               <Dropdown.Menu
+                ref={notifMenuRef}
+                style={notifMenuStyle}
                 className="notification-dropdown shadow-lg"
                 role="menu"
                 aria-label="Notification menu"
@@ -693,6 +774,7 @@ export default function NavbarComponent({
               drop="down"
             >
               <Dropdown.Toggle
+                ref={profileTriggerRef}
                 as="div"
                 className="navbar-user-dropdown p-0"
                 id="profile-dropdown-toggle"
@@ -718,11 +800,11 @@ export default function NavbarComponent({
                 <span className="user-name-display d-none d-lg-block">
                   {getUserDisplayName()}
                 </span>
-                {/* Chevron Down */}
-                <FaChevronDown className="user-dropdown-chevron d-none d-lg-block" />
               </Dropdown.Toggle>
 
               <Dropdown.Menu
+                ref={profileMenuRef}
+                style={profileMenuStyle}
                 className="profile-dropdown shadow-lg"
                 role="menu"
                 aria-label="Profile menu"

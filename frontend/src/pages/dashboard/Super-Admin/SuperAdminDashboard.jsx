@@ -185,7 +185,7 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "#0f172a" }}>
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb items={[{ label: "Dashboard" }]} />
 
