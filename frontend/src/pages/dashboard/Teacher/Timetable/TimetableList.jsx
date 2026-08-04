@@ -713,7 +713,7 @@ export default function TimetableList() {
               </div>
               
               {(activeTab === "active" ? timetables : archivedTimetables).length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="erp-timetable-responsive">
                   <table style={tableStyle}>
                     <thead>
                       <tr>
