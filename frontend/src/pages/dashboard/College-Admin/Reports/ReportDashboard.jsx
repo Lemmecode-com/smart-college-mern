@@ -105,6 +105,7 @@ const AUTH_ERROR_CODES = new Set([
 
 export default function ReportDashboard() {
   // ================= STATE MANAGEMENT =================
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -695,6 +696,16 @@ export default function ReportDashboard() {
           <div className="card-body">
             <div className="stats-grid">
               <div className="stat-box">
+                <FaUsers className="stat-icon total" />
+                <div>
+                  <span className="stat-value">
+                    {admissionData?.total || 0}
+                  </span>
+                  <span className="stat-label">Total Students</span>
+                </div>
+              </div>
+
+              <div className="stat-box">
                 <FaCheckCircle className="stat-icon approved" />
                 <div>
                   <span className="stat-value">
@@ -1228,7 +1239,10 @@ export default function ReportDashboard() {
                           </span>
                         </td>
                         <td>
-                          <button className="btn-action">
+                          <button
+                            className="btn-action"
+                            onClick={() => navigate(`/college/view-student/${student._id}`)}
+                          >
                             <FaEye /> View
                           </button>
                         </td>
@@ -1735,22 +1749,22 @@ export default function ReportDashboard() {
         /* ================= ADMISSION STATS ================= */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
         }
 
         .stat-box {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
+          gap: 0.5rem;
+          padding: 0.75rem;
           background: #f8f9fa;
           border-radius: 8px;
         }
 
         .stat-icon {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
         }
 
         .stat-icon.approved {
@@ -1761,6 +1775,9 @@ export default function ReportDashboard() {
         }
         .stat-icon.rejected {
           color: #dc3545;
+        }
+        .stat-icon.total {
+          color: #17a2b8;
         }
 
         .stat-box > div {

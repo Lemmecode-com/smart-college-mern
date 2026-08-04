@@ -17,7 +17,15 @@ const DocumentService = require("../services/document.service");
 exports.getCollegePaymentReport = async (req, res) => {
    try {
      const collegeId = req.college_id;
-     const { startDate, endDate, studentId, search } = req.query;
+      const { startDate, endDate, studentId, search } = req.query;
+
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date range: Start Date cannot be after End Date",
+          code: "INVALID_DATE_RANGE",
+        });
+      }
 
      let matchConditions = { college_id: collegeId };
 

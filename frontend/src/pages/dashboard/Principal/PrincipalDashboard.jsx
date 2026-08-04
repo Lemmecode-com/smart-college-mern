@@ -93,7 +93,11 @@ const StatCard = ({ icon: Icon, label, value, color, gradient, onClick, subtext 
         </div>
         <div className="stat-content">
           <span className="stat-label">{label}</span>
-          <span className="stat-value">{value}</span>
+          {value !== null && value !== undefined ? (
+            <span className="stat-value">{value.toLocaleString()}</span>
+          ) : (
+            <span className="stat-value stat-value-nav">View</span>
+          )}
           {subtext && <small className="stat-subtext">{subtext}</small>}
         </div>
       </div>
@@ -213,8 +217,6 @@ export default function PrincipalDashboard() {
     { icon: FaBook, label: "Courses", path: "/courses", color: BRAND_COLORS.success, count: totalCourses },
     { icon: FaChalkboardTeacher, label: "Teachers", path: "/teachers", color: BRAND_COLORS.warning, count: totalTeachers },
     { icon: FaUserGraduate, label: "Students", path: "/students/pending-approvals", color: BRAND_COLORS.primary, count: totalStudents },
-    { icon: FaMoneyBillWave, label: "Fees", path: "/fees/list", color: BRAND_COLORS.danger, count: null },
-    { icon: FaChartLine, label: "Reports", path: "/college-admin/reports-dashboard", color: BRAND_COLORS.secondary, count: null },
   ];
 
   return (

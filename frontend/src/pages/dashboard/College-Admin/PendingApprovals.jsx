@@ -78,13 +78,8 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") {
     return <Navigate to="/dashboard" />;
-  }
-  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
-  // Additional check: redirect PRINCIPAL to their dashboard if not in admissionOfficerMode
-  if (!admissionOfficerMode && user.role === "PRINCIPAL") {
-    return <Navigate to="/dashboard/principal" replace />;
   }
 
   /* ================= FETCH PENDING STUDENTS ================= */
@@ -545,21 +540,20 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
             <div className="table-container">
                 <table className="erp-table">
                   <thead>
-                    <tr>
-                      {canApprove && (
-                        <th className="th-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={
-                              paginatedStudents.length > 0 &&
-                              selectedStudents.size === paginatedStudents.length
-                            }
-                            onChange={toggleSelectAll}
-                            className="row-checkbox"
-                          />
-                        </th>
-                      )}
-                      <th className="th-student">
+                  <tr>
+                    <th className="th-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedStudents.length > 0 &&
+                          selectedStudents.size === paginatedStudents.length
+                        }
+                        onChange={toggleSelectAll}
+                        className="row-checkbox"
+                        readOnly
+                      />
+                    </th>
+                    <th className="th-student">
                         <FaGraduationCap className="header-icon" /> Student Name
                       </th>
                     <th className="th-course">
