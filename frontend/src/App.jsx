@@ -535,16 +535,7 @@ function AppContent({
                   <DeactivatedStudents />
                 </ProtectedRoute>
               }
-            />
-
-            <Route
-              path="/students/pending-approvals"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <PendingApprovals />
-                </ProtectedRoute>
-              }
-            />
+             />
 
              <Route
                path="/college/view-approved-student/:id"
@@ -1168,12 +1159,12 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/student/fee-receipt/:paymentId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT", "COLLEGE_ADMIN", "ACCOUNTANT"]}>
-                  <FeeReceipt />
-                </ProtectedRoute>
+              <Route
+                path="/student/fee-receipt/:paymentId"
+                element={
+                  <ProtectedRoute allowedRoles={["STUDENT", "COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"]}>
+                    <FeeReceipt />
+                  </ProtectedRoute>
               }
             />
 
