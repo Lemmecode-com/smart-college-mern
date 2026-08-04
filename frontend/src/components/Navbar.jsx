@@ -13,7 +13,6 @@ import {
   FaCog,
   FaChevronLeft,
   FaChevronRight,
-  FaChevronDown,
 } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
@@ -534,8 +533,6 @@ export default function NavbarComponent({
         className="bg-dark-navbar"
         style={{
           zIndex: 1020,
-          width: "100%",
-          minHeight: "var(--navbar-height, 64px)",
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -803,8 +800,6 @@ export default function NavbarComponent({
                 <span className="user-name-display d-none d-lg-block">
                   {getUserDisplayName()}
                 </span>
-                {/* Chevron Down */}
-                <FaChevronDown className="user-dropdown-chevron d-none d-lg-block" />
               </Dropdown.Toggle>
 
               <Dropdown.Menu
