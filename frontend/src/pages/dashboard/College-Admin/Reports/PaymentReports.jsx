@@ -62,10 +62,10 @@ export default function PaymentReports() {
   const hasLoadedRef = useRef(false);
   const fetchIdRef = useRef(0);
 
-  // Date filtering state
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dateFilter, setDateFilter] = useState("all"); // all, thisMonth, lastMonth, thisYear, custom
+  const [shouldFetchSummary, setShouldFetchSummary] = useState(true);
 
    // Trend analysis state
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
@@ -188,13 +188,16 @@ export default function PaymentReports() {
    }, [selectedYear, fetchTrendData]);
 
     useEffect(() => {
-    fetchPaymentSummary();
+    if (shouldFetchSummary) {
+      fetchPaymentSummary();
+      setShouldFetchSummary(false);
+    }
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [fetchPaymentSummary]);
+  }, [shouldFetchSummary, fetchPaymentSummary]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
@@ -354,7 +357,7 @@ export default function PaymentReports() {
           </div>
           <button
             className="erp-btn erp-btn-secondary"
-            onClick={fetchPaymentSummary}
+            onClick={() => setShouldFetchSummary(true)}
             title="Refresh report data"
           >
             <FaSyncAlt className="erp-btn-icon spin" />
@@ -392,31 +395,31 @@ export default function PaymentReports() {
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   className={`btn ${dateFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => setDateFilter('all')}
+                  onClick={() => { setDateFilter('all'); setShouldFetchSummary(true); }}
                 >
                   All Time
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => setDateFilter('thisMonth')}
+                  onClick={() => { setDateFilter('thisMonth'); setShouldFetchSummary(true); }}
                 >
                   This Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'lastMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => setDateFilter('lastMonth')}
+                  onClick={() => { setDateFilter('lastMonth'); setShouldFetchSummary(true); }}
                 >
                   Last Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisYear' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => setDateFilter('thisYear')}
+                  onClick={() => { setDateFilter('thisYear'); setShouldFetchSummary(true); }}
                 >
                   This Year
                 </button>
                 <button
                   className={`btn ${dateFilter === 'custom' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => setDateFilter('custom')}
+                  onClick={() => { setDateFilter('custom'); setShouldFetchSummary(true); }}
                 >
                   Custom Range
                 </button>
@@ -508,7 +511,7 @@ export default function PaymentReports() {
                 </div>
                 <button
                   className="btn btn-success btn-sm"
-                  onClick={fetchPaymentSummary}
+                  onClick={() => setShouldFetchSummary(true)}
                   style={{ alignSelf: 'flex-end' }}
                 >
                   <FaSyncAlt /> Apply Filter
@@ -519,7 +522,7 @@ export default function PaymentReports() {
             {dateFilter !== 'custom' && dateFilter !== 'all' && (
               <button
                 className="btn btn-success btn-sm"
-                onClick={fetchPaymentSummary}
+                onClick={() => setShouldFetchSummary(true)}
                 style={{ alignSelf: 'flex-end' }}
               >
                 <FaSyncAlt /> Apply Filter
