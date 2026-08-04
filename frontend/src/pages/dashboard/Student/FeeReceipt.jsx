@@ -59,7 +59,7 @@ export default function FeeReceipt() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT")
+  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL")
     return <Navigate to="/dashboard" replace />;
 
   /* ================= EARLY VALIDATION - PAYMENT ID ================= */
@@ -77,13 +77,13 @@ export default function FeeReceipt() {
           <button
             className="btn-back"
             onClick={() =>
-              user.role === "COLLEGE_ADMIN"
+              user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
                 ? navigate("/college-admin/payment-history")
                 : navigate("/student/fees")
             }
           >
             <FaArrowLeft />{" "}
-            {user.role === "COLLEGE_ADMIN"
+            {user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
               ? "Back to Payment History"
               : "Back to Fees"}
           </button>
@@ -180,7 +180,7 @@ export default function FeeReceipt() {
         }
 
         const endpoint =
-          (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
+          (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT" || user.role === "PRINCIPAL")
             ? `/admin/payments/receipt/${paymentId}`
             : `/student/payments/receipt/${paymentId}`;
 

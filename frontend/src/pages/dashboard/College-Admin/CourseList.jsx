@@ -766,7 +766,7 @@ export default function CourseList() {
   const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
 
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "#0f172a" }}>
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -1215,12 +1215,12 @@ export default function CourseList() {
         }
 
         .btn-ghost {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
         }
 
         .btn-ghost:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--border-medium);
         }
 
         .btn-lg {

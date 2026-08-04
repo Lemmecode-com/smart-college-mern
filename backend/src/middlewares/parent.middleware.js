@@ -16,13 +16,16 @@ module.exports = async (req, res, next) => {
       );
     }
 
-    for (const record of parent) {
-      if (record.college_id && req.college_id &&
-          record.college_id.toString() !== req.college_id.toString()) {
-        return next(
-          new AppError("Parent guardian profile not found", 404, "PARENT_NOT_FOUND")
-        );
-      }
+    const hasAccess = parent.some(
+      (record) =>
+        record.college_id &&
+        req.college_id &&
+        record.college_id.toString() === req.college_id.toString(),
+    );
+    if (!hasAccess) {
+      return next(
+        new AppError("Parent guardian profile not found", 404, "PARENT_NOT_FOUND"),
+      );
     }
 
     const studentIds = [...new Set(parent.flatMap((r) => r.student_ids || []))].map((id) => id.toString());

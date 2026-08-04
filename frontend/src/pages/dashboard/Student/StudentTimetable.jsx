@@ -1128,7 +1128,7 @@ export default function StudentTimetable() {
           </div>
         </div>
         <div
-          className="st-table-container"
+          className="st-table-container erp-timetable-responsive"
           role="region"
           aria-labelledby="weekly-schedule-heading"
           aria-label="Weekly timetable"
@@ -1136,7 +1136,7 @@ export default function StudentTimetable() {
           <table className="st-timetable-table" role="table">
             <thead>
               <tr>
-                <th className="st-time-col-header" scope="col">
+                <th className="st-time-col-header erp-timetable-time" scope="col">
                   <FaClock aria-hidden="true" /> Time
                 </th>
                 {DAYS.map((day, idx) => {
@@ -1146,7 +1146,7 @@ export default function StudentTimetable() {
                   return (
                     <th
                       key={day}
-                      className={`st-day-col-header ${isToday ? "st-today-col" : ""}`}
+                      className={`st-day-col-header ${isToday ? "st-today-col" : ""} erp-timetable-day`}
                       scope="col"
                       aria-label={`${DAY_NAMES[idx]}${isToday ? " (Today)" : ""}`}
                     >
@@ -1181,7 +1181,7 @@ export default function StudentTimetable() {
                   const timeStr = `${formatTime12Hour(timeRow.start)} - ${formatTime12Hour(timeRow.end)}`;
                   return (
                     <tr key={timeRow.key}>
-                      <td className="st-time-cell" scope="row">
+                      <td className="st-time-cell erp-timetable-time" scope="row">
                         {timeStr}
                       </td>
                       {DAYS.map((day) => {
@@ -1194,7 +1194,7 @@ export default function StudentTimetable() {
                             return (
                               <td
                                 key={`${day}-${timeRow.key}`}
-                                className="st-slot-cell"
+                                className="st-slot-cell erp-timetable-cell"
                                 rowSpan={dynamicTimeRows.length}
                                 style={{ verticalAlign: "top" }}
                               >
@@ -1216,7 +1216,7 @@ export default function StudentTimetable() {
                         return (
                           <td
                             key={`${day}-${timeRow.key}`}
-                            className="st-slot-cell"
+                            className="st-slot-cell erp-timetable-cell"
                           >
                             {slot ? (
                               <WeeklySlotCard slot={slot} />
