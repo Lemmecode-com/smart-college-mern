@@ -240,7 +240,7 @@ export default function CollegeProfile() {
     {
       icon: <FaUsers />,
       label: "Students",
-      path: "/students",
+      path: "/students/pending-approvals",
       color: "primary",
       gradient: BRAND_COLORS.primary.gradient,
     },
@@ -272,13 +272,13 @@ export default function CollegeProfile() {
       color: "danger",
       gradient: BRAND_COLORS.danger.gradient,
     },
-    {
+    ...(user?.role === "COLLEGE_ADMIN" ? [{
       icon: <FaCogs />,
       label: "Settings",
       path: "/system-settings/general",
       color: "secondary",
       gradient: BRAND_COLORS.secondary.gradient,
-    },
+    }] : []),
   ];
 
   if (loading) {
