@@ -60,6 +60,7 @@ export default function PaymentHistory() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [showDateFilters, setShowDateFilters] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(true);
   const fetchIdRef = useRef(0);
 
   // Fetch payment history from backend
@@ -111,17 +112,20 @@ export default function PaymentHistory() {
       }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
-        setLoading(false);
+         setLoading(false);
       }
     }
   }, [startDate, endDate]);
 
    useEffect(() => {
-    fetchPaymentHistory();
+    if (shouldFetch) {
+      fetchPaymentHistory();
+      setShouldFetch(false);
+    }
     return () => {
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [fetchPaymentHistory]);
+  }, [shouldFetch, fetchPaymentHistory]);
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -1167,7 +1171,7 @@ export default function PaymentHistory() {
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <button
             className="payment-action-btn"
-            onClick={fetchPaymentHistory}
+            onClick={() => setShouldFetch(true)}
             style={{
               background: "rgba(255, 255, 255, 0.2)",
               backdropFilter: "blur(10px)",
@@ -1354,7 +1358,7 @@ export default function PaymentHistory() {
             <div className="date-actions">
               <button
                 className="apply-filter-btn"
-                onClick={fetchPaymentHistory}
+                onClick={() => setShouldFetch(true)}
               >
                 <FaSyncAlt /> Apply Filters
               </button>
@@ -1363,7 +1367,7 @@ export default function PaymentHistory() {
                 onClick={() => {
                   setStartDate("");
                   setEndDate("");
-                  fetchPaymentHistory();
+                  setShouldFetch(true);
                 }}
               >
                 Clear
