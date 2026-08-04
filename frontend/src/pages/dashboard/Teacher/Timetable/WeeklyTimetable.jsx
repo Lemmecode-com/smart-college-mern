@@ -920,13 +920,13 @@ export default function WeeklyTimetable() {
                 <FaInfoCircle /> {Object.values(weekly).flat().length} slots scheduled
               </div>
             </div>
-            <div className="table-responsive">
+            <div className="table-responsive erp-timetable-responsive">
               <table className="table table-bordered align-middle mb-0" style={{ minWidth: "900px" }}>
                 <thead className="table-light">
                   <tr>
-                    <th className="py-3 px-3 fw-semibold text-center" style={headerCellStyle}>Time</th>
+                    <th className="py-3 px-3 fw-semibold text-center erp-timetable-time" style={headerCellStyle}>Time</th>
                     {DAYS.map((day, idx) => (
-                      <th key={day} className="py-3 px-3 fw-semibold text-center position-relative" style={{ ...headerCellStyle, overflow: "hidden" }}>
+                      <th key={day} className="py-3 px-3 fw-semibold text-center position-relative erp-timetable-day" style={{ ...headerCellStyle, overflow: "hidden" }}>
                         <div>
                           <div className="d-flex align-items-center justify-content-center gap-2">
                             {day}
@@ -948,7 +948,7 @@ export default function WeeklyTimetable() {
                     <motion.tr
                       key={timeSlot.start} variants={fadeInVariants} custom={timeIdx + 1} initial="hidden" animate="visible" className="bg-white"
                     >
-                      <td className="py-3 px-3 fw-semibold border-end" style={{ color: "#1e293b", fontSize: "0.95rem" }}>
+                      <td className="py-3 px-3 fw-semibold border-end erp-timetable-time" style={{ color: "#1e293b", fontSize: "0.95rem" }}>
                         {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
                       </td>
                       {DAYS.map((day) => {
@@ -956,7 +956,7 @@ export default function WeeklyTimetable() {
                         const slot = slots.find((s) => s.startTime === timeSlot.start && s.endTime === timeSlot.end);
                         return (
                           <td
-                            key={`${day}-${timeSlot.start}`} className="py-2 px-2 align-top"
+                              key={`${day}-${timeSlot.start}`} className="py-2 px-2 align-top erp-timetable-cell"
                             style={{
                               ...cellStyle, padding: "0.5rem", backgroundColor: slot ? "white" : "#f8fafc",
                               borderLeft: slot ? `3px solid ${BRAND_COLORS.primary.main}` : "1px solid #e2e8f0",

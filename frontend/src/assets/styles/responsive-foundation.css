@@ -600,3 +600,69 @@
     width: 100%;
   }
 }
+
+/* =====================================================
+   18. RESPONSIVE TIMETABLE FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Specialized utilities for data-dense timetable/schedule
+   grids. Reuses the centralized local-scroll pattern but
+   adds cell-level containment so timetable cells with
+   min-width / white-space:nowrap do NOT force page-level
+   horizontal overflow. The timetable's justified minimum
+   grid width is preserved INSIDE the scroll container.
+
+   Design principles:
+   * No global table/overflow overrides.
+   * No !important.
+   * No device-specific breakpoints.
+   * Reuses existing --erp-content-gap and breakpoint tokens.
+   ===================================================== */
+
+/* Local horizontal scroll wrapper for timetable tables.
+   The PAGE itself never horizontally scrolls; only the
+   timetable grid scrolls inside this container. */
+.erp-timetable-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Cell containment: prevent inner flex/grid children from
+   forcing overflow. Applied to specific cell elements. */
+.erp-timetable-responsive > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Safe cell content wrapping for timetable cells that
+   contain subject names, teacher names, room numbers, etc.
+   Uses normal white-space so text wraps naturally instead
+   of expanding the grid. */
+.erp-timetable-cell {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Time column: keep readable fixed width on all viewports.
+   Prevents collapse to unreadable slivers while not
+   consuming unnecessary mobile space. */
+.erp-timetable-time {
+  width: 140px;
+  min-width: 120px;
+  max-width: 140px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Day header: preserve full day names (Monday, Tuesday...)
+   across all widths. min-width keeps columns legible. */
+.erp-timetable-day {
+  min-width: 120px;
+  white-space: nowrap;
+  text-align: center;
+}

@@ -80,6 +80,16 @@
     padding-left: calc(1rem + var(--erp-safe-left));
     padding-right: calc(1rem + var(--erp-safe-right));
   }
+  .navbar-left-group {
+    gap: 0.25rem;
+  }
+  .navbar-right-group {
+    gap: 0.5rem;
+  }
+  .navbar-icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 /* ================= COLLEGE BRAND NAME ================= */
@@ -104,9 +114,63 @@
   }
 }
 
-/* ================= NAV ITEMS GAP ================= */
+/* ================= NAVBAR LEFT GROUP (FLEXIBLE AREA) ================= */
+.navbar-left-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ================= NAVBAR RIGHT ACTION GROUP (FIXED RIGHT AREA) ================= */
+.navbar-right-group {
+  margin-left: auto;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  display: flex;
+  gap: var(--navbar-item-gap);
+}
+
+/* ================= COLLEGE BRAND NAME ================= */
+.navbar-brand {
+  font-weight: 700;
+  color: var(--navbar-text-light) !important;
+  font-size: 1.25rem;
+  letter-spacing: -0.025em;
+  transition: var(--navbar-transition);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  color: var(--navbar-primary) !important;
+  transform: translateX(-2px);
+}
+
+@media (max-width: 767.98px) {
+  .navbar-brand {
+    font-size: 1rem;
+  }
+}
+
+/* ================= COLLEGE NAME TRUNCATION ================= */
+.navbar-left-group .navbar-brand {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+
+/* ================= NAV ITEMS GAP (RIGHT ACTION GROUP) ================= */
 .nav-items-gap {
   gap: var(--navbar-item-gap) !important;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* ================= ICON BUTTONS (Bell, Profile) ================= */
@@ -245,17 +309,17 @@
     Arial, sans-serif;
 }
 
-/* Profile Dropdown Specific Positioning */
+/* Profile Dropdown - viewport-safe positioning */
 .profile-dropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  width: 280px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  width: min(280px, calc(100vw - 2.5rem));
   max-height: 420px;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: none !important;
+  transform: none;
   will-change: transform;
   background: #ffffff;
   backdrop-filter: blur(8px);
@@ -264,18 +328,18 @@
     Arial, sans-serif;
 }
 
-/* Notification Dropdown Specific Positioning */
+/* Notification Dropdown - viewport-safe positioning */
 .notification-dropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  width: 350px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  width: min(350px, calc(100vw - 2.5rem));
   max-height: 450px;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: none !important;
-  z-index: 1040 !important;
+  transform: none;
+  z-index: 1040;
   background: #ffffff;
   backdrop-filter: blur(8px);
   font-family:
@@ -285,14 +349,14 @@
 
 @media (max-width: 575.98px) {
   .profile-dropdown {
-    right: -10px !important;
-    width: 260px;
+    right: 0;
+    width: min(260px, calc(100vw - 2rem));
     max-height: 380px;
   }
 
   .notification-dropdown {
-    right: -20px !important;
-    width: 300px;
+    right: 0;
+    width: min(300px, calc(100vw - 2rem));
   }
 }
 
@@ -364,22 +428,7 @@
   text-align: center;
 }
 
-/* ================= NOTIFICATION DROPDOWN ================= */
-.notification-dropdown {
-  width: 350px;
-  max-height: 450px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-@media (max-width: 575.98px) {
-  .notification-dropdown {
-    width: 300px;
-    max-height: 400px;
-  }
-}
-
-/* Notification Card */
+/* ================= NOTIFICATION CARD ================= */
 .notification-card {
   background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
   border: 1px solid var(--navbar-border);
@@ -501,18 +550,7 @@
   scrollbar-color: var(--navbar-primary) #f8fafc;
 }
 
-/* ================= PROFILE DROPDOWN ================= */
-.profile-dropdown {
-  width: 280px;
-  max-height: 420px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-}
-
-/* Profile Header - Compact Enterprise SaaS Layout */
+/* ================= PROFILE HEADER ================= */
 .profile-header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 0.875rem 1rem;
