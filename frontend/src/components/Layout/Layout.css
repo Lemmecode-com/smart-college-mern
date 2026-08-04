@@ -83,33 +83,53 @@
 }
 
 /* ================= NAVBAR ================= */
-/* Navbar width matches main content */
+/* Fixed navbar - stays at top during scroll on all devices */
 .layout-main .navbar {
-  width: 100%;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 1020;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   min-height: var(--erp-navbar-height);
 }
 
+/* Desktop: offset for sidebar */
+@media (min-width: 768px) {
+  .layout-main .navbar {
+    left: var(--erp-sidebar-width);
+    width: calc(100% - var(--erp-sidebar-width));
+  }
+}
+
+/* Mobile: use mobile height token */
+@media (max-width: 575.98px) {
+  .layout-main .navbar {
+    min-height: var(--erp-navbar-height-mobile);
+  }
+}
+
 /* ================= CONTENT AREA ================= */
 .layout-content {
   flex: 1;
-  padding: 1.5rem;
+  padding-top: calc(1.5rem + var(--erp-navbar-height));
+  padding-right: 1.5rem;
+  padding-bottom: 1.5rem;
+  padding-left: 1.5rem;
   overflow-x: hidden;
   min-height: calc(100dvh - var(--erp-navbar-height));
   max-width: 100%;
 }
 
-/* Mobile: Compact padding */
+/* Mobile: Compact padding with mobile navbar height */
 @media (max-width: 767.98px) {
   .layout-content {
-    padding: 1rem;
-    padding-left: calc(1rem + var(--erp-safe-left));
+    padding-top: calc(1rem + var(--erp-navbar-height-mobile));
     padding-right: calc(1rem + var(--erp-safe-right));
-    min-height: calc(100dvh - var(--erp-navbar-height) - 2rem);
+    padding-bottom: 1rem;
+    padding-left: calc(1rem + var(--erp-safe-left));
+    min-height: calc(100dvh - var(--erp-navbar-height-mobile) - 2rem);
   }
 }
 
