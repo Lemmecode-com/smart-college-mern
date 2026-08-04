@@ -403,13 +403,8 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   if (!user) return <Navigate to="/login" />;
-  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") {
     return <Navigate to="/dashboard" />;
-  }
-  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
-  // Additional check: redirect PRINCIPAL to their dashboard if not in admissionOfficerMode
-  if (!admissionOfficerMode && user.role === "PRINCIPAL") {
-    return <Navigate to="/dashboard/principal" replace />;
   }
 
   const fetchAlumni = async () => {
