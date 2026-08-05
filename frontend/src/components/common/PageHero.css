@@ -126,6 +126,28 @@
   flex-shrink: 0;
 }
 
+.erp-page-hero__primary-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__primary-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 /* ================= MOBILE RESPONSIVE =================
    Breakpoint: max-width 767.98px (matches Bootstrap sm)
    Key fixes for mobile clipping:
