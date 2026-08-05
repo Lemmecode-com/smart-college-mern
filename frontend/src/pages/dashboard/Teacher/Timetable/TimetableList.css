@@ -1,0 +1,91 @@
+/* =====================================================
+   TimetableList - scope-responsive overrides (page hero)
+   ------------------------------------------------------
+   Applies ONLY to the Timetable Management page
+   (/timetable/list). All rules live under a single
+   mobile breakpoint so desktop (>= 768px) is byte-for-byte
+   identical to the existing inline styles.
+
+   Inline styles are NOT removed; these media-query rules
+   use !important solely to overcome inline-style priority
+   for the handful of properties that must change on
+   mobile. No global/element selectors are used, so no
+   unrelated page is affected.
+   ===================================================== */
+
+/* Breakpoints: match responsive-foundation.css (Bootstrap 5.3) */
+@media (max-width: 767.98px) {
+  /* ---------- Hero inner: stack to a centered column ---------- */
+  .erp-timetable-hero-inner {
+    padding: 1rem !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 1rem !important;
+  }
+
+  /* ---------- Calendar icon: smaller, centered, rigid ---------- */
+  .erp-timetable-hero-icon {
+    width: 56px !important;
+    height: 56px !important;
+    flex-shrink: 0 !important;
+    margin: 0 auto !important;
+  }
+
+  /* ---------- Text container: allow shrink + full width so
+     the title wraps instead of overflowing. min-width:0 defeats
+     the flex-item default (min-width:auto) that caused clipping. */
+  .erp-timetable-hero-text {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+  }
+
+  /* ---------- Heading: 24px, fully visible, wraps by words ---------- */
+  .erp-timetable-hero-title {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* ---------- Description: 16px, natural wrapping ---------- */
+  .erp-timetable-hero-desc {
+    font-size: 1rem !important;
+    max-width: 100% !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* ---------- Create Timetable button: full width, centered ---------- */
+  .erp-timetable-hero-cta {
+    width: 100% !important;
+    max-width: 320px !important;
+    margin: 0 auto !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1rem !important;
+  }
+
+  /* ---------- Stats bar: reduce padding/gap, stack centered ---------- */
+  .erp-timetable-stats {
+    padding: 1rem 1rem !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 1rem !important;
+  }
+
+  /* ---------- Stats item group: tighter gap ---------- */
+  .erp-timetable-stats-grid {
+    gap: 1rem !important;
+  }
+
+  /* ---------- Tip badge: wrap text on narrow screens ---------- */
+  .erp-timetable-stats-tip {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    font-size: 0.875rem !important;
+    overflow-wrap: break-word !important;
+  }
+}
