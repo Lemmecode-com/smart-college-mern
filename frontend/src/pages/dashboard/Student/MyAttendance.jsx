@@ -199,6 +199,25 @@ export default function StudentAttendanceReport() {
 
   /* ================= LOAD DATA ================= */
   useEffect(() => {
+    let cancelled = false;
+    const fetchSubjects = async () => {
+      try {
+        const res = await api.get("/attendance/student");
+        const subjectsFromAttendance = (res.data.subjectWise || []).map((subj, index) => ({
+          _id: subj._id || `subject-${index}`,
+          name: subj.subject || subj.name,
+          code: subj.code,
+        }));
+        if (!cancelled) setSubjects(subjectsFromAttendance);
+      } catch {
+        // ignore
+      }
+    };
+    fetchSubjects();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
@@ -230,19 +249,6 @@ export default function StudentAttendanceReport() {
         }
 
         setData(reportRes.data);
-        // Extract subjects from attendance API response (subjectWise array)
-        // Backend returns: {subject, code, total, present, absent, percentage}
-        // Frontend needs: {_id, name, code} for dropdown
-        const subjectsFromAttendance = (reportRes.data.subjectWise || []).map((subj, index) => ({
-          _id: subj._id || `subject-${index}`,  // Use index as fallback ID
-          name: subj.subject || subj.name,      // Backend uses 'subject' field
-          code: subj.code,
-          total: subj.total,
-          present: subj.present,
-          absent: subj.absent,
-          percentage: subj.percentage
-        }));
-setSubjects(subjectsFromAttendance);
         setError(null);
 
         // Clear timeout on success

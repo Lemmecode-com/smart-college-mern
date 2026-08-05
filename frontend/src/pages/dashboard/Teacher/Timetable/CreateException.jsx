@@ -16,6 +16,7 @@ import { logger } from "../../../../utils/logger";
 import SearchableSelect from "../../../../components/SearchableSelect";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import PageHero from "../../../../components/common/PageHero";
 import {
   FaCalendarAlt,
   FaSave,
@@ -351,108 +352,38 @@ const fetchTeachersForSearch = async (query) => {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
-      {/* Header */}
-      <MotionDiv
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="position-relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-        }}
-      >
-        {/* Background Pattern */}
-        <div
-          className="position-absolute top-0 end-0"
-          style={{
-            width: "400px",
-            height: "100%",
-            opacity: 0.03,
-            background:
-              "radial-gradient(circle at 70% 50%, var(--sidebar-accent, #3db5e6) 0%, transparent 70%)",
-          }}
-        />
-
-        <div className="p-4 text-white position-relative">
-          <div className="d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center gap-3">
-              <MotionButton
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleCancel}
-                className="btn d-flex align-items-center justify-content-center border-0"
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  background: "rgba(255, 255, 255, 0.1)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  borderRadius: "10px",
-                  color: "white",
-                  backdropFilter: "blur(10px)",
-                  transition: "all 0.2s ease",
-                }}
-                title="Go Back"
-              >
-                <FaArrowLeft />
-              </MotionButton>
-              <MotionDiv
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  background:
-                    "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  borderRadius: "12px",
-                  fontSize: "1.5rem",
-                  boxShadow: "0 4px 12px rgba(61, 181, 230, 0.3)",
-                }}
-              >
-                <FaCalendarAlt />
-              </MotionDiv>
-              <div>
-                <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
-                  Create Exception
-                </h3>
-                <p className="mb-0 opacity-75" style={{ fontSize: "0.875rem" }}>
-                  Add a holiday, cancellation, or special event
-                </p>
-              </div>
-            </div>
-
-            {/* Bulk Upload Button */}
-            <MotionButton
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() =>
-                navigate("/timetable/exceptions", {
-                  state: { showBulkModal: true },
-                })
-              }
-              className="btn d-flex align-items-center gap-2 fw-medium border-0"
-              style={{
-                background: "rgba(255, 255, 255, 0.1)",
-                border: "1px solid rgba(255, 255, 255, 0.2) !important",
-                color: "white",
-                borderRadius: "10px",
-                padding: "0.6rem 1.2rem",
-                backdropFilter: "blur(10px)",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <FaUpload />
-              <span>Bulk Upload</span>
-            </MotionButton>
-          </div>
-        </div>
-      </MotionDiv>
+       <PageHero
+         icon={<FaCalendarAlt />}
+         title="Create Exception"
+         description="Add a holiday, cancellation, or special event"
+         onBack={handleCancel}
+         backLabel="Back"
+         primaryAction={
+           <MotionButton
+             whileHover={{ scale: 1.02 }}
+             whileTap={{ scale: 0.98 }}
+             onClick={() =>
+               navigate("/timetable/exceptions", {
+                 state: { showBulkModal: true },
+               })
+             }
+             className="btn d-flex align-items-center gap-2 fw-medium border-0"
+             style={{
+               background: "rgba(255, 255, 255, 0.1)",
+               border: "1px solid rgba(255, 255, 255, 0.2) !important",
+               color: "white",
+               borderRadius: "10px",
+               padding: "0.6rem 1.2rem",
+               backdropFilter: "blur(10px)",
+               transition: "all 0.2s ease",
+               whiteSpace: "nowrap",
+             }}
+           >
+             <FaUpload />
+             <span>Bulk Upload</span>
+           </MotionButton>
+         }
+       />
 
       {/* Form */}
       <div className="p-4">

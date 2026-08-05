@@ -541,7 +541,9 @@ exports.generateSchedule = async (
       );
       const extraSlots = generateExtraSlots(extraExceptions);
 
-      const allSlotsForDate = [...slotsWithExceptions, ...extraSlots];
+      const allSlotsForDate = [...slotsWithExceptions, ...extraSlots].sort(
+        (a, b) => a.startTime.localeCompare(b.startTime),
+      );
 
       // Count statistics (exclude cancelled slots from total)
       allSlotsForDate.forEach((slot) => {

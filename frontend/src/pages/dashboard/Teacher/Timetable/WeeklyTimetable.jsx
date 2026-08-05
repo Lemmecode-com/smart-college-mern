@@ -921,7 +921,13 @@ export default function WeeklyTimetable() {
               </div>
             </div>
             <div className="table-responsive erp-timetable-responsive">
-              <table className="table table-bordered align-middle mb-0" style={{ minWidth: "900px" }}>
+              <table className="table table-bordered align-middle mb-0" style={{ minWidth: "1520px", tableLayout: "fixed" }}>
+                <colgroup>
+                  <col style={{ width: "140px" }} />
+                  {DAYS.map((day) => (
+                    <col key={day} style={{ width: "230px" }} />
+                  ))}
+                </colgroup>
                 <thead className="table-light">
                   <tr>
                     <th className="py-3 px-3 fw-semibold text-center erp-timetable-time" style={headerCellStyle}>Time</th>
@@ -948,8 +954,12 @@ export default function WeeklyTimetable() {
                     <motion.tr
                       key={timeSlot.start} variants={fadeInVariants} custom={timeIdx + 1} initial="hidden" animate="visible" className="bg-white"
                     >
-                      <td className="py-3 px-3 fw-semibold border-end erp-timetable-time" style={{ color: "#1e293b", fontSize: "0.95rem" }}>
-                        {formatTime12Hour(timeSlot.start)} - {formatTime12Hour(timeSlot.end)}
+                      <td className="py-3 px-3 fw-semibold border-end erp-timetable-time" style={{ color: "#1e293b", fontSize: "0.95rem", whiteSpace: "nowrap", minWidth: "140px" }}>
+                        <div style={{ lineHeight: 1.3 }}>
+                          <div>{formatTime12Hour(timeSlot.start)}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>to</div>
+                          <div>{formatTime12Hour(timeSlot.end)}</div>
+                        </div>
                       </td>
                       {DAYS.map((day) => {
                         const slots = weekly[day] || [];
@@ -1290,7 +1300,7 @@ function TimetableSlot({ slot, canManageTimetable, onEdit, onDelete, handleToolt
       style={{
         backgroundColor: adjustedBg, border: `1px solid ${adjustedBorder}`, borderLeft: `3px solid ${borderColor}`,
         borderRadius: "12px", padding: "0.875rem", height: "100%", display: "flex", flexDirection: "column",
-        gap: "0.5rem", transition: "all 0.3s ease", position: "relative", overflow: "hidden",
+        gap: "0.5rem", transition: "all 0.3s ease", position: "relative", overflow: "visible",
         opacity: isCancelled || isHoliday ? 0.7 : 1, textDecoration: isCancelled ? "line-through" : "none",
       }}
     >
@@ -1333,10 +1343,10 @@ function TimetableSlot({ slot, canManageTimetable, onEdit, onDelete, handleToolt
 
       {canManageTimetable && (
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px dashed #e2e8f0" }}>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{ flex: 1, padding: "0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1", backgroundColor: "white", color: BRAND_COLORS.primary.main, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", transition: "all 0.2s ease" }}>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); onEdit(); }} style={{ flex: 1, flexShrink: 0, padding: "0.5rem", borderRadius: "8px", border: "1px solid #cbd5e1", backgroundColor: "white", color: BRAND_COLORS.primary.main, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", transition: "all 0.2s ease", whiteSpace: "nowrap" }}>
             <FaEdit size={14} /> Edit
           </motion.button>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ flex: 1, padding: "0.5rem", borderRadius: "8px", border: "1px solid #fecaca", backgroundColor: "#fee2e2", color: BRAND_COLORS.danger.main, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", transition: "all 0.2s ease" }}>
+          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ flex: 1, flexShrink: 0, padding: "0.5rem", borderRadius: "8px", border: "1px solid #fecaca", backgroundColor: "#fee2e2", color: BRAND_COLORS.danger.main, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", transition: "all 0.2s ease", whiteSpace: "nowrap" }}>
             <FaTrash size={14} /> Delete
           </motion.button>
         </div>
@@ -1375,6 +1385,8 @@ const headerCellStyle = {
   top: 0,
   zIndex: 10,
   backgroundColor: "#f1f5f9",
+  minWidth: "230px",
+  whiteSpace: "nowrap",
 };
 
 const cellStyle = {
@@ -1383,7 +1395,7 @@ const cellStyle = {
   color: "#1e293b",
   borderBottom: "1px solid #e2e8f0",
   verticalAlign: "middle",
-  minWidth: "150px",
+  minWidth: "230px",
 };
 
 const inputStyle = {

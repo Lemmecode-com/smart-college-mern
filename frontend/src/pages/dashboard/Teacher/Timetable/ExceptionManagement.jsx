@@ -180,11 +180,26 @@ export default function ExceptionManagement() {
   const fetchTimetables = async () => {
     try {
       const res = await api.get("/timetable");
-      setTimetables(res.data.timetables || []);
-      if (res.data.timetables?.length > 0 && !selectedTimetable) {
-        setSelectedTimetable(res.data.timetables[0]);
+      const timetablesList = res.data.timetables || [];
+      setTimetables(timetablesList);
+
+      if (timetablesList.length > 0) {
+        if (!selectedTimetable) {
+          setSelectedTimetable(timetablesList[0]);
+        }
+      } else {
+        setSelectedTimetable(null);
+        setLoading(false);
       }
     } catch (err) {
+      const errorMsg =
+        err.response?.data?.message || "Failed to load timetables";
+      setError({
+        message: errorMsg,
+        statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
+      });
+      setLoading(false);
       logger.error("Failed to fetch timetables:", err);
     }
   };
@@ -546,7 +561,49 @@ export default function ExceptionManagement() {
 
       {/* ================= EXCEPTIONS LIST ================= */}
       <div className="p-4">
-        {exceptions.length === 0 ? (
+        {timetables.length === 0 && !selectedTimetable ? (
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="card shadow-lg border-0 text-center p-5"
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <div
+              className="d-flex align-items-center justify-content-center mx-auto mb-4"
+              style={{
+                width: "80px",
+                height: "80px",
+                background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
+                borderRadius: "50%",
+              }}
+            >
+              <FaCalendarAlt size={36} style={{ color: "#94a3b8" }} />
+            </div>
+            <h5 className="fw-bold text-dark mb-2">No Timetables Available</h5>
+            <p className="text-muted mb-4">
+              You don't have any timetables assigned. Please contact your administrator.
+            </p>
+            <MotionButton
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/teacher/dashboard")}
+              className="btn fw-bold px-4 py-2"
+              style={{
+                background:
+                  "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
+                color: "white",
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
+              }}
+            >
+              <FaChevronLeft className="me-1" /> Back to Dashboard
+            </MotionButton>
+          </MotionDiv>
+        ) : exceptions.length === 0 ? (
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

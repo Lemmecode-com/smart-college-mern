@@ -955,11 +955,13 @@ export default function EditTeacherProfile() {
                 paddingTop: "1.5rem",
                 borderTop: "1px solid #e2e8f0",
               }}
+              className="erp-edit-profile-actions"
             >
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={saving}
+                className="erp-edit-profile-cancel-btn"
                 style={{
                   padding: "0.875rem 2rem",
                   backgroundColor: "white",
@@ -980,6 +982,7 @@ export default function EditTeacherProfile() {
               <button
                 type="submit"
                 disabled={saving}
+                className="erp-edit-profile-save-btn"
                 style={{
                   padding: "0.875rem 2.5rem",
                   background: BRAND_COLORS.primary.gradient,
@@ -1044,6 +1047,28 @@ export default function EditTeacherProfile() {
         }
         .form-control.is-invalid:focus {
           box-shadow: 0 0 0 3px #dc354520 !important;
+        }
+        @media (max-width: 767.98px) {
+          .erp-edit-profile-actions {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            max-width: 100%;
+          }
+          .erp-edit-profile-save-btn,
+          .erp-edit-profile-cancel-btn {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            white-space: nowrap;
+          }
+          .erp-edit-profile-save-btn {
+            order: 1;
+          }
+          .erp-edit-profile-cancel-btn {
+            order: 2;
+          }
         }
       `}</style>
     </motion.div>
