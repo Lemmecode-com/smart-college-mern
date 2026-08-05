@@ -310,7 +310,7 @@ exports.validateStudentProfileUpdate = [
     .matches(/^\d{6}$/).withMessage('Please provide a valid 6-digit Indian pincode'),
 
   body('bloodGroup')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).withMessage('Blood group must be valid (e.g., A+, B-, O+, etc.)'),
 
