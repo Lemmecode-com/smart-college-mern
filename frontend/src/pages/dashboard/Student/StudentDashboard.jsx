@@ -798,7 +798,7 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 <div className="timetable-list">
-                  {todayTimetable.map((slot, index) => (
+                  {[...todayTimetable].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((slot, index) => (
                     <div key={index} className="timetable-slot">
                       <div className="slot-time">
                         <FaClock className="time-icon" />
