@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
 import Loading from "../../../components/Loading";
+import Pagination from "../../../components/Pagination";
 import {
   FaUser,
   FaKey,
@@ -93,7 +94,7 @@ const pulseVariants = {
 };
 
 // Memoized row component for optimal rendering performance
-const ParentTableRow = React.memo(({ p, idx, onNavigate, onResetPassword, onToggleStatus }) => {
+const ParentTableRow = React.memo(({ p, idx, onNavigate, onToggleStatus }) => {
   return (
     <motion.tr
       variants={fadeInVariants}
@@ -223,13 +224,6 @@ const ParentTableRow = React.memo(({ p, idx, onNavigate, onResetPassword, onTogg
             onClick={() => onNavigate(`/college/parents/edit/${p.id}`)}
           />
           <ActionButton
-            icon={<FaKey />}
-            color={BRAND_COLORS.warning}
-            title="Reset Password"
-            ariaLabel="Reset Password"
-            onClick={() => onResetPassword(p)}
-          />
-          <ActionButton
             icon={p.isActive ? <FaTimesCircle /> : <FaCheckCircle />}
             color={p.isActive ? BRAND_COLORS.danger : BRAND_COLORS.success}
             title={p.isActive ? "Deactivate" : "Activate"}
@@ -279,6 +273,8 @@ export default function ParentList() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, onConfirm: null, title: "", message: "", type: "warning", confirmText: "Confirm" });
 
   const fetchParents = useCallback(async () => {
@@ -324,6 +320,24 @@ export default function ParentList() {
     });
   }, [parents, searchTerm, statusFilter]);
 
+  const totalPages = Math.ceil(filteredParents.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredParents.slice(indexOfFirstItem, indexOfLastItem);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    const calculatedTotalPages = Math.ceil(filteredParents.length / itemsPerPage);
+    if (currentPage > calculatedTotalPages && calculatedTotalPages > 0) {
+      setCurrentPage(calculatedTotalPages);
+    } else if (calculatedTotalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [currentPage, filteredParents.length, itemsPerPage]);
+
   const handleToggleStatus = useCallback(async (parent) => {
     const newStatus = !parent.isActive;
     const action = newStatus ? "activate" : "deactivate";
@@ -348,30 +362,6 @@ export default function ParentList() {
       },
     });
   }, [fetchParents]);
-
-  const handleResetPassword = useCallback(async (parent) => {
-    setConfirmModal({
-      isOpen: true,
-      title: "Reset Password",
-      message: `Reset password for ${parent.name}? A new temporary password will be sent to their email.`,
-      type: "info",
-      confirmText: "Reset Password",
-      onConfirm: async () => {
-        try {
-          const res = await api.post(`/college/parents/${parent.id}/reset-password`);
-          toast.success("Password reset email sent successfully", { toastId: "parent-reset-success" });
-          if (res.data?.data?.temporaryPassword) {
-            toast.info(`Temporary password: ${res.data.data.temporaryPassword}`, { autoClose: 8000 });
-          }
-        } catch (err) {
-          const backendMessage = err.response?.data?.message;
-          toast.error(backendMessage || "Failed to reset password");
-        } finally {
-          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
-        }
-      },
-    });
-  }, []);
 
   if (error && !loading) {
     return (
@@ -610,11 +600,11 @@ export default function ParentList() {
                 borderRadius: "20px",
                 border: "1px solid #e2e8f0",
               }}>
-                Showing: <span style={{ color: BRAND_COLORS.accent.main }}>{filteredParents.length}</span> of {parents.length} parents
+                 Showing: <span style={{ color: BRAND_COLORS.accent.main }}>{Math.min(indexOfLastItem, filteredParents.length)}</span> of {filteredParents.length} parents
               </div>
             </div>
 
-            {filteredParents.length === 0 ? (
+            {currentItems.length === 0 ? (
               <EmptyState
                 icon={<FaUserFriends />}
                 title="No Parents Found"
@@ -646,18 +636,40 @@ export default function ParentList() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredParents.map((p, idx) => (
+                    {currentItems.map((p, idx) => (
                       <ParentTableRow
                         key={p.id}
                         p={p}
                         idx={idx}
                         onNavigate={navigate}
-                        onResetPassword={handleResetPassword}
                         onToggleStatus={handleToggleStatus}
                       />
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {filteredParents.length > 0 && (
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "12px",
+                marginTop: "20px",
+              }}>
+                <div style={{
+                  fontSize: "0.85rem",
+                  color: BRAND_COLORS.text.secondary,
+                  fontWeight: "600",
+                }}>
+                  Showing <strong>{Math.min(indexOfLastItem, filteredParents.length)}</strong> of{" "}
+                  <strong>{filteredParents.length}</strong> parents
+                </div>
+                <Pagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  setPage={setCurrentPage}
+                />
               </div>
             )}
           </div>
