@@ -152,6 +152,7 @@ export default function PaymentSuccess() {
             position: "top-right",
             autoClose: 3000,
             icon: <FaCheckCircle />,
+            toastId: "payment-success",
           });
           setLoading(false);
           return;
@@ -198,6 +199,7 @@ export default function PaymentSuccess() {
               position: "top-right",
               autoClose: 3000,
               icon: <FaCheckCircle />,
+              toastId: "payment-success",
             });
             setLoading(false);
           } else if (attempts >= maxAttempts) {
@@ -285,6 +287,7 @@ export default function PaymentSuccess() {
               position: "top-right",
               autoClose: 3000,
               icon: <FaCheckCircle />,
+              toastId: "payment-success",
             });
             setLoading(false);
           } else if (attempts >= maxAttempts) {

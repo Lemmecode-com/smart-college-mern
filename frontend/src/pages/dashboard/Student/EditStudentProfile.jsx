@@ -198,6 +198,10 @@ export default function EditStudentProfile() {
         icon: <FaCheckCircle />
       });
 
+      setTimeout(() => {
+        navigate("/student/profile");
+      }, 1500);
+
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -353,7 +357,6 @@ export default function EditStudentProfile() {
                   name="dateOfBirth"
                   value={form.dateOfBirth}
                   onChange={handleChange}
-                  disabled
                 />
               </div>
 
