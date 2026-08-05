@@ -841,6 +841,7 @@ exports.updateMyProfile = async (req, res, next) => {
       "motherName",
       "motherMobile",
       "motherEmail",
+      "dateOfBirth",
     ];
 
     allowedFields.forEach((field) => {
