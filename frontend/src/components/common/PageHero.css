@@ -1,0 +1,181 @@
+/* =====================================================
+   PageHero — Centralized responsive page hero component
+   =====================================================
+   Replaces Pattern A inline-style hero cards across the
+   NOVAA ERP dashboard pages.
+
+   Design goals:
+   - Desktop: horizontal layout (icon + title on left,
+     actions on right) — visual parity with legacy Pattern A.
+   - Mobile: stack vertically (icon, title, description,
+     actions) so no text is clipped and font sizes scale down.
+   - min-width:0 on text containers so flexbox items can
+     shrink and word-wrap naturally (no character breaking).
+   - overflow:hidden is safe on the outer card only; inner
+     content genuinely fits.
+   ===================================================== */
+
+.erp-page-hero {
+  margin-bottom: 2rem;
+  background-color: #ffffff;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(26, 75, 109, 0.15);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__inner {
+  padding: 2rem;
+  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__start {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.erp-page-hero__icon {
+  width: 80px;
+  height: 80px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.erp-page-hero__title {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  word-break: keep-all;
+  hyphens: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__description {
+  margin: 0.75rem 0 0 0;
+  opacity: 0.9;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  word-break: keep-all;
+  hyphens: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.erp-page-hero__back-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.erp-page-hero__back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.erp-page-hero__back-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* ================= MOBILE RESPONSIVE =================
+   Breakpoint: max-width 767.98px (matches Bootstrap sm)
+   Key fixes for mobile clipping:
+   - Stack vertically (icon on top)
+   - Center-align text
+   - Reduce icon to 60px
+   - Reduce title font to 1.75rem
+   - Reduce description font to 1rem
+   - Reduce padding and gap
+   - Back button stays on one line (white-space: nowrap)
+*/
+@media (max-width: 767.98px) {
+  .erp-page-hero__inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .erp-page-hero__start {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .erp-page-hero__icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+
+  .erp-page-hero__title {
+    font-size: 1.75rem;
+  }
+
+  .erp-page-hero__description {
+    font-size: 1rem;
+  }
+
+  .erp-page-hero__actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .erp-page-hero__back-btn {
+    font-size: 0.95rem;
+    padding: 0.7rem 1.4rem;
+  }
+}

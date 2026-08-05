@@ -7,6 +7,7 @@ import Loading from "../components/Loading";
 import ApiError from "../components/ApiError";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmModal from "../components/ConfirmModal";
+import PageHero from "../components/common/PageHero";
 import { AuthContext } from "../auth/AuthContext";
 import { logger } from "../utils/logger";
 import {
@@ -90,19 +91,6 @@ const BRAND_COLORS = {
 const fadeInVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-};
-
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-  },
 };
 
 /* ================= NOTIFICATION DESCRIPTION ================= */
@@ -485,80 +473,22 @@ export default function NotificationForm({
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "2rem",
-              backgroundColor: "white",
-              borderRadius: "1.5rem",
-              overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-            }}
-          >
-            <div
-              style={{
-                padding: "2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-              >
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: "80px",
-                    height: "80px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "2.5rem",
-                    flexShrink: 0,
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
-                  }}
-                >
-                  <FaBell />
-                </motion.div>
-                <div>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "2.25rem",
-                      fontWeight: 700,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {mode === "create"
-                      ? "Create Notification"
-                      : "Edit Notification"}
-                  </h1>
-                  <p
-                    style={{
-                      margin: "0.75rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.25rem",
-                    }}
-                  >
-                    {mode === "create"
-                      ? `Send important announcements to your ${config.placeholder}`
-                      : "Update your announcement details"}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <PageHero
+            icon={<FaBell />}
+            title={
+              mode === "create"
+                ? "Create Notification"
+                : "Edit Notification"
+            }
+            description={
+              mode === "create"
+                ? `Send important announcements to your ${config.placeholder}`
+                : "Update your announcement details"
+            }
+            onBack={mode === "edit" ? handleBackClick : undefined}
+            backLabel="Back"
+            primaryAction={
+              <>
                 {mode === "create" && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -576,6 +506,7 @@ export default function NotificationForm({
                       display: "flex",
                       alignItems: "center",
                       gap: "0.5rem",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     <FaDownload /> Load Sample
@@ -597,67 +528,47 @@ export default function NotificationForm({
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <FaEye /> {showPreview ? "Hide" : "Show"} Preview
                 </motion.button>
-                {mode === "edit" && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleBackClick}
-                    style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.2)",
-                      color: "white",
-                      border: "2px solid rgba(255, 255, 255, 0.4)",
-                      padding: "0.75rem 1.5rem",
-                      borderRadius: "12px",
-                      fontSize: "1rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                    }}
-                  >
-                    <FaArrowLeft /> Back
-                  </motion.button>
-                )}
-              </div>
-            </div>
+              </>
+            }
+          />
 
-            {/* Info Banner */}
-            <div
+          {/* Info Banner */}
+          <div
+            style={{
+              padding: "1rem 2rem",
+              backgroundColor: "#dbeafe",
+              borderTop: "1px solid #bfdbfe",
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <FaInfoCircle
               style={{
-                padding: "1rem 2rem",
-                backgroundColor: "#dbeafe",
-                borderTop: "1px solid #bfdbfe",
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
+                color: BRAND_COLORS.primary.main,
+                fontSize: "1.5rem",
+                flexShrink: 0,
               }}
-            >
-              <FaInfoCircle
-                style={{
-                  color: BRAND_COLORS.primary.main,
-                  fontSize: "1.5rem",
-                  flexShrink: 0,
-                }}
-              />
-              <div style={{ color: "#1e293b", fontWeight: 500 }}>
-                {mode === "create" ? (
-                  <>
-                    Notifications will be sent to all {config.placeholder}.
-                    <strong style={{ marginLeft: "0.5rem" }}>
-                      Recipients will receive email and in-app alerts.
-                    </strong>
-                  </>
-                ) : (
-                  <>Changes will be reflected immediately for all recipients.</>
-                )}
-              </div>
+            />
+            <div style={{ color: "#1e293b", fontWeight: 500 }}>
+              {mode === "create" ? (
+                <>
+                  Notifications will be sent to all {config.placeholder}.
+                  <strong style={{ marginLeft: "0.5rem" }}>
+                    Recipients will receive email and in-app alerts.
+                  </strong>
+                </>
+              ) : (
+                <>Changes will be reflected immediately for all recipients.</>
+              )}
             </div>
-          </motion.div>
+          </div>
 
           {/* ================= MAIN CONTENT ================= */}
           <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
