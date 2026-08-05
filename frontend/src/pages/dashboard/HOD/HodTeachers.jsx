@@ -8,15 +8,14 @@ import {
   FaPhone,
   FaGraduationCap,
   FaBriefcase,
-  FaArrowLeft,
-  FaSearch,
-  FaUser
+  FaSearch
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
+import PageHero from "../../../components/common/PageHero";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -33,15 +32,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
   })
-};
-
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
 };
 
 export default function HodTeachers() {
@@ -138,88 +128,13 @@ if (error) {
          }}
        >
          <div className="erp-page-content">
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '2rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
-            }}
-          >
-            <div style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '2.5rem',
-                  flexShrink: 0,
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-                }}>
-                  <FaUsers />
-                </div>
-                <div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '2.25rem',
-                    fontWeight: 700,
-                    lineHeight: 1.1
-                  }}>
-                    Department Teachers
-                  </h1>
-                  <p style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.25rem'
-                  }}>
-                    {filtered.length} teacher{filtered.length !== 1 ? "s" : ""} found
-                  </p>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate(-1)}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  border: '2px solid rgba(255, 255, 255, 0.4)',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <FaArrowLeft /> Back
-              </motion.button>
-            </div>
-          </motion.div>
+          <PageHero
+            icon={<FaUsers />}
+            title="Department Teachers"
+            description={`${filtered.length} teacher${filtered.length !== 1 ? "s" : ""} found`}
+            onBack={() => navigate(-1)}
+            backLabel="Back"
+          />
 
           {/* ================= SEARCH ================= */}
           <motion.div

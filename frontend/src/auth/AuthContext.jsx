@@ -294,7 +294,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       checkAuthStatus();
-    }, [checkAuthStatus]);
+    }, []);
 
    const clearSessionInvalidReason = useCallback(() => {
     setSessionInvalidReason(null);
