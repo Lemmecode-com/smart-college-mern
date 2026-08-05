@@ -387,7 +387,9 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     const recentStudents = await Student.find({ college_id: collegeId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("fullName email enrollmentNumber status");
+      .select("fullName email enrollmentNumber status")
+      .populate("course_id", "name")
+      .populate("department_id", "name");
 
     // 🔥 OPTIMIZED: Fetch only pending admissions (usually small count)
     const pendingAdmissions = await Student.find({
@@ -496,7 +498,9 @@ exports.principalDashboard = async (req, res, next) => {
     const recentStudents = await Student.find({ college_id: collegeId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("fullName email enrollmentNumber status");
+      .select("fullName email enrollmentNumber status")
+      .populate("course_id", "name")
+      .populate("department_id", "name");
 
     ApiResponse.success(
       res,
