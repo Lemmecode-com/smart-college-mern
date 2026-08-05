@@ -654,7 +654,6 @@
   width: 140px;
   min-width: 120px;
   max-width: 140px;
-  flex-shrink: 0;
   white-space: nowrap;
   text-align: center;
 }
