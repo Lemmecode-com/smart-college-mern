@@ -66,7 +66,6 @@ export default function StudentProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
-  const [lastRefreshed] = useState(new Date());
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -425,7 +424,7 @@ export default function StudentProfile() {
             </div>
             <small className="text-muted">
               <FaSync className="spin-icon me-1" />
-              Last updated: {new Date().toLocaleString()}
+               Last updated: {student?.updatedAt ? new Date(student.updatedAt).toLocaleString() : "N/A"}
             </small>
           </div>
         </div>
@@ -935,8 +934,12 @@ export default function StudentProfile() {
               <p className="mb-0">
                 <small className="text-muted">
                   <FaSync className="spin-icon me-1" aria-hidden="true" />
-                  Profile last updated:{" "}
-                  <strong>{lastRefreshed.toLocaleString()}</strong>
+                   Profile last updated:{" "}
+                   <strong>
+                     {profile?.student?.updatedAt
+                       ? new Date(profile.student.updatedAt).toLocaleString()
+                       : "N/A"}
+                   </strong>
                 </small>
               </p>
             </div>
