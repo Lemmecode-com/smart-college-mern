@@ -6,6 +6,7 @@ import ApiError from "../components/ApiError";
 import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
+import PageHero from "../components/common/PageHero";
 import NotificationCard from "../components/NotificationCard";
 import {
   FaBell,
@@ -112,23 +113,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.05, duration: 0.6, ease: "easeOut" },
   }),
-};
-
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-  },
 };
 
 /* ================= BRAND COLORS ================= */
@@ -432,170 +416,98 @@ export default function NotificationListPage({ role = "college-admin" }) {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="erp-page-header"
-            style={{
-              marginBottom: "1.5rem",
-              backgroundColor: "white",
-              borderRadius: "1.5rem",
-              overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-            }}
-          >
+          {/* ================= PAGE HERO ================= */}
+          <PageHero
+            icon={<FaBell />}
+            title="Notifications Center"
+            description={
+              role === "student"
+                ? "Important updates from college & teachers"
+                : role === "teacher"
+                  ? "Your announcements and college updates"
+                  : "Manage and view all announcements"
+            }
+            onBack={handleGoBack}
+            backLabel="Back"
+            primaryAction={
+              config.canCreate ? (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(config.createRoute)}
+                  className="erp-page-hero__primary-btn"
+                  type="button"
+                >
+                  <FaBell /> Create New
+                </motion.button>
+              ) : null
+            }
+          />
+
+          {/* ================= STATS BAR ================= */}
+          {config.showStats && (
             <div
+              className="erp-stats-bar"
               style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
+                padding: "1rem 2rem",
+                backgroundColor: "#f8fafc",
+                borderRadius: "1.5rem",
+                marginBottom: "1.5rem",
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
+                justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: "1.5rem",
+                boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
               }}
             >
               <div
-                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-              >
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                  }}
-                >
-                  <FaBell />
-                </motion.div>
-                <div>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "2rem",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Notifications Center
-                  </h1>
-                  <p
-                    style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
-                    }}
-                  >
-                    {role === "student"
-                      ? "Important updates from college & teachers"
-                      : role === "teacher"
-                        ? "Your announcements and college updates"
-                        : "Manage and view all announcements"}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                {config.canCreate && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate(config.createRoute)}
-                    style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.2)",
-                      color: "white",
-                      border: "2px solid rgba(255, 255, 255, 0.4)",
-                      padding: "0.75rem 1.5rem",
-                      borderRadius: "12px",
-                      fontSize: "0.95rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <FaBell /> Create New
-                  </motion.button>
-                )}
-
-              </div>
-            </div>
-
-            {/* Stats Bar (conditionally rendered) */}
-            {config.showStats && (
-              <div
                 style={{
-                  padding: "1rem 2rem",
-                  backgroundColor: "#f8fafc",
-                  borderTop: "1px solid #e2e8f0",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  gap: "2rem",
                   flexWrap: "wrap",
-                  gap: "1.5rem",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "2rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <StatItem
-                    icon={<PrimaryIcon />}
-                    label={config.primaryLabel}
-                    value={stats.totalPrimary}
-                    unread={stats.unreadPrimary}
-                    color={BRAND_COLORS.primary.main}
-                  />
-                  <StatItem
-                    icon={<SecondaryIcon />}
-                    label={config.secondaryLabel}
-                    value={stats.totalSecondary}
-                    unread={stats.unreadSecondary}
-                    color={BRAND_COLORS.info.main}
-                  />
-                  <StatItem
-                    icon={<FaExclamationTriangle />}
-                    label="Urgent Alerts"
-                    value={stats.urgent}
-                    color={BRAND_COLORS.danger.main}
-                  />
-                </div>
-                <div
-                  style={{
-                    padding: "0.5rem 1.25rem",
-                    borderRadius: "20px",
-                    backgroundColor: "#dbeafe",
-                    color: BRAND_COLORS.primary.main,
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <FaInfoCircle size={14} />
-                  Total: {stats.total} notifications
-                </div>
+                <StatItem
+                  icon={<PrimaryIcon />}
+                  label={config.primaryLabel}
+                  value={stats.totalPrimary}
+                  unread={stats.unreadPrimary}
+                  color={BRAND_COLORS.primary.main}
+                />
+                <StatItem
+                  icon={<SecondaryIcon />}
+                  label={config.secondaryLabel}
+                  value={stats.totalSecondary}
+                  unread={stats.unreadSecondary}
+                  color={BRAND_COLORS.info.main}
+                />
+                <StatItem
+                  icon={<FaExclamationTriangle />}
+                  label="Urgent Alerts"
+                  value={stats.urgent}
+                  color={BRAND_COLORS.danger.main}
+                />
               </div>
-            )}
-          </motion.div>
+              <div
+                style={{
+                  padding: "0.5rem 1.25rem",
+                  borderRadius: "20px",
+                  backgroundColor: "#dbeafe",
+                  color: BRAND_COLORS.primary.main,
+                  fontWeight: 600,
+                  fontSize: "0.95rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <FaInfoCircle size={14} />
+                Total: {stats.total} notifications
+              </div>
+            </div>
+          )}
 
           {/* ================= SEARCH & FILTER BAR ================= */}
           <div
