@@ -211,6 +211,9 @@ exports.validateStudentUpdateByAdmin = [
       if (age < 14 || age > 100) {
         throw new Error('Age must be between 14 and 100 years');
       }
+      if (birthDate > today) {
+        throw new Error('Date of birth cannot be in the future');
+      }
       return true;
     }),
 
