@@ -921,11 +921,11 @@ export default function WeeklyTimetable() {
               </div>
             </div>
             <div className="table-responsive erp-timetable-responsive">
-              <table className="table table-bordered align-middle mb-0" style={{ minWidth: "900px", tableLayout: "fixed" }}>
+              <table className="table table-bordered align-middle mb-0" style={{ minWidth: "1520px", tableLayout: "fixed" }}>
                 <colgroup>
                   <col style={{ width: "140px" }} />
                   {DAYS.map((day) => (
-                    <col key={day} style={{ width: "150px" }} />
+                    <col key={day} style={{ width: "230px" }} />
                   ))}
                 </colgroup>
                 <thead className="table-light">
@@ -1300,7 +1300,7 @@ function TimetableSlot({ slot, canManageTimetable, onEdit, onDelete, handleToolt
       style={{
         backgroundColor: adjustedBg, border: `1px solid ${adjustedBorder}`, borderLeft: `3px solid ${borderColor}`,
         borderRadius: "12px", padding: "0.875rem", height: "100%", display: "flex", flexDirection: "column",
-        gap: "0.5rem", transition: "all 0.3s ease", position: "relative", overflow: "hidden",
+        gap: "0.5rem", transition: "all 0.3s ease", position: "relative", overflow: "visible",
         opacity: isCancelled || isHoliday ? 0.7 : 1, textDecoration: isCancelled ? "line-through" : "none",
       }}
     >
@@ -1385,7 +1385,7 @@ const headerCellStyle = {
   top: 0,
   zIndex: 10,
   backgroundColor: "#f1f5f9",
-  minWidth: "150px",
+  minWidth: "230px",
   whiteSpace: "nowrap",
 };
 
@@ -1395,7 +1395,7 @@ const cellStyle = {
   color: "#1e293b",
   borderBottom: "1px solid #e2e8f0",
   verticalAlign: "middle",
-  minWidth: "150px",
+  minWidth: "230px",
 };
 
 const inputStyle = {
