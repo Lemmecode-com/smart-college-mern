@@ -29,6 +29,7 @@ import {
   
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import "./TimetableList.css";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -441,7 +442,7 @@ export default function TimetableList() {
               gap: '1.5rem'
             }}
           >
-            <div style={{
+            <div className="erp-timetable-hero-inner" style={{
               padding: '2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -456,6 +457,7 @@ export default function TimetableList() {
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
+                  className="erp-timetable-hero-icon"
                   style={{
                     width: '80px',
                     height: '80px',
@@ -471,8 +473,8 @@ export default function TimetableList() {
                 >
                   <FaCalendarAlt />
                 </motion.div>
-                <div>
-                  <h1 style={{
+                <div className="erp-timetable-hero-text">
+                  <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
                     fontSize: '2.25rem',
                     fontWeight: 700,
@@ -480,7 +482,7 @@ export default function TimetableList() {
                   }}>
                     Timetable Management
                   </h1>
-                  <p style={{
+                  <p className="erp-timetable-hero-desc" style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
                     fontSize: '1.25rem'
@@ -493,6 +495,7 @@ export default function TimetableList() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/timetable/create-timetable')}
+                className="erp-timetable-hero-cta"
                 style={{
                   backgroundColor: 'white',
                   color: BRAND_COLORS.primary.main,
@@ -514,7 +517,7 @@ export default function TimetableList() {
             </div>
             
             {/* Stats Bar */}
-            <div style={{
+            <div className="erp-timetable-stats" style={{
               padding: '1rem 2rem',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
@@ -524,7 +527,7 @@ export default function TimetableList() {
               flexWrap: 'wrap',
               gap: '1.5rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+              <div className="erp-timetable-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
                 <StatItem 
                   icon={<FaCalendarAlt />} 
                   label="Total" 
@@ -550,7 +553,7 @@ export default function TimetableList() {
                   color={BRAND_COLORS.secondary.main} 
                 />
               </div>
-              <div style={{ 
+              <div className="erp-timetable-stats-tip" style={{ 
                 padding: '0.5rem 1.25rem',
                 borderRadius: '20px',
                 backgroundColor: '#dbeafe',
