@@ -659,9 +659,11 @@
 }
 
 /* Day header: preserve full day names (Monday, Tuesday...)
-   across all widths. min-width keeps columns legible. */
+   across all widths. min-width now matches the colgroup width
+   so columns don't collapse below the space needed for two
+   action buttons (Edit + Delete) inside subject cards. */
 .erp-timetable-day {
-  min-width: 120px;
+  min-width: 230px;
   white-space: nowrap;
   text-align: center;
 }
