@@ -51,8 +51,7 @@ exports.createCourse = async (req, res, next) => {
     throw new AppError("Maximum Students must be greater than 0", 400, "INVALID_MAX_STUDENTS");
   }
 
-  // Note: durationYears is auto-calculated by the model's pre-save hook
-  // If provided, it will be validated by the model
+  // Note: durationYears is always auto-calculated by the pre('save') hook — never trust client value
 
   // Warn if creating long duration program
   if (durationSemesters > 6 && programLevel === "UG") {
@@ -89,10 +88,7 @@ exports.createCourse = async (req, res, next) => {
     courseData.yearLabels = yearLabels.filter((label) => typeof label === "string" && label.trim().length > 0).map((label) => label.trim());
   }
 
-  // Only add durationYears if provided (otherwise let pre-save hook calculate it)
-  if (durationYears) {
-    courseData.durationYears = durationYears;
-  }
+  // Never trust a client-supplied durationYears — the pre('save') hook always calculates it
 
   console.log('📝 [CREATE COURSE] Course data to save:', courseData);
 
@@ -179,7 +175,15 @@ exports.getCourseById = async (req, res, next) => {
  */
 exports.updateCourse = async (req, res, next) => {
   try {
-    const { code, department_id, maxStudents } = req.body;
+    const { code, department_id, maxStudents, durationSemesters } = req.body;
+
+    // ✅ Validate durationSemesters if being updated
+    if (durationSemesters !== undefined && durationSemesters !== null) {
+      const sem = Number(durationSemesters);
+      if (!Number.isFinite(sem) || !Number.isInteger(sem) || sem < 1 || sem > 8) {
+        throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
+      }
+    }
 
     // ✅ Validate maxStudents if it is being updated (must be a positive integer > 0)
     if (maxStudents !== undefined && maxStudents !== null) {
@@ -210,13 +214,16 @@ exports.updateCourse = async (req, res, next) => {
       }
     }
 
+    // Strip durationYears — the pre('findOneAndUpdate') hook on the model owns this field
+    const { durationYears: _stripped, ...updatePayload } = req.body;
+
     const course = await Course.findOneAndUpdate(
       {
         _id: req.params.id,
         college_id: req.college_id
       },
-      req.body,
-      { new: true }
+      updatePayload,
+      { new: true, runValidators: true }
     );
 
     if (!course) {
