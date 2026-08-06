@@ -1041,6 +1041,20 @@ export const navigationConfig = {
           },
         ],
       },
+      {
+        id: "parent-notifications",
+        title: "Notifications",
+        icon: FaBell,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/parent/notifications",
+            icon: FaBell,
+            label: "View Notifications",
+            exact: true,
+          },
+        ],
+      },
     ],
   },
 
