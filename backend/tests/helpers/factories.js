@@ -2,9 +2,10 @@ const College = require('../../src/models/college.model');
 const User = require('../../src/models/user.model');
 const Teacher = require('../../src/models/teacher.model');
 const Student = require('../../src/models/student.model');
+const ParentGuardian = require('../../src/models/parentGuardian.model');
 const { CATEGORY, GENDER, STUDENT_STATUS } = require('../../src/utils/constants');
 
-// Real fields only — do NOT invent fields like "phone", "website", etc.
+// Real fields only ï¿½ do NOT invent fields like "phone", "website", etc.
 const collegeDefaults = () => ({
   name: 'Test College',
   code: 'TEST',
@@ -136,4 +137,18 @@ const createStudent = async (overrides = {}) => {
   return Student.create(payload);
 };
 
-module.exports = { createCollege, createUser, createTeacher, createStudent };
+/**
+ * Create a ParentGuardian document with overrides merged.
+ */
+const createParentGuardian = async (overrides = {}) => {
+  const payload = {
+    user_id: null,
+    college_id: null,
+    student_ids: [],
+    relation: "guardian",
+    ...overrides,
+  };
+  return ParentGuardian.create(payload);
+};
+
+module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian };
