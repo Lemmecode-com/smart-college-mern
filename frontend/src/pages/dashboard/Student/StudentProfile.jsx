@@ -593,6 +593,14 @@ export default function StudentProfile() {
                   icon={<FaUserFriends />}
                   color="primary"
                 >
+                  <button
+                    className="btn btn-sm btn-outline-primary ms-auto"
+                    onClick={() => navigate("/student/edit-profile")}
+                    aria-label="Edit parent details"
+                  >
+                    <FaEdit size={12} className="me-1" aria-hidden="true" />
+                    Edit
+                  </button>
                   <div className="row g-3">
                     <InfoItem
                       label="Father's Name"
