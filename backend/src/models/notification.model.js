@@ -57,7 +57,7 @@ const notificationSchema = new mongoose.Schema(
     // 🎯 Target audience (enhanced for granular targeting - FIX: Issue #7)
     target: {
       type: String,
-      enum: ["ALL", "STUDENTS", "TEACHERS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"],
+      enum: ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"],
       required: true,
       default: "ALL",
     },
