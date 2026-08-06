@@ -79,6 +79,10 @@ export default function EditStudentProfile() {
   const [success, setSuccess] = useState("");
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState("");
+  const [showEmailOtp, setShowEmailOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -122,6 +126,8 @@ export default function EditStudentProfile() {
         motherMobile: student.motherMobile || "",
         motherEmail: student.motherEmail || "",
       });
+
+      setOriginalEmail(student.email);
 
       setDepartment(department);
       setCourse(course);
@@ -186,45 +192,135 @@ export default function EditStudentProfile() {
     setSuccess("");
 
     try {
-      await api.put(
-        "/students/update-my-profile",
-        form
-      );
+      if (form.email !== originalEmail) {
+        const res = await api.post("/students/request-email-change", {
+          email: form.email,
+        });
 
-      setSuccess("Profile updated successfully");
-      toast.success("Profile updated successfully!", {
+        setShowEmailOtp(true);
+        setSuccess(res.data?.message || "Verification email sent. Please enter the OTP.");
+        toast.success(res.data?.message || "Verification email sent. Please enter the OTP.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaCheckCircle />
+        });
+      } else {
+        const { email: _email, ...profileData } = form;
+        await api.put("/students/update-my-profile", profileData);
+
+        setSuccess("Profile updated successfully");
+        toast.success("Profile updated successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />
+        });
+
+        setTimeout(() => {
+          navigate("/student/profile");
+        }, 1500);
+      }
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("Edit student profile update error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "EditStudentProfile",
+        role: user?.role,
+      });
+
+      let errorMsg;
+      if (
+        err.response?.data?.errors &&
+        Array.isArray(err.response.data.errors)
+      ) {
+        const v = err.response.data.errors[0];
+        errorMsg = `${v.field}: ${v.message}`;
+      } else if (err.response?.data?.error?.message) {
+        errorMsg = err.response.data.error.message;
+      } else {
+        errorMsg = backendMessage || "Failed to update profile. Please try again.";
+      }
+      setFormError(errorMsg);
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const verifyEmail = async (e) => {
+    e.preventDefault();
+    setVerifying(true);
+    setFormError("");
+    setSuccess("");
+
+    try {
+      await api.post("/students/verify-email-change", {
+        email: form.email,
+        otp,
+      });
+
+      setSuccess("Email verified successfully!");
+      toast.success("Email verified successfully!", {
         position: "top-right",
         autoClose: 3000,
         icon: <FaCheckCircle />
       });
 
+      setShowEmailOtp(false);
+      setOtp("");
+      setOriginalEmail(form.email);
+
+      try {
+        const { email: _email, ...profileData } = form;
+        await api.put("/students/update-my-profile", profileData);
+      } catch (profileErr) {
+        let profileErrorMsg = "Failed to update profile after email verification.";
+        if (
+          profileErr.response?.data?.errors &&
+          Array.isArray(profileErr.response.data.errors)
+        ) {
+          const v = profileErr.response.data.errors[0];
+          profileErrorMsg = `${v.field}: ${v.message}`;
+        } else if (profileErr.response?.data?.error?.message) {
+          profileErrorMsg = profileErr.response.data.error.message;
+        } else {
+          profileErrorMsg =
+            profileErr.response?.data?.message ||
+            "Failed to update profile after email verification.";
+        }
+        logger.error("Profile update after email verification failed:", {
+          error: profileErrorMsg,
+        });
+        toast.error(profileErrorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
+        });
+      }
+
       setTimeout(() => {
         navigate("/student/profile");
       }, 1500);
-
-     } catch (err) {
-       const statusCode = err.response?.status;
-       const errorCode = err.response?.data?.code;
-       const backendMessage = err.response?.data?.message;
-
-       logger.error("Edit student profile update error:", {
-         statusCode,
-         errorCode,
-         backendMessage,
-         page: "EditStudentProfile",
-         role: user?.role,
-       });
-
-       const errorMsg = backendMessage || "Failed to update profile. Please try again.";
-       setFormError(errorMsg);
-       toast.error(errorMsg, {
-         position: "top-right",
-         autoClose: 5000,
-         icon: <FaExclamationTriangle />
-       });
-     } finally {
-       setSubmitting(false);
-     }
+    } catch (err) {
+      const backendMessage = err.response?.data?.message;
+      const errorMsg = backendMessage || "Failed to verify email. Please try again.";
+      setFormError(errorMsg);
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaExclamationTriangle />
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   /* ================= LOADING ================= */
@@ -313,7 +409,6 @@ export default function EditStudentProfile() {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  disabled
                 />
               </div>
 
@@ -632,6 +727,37 @@ export default function EditStudentProfile() {
               <FaSave className="me-2" />
               {submitting ? "Updating..." : "Update Profile"}
             </button>
+
+            {showEmailOtp && (
+              <div className="mt-4 p-3 border rounded bg-light">
+                <h6 className="fw-bold mb-3">
+                  <FaEnvelope className="me-2" />
+                  Verify Your New Email
+                </h6>
+                <p className="text-muted small mb-3">
+                  A verification OTP has been sent to <strong>{form.email}</strong>. Please enter it below.
+                </p>
+                <div className="input-group mb-3">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter 6-digit OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    maxLength="6"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={verifyEmail}
+                    disabled={verifying}
+                  >
+                    {verifying ? "Verifying..." : "Verify Email"}
+                  </button>
+                </div>
+              </div>
+            )}
 
           </form>
         </div>
