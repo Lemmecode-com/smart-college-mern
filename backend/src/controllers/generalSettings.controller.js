@@ -19,7 +19,7 @@ exports.getGeneralSettings = async (req, res, next) => {
         403,
         "COLLEGE_ID_MISSING",
       );
-    }
+    }o
 
     const settings = await generalSettingsService.getGeneralSettings(collegeId, userId);
 

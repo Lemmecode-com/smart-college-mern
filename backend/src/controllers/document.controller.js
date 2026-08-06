@@ -1,8 +1,10 @@
 const Document = require("../models/document.model");
+const DocumentConfig = require("../models/documentConfig.model");
 const DocumentService = require("../services/document.service");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const logger = require("../utils/logger");
+const { validateFile } = require("../utils/fileValidation");
 
 exports.getDocument = async (req, res, next) => {
   try {
@@ -121,6 +123,45 @@ exports.uploadDocumentCtrl = async (req, res, next) => {
       return next(new AppError("ownerType, ownerId, and documentType are required", 400, "VALIDATION_ERROR"));
     }
 
+    if (req.collegeCode) {
+      const docConfig = await DocumentConfig.findOne({
+        collegeCode: req.collegeCode,
+        isActive: true,
+      });
+
+      if (docConfig && docConfig.documents && docConfig.documents.length > 0) {
+        const docTypeConfig = docConfig.documents.find(
+          (doc) => doc.type === documentType && doc.enabled
+        );
+
+        if (docTypeConfig && docTypeConfig.allowedFormats) {
+          const fileValidation = validateFile(
+            req.file.originalname,
+            req.file.mimetype,
+            docTypeConfig.allowedFormats
+          );
+
+          if (!fileValidation.valid) {
+            return next(
+              new AppError(
+                `Invalid file type: ${fileValidation.error}`,
+                400,
+                "INVALID_FILE_TYPE"
+              )
+            );
+          }
+        } else if (!docTypeConfig) {
+          return next(
+            new AppError(
+              `Document type "${documentType}" is not configured for this college`,
+              400,
+              "DOCUMENT_TYPE_NOT_CONFIGURED"
+            )
+          );
+        }
+      }
+    }
+
     const categoryMap = {
       "Student": "student",
       "Teacher": "teacher",
@@ -175,6 +216,45 @@ exports.updateDocument = async (req, res, next) => {
     const oldDocument = await Document.findOne({ documentId, status: "ACTIVE" });
     if (!oldDocument) {
       return next(new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"));
+    }
+
+    if (req.collegeCode && documentType) {
+      const docConfig = await DocumentConfig.findOne({
+        collegeCode: req.collegeCode,
+        isActive: true,
+      });
+
+      if (docConfig && docConfig.documents && docConfig.documents.length > 0) {
+        const docTypeConfig = docConfig.documents.find(
+          (doc) => doc.type === documentType && doc.enabled
+        );
+
+        if (docTypeConfig && docTypeConfig.allowedFormats) {
+          const fileValidation = validateFile(
+            req.file.originalname,
+            req.file.mimetype,
+            docTypeConfig.allowedFormats
+          );
+
+          if (!fileValidation.valid) {
+            return next(
+              new AppError(
+                `Invalid file type: ${fileValidation.error}`,
+                400,
+                "INVALID_FILE_TYPE"
+              )
+            );
+          }
+        } else if (!docTypeConfig) {
+          return next(
+            new AppError(
+              `Document type "${documentType}" is not configured for this college`,
+              400,
+              "DOCUMENT_TYPE_NOT_CONFIGURED"
+            )
+          );
+        }
+      }
     }
 
     const categoryMap = {
