@@ -242,14 +242,14 @@ export default function SuperAdminReports() {
             <div className="stat-value approved">{data.approved?.toLocaleString() || 0}</div>
             <div className="stat-trend positive">
               <FaCheckCircle className="trend-icon" />
-              {data.approved ? Math.round((data.approved / data.totalStudents) * 100) : 0}% of total
+              {data.approvedPercentage ?? 0}% of total
             </div>
           </div>
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Approval Rate</span>
               <span className="footer-value positive">
-                <FaCheckCircle /> {data.approved && data.totalStudents ? Math.round((data.approved / data.totalStudents) * 100) : 0}%
+                <FaCheckCircle /> {data.approvedPercentage ?? 0}%
               </span>
             </div>
           </div>
@@ -292,14 +292,14 @@ export default function SuperAdminReports() {
             <div className="stat-value rejected">{data.rejected?.toLocaleString() || 0}</div>
             <div className="stat-trend negative">
               <FaExclamationTriangle className="trend-icon" />
-              {data.rejected ? Math.round((data.rejected / data.totalStudents) * 100) : 0}% of total
+              {data.rejectedPercentage ?? 0}% of total
             </div>
           </div>
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Rejection Rate</span>
               <span className="footer-value negative">
-                <FaExclamationTriangle /> {data.rejected && data.totalStudents ? Math.round((data.rejected / data.totalStudents) * 100) : 0}%
+                <FaExclamationTriangle /> {data.rejectedPercentage ?? 0}%
               </span>
             </div>
           </div>
@@ -411,9 +411,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Approval Rate</div>
                 <div className="metric-value">
-                  {data.approved && data.totalStudents 
-                    ? Math.round((data.approved / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.approvedPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Percentage of approved applications</div>
               </div>
@@ -426,9 +424,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Pending Rate</div>
                 <div className="metric-value">
-                  {data.pending && data.totalStudents 
-                    ? Math.round((data.pending / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.pendingPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Applications awaiting review</div>
               </div>
@@ -441,9 +437,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Rejection Rate</div>
                 <div className="metric-value">
-                  {data.rejected && data.totalStudents 
-                    ? Math.round((data.rejected / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.rejectedPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Applications not approved</div>
               </div>
