@@ -234,10 +234,13 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
  * ADMISSION SUMMARY (ALL COLLEGES)
  */
 exports.admissionSummaryAll = async ({ month, year } = {}) => {
-  const total = await Student.countDocuments();
-  const approved = await Student.countDocuments({ status: "APPROVED" });
-  const pending = await Student.countDocuments({ status: "PENDING" });
-  const rejected = await Student.countDocuments({ status: "REJECTED" });
+   const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+   const total = await Student.countDocuments();
+   const approved = await Student.countDocuments({
+     status: { $in: activeStatuses },
+   });
+   const pending = await Student.countDocuments({ status: "PENDING" });
+   const rejected = await Student.countDocuments({ status: "REJECTED" });
 
   const totalColleges = await College.countDocuments();
   const activeColleges = await College.countDocuments({ isActive: true });
