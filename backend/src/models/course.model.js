@@ -51,9 +51,10 @@ const courseSchema = new mongoose.Schema(
       max: [8, "Duration cannot exceed 8 semesters"]
     },
 
-    // ✅ NEW: Total years in program (auto-calculated from semesters if not provided)
+    // Auto-calculated from durationSemesters — never set directly by clients
     durationYears: {
       type: Number,
+      required: [true, "Duration in years is required"],
       min: [1, "Duration must be at least 1 year"],
       max: [4, "Duration cannot exceed 4 years"]
     },
@@ -88,17 +89,35 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ NEW: Auto-calculate durationYears from durationSemesters before saving
-courseSchema.pre('save', async function() {
-  try {
-    // Always calculate durationYears if durationSemesters is set
-    if (this.durationSemesters) {
-      // Calculate years: Sem 1-2 = Year 1, Sem 3-4 = Year 2, etc.
-      this.durationYears = Math.ceil(this.durationSemesters / 2);
-    }
-  } catch (error) {
-    // Pass error to Mongoose
-    throw error;
+// Shared calculation — single source of truth for the formula
+function calcDurationYears(semesters) {
+  return Math.ceil(semesters / 2);
+}
+
+// Fires on Course.create() and course.save()
+courseSchema.pre('save', function() {
+  if (this.durationSemesters) {
+    this.durationYears = calcDurationYears(this.durationSemesters);
+  }
+});
+
+// Fires on Course.findOneAndUpdate() / Course.updateOne() etc.
+courseSchema.pre('findOneAndUpdate', function() {
+  const update = this.getUpdate();
+
+  // Strip any client-supplied durationYears — backend owns this field
+  if (update.durationYears !== undefined) delete update.durationYears;
+  if (update.$set && update.$set.durationYears !== undefined) delete update.$set.durationYears;
+
+  // Recalculate whenever durationSemesters is being changed
+  const incomingSemesters = update.durationSemesters ?? update.$set?.durationSemesters;
+  if (incomingSemesters !== undefined) {
+    const years = calcDurationYears(Number(incomingSemesters));
+    update.$set = update.$set || {};
+    update.$set.durationYears = years;
+    // Remove top-level key if it was set there to avoid Mongoose conflict
+    delete update.durationSemesters;
+    update.$set.durationSemesters = Number(incomingSemesters);
   }
 });
 

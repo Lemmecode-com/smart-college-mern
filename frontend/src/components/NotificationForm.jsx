@@ -34,6 +34,8 @@ import {
   FaUsers,
   FaChalkboardTeacher,
   FaFileAlt,
+  FaUserTie,
+  FaUserFriends,
 } from "react-icons/fa";
 import { NOTIFICATION_TYPES } from "../utils/notificationTypes";
 
@@ -125,6 +127,7 @@ export default function NotificationForm({
     target_department: "",
     target_course: "",
     target_semester: "",
+    target_users: [],
   });
 
   const [originalForm, setOriginalForm] = useState({ ...form });
@@ -138,6 +141,9 @@ export default function NotificationForm({
   const [messageCount, setMessageCount] = useState(0);
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [recipientOptions, setRecipientOptions] = useState([]);
+  const [recipientLoading, setRecipientLoading] = useState(false);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -168,6 +174,27 @@ export default function NotificationForm({
       fetchData();
     }
   }, [config.canTarget]);
+
+  /* ================= FETCH ELIGIBLE RECIPIENTS (INDIVIDUAL TARGET) ================= */
+  useEffect(() => {
+    if (form.target !== "INDIVIDUAL" || role !== "college-admin") return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setRecipientLoading(true);
+      try {
+        const params = recipientSearch.trim() ? `?search=${encodeURIComponent(recipientSearch.trim())}` : "";
+        const res = await api.get(`/notifications/eligible-recipients${params}`, { signal: controller.signal });
+        setRecipientOptions(res.data || []);
+      } catch (err) {
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          logger.error("Error fetching eligible recipients:", err);
+        }
+      } finally {
+        setRecipientLoading(false);
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [form.target, recipientSearch, role]);
 
   /* ================= LOAD EXISTING NOTIFICATION (EDIT MODE) ================= */
   const loadNotification = useCallback(async () => {
@@ -207,6 +234,7 @@ export default function NotificationForm({
         target_department: found.target_department || "",
         target_course: found.target_course || "",
         target_semester: found.target_semester || "",
+        target_users: found.target_users || [],
       };
 
       setForm(formData);
@@ -233,10 +261,12 @@ export default function NotificationForm({
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setError(null);
-    setForm({
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    const updated = { ...form, [name]: type === "checkbox" ? checked : value };
+    if (name === "target" && value !== "INDIVIDUAL") {
+      updated.target_users = [];
+      setRecipientSearch("");
+    }
+    setForm(updated);
   };
 
   /* ================= SUBMIT FORM ================= */
@@ -281,6 +311,11 @@ export default function NotificationForm({
       return;
     }
 
+    if (form.target === "INDIVIDUAL" && form.target_users.length === 0) {
+      toast.error("Please select at least one recipient.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -293,6 +328,7 @@ export default function NotificationForm({
         target_department: form.target_department || undefined,
         target_course: form.target === "COURSE" ? form.target_course || undefined : undefined,
         target_semester: form.target === "SEMESTER" ? form.target_semester || undefined : undefined,
+        target_users: form.target === "INDIVIDUAL" ? form.target_users : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -311,6 +347,7 @@ export default function NotificationForm({
             target_department: "",
             target_course: "",
             target_semester: "",
+            target_users: [],
           });
         }, 2000);
       } else {
@@ -373,7 +410,12 @@ export default function NotificationForm({
       form.message !== originalForm.message ||
       form.type !== originalForm.type ||
       form.priority !== originalForm.priority ||
-      form.expiresAt !== originalForm.expiresAt
+      form.expiresAt !== originalForm.expiresAt ||
+      form.target !== originalForm.target ||
+      JSON.stringify(form.target_users) !== JSON.stringify(originalForm.target_users) ||
+      form.target_department !== originalForm.target_department ||
+      form.target_course !== originalForm.target_course ||
+      form.target_semester !== originalForm.target_semester
     );
   }, [form, originalForm]);
 
@@ -984,89 +1026,152 @@ export default function NotificationForm({
                           {/* ALL & TEACHERS: Only for college-admin */}
 {role === "college-admin" && (
                             <>
-                              <div style={{ marginBottom: "0.75rem" }}>
-                                <label
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    marginBottom: "0.5rem",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="target"
-                                    value="ALL"
-                                    checked={form.target === "ALL"}
-                                    onChange={handleChange}
-                                  />
-                                  <FaUsers /> All Users (Students, Teachers, Admins)
-                                </label>
-                              </div>
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="ALL"
+                                  checked={form.target === "ALL"}
+                                  onChange={handleChange}
+                                />
+                                <FaUsers /> All Users (Students, Teachers, HODs, Parents)
+                              </label>
+                            </div>
 
-                              <div style={{ marginBottom: "0.75rem" }}>
-                                <label
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    marginBottom: "0.5rem",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="target"
-                                    value="TEACHERS"
-                                    checked={form.target === "TEACHERS"}
-                                    onChange={handleChange}
-                                  />
-                                  <FaChalkboardTeacher /> Teachers Only
-                                </label>
-                              </div>
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="TEACHERS"
+                                  checked={form.target === "TEACHERS"}
+                                  onChange={handleChange}
+                                />
+                                <FaChalkboardTeacher /> Teachers Only
+                              </label>
+                            </div>
 
-                              <div style={{ marginBottom: "0.75rem" }}>
-                                <label
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    marginBottom: "0.5rem",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="target"
-                                    value="COURSE"
-                                    checked={form.target === "COURSE"}
-                                    onChange={handleChange}
-                                  />
-                                  <FaGraduationCap /> Specific Course
-                                </label>
-                              </div>
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="HOD"
+                                  checked={form.target === "HOD"}
+                                  onChange={handleChange}
+                                />
+                                <FaUserTie /> HOD Only
+                              </label>
+                            </div>
 
-                              <div style={{ marginBottom: "0.75rem" }}>
-                                <label
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    marginBottom: "0.5rem",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="target"
-                                    value="SEMESTER"
-                                    checked={form.target === "SEMESTER"}
-                                    onChange={handleChange}
-                                  />
-                                  <FaCalendarAlt /> Specific Semester
-                                </label>
-                              </div>
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="PARENTS"
+                                  checked={form.target === "PARENTS"}
+                                  onChange={handleChange}
+                                />
+                                <FaUserFriends /> Parents Only
+                              </label>
+                            </div>
+
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="COURSE"
+                                  checked={form.target === "COURSE"}
+                                  onChange={handleChange}
+                                />
+                                <FaGraduationCap /> Specific Course
+                              </label>
+                            </div>
+
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="SEMESTER"
+                                  checked={form.target === "SEMESTER"}
+                                  onChange={handleChange}
+                                />
+                                <FaCalendarAlt /> Specific Semester
+                              </label>
+                            </div>
+
+                            <div style={{ marginBottom: "0.75rem" }}>
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.5rem",
+                                  marginBottom: "0.5rem",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="target"
+                                  value="INDIVIDUAL"
+                                  checked={form.target === "INDIVIDUAL"}
+                                  onChange={handleChange}
+                                />
+                                <FaUserCheck /> Individual User(s)
+                              </label>
+                            </div>
                             </>
                           )}
 
@@ -1186,6 +1291,203 @@ export default function NotificationForm({
                                   </option>
                                 ))}
                               </select>
+                            </div>
+                          )}
+
+                          {form.target === "INDIVIDUAL" && (
+                            <div
+                              style={{
+                                marginLeft: "1.5rem",
+                                marginBottom: "1rem",
+                              }}
+                            >
+                              <label
+                                style={{
+                                  display: "block",
+                                  marginBottom: "0.5rem",
+                                  fontWeight: 600,
+                                  color: "#1e293b",
+                                  fontSize: "0.95rem",
+                                }}
+                              >
+                                Select Recipients
+                              </label>
+                              <div
+                                style={{
+                                  border: "2px solid #e2e8f0",
+                                  borderRadius: "10px",
+                                  padding: "0.5rem",
+                                  backgroundColor: "white",
+                                }}
+                              >
+                                <input
+                                  type="text"
+                                  placeholder="Search by name or email..."
+                                  value={recipientSearch}
+                                  onChange={(e) => setRecipientSearch(e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "0.6rem 0.75rem",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    fontSize: "0.95rem",
+                                    outline: "none",
+                                  }}
+                                />
+                              </div>
+                              {recipientLoading && (
+                                <div
+                                  style={{
+                                    padding: "0.75rem",
+                                    color: "#64748b",
+                                    fontSize: "0.85rem",
+                                  }}
+                                >
+                                  Searching...
+                                </div>
+                              )}
+                              {!recipientLoading && recipientOptions.length > 0 && (
+                                <div
+                                  style={{
+                                    maxHeight: "200px",
+                                    overflowY: "auto",
+                                    border: "2px solid #e2e8f0",
+                                    borderRadius: "10px",
+                                    marginTop: "0.5rem",
+                                  }}
+                                >
+                                  {recipientOptions
+                                    .filter(
+                                      (opt) =>
+                                        !form.target_users.includes(opt._id)
+                                    )
+                                    .map((opt) => (
+                                      <div
+                                        key={opt._id}
+                                        onClick={() => {
+                                          setForm((prev) => ({
+                                            ...prev,
+                                            target_users: [
+                                              ...prev.target_users,
+                                              opt._id,
+                                            ],
+                                          }));
+                                          setRecipientSearch("");
+                                        }}
+                                        style={{
+                                          padding: "0.75rem 1rem",
+                                          cursor: "pointer",
+                                          borderBottom:
+                                            "1px solid #f1f5f9",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "0.75rem",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor =
+                                            "#f8fafc";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor =
+                                            "transparent";
+                                        }}
+                                      >
+                                        <div>
+                                          <div
+                                            style={{
+                                              fontWeight: 500,
+                                              color: "#1e293b",
+                                              fontSize: "0.95rem",
+                                            }}
+                                          >
+                                            {opt.name}
+                                          </div>
+                                          <div
+                                            style={{
+                                              fontSize: "0.8rem",
+                                              color: "#64748b",
+                                            }}
+                                          >
+                                            {opt.role.replace(/_/g, " ")}{" "}
+                                            • {opt.email}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                              {!recipientLoading &&
+                                recipientSearch &&
+                                recipientOptions.filter(
+                                  (opt) => !form.target_users.includes(opt._id)
+                                ).length === 0 && (
+                                  <div
+                                    style={{
+                                      padding: "0.75rem",
+                                      color: "#64748b",
+                                      fontSize: "0.85rem",
+                                      textAlign: "center",
+                                    }}
+                                  >
+                                    No eligible recipients found
+                                  </div>
+                              )}
+                              {form.target_users.length > 0 && (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "0.5rem",
+                                    marginTop: "0.75rem",
+                                  }}
+                                >
+                                  {form.target_users.map((userId) => {
+                                    const user = recipientOptions.find(
+                                      (opt) => opt._id === userId
+                                    );
+                                    return (
+                                      <span
+                                        key={userId}
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "0.4rem",
+                                          padding: "0.4rem 0.75rem",
+                                          backgroundColor: "#dbeafe",
+                                          color: "#1e40af",
+                                          borderRadius: "20px",
+                                          fontSize: "0.85rem",
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        {user ? user.name : userId}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setForm((prev) => ({
+                                              ...prev,
+                                              target_users: prev.target_users.filter(
+                                                (id) => id !== userId
+                                              ),
+                                            }));
+                                          }}
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: "#1e40af",
+                                            cursor: "pointer",
+                                            padding: 0,
+                                            display: "flex",
+                                            alignItems: "center",
+                                          }}
+                                        >
+                                          <FaTimesCircle size={12} />
+                                        </button>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           )}
                       </div>

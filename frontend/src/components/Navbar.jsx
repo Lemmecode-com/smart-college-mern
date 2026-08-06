@@ -206,7 +206,7 @@ export default function NavbarComponent({
     }
 
     // Only supported roles have notification endpoints
-    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
+    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
     if (!supportedRoles.includes(user.role)) {
       return;
     }
@@ -222,6 +222,8 @@ export default function NavbarComponent({
         res = await api.get("/notifications/count/hod");
       if (user.role === "STUDENT")
         res = await api.get("/notifications/count/student");
+      if (user.role === "PARENT_GUARDIAN")
+        res = await api.get("/notifications/count/parent");
 
       const total = res?.data?.total || 0;
 
@@ -268,11 +270,11 @@ export default function NavbarComponent({
 /* ================= FETCH UNREAD FOR BELL ================= */
    const fetchNotes = async () => {
      // Only supported roles have notification endpoints
-      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD"];
-     if (!supportedRoles.includes(user.role)) {
-       setNotes([]);
-       return;
-     }
+      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+      if (!supportedRoles.includes(user.role)) {
+        setNotes([]);
+        return;
+      }
      setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
@@ -330,18 +332,20 @@ export default function NavbarComponent({
   };
 
   /* ================= ROLE BASED VIEW ALL ================= */
-  const goToNotificationList = () => {
-    setNotifOpen(false);
-    if (user.role === "COLLEGE_ADMIN") {
-      navigate("/notification/list");
-    } else if (user.role === "TEACHER") {
-      navigate("/teacher/notifications/list");
-    } else if (user.role === "HOD") {
-      navigate("/hod/notifications/list");
-    } else if (user.role === "STUDENT") {
-      navigate("/notification/student");
-    }
-  };
+   const goToNotificationList = () => {
+     setNotifOpen(false);
+     if (user.role === "COLLEGE_ADMIN") {
+       navigate("/notification/list");
+     } else if (user.role === "TEACHER") {
+       navigate("/teacher/notifications/list");
+     } else if (user.role === "HOD") {
+       navigate("/hod/notifications/list");
+     } else if (user.role === "STUDENT") {
+       navigate("/notification/student");
+     } else if (user.role === "PARENT_GUARDIAN") {
+       navigate("/parent/notifications");
+     }
+   };
 
   /* ================= PROFILE NAVIGATION ================= */
   const goToProfile = () => {
