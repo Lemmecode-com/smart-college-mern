@@ -27,12 +27,14 @@ exports.generateOTP = () => {
  * Create and send OTP
  * @param {string} email - User's email
  * @param {string} userType - Type of user (for email template)
+ * @param {string} [collegeId] - Optional college ID (used when email is not yet in User collection)
  * @returns {Promise<{success: boolean, message: string, otp?: string}>}
  */
-exports.createAndSendOTP = async (email, userType = "User") => {
+exports.createAndSendOTP = async (email, userType = "User", collegeId) => {
   try {
-    // Lookup user to get collegeId
+    // Lookup user to get collegeId (if not provided explicitly)
     const user = await User.findOne({ email }).select("college_id role").lean();
+    const resolvedCollegeId = collegeId || user?.college_id;
     
     // Generate OTP
     const otp = exports.generateOTP();
@@ -58,7 +60,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
         otp,
         userType,
         expiresIn: 10,
-        collegeId: user?.college_id,
+        collegeId: resolvedCollegeId,
       });
       // console.log(`✅ Email sent to: ${email}`);
     } catch (emailError) {
