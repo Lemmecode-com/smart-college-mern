@@ -102,7 +102,15 @@ export default function VerifyOTP() {
       toast.success("✅ Password reset successfully!", { position: "top-right", autoClose: 3000 });
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to verify OTP";
+      const backendData = err.response?.data;
+      let msg = "Failed to verify OTP";
+
+      if (backendData?.errors && Array.isArray(backendData.errors)) {
+        msg = backendData.errors.map((e) => e.message).join(", ");
+      } else if (backendData?.message) {
+        msg = backendData.message;
+      }
+
       setError(msg);
       toast.error("❌ " + msg, { position: "top-right", autoClose: 5000 });
     } finally {
