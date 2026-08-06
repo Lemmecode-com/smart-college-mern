@@ -202,29 +202,29 @@ export default function EditStudentProfile() {
         navigate("/student/profile");
       }, 1500);
 
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
+     } catch (err) {
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const backendMessage = err.response?.data?.message;
 
-      logger.error("Edit student profile update error:", {
-        statusCode,
-        errorCode,
-        backendMessage,
-        page: "EditStudentProfile",
-        role: user?.role,
-      });
+       logger.error("Edit student profile update error:", {
+         statusCode,
+         errorCode,
+         backendMessage,
+         page: "EditStudentProfile",
+         role: user?.role,
+       });
 
-      const errorMsg = "Failed to update profile. Please try again.";
-      setFormError(errorMsg);
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />
-      });
-    } finally {
-      setSubmitting(false);
-    }
+       const errorMsg = backendMessage || "Failed to update profile. Please try again.";
+       setFormError(errorMsg);
+       toast.error(errorMsg, {
+         position: "top-right",
+         autoClose: 5000,
+         icon: <FaExclamationTriangle />
+       });
+     } finally {
+       setSubmitting(false);
+     }
   };
 
   /* ================= LOADING ================= */
