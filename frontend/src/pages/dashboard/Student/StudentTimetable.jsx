@@ -169,6 +169,20 @@ const parseLocalDate = (dateStr) => {
   return new Date(y, m - 1, d); // month is 0-indexed
 };
 
+const getCurrentWeekDateRange = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return {
+    startDate: toLocalDateStr(monday),
+    endDate: toLocalDateStr(sunday),
+  };
+};
+
 export default function StudentTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -190,20 +204,7 @@ export default function StudentTimetable() {
   const [scheduleData, setScheduleData] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
   const [dateRange, setDateRange] = useState(() => {
-    // Default to current week (Monday to Sunday) using LOCAL dates to avoid UTC shifts
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    return {
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    };
+    return getCurrentWeekDateRange();
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [activePeriod, setActivePeriod] = useState({
@@ -579,19 +580,7 @@ export default function StudentTimetable() {
   };
 
   const goToCurrentWeek = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    setDateRange({
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    });
+    setDateRange(getCurrentWeekDateRange());
     // Reset toast so success shows
     setToastShown({ success: false, error: false });
   };
@@ -646,6 +635,14 @@ export default function StudentTimetable() {
     const targetDate = new Date(year, month - 1, day + dayIndex);
     return targetDate;
   };
+
+  const isCurrentWeek = (() => {
+    const current = getCurrentWeekDateRange();
+    return (
+      current.startDate === dateRange.startDate &&
+      current.endDate === dateRange.endDate
+    );
+  });
 
   // Helper: Format date as DD/MM/YYYY
   const formatDateDDMMYYYY = (date) => {
@@ -826,7 +823,7 @@ export default function StudentTimetable() {
           </button>
           <button
             onClick={goToCurrentWeek}
-            className="st-nav-btn st-nav-today"
+            className={`st-nav-btn st-nav-today${isCurrentWeek ? " st-nav-today--active" : ""}`}
             title="Go to Current Week"
           >
             <FaCalendarAlt /> Current Week
@@ -841,12 +838,12 @@ export default function StudentTimetable() {
           <div className="st-date-range">
             <FaCalendarAlt className="st-date-icon" />
             <span>
-              {new Date(dateRange.startDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
               })}{" "}
               -{" "}
-              {new Date(dateRange.endDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
@@ -1781,6 +1778,11 @@ const componentStyles = `
 
   .st-nav-today:hover {
     background: #2d6f8f;
+  }
+
+  .st-nav-today--active {
+    background: #1565c0;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
   }
 
   .st-date-range {
