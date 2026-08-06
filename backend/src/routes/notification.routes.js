@@ -12,6 +12,7 @@ const {
   getTeacherNotifications,
   getHodNotifications,
   getAdminNotifications,
+  getParentNotifications,
   getNotificationById,
   updateNotification,
   deleteNotification,
@@ -19,10 +20,12 @@ const {
   getTeacherNotificationCount,
   getHodNotificationCount,
   getStudentNotificationCount,
+  getParentNotificationCount,
   markAsRead,
   markAllAsRead,
   getUnreadForBell,
   sendPromotionNotification,
+  getEligibleRecipients,
 } = require("../controllers/notification.controller");
 
 router.post(
@@ -107,6 +110,30 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   getStudentNotificationCount,
+);
+
+router.get(
+  "/count/parent",
+  auth,
+  role("PARENT_GUARDIAN"),
+  collegeMiddleware,
+  getParentNotificationCount,
+);
+
+router.get(
+  "/parent/read",
+  auth,
+  role("PARENT_GUARDIAN"),
+  collegeMiddleware,
+  getParentNotifications,
+);
+
+router.get(
+  "/eligible-recipients",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  getEligibleRecipients,
 );
 
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
