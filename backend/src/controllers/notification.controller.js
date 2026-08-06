@@ -3,6 +3,8 @@ const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
+const User = require("../models/user.model");
+const ParentGuardian = require("../models/parentGuardian.model");
 const {
   getNotificationVisibilityQuery,
   getReadNotificationIds,
@@ -25,7 +27,7 @@ exports.createAdminNotification = async (req, res, next) => {
             target_department, target_course, target_semester, target_users } = req.body;
 
     // Validate target field
-    const validTargets = ["ALL", "STUDENTS", "TEACHERS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
+    const validTargets = ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
     if (target && !validTargets.includes(target)) {
       throw new AppError(`Invalid target. Must be one of: ${validTargets.join(", ")}`, 400, "INVALID_TARGET");
     }
@@ -64,6 +66,39 @@ exports.createAdminNotification = async (req, res, next) => {
       throw new AppError("target_users array is required when target is INDIVIDUAL", 400, "MISSING_TARGET_USERS");
     }
 
+    // Server-side INDIVIDUAL recipient validation — never trust client
+    if (target === "INDIVIDUAL") {
+      const ALLOWED_RECIPIENT_ROLES = ["STUDENT", "TEACHER", "HOD", "PARENT_GUARDIAN"];
+      const uniqueUserIds = [...new Set(target_users.map(String))];
+
+      if (uniqueUserIds.length === 0) {
+        throw new AppError("target_users must contain at least one valid user ID", 400, "MISSING_TARGET_USERS");
+      }
+
+      const validObjectIds = uniqueUserIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validObjectIds.length !== uniqueUserIds.length) {
+        throw new AppError("One or more target_users IDs are invalid", 400, "INVALID_TARGET_USER_ID");
+      }
+
+      const recipients = await User.find({
+        _id: { $in: validObjectIds },
+        college_id: req.college_id,
+        isActive: true,
+        role: { $in: ALLOWED_RECIPIENT_ROLES },
+      }).select("_id").lean();
+
+      if (recipients.length !== validObjectIds.length) {
+        throw new AppError(
+          "One or more selected recipients are invalid, inactive, from another college, or have an ineligible role",
+          400,
+          "INVALID_RECIPIENTS"
+        );
+      }
+
+      // Use deduplicated IDs for saving
+      req.body.target_users = validObjectIds;
+    }
+
     const notification = await Notification.create({
       college_id: req.college_id,
       createdBy: req.user.id,
@@ -78,7 +113,7 @@ exports.createAdminNotification = async (req, res, next) => {
       target_department,
       target_course,
       target_semester,
-      target_users
+      target_users: target === "INDIVIDUAL" ? req.body.target_users : undefined,
     });
 
     ApiResponse.created(res, {
@@ -378,6 +413,7 @@ exports.getNotificationById = async (req, res, next) => {
       }).select("_id user_id department_id");
     }
 
+    // PARENT_GUARDIAN: visibility query handles student lookup internally
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
@@ -706,6 +742,112 @@ exports.getAdminNotificationCount = async (req, res, next) => {
   }
 };
 
+exports.getParentNotifications = async (req, res, next) => {
+  try {
+    const parent = await ParentGuardian.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+    }).select("student_ids");
+
+    if (!parent || !parent.student_ids || parent.student_ids.length === 0) {
+      return ApiResponse.success(res, {
+        adminNotifications: [],
+        teacherNotifications: [],
+        hodNotifications: [],
+      }, "Parent notifications fetched successfully");
+    }
+
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+    });
+
+    const notifications = await Notification.find(visibilityQuery)
+      .sort({ createdAt: -1 });
+
+    const adminNotifications = [];
+    const teacherNotifications = [];
+    const hodNotifications = [];
+
+    notifications.forEach((n) => {
+      if (n.createdByRole === "COLLEGE_ADMIN") {
+        adminNotifications.push(n);
+      } else if (n.createdByRole === "TEACHER") {
+        teacherNotifications.push(n);
+      } else if (n.createdByRole === "HOD") {
+        hodNotifications.push(n);
+      }
+    });
+
+    ApiResponse.success(res, {
+      adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
+      teacherNotifications: await attachReadStatus(teacherNotifications, req.user.id),
+      hodNotifications: await attachReadStatus(hodNotifications, req.user.id),
+    }, "Parent notifications fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getParentNotificationCount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    if (!req.college_id) {
+      throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
+    }
+
+    const parent = await ParentGuardian.findOne({
+      user_id: userId,
+      college_id: req.college_id,
+    }).select("student_ids");
+
+    if (!parent || !parent.student_ids || parent.student_ids.length === 0) {
+      return ApiResponse.success(res, {
+        adminCount: 0,
+        teacherCount: 0,
+        hodCount: 0,
+        total: 0,
+      }, "Parent notification count fetched successfully");
+    }
+
+    const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId,
+    });
+
+    const adminCount = await Notification.countDocuments({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+      createdByRole: "COLLEGE_ADMIN",
+    });
+
+    const teacherCount = await Notification.countDocuments({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+      createdByRole: "TEACHER",
+    });
+
+    const hodCount = await Notification.countDocuments({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+      createdByRole: "HOD",
+    });
+
+    ApiResponse.success(res, {
+      adminCount,
+      teacherCount,
+      hodCount,
+      total: adminCount + teacherCount + hodCount,
+    }, "Parent notification count fetched successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUnreadForBell = async (req, res, next) => {
   try {
     if (!req.college_id) {
@@ -736,6 +878,7 @@ exports.getUnreadForBell = async (req, res, next) => {
       }).select("_id user_id department_id");
     }
 
+    // PARENT_GUARDIAN: visibility query handles student lookup internally
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
@@ -798,6 +941,7 @@ exports.markAllAsRead = async (req, res, next) => {
       }).select("_id user_id department_id");
     }
 
+    // PARENT_GUARDIAN: visibility query handles student lookup internally
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: userRole,
@@ -880,6 +1024,7 @@ exports.markAsRead = async (req, res, next) => {
       }).select("_id user_id department_id");
     }
 
+    // PARENT_GUARDIAN: visibility query handles student lookup internally
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role,
@@ -924,6 +1069,43 @@ exports.markAsRead = async (req, res, next) => {
     );
 
     ApiResponse.success(res, null, "Notification marked as read");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ================================
+ * ELIGIBLE RECIPIENTS FOR INDIVIDUAL TARGET
+ * Secure tenant-scoped endpoint for the recipient selector.
+ * Only returns active same-college users with eligible roles.
+ * ================================
+ */
+exports.getEligibleRecipients = async (req, res, next) => {
+  try {
+    const { search = "" } = req.query;
+    const ALLOWED_ROLES = ["STUDENT", "TEACHER", "HOD", "PARENT_GUARDIAN"];
+
+    const query = {
+      college_id: req.college_id,
+      isActive: true,
+      role: { $in: ALLOWED_ROLES },
+    };
+
+    if (search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { name: { $regex: escaped, $options: "i" } },
+        { email: { $regex: escaped, $options: "i" } },
+      ];
+    }
+
+    const users = await User.find(query)
+      .select("_id name email role")
+      .limit(50)
+      .lean();
+
+    ApiResponse.success(res, users, "Eligible recipients fetched successfully");
   } catch (error) {
     next(error);
   }

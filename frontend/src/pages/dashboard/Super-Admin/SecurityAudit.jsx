@@ -534,7 +534,7 @@ const getCategoryBadgeClass = (category) => {
                         key={log._id}
                         className={!log.reviewed ? "row-pending" : ""}
                       >
-                        <td className="cell-timestamp">
+                        <td className="cell-timestamp" data-label="Timestamp">
                           <div className="timestamp-date">
                             {new Date(log.createdAt).toLocaleDateString()}
                           </div>
@@ -542,7 +542,7 @@ const getCategoryBadgeClass = (category) => {
                             {new Date(log.createdAt).toLocaleTimeString()}
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Event">
                           <div className="event-cell">
                             <span className="event-icon">
                               {getEventTypeIcon(log.eventType)}
@@ -554,7 +554,7 @@ const getCategoryBadgeClass = (category) => {
                             </span>
                           </div>
                         </td>
-                        <td>
+                        <td data-label="User">
                           {log.userId?.name || log.userRole ? (
                             <div className="user-cell">
                               {log.userId?.name && (
@@ -568,22 +568,22 @@ const getCategoryBadgeClass = (category) => {
                             <span className="text-muted">N/A</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="College">
                           {log.collegeId?.name || (
                             <span className="text-muted">N/A</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="IP Address">
                           <span className="ip-address">{log.ipAddress}</span>
                         </td>
-                        <td>
+                        <td data-label="Severity">
                           <span
                             className={`severity-badge ${getSeverityBadgeClass(log.severity)}`}
                           >
                             {log.severity}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                           {log.reviewed ? (
                             <span className="status-badge status-reviewed">
                               <FaCheckCircle className="status-icon" />
@@ -596,7 +596,7 @@ const getCategoryBadgeClass = (category) => {
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Action">
                           {!log.reviewed && (
                             <button
                               className="btn-review"
@@ -1243,61 +1243,323 @@ const getCategoryBadgeClass = (category) => {
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-          .security-audit-page {
-            padding: 1rem;
-          }
+         @media (max-width: 768px) {
+           .security-audit-page {
+             padding: 1rem;
+           }
 
-          .page-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+           .page-header {
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 1rem;
+           }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+           .stats-grid {
+             grid-template-columns: 1fr;
+           }
 
-          .filter-grid {
-            grid-template-columns: 1fr;
-          }
+           .filter-grid {
+             grid-template-columns: 1fr;
+           }
 
-          .table-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
+           .table-header {
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 0.5rem;
+           }
 
-          .data-table thead {
-            display: none;
-          }
+           .data-table thead {
+             display: none;
+           }
 
-          .data-table tbody tr {
-            display: block;
-            margin-bottom: 1rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-          }
+           .data-table tbody tr {
+             display: block;
+             margin-bottom: 1rem;
+             border: 1px solid #e2e8f0;
+             border-radius: 8px;
+             padding: 1rem;
+           }
 
-          .data-table tbody td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f1f5f9;
-          }
+           .data-table tbody td {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             padding: 0.5rem 0;
+             border-bottom: 1px solid #f1f5f9;
+           }
 
-          .data-table tbody td:last-child {
-            border-bottom: none;
-          }
+           .data-table tbody td:last-child {
+             border-bottom: none;
+           }
 
-          .data-table tbody td::before {
-            content: attr(data-label);
-            font-weight: 600;
-            color: #1a4b6d;
-          }
-        }
+           .data-table tbody td::before {
+             content: attr(data-label);
+             font-weight: 600;
+             color: #1a4b6d;
+           }
+         }
+
+         @media (max-width: 480px) {
+           .security-audit-page {
+             padding: 0.75rem;
+           }
+
+           .page-header {
+             padding: 1rem;
+             margin-bottom: 1rem;
+           }
+
+           .header-icon {
+             width: 44px;
+             height: 44px;
+             font-size: 1.2rem;
+           }
+
+           .page-title {
+             font-size: 1.35rem;
+           }
+
+           .page-subtitle {
+             font-size: 0.85rem;
+           }
+
+           .stats-grid {
+             gap: 0.75rem;
+             margin-bottom: 1rem;
+           }
+
+           .stat-card {
+             padding: 1rem;
+           }
+
+           .stat-value {
+             font-size: 1.5rem;
+           }
+
+           .stat-title {
+             font-size: 0.75rem;
+           }
+
+           .stat-icon {
+             width: 40px;
+             height: 40px;
+             font-size: 1rem;
+           }
+
+           .filter-section {
+             padding: 1rem;
+             margin-bottom: 1rem;
+           }
+
+           .filter-grid {
+             gap: 0.75rem;
+           }
+
+           .filter-select,
+           .filter-input {
+             padding: 0.5rem 0.75rem;
+             font-size: 0.85rem;
+           }
+
+            .filter-actions {
+              justify-content: center;
+            }
+
+            .btn-apply {
+              width: auto;
+              max-width: 160px;
+              justify-content: center;
+              padding: 0.5rem 0.875rem;
+              font-size: 0.8rem;
+              align-self: center;
+            }
+
+           .table-section {
+             border-radius: 8px;
+           }
+
+           .table-header {
+             padding: 1rem;
+           }
+
+           .table-title {
+             font-size: 0.9rem;
+           }
+
+           .data-table tbody td {
+             padding: 0.4rem 0;
+             font-size: 0.8rem;
+           }
+
+           .severity-badge {
+             padding: 0.2rem 0.5rem;
+             font-size: 0.65rem;
+           }
+
+           .status-badge {
+             padding: 0.2rem 0.5rem;
+             font-size: 0.65rem;
+           }
+
+           .btn-review {
+             padding: 0.25rem 0.5rem;
+             font-size: 0.7rem;
+           }
+
+           .pagination-section {
+             padding: 0.75rem 1rem;
+           }
+
+           .page-item button {
+             padding: 0.375rem 0.625rem;
+             font-size: 0.8rem;
+           }
+         }
+
+         @media (max-width: 375px) {
+           .security-audit-page {
+             padding: 0.5rem;
+           }
+
+           .page-header {
+             padding: 0.75rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .header-icon {
+             width: 38px;
+             height: 38px;
+             font-size: 1rem;
+           }
+
+           .page-title {
+             font-size: 1.15rem;
+           }
+
+           .page-subtitle {
+             font-size: 0.75rem;
+           }
+
+           .stats-grid {
+             gap: 0.5rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .stat-card {
+             padding: 0.75rem;
+           }
+
+           .stat-value {
+             font-size: 1.25rem;
+           }
+
+           .stat-title {
+             font-size: 0.7rem;
+           }
+
+           .stat-icon {
+             width: 34px;
+             height: 34px;
+             font-size: 0.85rem;
+           }
+
+           .stat-card-header {
+             gap: 0.5rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .stat-trend {
+             font-size: 0.75rem;
+           }
+
+           .filter-section {
+             padding: 0.75rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .filter-title {
+             font-size: 0.9rem;
+           }
+
+           .filter-grid {
+             gap: 0.5rem;
+           }
+
+           .filter-label {
+             font-size: 0.75rem;
+           }
+
+           .filter-select,
+           .filter-input {
+             padding: 0.4rem 0.625rem;
+             font-size: 0.8rem;
+           }
+
+            .filter-actions {
+              justify-content: center;
+            }
+
+            .btn-apply {
+              max-width: 140px;
+              padding: 0.4rem 0.625rem;
+              font-size: 0.75rem;
+              align-self: center;
+            }
+
+           .table-header {
+             padding: 0.75rem;
+           }
+
+           .table-title {
+             font-size: 0.85rem;
+           }
+
+           .table-info {
+             font-size: 0.75rem;
+           }
+
+           .data-table tbody td {
+             padding: 0.3rem 0;
+             font-size: 0.75rem;
+           }
+
+           .category-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .severity-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .status-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .btn-review {
+             padding: 0.2rem 0.4rem;
+             font-size: 0.65rem;
+           }
+
+           .pagination-section {
+             padding: 0.5rem 0.75rem;
+           }
+
+           .page-item button {
+             padding: 0.3rem 0.5rem;
+             font-size: 0.7rem;
+           }
+
+           .empty-icon {
+             font-size: 2rem;
+           }
+
+           .empty-text {
+             font-size: 0.85rem;
+           }
+         }
       `}</style>
     </>
   );

@@ -489,3 +489,175 @@ describe("CRS-TC-003 — Update Course Duplicate Code", () => {
     expect(res.body.data.course.department_id.toString()).toBe(deptB._id.toString());
   });
 });
+
+describe("CRS-TC-004 — Update Course durationYears Recalculation (Issue #413)", () => {
+  let college, admin, dept, agent;
+
+  beforeAll(async () => {
+    await connectTestDb();
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
+  });
+
+  beforeEach(async () => {
+    await clearTestDb();
+
+    college = await createCollege({ code: "CRS004", name: "Update Duration Test College" });
+    admin = await createUser({
+      email: "admin.dur@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+    dept = await Department.create({
+      college_id: college._id,
+      name: "Computer Science",
+      code: "CSE",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      hod_id: null,
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+
+    agent = request.agent(app);
+    await agent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+  });
+
+  async function createTestCourse(durationSemesters) {
+    const res = await agent
+      .post("/api/courses")
+      .send({
+        department_id: dept._id,
+        name: "B.Tech CSE",
+        code: "CSE-BC",
+        type: "THEORY",
+        programLevel: "UG",
+        durationSemesters,
+        credits: 160,
+        maxStudents: 60,
+      })
+      .expect(201);
+    return res.body.data.course;
+  }
+
+  it("create: 8 semesters → durationYears = 4", async () => {
+    const course = await createTestCourse(8);
+    expect(course.durationSemesters).toBe(8);
+    expect(course.durationYears).toBe(4);
+  });
+
+  it("update 8 → 6 semesters recalculates durationYears to 3", async () => {
+    const course = await createTestCourse(8);
+    expect(course.durationYears).toBe(4);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 6 })
+      .expect(200);
+
+    expect(res.body.data.course.durationSemesters).toBe(6);
+    expect(res.body.data.course.durationYears).toBe(3);
+
+    const saved = await mongoose.connection.db
+      .collection("courses")
+      .findOne({ _id: new mongoose.Types.ObjectId(course._id) });
+    expect(saved.durationSemesters).toBe(6);
+    expect(saved.durationYears).toBe(3);
+  });
+
+  it("update 6 → 8 semesters recalculates durationYears to 4", async () => {
+    const course = await createTestCourse(6);
+    expect(course.durationYears).toBe(3);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 8 })
+      .expect(200);
+
+    expect(res.body.data.course.durationSemesters).toBe(8);
+    expect(res.body.data.course.durationYears).toBe(4);
+  });
+
+  it("update 8 → 4 semesters recalculates durationYears to 2", async () => {
+    const course = await createTestCourse(8);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 4 })
+      .expect(200);
+
+    expect(res.body.data.course.durationSemesters).toBe(4);
+    expect(res.body.data.course.durationYears).toBe(2);
+  });
+
+  it("update 8 → 2 semesters recalculates durationYears to 1", async () => {
+    const course = await createTestCourse(8);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 2 })
+      .expect(200);
+
+    expect(res.body.data.course.durationSemesters).toBe(2);
+    expect(res.body.data.course.durationYears).toBe(1);
+  });
+
+  it("updating another field without changing semesters leaves durationYears unchanged", async () => {
+    const course = await createTestCourse(8);
+    expect(course.durationYears).toBe(4);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ maxStudents: 80 })
+      .expect(200);
+
+    expect(res.body.data.course.durationSemesters).toBe(8);
+    expect(res.body.data.course.durationYears).toBe(4);
+    expect(res.body.data.course.maxStudents).toBe(80);
+  });
+
+  it("rejects update with durationSemesters = 0", async () => {
+    const course = await createTestCourse(8);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 0 })
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+  });
+
+  it("rejects update with durationSemesters = 9 (exceeds max)", async () => {
+    const course = await createTestCourse(8);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 9 })
+      .expect(400);
+
+    expect(res.body.success).toBe(false);
+  });
+
+  it("ignores client-supplied durationYears and uses calculated value", async () => {
+    const course = await createTestCourse(8);
+
+    const res = await agent
+      .put(`/api/courses/${course._id}`)
+      .send({ durationSemesters: 6, durationYears: 99 })
+      .expect(200);
+
+    // Must be 3 (calculated from 6 semesters), not 99 (client-supplied)
+    expect(res.body.data.course.durationYears).toBe(3);
+    expect(res.body.data.course.durationSemesters).toBe(6);
+  });
+});

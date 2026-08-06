@@ -22,6 +22,7 @@ import {
   FaSearch,
   FaEye,
   FaStar,
+  FaBullhorn,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,10 +61,13 @@ const ROLE_CONFIG = {
     deleteEndpoint: "/notifications/delete-note/",
     primaryNotesKey: "myNotifications",
     secondaryNotesKey: "hodNotifications",
+    tertiaryNotesKey: "adminNotifications",
     primaryLabel: "My Notifications",
     secondaryLabel: "From HOD",
+    tertiaryLabel: "From College Admin",
     primaryIcon: FaChalkboardTeacher,
     secondaryIcon: FaUserTie,
+    tertiaryIcon: FaBullhorn,
     createRoute: "/teacher/notifications/create",
     editRoute: "/teacher/notifications/edit/",
     viewRoute: "/teacher/notifications/view/",
@@ -76,10 +80,13 @@ const ROLE_CONFIG = {
     deleteEndpoint: "/notifications/delete-note/",
     primaryNotesKey: "myNotifications",
     secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "adminNotifications",
     primaryLabel: "My HOD Notifications",
     secondaryLabel: "From Teachers",
+    tertiaryLabel: "From College Admin",
     primaryIcon: FaChalkboardTeacher,
     secondaryIcon: FaUserTie,
+    tertiaryIcon: FaBullhorn,
     createRoute: null,
     editRoute: null,
     viewRoute: "/notification/view/",
@@ -100,6 +107,25 @@ const ROLE_CONFIG = {
     editRoute: null,
     viewRoute: "/notification/view/",
     dashboardRoute: "/student/dashboard",
+    canCreate: false,
+    showStats: false,
+  },
+  parent: {
+    apiEndpoint: "/notifications/parent/read",
+    deleteEndpoint: null,
+    primaryNotesKey: "adminNotifications",
+    secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "hodNotifications",
+    primaryLabel: "From College Admin",
+    secondaryLabel: "From Teachers",
+    tertiaryLabel: "From HOD",
+    primaryIcon: FaUserTie,
+    secondaryIcon: FaChalkboardTeacher,
+    tertiaryIcon: FaUserGraduate,
+    createRoute: null,
+    editRoute: null,
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/dashboard/parent",
     canCreate: false,
     showStats: false,
   },
@@ -155,6 +181,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   const [primaryNotes, setPrimaryNotes] = useState([]);
   const [secondaryNotes, setSecondaryNotes] = useState([]);
+  const [tertiaryNotes, setTertiaryNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -191,17 +218,28 @@ export default function NotificationListPage({ role = "college-admin" }) {
         ).map((note) => ({
           ...note,
           isOwner: config.primaryNotesKey === "myNotifications",
+          noteCategory: "primary",
         }));
 
         const secondaryData = (res.data[config.secondaryNotesKey] || []).map(
           (note) => ({
             ...note,
             isOwner: false,
+            noteCategory: "secondary",
+          }),
+        );
+
+        const tertiaryData = (res.data[config.tertiaryNotesKey] || []).map(
+          (note) => ({
+            ...note,
+            isOwner: false,
+            noteCategory: "tertiary",
           }),
         );
 
         setPrimaryNotes(primaryData);
         setSecondaryNotes(secondaryData);
+        setTertiaryNotes(tertiaryData);
 
         if (showRefreshToast) {
           toast.success("Notifications refreshed!", CONFIG.TOAST);
@@ -273,6 +311,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
       setSecondaryNotes((prev) =>
         prev.filter((note) => note._id !== confirmModal.noteId),
       );
+      setTertiaryNotes((prev) =>
+        prev.filter((note) => note._id !== confirmModal.noteId),
+      );
 
       toast.success("Notification deleted successfully!", CONFIG.TOAST);
     } catch (err) {
@@ -295,8 +336,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
     (notes) => {
       return notes.filter((note) => {
         // Tab filter
-        if (activeTab === "primary" && !note.isOwner) return false;
-        if (activeTab === "secondary" && note.isOwner) return false;
+        if (activeTab === "primary" && note.noteCategory !== "primary") return false;
+        if (activeTab === "secondary" && note.noteCategory !== "secondary") return false;
+        if (activeTab === "tertiary" && note.noteCategory !== "tertiary") return false;
 
         // Search filter
         const searchLower = searchQuery.toLowerCase();
@@ -326,16 +368,21 @@ export default function NotificationListPage({ role = "college-admin" }) {
     [secondaryNotes, filterNotifications],
   );
 
+  const filteredTertiaryNotes = useMemo(
+    () => filterNotifications(tertiaryNotes),
+    [tertiaryNotes, filterNotifications],
+  );
+
   /* ================= PAGINATION ================= */
   const getUniqueNotes = useMemo(() => {
-    const allNotes = [...filteredPrimaryNotes, ...filteredSecondaryNotes];
+    const allNotes = [...filteredPrimaryNotes, ...filteredSecondaryNotes, ...filteredTertiaryNotes];
     const uniqueIds = new Set();
     return allNotes.filter((note) => {
       if (uniqueIds.has(note._id)) return false;
       uniqueIds.add(note._id);
       return true;
     });
-  }, [filteredPrimaryNotes, filteredSecondaryNotes]);
+  }, [filteredPrimaryNotes, filteredSecondaryNotes, filteredTertiaryNotes]);
 
   const paginatedNotes = useMemo(() => {
     const startIndex = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
@@ -352,16 +399,18 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   /* ================= CALCULATE STATS ================= */
   const stats = useMemo(() => {
-    const allNotes = [...primaryNotes, ...secondaryNotes];
+    const allNotes = [...primaryNotes, ...secondaryNotes, ...tertiaryNotes];
     return {
       totalPrimary: primaryNotes.length,
       totalSecondary: secondaryNotes.length,
+      totalTertiary: tertiaryNotes.length,
       unreadPrimary: primaryNotes.filter((n) => !n.isRead).length,
       unreadSecondary: secondaryNotes.filter((n) => !n.isRead).length,
+      unreadTertiary: tertiaryNotes.filter((n) => !n.isRead).length,
       urgent: allNotes.filter((n) => n.priority === "URGENT").length,
       total: allNotes.length,
     };
-  }, [primaryNotes, secondaryNotes]);
+  }, [primaryNotes, secondaryNotes, tertiaryNotes]);
 
   /* ================= LOADING STATE ================= */
   if (loading && retryCount === 0) {
@@ -390,6 +439,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
   /* ================= MAIN RENDER ================= */
   const PrimaryIcon = config.primaryIcon;
   const SecondaryIcon = config.secondaryIcon;
+  const TertiaryIcon = config.tertiaryIcon;
 
   return (
     <AnimatePresence mode="wait">
@@ -483,6 +533,15 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   unread={stats.unreadSecondary}
                   color={BRAND_COLORS.info.main}
                 />
+                {config.tertiaryLabel && (
+                  <StatItem
+                    icon={<TertiaryIcon />}
+                    label={config.tertiaryLabel}
+                    value={stats.totalTertiary}
+                    unread={stats.unreadTertiary}
+                    color={BRAND_COLORS.warning.main}
+                  />
+                )}
                 <StatItem
                   icon={<FaExclamationTriangle />}
                   label="Urgent Alerts"
@@ -655,17 +714,44 @@ export default function NotificationListPage({ role = "college-admin" }) {
               >
                 <SecondaryIcon className="me-1" /> {config.secondaryLabel}
               </button>
+              {config.tertiaryLabel && (
+                <button
+                  className={`tab-btn ${activeTab === "tertiary" ? "active" : ""}`}
+                  onClick={() => setActiveTab("tertiary")}
+                  style={{
+                    flex: "1 1 auto",
+                    minWidth: "120px",
+                    padding: "0.625rem 1rem",
+                    border: "2px solid #e2e8f0",
+                    borderRadius: "10px",
+                    backgroundColor:
+                      activeTab === "tertiary"
+                        ? BRAND_COLORS.primary.main
+                        : "white",
+                    color: activeTab === "tertiary" ? "white" : "#64748b",
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.375rem",
+                  }}
+                >
+                  <TertiaryIcon className="me-1" /> {config.tertiaryLabel}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* ================= NOTIFICATIONS GRID ================= */}
+          {/* ================= NOTIFICATIONS LIST ================= */}
           <div
-            className="notifications-grid"
+            className="notifications-list"
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
-              gap: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
               marginBottom: "1.5rem",
             }}
           >
@@ -673,7 +759,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
               <div
                 className="empty-state"
                 style={{
-                  gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: "4rem 2rem",
                   backgroundColor: "white",
@@ -826,6 +911,19 @@ export default function NotificationListPage({ role = "college-admin" }) {
             .tab-btn {
               width: 100% !important;
               justify-content: center !important;
+            }
+
+            /* Stack notification row content on small screens */
+            .notification-row {
+              flex-wrap: wrap !important;
+            }
+
+            .notification-row > div:last-child {
+              width: 100% !important;
+              justify-content: flex-start !important;
+              flex-wrap: wrap !important;
+              margin-left: 3.25rem !important;
+              margin-top: 0.25rem !important;
             }
           }
 

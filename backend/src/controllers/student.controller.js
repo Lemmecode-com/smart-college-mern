@@ -14,6 +14,8 @@ const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
+const { createAndSendOTP, verifyOTP } = require("../services/otp.service");
+const PasswordReset = require("../models/passwordReset.model");
 const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
@@ -844,15 +846,17 @@ exports.updateMyProfile = async (req, res, next) => {
       "dateOfBirth",
     ];
 
+    const updatedFields = {};
+
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         if (field === "hasDisability") {
-          student[field] =
+          updatedFields[field] =
             req.body[field] === "true" ||
             req.body[field] === true ||
             req.body[field] === "yes";
         } else {
-          student[field] = req.body[field];
+          updatedFields[field] = req.body[field];
         }
       }
     });
@@ -862,9 +866,11 @@ exports.updateMyProfile = async (req, res, next) => {
       req.body.hasDisability === false ||
       req.body.hasDisability === "no"
     ) {
-      student.disabilityType = undefined;
-      student.pwdDisability = undefined;
+      updatedFields.disabilityType = undefined;
+      updatedFields.pwdDisability = undefined;
     }
+
+    Object.assign(student, updatedFields);
 
     await student.save();
 
@@ -874,6 +880,163 @@ exports.updateMyProfile = async (req, res, next) => {
         student,
       },
       "Profile updated successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * STUDENT: Request email change (sends OTP to new email)
+ */
+exports.requestEmailChange = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const student = req.student;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    const normalizedNewEmail = email.toLowerCase().trim();
+
+    if (normalizedNewEmail === student.email.toLowerCase().trim()) {
+      return res.status(400).json({
+        message: "This is already your current email address",
+        code: "SAME_EMAIL",
+      });
+    }
+
+    if (student.pendingEmail && student.pendingEmail !== normalizedNewEmail) {
+      student.pendingEmail = normalizedNewEmail;
+      await student.save();
+    }
+
+    const existingStudent = await Student.findOne({
+      email: normalizedNewEmail,
+      college_id: student.college_id,
+      _id: { $ne: student._id },
+    });
+
+    if (existingStudent) {
+      return res.status(409).json({
+        message: "A student with this email already exists in your college",
+        code: "EMAIL_EXISTS",
+      });
+    }
+
+    if (student.user_id) {
+      const existingUser = await User.findOne({
+        email: normalizedNewEmail,
+        _id: { $ne: student.user_id },
+      });
+
+      if (existingUser) {
+        return res.status(409).json({
+          message: "This email is already associated with another account",
+          code: "EMAIL_EXISTS",
+        });
+      }
+    }
+
+    student.pendingEmail = normalizedNewEmail;
+    await student.save();
+
+    const otpResult = await createAndSendOTP(normalizedNewEmail, "Student", student.college_id?.toString());
+
+    return ApiResponse.success(
+      res,
+      {
+        student,
+        message: otpResult.success
+          ? "Verification OTP has been sent to your new email address."
+          : "OTP could not be sent. Please try again later.",
+      },
+      "Email change request submitted"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * STUDENT: Verify email change with OTP
+ */
+exports.verifyEmailChange = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const student = req.student;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        message: "Email and OTP are required",
+        code: "VALIDATION_ERROR",
+      });
+    }
+
+    if (!student.pendingEmail) {
+      return res.status(400).json({
+        message: "No pending email change found. Please update your email first.",
+        code: "NO_PENDING_EMAIL",
+      });
+    }
+
+    if (student.pendingEmail.toLowerCase() !== email.toLowerCase().trim()) {
+      return res.status(400).json({
+        message: "Email does not match the pending email change",
+        code: "EMAIL_MISMATCH",
+      });
+    }
+
+    const passwordReset = await PasswordReset.findOne({
+      email: student.pendingEmail,
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!passwordReset) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP. Please request a new one.",
+        code: "INVALID_OTP",
+      });
+    }
+
+    const isOtpValid = await passwordReset.compareOTP(otp);
+    if (!isOtpValid) {
+      return res.status(400).json({
+        message: "Invalid OTP. Please try again.",
+        code: "INVALID_OTP",
+      });
+    }
+
+    await passwordReset.markAsUsed();
+
+    const oldEmail = student.email;
+    student.email = student.pendingEmail;
+    student.pendingEmail = undefined;
+    await student.save();
+
+    logger.logInfo("Student email changed:", {
+      studentId: student._id,
+      oldEmail,
+      newEmail: student.email,
+    });
+
+    if (student.user_id) {
+      await User.findByIdAndUpdate(student.user_id, {
+        email: student.email,
+      });
+    }
+
+    ApiResponse.success(
+      res,
+      {
+        student,
+      },
+      "Email verified and updated successfully"
     );
   } catch (error) {
     next(error);

@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
+const ParentGuardian = require("../models/parentGuardian.model");
+const Student = require("../models/student.model");
 
 const toObjectId = (value, label = "ID") => {
   if (!mongoose.Types.ObjectId.isValid(value)) {
@@ -40,19 +42,34 @@ const getStudentTargetCondition = ({ userId, studentProfile }) => ({
   ],
 });
 
-const getTeacherTargetCondition = ({ teacherProfile }) => ({
-  $or: [
+const getTeacherTargetCondition = ({ teacherProfile, userId }) => {
+  const conditions = [
     { target: "ALL" },
     { target: "TEACHERS" },
-    {
-      target: "DEPARTMENT",
-      target_department: teacherProfile.department_id,
-    },
-    { target: "INDIVIDUAL", target_users: teacherProfile.user_id },
-  ],
-});
+  ];
 
-const getNotificationVisibilityQuery = ({
+  if (teacherProfile) {
+    conditions.push(
+      {
+        target: "DEPARTMENT",
+        target_department: teacherProfile.department_id,
+      },
+      {
+        target: "INDIVIDUAL",
+        target_users: teacherProfile.user_id,
+      }
+    );
+  } else {
+    conditions.push({
+      target: "INDIVIDUAL",
+      target_users: userId,
+    });
+  }
+
+  return { $or: conditions };
+};
+
+const getNotificationVisibilityQuery = async ({
   collegeId,
   role,
   userId,
@@ -82,36 +99,63 @@ const getNotificationVisibilityQuery = ({
   }
 
   if (normalizedRole === "TEACHER") {
-    const teacherConditions = [
-      { createdByRole: "COLLEGE_ADMIN" },
-      { createdByRole: "HOD" },
-    ];
+    const teacherTargetCondition = getTeacherTargetCondition({
+      teacherProfile,
+      userId: userObjectId,
+    });
 
-    if (teacherProfile) {
-      teacherConditions.push(
-        getTeacherTargetCondition({ teacherProfile })
-      );
-    } else {
-      teacherConditions.push({ target: "INDIVIDUAL", target_users: userObjectId });
-    }
-
-    return {
-      ...baseQuery,
-      $and: [
-        getExpiryCondition(),
-        { $or: teacherConditions },
-      ],
-    };
-  }
-
-  if (normalizedRole === "HOD") {
     return {
       ...baseQuery,
       $and: [
         getExpiryCondition(),
         {
           $or: [
-            { createdByRole: "COLLEGE_ADMIN" },
+            { createdByRole: "COLLEGE_ADMIN", ...teacherTargetCondition },
+            { createdByRole: "HOD", ...teacherTargetCondition },
+            {
+              createdByRole: "TEACHER",
+              $or: [
+                { createdBy: userObjectId },
+                ...(teacherProfile
+                  ? [
+                      { target: "ALL" },
+                      { target: "TEACHERS" },
+                      {
+                        target: "DEPARTMENT",
+                        target_department: teacherProfile.department_id,
+                      },
+                      {
+                        target: "INDIVIDUAL",
+                        target_users: teacherProfile.user_id,
+                      },
+                    ]
+                  : [{ target: "INDIVIDUAL", target_users: userObjectId }]),
+              ],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  if (normalizedRole === "HOD") {
+    const adminTargetConditions = [
+      { target: "ALL" },
+      { target: "TEACHERS" },
+      { target: "HOD" },
+      ...(teacherProfile
+        ? [{ target: "DEPARTMENT", target_department: teacherProfile.department_id }]
+        : []),
+      { target: "INDIVIDUAL", target_users: userObjectId },
+    ];
+
+    return {
+      ...baseQuery,
+      $and: [
+        getExpiryCondition(),
+        {
+          $or: [
+            { createdByRole: "COLLEGE_ADMIN", $or: adminTargetConditions },
             {
               createdByRole: "TEACHER",
               target: "INDIVIDUAL",
@@ -131,6 +175,72 @@ const getNotificationVisibilityQuery = ({
         { createdByRole: "COLLEGE_ADMIN", createdBy: userObjectId },
         { createdByRole: "TEACHER" },
       ],
+    };
+  }
+
+  if (normalizedRole === "PARENT_GUARDIAN") {
+    const parentGuardian = await ParentGuardian.findOne({
+      user_id: userObjectId,
+      college_id: toObjectId(collegeId, "College ID"),
+    }).select("student_ids");
+
+    if (
+      !parentGuardian ||
+      !parentGuardian.student_ids ||
+      parentGuardian.student_ids.length === 0
+    ) {
+      return {
+        ...baseQuery,
+        $and: [getExpiryCondition(), { _id: null }],
+      };
+    }
+
+    const linkedStudents = await Student.find({
+      _id: { $in: parentGuardian.student_ids },
+      college_id: toObjectId(collegeId, "College ID"),
+      status: { $in: ["APPROVED", "ENROLLED"] },
+    }).select("department_id course_id currentSemester");
+
+    if (linkedStudents.length === 0) {
+      return {
+        ...baseQuery,
+        $and: [getExpiryCondition(), { _id: null }],
+      };
+    }
+
+    const conditions = [
+      { target: "ALL" },
+      { target: "STUDENTS" },
+    ];
+
+    linkedStudents.forEach((student) => {
+      conditions.push({
+        target: "DEPARTMENT",
+        target_department: student.department_id,
+      });
+      conditions.push({
+        target: "COURSE",
+        target_course: student.course_id,
+      });
+      conditions.push({
+        target: "SEMESTER",
+        target_semester: student.currentSemester,
+      });
+    });
+
+    conditions.push({
+      target: "INDIVIDUAL",
+      target_users: userObjectId,
+    });
+
+    conditions.push({
+      target: "PARENTS",
+    });
+
+    return {
+      ...baseQuery,
+      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER", "HOD"] },
+      $and: [getExpiryCondition(), { $or: conditions }],
     };
   }
 
