@@ -599,23 +599,24 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
-           <Route
-             path="/notification/view/:id"
-             element={
-               <ProtectedRoute
-                 allowedRoles={[
-                   "COLLEGE_ADMIN",
-                   "TEACHER",
-                   "STUDENT",
-                   "SUPER_ADMIN",
-                   "PRINCIPAL",
-                   "HOD",
-                 ]}
-               >
-                 <NotificationDetails />
-               </ProtectedRoute>
-             }
-           />
+            <Route
+              path="/notification/view/:id"
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "COLLEGE_ADMIN",
+                    "TEACHER",
+                    "STUDENT",
+                    "SUPER_ADMIN",
+                    "PRINCIPAL",
+                    "HOD",
+                    "PARENT_GUARDIAN",
+                  ]}
+                >
+                  <NotificationDetails />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/notification/edit/:id"
               element={
@@ -886,6 +887,14 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
                   <Navigate to="/dashboard/parent/children" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent/notifications"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <NotificationListPage role="parent" />
                 </ProtectedRoute>
               }
             />

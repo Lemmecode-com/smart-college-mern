@@ -110,6 +110,25 @@ const ROLE_CONFIG = {
     canCreate: false,
     showStats: false,
   },
+  parent: {
+    apiEndpoint: "/notifications/parent/read",
+    deleteEndpoint: null,
+    primaryNotesKey: "adminNotifications",
+    secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "hodNotifications",
+    primaryLabel: "From College Admin",
+    secondaryLabel: "From Teachers",
+    tertiaryLabel: "From HOD",
+    primaryIcon: FaUserTie,
+    secondaryIcon: FaChalkboardTeacher,
+    tertiaryIcon: FaUserGraduate,
+    createRoute: null,
+    editRoute: null,
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/dashboard/parent",
+    canCreate: false,
+    showStats: false,
+  },
 };
 
 /* ================= ANIMATION VARIANTS ================= */
@@ -726,14 +745,13 @@ export default function NotificationListPage({ role = "college-admin" }) {
             </div>
           </div>
 
-          {/* ================= NOTIFICATIONS GRID ================= */}
+          {/* ================= NOTIFICATIONS LIST ================= */}
           <div
-            className="notifications-grid"
+            className="notifications-list"
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
-              gap: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
               marginBottom: "1.5rem",
             }}
           >
@@ -741,7 +759,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
               <div
                 className="empty-state"
                 style={{
-                  gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: "4rem 2rem",
                   backgroundColor: "white",
@@ -894,6 +911,19 @@ export default function NotificationListPage({ role = "college-admin" }) {
             .tab-btn {
               width: 100% !important;
               justify-content: center !important;
+            }
+
+            /* Stack notification row content on small screens */
+            .notification-row {
+              flex-wrap: wrap !important;
+            }
+
+            .notification-row > div:last-child {
+              width: 100% !important;
+              justify-content: flex-start !important;
+              flex-wrap: wrap !important;
+              margin-left: 3.25rem !important;
+              margin-top: 0.25rem !important;
             }
           }
 
