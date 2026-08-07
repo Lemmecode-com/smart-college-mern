@@ -130,9 +130,23 @@ exports.getCoursesByDepartment = async (req, res, next) => {
  */
 exports.getAllCourses = async (req, res, next) => {
   try {
-    const courses = await Course.find({
-      college_id: req.college_id
-    })
+    const { status, type, programLevel, departmentId, search } = req.query;
+
+    const filter = {
+      college_id: req.college_id,
+      ...(status && { status: status.toUpperCase() }),
+      ...(type && { type: type.toUpperCase() }),
+      ...(programLevel && { programLevel: programLevel.toUpperCase() }),
+      ...(departmentId && { department_id: departmentId }),
+      ...(search && {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { code: { $regex: search, $options: "i" } }
+        ]
+      })
+    };
+
+    const courses = await Course.find(filter)
       .populate("department_id", "name code")
       .sort({ name: 1 });
 

@@ -4,6 +4,7 @@ const Teacher = require("../models/teacher.model");
 const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const AppError = require("../utils/AppError");
+const { resolveHodDepartment } = require("../services/hodDepartment.service");
 
 module.exports = async (req, res, next) => {
   try {
@@ -22,10 +23,6 @@ module.exports = async (req, res, next) => {
       req.params?.id ||
       req.params?.timetableId ||
       null;
-
-    console.log("🟡 [HOD MIDDLEWARE] req.params:", req.params);
-    console.log("🟡 [HOD MIDDLEWARE] timetableId resolved:", timetableId);
-    console.log("🟡 [HOD MIDDLEWARE] IS VALID OBJECT ID:", mongoose.isValidObjectId(timetableId));
 
     // If slotId is provided (for slot delete/update), fetch the slot to get timetable_id
     if (req.params?.slotId) {
@@ -78,16 +75,14 @@ module.exports = async (req, res, next) => {
       req.department = department;
       req.timetable = timetable;
     } else {
-      /* ===== No timetableId — resolve department directly from teacher record ===== */
-      const department = await Department.findOne({
-        hod_id: teacher._id,
-        college_id: req.user.college_id,
+      /* ===== No timetableId — resolve department directly (reuses
+          authoritative HOD department-resolution logic) ===== */
+      const { department: resolvedDepartment } = await resolveHodDepartment({
+        userId: req.user.id,
+        collegeId: req.user.college_id,
       });
-      if (!department) {
-        throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
-      }
       req.teacher = teacher;
-      req.department = department;
+      req.department = resolvedDepartment;
       req.timetable = null;
     }
 
