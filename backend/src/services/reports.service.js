@@ -29,14 +29,17 @@ exports.admissionSummary = async (college_id) => {
     status: "REJECTED",
   });
 
+  const totalApplications = approved + pending + rejected;
+
   return {
     total,
+    totalApplications,
     approved,
     pending,
     rejected,
-    approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
-    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0,
-    rejectedPercentage: total > 0 ? Math.round((rejected / total) * 100) : 0,
+    approvedPercentage: totalApplications > 0 ? Math.round((approved / totalApplications) * 100) : 0,
+    pendingPercentage: totalApplications > 0 ? Math.round((pending / totalApplications) * 100) : 0,
+    rejectedPercentage: totalApplications > 0 ? Math.round((rejected / totalApplications) * 100) : 0,
   };
 };
 
