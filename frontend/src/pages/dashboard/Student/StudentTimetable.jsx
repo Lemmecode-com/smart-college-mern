@@ -623,10 +623,6 @@ export default function StudentTimetable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange.startDate, dateRange.endDate]);
 
-  // Get current day
-  const today = new Date();
-  const currentDayAbbr = DAY_MAP[today.getDay()];
-
   // Helper: Get the date for a specific day code within the current date range
   const getDateForDay = (dayCode) => {
     const dayIndex = DAYS.indexOf(dayCode);
@@ -1139,7 +1135,8 @@ export default function StudentTimetable() {
                 {DAYS.map((day, idx) => {
                   const dayDate = getDateForDay(day);
                   const dateStr = formatDateDDMMYYYY(dayDate);
-                  const isToday = day === currentDayAbbr;
+                  const todayStr = toLocalDateStr(new Date());
+                  const isToday = toLocalDateStr(dayDate) === todayStr;
                   return (
                     <th
                       key={day}
@@ -1152,9 +1149,9 @@ export default function StudentTimetable() {
                         {dateStr && (
                           <span className="st-day-date">
                             {dateStr}
-                            {isToday && (
-                              <span className="st-today-badge"> (Today)</span>
-                            )}
+                             {isToday && (
+                               <span className="st-today-badge"> (Today)</span>
+                             )}
                           </span>
                         )}
                       </div>
