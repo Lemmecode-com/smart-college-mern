@@ -69,6 +69,44 @@ const getTeacherTargetCondition = ({ teacherProfile, userId }) => {
   return { $or: conditions };
 };
 
+/**
+ * HOD-created (department-scoped) conditions for a TEACHER viewer.
+ *
+ * HOD broadcasts (TEACHERS / DEPARTMENT / HOD) are only visible to teachers in
+ * the HOD's own department (matched via createdByDepartment). INDIVIDUAL
+ * targeting is honoured without a department check so that older HOD-created
+ * individual notifications (e.g. timetable exception approvals that pre-date
+ * createdByDepartment) keep working.
+ */
+const getHodScopedTeacherCondition = ({ teacherProfile, userId }) => {
+  if (!teacherProfile) {
+    return {
+      createdByRole: "HOD",
+      target: "INDIVIDUAL",
+      target_users: userId,
+    };
+  }
+
+  return {
+    createdByRole: "HOD",
+    $or: [
+      { target: "INDIVIDUAL", target_users: userId },
+      {
+        // Broadcast targets are only visible when the HOD's department matches
+        // the teacher's department (enforced via createdByDepartment).
+        createdByDepartment: teacherProfile.department_id,
+        $or: [
+          { target: "TEACHERS" },
+          { target: "DEPARTMENT", target_department: teacherProfile.department_id },
+          // HOD-target broadcasts are also dept-scoped so only teachers in the
+          // same department see them.
+          { target: "HOD" },
+        ],
+      },
+    ],
+  };
+};
+
 const getNotificationVisibilityQuery = async ({
   collegeId,
   role,
@@ -90,12 +128,29 @@ const getNotificationVisibilityQuery = async ({
 
     return {
       ...baseQuery,
-      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
       $and: [
         getExpiryCondition(),
-        getStudentTargetCondition({ userId, studentProfile }),
+        {
+          $or: [
+            // COLLEGE_ADMIN & TEACHER: existing college-wide behavior
+            {
+              createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
+              ...getStudentTargetCondition({ userId: userObjectId, studentProfile }),
+            },
+            // HOD: department-scoped (only students in the HOD's department)
+            {
+              createdByRole: "HOD",
+              createdByDepartment: studentProfile.department_id,
+              $or: [
+                { target: "STUDENTS" },
+                { target: "DEPARTMENT", target_department: studentProfile.department_id },
+                { target: "INDIVIDUAL", target_users: userObjectId },
+              ],
+            },
+          ],
+        },
       ],
-    }
+    };
   }
 
   if (normalizedRole === "TEACHER") {
@@ -111,7 +166,7 @@ const getNotificationVisibilityQuery = async ({
         {
           $or: [
             { createdByRole: "COLLEGE_ADMIN", ...teacherTargetCondition },
-            { createdByRole: "HOD", ...teacherTargetCondition },
+            { createdByRole: "HOD", ...getHodScopedTeacherCondition({ teacherProfile, userId: userObjectId }) },
             {
               createdByRole: "TEACHER",
               $or: [
@@ -161,7 +216,24 @@ const getNotificationVisibilityQuery = async ({
               target: "INDIVIDUAL",
               target_users: userObjectId,
             },
+            // Own HOD notifications (HOD-created by this user). These are already
+            // department-scoped at creation time, so no extra dept filter needed.
             { createdByRole: "HOD", createdBy: userObjectId },
+            // HOD-created broadcasts from the same department (other HODs in the
+            // same dept, or dept-scoped HOD-target notifications).
+            ...(teacherProfile
+              ? [
+                  {
+                    createdByRole: "HOD",
+                    createdByDepartment: teacherProfile.department_id,
+                    $or: [
+                      { target: "HOD" },
+                      { target: "TEACHERS" },
+                      { target: "DEPARTMENT", target_department: teacherProfile.department_id },
+                    ],
+                  },
+                ]
+              : []),
           ],
         },
       ],
@@ -208,39 +280,42 @@ const getNotificationVisibilityQuery = async ({
       };
     }
 
-    const conditions = [
-      { target: "ALL" },
-      { target: "STUDENTS" },
-    ];
-
-    linkedStudents.forEach((student) => {
-      conditions.push({
-        target: "DEPARTMENT",
-        target_department: student.department_id,
-      });
-      conditions.push({
-        target: "COURSE",
-        target_course: student.course_id,
-      });
-      conditions.push({
-        target: "SEMESTER",
-        target_semester: student.currentSemester,
-      });
-    });
-
-    conditions.push({
-      target: "INDIVIDUAL",
-      target_users: userObjectId,
-    });
-
-    conditions.push({
-      target: "PARENTS",
-    });
+    const deptOids = linkedStudents.map((s) => s.department_id);
+    const courseOids = linkedStudents.map((s) => s.course_id);
+    const semesterValues = linkedStudents.map((s) => s.currentSemester);
 
     return {
       ...baseQuery,
-      createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER", "HOD"] },
-      $and: [getExpiryCondition(), { $or: conditions }],
+      $and: [
+        getExpiryCondition(),
+        {
+          $or: [
+            // COLLEGE_ADMIN & TEACHER: college-wide per target rules (via linked students)
+            {
+              createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
+              $or: [
+                { target: "ALL" },
+                { target: "STUDENTS" },
+                { target: "PARENTS" },
+                { target: "INDIVIDUAL", target_users: userObjectId },
+                { target: "DEPARTMENT", target_department: { $in: deptOids } },
+                { target: "COURSE", target_course: { $in: courseOids } },
+                { target: "SEMESTER", target_semester: { $in: semesterValues } },
+              ],
+            },
+            // HOD: department-scoped (only HOD broadcasts for linked students' departments)
+            {
+              createdByRole: "HOD",
+              createdByDepartment: { $in: deptOids },
+              $or: [
+                { target: "STUDENTS" },
+                { target: "DEPARTMENT", target_department: { $in: deptOids } },
+                { target: "INDIVIDUAL", target_users: userObjectId },
+              ],
+            },
+          ],
+        },
+      ],
     };
   }
 
