@@ -1554,17 +1554,27 @@ function WeeklySlotCard({ slot }) {
       >
         {slot.subject_id?.name}
       </div>
+      <div
+        className="st-weekly-slot-time"
+        style={{ opacity: isCancelled ? 0.5 : 1 }}
+      >
+        <FaClock className="st-weekly-icon" />
+        <span>
+          {formatTime12Hour(slot.startTime)} -{" "}
+          {formatTime12Hour(slot.endTime)}
+        </span>
+      </div>
       <div className="st-weekly-slot-footer">
         <div className="st-weekly-detail">
           <FaChalkboardTeacher className="st-weekly-icon" />
           <span className="st-weekly-teacher">
-            {slot.teacher_id?.name?.split(" ")[0]}
+            {slot.teacher_id?.name || "TBA"}
           </span>
         </div>
         {slot.room && (
           <div className="st-weekly-detail">
             <FaDoorOpen className="st-weekly-icon" />
-            <span>{slot.room}</span>
+            <span>Room {slot.room}</span>
           </div>
         )}
         {/* Phase 3: Exception reason tooltip */}
@@ -2517,6 +2527,18 @@ const componentStyles = `
     flex: 1;
     word-break: break-word;
     overflow: visible;
+  }
+
+  .st-weekly-slot-time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .st-weekly-slot-footer {
