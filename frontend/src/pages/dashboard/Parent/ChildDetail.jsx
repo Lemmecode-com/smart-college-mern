@@ -193,6 +193,21 @@ export default function ChildDetail() {
     }
   };
 
+  const handlePayInstallment = async (installmentName) => {
+    try {
+      const res = await api.post(`/parent/student/${childId}/payments/create-order`, {
+        installmentName,
+      });
+      if (res.data?.checkoutUrl) {
+        window.location.href = res.data.checkoutUrl;
+      } else {
+        toast.error("Failed to initiate payment. Please try again.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Payment initiation failed");
+    }
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (tab === "attendance" && attendance.length === 0) {
@@ -782,11 +797,23 @@ export default function ChildDetail() {
                                         {installment.status}
                                       </span>
                                     </div>
-                                    <div className="d-flex justify-content-between text-sm">
-                                      <span>₹{installment.amount?.toLocaleString()}</span>
-                                      <span className="text-muted">
+                                    <div className="d-flex justify-content-between align-items-center text-sm">
+                                      <div className="text-muted">
                                         Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString() : "N/A"}
-                                      </span>
+                                      </div>
+                                      <div className="d-flex align-items-center gap-2">
+                                        <span className="fw-semibold text-primary">
+                                          ₹{installment.amount?.toLocaleString()}
+                                        </span>
+                                        {installment.status === 'PENDING' && (
+                                          <button
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() => handlePayInstallment(installment.name)}
+                                          >
+                                            Pay Now
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
                                   </motion.div>
                                 ))}
