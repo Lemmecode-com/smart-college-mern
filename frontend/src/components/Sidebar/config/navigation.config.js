@@ -1279,6 +1279,12 @@ export const navigationConfig = {
           defaultOpen: true,
           items: [
             {
+              path: "/hod/notifications/create",
+              icon: FaPlus,
+              label: "Create Notification",
+              exact: true,
+            },
+            {
               path: "/hod/notifications/list",
               icon: FaListOl,
               label: "All Notifications",
