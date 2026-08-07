@@ -81,8 +81,8 @@ const globalLimiter = rateLimit({
  * This prevents distributed botnet/proxy attacks from bypassing account lockout.
  */
 const authLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 15 * 60 * 1000, // 1 min in dev, 15 min in prod
-  max: process.env.NODE_ENV === "development" ? 30 : 5, // 30 in dev, 5 in prod
+  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : process.env.NODE_ENV === "test" ? 60 * 1000 : 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 30 : process.env.NODE_ENV === "test" ? 200 : 5,
   message: {
     success: false,
     message:

@@ -4,10 +4,12 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const hodDepartment = require("../middlewares/hodDepartment.middleware");
 const { ROLE } = require("../utils/constants");
 const {
   createAdminNotification,
   createTeacherNotification,
+  createHodNotification,
   getStudentNotifications,
   getTeacherNotifications,
   getHodNotifications,
@@ -27,6 +29,15 @@ const {
   sendPromotionNotification,
   getEligibleRecipients,
 } = require("../controllers/notification.controller");
+
+router.post(
+  "/hod/create",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  hodDepartment,
+  createHodNotification,
+);
 
 router.post(
   "/admin/create",
@@ -131,7 +142,7 @@ router.get(
 router.get(
   "/eligible-recipients",
   auth,
-  role("COLLEGE_ADMIN"),
+  role("COLLEGE_ADMIN", "HOD"),
   collegeMiddleware,
   getEligibleRecipients,
 );
