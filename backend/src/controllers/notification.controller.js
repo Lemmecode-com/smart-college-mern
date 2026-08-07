@@ -11,6 +11,7 @@ const {
   attachReadStatus,
   toObjectId,
 } = require("../services/notificationVisibility.service");
+const { getHodAuthorizedRecipientIds } = require("../services/hodDepartment.service");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
@@ -190,6 +191,128 @@ exports.createTeacherNotification = async (req, res, next) => {
 
 /**
  * ================================
+ * HOD – CREATE NOTIFICATION
+ *
+ * Security model (HOD):
+ *   HOD -> Own College -> Own Department -> Authorized recipients only
+ *
+ * The authoritative HOD department is resolved by hodDepartment.middleware
+ * (req.hodDepartment) from the authenticated user's Teacher record. The
+ * backend NEVER trusts client-supplied college_id, department_id,
+ * target_department, createdBy, createdByRole or createdByDepartment.
+ * ================================
+ */
+exports.createHodNotification = async (req, res, next) => {
+  try {
+    // Authoritative HOD department resolved by hodDepartment middleware
+    const hodDepartmentId = req.hodDepartment;
+
+    const { title, message, type, target, actionUrl, expiresAt, priority,
+            target_department, target_users } = req.body;
+
+    const validHodTargets = ["STUDENTS", "TEACHERS", "HOD", "DEPARTMENT", "INDIVIDUAL"];
+    const effectiveTarget = target || "STUDENTS";
+
+    if (!validHodTargets.includes(effectiveTarget)) {
+      throw new AppError(`HODs can only target: ${validHodTargets.join(", ")}`, 400, "INVALID_HOD_TARGET");
+    }
+
+    const validPriorities = ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"];
+    if (priority && !validPriorities.includes(priority)) {
+      throw new AppError(`Invalid priority. Must be one of: ${validPriorities.join(", ")}`, 400, "INVALID_PRIORITY");
+    }
+
+    if (expiresAt) {
+      const expiresDate = new Date(expiresAt);
+      if (isNaN(expiresDate.getTime())) {
+        throw new AppError("Invalid expiresAt date format", 400, "INVALID_DATE");
+      }
+      if (!validateExpiryDate(expiresAt)) {
+        throw new AppError(expiryDateValidatorMessage, 400, "PAST_EXPIRY_DATE");
+      }
+    }
+
+    // --- DEPARTMENT target: must equal the HOD's own department ---
+    if (effectiveTarget === "DEPARTMENT") {
+      if (!target_department) {
+        throw new AppError("target_department is required when target is DEPARTMENT", 400, "MISSING_TARGET_DEPARTMENT");
+      }
+      if (!mongoose.Types.ObjectId.isValid(target_department)) {
+        throw new AppError("Invalid target_department", 400, "INVALID_TARGET_DEPARTMENT");
+      }
+      if (target_department.toString() !== hodDepartmentId.toString()) {
+        throw new AppError(
+          "HOD can only target their own department",
+          403,
+          "HOD_DEPARTMENT_MISMATCH"
+        );
+      }
+    }
+
+    // --- INDIVIDUAL target: every recipient must be within HOD's department ---
+    if (effectiveTarget === "INDIVIDUAL") {
+      if (!target_users || !Array.isArray(target_users) || target_users.length === 0) {
+        throw new AppError("target_users array is required when target is INDIVIDUAL", 400, "MISSING_TARGET_USERS");
+      }
+
+      const uniqueUserIds = [...new Set(target_users.map(String))];
+      if (uniqueUserIds.length === 0) {
+        throw new AppError("target_users must contain at least one valid user ID", 400, "MISSING_TARGET_USERS");
+      }
+
+      const validObjectIds = uniqueUserIds.filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+      if (validObjectIds.length !== uniqueUserIds.length) {
+        throw new AppError("One or more target_users IDs are invalid", 400, "INVALID_TARGET_USER_ID");
+      }
+
+      // Server-side department authorization for every selected recipient
+      const authorizedIds = await getHodAuthorizedRecipientIds({
+        userIds: validObjectIds,
+        collegeId: req.college_id,
+        departmentId: hodDepartmentId,
+      });
+
+      if (authorizedIds.size !== validObjectIds.length) {
+        throw new AppError(
+          "One or more selected recipients are outside your department, from another college, inactive, or have an ineligible role",
+          403,
+          "UNAUTHORIZED_RECIPIENTS"
+        );
+      }
+
+      req.body.target_users = validObjectIds;
+    }
+
+    // --- Build notification. college_id / createdBy / createdByRole /
+    // createdByDepartment are SERVER-SIDE TRUTH only. ---
+    const notification = await Notification.create({
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      createdByRole: "HOD",
+      createdByDepartment: hodDepartmentId,
+      target: effectiveTarget,
+      title,
+      message,
+      type: type || "GENERAL",
+      priority: priority || "NORMAL",
+      actionUrl,
+      expiresAt,
+      target_department: effectiveTarget === "DEPARTMENT" ? hodDepartmentId : undefined,
+      target_users: effectiveTarget === "INDIVIDUAL" ? req.body.target_users : undefined,
+    });
+
+    ApiResponse.created(res, {
+      notification,
+    }, "Notification created successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * ================================
  * STUDENT – VIEW NOTIFICATIONS
  * Sees: Admin + Teacher notifications (with granular targeting - FIX: Issue #7)
  * ================================
@@ -216,27 +339,31 @@ exports.getStudentNotifications = async (req, res, next) => {
       studentProfile: student,
     });
 
-    const notifications = await Notification.find(visibilityQuery)
-      .populate("target_department", "name code")
-      .populate("target_course", "name code")
-      .sort({ createdAt: -1 });
+     const notifications = await Notification.find(visibilityQuery)
+       .populate("target_department", "name code")
+       .populate("target_course", "name code")
+       .sort({ createdAt: -1 });
 
-    const adminNotifications = [];
-    const teacherNotifications = [];
+     const adminNotifications = [];
+     const teacherNotifications = [];
+     const hodNotifications = [];
 
-    notifications.forEach((n) => {
-      if (n.createdByRole === "COLLEGE_ADMIN") {
-        adminNotifications.push(n);
-      } else if (n.createdByRole === "TEACHER") {
-        teacherNotifications.push(n);
-      }
-    });
+     notifications.forEach((n) => {
+       if (n.createdByRole === "COLLEGE_ADMIN") {
+         adminNotifications.push(n);
+       } else if (n.createdByRole === "TEACHER") {
+         teacherNotifications.push(n);
+       } else if (n.createdByRole === "HOD") {
+         hodNotifications.push(n);
+       }
+     });
 
-    ApiResponse.success(res, {
-      count: notifications.length,
-      adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
-      teacherNotifications: await attachReadStatus(teacherNotifications, req.user.id),
-    }, "Admin notifications fetched successfully");
+     ApiResponse.success(res, {
+       count: notifications.length,
+       adminNotifications: await attachReadStatus(adminNotifications, req.user.id),
+       teacherNotifications: await attachReadStatus(teacherNotifications, req.user.id),
+       hodNotifications: await attachReadStatus(hodNotifications, req.user.id),
+     }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -559,31 +686,39 @@ exports.getStudentNotificationCount = async (req, res, next) => {
       });
     }
 
-    const readIds = await getReadNotificationIds(userId);
-    const visibilityQuery = await getNotificationVisibilityQuery({
-      collegeId: req.college_id,
-      role: req.user.role,
-      userId,
-      studentProfile: student,
-    });
+     const readIds = await getReadNotificationIds(userId);
+     const visibilityQuery = await getNotificationVisibilityQuery({
+       collegeId: req.college_id,
+       role: req.user.role,
+       userId,
+       studentProfile: student,
+     });
 
-    const adminCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      createdByRole: "COLLEGE_ADMIN"
-    });
+     const adminCount = await Notification.countDocuments({
+       ...visibilityQuery,
+       _id: { $nin: readIds },
+       createdByRole: "COLLEGE_ADMIN"
+     });
 
-    const teacherCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      createdByRole: "TEACHER"
-    });
+     const teacherCount = await Notification.countDocuments({
+       ...visibilityQuery,
+       _id: { $nin: readIds },
+       createdByRole: "TEACHER"
+     });
 
-    ApiResponse.success(res, {
-      adminCount,
-      teacherCount,
-      total: adminCount + teacherCount
-    }, "Notification count fetched successfully");
+     // HOD created (department-scoped) notifications visible to this student
+     const hodCount = await Notification.countDocuments({
+       ...visibilityQuery,
+       _id: { $nin: readIds },
+       createdByRole: "HOD"
+     });
+
+     ApiResponse.success(res, {
+       adminCount,
+       teacherCount,
+       hodCount,
+       total: adminCount + teacherCount + hodCount
+     }, "Notification count fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -1078,7 +1213,11 @@ exports.markAsRead = async (req, res, next) => {
  * ================================
  * ELIGIBLE RECIPIENTS FOR INDIVIDUAL TARGET
  * Secure tenant-scoped endpoint for the recipient selector.
- * Only returns active same-college users with eligible roles.
+ *
+ * COLLEGE_ADMIN: college-wide eligible recipients (existing behavior, unchanged).
+ * HOD:          ONLY users within the HOD's own department + same college.
+ * Authorization/filtering always happens server-side — never "fetch-all then
+ * filter on the frontend".
  * ================================
  */
 exports.getEligibleRecipients = async (req, res, next) => {
@@ -1086,6 +1225,9 @@ exports.getEligibleRecipients = async (req, res, next) => {
     const { search = "" } = req.query;
     const ALLOWED_ROLES = ["STUDENT", "TEACHER", "HOD", "PARENT_GUARDIAN"];
 
+    const normalizedRole = String(req.user.role || "").toUpperCase();
+
+    // Base candidate query (active + same college + allowed roles)
     const query = {
       college_id: req.college_id,
       isActive: true,
@@ -1100,6 +1242,67 @@ exports.getEligibleRecipients = async (req, res, next) => {
       ];
     }
 
+    // HOD: narrow candidates to the HOD's own department (server-side only).
+    // Query dept-scoped directly — never fetch college-wide then filter.
+    if (normalizedRole === "HOD") {
+      const { resolveHodDepartment, getHodAuthorizedRecipientIds } = require("../services/hodDepartment.service");
+      const { department } = await resolveHodDepartment({
+        userId: req.user.id,
+        collegeId: req.college_id,
+      });
+
+      // Collect user_ids that belong to this department via Student/Teacher records,
+      // then intersect with the active-user + allowed-role + search filter.
+      const Teacher = require("../models/teacher.model");
+      const Student = require("../models/student.model");
+      const ParentGuardian = require("../models/parentGuardian.model");
+
+      const deptTeachers = await Teacher.find({
+        college_id: req.college_id,
+        department_id: department._id,
+        status: "ACTIVE",
+      }).select("user_id").lean();
+
+      const deptStudents = await Student.find({
+        college_id: req.college_id,
+        department_id: department._id,
+        status: { $in: ["APPROVED", "ENROLLED"] },
+      }).select("user_id _id").lean();
+
+      const deptStudentIds = deptStudents.map((s) => s._id);
+      const deptParents = deptStudentIds.length > 0
+        ? await ParentGuardian.find({
+            college_id: req.college_id,
+            student_ids: { $in: deptStudentIds },
+          }).select("user_id").lean()
+        : [];
+
+      const deptUserIds = [
+        ...deptTeachers.map((t) => t.user_id),
+        ...deptStudents.map((s) => s.user_id),
+        ...deptParents.map((p) => p.user_id),
+      ].filter(Boolean);
+
+      if (deptUserIds.length === 0) {
+        ApiResponse.success(res, [], "Eligible recipients fetched successfully");
+        return;
+      }
+
+      const scopedQuery = {
+        ...query,
+        _id: { $in: deptUserIds },
+      };
+
+      const users = await User.find(scopedQuery)
+        .select("_id name email role")
+        .limit(50)
+        .lean();
+
+      ApiResponse.success(res, users, "Eligible recipients fetched successfully");
+      return;
+    }
+
+    // COLLEGE_ADMIN (and PRINCIPAL fallback): existing college-wide behavior
     const users = await User.find(query)
       .select("_id name email role")
       .limit(50)

@@ -67,6 +67,19 @@ const ROLE_CONFIG = {
     successMessage: "Notification sent successfully to students!",
     editSuccessMessage: "Notification updated successfully!",
   },
+  hod: {
+    createEndpoint: "/notifications/hod/create",
+    editEndpoint: "/notifications/edit-note/",
+    readEndpoint: "/notifications/hod/read",
+    dashboardRoute: "/hod/dashboard",
+    listRoute: "/hod/notifications/list",
+    canCreate: true,
+    canEdit: true,
+    canTarget: true,
+    placeholder: "department",
+    successMessage: "Notification created successfully!",
+    editSuccessMessage: "Notification updated successfully!",
+  },
 };
 
 /* ================= BRAND COLORS ================= */
@@ -123,7 +136,7 @@ export default function NotificationForm({
     type: "GENERAL",
     priority: mode === "edit" ? "NORMAL" : "LOW",
     expiresAt: "",
-    target: role === "teacher" ? "STUDENTS" : "ALL",
+    target: role === "teacher" || role === "hod" ? "STUDENTS" : "ALL",
     target_department: "",
     target_course: "",
     target_semester: "",
@@ -141,6 +154,7 @@ export default function NotificationForm({
   const [messageCount, setMessageCount] = useState(0);
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [hodDepartment, setHodDepartment] = useState(null); // HOD's own dept (locked)
   const [recipientSearch, setRecipientSearch] = useState("");
   const [recipientOptions, setRecipientOptions] = useState([]);
   const [recipientLoading, setRecipientLoading] = useState(false);
@@ -175,9 +189,30 @@ export default function NotificationForm({
     }
   }, [config.canTarget]);
 
+  /* ================= FETCH HOD'S OWN DEPARTMENT (locked for DEPARTMENT target) ================= */
+  useEffect(() => {
+    if (role !== "hod") return;
+    const fetchHodDept = async () => {
+      try {
+        // The HOD profile endpoint returns the teacher record which includes department_id.
+        // We use the departments list already fetched to resolve the name.
+        const res = await api.get("/hod/profile");
+        const deptId = res.data?.teacher?.department_id || res.data?.department_id;
+        if (deptId) {
+          setHodDepartment(deptId);
+          // Pre-fill target_department so the backend receives the correct value.
+          setForm((prev) => ({ ...prev, target_department: deptId }));
+        }
+      } catch (err) {
+        logger.error("Error fetching HOD department:", err);
+      }
+    };
+    fetchHodDept();
+  }, [role]);
+
   /* ================= FETCH ELIGIBLE RECIPIENTS (INDIVIDUAL TARGET) ================= */
   useEffect(() => {
-    if (form.target !== "INDIVIDUAL" || role !== "college-admin") return;
+    if (form.target !== "INDIVIDUAL" || (role !== "college-admin" && role !== "hod")) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setRecipientLoading(true);
@@ -205,10 +240,11 @@ export default function NotificationForm({
       setError(null);
       const res = await api.get(config.readEndpoint);
 
-      let all = [
+      const all = [
         ...(res.data.myNotifications || []),
         ...(res.data.adminNotifications || []),
         ...(res.data.staffNotifications || []),
+        ...(res.data.teacherNotifications || []),
       ];
 
       const found = all.find((n) => n._id === id);
@@ -1175,7 +1211,7 @@ export default function NotificationForm({
                             </>
                           )}
 
-{/* DEPARTMENT Option - Available for both admin and teacher */}
+                          {/* DEPARTMENT Option - Available for admin and teacher (not HOD — HOD gets it in their own section below) */}
                           {(role === "college-admin" || role === "teacher") && (
                             <div style={{ marginBottom: "0.75rem" }}>
                               <label
@@ -1206,25 +1242,44 @@ export default function NotificationForm({
                               marginBottom: "1rem",
                             }}
                           >
-                            <select
-                              name="target_department"
-                              value={form.target_department}
-                              onChange={handleChange}
-                              required
-                              style={{
-                                width: "100%",
-                                padding: "0.75rem",
-                                borderRadius: "10px",
-                                border: "2px solid #e2e8f0",
-                              }}
-                            >
-                              <option value="">Select Department</option>
-                              {departments.map((dept) => (
-                                <option key={dept._id} value={dept._id}>
-                                  {dept.name} ({dept.code})
-                                </option>
-                              ))}
-                            </select>
+                            {role === "hod" ? (
+                              // HOD: department is locked to their own dept — no free selection
+                              <div
+                                style={{
+                                  padding: "0.75rem 1rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #bfdbfe",
+                                  backgroundColor: "#eff6ff",
+                                  color: "#1e40af",
+                                  fontSize: "0.95rem",
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {departments.find((d) => d._id === hodDepartment)?.name ||
+                                  "Your Department (auto-assigned)"}
+                                <input type="hidden" name="target_department" value={hodDepartment || ""} />
+                              </div>
+                            ) : (
+                              <select
+                                name="target_department"
+                                value={form.target_department}
+                                onChange={handleChange}
+                                required
+                                style={{
+                                  width: "100%",
+                                  padding: "0.75rem",
+                                  borderRadius: "10px",
+                                  border: "2px solid #e2e8f0",
+                                }}
+                              >
+                                <option value="">Select Department</option>
+                                {departments.map((dept) => (
+                                  <option key={dept._id} value={dept._id}>
+                                    {dept.name} ({dept.code})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         )}
 
@@ -1292,6 +1347,95 @@ export default function NotificationForm({
                                 ))}
                               </select>
                             </div>
+                          )}
+
+                          {/* HOD additional targets */}
+                          {role === "hod" && (
+                            <>
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="TEACHERS"
+                                    checked={form.target === "TEACHERS"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaChalkboardTeacher /> Teachers Only (Your Department)
+                                </label>
+                              </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="HOD"
+                                    checked={form.target === "HOD"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaUserTie /> HOD Only (Your Department)
+                                </label>
+                              </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="DEPARTMENT"
+                                    checked={form.target === "DEPARTMENT"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaUsers /> Entire Department (Your Department Only)
+                                </label>
+                              </div>
+
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                <label
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.5rem",
+                                    marginBottom: "0.5rem",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="target"
+                                    value="INDIVIDUAL"
+                                    checked={form.target === "INDIVIDUAL"}
+                                    onChange={handleChange}
+                                  />
+                                  <FaUserCheck /> Individual User(s) (Your Department)
+                                </label>
+                              </div>
+                            </>
                           )}
 
                           {form.target === "INDIVIDUAL" && (
