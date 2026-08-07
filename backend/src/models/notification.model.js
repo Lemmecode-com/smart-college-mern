@@ -20,6 +20,17 @@ const notificationSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Department scope of the creator.
+    // Set ONLY for HOD-created notifications (from the authenticated HOD's
+    // resolved department). Never accepted from the client. Used by the
+    // visibility service to enforce HOD department isolation. Optional for
+    // backward-compatibility with existing COLLEGE_ADMIN/TEACHER notifications.
+    createdByDepartment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+    },
+
     // 📢 Notification Content
     title: {
       type: String,
@@ -121,6 +132,8 @@ notificationSchema.index({ college_id: 1, isActive: 1 }); // Active notification
 notificationSchema.index({ target: 1, type: 1 }); // Target and type filtering
 // New indexes for granular targeting
 notificationSchema.index({ college_id: 1, target_department: 1 }); // Department targeting
+// Department scope of the HOD creator (for HOD department-isolation scoping)
+notificationSchema.index({ college_id: 1, createdByRole: 1, createdByDepartment: 1 }); // HOD department scoping
 notificationSchema.index({ college_id: 1, target_course: 1 }); // Course targeting
 notificationSchema.index({ college_id: 1, target_semester: 1 }); // Semester targeting
 // Optimized compound index for dashboard queries
