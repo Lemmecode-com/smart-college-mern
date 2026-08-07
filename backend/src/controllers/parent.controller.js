@@ -190,7 +190,7 @@ exports.getChildAttendance = async (req, res, next) => {
           as: "session",
         },
       },
-      { $unwind: "$session" },
+      { $unwind: { path: "$session", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: "subjects",
@@ -203,7 +203,6 @@ exports.getChildAttendance = async (req, res, next) => {
       {
         $sort: { "session.lectureDate": -1 },
       },
-      { $limit: 100 },
       {
         $project: {
           _id: 1,
