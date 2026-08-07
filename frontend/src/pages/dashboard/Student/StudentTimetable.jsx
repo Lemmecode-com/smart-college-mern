@@ -97,6 +97,16 @@ const DAY_NAMES = [
   "Friday",
   "Saturday",
 ];
+const ALL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const DAY_NAMES_FULL = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 // Validation helper function
 const validateTimetableSlot = (slot) => {
@@ -213,6 +223,10 @@ export default function StudentTimetable() {
   });
   const [isOutsideActiveRange, setIsOutsideActiveRange] = useState(false);
 
+  const [fullWeekView, setFullWeekView] = useState(false);
+  const displayDays = fullWeekView ? ALL_DAYS : DAYS;
+  const displayDayNames = fullWeekView ? DAY_NAMES_FULL : DAY_NAMES;
+
   // Security check
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "STUDENT") return <Navigate to="/" />;
@@ -256,7 +270,7 @@ export default function StudentTimetable() {
 
     // Group by day
     const weeklyData = {};
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = validatedSlots.filter((slot) => slot.day === day);
     });
     setWeekly(weeklyData);
@@ -274,7 +288,7 @@ export default function StudentTimetable() {
   const processNewFormatSchedule = (schedule) => {
     // Convert new schedule format to existing weekly format
     const weeklyData = {};
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = [];
     });
 
@@ -317,9 +331,10 @@ export default function StudentTimetable() {
     const validatedSlots = allWeeklySlots.filter(validateTimetableSlot);
 
     // Update weekly data with validated slots
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = validatedSlots.filter((slot) => slot.day === day);
     });
+
 
     // Validate today slots too
     todaySlotsList = todaySlotsList.filter(validateTimetableSlot);
@@ -624,8 +639,8 @@ export default function StudentTimetable() {
   }, [dateRange.startDate, dateRange.endDate]);
 
   // Helper: Get the date for a specific day code within the current date range
-  const getDateForDay = (dayCode) => {
-    const dayIndex = DAYS.indexOf(dayCode);
+   const getDateForDay = (dayCode) => {
+    const dayIndex = displayDays.indexOf(dayCode);
     if (dayIndex === -1) return null;
     const [year, month, day] = dateRange.startDate.split("-").map(Number);
     const targetDate = new Date(year, month - 1, day + dayIndex);
@@ -653,8 +668,8 @@ export default function StudentTimetable() {
     const timeSet = new Set();
     const fullDayHolidays = {}; // Track days with full-day holidays
 
-    // First pass: Identify full-day holidays for each day
-    DAYS.forEach((day) => {
+     // First pass: Identify full-day holidays for each day
+    ALL_DAYS.forEach((day) => {
       const daySlots = weekly[day] || [];
       const holidaySlot = daySlots.find(
         (s) =>
@@ -943,7 +958,7 @@ export default function StudentTimetable() {
           <div className="st-stat-info">
             <span className="st-stat-value">
               {scheduleSummary?.workingDays ||
-                DAYS.filter((day) => weekly[day]?.length > 0).length}
+                displayDays.filter((day) => weekly[day]?.length > 0).length}
             </span>
             <span className="st-stat-label">Working Days</span>
           </div>
@@ -1115,7 +1130,19 @@ export default function StudentTimetable() {
             <FaCalendarAlt className="st-section-icon" aria-hidden="true" />
             <h2 id="weekly-schedule-heading">Weekly Schedule</h2>
           </div>
-          <div className="st-section-badge" aria-label="Full week view">
+          <div
+            className={`st-section-badge st-full-week-toggle ${fullWeekView ? "st-active" : ""}`}
+            aria-label="Full week view"
+            role="button"
+            tabIndex={0}
+            onClick={() => setFullWeekView((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setFullWeekView((prev) => !prev);
+              }
+            }}
+          >
             <FaBook aria-hidden="true" />
             <span>Full Week View</span>
           </div>
@@ -1132,7 +1159,7 @@ export default function StudentTimetable() {
                 <th className="st-time-col-header erp-timetable-time" scope="col">
                   <FaClock aria-hidden="true" /> Time
                 </th>
-                {DAYS.map((day, idx) => {
+                {displayDays.map((day, idx) => {
                   const dayDate = getDateForDay(day);
                   const dateStr = formatDateDDMMYYYY(dayDate);
                   const todayStr = toLocalDateStr(new Date());
@@ -1142,10 +1169,10 @@ export default function StudentTimetable() {
                       key={day}
                       className={`st-day-col-header ${isToday ? "st-today-col" : ""} erp-timetable-day`}
                       scope="col"
-                      aria-label={`${DAY_NAMES[idx]}${isToday ? " (Today)" : ""}`}
-                    >
-                      <div className="st-day-header-content">
-                        <span className="st-day-name">{DAY_NAMES[idx]}</span>
+                       aria-label={`${displayDayNames[idx]}${isToday ? " (Today)" : ""}`}
+                     >
+                       <div className="st-day-header-content">
+                         <span className="st-day-name">{displayDayNames[idx]}</span>
                         {dateStr && (
                           <span className="st-day-date">
                             {dateStr}
@@ -1163,7 +1190,7 @@ export default function StudentTimetable() {
             <tbody>
               {dynamicTimeRows.length === 0 ? (
                 <tr>
-                  <td className="st-time-cell" colSpan={DAYS.length + 1}>
+                  <td className="st-time-cell" colSpan={displayDays.length + 1}>
                     <div className="st-no-slots">
                       <FaCalendarAlt className="st-no-slots-icon" />
                       <span>No classes scheduled for this week</span>
@@ -1178,7 +1205,7 @@ export default function StudentTimetable() {
                       <td className="st-time-cell erp-timetable-time" scope="row">
                         {timeStr}
                       </td>
-                      {DAYS.map((day) => {
+                      {displayDays.map((day) => {
                         // Check if this day has a full-day holiday
                         const holidaySlot = fullDayHolidays[day];
 
@@ -1527,17 +1554,27 @@ function WeeklySlotCard({ slot }) {
       >
         {slot.subject_id?.name}
       </div>
+      <div
+        className="st-weekly-slot-time"
+        style={{ opacity: isCancelled ? 0.5 : 1 }}
+      >
+        <FaClock className="st-weekly-icon" />
+        <span>
+          {formatTime12Hour(slot.startTime)} -{" "}
+          {formatTime12Hour(slot.endTime)}
+        </span>
+      </div>
       <div className="st-weekly-slot-footer">
         <div className="st-weekly-detail">
           <FaChalkboardTeacher className="st-weekly-icon" />
           <span className="st-weekly-teacher">
-            {slot.teacher_id?.name?.split(" ")[0]}
+            {slot.teacher_id?.name || "TBA"}
           </span>
         </div>
         {slot.room && (
           <div className="st-weekly-detail">
             <FaDoorOpen className="st-weekly-icon" />
-            <span>{slot.room}</span>
+            <span>Room {slot.room}</span>
           </div>
         )}
         {/* Phase 3: Exception reason tooltip */}
@@ -2213,6 +2250,31 @@ const componentStyles = `
     font-weight: 500;
   }
 
+  .st-full-week-toggle {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+  }
+
+  .st-full-week-toggle:hover {
+    background: #e2e8f0;
+    color: #33415a;
+  }
+
+  .st-full-week-toggle:focus {
+    outline: 2px solid #4fc3f7;
+    outline-offset: 2px;
+  }
+
+  .st-full-week-toggle.st-active {
+    background: #1a4b6d;
+    color: #ffffff;
+  }
+
+  .st-full-week-toggle.st-active:hover {
+    background: #2d6f8f;
+  }
+
   /* ================= TODAY'S GRID ================= */
   .st-today-grid {
     display: grid;
@@ -2465,6 +2527,18 @@ const componentStyles = `
     flex: 1;
     word-break: break-word;
     overflow: visible;
+  }
+
+  .st-weekly-slot-time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .st-weekly-slot-footer {
