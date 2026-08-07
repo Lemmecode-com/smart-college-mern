@@ -153,6 +153,8 @@ export default function PrincipalDashboard() {
     pendingAdmissions: 0,
     totalApproved: 0,
     totalRejected: 0,
+    approvedPercentage: 0,
+    pendingPercentage: 0,
   });
   const [college, setCollege] = useState(null);
   const [recentStudents, setRecentStudents] = useState([]);
@@ -184,6 +186,8 @@ export default function PrincipalDashboard() {
           pendingAdmissions: dData?.stats?.pendingAdmissions || 0,
           totalApproved: admData?.approved || 0,
           totalRejected: admData?.rejected || 0,
+          approvedPercentage: admData?.approvedPercentage || 0,
+          pendingPercentage: admData?.pendingPercentage || 0,
         });
         setCollege(dData?.college || null);
         setRecentStudents(dData?.recentStudents || []);
@@ -207,9 +211,8 @@ export default function PrincipalDashboard() {
   if (loading) return <Loading />;
   if (error) return <div className="text-center text-danger mt-4">{error}</div>;
 
-  const { totalStudents, totalTeachers, totalDepartments, totalCourses, pendingAdmissions, totalApproved, totalRejected } = stats;
-  const totalApplications = totalApproved + pendingAdmissions + totalRejected;
-  const approvalRate = totalApplications > 0 ? Math.round((totalApproved / totalApplications) * 100) : 0;
+  const { totalStudents, totalTeachers, totalDepartments, totalCourses, pendingAdmissions, totalApproved, totalRejected, approvedPercentage, pendingPercentage } = stats;
+  const approvalRate = approvedPercentage;
 
   // Quick action cards configuration
   const quickActions = [
@@ -319,7 +322,7 @@ export default function PrincipalDashboard() {
                   <div className="approval-flow">
                     <div className="progress-circle-container">
                       <ProgressRing
-                        percentage={totalApplications > 0 ? Math.round((pendingAdmissions / totalApplications) * 100) : 0}
+                        percentage={pendingPercentage}
                         color={BRAND_COLORS.warning.main}
                       />
                       <div className="progress-label">Pending</div>
