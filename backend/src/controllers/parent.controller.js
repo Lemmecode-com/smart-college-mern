@@ -170,6 +170,11 @@ exports.getChildAttendance = async (req, res, next) => {
       return next(new AppError("Access denied: Student not linked to your account", 403, "NOT_AUTHORIZED"));
     }
 
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
+    }
+
     const records = await AttendanceRecord.aggregate([
       {
         $match: {
@@ -236,6 +241,11 @@ exports.getChildFees = async (req, res, next) => {
 
     if (!linkedIds.includes(studentId)) {
       return next(new AppError("Access denied: Student not linked to your account", 403, "NOT_AUTHORIZED"));
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
     }
 
     const feeRecord = await StudentFee.findOne({ student_id: studentId })
