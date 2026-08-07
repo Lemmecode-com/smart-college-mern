@@ -1060,6 +1060,22 @@ function AppContent({
            />
             {/* ================= HOD NOTIFICATIONS ================= */}
             <Route
+              path="/hod/notifications/create"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <NotificationForm role="hod" mode="create" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/notifications/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <NotificationForm role="hod" mode="edit" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/hod/notifications/list"
               element={
                 <ProtectedRoute allowedRoles={["HOD"]}>
