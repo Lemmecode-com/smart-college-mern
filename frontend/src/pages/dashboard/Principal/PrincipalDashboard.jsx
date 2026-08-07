@@ -21,6 +21,8 @@ import {
   FaInfoCircle,
   FaGraduationCap,
   FaCheckCircle,
+  FaClock,
+  FaTimes,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -153,8 +155,10 @@ export default function PrincipalDashboard() {
     pendingAdmissions: 0,
     totalApproved: 0,
     totalRejected: 0,
+    totalApplications: 0,
     approvedPercentage: 0,
     pendingPercentage: 0,
+    rejectedPercentage: 0,
   });
   const [college, setCollege] = useState(null);
   const [recentStudents, setRecentStudents] = useState([]);
@@ -186,8 +190,10 @@ export default function PrincipalDashboard() {
           pendingAdmissions: dData?.stats?.pendingAdmissions || 0,
           totalApproved: admData?.approved || 0,
           totalRejected: admData?.rejected || 0,
+          totalApplications: admData?.totalApplications || 0,
           approvedPercentage: admData?.approvedPercentage || 0,
           pendingPercentage: admData?.pendingPercentage || 0,
+          rejectedPercentage: admData?.rejectedPercentage || 0,
         });
         setCollege(dData?.college || null);
         setRecentStudents(dData?.recentStudents || []);
@@ -211,7 +217,7 @@ export default function PrincipalDashboard() {
   if (loading) return <Loading />;
   if (error) return <div className="text-center text-danger mt-4">{error}</div>;
 
-  const { totalStudents, totalTeachers, totalDepartments, totalCourses, pendingAdmissions, totalApproved, totalRejected, approvedPercentage, pendingPercentage } = stats;
+  const { totalStudents, totalTeachers, totalDepartments, totalCourses, pendingAdmissions, totalApproved, totalRejected, totalApplications, approvedPercentage, pendingPercentage, rejectedPercentage } = stats;
   const approvalRate = approvedPercentage;
 
   // Quick action cards configuration
@@ -424,6 +430,75 @@ export default function PrincipalDashboard() {
                   View Full Profile <FaArrowRight className="ms-1" />
                 </button>
               </Card.Footer>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Admission Metrics Breakdown */}
+        <Row xs={1} lg={8} className="g-4 mb-4">
+          <Col lg={12}>
+            <Card className="dashboard-card h-100 border-0 shadow-sm">
+              <Card.Header className="card-header-custom">
+                <h5 className="mb-0">
+                  <FaClipboardCheck className="me-2 text-success" />
+                  Admission Metrics Breakdown
+                </h5>
+              </Card.Header>
+              <Card.Body>
+                <div className="metrics-grid">
+                  <div className="metric-item">
+                    <div className="metric-icon approved">
+                      <FaCheckCircle />
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Approval Rate</div>
+                      <div className="metric-value">{approvedPercentage}%</div>
+                      <div className="metric-description">
+                        {totalApproved} out of {totalApplications} applications approved
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item">
+                    <div className="metric-icon pending">
+                      <FaClock />
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Pending Rate</div>
+                      <div className="metric-value">{pendingPercentage}%</div>
+                      <div className="metric-description">
+                        {pendingAdmissions} applications awaiting review
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item">
+                    <div className="metric-icon rejected">
+                      <FaTimes />
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Rejected Rate</div>
+                      <div className="metric-value">{rejectedPercentage}%</div>
+                      <div className="metric-description">
+                        {totalRejected} applications not approved
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item">
+                    <div className="metric-icon total">
+                      <FaUsers />
+                    </div>
+                    <div className="metric-content">
+                      <div className="metric-label">Total Applications</div>
+                      <div className="metric-value">{totalApplications}</div>
+                      <div className="metric-description">
+                        Approved + Pending + Rejected
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
             </Card>
           </Col>
         </Row>
