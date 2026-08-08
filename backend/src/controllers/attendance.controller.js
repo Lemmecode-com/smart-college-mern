@@ -553,6 +553,20 @@ exports.markAttendance = async (req, res, next) => {
       );
     }
 
+    // ✅ Prevent duplicate attendance save
+    const existingRecords = await AttendanceRecord.find({
+      session_id: attendanceSession._id,
+    }).session(session);
+
+    if (existingRecords.length > 0) {
+      await session.abortTransaction();
+      throw new AppError(
+        "Attendance already saved. Use Edit option",
+        409,
+        "ATTENDANCE_ALREADY_SAVED",
+      );
+    }
+
     const operations = [];
     const timestamp = new Date();
 
