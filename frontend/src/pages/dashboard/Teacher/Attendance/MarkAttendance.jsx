@@ -228,7 +228,7 @@ export default function MarkAttendance() {
 
     try {
       await api.post(
-        `/attendance/sessions/${selectedSession}/mark-attendance`,
+        `/attendance/sessions/${selectedSession}/mark`,
         payload
       );
 
