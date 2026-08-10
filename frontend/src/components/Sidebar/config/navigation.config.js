@@ -468,30 +468,12 @@ export const navigationConfig = {
         icon: FaCalendarAlt,
         defaultOpen: true,
         items: [
-          // {
-          //   path: "/timetable/create-timetable",
-          //   icon: FaPlus,
-          //   label: "Create Timetable",
-          //   exact: true,
-          // },
           {
             path: "/timetable/my-timetable",
             icon: FaListOl,
             label: "My Timetables",
             exact: true,
           },
-          // {
-          //   path: "/timetable/list",
-          //   icon: FaListOl,
-          //   label: "View Timetables",
-          //   exact: true,
-          // },
-          // {
-          //   path: "/timetable/add-slot",
-          //   icon: FaPlus,
-          //   label: "Add Slot",
-          //   exact: true,
-          // },
           {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
