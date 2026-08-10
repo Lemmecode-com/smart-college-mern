@@ -501,12 +501,17 @@ export default function AddTimetableSlot() {
                       <select
                         name="timetable_id"
                         value={form.timetable_id}
-                        onChange={handleChange}
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: `1px solid ${(!form.timetable_id && form.timetable_id !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
+                         onChange={(e) => {
+                           handleChange(e);
+                           if (e.target.name === "timetable_id") {
+                             setForm(prev => ({ ...prev, subject_id: "", teacher_id: "" }));
+                           }
+                         }}
+                         style={{
+                           width: '100%',
+                           padding: '0.875rem 1.25rem',
+                           borderRadius: '12px',
+                           border: `1px solid ${(!form.timetable_id && form.timetable_id !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
                           fontSize: '1rem',
                           backgroundColor: 'white',
                           color: '#1e293b',
@@ -649,19 +654,23 @@ export default function AddTimetableSlot() {
                     >
                       <input
                         type="text"
-                        value={teachers.find(t => t._id === form.teacher_id)?.name || "Select a subject to auto-assign teacher"}
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '1rem',
-                          backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
-                          color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
-                          fontWeight: form.teacher_id ? 600 : 400,
-                          fontStyle: form.teacher_id ? 'normal' : 'italic'
-                        }}
+                         value={
+                           form.subject_id && subjects.some(s => s._id === form.subject_id)
+                             ? teachers.find(t => t._id === form.teacher_id)?.name || ""
+                             : ""
+                         }
+                         disabled
+                         style={{
+                           width: '100%',
+                           padding: '0.875rem 1.25rem',
+                           borderRadius: '12px',
+                           border: '1px solid #e2e8f0',
+                           fontSize: '1rem',
+                           backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
+                           color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
+                           fontWeight: form.teacher_id ? 600 : 400,
+                           fontStyle: form.teacher_id ? 'normal' : 'italic'
+                         }}
                       />
                     </FormField>
 
