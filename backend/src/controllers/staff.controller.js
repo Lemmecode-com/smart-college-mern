@@ -18,6 +18,7 @@ const STAFF_ROLES = [
 const AuditService = require("../services/auditLog.service");
 const securityAuditService = require("../services/securityAudit.service");
 const { sendStaffCredentialsEmail } = require("../services/email.service");
+const { validateAge, ageValidatorMessage } = require("../utils/validators");
 
 /**
  * Generate a random temporary password
@@ -92,12 +93,17 @@ const generateTempPassword = (length = 10) => {
         )
       );
     }
-    // ─── Joining date validation ───
-    if (joiningDate && new Date(joiningDate) > new Date()) {
-      return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
-    }
+     // ─── Joining date validation ───
+     if (joiningDate && new Date(joiningDate) > new Date()) {
+       return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
+     }
 
-    // ─── Conflict checks (User table + Teacher table) ───
+     // ─── Date of birth validation ───
+     if (dateOfBirth && !validateAge(dateOfBirth, 14, 100)) {
+       return next(new AppError(ageValidatorMessage(14, 100), 400, "VALIDATION_ERROR"));
+     }
+
+     // ─── Conflict checks (User table + Teacher table) ───
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return next(new AppError("A user with this email already exists", 409, "EMAIL_EXISTS"));
