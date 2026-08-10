@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
-const { validateJoiningDate, joiningDateValidatorMessage } = require("../utils/validators");
+const {
+  validateJoiningDate,
+  joiningDateValidatorMessage,
+  validateAge,
+  ageValidatorMessage,
+} = require("../utils/validators");
 
 const staffProfileSchema = new mongoose.Schema({
   user_id: {
@@ -30,7 +35,16 @@ const staffProfileSchema = new mongoose.Schema({
   },
   // Personal details (optional)
   gender: { type: String, enum: ["", "Male", "Female", "Other"], default: "" },
-  dateOfBirth: Date,
+  dateOfBirth: {
+    type: Date,
+    validate: {
+      validator: function(v) {
+        if (!v) return true;
+        return validateAge(v, 14, 100);
+      },
+      message: ageValidatorMessage(14, 100),
+    },
+  },
   bloodGroup: {
     type: String,
     enum: ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
