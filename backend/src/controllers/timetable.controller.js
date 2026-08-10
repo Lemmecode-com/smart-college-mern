@@ -22,43 +22,33 @@ const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 ========================================================= */
 exports.createTimetable = async (req, res) => {
    try {
-     if (req.user.role !== "TEACHER" && req.user.role !== "HOD") {
+     if (req.user.role !== "HOD") {
        return res
          .status(403)
-         .json({ message: "Only teachers and HOD can create timetable" });
+         .json({ message: "Only HOD can create timetable" });
      }
 
-     // 🔧 Use teacher service (centralized logic)
-     const teacher = await teacherService.getTeacherWithValidation(
-       req.user.id,
-       req.college_id,
-       true, // check active status
-     );
+      const teacher = await teacherService.getTeacherWithValidation(
+        req.user.id,
+        req.college_id,
+        true, // check active status
+      );
 
-      const { department_id, course_id, semester, academicYear, division } = req.body;
+       const { department_id, course_id, semester, academicYear, division } = req.body;
 
-      // 🔒 SECURITY: Ensure user can only create timetable for their own department
-      let isAuthorized = false;
-      
-      if (req.user.role === "HOD") {
-        // For HODs: check if they are the HOD of the target department
-        const hodDepartment = await Department.findOne({
-          _id: department_id,
-          hod_id: teacher._id,
-          college_id: req.college_id,
-        });
-        isAuthorized = !!hodDepartment;
-      } else if (req.user.role === "TEACHER") {
-        // For TEACHERs: check if they belong to the target department
-        isAuthorized = teacher.department_id.toString() === department_id;
-      }
-      
-      if (!isAuthorized) {
-        return res.status(403).json({
-          message:
-            "Access denied: You can only create timetables for your own department",
-        });
-      }
+       // 🔒 SECURITY: Ensure user can only create timetable for their own department
+       const hodDepartment = await Department.findOne({
+         _id: department_id,
+         hod_id: teacher._id,
+         college_id: req.college_id,
+       });
+       
+       if (!hodDepartment) {
+         return res.status(403).json({
+           message:
+             "Access denied: You can only create timetables for your own department",
+         });
+       }
 
       const exists = await Timetable.findOne({
         college_id: req.college_id,

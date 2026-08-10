@@ -47,7 +47,7 @@ const {
 } = require("../controllers/timetableException.controller");
 
 /* ================= CREATE ================= */
-router.post("/", auth, role(ROLE.TEACHER, ROLE.HOD), collegeMiddleware, createTimetable);
+router.post("/", auth, role(ROLE.HOD), collegeMiddleware, createTimetable);
 
 /* ================= WEEKLY (STATIC FIRST) ================= */
 // NOTE: Static routes like /weekly, /student must come BEFORE dynamic routes like /:id
@@ -146,7 +146,7 @@ router.get(
 router.post(
   "/slot",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   addSlot
@@ -155,7 +155,7 @@ router.post(
 router.put(
   "/slot/:slotId",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   updateSlot
@@ -164,7 +164,7 @@ router.put(
 router.delete(
   "/slot/:slotId",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   deleteTimetableSlot
@@ -174,7 +174,7 @@ router.delete(
 router.put(
   "/:id/publish",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   publishTimetable
@@ -184,7 +184,7 @@ router.put(
 router.put(
   "/:id/archive",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   archiveTimetable
@@ -194,7 +194,7 @@ router.put(
 router.delete(
   "/:id",
   auth,
-  role(ROLE.TEACHER, ROLE.HOD),
+  role(ROLE.HOD),
   collegeMiddleware,
   hod,
   deleteTimetable
